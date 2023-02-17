@@ -1,0 +1,15 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: test-target
+spec:
+  topologies:
+  - bindings:    
+    - role: instance
+      provider: providers.target.mqtt
+      config:
+        name: proxy
+        brokerAddress: "tcp://20.118.146.198:1883"
+        clientID: "test-cluster-azure"
+        requestTopic: "coa-request"
+        responseTopic: "coa-response"

@@ -1,0 +1,24 @@
+# permissions for end users to edit skills.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: skill-editor-role
+rules:
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills/status
+  verbs:
+  - get

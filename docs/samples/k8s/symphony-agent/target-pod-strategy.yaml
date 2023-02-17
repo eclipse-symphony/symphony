@@ -1,0 +1,31 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: symphony-k8s-target
+spec:
+  metadata:
+    deployment.replicas: "#1"
+    service.ports: "[{\"name\":\"port8088\",\"port\": 8088}]"
+    service.type: "ClusterIP"
+    service.name: "symphony-agent"   
+  components:
+  - name: "symphony-agent"    
+    properties:
+      container.version: "1.0"
+      container.type: "docker"
+      container.image: "possprod.azurecr.io/symphony-agent:0.39.9"
+      container.createOptions: ""            
+      container.restartPolicy: "always"     
+      env.AZURE_CLIENT_ID: "<SP App ID>"
+      env.AZURE_TENANT_ID: "<SP Tenant ID>"
+      env.AZURE_CLIENT_SECRET: "<SP Client Secret>"
+      env.STORAGE_ACCOUNT: "voestore"
+      env.STORAGE_CONTAINER: "snapshots"
+      env.SYMPHONY_URL: "http://20.118.178.8:8080/v1alpha2/agent/references"
+      env.TARGET_NAME: "symphony-k8s-target" 
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"           

@@ -1,0 +1,189 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/status
+  verbs:
+  - get
+  - patch
+  - update

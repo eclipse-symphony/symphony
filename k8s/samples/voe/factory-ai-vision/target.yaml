@@ -1,0 +1,25 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: iot-edge-target
+spec:
+  components:
+  - name: "fake"
+    properties:
+      container.type: "docker"
+      container.image: "docker/hello-world"
+      container.version: "1.0"
+      container.createOptions: ""
+      container.restartPolicy: "always"
+  bindings:
+  - role: instance
+    type: providers.target.azure.iotedge
+    parameters:
+      name: "iot-edge"
+      keyName: "iothubowner"
+      key: "<IoT Hub connection string>"
+      iotHub: "s8c-hub2.azure-devices.net"
+      apiVersion: "2020-05-31-preview"
+      deviceName: "s8c-vm"
+
+      

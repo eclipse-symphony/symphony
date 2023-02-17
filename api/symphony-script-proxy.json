@@ -1,0 +1,50 @@
+{
+  "api": {
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.solution",
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.target": "script",
+              "providers.state": "mem-state"  
+            },
+            "providers": {
+              "script": {
+                "type": "providers.target.script",
+                "config": {
+                  "name": "script",
+                  "scriptFolder": "../symphony-docs/samples/scenarios/nxp1170",
+		              "applyScript": "apply.sh",
+		              "removeScript": "remove.sh",
+                  "getScript": "get.sh",
+                  "needsUpdate": "needsupdate.sh"
+                }
+              },
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8098
+      }
+    }
+  ]
+}

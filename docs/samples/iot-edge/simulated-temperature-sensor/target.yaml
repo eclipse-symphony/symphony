@@ -1,0 +1,17 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: sample-iot-edge-target
+spec:  
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.azure.iotedge
+      config:
+        name: "iot-edge"
+        keyName: "<IoT Hub Key Name>"
+        key: "<IoT Hub Key>"
+        iotHub: "<IoT Hub Name>"
+        apiVersion: "2020-05-31-preview"
+        deviceName: "<Device Name>"

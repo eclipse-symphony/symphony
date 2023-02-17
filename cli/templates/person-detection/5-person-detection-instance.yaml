@@ -1,0 +1,18 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: person-detection-instance  
+spec:
+  displayName: person-detection-instance
+  parameters:
+    configure_data: '{"test-camera": ["person-detection-skill"]}'
+    person-detection-skill.device_displayname: test-camera
+    person-detection-skill.device_id: test-camera
+    person-detection-skill.fps: "15"
+    person-detection-skill.instance_displayname: person-detection-instance
+    person-detection-skill.rtsp: rtsp://:@20.163.55.24:554/media/peoplewaiting.mkv
+    person-detection-skill.skill_displayname: person-detection
+  scope: poss
+  solution: person-detection 
+  target:
+    name: my-aks

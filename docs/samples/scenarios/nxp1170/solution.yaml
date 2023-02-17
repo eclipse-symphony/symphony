@@ -1,0 +1,10 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: tiny-ml
+spec:
+  components:
+  - name: model
+    type: container
+    properties:
+      image: "/Users/haishi/projects/go/src/github.com/azure/symphony-docs/samples/scenarios/nxp1170/model-7.2.0.bin"

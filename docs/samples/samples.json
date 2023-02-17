@@ -1,0 +1,149 @@
+{
+    "package": "maestro",
+    "version": "0.1",
+    "samples": [
+        {
+            "name": "hello-k8s",
+            "path": "k8s/hello-world",
+            "artifacts": [
+                {
+                    "file": "target.yaml",
+                    "type": "target",
+                    "name": "sample-k8s-target"
+                },
+                {
+                    "file": "solution.yaml",
+                    "type": "solution",
+                    "name": "sample-prometheus-server" 
+                }, 
+                {
+                    "file": "instance.yaml",
+                    "type": "instance",
+                    "name": "sample-prometheus-instance"                             
+                }
+            ],            
+            "description": "Deploy a Prometheus server on a K8s target",
+            "description-long": "This sample registers your current K8s cluster as a <C>Target</C>, defines a <C>Solution</C> with a Prometheus component (Docker: prom/Prometheus), and deploys the Solution to the Target by creating an <C>Instance</C> object. When the Instance is deployed, a <G>sample-k8s-scoe</G> namespace is created, and a LoadBalancer service named <G>sample-prometheus-instance</G> is created.",
+            "postActions": 
+                [
+                    {
+                        "command": "kubectl",
+                        "args": [
+                           "get",
+                           "svc",
+                           "sample-prometheus-instance",
+                           "-n",
+                           "sample-k8s-scope",
+                           "-o",
+                           "jsonpath='{$.status.loadBalancer.ingress[0].ip}'"
+                        ]
+                    },                                        
+                    {
+                        "command": "echo",
+                        "args": [
+                           "Navigate to http://$(1):9090/ to access Promethus portal"                           
+                        ]
+                    }                    
+                ],
+            "requires":["k8s"]
+        },
+        {
+            "name": "hello-iot-edge",
+            "path": "iot-edge/simulated-temperature-sensor",
+            "artifacts": [
+                {
+                    "file": "target.yaml",
+                    "type": "target",
+                    "name": "sample-iot-edge-target",
+                    "parameters": [
+                        {
+                            "name": "iot-hub-key",
+                            "value": "",
+                            "replace": "<IoT Hub Key>"
+                        },
+                        {
+                            "name": "iot-hub-name",
+                            "value": "",
+                            "replace": "<IoT Hub Name>"
+                        },
+                        {
+                            "name": "iot-hub-key-name",
+                            "value": "iothubowner",
+                            "replace": "<IoT Hub Key Name>"
+                        },
+                        {
+                            "name": "device-name",
+                            "value": "",
+                            "replace": "<Device Name>"
+                        }
+                    ]
+                },
+                {
+                    "file": "solution.yaml",
+                    "type": "solution",
+                    "name": "sample-simulated-temperature-sensor"
+                }, 
+                {
+                    "file": "instance-1.yaml",
+                    "type": "instance",
+                    "name": "sample-iot-edge-instance-1"
+                }, 
+                {
+                    "file": "instance-2.yaml",
+                    "type": "instance",
+                    "name": "sample-iot-edge-instance-2"
+                }
+            ],
+            "requires":["Azure IoT Edge"],
+            "description": "Deploy IoT Edge simulated sensor module",
+            "description-long": "This sample deploys two instances of IoT Edge simulated sensor module to an IoT Edge device. It creats a <C>Solution</C> with an IoT simulated sensor component (https://hub.docker.com/_/microsoft-azureiotedge-simulated-temperature-sensor), an IoT Edge <C>Target</C>, and two <C>Instance</C>s - <G>sample-iot-edge-instance-1</G> and <G>sample-iot-edge-instance-2</G> on the same IoT Edge device.",
+            "postActions": 
+            [
+                {
+                    "command": "echo",
+                    "args": [
+                       "Navigate to https://portal.azure.com/ to check your IoT Edge device"                           
+                    ]
+                }                    
+            ]
+        },
+        {
+            "name": "stage-on-k8s",
+            "path": "k8s/staged",
+            "artifacts": [
+                {
+                    "file": "target.yaml",
+                    "type": "target",
+                    "name": "sample-staged-k8s"
+                },
+                {
+                    "file": "solution.yaml",
+                    "type": "solution",
+                    "name": "sample-staged-solution"
+                }, 
+                {
+                    "file": "instance.yaml",
+                    "type": "instance",
+                    "name": "sample-staged-instance"
+                }
+            ],
+            "description": "Stage a dummy component on a K8s target",
+            "description-long": "This sample registers your current K8s target as a Symphony <C>Target</C>, defines a dummy <C>Solution</C> with a single component with a <G>foo=bar</G> property, and stages the Solution on the Target object by creating an <C>Instance</C> object.",
+            "requires":["k8s"],
+            "postActions": 
+            [
+                {
+                    "command": "./maestro",
+                    "args": [
+                       "get",
+                       "target",
+                       "-n",
+                       "sample-staged-k8s",
+                       "--json-path",
+                       "$.spec.components[0].properties"
+                    ]                    
+                }                    
+            ]
+        }
+    ]
+}

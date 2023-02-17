@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pai-service-role
+  namespace: symphony-k8s-system
+  labels:
+    app: symphony-api
+rules:
+- apiGroups: ["solution.symphony", "ai.symphony", "fabric.symphony", "apps", ""] # "" indicates the core API group
+  resources: ["targets", "skills", "models", "skillpackages", "devices", "instances", "solutions", "deployments", "services", "devices/status", "instances/status", "targets/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

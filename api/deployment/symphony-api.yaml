@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symphony-api
+  labels:
+    app: symphony-api
+  namespace: symphony-k8s-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: symphony-api
+  template:
+    metadata:
+      labels:
+        app: symphony-api
+    spec:
+      containers:
+      - name: symphony-api
+        image: possprod.azurecr.io/symphony-api:0.39.5
+        ports:
+        - containerPort: 8080        
+      serviceAccountName: pai-sp

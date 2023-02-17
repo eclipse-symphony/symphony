@@ -1,0 +1,14 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: script-target
+spec:  
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.script
+      config:
+        applyScript: "mock-apply.sh"   
+        removeScript: "mock-remove.sh"
+        getScript: "mock-get.sh"
+        scriptFolder: "https://demopolicies.blob.core.windows.net/gatekeeper"

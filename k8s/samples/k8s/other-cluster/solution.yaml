@@ -1,0 +1,16 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: redis-server
+spec:  
+  metadata:
+    deployment.replicas: "#1"
+    service.ports: "[{\"name\":\"port6379\",\"port\": 6379}]"
+    service.type: "ClusterIP"
+  components:
+  - name: redis-server
+    properties:
+      container.ports: "[{\"containerPort\":6379,\"protocol\":\"TCP\"}]"
+      container.imagePullPolicy: "Always"
+      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
+      container.image: "docker.io/redis:6.0.5"

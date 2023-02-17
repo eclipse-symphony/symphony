@@ -1,0 +1,21 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: redis-instance
+spec:
+  scope: basic-k8s
+  solution: redis-server
+  target: 
+    name: k8s-target    
+  parameters:
+    configure_data: '{"device-1": ["skill-d1574858-24bb-41eb-b3cb-ec27c3199c94"]}'
+  pipelines:
+  - name: pipeline0
+    parameters:
+      device_displayname: fdfd
+      device_id: device-1
+      fps: "10"
+      instance_displayname: dfdf
+      rtsp: rtsp://:@20.212.158.240/2.mkv
+      skill_displayname: fsdfdf
+    skill: skill-d1574858-24bb-41eb-b3cb-ec27c3199c94

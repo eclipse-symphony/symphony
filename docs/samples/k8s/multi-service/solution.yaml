@@ -1,0 +1,40 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: redis-server
+spec:
+    components:
+    - name: symphonyai
+      properties:
+        container.createOptions: '{"HostConfig":{"LogConfig":{"Type":"json-file","Config":{"max-size":"10m","max-file":"10"}}}}'
+        container.image: p4etest.azurecr.io/voe/symphonyai:0.39.0-dev.7-amd64
+        container.resources: ""
+        container.restartPolicy: always
+        container.type: docker
+        container.version: 0.39.0-dev.7
+        env.BLOB_STORAGE_CONNECTION_STRING: <Blob Connection String>
+        env.BLOB_STORAGE_CONTAINER: voe
+        env.INSTANCE: $instance()
+        env.IOTEDGE_CONNECTION_STRING: ""
+        env.WEBMODULE_URL: http://20.89.186.195   
+      routes:
+      - properties:
+          definition: FROM /messages/modules/instance-e517953f-def1-4a08-a784-e478bce31ea9-symphonyai/metrics
+            INTO $upstream
+        route: InferenceToIoTHub
+        type: iothub
+      type: container
+    - metadata:
+        deployment.replicas: '#1'
+        service.ports: '[{"name": "port6677", "port": 6677}]'
+        service.type: ClusterIP
+      name: dsdsd
+      properties:
+        container.image: intelligentedge/grpc_proto:0.0.1
+        container.imagePullPolicy: Always
+        container.ports: '[{"containerPort": 6677, "protocol": "TCP"}]'
+        container.resources: '{"requests": {"cpu": "100m", "memory": "100Mi"}}'
+        container.restartPolicy: always
+        container.type: docker
+        container.version: 0.0.1
+      type: container

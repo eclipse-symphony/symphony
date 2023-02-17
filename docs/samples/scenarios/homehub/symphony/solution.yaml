@@ -1,0 +1,14 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: home-hub
+spec:
+  components:
+  - name: backend
+    type: container
+    properties:
+      container.image: "nginx"
+  - name: HomeHub_1.0.7.0_x64
+    type: win.uwp
+    properties:
+      app.package.path: "E:\\HomeHub.Package_1.0.7.0_Debug_Test\\HomeHub.Package_1.0.7.0_x64_Debug.appxbundle"

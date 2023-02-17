@@ -1,0 +1,20 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: voe-target  
+spec:  
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.azure.iotedge
+      config:
+        name: "iot-edge"
+        keyName: "iothubowner"
+        key: "<IoT Hub Key>"
+        iotHub: "s8c-hub2.azure-devices.net"
+        apiVersion: "2020-05-31-preview"
+        deviceName: "s8c-vm"
+  properties:
+    os: Linux
+    runtime: azure.iotedge
+    app: rtos-demo

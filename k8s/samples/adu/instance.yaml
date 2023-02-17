@@ -1,0 +1,9 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: my-rtos-app
+spec:
+  solution: rtos-app
+  target:
+    selector: 
+      app: rtos-demo

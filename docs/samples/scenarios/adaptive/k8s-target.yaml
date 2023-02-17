@@ -1,0 +1,13 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: basic-k8s-target
+spec:  
+  properties:
+    group: demo
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"   

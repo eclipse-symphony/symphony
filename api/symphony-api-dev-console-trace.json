@@ -1,0 +1,270 @@
+{
+  "api": {
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.targets",
+        "route": "targets",
+        "managers": [
+          {
+            "name": "targets-manager",
+            "type": "managers.symphony.targets",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.solutions",
+        "route": "solutions",
+        "managers": [
+          {
+            "name": "solutions-manager",
+            "type": "managers.symphony.solutions",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.instances",
+        "route": "instances",
+        "managers": [
+          {
+            "name": "instances-manager",
+            "type": "managers.symphony.instances",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.devices",
+        "route": "devices",
+        "managers": [
+          {
+            "name": "devices-manager",
+            "type": "managers.symphony.devices",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.users",
+        "route": "users",
+        "properties": {
+          "test-users": "true"
+        },
+        "managers": [
+          {
+            "name": "users-manager",
+            "type": "managers.symphony.users",
+            "properties": {
+              "providers.state": "mem-state"              
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.solution",
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.state": "mem-state"  
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }     
+          }
+        ]
+      },
+      {
+        "type": "vendors.agent",
+        "route": "agent",
+        "managers": [
+          {
+            "name": "reference-manager",
+            "type": "managers.symphony.reference",
+            "properties": {
+              "providers.reference": "k8s-reference",
+              "providers.state": "memory",
+              "providers.reporter": "k8s-reporter"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "k8s-reference": {
+                "type": "providers.reference.k8s",
+                "config": {
+                  "inCluster": false
+                }
+              },
+              "k8s-reporter": {
+                "type": "providers.reporter.k8s",
+                "config": {
+                  "inCluster": false
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8080,
+        "pipeline": [
+          {
+            "type": "middleware.http.tracing",
+            "properties": {
+              "pipeline": [
+                {
+                  "exporter" : {
+                    "type": "tracing.exporters.console",
+                    "backendUrl": "",
+                    "sampler": {
+                      "sampleRate": "always"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "middleware.http.cors",
+            "properties": {
+              "Access-Control-Allow-Headers": "authorization,Content-Type",
+              "Access-Control-Allow-Credentials": "true",
+              "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+              "Access-Control-Allow-Origin": "*"
+            }
+          },
+          {
+            "type": "middleware.http.jwt",                   
+            "properties": {
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
+              "verifyKey": "SymphonyKey",              
+              "enableRBAC": true,
+              "roles": [
+                {
+                  "role": "administrator",
+                  "claim": "user",
+                  "value": "admin"
+                },
+                {
+                  "role": "reader",
+                  "claim": "user",
+                  "value": "*"
+                },
+                {
+                  "role": "solution-creator",
+                  "claim": "user",
+                  "value": "developer"
+                },
+                {
+                  "role": "target-manager",
+                  "claim": "user",
+                  "value": "device-manager"
+                },
+                {
+                  "role": "operator",
+                  "claim": "user",
+                  "value": "solution-operator"
+                }
+              ],
+              "policy": {                
+                "administrator": {
+                  "items": {
+                    "*": "*"                    
+                  }
+                },
+                "reader": {
+                  "items": {
+                    "*": "GET"
+                  }
+                },
+                "solution-creator": {
+                  "items": {
+                    "/v1alpha2/solutions": "*"
+                  }
+                },
+                "target-manager": {
+                  "items": {
+                    "/v1alpha2/targets": "*"
+                  }
+                },
+                "solution-operator": {
+                  "items": {
+                    "/v1alpha2/instances": "*"
+                  }
+                }                
+              }
+            }
+          }
+        ]
+      }      
+    }
+  ]
+}

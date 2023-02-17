@@ -1,0 +1,10 @@
+apiVersion: v2
+name: symphony
+description: A Helm chart for Symphony control plane
+type: application
+version: 0.41.42
+appVersion: "0.41.42"
+dependencies:
+  - name: cert-manager
+    version: "1.4.0"
+    repository: "https://charts.jetstack.io"

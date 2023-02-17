@@ -1,0 +1,16 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: mac-book
+spec:
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"    
+    - role: win.uwp
+      provider: providers.target.proxy
+      config:
+        name: proxy
+        serverUrl: "http://<target PC IP>:<provider port>/"

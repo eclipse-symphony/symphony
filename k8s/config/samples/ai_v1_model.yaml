@@ -1,0 +1,6 @@
+apiVersion: ai.symphony/v1
+kind: Model
+metadata:
+  name: model-sample
+spec:
+  # TODO(user): Add fields here

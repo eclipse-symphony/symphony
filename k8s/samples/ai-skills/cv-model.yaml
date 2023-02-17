@@ -1,0 +1,14 @@
+apiVersion: ai.symphony/v1
+kind: Model
+metadata:
+  name: object-detection
+spec:
+  properties:
+    model.type: "customvision"
+    model.project: "67df383b-1104-4b18-8298-2635bd89301f"
+    model.endpoint: "westus2.api.cognitive.microsoft.com"
+    model.version.1: "e9f98833-c4c5-4011-b666-cf302c252fa2"
+    tags: "['Car', 'Person', 'Bus']"
+    state: trained
+      
+    

@@ -1,0 +1,36 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: voe-target
+spec:  
+  properties:
+    cpu: x64
+    acceleration: "Nvidia dGPU"
+    os: "Ubuntu 20.04"
+  components:
+  - name: "symphony-agent"
+    properties:
+      container.version: "1.0"
+      container.type: "docker"
+      container.image: "possprod.azurecr.io/symphony-agent:0.38.0"
+      container.createOptions: "{\"HostConfig\":{\"Binds\":[\"/etc/iotedge/storage:/snapshots\"]}}"      
+      container.restartPolicy: "always"     
+      env.AZURE_CLIENT_ID: "<SP App ID>"
+      env.AZURE_TENANT_ID: "<SP Tenant ID>"
+      env.AZURE_CLIENT_SECRET: "<SP Client Secret>"
+      env.STORAGE_ACCOUNT: "voestore"
+      env.STORAGE_CONTAINER: "snapshots"
+      env.SYMPHONY_URL: "http://20.125.72.62:8080/v1alpha2/agent/references"
+      env.TARGET_NAME: "voe-target"
+      env.SNAPSHOT_ROOT: "/snapshots"
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.azure.iotedge
+      config:
+        name: "iot-edge"
+        keyName: "iothubowner"
+        key: "<IoT Hub Key>"
+        iotHub: "s8c-hub2.azure-devices.net"
+        apiVersion: "2020-05-31-preview"
+        deviceName: "s8c-vm"

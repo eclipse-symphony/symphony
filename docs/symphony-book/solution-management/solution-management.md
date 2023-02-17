@@ -1,0 +1,3 @@
+# Solution Management
+
+A [Solution](../uom/solution.md) describes an application. It consists of a list of [Component](../uom/solution.md#componentspec), which can be a container, a Helm chart, a Kubernetes artifact file, a security policy, a firmware, or anything else. Instead of forcing to adopt the Symphony [Component](../uom/solution.md#componentspec) artifact format, Symphony allows existing application artifacts to be directly embedded into Symphony solutions. On the other hand, if you do adopt the Symphony object model, you can take advantages of additional features like [adaptive deployment](../scenarios/adaptive-deployment.md).

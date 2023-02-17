@@ -1,0 +1,13 @@
+apiVersion: fabric.symphony/v1
+kind: Device
+metadata:
+  labels:
+    my-aks: "true"
+  name: test-camera  
+spec:
+  displayName: test-camera
+  properties:
+    ip: rtsp://20.163.55.24:554/media/peoplewaiting.mkv
+    location: front
+    password: ""
+    user: ""

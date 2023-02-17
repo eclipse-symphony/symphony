@@ -1,0 +1,14 @@
+apiVersion: fabric.symphony/v1
+kind: Device
+metadata:
+  labels:
+    k8s-target: "true"
+  name: device-1
+  namespace: default
+spec:
+  displayName: ddd
+  properties:
+    ip: rtsp://20.212.158.240/2.mkv
+    location: d
+    password: ""
+    user: ""

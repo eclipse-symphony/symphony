@@ -1,0 +1,107 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: voe-default
+spec:
+  parameters:
+  - name: IoT_Hub_Connection_String
+    requried: true
+    default: ""
+  - name: Platform
+    required: true
+    default: "x86"
+  - name: Docker_Runtime
+    required: true
+    default: "docker"
+  - name: CPU_GPU
+    required: true
+    default: "CPU"
+  components:
+  - name: webmodule
+    parameters:
+    - name: Training_API_Key
+      required: true
+      default: ""
+    - name: Training_Endpoint
+      required: true
+      default: ""  
+    properties:
+      version: "1.0"
+      type: "docker"
+      image: "intelligentedge/webmodule:0.34.0-$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"Mounts\":[{\"Target\":\"/workspace\",\"Source\":\"ovmsworkspace\",\"Type\":\"volume\"}],\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}},\"PortBindings\":{\"8000/tcp\":[{\"HostPort\":\"8000\"}]}}}"
+      restartPolicy: "always"
+      env.TRAINING_KEY: $params('Training_API_Key')
+      env.ENDPOINT: $params('Training_Endpoint')
+      env.DBNAME: vision_on_edge
+      env.DBHOST: "127.18.0.1"
+      env.DBUSER: "vision_on_edge"
+      env.DBPASS: "vision_on_edge"
+  - name: inferencemodule    
+    properties:
+      version: "1.0"
+      type: "docker"
+      image: "intelligentedge/inferencemodule:0.34.0-$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"PortBindings\":{\"5000/tcp\":[{\"HostPort\":\"5000\"}],\"44000/tcp\":[{\"HostPort\":\"44000\"}],\"5558/tcp\":[{\"HostPort\":\"5558\"}]},\"IpcMode\":\"host\",\"runtime\":\"$params('Docker_Runtime')\"}}"
+      restartPolicy: "always"
+      env.IOTHUB_CONNECTION_STRING: $params('IoT_Hub_Connection_String')
+      env.LVA_MODE: "grpc"
+  - name: predictmodule
+    properties:
+      version: "1.0"
+      type: "docker"
+      image: "intelligentedge/predictmodule:0.34.0-$params('CPU_GPU')$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"Binds\":[\"/dev/bus/usb:/dev/bus/usb\"],\"DeviceCgroupRules\":[\"c 189:* rmw\"],\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}},\"PortBindings\":{\"7777/tcp\":[{\"HostPort\":\"7777\"}]},\"IpcMode\":\"host\",\"runtime\":\"$params('Docker_Runtime')\"}}"
+      restartPolicy: "always"
+      env.IOTHUB_CONNECTION_STRING: $params('IoT_Hub_Connection_String')
+      env.LVA_MODE: "grpc"
+  - name: uploadmodule
+    properties:
+      verson: "1.0"
+      type: "docker"
+      image: "intelligentedge/uploadmodule:0.34.0-$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"Mounts\":[{\"Target\":\"/app/upload\",\"Source\":\"upload_data\",\"Type\":\"volume\"}],\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}},\"PortBindings\":{\"7000/tcp\":[{\"HostPort\":\"7000\"}]}}}"
+      restartPolicy: "always"
+  - name: modelmanager
+    properties:
+      version: "1.1"
+      type: "docker"
+      restartPolicy: "always"
+      startupOrder: "0"
+      image: "intelligentedge/modelmanagermodule:0.34.0-$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"Mounts\":[{\"Target\":\"/workspace\",\"Source\":\"ovmsworkspace\",\"Type\":\"volume\"}],\"PortBindings\":{\"8585/tcp\":[{\"HostPort\":\"8585\"}]},\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}}}}"
+  - name: ovmsserver
+    properties:
+      version: "1.1"
+      type: "docker"
+      restartPolicy: "always"
+      startupOrder: "1"
+      image: "openvino/model_server:2021.4.1-gpu"
+  - name: avaedge
+    parameters:
+    - name: AVA_PROVISIONING_TOKEN
+      required: true
+      default: ""
+    properties:
+      version: "1.1"
+      type: "docker"
+      restartPolicy: "always"
+      image: "mcr.microsoft.com/media/video-analyzer:1"
+      createOptions: "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}},\"Binds\":[],\"IpcMode\":\"host\"}}"
+      ProvisioningToken: $params('AVA_PROVISIONING_TOKEN')
+      ApplicationDataDirectory: "/var/lib/videoanalyzer"
+      DiagnosticsEventsOutputName: "diagnostics"
+      OperationalEventsOutputName: "operational"
+      LogLevel: "information"
+      LogCategories: "Application,Events"
+      AllowUnsecuredEndpoints: "true"
+      TelemetryOptOut: "false"
+  - name: rtspsim
+    properties:
+      version: "1.1"
+      type: "docker"
+      restartPolicy: "always"
+      image: "intelligentedge/uploadmodule:0.34.0-$params('Platform')"
+      createOptions: "{\"HostConfig\":{\"Mounts\":[{\"Target\":\"/app/upload\",\"Source\":\"upload_data\",\"Type\":\"volume\"}],\"LogConfig\":{\"Type\":\"\",\"Config\":{\"max-size\":\"10m\",\"max-file\":\"3\"}},\"PortBindings\":{\"7000/tcp\":[{\"HostPort\":\"7000\"}]}}}"
+
+  

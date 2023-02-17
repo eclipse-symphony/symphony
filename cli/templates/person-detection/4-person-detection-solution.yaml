@@ -1,0 +1,21 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: person-detection  
+spec:
+  components:
+  - name: voeedge
+    properties:
+      container.createOptions: '{"HostConfig":{"LogConfig":{"Type":"json-file","Config":{"max-size":"10m","max-file":"10"}}}}'
+      container.image: p4etest.azurecr.io/voe/voeedge:0.38.1-dev.2-amd64
+      container.restartPolicy: always
+      container.type: docker
+      container.version: 0.38.1-dev.2
+      env.AISKILLS: '["person-detection-skill as person-detection-skill"]'
+      env.BLOB_STORAGE_CONNECTION_STRING: <Blob Storage Connection>
+      env.BLOB_STORAGE_CONTAINER: voe
+      env.INSTANCE: $instance()
+      env.IOTEDGE_CONNECTION_STRING: ""
+      env.SYMPHONY_AGENT_ADDRESS: target-runtime.default.svc.cluster.local
+      env.WEBMODULE_URL: http://20.172.1.13
+  displayName: person-detection

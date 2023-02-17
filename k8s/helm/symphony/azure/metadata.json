@@ -1,0 +1,15 @@
+{
+  "mappings": [
+    {
+      "ApiVersion": "2020-01-01-preview",
+      "ResourceType": "solutions",
+      "ProviderName": "Microsoft.Symphony",
+      "ResourceMapping": {
+        "Version": "v1",
+        "Group": "solutions.symphony",
+        "Kind": "Solution",
+        "Name": "solutions"
+      }
+    }
+  ]
+}

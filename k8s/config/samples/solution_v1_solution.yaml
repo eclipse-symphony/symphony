@@ -1,0 +1,6 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: solution-sample
+spec:
+  # TODO(user): Add fields here

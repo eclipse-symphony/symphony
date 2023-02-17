@@ -1,0 +1,14 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: my-phone-2
+spec:  
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.staging
+      config:
+        targetName: "my-phone-2"
+        inCluster: "true"        
+  properties:
+    group: group-2

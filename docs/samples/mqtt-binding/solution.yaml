@@ -1,0 +1,10 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: test-app
+spec:
+  components:
+  - name: nginx
+    type: container
+    properties:
+      container.image: "nginx"

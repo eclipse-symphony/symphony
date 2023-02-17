@@ -1,0 +1,37 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: my-aks  
+spec:
+  components:
+  - name: symphony-agent
+    properties:
+      container.createOptions: '{"HostConfig":{"Binds":["/etc/iotedge/storage:/snapshots"],"LogConfig":{"Type":"json-file","Config":{"max-size":"10m","max-file":"10"}}}}'
+      container.image: possprod.azurecr.io/symphony-agent:0.39.7
+      container.restartPolicy: always
+      container.type: docker
+      container.version: "1.0"
+      env.AZURE_CLIENT_ID: <SP Client Id>
+      env.AZURE_CLIENT_SECRET: <SP Client Secret>
+      env.AZURE_TENANT_ID: <SP Tenant Id>
+      env.SNAPSHOT_ROOT: /snapshots
+      env.STORAGE_ACCOUNT: voebyom
+      env.STORAGE_CONTAINER: voe
+      env.SYMPHONY_URL: http://20.169.13.192:8080/v1alpha2/agent/references
+      env.TARGET_NAME: my-aks
+  displayName: my-aks
+  metadata:
+    deployment.replicas: '#1'
+    service.name: symphony-agent
+    service.ports: '[{"name":"port8088","port": 8088}]'
+    service.type: ClusterIP
+  properties:
+    acceleration: CPU
+    cpu: X64
+    os: Ubuntu 20.04    
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.k8s
+      role: instance

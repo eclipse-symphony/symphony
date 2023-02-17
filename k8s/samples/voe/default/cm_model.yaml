@@ -1,0 +1,129 @@
+apiVersion: ai.symphony/v1
+kind: Skill
+metadata:
+  name: cv-model
+  labels: 
+    foo: bar
+spec:
+  parameters:
+    original_image_width: "416"
+    original_image_height: "416"
+    target_image_width: "64"
+    target_image_height: "64"
+    original_image_layout: "NHWC"
+    target_image_layout: "NHWC"
+    params.convert_to_gray_scale: "false"
+    max_output_batch: "100"
+    confidence_threshold: "0.4"
+    debug: "true"
+    filter_label_id: "-1"
+  models:
+  - name: input
+    routes: 
+    - route: image
+      type: input
+  - name: cv_pre
+    properties:
+      model_name: cv_pre
+      type: "DL model"
+    routes:
+    - route: image
+      type: input
+      metadata:
+        node_name: request
+        data_item: image
+    - route: cv_pre
+      type: output
+      metadata:
+        data_item_0: PartitionedCall/model/image_out/mul
+        alias_0: image
+  - name: TSMC1007
+    properties: 
+      model_name: TSMC1007
+      type: "DL model"
+    routes:
+    - route: cv_pre
+      type: input
+      metadata:        
+        data_item: image
+    - route: TSMC1007
+      type: output
+      metadata:
+        data_item_0: detected_classes
+        alias_0: detected_classes
+        data_item_1: detected_scores
+        alias_0: detected_scores
+        data_item_2: detected_boxes
+        alias_2: detected_boxes
+  - name: cv_post
+    properties:
+      model_name: cv_post
+      type: "DL model"
+    routes:
+    - route: TSMC1007
+      type: input
+      metadata:
+        data_item: detected_classes
+    - route: TSMC1007
+      type: input
+      metadata:
+        data_item: detected_scores
+    - route: TSMC1007
+      type: input
+      metadata:
+        data_item: detected_boxes
+    - route: cv_post
+      type: output
+      metadata:
+        data_item: PartitionedCall/model/detection_out/concat
+        alias: detection_out
+  - name: "Crop & Filter"
+    properties:
+      library_name: "Crop & Filter"
+      type: "custom"
+      demultiply_count: "0"
+      original_image_width: "$param(original_image_width)"
+      original_image_height: "$param(original_image_height)"
+      target_image_width: "$param(target_image_width)"
+      target_image_height: "$param(target_image_height)"
+      original_image_layout: "$param(original_image_layout)"
+      target_image_layout: "$param(target_image_layout)"
+      params.convert_to_gray_scale: "$param(params.convert_to_gray_scale)"
+      max_output_batch: "$param(max_output_batch)"
+      confidence_threshold: "$param(confidence_threshold)"
+      debug: "$param(debug)"
+      filter_label_id: "$param(filter_label_id)"
+    bindings:
+    - role: resolve
+      type: resolvers.library
+      parameters:
+        base_path: "/workspace/lib/libcustom_node_model_zoo_intel_object_detection.so"
+    routes:
+    - route: request
+      type: input
+      metadata:
+        data_item: image
+    - route: cv_post
+      type: input
+      metadata:
+        data_item: detection_out
+    - route: "Crop & Filter"
+      type: output
+      metadata:
+        data_item: images
+        alias: images
+    - route: "Crop & Filter"
+      type: output
+      metadata:
+        data_item: coordinates
+        alias: coordinates
+    - route: "Crop & Filter"
+      type: output
+      metadata:
+        data_item: confidences
+        alias: confidences
+    - route: "Crop & Filter"
+      type: output
+      metadata:
+        data_item: label_ids
+        alias: label_ids

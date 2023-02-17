@@ -1,0 +1,57 @@
+apiVersion: ai.symphony/v1
+kind: Skill
+metadata:
+  name: cv-skill
+  labels: 
+    foo: bar
+spec:
+  parameters:   
+    delay_buffer: "0.1"
+    recording_duration: "10"
+    insights_overlay: "true"
+  nodes:
+  - id: "1"
+    type: source
+    name: rtsp
+    outputs: 
+    - route: f
+      type: frame    
+  - id: "2"
+    type: model
+    name: model
+    model: object-detection
+  - id: "3"
+    type: transform
+    name: filter_transform
+    inputs:
+    - route: f
+      type: frame
+    outputs:
+    - route: f 
+      type: frame    
+  - id: "4"
+    type: export
+    name: video_snippet_export
+    configurations:
+      filename_prefix: test
+      recording_duration: "$param(recording_duration)"
+      insights_overlay: "$param(insights_overlay)"
+      delay_buffer: "$param(delay_buffer)"    
+  - id: "5"
+    type: export
+    name: iothub_export
+    configurations:
+      delay_buffer: "$param(delay_buffer)"    
+  - id: "6"
+    type: export
+    name: iotedge_export
+    configurations:
+      delay_buffer: "0.3"
+      module_name: hi
+  edges:
+  - source:
+      node: "1"
+      route: "f"
+    target:
+      node: "3"
+      route: "f"

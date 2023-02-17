@@ -1,0 +1,6 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target-sample
+spec:
+  # TODO(user): Add fields here

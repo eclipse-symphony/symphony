@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: my-instance
+spec:
+  scope: basic-k8s
+  solution: redis-server
+  target:
+    selector: 
+      group: demo
+      

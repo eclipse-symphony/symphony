@@ -1,0 +1,7 @@
+apiVersion: fabric.symphony/v1
+kind: Device
+metadata:
+  name: snowball
+spec:
+  properties:
+    foo: bar

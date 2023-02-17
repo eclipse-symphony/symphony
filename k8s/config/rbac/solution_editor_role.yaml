@@ -1,0 +1,24 @@
+# permissions for end users to edit solutions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solution-editor-role
+rules:
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/status
+  verbs:
+  - get

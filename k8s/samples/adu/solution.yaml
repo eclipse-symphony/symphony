@@ -1,0 +1,31 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: rtos-app
+spec:
+  components:
+  - name: "SAME54"
+    properties:
+      update.provider: "MICROCHIP"
+      update.version: "1.1.0"
+      update.name: "SAME54"
+    constraints:
+    - key: os
+      qualifier: must
+      value: RTOS
+  - name: "simulated-temperature-sensor"
+    properties:
+      container.version: "1.0"
+      container.type: "docker"
+      container.image: "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
+      container.createOptions: ""
+      container.restartPolicy: "always"      
+    routes:
+    - route: SimulatedTemperatureSensorToIoTHub
+      type: iothub
+      properties:
+        definition: "FROM /messages/modules/simulated-temperature-sensor/* INTO $upstream"
+    constraints:
+    - key: runtime
+      qualifier: must
+      value: azure.iotedge

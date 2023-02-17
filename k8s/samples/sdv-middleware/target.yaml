@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: my-aks
+spec:
+  name: my-aks
+  metadata:
+    service.ports: "[{\"name\":\"service\", \"port\":50051}]"
+    service.type: "ClusterIP"
+  components:
+  - name: "middleware"
+    properties:
+      container.image: "hbai/sdv-middleware:0.0.1"      
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"        

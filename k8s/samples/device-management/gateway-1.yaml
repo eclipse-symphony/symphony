@@ -1,0 +1,9 @@
+  apiVersion: fabric.symphony/v1
+  kind: Target
+  metadata:
+    name: gateway-1
+  spec:
+    properties:
+      cpu: x64
+      acceleration: "Nvidia dGPU"
+      os: "Ubuntu 20.04"

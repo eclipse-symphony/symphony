@@ -1,0 +1,27 @@
+FROM --platform=$BUILDPLATFORM golang:alpine AS build
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV CGO_ENABLED=0
+
+RUN mkdir /src
+WORKDIR /src
+COPY . .
+RUN apk add --no-cache git    
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-agent
+
+FROM ubuntu:latest
+RUN \
+    set -x \
+    && apt-get update \
+    && apt-get install -y openssl libssl-dev ca-certificates ffmpeg jq  android-tools-adb
+COPY --from=build /dist /
+ADD ./symphony-agent.json /
+EXPOSE 8088
+EXPOSE 8089
+ENV LOG_LEVEL Debug
+ENV CONFIG /symphony-agent.json
+CMD exec /symphony-agent -c $CONFIG -l $LOG_LEVEL

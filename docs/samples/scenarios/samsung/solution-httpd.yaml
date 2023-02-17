@@ -1,0 +1,23 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: myapplication-httpd
+spec:
+  components:
+  - name: galaxy-services
+    type: container
+    properties:      
+      embedded: | 
+        version: '3.7'
+        provisioner-version: '1.0'
+        services:
+          my-apache-app:
+            download-image: true
+            image: docker.io/httpd:2.4
+            ports:
+            - 8085:80
+            volumes:
+            - "/:/usr/local/apache2/htdocs"
+            container_name: my-apache-app
+
+ 

@@ -1,0 +1,6 @@
+apiVersion: config.symphony/v2
+kind: ProjectConfig
+metadata:
+  name: projectconfig-sample
+spec:
+  # TODO(user): Add fields here

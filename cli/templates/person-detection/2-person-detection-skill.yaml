@@ -1,0 +1,66 @@
+apiVersion: ai.symphony/v1
+kind: Skill
+metadata:
+  name: person-detection-skill  
+spec:
+  displayName: person-detection-skill
+  edges:
+  - source:
+      node: "0"
+      route: f
+    target:
+      node: "1"
+      route: f
+  - source:
+      node: "1"
+      route: f
+    target:
+      node: "3"
+      route: f
+  - source:
+      node: "3"
+      route: f
+    target:
+      node: "5"
+      route: f
+  nodes:
+  - configurations:
+      device_name: $param(device_id)
+      fps: $param(fps)
+      ip: $param(rtsp)
+    id: "0"
+    name: rtsp
+    type: source
+  - configurations:
+      confidence_lower: "0"
+      confidence_upper: "0"
+      max_images: "0"
+    id: "1"
+    name: person-detection
+    type: model
+  - configurations:
+      confidence_threshold: "80"
+      labels: '["person"]'
+    id: "3"
+    name: filter_transform
+    type: transform
+  - configurations:
+      delay_buffer: "2"
+      device_displayname: $param(device_displayname)
+      filename_prefix: rev
+      insights_overlay: "true"
+      instance_displayname: $param(instance_displayname)
+      recording_duration: "10"
+      skill_displayname: $param(skill_displayname)
+    id: "5"
+    name: video_snippet_export
+    type: export
+  parameters:
+    accelerationRetrieve: CPU
+    device_displayname: invalid
+    device_id: invalid
+    fps: invalid
+    fpsRetrieve: "15"
+    instance_displayname: invalid
+    rtsp: invalid
+    skill_displayname: invalid

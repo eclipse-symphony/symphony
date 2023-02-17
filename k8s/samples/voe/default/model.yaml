@@ -1,0 +1,10 @@
+apiVersion: ai.symphony/v1
+kind: Model
+metadata:
+  name: car-detection
+spec:
+  properties:
+    type: "Object Detector"
+    tags: "['Car', 'Person', 'Bus']"
+    state: trained
+    source: "Microsoft Custom Vision"

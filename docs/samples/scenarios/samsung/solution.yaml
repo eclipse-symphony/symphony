@@ -1,0 +1,41 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: sample-app-v1
+spec:
+  components:
+  - name: galaxy-services
+    type: container
+    properties:      
+      embedded: | 
+        version: '3.7'
+        
+        provisioner-version: '1.0'
+
+        services:
+          myservice1:
+            download-image: true
+            registry_auth: true
+            registry: my.registry.url
+            user: myregistrylogin
+            password: myregestrypasswd
+            image: my.registry.url/myusername/imagename:tag
+            environment:
+            - ORG_ID=samsung
+            - NODE_ID=samsung-edge-s22p-%{SN}
+            - NODE_POLICY=/tmp/node.policy.json
+            - USERINPUT=/tmp/userinput.json
+            - VAR_RUN_BASE=/data
+            ports:
+            - 8510:8510
+            volumes:
+            - "/data/var/user/docker.sock:/data/var/run/docker.sock"
+            - "/data/var/tmp/myapp/:/var/myapp/"
+            restart: always
+            container_name: myservice1
+
+        commands:
+          myservice1:
+            init: "echo '{\"services\": [{\"org\": \"samsung\", \"variables\": {\"TIMEOUT\": \"5000\", \"ORGID\": \"myorgid\", \"SERIALNO\": \"%{SN}\", \"TOKEN\": \"mytoken\"}}]}' > /tmp/userinput.json"
+            register: "register --input-file=$USERINPUT"
+            unregister: "unregister -vf"

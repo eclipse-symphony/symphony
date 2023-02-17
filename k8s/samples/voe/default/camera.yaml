@@ -1,0 +1,11 @@
+apiVersion: fabric.symphony/v1
+kind: Device
+metadata:
+  name: fake-camera
+  labels:
+    voe-target: "true"  
+spec:
+  properties:
+    ip: "rtsp://20.212.158.240/1.mkv"
+    user: ""
+    password: ""

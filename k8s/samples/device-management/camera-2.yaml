@@ -1,0 +1,12 @@
+apiVersion: fabric.symphony/v1
+kind: Device
+metadata:
+  name: camera-2
+  labels:  
+    gateway-1: "true"
+    gateway-2: "true"
+spec:
+  properties:
+    ip: "192.168.50.133"    
+    user: "admin"
+    password: ""     
