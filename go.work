@@ -1,0 +1,6 @@
+go 1.19
+
+use ./api
+use ./coa
+use ./k8s
+use ./cli
