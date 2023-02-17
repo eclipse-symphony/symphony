@@ -2,11 +2,7 @@
 
 ## Using Maestro
 
-The easiest way to get started with Symphony is to use Maestro, Symphony's CLI tool. You can install Maestro on your Windows, Mac, or Linux machine using a single command. And they, you can use ```maestro up``` to set up your Symphony environment and use ```maestro samples``` to run through predefined sample scenarios.
-
-> **WARNING** At the time of writing, the install script has only been tested successfully on a Ubuntu WSL2 system. On Windows, Windows defender is blocking the downloaded maestro.exe.
-
-> **WARNING:** At the time of writing, a temporary public repository (Haishi2016/Vault818) is used to host the install script. This needs to be changed before release.
+The easiest way to get started with Symphony is to use Maestro, Symphony's CLI tool. You can install Maestro on your Windows, Mac, or Linux machine using a single command. And then, you can use ```maestro up``` to set up your Symphony environment and use ```maestro samples``` to run through predefined sample scenarios.
 
 ### 1. Installation
 * Install on Linux/Max

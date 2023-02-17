@@ -1,4 +1,4 @@
-# Symphony Quick Start - Deploying a Redis server to a Kubernetes cluster
+# Symphony Quick Start - Deploying a Prometheus server to a Kubernetes cluster
 Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane on your Kubernetes cluster and deploying a new Symphony solution instance to the cluster.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
