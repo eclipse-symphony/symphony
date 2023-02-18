@@ -112,8 +112,8 @@ kubectl get instances
 ```
 You can observe the deployment status of the instance:
 ```bash
-NAME             STATUS      TARGETS   DEPLOYED
-redis-instance   OK          1         1
+NAME                         STATUS      TARGETS   DEPLOYED
+sample-prometheus-instance   OK          1         1
 ```
 Use ```kubectl``` to examin pods and services:
 ```bash
@@ -125,10 +125,10 @@ You should observe that a ```sample-prometheus-instance``` pod and a ```sample-p
 
 To delete all Symphony objects:
 ```bash
-kubectl delete instance redis-instance
-kubectl delete solution redis-server
-kubectl delete target basic-k8s-target
-kubectl delete ns basic-k8s-scope #Symphony doesn't remove namespaces
+kubectl delete instance sample-prometheus-instance
+kubectl delete solution sample-prometheus-server
+kubectl delete target sample-k8s-target  
+kubectl delete ns sample-k8s-scope #Symphony doesn't remove namespaces
 ```
 ## 8. To remove Symphony control plane (optional)
 ```bash
