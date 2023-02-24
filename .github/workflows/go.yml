@@ -20,15 +20,33 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.19
-
+        
+    - name: Install make
+      uses: dawidd6/action-setup-make@v1
+      with:
+        make-version: 'latest'
+        
     - name: COA Vendor
       run: cd coa && go mod vendor
+    
+    - name: COA Test
+      run: cd coa && go test -v ./...
       
     - name: API Vendor
       run: cd api && go mod vendor
       
-    - name: Build
+    - name: API Build
       run: cd api && go build -v ./...
 
-    - name: Test
+    - name: API Test
       run: cd api && go test -v ./...
+  
+    - name: K8s Vendor
+      run: cd k8s && go mod vendor
+    
+    - name: K8s Build
+      run: cd k8s && make generate && make build
+      
+    - name: K8s Test
+      run: cd k8s && make test
+      
