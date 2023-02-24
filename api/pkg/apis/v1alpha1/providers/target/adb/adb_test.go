@@ -102,10 +102,10 @@ func TestApply(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	// testAndroid := os.Getenv("TEST_ANDROID_ADB")
-	// if testAndroid != "yes" {
-	// 	t.Skip("Skipping becasue TEST_ANDROID_ADB is missing or not set to 'yes'")
-	// }
+	testAndroid := os.Getenv("TEST_ANDROID_ADB")
+	if testAndroid != "yes" {
+		t.Skip("Skipping becasue TEST_ANDROID_ADB is missing or not set to 'yes'")
+	}
 	provider := AdbProvider{}
 	err := provider.Init(AdbProviderConfig{
 		Name: "adb",
