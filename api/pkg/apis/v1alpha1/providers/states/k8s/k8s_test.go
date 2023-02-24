@@ -268,10 +268,10 @@ func TestUpSertWithState(t *testing.T) {
 	assert.Equal(t, "s234", id)
 }
 func TestUpSertWithStateOnly(t *testing.T) {
-	// testK8s := os.Getenv("TEST_K8S_STATE")
-	// if testK8s == "" {
-	// 	t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
-	// }
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
 	provider := K8sStateProvider{}
 	err := provider.Init(K8sStateProviderConfig{
 		InCluster:  false,

@@ -185,7 +185,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 				"container.volumeMounts":    "[{\"name\":\"azure-rocket\",\"mountPath\":\"/app/output\"}]",
 			},
 		},
-	})
+	}, "instance-1")
 	assert.Nil(t, e)
 	assert.Equal(t, "name", d.ObjectMeta.Name)
 	assert.Equal(t, "name", d.Spec.Selector.MatchLabels["app"])
