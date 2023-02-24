@@ -75,10 +75,10 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 }
 func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
-	// testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
-	// if testSymphonyHelmVersion == "" {
-	// 	t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION enviornment variable is not set")
-	// }
+	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
+	if testSymphonyHelmVersion == "" {
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION enviornment variable is not set")
+	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)

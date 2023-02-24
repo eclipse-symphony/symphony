@@ -30,7 +30,7 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
-
+	"os"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
@@ -38,6 +38,10 @@ import (
 )
 
 func TestDoubleIni(t *testing.T) {
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -53,7 +57,10 @@ func TestDoubleIni(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -97,7 +104,10 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, 0, len(arr))
 }
 func TestGetBad(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -139,7 +149,10 @@ func TestGetBad(t *testing.T) {
 	assert.Equal(t, "BAD!!", err.Error())
 }
 func TestNeedsUpdate(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -179,7 +192,10 @@ func TestNeedsUpdate(t *testing.T) {
 	assert.True(t, needsUpdate)
 }
 func TestNeedsUpdateBad(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -219,7 +235,10 @@ func TestNeedsUpdateBad(t *testing.T) {
 	assert.False(t, needsUpdate)
 }
 func TestApply(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -259,7 +278,10 @@ func TestApply(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestApplyBad(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -299,7 +321,10 @@ func TestApplyBad(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestNeedsRemove(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -339,7 +364,10 @@ func TestNeedsRemove(t *testing.T) {
 	assert.True(t, needsRemove)
 }
 func TestNeedsRemoveBad(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -379,7 +407,10 @@ func TestNeedsRemoveBad(t *testing.T) {
 	assert.False(t, needsRemove)
 }
 func TestARemove(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -419,7 +450,10 @@ func TestARemove(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestARemoveBad(t *testing.T) {
-
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",
@@ -459,6 +493,10 @@ func TestARemoveBad(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestGetApply(t *testing.T) {
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
 		BrokerAddress: "tcp://20.118.146.198:1883",

@@ -77,6 +77,10 @@ func TestDockerTargetProviderGet(t *testing.T) {
 }
 
 func TestDockerTargetProviderRemove(t *testing.T) {
+	testDockerProvider := os.Getenv("TEST_DOCKER_PROVIDER")
+	if testDockerProvider == "" {
+		t.Skip("Skipping because TEST_DOCKER_PROVIDER enviornment variable is not set")
+	}
 	config := DockerTargetProviderConfig{}
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)
