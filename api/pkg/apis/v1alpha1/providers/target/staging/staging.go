@@ -132,7 +132,7 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	updateConfig, err := toStagingTargetProviderConfig(config)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : expected KubectlTargetProviderConfig: %+v", err)
+		sLog.Errorf("~~~ Staging Target Provider ~~~ : expected StagingTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
