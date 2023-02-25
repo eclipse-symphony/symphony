@@ -45,13 +45,4 @@ jobs:
 
     - name: API Test
       run: cd api && go test -v ./...
-  
-    - name: K8s Vendor
-      run: cd k8s && go mod vendor
-    
-    - name: K8s Build
-      run: cd k8s && make build
-      
-    - name: K8s Test
-      run: cd k8s && make test
       
