@@ -21,6 +21,13 @@ jobs:
       with:
         go-version: 1.19
         
+    - name: Set up custom GOPATH
+      run: |
+        mkdir -p /home/runner/go
+        echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
+        echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
+        source $HOME/.bashrc
+          
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
         
