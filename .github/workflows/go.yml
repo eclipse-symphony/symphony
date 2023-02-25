@@ -48,13 +48,7 @@ jobs:
   
     - name: K8s Vendor
       run: cd k8s && go mod vendor
-
-    - name: Controller-gen
-      run: cd k8s && make controller-gen
-      
-    - name: K8s Generate
-      run: cd k8s && make generate
-      
+    
     - name: K8s Build
       run: cd k8s && make build
       
