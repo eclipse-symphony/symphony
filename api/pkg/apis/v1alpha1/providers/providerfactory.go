@@ -16,21 +16,8 @@ package providers
 import (
 	"fmt"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
-	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
-	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
-	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
-	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
-	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
-	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
-
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
@@ -43,6 +30,19 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	mockconfig "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
+	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
+	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
+	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
+	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
+	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
 
 type SymphonyProviderFactory struct {
@@ -196,6 +196,13 @@ func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (m
 				ret[m.Name][k] = mProvider
 			case "providers.target.mqtt":
 				mProvider := &mqtt.MQTTTargetProvider{}
+				err := mProvider.Init(p.Config)
+				if err != nil {
+					return ret, err
+				}
+				ret[m.Name][k] = mProvider
+			case "providers.config.mock":
+				mProvider := &mockconfig.MockConfigProvider{}
 				err := mProvider.Init(p.Config)
 				if err != nil {
 					return ret, err
@@ -366,6 +373,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.target.helm":
 					provider := &helm.HelmTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.config.mock":
+					provider := &mockconfig.MockConfigProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
