@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"text/scanner"
+
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 )
 
 type Token int
@@ -34,14 +36,14 @@ var opNames = map[Token]string{
 }
 
 type Node interface {
-	Eval() (interface{}, error)
+	Eval(confiProvider config.IConfigProvider) (interface{}, error)
 }
 
 type NumberNode struct {
 	Value float64
 }
 
-func (n *NumberNode) Eval() (interface{}, error) {
+func (n *NumberNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -49,7 +51,7 @@ type IdentifierNode struct {
 	Value string
 }
 
-func (n *IdentifierNode) Eval() (interface{}, error) {
+func (n *IdentifierNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -58,12 +60,12 @@ type UnaryNode struct {
 	Expr Node
 }
 
-func (n *UnaryNode) Eval() (interface{}, error) {
+func (n *UnaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		return n.Expr.Eval()
+		return n.Expr.Eval(confiProvider)
 	case MINUS:
-		val, err := n.Expr.Eval()
+		val, err := n.Expr.Eval(confiProvider)
 		if err != nil {
 			return val, err
 		}
@@ -81,14 +83,14 @@ type BinaryNode struct {
 	Right Node
 }
 
-func (n *BinaryNode) Eval() (interface{}, error) {
+func (n *BinaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		lv, le := n.Left.Eval()
+		lv, le := n.Left.Eval(confiProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval()
+		rv, re := n.Right.Eval(confiProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -101,11 +103,11 @@ func (n *BinaryNode) Eval() (interface{}, error) {
 			return fmt.Sprintf("%v%v", lv, rv), nil
 		}
 	case MINUS:
-		lv, le := n.Left.Eval()
+		lv, le := n.Left.Eval(confiProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval()
+		rv, re := n.Right.Eval(confiProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -118,11 +120,11 @@ func (n *BinaryNode) Eval() (interface{}, error) {
 			return strings.ReplaceAll(fmt.Sprintf("%v", lv), fmt.Sprintf("%v", rv), ""), nil
 		}
 	case MULT:
-		lv, le := n.Left.Eval()
+		lv, le := n.Left.Eval(confiProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval()
+		rv, re := n.Right.Eval(confiProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -138,11 +140,11 @@ func (n *BinaryNode) Eval() (interface{}, error) {
 			return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 		}
 	case DIV:
-		lv, le := n.Left.Eval()
+		lv, le := n.Left.Eval(confiProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval()
+		rv, re := n.Right.Eval(confiProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -167,15 +169,31 @@ type FunctionNode struct {
 	Args []Node
 }
 
-func (n *FunctionNode) Eval() (interface{}, error) {
+func (n *FunctionNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
 	switch n.Name {
 	case "params":
 		if len(n.Args) == 1 {
-			return n.Args[0].Eval()
+			return n.Args[0].Eval(confiProvider)
 		}
-		//TODO: Error
+		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
+	case "config":
+		if len(n.Args) == 2 {
+			if confiProvider == nil {
+				return nil, errors.New("a config provider is needed to evaluate $config()")
+			}
+			obj, err := n.Args[0].Eval(confiProvider)
+			if err != nil {
+				return nil, err
+			}
+			field, err := n.Args[1].Eval(confiProvider)
+			if err != nil {
+				return nil, err
+			}
+			return confiProvider.Get(obj.(string), field.(string))
+		}
+		return nil, fmt.Errorf("$params() expects 2 arguments, fount %d", len(n.Args))
 	}
-	return "", errors.New("BAD")
+	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
 
 type Parser struct {
