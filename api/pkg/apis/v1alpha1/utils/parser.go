@@ -8,6 +8,7 @@ import (
 	"text/scanner"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 )
 
 type Token int
@@ -36,14 +37,14 @@ var opNames = map[Token]string{
 }
 
 type Node interface {
-	Eval(confiProvider config.IConfigProvider) (interface{}, error)
+	Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error)
 }
 
 type NumberNode struct {
 	Value float64
 }
 
-func (n *NumberNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
+func (n *NumberNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -51,8 +52,20 @@ type IdentifierNode struct {
 	Value string
 }
 
-func (n *IdentifierNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
-	return n.Value, nil
+func removeQuotes(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	first := s[0]
+	last := s[len(s)-1]
+	if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
+func (n *IdentifierNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+	return removeQuotes(n.Value), nil
 }
 
 type UnaryNode struct {
@@ -60,12 +73,12 @@ type UnaryNode struct {
 	Expr Node
 }
 
-func (n *UnaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
+func (n *UnaryNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		return n.Expr.Eval(confiProvider)
+		return n.Expr.Eval(confiProvider, secretProvider)
 	case MINUS:
-		val, err := n.Expr.Eval(confiProvider)
+		val, err := n.Expr.Eval(confiProvider, secretProvider)
 		if err != nil {
 			return val, err
 		}
@@ -83,14 +96,14 @@ type BinaryNode struct {
 	Right Node
 }
 
-func (n *BinaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
+func (n *BinaryNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		lv, le := n.Left.Eval(confiProvider)
+		lv, le := n.Left.Eval(confiProvider, secretProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider)
+		rv, re := n.Right.Eval(confiProvider, secretProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -103,11 +116,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, er
 			return fmt.Sprintf("%v%v", lv, rv), nil
 		}
 	case MINUS:
-		lv, le := n.Left.Eval(confiProvider)
+		lv, le := n.Left.Eval(confiProvider, secretProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider)
+		rv, re := n.Right.Eval(confiProvider, secretProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -120,11 +133,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, er
 			return strings.ReplaceAll(fmt.Sprintf("%v", lv), fmt.Sprintf("%v", rv), ""), nil
 		}
 	case MULT:
-		lv, le := n.Left.Eval(confiProvider)
+		lv, le := n.Left.Eval(confiProvider, secretProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider)
+		rv, re := n.Right.Eval(confiProvider, secretProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -140,11 +153,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider) (interface{}, er
 			return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 		}
 	case DIV:
-		lv, le := n.Left.Eval(confiProvider)
+		lv, le := n.Left.Eval(confiProvider, secretProvider)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider)
+		rv, re := n.Right.Eval(confiProvider, secretProvider)
 		if re != nil {
 			return nil, re
 		}
@@ -169,11 +182,11 @@ type FunctionNode struct {
 	Args []Node
 }
 
-func (n *FunctionNode) Eval(confiProvider config.IConfigProvider) (interface{}, error) {
+func (n *FunctionNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
 	switch n.Name {
 	case "params":
 		if len(n.Args) == 1 {
-			return n.Args[0].Eval(confiProvider)
+			return n.Args[0].Eval(confiProvider, secretProvider)
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
 	case "config":
@@ -181,17 +194,33 @@ func (n *FunctionNode) Eval(confiProvider config.IConfigProvider) (interface{}, 
 			if confiProvider == nil {
 				return nil, errors.New("a config provider is needed to evaluate $config()")
 			}
-			obj, err := n.Args[0].Eval(confiProvider)
+			obj, err := n.Args[0].Eval(confiProvider, secretProvider)
 			if err != nil {
 				return nil, err
 			}
-			field, err := n.Args[1].Eval(confiProvider)
+			field, err := n.Args[1].Eval(confiProvider, secretProvider)
 			if err != nil {
 				return nil, err
 			}
 			return confiProvider.Get(obj.(string), field.(string))
 		}
-		return nil, fmt.Errorf("$params() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
+	case "secret":
+		if len(n.Args) == 2 {
+			if secretProvider == nil {
+				return nil, errors.New("a secret provider is needed to evaluate $config()")
+			}
+			obj, err := n.Args[0].Eval(confiProvider, secretProvider)
+			if err != nil {
+				return nil, err
+			}
+			field, err := n.Args[1].Eval(confiProvider, secretProvider)
+			if err != nil {
+				return nil, err
+			}
+			return secretProvider.Get(obj.(string), field.(string))
+		}
+		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
