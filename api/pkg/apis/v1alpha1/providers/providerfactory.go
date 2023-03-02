@@ -39,6 +39,7 @@ import (
 	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
 	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
 	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
+	mocksecret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
@@ -203,6 +204,13 @@ func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (m
 				ret[m.Name][k] = mProvider
 			case "providers.config.mock":
 				mProvider := &mockconfig.MockConfigProvider{}
+				err := mProvider.Init(p.Config)
+				if err != nil {
+					return ret, err
+				}
+				ret[m.Name][k] = mProvider
+			case "providers.secret.mock":
+				mProvider := &mocksecret.MockSecretProvider{}
 				err := mProvider.Init(p.Config)
 				if err != nil {
 					return ret, err
@@ -380,6 +388,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.config.mock":
 					provider := &mockconfig.MockConfigProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.secret.mock":
+					provider := &mocksecret.MockSecretProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
