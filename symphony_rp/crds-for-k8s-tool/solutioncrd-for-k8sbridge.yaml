@@ -1,0 +1,115 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: solutions.solution.symphony
+  # Add in annotations for the resource provider.
+  annotations:
+    management.azure.com/providerName: Microsoft.Symphony
+    management.azure.com/resourceType: solutions
+    management.azure.com/api-version: 2020-01-01-preview
+spec:
+  group: solution.symphony
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    kind: Solution
+    listKind: SolutionList
+    plural: solutions
+    singular: solution
+  preserveUnknownFields: false
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          description: SolutionSpec defines the desired state of Solution
+          properties:
+            components:
+              items:
+                properties:
+                  constraints:
+                    items:
+                      properties:
+                        key:
+                          type: string
+                        operator:
+                          type: string
+                        qualifier:
+                          type: string
+                        value:
+                          type: string
+                        values:
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      type: object
+                    type: array
+                  dependencies:
+                    items:
+                      type: string
+                    type: array
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  name:
+                    type: string
+                  propertiesHMM:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  routes:
+                    items:
+                      properties:
+                        filters:
+                          items:
+                            properties:
+                              direction:
+                                type: string
+                              parameters:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              type:
+                                type: string
+                            required:
+                            - direction
+                            - type
+                            type: object
+                          type: array
+                        propertiesHMM:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        route:
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - route
+                      - type
+                      type: object
+                    type: array
+                  skills:
+                    items:
+                      type: string
+                    type: array
+                  type:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            displayName: 
+              description: 'Important: Run "make" to regenerate code after modifying this file'
+              type: string
+            metadata:
+              additionalProperties:
+                type: string
+              type: object
+          type: object

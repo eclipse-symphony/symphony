@@ -1,0 +1,14 @@
+{
+    "artifactEndpoints": [
+        {
+            "Regions": ["eastus", "eastus2", "westus", "centralus"],
+            "Releasetrains": ["dev", "staging"],
+            "FullPathToHelmChart": "iotctiadfcontainers.azurecr.io/rpaas/symphony",
+            "ExtensionUpdateFrequencyInMinutes": 60,
+            "IsCustomerHidden": false,
+            "ReadyforRollout": true,
+            "RollbackVersion": null,
+            "PackageConfigName": "symphony-df"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    "extensionType": "Symphony",
+    "publisher": "Microsoft Edge Orchestration",
+    "description": "Enables customers to manage their edges sites using symphony",
+    "AdminSubscriptions": ["34d077e3-2c1a-48f5-8629-ffc0e657e0ed"],
+    "SupportedClusterTypes": [
+        "Connectedclusters",
+        "Managedclusters",
+        "Appliances"
+    ],
+    "UsingNewSystem": true,
+    "supportedScopes": {
+        "DefaultScope": "cluster",
+        "ClusterScopeSettings": {
+            "AllowMultipleInstances": false,
+            "DefaultReleaseNamespace": "symphony-rp"
+        },
+        "NamespaceScopeSettings": {}
+    },
+    "ResourceSyncSettings": [
+        {
+            "EventHubNamespace": "FEH-Dogfood-WUS2.servicebus.windows.net",
+            "EventHubName": "resourcesync",
+            "ProviderNamespace": "Microsoft.Symphony",
+            "Regions": ["eastus", "eastus2", "westus", "centralus"]
+        }
+    ],
+    "IcmTeamAlias": "derpyhooves",
+    "PublisherProvidedErrorDetails": "please reach out to Microsoft tech care if you need help with debugging the problems with your extension resource"
+}
