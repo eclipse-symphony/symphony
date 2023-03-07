@@ -323,3 +323,10 @@ func TestQuotedString(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "abc def", val)
 }
+func TestQuotedStringAdd(t *testing.T) {
+	parser := NewParser("'abc def'+' ghi jkl'")
+	node := parser.expr()
+	val, err := node.Eval(nil, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, "abc def ghi jkl", val)
+}

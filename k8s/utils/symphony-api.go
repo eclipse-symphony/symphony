@@ -45,18 +45,18 @@ const (
 
 func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []fabricv1.Target {
 	ret := make(map[string]fabricv1.Target)
-	if instance.Spec.Target.Name != "" {
+	if instance.Spec.Stages[0].Target.Name != "" {
 		for _, t := range targets.Items {
 
-			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+			if matchString(instance.Spec.Stages[0].Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
-	if len(instance.Spec.Target.Selector) > 0 {
+	if len(instance.Spec.Stages[0].Target.Selector) > 0 {
 		for _, t := range targets.Items {
 			fullMatch := true
-			for k, v := range instance.Spec.Target.Selector {
+			for k, v := range instance.Spec.Stages[0].Target.Selector {
 				if tv, ok := t.Spec.Properties[k]; !ok || !matchString(v, tv) {
 					fullMatch = false
 				}
@@ -110,9 +110,13 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 		Name:        "target-runtime",
 		DisplayName: "target-runtime-" + target.ObjectMeta.Name,
 		Scope:       "default",
-		Solution:    "target-runtime",
-		Target: symphony.TargetRefSpec{
-			Name: target.ObjectMeta.Name,
+		Stages: []symphony.StageSpec{
+			{
+				Solution: "target-runtime",
+				Target: symphony.TargetRefSpec{
+					Name: target.ObjectMeta.Name,
+				},
+			},
 		},
 	}
 

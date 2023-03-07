@@ -83,19 +83,59 @@ func (c PipelineSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
+type StageSpec struct {
+	Name       string                       `json:"name"`
+	Solution   string                       `json:"solution"`
+	Target     TargetRefSpec                `json:"target,omitempty"`
+	Topologies []TopologySpec               `json:"topologies,omitempty"`
+	Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
+	Schedule   string                       `json:"schedule,omitempty"`
+	Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+}
+
+func (c StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
+	var otherC StageSpec
+	var ok bool
+	if otherC, ok = other.(StageSpec); !ok {
+		return false, errors.New("parameter is not a StageSpec type")
+	}
+	if c.Name != otherC.Name {
+		return false, nil
+	}
+	if c.Solution != otherC.Solution {
+		return false, nil
+	}
+	equal, err := c.Target.DeepEquals(otherC.Target)
+	if err != nil {
+		return false, err
+	}
+	if !equal {
+		return false, nil
+	}
+	if !SlicesEqual(c.Topologies, otherC.Topologies) {
+		return false, nil
+	}
+	if !SlicesEqual(c.Pipelines, otherC.Pipelines) {
+		return false, nil
+	}
+	if c.Schedule != otherC.Schedule {
+		return false, nil
+	}
+	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
+		return false, nil
+	}
+	return true, nil
+}
+
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	Name        string            `json:"name"`
 	DisplayName string            `json:"displayName,omitempty"`
 	Scope       string            `json:"scope,omitempty"`
-	Parameters  map[string]string `json:"parameters,omitempty"`
-	Solution    string            `json:"solution"`
+	Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
 	Metadata    map[string]string `json:"metadata,omitempty"`
-	Target      TargetRefSpec     `json:"target,omitempty"`
-	Topologies  []TopologySpec    `json:"topologies,omitempty"`
-	Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
 	Stage       string            `json:"stage,omitempty"`
-	Schedule    string            `json:"schedule,omitempty"`
+	Stages      []StageSpec       `json:"stages"`
 }
 
 func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -113,32 +153,10 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if c.Scope != otherC.Scope {
 		return false, nil
 	}
-	if c.Solution != otherC.Solution {
-		return false, nil
-	}
 	if c.Stage != otherC.Stage {
 		return false, nil
 	}
-	if c.Schedule != otherC.Schedule {
-		return false, nil
-	}
-	if !StringMapsEqual(c.Parameters, otherC.Parameters, nil) {
-		return false, nil
-	}
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
-		return false, nil
-	}
-	equal, err := c.Target.DeepEquals(otherC.Target)
-	if err != nil {
-		return false, err
-	}
-	if !equal {
-		return false, nil
-	}
-	if !SlicesEqual(c.Topologies, otherC.Topologies) {
-		return false, nil
-	}
-	if !SlicesEqual(c.Pipelines, otherC.Pipelines) {
+	if !SlicesEqual(c.Stages, otherC.Stages) {
 		return false, nil
 	}
 	return true, nil

@@ -91,7 +91,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	// Get solution
 	solution := &solutionv1.Solution{}
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: req.Namespace}, solution); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Stages[0].Solution, Namespace: req.Namespace}, solution); err != nil {
 		log.Error(err, "unable to fetch Solution object")
 		instance.Status.Properties["status"] = "Solution Missing"
 		iErr := r.Status().Update(context.Background(), instance)

@@ -60,6 +60,32 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 	return true
 }
 
+func StringStringMapsEqual(a map[string]map[string]string, b map[string]map[string]string, ignoredMissingKeys []string) bool {
+	for k, v := range a {
+		if bv, ok := b[k]; ok {
+			if !StringMapsEqual(v, bv, ignoredMissingKeys) {
+				return false
+			}
+		} else {
+			if !go_slices.Contains(ignoredMissingKeys, k) {
+				return false
+			}
+		}
+	}
+	for k, v := range b {
+		if bv, ok := a[k]; ok {
+			if !StringMapsEqual(v, bv, ignoredMissingKeys) {
+				return false
+			} else {
+				if !go_slices.Contains(ignoredMissingKeys, k) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 	// if len(a) != len(b) {
 	// 	return false

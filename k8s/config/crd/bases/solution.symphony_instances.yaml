@@ -55,68 +55,84 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              pipelines:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    parameters:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    skill:
-                      type: string
-                  required:
-                  - name
-                  - skill
-                  type: object
-                type: array
-              schedule:
-                type: string
               scope:
-                type: string
-              solution:
                 type: string
               stage:
                 type: string
-              target:
-                properties:
-                  name:
-                    type: string
-                  selector:
-                    additionalProperties:
-                      type: string
-                    type: object
-                type: object
-              topologies:
+              stages:
                 items:
                   properties:
-                    bindings:
+                    arguments:
+                      additionalProperties:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      type: object
+                    name:
+                      type: string
+                    pipelines:
                       items:
                         properties:
-                          config:
+                          name:
+                            type: string
+                          parameters:
                             additionalProperties:
                               type: string
                             type: object
-                          provider:
-                            type: string
-                          role:
+                          skill:
                             type: string
                         required:
-                        - provider
-                        - role
+                        - name
+                        - skill
                         type: object
                       type: array
-                    device:
+                    schedule:
                       type: string
-                    selector:
-                      additionalProperties:
-                        type: string
+                    solution:
+                      type: string
+                    target:
+                      properties:
+                        name:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
                       type: object
+                    topologies:
+                      items:
+                        properties:
+                          bindings:
+                            items:
+                              properties:
+                                config:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                provider:
+                                  type: string
+                                role:
+                                  type: string
+                              required:
+                              - provider
+                              - role
+                              type: object
+                            type: array
+                          device:
+                            type: string
+                          selector:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      type: array
+                  required:
+                  - name
+                  - solution
                   type: object
                 type: array
             required:
-            - solution
+            - stages
             type: object
           status:
             description: InstanceStatus defines the observed state of Instance
