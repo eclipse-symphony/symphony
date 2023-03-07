@@ -32,11 +32,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var sLog = logger.NewLogger("coa.runtime")
@@ -130,7 +130,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
+		SolutionId: deployment.Instance.Stages[0].Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
 

@@ -20,6 +20,7 @@ type ComponentSpec struct {
 	Type         string            `json:"type,omitempty"`
 	Metadata     map[string]string `json:"metadata,omitempty"`
 	Properties   map[string]string `json:"properties,omitempty"`
+	Parameters   map[string]string `json:"parameters,omitempty"`
 	Routes       []RouteSpec       `json:"routes,omitempty"`
 	Constraints  []ConstraintSpec  `json:"constraints,omitempty"`
 	Dependencies []string          `json:"dependencies,omitempty"`

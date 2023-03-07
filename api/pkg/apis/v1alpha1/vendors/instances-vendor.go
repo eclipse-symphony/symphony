@@ -29,6 +29,9 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -36,9 +39,6 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/valyala/fasthttp"
 )
 
@@ -142,10 +142,14 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			instance = model.InstanceSpec{
 				DisplayName: id,
 				Name:        id,
-				Solution:    solution,
+				Stages: []model.StageSpec{
+					{
+						Solution: solution,
+					},
+				},
 			}
 			if target != "" {
-				instance.Target = model.TargetRefSpec{
+				instance.Stages[0].Target = model.TargetRefSpec{
 					Name: target,
 				}
 			} else {
@@ -156,7 +160,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Target = model.TargetRefSpec{
+				instance.Stages[0].Target = model.TargetRefSpec{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},
