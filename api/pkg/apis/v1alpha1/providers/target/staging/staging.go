@@ -32,13 +32,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -355,7 +355,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if target.Spec.Metadata == nil {
 		target.Spec.Metadata = make(map[string]string)
 	}
-	target.Spec.Metadata["__solution"] = deployment.SolutionName
+	target.Spec.Metadata["__solution"] = deployment.Stages[0].SolutionName
 
 	components := deployment.GetComponentSlice()
 

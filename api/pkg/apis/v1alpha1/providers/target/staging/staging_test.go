@@ -91,15 +91,19 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					DisplayName: "policies",
+					Scope:       "",
+					Components: []model.ComponentSpec{
+						{
+							Name: "policies",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+							},
+						},
 					},
 				},
 			},
@@ -122,15 +126,19 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					DisplayName: "policies",
+					Scope:       "",
+					Components: []model.ComponentSpec{
+						{
+							Name: "policies",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+							},
+						},
 					},
 				},
 			},

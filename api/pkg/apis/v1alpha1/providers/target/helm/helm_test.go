@@ -34,10 +34,14 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: testHelmChart,
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: testHelmChart,
+						},
+					},
 				},
 			},
 		},
@@ -56,16 +60,20 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "symphony-com",
-					Type: "helm.v3",
-					Properties: map[string]string{
-						"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
-						"helm.chart.name":               "symphony",
-						"helm.chart.version":            testSymphonyHelmVersion,
-						"helm.values.CUSTOM_VISION_KEY": "BBB",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-com",
+							Type: "helm.v3",
+							Properties: map[string]string{
+								"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
+								"helm.chart.name":               "symphony",
+								"helm.chart.version":            testSymphonyHelmVersion,
+								"helm.values.CUSTOM_VISION_KEY": "BBB",
+							},
+						},
 					},
 				},
 			},
@@ -84,15 +92,19 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "akri",
-					Type: "helm.v3",
-					Properties: map[string]string{
-						"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
-						"helm.chart.name":    "akri",
-						"helm.chart.version": "",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "akri",
+							Type: "helm.v3",
+							Properties: map[string]string{
+								"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
+								"helm.chart.name":    "akri",
+								"helm.chart.version": "",
+							},
+						},
 					},
 				},
 			},
@@ -110,14 +122,18 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeeper",
-					Type: "helm.v3",
-					Properties: map[string]string{
-						"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-						"helm.chart.name": "gatekeeper",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "gatekeeper",
+							Type: "helm.v3",
+							Properties: map[string]string{
+								"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+								"helm.chart.name": "gatekeeper",
+							},
+						},
 					},
 				},
 			},
@@ -138,15 +154,19 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "symphony",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "symphony-com",
-					Type: "helm.v3",
-					Properties: map[string]string{
-						"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
-						"helm.chart.name":    "symphony",
-						"helm.chart.version": testSymphonyHelmVersion,
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-com",
+							Type: "helm.v3",
+							Properties: map[string]string{
+								"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
+								"helm.chart.name":    "symphony",
+								"helm.chart.version": testSymphonyHelmVersion,
+							},
+						},
 					},
 				},
 			},

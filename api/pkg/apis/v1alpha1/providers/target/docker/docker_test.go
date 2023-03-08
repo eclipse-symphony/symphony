@@ -33,13 +33,17 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]string{
-						"container.image": "redis:latest",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "redis-test",
+							Type: "container",
+							Properties: map[string]string{
+								"container.image": "redis:latest",
+							},
+						},
 					},
 				},
 			},
@@ -58,13 +62,17 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]string{
-						"container.image": "redis:latest",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "redis-test",
+							Type: "container",
+							Properties: map[string]string{
+								"container.image": "redis:latest",
+							},
+						},
 					},
 				},
 			},
@@ -86,13 +94,17 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := provider.Remove(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]string{
-						"container.image": "redis:latest",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "redis-test",
+							Type: "container",
+							Properties: map[string]string{
+								"container.image": "redis:latest",
+							},
+						},
 					},
 				},
 			},
