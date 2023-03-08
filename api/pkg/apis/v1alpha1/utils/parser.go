@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/scanner"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 )
@@ -36,15 +37,22 @@ var opNames = map[Token]string{
 	COMMA: ",",
 }
 
+type EvaluationContext struct {
+	ConfigProvider config.IConfigProvider
+	SecretProvider secret.ISecretProvider
+	Deployment     model.DeploymentSpec
+	Component      string
+}
+
 type Node interface {
-	Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error)
+	Eval(context EvaluationContext) (interface{}, error)
 }
 
 type NumberNode struct {
 	Value float64
 }
 
-func (n *NumberNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+func (n *NumberNode) Eval(context EvaluationContext) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -64,7 +72,7 @@ func removeQuotes(s string) string {
 	return s
 }
 
-func (n *IdentifierNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+func (n *IdentifierNode) Eval(context EvaluationContext) (interface{}, error) {
 	return removeQuotes(n.Value), nil
 }
 
@@ -73,12 +81,12 @@ type UnaryNode struct {
 	Expr Node
 }
 
-func (n *UnaryNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+func (n *UnaryNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		return n.Expr.Eval(confiProvider, secretProvider)
+		return n.Expr.Eval(context)
 	case MINUS:
-		val, err := n.Expr.Eval(confiProvider, secretProvider)
+		val, err := n.Expr.Eval(context)
 		if err != nil {
 			return val, err
 		}
@@ -96,14 +104,14 @@ type BinaryNode struct {
 	Right Node
 }
 
-func (n *BinaryNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		lv, le := n.Left.Eval(confiProvider, secretProvider)
+		lv, le := n.Left.Eval(context)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider, secretProvider)
+		rv, re := n.Right.Eval(context)
 		if re != nil {
 			return nil, re
 		}
@@ -116,11 +124,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider, secretProvider s
 			return fmt.Sprintf("%v%v", lv, rv), nil
 		}
 	case MINUS:
-		lv, le := n.Left.Eval(confiProvider, secretProvider)
+		lv, le := n.Left.Eval(context)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider, secretProvider)
+		rv, re := n.Right.Eval(context)
 		if re != nil {
 			return nil, re
 		}
@@ -133,11 +141,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider, secretProvider s
 			return strings.ReplaceAll(fmt.Sprintf("%v", lv), fmt.Sprintf("%v", rv), ""), nil
 		}
 	case MULT:
-		lv, le := n.Left.Eval(confiProvider, secretProvider)
+		lv, le := n.Left.Eval(context)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider, secretProvider)
+		rv, re := n.Right.Eval(context)
 		if re != nil {
 			return nil, re
 		}
@@ -153,11 +161,11 @@ func (n *BinaryNode) Eval(confiProvider config.IConfigProvider, secretProvider s
 			return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 		}
 	case DIV:
-		lv, le := n.Left.Eval(confiProvider, secretProvider)
+		lv, le := n.Left.Eval(context)
 		if le != nil {
 			return nil, le
 		}
-		rv, re := n.Right.Eval(confiProvider, secretProvider)
+		rv, re := n.Right.Eval(context)
 		if re != nil {
 			return nil, re
 		}
@@ -182,43 +190,72 @@ type FunctionNode struct {
 	Args []Node
 }
 
-func (n *FunctionNode) Eval(confiProvider config.IConfigProvider, secretProvider secret.ISecretProvider) (interface{}, error) {
+func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
+	currentStage := deployment.Instance.Stage
+	stageIndex := 0
+	for i, stage := range deployment.Instance.Stages {
+		if stage.Name == currentStage {
+			stageIndex = i
+			break
+		}
+	}
+	arguments := deployment.Instance.Stages[stageIndex].Arguments
+	if ca, ok := arguments[component]; ok {
+		if a, ok := ca["key"]; ok {
+			return a, nil
+		} else {
+			return "", errors.New("not found")
+		}
+	} else {
+		return "", errors.New("not found")
+	}
+}
+
+func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Name {
 	case "params":
 		if len(n.Args) == 1 {
-			return n.Args[0].Eval(confiProvider, secretProvider)
+			// key, err := n.Args[0].Eval(confiProvider, secretProvider, deployment)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// argument, err := readArgument(deployment, component, key.(string))
+			// if err != nil {
+
+			// }
+			return n.Args[0].Eval(context)
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
 	case "config":
 		if len(n.Args) == 2 {
-			if confiProvider == nil {
+			if context.ConfigProvider == nil {
 				return nil, errors.New("a config provider is needed to evaluate $config()")
 			}
-			obj, err := n.Args[0].Eval(confiProvider, secretProvider)
+			obj, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			field, err := n.Args[1].Eval(confiProvider, secretProvider)
+			field, err := n.Args[1].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			return confiProvider.Get(obj.(string), field.(string))
+			return context.ConfigProvider.Get(obj.(string), field.(string))
 		}
 		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
 	case "secret":
 		if len(n.Args) == 2 {
-			if secretProvider == nil {
+			if context.SecretProvider == nil {
 				return nil, errors.New("a secret provider is needed to evaluate $config()")
 			}
-			obj, err := n.Args[0].Eval(confiProvider, secretProvider)
+			obj, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			field, err := n.Args[1].Eval(confiProvider, secretProvider)
+			field, err := n.Args[1].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			return secretProvider.Get(obj.(string), field.(string))
+			return context.SecretProvider.Get(obj.(string), field.(string))
 		}
 		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
 	}

@@ -315,7 +315,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
 		SolutionId: deployment.Instance.Stages[0].Solution,
-		TargetId:   deployment.ActiveTarget,
+		TargetId:   deployment.Stages[0].ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()

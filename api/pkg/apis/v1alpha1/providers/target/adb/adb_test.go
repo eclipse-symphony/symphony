@@ -2,10 +2,11 @@ package adb
 
 import (
 	"context"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetEmptyDesired(t *testing.T) {
@@ -34,12 +35,16 @@ func TestGetOneDesired(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]string{
-						"apk.package": "com.sec.hiddenmenu",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]string{
+								"apk.package": "com.sec.hiddenmenu",
+							},
+						},
 					},
 				},
 			},
@@ -60,12 +65,16 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]string{
-						"apk.package": "doesnt.exist",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]string{
+								"apk.package": "doesnt.exist",
+							},
+						},
 					},
 				},
 			},
@@ -86,13 +95,17 @@ func TestApply(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]string{
-						"apk.package": "com.companyname.beacon",
-						"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]string{
+								"apk.package": "com.companyname.beacon",
+								"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+							},
+						},
 					},
 				},
 			},
@@ -112,13 +125,17 @@ func TestRemove(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]string{
-						"apk.package": "com.companyname.beacon",
-						"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]string{
+								"apk.package": "com.companyname.beacon",
+								"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+							},
+						},
 					},
 				},
 			},

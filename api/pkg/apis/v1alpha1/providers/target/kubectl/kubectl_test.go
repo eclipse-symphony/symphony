@@ -94,13 +94,17 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeepr",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "gatekeepr",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+							},
+						},
 					},
 				},
 			},
@@ -124,13 +128,17 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "policies",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+							},
+						},
 					},
 				},
 			},
@@ -154,13 +162,17 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeepr1",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "gatekeepr1",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+							},
+						},
 					},
 				},
 			},
@@ -185,13 +197,17 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]string{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "policies",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+							},
+						},
 					},
 				},
 			},

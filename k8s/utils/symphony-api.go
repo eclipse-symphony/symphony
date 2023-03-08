@@ -74,7 +74,9 @@ func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []f
 }
 
 func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.DeploymentSpec, error) {
-	ret := symphony.DeploymentSpec{}
+	ret := symphony.DeploymentSpec{
+		Stages: make([]symphony.DeploymentStage, 0),
+	}
 	// create solution
 	solution := symphony.SolutionSpec{
 		DisplayName: "target-runtime",
@@ -120,24 +122,25 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 		},
 	}
 
-	ret.Solution = solution
+	ret.Stages[0].Solution = solution
 	ret.Instance = instance
-	ret.Targets = targets
-	ret.SolutionName = "target-runtime"
-	assignments, err := assignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	ret.Stages[0].Targets = targets
+	ret.Stages[0].SolutionName = "target-runtime"
+	assignments, err := assignComponentsToTargets(ret.Stages[0].Solution.Components, ret.Stages[0].Targets)
 	if err != nil {
 		return ret, err
 	}
-	ret.Assignments = make(map[string]string)
+	ret.Stages[0].Assignments = make(map[string]string)
 	for k, v := range assignments {
-		ret.Assignments[k] = v
+		ret.Stages[0].Assignments[k] = v
 	}
 	return ret, nil
 }
 
 func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.Solution, targets []fabricv1.Target, devices []fabricv1.Device) (symphony.DeploymentSpec, error) {
-
-	ret := symphony.DeploymentSpec{}
+	ret := symphony.DeploymentSpec{
+		Stages: make([]symphony.DeploymentStage, 0),
+	}
 	// convert instance
 	var sInstance symphony.InstanceSpec
 	data, _ := json.Marshal(instance.Spec)
@@ -176,18 +179,18 @@ func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.
 	}
 
 	//TODO: handle devices
-	ret.Solution = sSolution
-	ret.Targets = sTargets
+	ret.Stages[0].Solution = sSolution
+	ret.Stages[0].Targets = sTargets
 	ret.Instance = sInstance
-	ret.SolutionName = solution.ObjectMeta.Name
+	ret.Stages[0].SolutionName = solution.ObjectMeta.Name
 
-	assignments, err := assignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := assignComponentsToTargets(ret.Stages[0].Solution.Components, ret.Stages[0].Targets)
 	if err != nil {
 		return ret, err
 	}
-	ret.Assignments = make(map[string]string)
+	ret.Stages[0].Assignments = make(map[string]string)
 	for k, v := range assignments {
-		ret.Assignments[k] = v
+		ret.Stages[0].Assignments[k] = v
 	}
 	return ret, nil
 }
