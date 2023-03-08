@@ -550,3 +550,46 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "new-valued", val)
 }
+func TestEvaluateDeployment(t *testing.T) {
+	context := EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+						Arguments: map[string]map[string]string{
+							"component-1": {
+								"a": "new-value",
+							},
+						},
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+								Properties: map[string]string{
+									"foo": "$param(a)",
+									"bar": "$param(c) + ' ' + $param(a)",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-value", deployment.Stages[0].Solution.Components[0].Properties["foo"])
+	assert.Equal(t, "d new-value", deployment.Stages[0].Solution.Components[0].Properties["bar"])
+}

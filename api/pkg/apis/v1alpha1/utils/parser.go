@@ -409,3 +409,22 @@ func (p *Parser) function() Node {
 	p.match(CPAREN)
 	return &FunctionNode{name, args}
 }
+
+func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error) {
+	ret := context.DeploymentSpec
+	for is, s := range ret.Stages {
+		for ic, c := range s.Solution.Components {
+			for k, v := range c.Properties {
+				context.Component = c.Name
+				parser := NewParser(v)
+				val, err := parser.expr().Eval(context)
+				if err != nil {
+					return ret, err
+				}
+				ret.Stages[is].Solution.Components[ic].Properties[k] = val.(string)
+			}
+
+		}
+	}
+	return ret, nil
+}
