@@ -3,6 +3,7 @@ package utils
 import (
 	"testing"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	secretmock "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/stretchr/testify/assert"
@@ -329,4 +330,223 @@ func TestQuotedStringAdd(t *testing.T) {
 	val, err := node.Eval(EvaluationContext{})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc def ghi jkl", val)
+}
+func TestEvaulateParamEmptySpec(t *testing.T) {
+	parser := NewParser("$param(abc)")
+	node := parser.expr()
+	_, err := node.Eval(EvaluationContext{})
+	assert.NotNil(t, err)
+}
+func TestEvaulateParamNoComponent(t *testing.T) {
+	parser := NewParser("$param(abc)")
+	node := parser.expr()
+	_, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	assert.NotNil(t, err)
+}
+func TestEvaulateParamNoArgument(t *testing.T) {
+	parser := NewParser("$param(a)")
+	node := parser.expr()
+	val, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "b", val)
+}
+func TestEvaulateParamArgumentOverride(t *testing.T) {
+	parser := NewParser("$param(a)")
+	node := parser.expr()
+	val, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+						Arguments: map[string]map[string]string{
+							"component-1": {
+								"a": "new-value",
+							},
+						},
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "new-value", val)
+}
+func TestEvaulateParamWrongComponentName(t *testing.T) {
+	parser := NewParser("$param(a)")
+	node := parser.expr()
+	_, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+						Arguments: map[string]map[string]string{
+							"component-1": {
+								"a": "new-value",
+							},
+						},
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-2",
+	})
+	assert.NotNil(t, err)
+}
+func TestEvaulateParamMissing(t *testing.T) {
+	parser := NewParser("$param(d)")
+	node := parser.expr()
+	_, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+						Arguments: map[string]map[string]string{
+							"component-1": {
+								"a": "new-value",
+							},
+						},
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	})
+	assert.NotNil(t, err)
+}
+func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
+	parser := NewParser("$param(a)+$param(c)")
+	node := parser.expr()
+	val, err := node.Eval(EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Stages: []model.StageSpec{
+					{
+						Solution: "fake-solution",
+						Arguments: map[string]map[string]string{
+							"component-1": {
+								"a": "new-value",
+							},
+						},
+					},
+				},
+			},
+			Stages: []model.DeploymentStage{
+				{
+					SolutionName: "fake-solution",
+					Solution: model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "component-1",
+								Parameters: map[string]string{
+									"a": "b",
+									"c": "d",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "new-valued", val)
 }

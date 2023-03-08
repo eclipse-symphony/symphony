@@ -40,7 +40,7 @@ var opNames = map[Token]string{
 type EvaluationContext struct {
 	ConfigProvider config.IConfigProvider
 	SecretProvider secret.ISecretProvider
-	Deployment     model.DeploymentSpec
+	DeploymentSpec model.DeploymentSpec
 	Component      string
 }
 
@@ -201,29 +201,40 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 	}
 	arguments := deployment.Instance.Stages[stageIndex].Arguments
 	if ca, ok := arguments[component]; ok {
-		if a, ok := ca["key"]; ok {
+		if a, ok := ca[key]; ok {
 			return a, nil
-		} else {
-			return "", errors.New("not found")
 		}
-	} else {
-		return "", errors.New("not found")
 	}
+	components := deployment.Stages[stageIndex].Solution.Components
+	for _, c := range components {
+		if c.Name == component {
+			if v, ok := c.Parameters[key]; ok {
+				return v, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
 }
 
 func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Name {
-	case "params":
+	case "param":
 		if len(n.Args) == 1 {
-			// key, err := n.Args[0].Eval(confiProvider, secretProvider, deployment)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// argument, err := readArgument(deployment, component, key.(string))
-			// if err != nil {
-
-			// }
-			return n.Args[0].Eval(context)
+			if context.Component == "" {
+				return nil, errors.New("a component name is needed to evaluate $param()")
+			}
+			if len(context.DeploymentSpec.Stages) == 0 {
+				return nil, errors.New("a deployment spec is needed to evaluate $param()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			argument, err := readArgument(context.DeploymentSpec, context.Component, key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return argument, nil
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
 	case "config":
