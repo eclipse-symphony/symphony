@@ -58,6 +58,8 @@ const (
 	TracingExporterConsole = "tracing.exporters.console"
 	TracingExporterZipkin  = "tracing.exporters.zipkin"
 	ProvidersState         = "providers.state"
+	ProvidersConfig        = "providers.config"
+	ProvidersSecret        = "providers.secret"
 	ProvidersReference     = "providers.reference"
 	ProvidersProbe         = "providers.probe"
 	ProvidersUploader      = "providers.uploader"
