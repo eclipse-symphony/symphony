@@ -42,6 +42,8 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	config "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	secret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -56,8 +58,10 @@ const (
 
 type SolutionManager struct {
 	managers.Manager
-	TargetProvider tgt.ITargetProvider
-	StateProvider  states.IStateProvider
+	TargetProvider  tgt.ITargetProvider
+	StateProvider   states.IStateProvider
+	ConfigProvider  config.IConfigProvider
+	SecretProvoider secret.ISecretProvider
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -77,6 +81,20 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	stateprovider, err := managers.GetStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
+	} else {
+		return err
+	}
+
+	configProvider, err := managers.GetConfigProvider(config, providers)
+	if err == nil {
+		s.ConfigProvider = configProvider
+	} else {
+		return err
+	}
+
+	secretProvider, err := managers.GetSecretProvider(config, providers)
+	if err == nil {
+		s.SecretProvoider = secretProvider
 	} else {
 		return err
 	}
@@ -106,6 +124,23 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 	})
 	log.Info(" M (Solution): applying deployment")
 
+	summary := model.SummarySpec{
+		TargetResults: make(map[string]model.TargetResultSpec),
+		TargetCount:   len(deployment.Stages[0].Targets),
+		SuccessCount:  0,
+	}
+
+	var err error
+	deployment, err = utils.EvaluateDeployment(utils.EvaluationContext{
+		ConfigProvider: s.ConfigProvider,
+		SecretProvider: s.SecretProvoider,
+		DeploymentSpec: deployment,
+		Component:      "",
+	})
+	if err != nil {
+		return summary, err
+	}
+
 	// at manager level, if we found deployment spec hasn't been changed, skip apply
 	// not to scale out the manager, a shared state provider such as Redis state provider
 	// needs to be used
@@ -128,12 +163,6 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 				notLastSeen = false
 			}
 		}
-	}
-
-	summary := model.SummarySpec{
-		TargetResults: make(map[string]model.TargetResultSpec),
-		TargetCount:   len(deployment.Stages[0].Targets),
-		SuccessCount:  0,
 	}
 
 	for k, v := range deployment.Stages[0].Assignments {

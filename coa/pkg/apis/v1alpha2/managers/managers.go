@@ -29,9 +29,11 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 )
@@ -93,6 +95,36 @@ func GetStateProvider(config ManagerConfig, providers map[string]providers.IProv
 		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a state provider", v1alpha2.BadConfig)
 	}
 	return stateProvider, nil
+}
+func GetConfigProvider(con ManagerConfig, providers map[string]providers.IProvider) (config.IConfigProvider, error) {
+	configProviderName, ok := con.Properties[v1alpha2.ProvidersConfig]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[configProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not supplied", v1alpha2.MissingConfig)
+	}
+	configProvider, ok := provider.(config.IConfigProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a config provider", v1alpha2.BadConfig)
+	}
+	return configProvider, nil
+}
+func GetSecretProvider(con ManagerConfig, providers map[string]providers.IProvider) (secret.ISecretProvider, error) {
+	configProviderName, ok := con.Properties[v1alpha2.ProvidersSecret]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "secret provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[configProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "secret provider is not supplied", v1alpha2.MissingConfig)
+	}
+	secretProvider, ok := provider.(secret.ISecretProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a secret provider", v1alpha2.BadConfig)
+	}
+	return secretProvider, nil
 }
 func GetProbeProvider(config ManagerConfig, providers map[string]providers.IProvider) (probe.IProbeProvider, error) {
 	probeProviderName, ok := config.Properties[v1alpha2.ProvidersProbe]
