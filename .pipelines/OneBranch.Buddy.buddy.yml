@@ -1,0 +1,119 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)-buddy
+parameters: []
+trigger: none
+variables:
+  LinuxContainerImage: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
+  DEBIAN_FRONTEND: noninteractive
+  ROOT: $(Build.SourcesDirectory)
+  REPOROOT: $(Build.SourcesDirectory)
+  OUTPUTROOT: $(REPOROOT)\out
+  ComponentDetection.Timeout: 1200
+  DisableGoCliScan: true
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+extends:
+  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates
+  parameters:
+    globalSdl:
+      policheck:
+        break: true
+      tsa:
+        enabled: false
+    stages:
+      - stage: prebuild
+        jobs:
+          - job: prebuild
+            pool:
+              type: linux
+            variables:
+              ob_outputDirectory: $(Build.SourcesDirectory)
+              ob_sdl_binskim_scanOutputDirectoryOnly: true
+              ob_sdl_codeSignValidation_legacyCiPolicyConfig: true
+            steps:
+              - task: NodeTool@0
+                displayName: Install Node.js
+                inputs:
+                  versionSpec: 16.x
+              - task: Bash@3
+                displayName: create npmrc
+                condition: ne(variables['Agent.OS'], 'Windows_NT')
+                inputs:
+                  targetType: inline
+                  script: |-
+                    #!/bin/bash
+                    npmrcStr="@azure-iot:registry=https://pkgs.dev.azure.com/msazure/_packaging/AzureIOTSaas/npm/registry/\n\nalways-auth=true"
+                    echo -e $npmrcStr > ./.setup/pipelines/.npmrc
+              - task: npmAuthenticate@0
+                continueOnError: true
+                displayName: configure npmrc
+                inputs:
+                  workingFile: .setup/pipelines/.npmrc
+              - task: Bash@3
+                displayName: copy creds to folders
+                condition: ne(variables['Agent.OS'], 'Windows_NT')
+                inputs:
+                  targetType: inline
+                  script: |-
+                    #!/bin/bash
+                    cp ./.setup/pipelines/.npmrc ./api/.npmrc
+                    printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./api/devops-pat.txt
+                    cp ./.setup/pipelines/.npmrc ./k8s/.npmrc
+                    printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./k8s/devops-pat.txt
+      - stage: build
+        dependsOn: prebuild
+        jobs:
+          - job: build_1
+            pool:
+              type: docker
+              os: linux
+            steps:
+              - task: DownloadPipelineArtifact@2
+                displayName: Download artifacts
+                inputs:
+                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
+                  artifact: drop_prebuild_prebuild
+              - task: onebranch.pipeline.containercontrol@1
+                displayName: Login to ACR symphonycr
+                inputs:
+                  command: login
+                  acr_name: symphonycr
+                  tenant: MSFT
+                  endpoint: symphony_corp_acr
+              - task: onebranch.pipeline.imagebuildinfo@1
+                continueOnError: true
+                displayName: Build symphony-api
+                inputs:
+                  repositoryName: symphony-api
+                  dockerFileRelPath: drop_prebuild_prebuild/api/Dockerfile
+                  dockerFileContextPath: drop_prebuild_prebuild/api/
+                  registry: symphonycr.azurecr.io
+                  saveImageToPath: symphony-api.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
+                  enable_isolated_acr_push: false
+                  enable_service_tree_acr_path: false
+                  enable_acr_push: true
+                  endpoint: symphony_corp_acr
+              - task: onebranch.pipeline.imagebuildinfo@1
+                continueOnError: true
+                displayName: Build symphony-k8s
+                inputs:
+                  repositoryName: symphony-k8s
+                  dockerFileRelPath: drop_prebuild_prebuild/k8s/Dockerfile
+                  dockerFileContextPath: drop_prebuild_prebuild/k8s/
+                  registry: symphonycr.azurecr.io
+                  saveImageToPath: symphony-k8s.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
+                  enable_isolated_acr_push: false
+                  enable_service_tree_acr_path: false
+                  enable_acr_push: true
+                  endpoint: symphony_corp_acr

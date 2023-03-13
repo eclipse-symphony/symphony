@@ -1,0 +1,11 @@
+# Modules
+node_modules/
+
+# Built files
+coverage/
+.*/
+*.tgz
+*.log
+*.txt
+dist/
+src/schemas/

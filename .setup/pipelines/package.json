@@ -1,0 +1,25 @@
+{
+  "name": "pipelines-setup",
+  "version": "1.0.0",
+  "description": "setup service pipelines",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint -c .eslintrc.js --ext .ts . --fix",
+    "build": "tsc",
+    "clean": "rimraf ./dist",
+    "prebuild": "npm run clean && npm run lint",
+    "pipelines": "npm run build && node ./dist/pipelines.js"
+  },
+  "author": "Microsoft",
+  "license": "ISC",
+  "dependencies": {
+    "@azure-iot/pipelines": "^0.1.0"
+  },
+  "devDependencies": {
+    "@azure-iot/eslint-config": "^1.0.1",
+    "@types/node": "^16.11.7",
+    "eslint": "^8.3.0",
+    "rimraf": "^2.6.3",
+    "typescript": "^3.9.7"
+  }
+}
