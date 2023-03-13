@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 RUN \
     set -x \
     && apt-get update \

@@ -1,4 +1,4 @@
-FROM python:3
+FROM mcr.microsoft.com/cbl-mariner/base/python:3
 
 WORKDIR /usr/src/app
 
