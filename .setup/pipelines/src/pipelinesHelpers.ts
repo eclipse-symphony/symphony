@@ -14,6 +14,7 @@ export function getIotPipelineParams(): IOTPipelineGeneratorParams {
     const iotPipelineParams: IOTPipelineParams[] = [];
 
     // push pipeline params for individual pipelines
+    iotPipelineParams.push(getBuddyPipelineParams());
     iotPipelineParams.push(getPRPipelineParams());
 
     // return IOTPipelineGeneratorParams
@@ -38,6 +39,17 @@ Pipeline Definitions
 
 ================================================================================================================================
 */
+
+function getBuddyPipelineParams(): IOTPipelineParams {
+    return {
+        type: IOTPipelineType.Buddy,
+        buildTagIdentifier: 'buddy',
+        parallelJobCount: 1,
+        showBuildServiceToggleOptions: false,
+        microservices: getAllMicroservices(),
+        acr: getIOTPipelineDevCorpACR(),
+    }
+}
 
 function getPRPipelineParams(): IOTPipelineParams {
     return {
