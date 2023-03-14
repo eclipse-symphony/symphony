@@ -9,7 +9,27 @@ Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes 
   > **NOTE:** Some tools we use work better with access to docker commands without sudo. Use Docker Desktop version when possible. Otherwise, you need to add your user to docker group (see [instructions](https://www.docker.com/products/docker-desktop)). Please don't use rootless model, which isn't supported by some of the tools.
 * A Kubernetes cluster, such as [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
   >**NOTE:** Symphony should work with any Kubernetes clusters on x86 and x64 CPUs. symphony-api container is compiled for ARM as well but we haven't tested other containers.
-* [Kubebuilder](https://book.kubebuilder.io/) (optional)
+* [Kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/)
+  ```bash
+  curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+  sudo mv kustomize /usr/local/bin/
+  ```
+* [Kubebuilder](https://book.kubebuilder.io/)
+  ```bash
+  # install kubebuiler
+  curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
+  chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
+  # create a temporary project to get controller-gen
+  cd
+  mkdir temp
+  cd temp
+  kubebuilder init --domain my.domain --repo my.domain/guestbook
+  make test
+  cp bin/controller-gen $GOPATH/bin/
+  cp bin/setup-envtest $GOPATH/bin/
+  cd ..
+  rm -rf temp
+  ```
 * make and gcc
   ```bash
   sudo apt-get update && sudo apt-get upgrade -y

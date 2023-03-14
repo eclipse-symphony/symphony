@@ -3,7 +3,9 @@ kind: Instance
 metadata:
   name: sample-app
 spec:
-  solution: sample-app-v1
-  target: 
-    selector:
-      group: group-1
+  stages:
+  - name: default
+    solution: sample-app-v1
+    target: 
+      selector:
+        group: group-1

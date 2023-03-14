@@ -15,7 +15,9 @@
             "type": "managers.symphony.solution",
             "properties": {
               "providers.target": "script",
-              "providers.state": "mem-state"  
+              "providers.state": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"  
             },
             "providers": {
               "script": {
@@ -31,6 +33,14 @@
               },
               "mem-state": {
                 "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
                 "config": {}
               }
             }

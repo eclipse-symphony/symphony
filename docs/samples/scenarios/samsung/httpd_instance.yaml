@@ -3,7 +3,9 @@ kind: Instance
 metadata:
   name: myapplication-httpd
 spec:
-  solution: myapplication-httpd
-  target: 
-    selector:
-      group: group-2
+  stages:
+  - name: default
+    solution: myapplication-httpd
+    target: 
+      selector:
+        group: group-2

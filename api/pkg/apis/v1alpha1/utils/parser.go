@@ -21,20 +21,35 @@ const (
 	IDENT
 	OPAREN
 	CPAREN
+	OBRACKET
+	CBRACKET
+	OCURLY
+	CCURLY
 	PLUS
 	MINUS
 	MULT
 	DIV
 	COMMA
+	PERIOD
+	COLON
+	QUESTION
+	EQUAL
 	STRING
+	RUNON
+	AMPHERSAND
 )
 
 var opNames = map[Token]string{
-	PLUS:  "+",
-	MINUS: "-",
-	MULT:  "*",
-	DIV:   "/",
-	COMMA: ",",
+	PLUS:       "+",
+	MINUS:      "-",
+	MULT:       "*",
+	DIV:        "/",
+	COMMA:      ",",
+	PERIOD:     ".",
+	COLON:      ":",
+	QUESTION:   "?",
+	EQUAL:      "=",
+	AMPHERSAND: "&",
 }
 
 type EvaluationContext struct {
@@ -66,7 +81,7 @@ func removeQuotes(s string) string {
 	}
 	first := s[0]
 	last := s[len(s)-1]
-	if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
+	if first == '\'' && last == '\'' {
 		return s[1 : len(s)-1]
 	}
 	return s
@@ -74,6 +89,13 @@ func removeQuotes(s string) string {
 
 func (n *IdentifierNode) Eval(context EvaluationContext) (interface{}, error) {
 	return removeQuotes(n.Value), nil
+}
+
+type NullNode struct {
+}
+
+func (n *NullNode) Eval(context EvaluationContext) (interface{}, error) {
+	return "", nil
 }
 
 type UnaryNode struct {
@@ -84,16 +106,34 @@ type UnaryNode struct {
 func (n *UnaryNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		return n.Expr.Eval(context)
+		if n.Expr != nil {
+			return n.Expr.Eval(context)
+		}
+		return "", nil
 	case MINUS:
+		if n.Expr != nil {
+			val, err := n.Expr.Eval(context)
+			if err != nil {
+				return val, err
+			}
+			if v, ok := val.(float64); ok {
+				return -v, nil
+			}
+			return fmt.Sprintf("-%v", val), nil
+		}
+		return "", nil
+	case OBRACKET:
 		val, err := n.Expr.Eval(context)
 		if err != nil {
 			return val, err
 		}
-		if v, ok := val.(float64); ok {
-			return -v, nil
+		return fmt.Sprintf("[%v]", val), nil
+	case OCURLY:
+		val, err := n.Expr.Eval(context)
+		if err != nil {
+			return val, err
 		}
-		return nil, errors.New("can't apply '-' to non-numeric values")
+		return fmt.Sprintf("{%v}", val), nil
 	}
 	return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 }
@@ -107,13 +147,21 @@ type BinaryNode struct {
 func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
-		lv, le := n.Left.Eval(context)
-		if le != nil {
-			return nil, le
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
 		}
-		rv, re := n.Right.Eval(context)
-		if re != nil {
-			return nil, re
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
 		}
 		vl, okl := lv.(float64)
 		vr, okr := rv.(float64)
@@ -124,13 +172,21 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 			return fmt.Sprintf("%v%v", lv, rv), nil
 		}
 	case MINUS:
-		lv, le := n.Left.Eval(context)
-		if le != nil {
-			return nil, le
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
 		}
-		rv, re := n.Right.Eval(context)
-		if re != nil {
-			return nil, re
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
 		}
 		vl, okl := lv.(float64)
 		vr, okr := rv.(float64)
@@ -138,9 +194,9 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 			v := vl - vr
 			return v, nil
 		} else {
-			return strings.ReplaceAll(fmt.Sprintf("%v", lv), fmt.Sprintf("%v", rv), ""), nil
+			return fmt.Sprintf("%v-%v", lv, rv), nil
 		}
-	case MULT:
+	case COMMA:
 		lv, le := n.Left.Eval(context)
 		if le != nil {
 			return nil, le
@@ -148,6 +204,24 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 		rv, re := n.Right.Eval(context)
 		if re != nil {
 			return nil, re
+		}
+		return fmt.Sprintf("%v,%v", lv, rv), nil
+	case MULT:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
 		}
 		vl, okl := lv.(float64)
 		vr, okr := rv.(float64)
@@ -155,19 +229,34 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 			v := vl * vr
 			return v, nil
 		} else {
-			if !okl && okr && vr > 0 {
-				return strings.Repeat(fmt.Sprintf("%v", lv), int(vr)), nil
+			if !okl && okr {
+				if vr > 0 {
+					return strings.Repeat(fmt.Sprintf("%v", lv), int(vr)), nil
+				} else if vr == 0 {
+					return "", nil
+				} else {
+					return fmt.Sprintf("%v*%v", lv, rv), nil
+				}
+			} else {
+				return fmt.Sprintf("%v*%v", lv, rv), nil
 			}
-			return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 		}
 	case DIV:
-		lv, le := n.Left.Eval(context)
-		if le != nil {
-			return nil, le
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
 		}
-		rv, re := n.Right.Eval(context)
-		if re != nil {
-			return nil, re
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
 		}
 		vl, okl := lv.(float64)
 		vr, okr := rv.(float64)
@@ -179,9 +268,118 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 				return nil, errors.New("divide by zero")
 			}
 		} else {
-			return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
+			return fmt.Sprintf("%v/%v", lv, rv), nil
 		}
+	case PERIOD:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v.%v", lv, rv), nil
+	case COLON:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v:%v", lv, rv), nil
+	case QUESTION:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v?%v", lv, rv), nil
+	case EQUAL:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v=%v", lv, rv), nil
+	case AMPHERSAND:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v&%v", lv, rv), nil
+	case RUNON:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v%v", lv, rv), nil
 	}
+
 	return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
 }
 
@@ -269,6 +467,14 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return context.SecretProvider.Get(obj.(string), field.(string))
 		}
 		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
+	case "instance":
+		if len(n.Args) == 0 {
+			if len(context.DeploymentSpec.Stages) == 0 {
+				return nil, errors.New("a deployment spec is needed to evaluate $instance()")
+			}
+			return context.DeploymentSpec.Instance.Name, nil
+		}
+		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -281,13 +487,30 @@ type Parser struct {
 
 func NewParser(text string) *Parser {
 	var s scanner.Scanner
-	s.Init(strings.NewReader(text))
-	s.Mode = scanner.ScanIdents | scanner.ScanFloats | scanner.ScanChars | scanner.ScanStrings
+	s.Init(strings.NewReader(strings.TrimSpace(text)))
+	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &Parser{
 		s: &s,
 	}
 	p.next()
 	return p
+}
+
+func (p *Parser) Eval(context EvaluationContext) (string, error) {
+	ret := ""
+	for {
+		n := p.expr(false)
+		if _, ok := n.(*NullNode); !ok {
+			v, r := n.Eval(context)
+			if r != nil {
+				return "", r
+			}
+			ret = fmt.Sprintf("%v%v", ret, v)
+		} else {
+			return ret, nil
+		}
+		p.next()
+	}
 }
 
 func (p *Parser) next() {
@@ -310,6 +533,14 @@ func (p *Parser) scan() Token {
 		return OPAREN
 	case ')':
 		return CPAREN
+	case '[':
+		return OBRACKET
+	case ']':
+		return CBRACKET
+	case '{':
+		return OCURLY
+	case '}':
+		return CCURLY
 	case '+':
 		return PLUS
 	case '-':
@@ -320,6 +551,16 @@ func (p *Parser) scan() Token {
 		return DIV
 	case ',':
 		return COMMA
+	case '.':
+		return PERIOD
+	case ':':
+		return COLON
+	case '?':
+		return QUESTION
+	case '=':
+		return EQUAL
+	case '&':
+		return AMPHERSAND
 	}
 	if _, err := strconv.ParseFloat(p.text, 64); err == nil {
 		return NUMBER
@@ -345,9 +586,19 @@ func (p *Parser) primary() Node {
 		return p.function()
 	case OPAREN:
 		p.next()
-		expr := p.expr()
+		expr := p.expr(false)
 		p.match(CPAREN)
 		return expr
+	case OBRACKET:
+		p.next()
+		bexpr := p.expr(false)
+		p.match(CBRACKET)
+		return &UnaryNode{OBRACKET, bexpr}
+	case OCURLY:
+		p.next()
+		cexpr := p.expr(false)
+		p.match(CCURLY)
+		return &UnaryNode{OCURLY, cexpr}
 	case PLUS:
 		p.next()
 		return &UnaryNode{PLUS, p.primary()}
@@ -372,14 +623,32 @@ func (p *Parser) factor() Node {
 		case DIV:
 			p.next()
 			node = &BinaryNode{DIV, node, p.primary()}
+		case PERIOD:
+			p.next()
+			node = &BinaryNode{PERIOD, node, p.primary()}
+		case COLON:
+			p.next()
+			node = &BinaryNode{COLON, node, p.primary()}
+		case QUESTION:
+			p.next()
+			node = &BinaryNode{QUESTION, node, p.primary()}
+		case EQUAL:
+			p.next()
+			node = &BinaryNode{EQUAL, node, p.primary()}
+		case AMPHERSAND:
+			p.next()
+			node = &BinaryNode{AMPHERSAND, node, p.primary()}
 		default:
 			return node
 		}
 	}
 }
 
-func (p *Parser) expr() Node {
+func (p *Parser) expr(inFunc bool) Node {
 	node := p.factor()
+	if node == nil {
+		return &NullNode{}
+	}
 	for {
 		switch p.token {
 		case PLUS:
@@ -388,6 +657,13 @@ func (p *Parser) expr() Node {
 		case MINUS:
 			p.next()
 			node = &BinaryNode{MINUS, node, p.factor()}
+		case COMMA:
+			if !inFunc {
+				p.next()
+				node = &BinaryNode{COMMA, node, p.factor()}
+			} else {
+				return node
+			}
 		default:
 			return node
 		}
@@ -401,7 +677,7 @@ func (p *Parser) function() Node {
 	p.match(OPAREN)
 	args := []Node{}
 	for p.token != CPAREN {
-		args = append(args, p.expr())
+		args = append(args, p.expr(true))
 		if p.token == COMMA {
 			p.next()
 		}
@@ -417,11 +693,11 @@ func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error)
 			for k, v := range c.Properties {
 				context.Component = c.Name
 				parser := NewParser(v)
-				val, err := parser.expr().Eval(context)
+				val, err := parser.Eval(context)
 				if err != nil {
 					return ret, err
 				}
-				ret.Stages[is].Solution.Components[ic].Properties[k] = val.(string)
+				ret.Stages[is].Solution.Components[ic].Properties[k] = val
 			}
 
 		}
