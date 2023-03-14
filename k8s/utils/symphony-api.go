@@ -75,8 +75,9 @@ func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []f
 
 func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.DeploymentSpec, error) {
 	ret := symphony.DeploymentSpec{
-		Stages: make([]symphony.DeploymentStage, 0),
+		Stages: make([]symphony.DeploymentStage, 1),
 	}
+	ret.Stages[0] = symphony.DeploymentStage{}
 	// create solution
 	solution := symphony.SolutionSpec{
 		DisplayName: "target-runtime",
@@ -139,8 +140,9 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 
 func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.Solution, targets []fabricv1.Target, devices []fabricv1.Device) (symphony.DeploymentSpec, error) {
 	ret := symphony.DeploymentSpec{
-		Stages: make([]symphony.DeploymentStage, 0),
+		Stages: make([]symphony.DeploymentStage, 1),
 	}
+	ret.Stages[0] = symphony.DeploymentStage{}
 	// convert instance
 	var sInstance symphony.InstanceSpec
 	data, _ := json.Marshal(instance.Spec)

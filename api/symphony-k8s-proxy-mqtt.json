@@ -15,7 +15,9 @@
             "type": "managers.symphony.solution",
             "properties": {
               "providers.state": "mem-state",  
-              "providers.target": "k8s"  
+              "providers.target": "k8s",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"  
             },
             "providers": {
               "mem-state": {
@@ -29,6 +31,14 @@
                   "configType": "path",
                   "deploymentStrategy": "services"
                 }
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
               }
             }
           }

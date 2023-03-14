@@ -37,6 +37,7 @@ import (
 	sp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
 	tgt "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -381,6 +382,21 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
+func updateSummary(summary model.SummarySpec, target string, err error) (model.SummarySpec, error) {
+	sczErr, ok := err.(v1alpha2.COAError)
+	if ok {
+		summary.TargetResults[target] = model.TargetResultSpec{
+			Status:  sczErr.State.String(),
+			Message: sczErr.Message,
+		}
+	} else {
+		summary.TargetResults[target] = model.TargetResultSpec{
+			Status:  "Internal Error",
+			Message: err.Error(),
+		}
+	}
+	return summary, err
+}
 func (s *SolutionManager) Remove(ctx context.Context, deployment model.DeploymentSpec) (model.SummarySpec, error) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -390,7 +406,6 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 		TargetCount:   len(deployment.Stages[0].Targets),
 		SuccessCount:  len(deployment.Stages[0].Targets),
 	}
-
 	for k, v := range deployment.Stages[0].Assignments {
 		if v != "" {
 			components := make([]model.ComponentSpec, 0)
@@ -403,10 +418,12 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 			//sort components by depedencies
 			components, err := sortByDepedencies(components)
 			if err != nil {
-				return summary, err
+				return updateSummary(summary, v, err)
 			}
 			for key, target := range deployment.Stages[0].Targets {
 				if key == k {
+					cd, _ := json.Marshal(components)
+					log.Debug(string(cd))
 					groups := collectGroups(components)
 					index := 0
 					for i, group := range groups {
@@ -415,7 +432,7 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 						}
 						provider, err := sp.CreateProviderForTargetRole(group.Type, target, s.TargetProvider)
 						if err != nil {
-							return summary, err
+							return updateSummary(summary, k, err)
 						}
 						col := utils.MergeCollection(deployment.Stages[0].Solution.Metadata, deployment.Instance.Metadata)
 						agent := findAgent(target)
@@ -423,21 +440,16 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 							col[ENV_NAME] = agent
 						}
 						var current []model.ComponentSpec
-
 						dep := deployment
 						dep.Instance.Metadata = col
 						dep.Stages[0].ActiveTarget = key
 						dep.Stages[0].Solution.Components = components
-
 						if i == len(groups)-1 {
-
 							dep.Stages[0].ComponentStartIndex = index
 							dep.Stages[0].ComponentEndIndex = len(components)
 
 							for counter := 0; counter < 3; counter++ {
-
 								current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
-
 								if err == nil {
 									if (provider.(tgt.ITargetProvider)).NeedsRemove(ctx, components[index:], current) {
 										err = (provider.(tgt.ITargetProvider)).Remove(ctx, dep, current)

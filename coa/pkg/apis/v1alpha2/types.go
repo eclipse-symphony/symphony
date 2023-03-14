@@ -24,6 +24,8 @@ SOFTWARE
 
 package v1alpha2
 
+import "fmt"
+
 // State represents a response state
 type State uint16
 
@@ -52,6 +54,45 @@ const (
 	Untouched          State = 9998
 	NotImplemented     State = 9999
 )
+
+func (s State) String() string {
+	switch s {
+	case OK:
+		return "OK"
+	case Accepted:
+		return "Accepted"
+	case BadRequest:
+		return "Bad Request"
+	case Unauthorized:
+		return "Unauthorized"
+	case NotFound:
+		return "Not Found"
+	case MethodNotAllowed:
+		return "Method Not Allowed"
+	case Conflict:
+		return "Conflict"
+	case InternalError:
+		return "Internal Error"
+	case BadConfig:
+		return "Bad Config"
+	case MissingConfig:
+		return "Missing Config"
+	case InvalidArgument:
+		return "Invalid Argument"
+	case APIRedirect:
+		return "API Redirect"
+	case FileAccessError:
+		return "File Access Error"
+	case SerializationError:
+		return "Serialization Error"
+	case Untouched:
+		return "Untouched"
+	case NotImplemented:
+		return "Not Implemented"
+	default:
+		return fmt.Sprintf("Unknown State: %d", s)
+	}
+}
 
 const (
 	COAMetaHeader          = "COA_META_HEADER"
