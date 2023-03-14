@@ -13,7 +13,7 @@ COPY . .
 RUN apk add --no-cache git    
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+FROM onebranch.azurecr.io/linux/ubuntu-2004:latest
 RUN \
     set -x \
     && apt-get update \
