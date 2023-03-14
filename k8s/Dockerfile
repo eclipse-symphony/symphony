@@ -20,7 +20,7 @@ COPY configutils/ configutils/
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+FROM onebranch.azurecr.io/linux/ubuntu-2004:latest
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
