@@ -10,7 +10,6 @@ ENV CGO_ENABLED=0
 RUN mkdir /src
 WORKDIR /src
 COPY . .
-# RUN apk add --no-cache git   
  
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
