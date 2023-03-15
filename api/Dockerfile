@@ -10,18 +10,19 @@ ENV CGO_ENABLED=0
 RUN mkdir /src
 WORKDIR /src
 COPY . .
-RUN apk add --no-cache git    
+# RUN apk add --no-cache git   
+ 
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 RUN \
     set -x \
-    && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates curl jq  android-tools-adb \
+    && tdnf update \
+    && tdnf install -y openssl libssl-dev ca-certificates curl jq  android-tools-adb \
     && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
     && chmod +x get_helm.sh \
     && ./get_helm.sh \
-    && apt upgrade -y
+    && tdnf upgrade -y
 
 COPY --from=build /dist /
 ADD ./symphony-api.json /
