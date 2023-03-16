@@ -16,9 +16,11 @@ limitations under the License.
 package model
 
 import (
+	"fmt"
 	"strings"
 
 	go_slices "golang.org/x/exp/slices"
+	"helm.sh/helm/v3/pkg/strvals"
 )
 
 // IDeepEquals interface defines an interface for memberwise equality comparision
@@ -204,12 +206,16 @@ type ValueInjections struct {
 	TargetId   string
 }
 
-func CollectPropertiesWithPrefix(col map[string]string, prefix string, injections *ValueInjections) map[string]string {
-	ret := make(map[string]string)
+func CollectPropertiesWithPrefix(col map[string]string, prefix string, injections *ValueInjections, withHierarchy bool) map[string]interface{} {
+	ret := make(map[string]interface{})
 	for k, v := range col {
 		if strings.HasPrefix(k, prefix) {
 			key := k[len(prefix):]
-			ret[key] = ResolveString(v, injections)
+			if withHierarchy {
+				strvals.ParseInto(fmt.Sprintf("%s=%s", key, ResolveString(v, injections)), ret)
+			} else {
+				ret[key] = ResolveString(v, injections)
+			}
 		}
 	}
 	return ret
