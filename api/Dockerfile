@@ -18,7 +18,7 @@ RUN set -x
 RUN tdnf check-update 
 RUN tdnf install -y ca-certificates 
 RUN tdnf install -y openssl 
-RUN tdnf install -y libssl-dev 
+RUN tdnf install -y openssl-dev 
 RUN tdnf install -y curl 
 RUN tdnf install -y jq  
 RUN tdnf install -y android-tools-adb 
