@@ -394,14 +394,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			//i.UpgradeClient.ReleaseName = component.Name
 			i.UpgradeClient.Install = true
 
-			properties := model.CollectPropertiesWithPrefix(component.Properties, "helm.values.", injections)
-			intfaceProperties := map[string]interface{}{}
-			for k, v := range properties {
-				intfaceProperties[k] = v
-			}
-			//if _, err := i.InstallClient.Run(chart, nil); err != nil {
-			if _, err := i.UpgradeClient.Run(component.Name, chart, intfaceProperties); err != nil {
-				if _, err := i.InstallClient.Run(chart, intfaceProperties); err != nil {
+			properties := model.CollectPropertiesWithPrefix(component.Properties, "helm.values.", injections, true)
+
+			if _, err := i.UpgradeClient.Run(component.Name, chart, properties); err != nil {
+				if _, err := i.InstallClient.Run(chart, properties); err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
 					return err
