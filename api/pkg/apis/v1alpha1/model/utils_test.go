@@ -791,5 +791,5 @@ func TestCollectPropertiesWithHierarchy(t *testing.T) {
 	assert.Equal(t, "DEF", ret["def"].(map[string]interface{})["geh"])
 	assert.Equal(t, true, ret["def"].(map[string]interface{})["somebool"])
 	assert.IsType(t, []interface{}{}, ret["def"].(map[string]interface{})["some"])
-	assert.Equal(t, 123, ret["def"].(map[string]interface{})["some"].([]interface{})[0].(map[string]interface{})["int"])
+	assert.Equal(t, int64(123), ret["def"].(map[string]interface{})["some"].([]interface{})[0].(map[string]interface{})["int"])
 }
