@@ -3,6 +3,8 @@ kind: Instance
 metadata:
   name: sample-staged-instance
 spec:
-  solution: sample-staged-solution
-  target: 
-    name: sample-staged-k8s
+  stages:
+  - name: default
+    solution: sample-staged-solution
+    target: 
+      name: sample-staged-k8s

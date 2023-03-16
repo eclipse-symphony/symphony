@@ -45,18 +45,24 @@ type PipelineSpec struct {
 	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
+type StageSpec struct {
+	Name       string                       `json:"name"`
+	Solution   string                       `json:"solution"`
+	Target     TargetSpec                   `json:"target,omitempty"`
+	Topologies []TopologySpec               `json:"topologies,omitempty"`
+	Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
+	Schedule   string                       `json:"schedule,omitempty"`
+	Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+}
+
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Scope       string            `json:"scope,omitempty"`
 	Parameters  map[string]string `json:"parameters,omitempty"`
-	Solution    string            `json:"solution"`
-	Target      TargetSpec        `json:"target,omitempty"`
-	Topologies  []TopologySpec    `json:"topologies,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
-	Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
 	Stage       string            `json:"stage,omitempty"`
-	Schedule    string            `json:"schedule,omitempty"`
+	Stages      []StageSpec       `json:"stages"`
 }
 
 // InstanceStatus defines the observed state of Instance

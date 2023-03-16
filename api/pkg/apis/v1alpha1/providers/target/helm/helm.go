@@ -39,13 +39,13 @@ import (
 
 	"log"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
@@ -314,8 +314,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
-		TargetId:   deployment.ActiveTarget,
+		SolutionId: deployment.Instance.Stages[0].Solution,
+		TargetId:   deployment.Stages[0].ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()
@@ -394,14 +394,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			//i.UpgradeClient.ReleaseName = component.Name
 			i.UpgradeClient.Install = true
 
-			properties := model.CollectPropertiesWithPrefix(component.Properties, "helm.values.", injections)
-			intfaceProperties := map[string]interface{}{}
-			for k, v := range properties {
-				intfaceProperties[k] = v
-			}
-			//if _, err := i.InstallClient.Run(chart, nil); err != nil {
-			if _, err := i.UpgradeClient.Run(component.Name, chart, intfaceProperties); err != nil {
-				if _, err := i.InstallClient.Run(chart, intfaceProperties); err != nil {
+			properties := model.CollectPropertiesWithPrefix(component.Properties, "helm.values.", injections, true)
+
+			if _, err := i.UpgradeClient.Run(component.Name, chart, properties); err != nil {
+				if _, err := i.InstallClient.Run(chart, properties); err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
 					return err

@@ -32,11 +32,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -158,8 +158,8 @@ func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
-		TargetId:   deployment.ActiveTarget,
+		SolutionId: deployment.Instance.Stages[0].Solution,
+		TargetId:   deployment.Stages[0].ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()

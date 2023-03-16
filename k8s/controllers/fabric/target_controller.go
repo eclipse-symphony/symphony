@@ -92,7 +92,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 
-		if len(deployment.Assignments) != 0 {
+		if len(deployment.Stages[0].Assignments) != 0 {
 			summary, err := utils.Deploy(deployment)
 			if err != nil {
 				log.Error(err, "failed to deploy to Symphony")

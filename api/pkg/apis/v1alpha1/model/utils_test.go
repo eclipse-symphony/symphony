@@ -769,12 +769,27 @@ func TestFullComponentSpecCover(t *testing.T) {
 	assert.True(t, SlicesCover(c1, c2))
 }
 
-func TestCollectProperties(t *testing.T) {
+func TestCollectPropertiesWithoutHierarchy(t *testing.T) {
 	properties := map[string]string{
-		"helm.values.abc": "ABC",
-		"helm.values.def": "DEF",
+		"helm.values.abc":     "ABC",
+		"helm.values.def.geh": "DEF",
 	}
-	ret := CollectPropertiesWithPrefix(properties, "helm.values.", nil)
+	ret := CollectPropertiesWithPrefix(properties, "helm.values.", nil, false)
 	assert.Equal(t, "ABC", ret["abc"])
-	assert.Equal(t, "DEF", ret["def"])
+	assert.Equal(t, "DEF", ret["def.geh"])
+}
+func TestCollectPropertiesWithHierarchy(t *testing.T) {
+	properties := map[string]string{
+		"helm.values.abc":             "ABC",
+		"helm.values.def.geh":         "DEF",
+		"helm.values.def.somebool":    "true",
+		"helm.values.def.some[0].int": "123",
+	}
+	ret := CollectPropertiesWithPrefix(properties, "helm.values.", nil, true)
+	assert.Equal(t, "ABC", ret["abc"])
+	assert.IsType(t, map[string]interface{}{}, ret["def"])
+	assert.Equal(t, "DEF", ret["def"].(map[string]interface{})["geh"])
+	assert.Equal(t, true, ret["def"].(map[string]interface{})["somebool"])
+	assert.IsType(t, []interface{}{}, ret["def"].(map[string]interface{})["some"])
+	assert.Equal(t, int64(123), ret["def"].(map[string]interface{})["some"].([]interface{})[0].(map[string]interface{})["int"])
 }

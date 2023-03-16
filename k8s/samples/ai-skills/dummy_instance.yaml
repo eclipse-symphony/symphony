@@ -2,26 +2,28 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: dummy-instance
-spec: 
-  solution: dummy-solution
-  target: 
-    name: voe-target
-  pipelines:
-  - name: pipeline1
-    skill: cv-skill
-    parameters:
-      delay_buffer: "0.2"
-      recording_duration: "20"
-      insights_overlay: "false"
-  - name: pipeline2
-    skill: cv-skill
-    parameters:
-      delay_buffer: "0.3"
-      recording_duration: "30"
-      insights_overlay: "true"
-  - name: pipeline3
-    skill: cv-skill
-    parameters:
-      delay_buffer: "0.4"
-      recording_duration: "40"
-      insights_overlay: "true"
+spec:
+  stages:
+  - name: default
+    solution: dummy-solution
+    target: 
+      name: voe-target
+    pipelines:
+    - name: pipeline1
+      skill: cv-skill
+      parameters:
+        delay_buffer: "0.2"
+        recording_duration: "20"
+        insights_overlay: "false"
+    - name: pipeline2
+      skill: cv-skill
+      parameters:
+        delay_buffer: "0.3"
+        recording_duration: "30"
+        insights_overlay: "true"
+    - name: pipeline3
+      skill: cv-skill
+      parameters:
+        delay_buffer: "0.4"
+        recording_duration: "40"
+        insights_overlay: "true"

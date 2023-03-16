@@ -49,10 +49,14 @@ func TestGet(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "com1",
+						},
+					},
 				},
 			},
 		},

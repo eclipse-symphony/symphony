@@ -10,7 +10,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: devices.fabric.symphony
 spec:
   conversion:
@@ -90,19 +90,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: instances.solution.symphony
 spec:
   conversion:
@@ -163,68 +157,84 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              pipelines:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    parameters:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    skill:
-                      type: string
-                  required:
-                  - name
-                  - skill
-                  type: object
-                type: array
-              schedule:
-                type: string
               scope:
-                type: string
-              solution:
                 type: string
               stage:
                 type: string
-              target:
-                properties:
-                  name:
-                    type: string
-                  selector:
-                    additionalProperties:
-                      type: string
-                    type: object
-                type: object
-              topologies:
+              stages:
                 items:
                   properties:
-                    bindings:
+                    arguments:
+                      additionalProperties:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      type: object
+                    name:
+                      type: string
+                    pipelines:
                       items:
                         properties:
-                          config:
+                          name:
+                            type: string
+                          parameters:
                             additionalProperties:
                               type: string
                             type: object
-                          provider:
-                            type: string
-                          role:
+                          skill:
                             type: string
                         required:
-                        - provider
-                        - role
+                        - name
+                        - skill
                         type: object
                       type: array
-                    device:
+                    schedule:
                       type: string
-                    selector:
-                      additionalProperties:
-                        type: string
+                    solution:
+                      type: string
+                    target:
+                      properties:
+                        name:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
                       type: object
+                    topologies:
+                      items:
+                        properties:
+                          bindings:
+                            items:
+                              properties:
+                                config:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                provider:
+                                  type: string
+                                role:
+                                  type: string
+                              required:
+                              - provider
+                              - role
+                              type: object
+                            type: array
+                          device:
+                            type: string
+                          selector:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      type: array
+                  required:
+                  - name
+                  - solution
                   type: object
                 type: array
             required:
-            - solution
+            - stages
             type: object
           status:
             description: InstanceStatus defines the observed state of Instance
@@ -241,19 +251,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: models.ai.symphony
 spec:
   conversion:
@@ -383,19 +387,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: projectconfigs.config.symphony
 spec:
   group: config.symphony
@@ -589,19 +587,12 @@ spec:
         type: object
     served: true
     storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: skillpackages.ai.symphony
 spec:
   conversion:
@@ -712,19 +703,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: skills.ai.symphony
 spec:
   conversion:
@@ -923,19 +908,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: solutions.solution.symphony
 spec:
   conversion:
@@ -1078,19 +1057,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   name: targets.fabric.symphony
 spec:
   conversion:
@@ -1291,12 +1264,6 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1345,7 +1312,6 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: symphony-k8s-manager-role
 rules:
 - apiGroups:
@@ -1687,7 +1653,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: possprod.azurecr.io/symphony-k8s:0.41.40
+        image: possprod.azurecr.io/symphony-k8s:0.42.5
         livenessProbe:
           httpGet:
             path: /healthz

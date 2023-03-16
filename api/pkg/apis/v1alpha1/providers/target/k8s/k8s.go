@@ -34,15 +34,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s/projectors"
+	utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s/projectors"
-	utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"go.opentelemetry.io/otel/trace"
 	v1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -759,6 +759,10 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		deployment.Spec.Template.Spec.NodeSelector = selector
 	}
+
+	data, _ := json.Marshal(deployment)
+	log.Debug(string(data))
+
 	return &deployment, nil
 }
 

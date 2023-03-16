@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -15,7 +16,6 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/oliveagle/jsonpath"
 )
 
@@ -299,7 +299,7 @@ func getParameterMap(data []byte, skill string, alias string) (map[string]string
 		}
 	}
 	if skill != "" && alias != "" {
-		params, err = jsonpath.JsonPathLookup(obj, fmt.Sprintf("$.pipelines[?(@.name == '%s' && @.skill == '%s')].parameters", skill, alias))
+		params, err = jsonpath.JsonPathLookup(obj, fmt.Sprintf("$.stages[0].pipelines[?(@.name == '%s' && @.skill == '%s')].parameters", skill, alias))
 		if err == nil {
 			coll := params.([]interface{})
 			for _, p := range coll {

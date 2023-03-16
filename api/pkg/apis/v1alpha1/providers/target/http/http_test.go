@@ -30,30 +30,34 @@ func TestHttpTargetProviderApply(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "http-component",
-					Properties: map[string]string{
-						"http.url":    "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>",
-						"http.method": "POST",
-						"http.body":   `{"solution":"$solution()", "instance": "$instance()", "target": "$target()", "id": "$instance()-$solution()-$target()"}`,
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "http-component",
+							Properties: map[string]string{
+								"http.url":    "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>",
+								"http.method": "POST",
+								"http.body":   `{"solution":"$solution()", "instance": "$instance()", "target": "$target()", "id": "$instance()-$solution()-$target()"}`,
+							},
+						},
 					},
 				},
-			},
-		},
-		Assignments: map[string]string{
-			"target-1": "{http-component}",
-		},
-		Targets: map[string]model.TargetSpec{
-			"target-1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
+				Assignments: map[string]string{
+					"target-1": "{http-component}",
+				},
+				Targets: map[string]model.TargetSpec{
+					"target-1": {
+						Topologies: []model.TopologySpec{
 							{
-								Role:     "instance",
-								Provider: "doesn't-matter",
-								Config:   map[string]string{},
+								Bindings: []model.BindingSpec{
+									{
+										Role:     "instance",
+										Provider: "doesn't-matter",
+										Config:   map[string]string{},
+									},
+								},
 							},
 						},
 					},

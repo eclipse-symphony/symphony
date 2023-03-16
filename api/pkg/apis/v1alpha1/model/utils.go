@@ -16,9 +16,11 @@ limitations under the License.
 package model
 
 import (
+	"fmt"
 	"strings"
 
 	go_slices "golang.org/x/exp/slices"
+	"helm.sh/helm/v3/pkg/strvals"
 )
 
 // IDeepEquals interface defines an interface for memberwise equality comparision
@@ -54,6 +56,32 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 		} else {
 			if !go_slices.Contains(ignoredMissingKeys, k) {
 				return false
+			}
+		}
+	}
+	return true
+}
+
+func StringStringMapsEqual(a map[string]map[string]string, b map[string]map[string]string, ignoredMissingKeys []string) bool {
+	for k, v := range a {
+		if bv, ok := b[k]; ok {
+			if !StringMapsEqual(v, bv, ignoredMissingKeys) {
+				return false
+			}
+		} else {
+			if !go_slices.Contains(ignoredMissingKeys, k) {
+				return false
+			}
+		}
+	}
+	for k, v := range b {
+		if bv, ok := a[k]; ok {
+			if !StringMapsEqual(v, bv, ignoredMissingKeys) {
+				return false
+			} else {
+				if !go_slices.Contains(ignoredMissingKeys, k) {
+					return false
+				}
 			}
 		}
 	}
@@ -178,12 +206,16 @@ type ValueInjections struct {
 	TargetId   string
 }
 
-func CollectPropertiesWithPrefix(col map[string]string, prefix string, injections *ValueInjections) map[string]string {
-	ret := make(map[string]string)
+func CollectPropertiesWithPrefix(col map[string]string, prefix string, injections *ValueInjections, withHierarchy bool) map[string]interface{} {
+	ret := make(map[string]interface{})
 	for k, v := range col {
 		if strings.HasPrefix(k, prefix) {
 			key := k[len(prefix):]
-			ret[key] = ResolveString(v, injections)
+			if withHierarchy {
+				strvals.ParseInto(fmt.Sprintf("%s=%s", key, ResolveString(v, injections)), ret)
+			} else {
+				ret[key] = ResolveString(v, injections)
+			}
 		}
 	}
 	return ret

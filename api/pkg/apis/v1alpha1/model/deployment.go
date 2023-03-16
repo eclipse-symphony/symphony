@@ -20,10 +20,9 @@ import (
 	go_slices "golang.org/x/exp/slices"
 )
 
-type DeploymentSpec struct {
+type DeploymentStage struct {
 	SolutionName        string                `json:"solutionName"`
 	Solution            SolutionSpec          `json:"solution"`
-	Instance            InstanceSpec          `json:"instance"`
 	Targets             map[string]TargetSpec `json:"targets"`
 	Devices             []DeviceSpec          `json:"devices,omitempty"`
 	Assignments         map[string]string     `json:"assignments,omitempty"`
@@ -32,31 +31,16 @@ type DeploymentSpec struct {
 	ActiveTarget        string                `json:"activeTarget,omitempty"`
 }
 
-func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
-	components := d.Solution.Components
-	if d.ComponentStartIndex >= 0 && d.ComponentEndIndex >= 0 && d.ComponentEndIndex > d.ComponentStartIndex {
-		components = components[d.ComponentStartIndex:d.ComponentEndIndex]
-	}
-	return components
-}
-
-func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC DeploymentSpec
+func (c DeploymentStage) DeepEquals(other IDeepEquals) (bool, error) {
+	var otherC DeploymentStage
 	var ok bool
-	if otherC, ok = other.(DeploymentSpec); !ok {
-		return false, errors.New("parameter is not a DeploymentSpec type")
+	if otherC, ok = other.(DeploymentStage); !ok {
+		return false, errors.New("parameter is not a DeploymentStage type")
 	}
 	if c.SolutionName != otherC.SolutionName {
 		return false, nil
 	}
 	equal, err := c.Solution.DeepEquals(otherC.Solution)
-	if err != nil {
-		return false, err
-	}
-	if !equal {
-		return false, nil
-	}
-	equal, err = c.Instance.DeepEquals(otherC.Instance)
 	if err != nil {
 		return false, err
 	}
@@ -79,6 +63,38 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 	if c.ActiveTarget != otherC.ActiveTarget {
+		return false, nil
+	}
+	return true, nil
+}
+
+type DeploymentSpec struct {
+	Instance InstanceSpec      `json:"instance"`
+	Stages   []DeploymentStage `json:"stages"`
+}
+
+func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
+	components := d.Stages[0].Solution.Components
+	if d.Stages[0].ComponentStartIndex >= 0 && d.Stages[0].ComponentEndIndex >= 0 && d.Stages[0].ComponentEndIndex > d.Stages[0].ComponentStartIndex {
+		components = components[d.Stages[0].ComponentStartIndex:d.Stages[0].ComponentEndIndex]
+	}
+	return components
+}
+
+func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
+	var otherC DeploymentSpec
+	var ok bool
+	if otherC, ok = other.(DeploymentSpec); !ok {
+		return false, errors.New("parameter is not a DeploymentSpec type")
+	}
+	equal, err := c.Instance.DeepEquals(otherC.Instance)
+	if err != nil {
+		return false, err
+	}
+	if !equal {
+		return false, nil
+	}
+	if !SlicesEqual(c.Stages, otherC.Stages) {
 		return false, nil
 	}
 	return true, nil
