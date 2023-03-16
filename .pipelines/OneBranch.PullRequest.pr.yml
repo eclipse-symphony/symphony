@@ -63,6 +63,24 @@ extends:
                     printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./api/devops-pat.txt
                     cp ./.setup/pipelines/.npmrc ./k8s/.npmrc
                     printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./k8s/devops-pat.txt
+              - task: GoTool@0
+                displayName: 'Install Go 1.19'
+                inputs:
+                  version: '1.19'
+              - task: Go@0
+                displayName: 'Run go mod vendor in Symphony API'
+                inputs:
+                  command: 'custom'
+                  customCommand: 'mod'
+                  arguments: 'vendor'
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: Go@0
+                displayName: 'Run go mod vendor in K8S'
+                inputs:
+                  command: 'custom'
+                  customCommand: 'mod'
+                  arguments: 'vendor'
+                  workingDirectory: '$(REPOROOT)/k8s'                 
       - stage: build
         dependsOn: prebuild
         jobs:
@@ -71,6 +89,18 @@ extends:
               type: docker
               os: linux
             steps:
+              - task: Go@0
+                displayName: 'Build Symphony API'
+                inputs:
+                  command: 'build'
+                  arguments: '-o $(OUTPUTROOT)/symphony-api'
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: Go@0
+                displayName: 'Build Symphony K8s'
+                inputs:
+                  command: 'build'
+                  arguments: '-o .$(OUTPUTROOT)/symphony-k8s'
+                  workingDirectory: '$(REPOROOT)/k8s'
               - task: DownloadPipelineArtifact@2
                 displayName: Download artifacts
                 inputs:
