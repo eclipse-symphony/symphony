@@ -16,7 +16,12 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=net
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 RUN set -x 
 RUN tdnf check-update 
-RUN tdnf install -y ca-certificates openssl libssl-dev curl jq  android-tools-adb 
+RUN tdnf install -y ca-certificates 
+RUN tdnf install -y openssl 
+RUN tdnf install -ylibssl-dev 
+RUN tdnf install -y curl 
+RUN tdnf install -y jq  
+RUN tdnf install -y android-tools-adb 
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 
 RUN chmod +x get_helm.sh 
 RUN ./get_helm.sh 
