@@ -24,6 +24,16 @@ extends:
       tsa:
         enabled: false
     stages:
+      - stage: test
+        jobs:
+          - job: test 
+            steps:
+              - task: Go@0
+                displayName: 'Test Symphony API'
+                inputs:
+                  command: 'test'
+                  arguments: '-v ./...'
+                  workingDirectory: '$(REPOROOT)/api'
       - stage: prebuild
         jobs:
           - job: prebuild
