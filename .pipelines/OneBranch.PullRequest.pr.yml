@@ -93,12 +93,7 @@ extends:
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
-                  workingDirectory: '$(REPOROOT)/api'
-              - task: DownloadPipelineArtifact@2
-                displayName: Download artifacts
-                inputs:
-                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
-                  artifact: drop_prebuild_prebuild                
+                  workingDirectory: '$(REPOROOT)/api'               
       - stage: build
         dependsOn: prebuild
         jobs:
@@ -107,6 +102,11 @@ extends:
               type: docker
               os: linux
             steps:
+              - task: DownloadPipelineArtifact@2
+                displayName: Download artifacts
+                inputs:
+                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
+                  artifact: drop_prebuild_prebuild 
               - task: onebranch.pipeline.imagebuildinfo@1
                 continueOnError: true
                 displayName: Build symphony-api
