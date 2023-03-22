@@ -94,11 +94,6 @@ extends:
                   command: 'test'
                   arguments: '-v ./...'
                   workingDirectory: '$(REPOROOT)/api'
-              - task: DownloadPipelineArtifact@2
-                displayName: Download artifacts
-                inputs:
-                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
-                  artifact: drop_prebuild_prebuild
       - stage: build
         dependsOn: prebuild
         jobs:
