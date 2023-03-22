@@ -86,7 +86,19 @@ extends:
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
-                  workingDirectory: '$(REPOROOT)/api'                
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: Go@0
+                displayName: 'Test Symphony K8s'
+                continueOnError: true
+                inputs:
+                  command: 'test'
+                  arguments: '-v ./...'
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: DownloadPipelineArtifact@2
+                displayName: Download artifacts
+                inputs:
+                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
+                  artifact: drop_prebuild_prebuild                
       - stage: build
         dependsOn: prebuild
         jobs:
@@ -95,23 +107,6 @@ extends:
               type: docker
               os: linux
             steps:
-              - task: Go@0
-                displayName: 'Build Symphony API'
-                inputs:
-                  command: 'build'
-                  arguments: '-o $(OUTPUTROOT)/symphony-api'
-                  workingDirectory: '$(REPOROOT)/api'
-              - task: Go@0
-                displayName: 'Build Symphony K8s'
-                inputs:
-                  command: 'build'
-                  arguments: '-o .$(OUTPUTROOT)/symphony-k8s'
-                  workingDirectory: '$(REPOROOT)/k8s'
-              - task: DownloadPipelineArtifact@2
-                displayName: Download artifacts
-                inputs:
-                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
-                  artifact: drop_prebuild_prebuild
               - task: onebranch.pipeline.imagebuildinfo@1
                 continueOnError: true
                 displayName: Build symphony-api
