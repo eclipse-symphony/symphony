@@ -14,13 +14,14 @@ COPY . .
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
-RUN set -x 
-RUN tdnf check-update 
-RUN tdnf install -y ca-certificates openssl curl jq awk tar
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 
-RUN chmod +x get_helm.sh 
-RUN ./get_helm.sh 
-RUN tdnf upgrade -y
+RUN \
+    set -x \
+    && tdnf check-update \
+    && tdnf install -y ca-certificates openssl curl jq awk tar \
+    && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+    && chmod +x get_helm.sh \
+    && ./get_helm.sh \
+    && tdnf upgrade -y
 
 COPY --from=build /dist /
 ADD ./symphony-api.json /
