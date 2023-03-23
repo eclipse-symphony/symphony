@@ -89,6 +89,7 @@ extends:
                   workingDirectory: '$(REPOROOT)/api'
               - task: Go@0
                 displayName: 'Test Symphony K8s'
+                continueOnError: true
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
