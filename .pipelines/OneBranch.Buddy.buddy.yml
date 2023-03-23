@@ -83,18 +83,16 @@ extends:
                   workingDirectory: '$(REPOROOT)/k8s' 
               - task: Go@0
                 displayName: 'Test Symphony API'
-                continueOnError: true
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
                   workingDirectory: '$(REPOROOT)/api'
               - task: Go@0
                 displayName: 'Test Symphony K8s'
-                continueOnError: true
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
-                  workingDirectory: '$(REPOROOT)/api'
+                  workingDirectory: '$(REPOROOT)/k8s'
       - stage: build
         dependsOn: prebuild
         jobs:
