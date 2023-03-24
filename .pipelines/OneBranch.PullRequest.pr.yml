@@ -108,7 +108,6 @@ extends:
                   targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
                   artifact: drop_prebuild_prebuild 
               - task: onebranch.pipeline.imagebuildinfo@1
-                continueOnError: true
                 displayName: Build symphony-api
                 inputs:
                   repositoryName: symphony-api
@@ -120,7 +119,6 @@ extends:
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
                   build_tag: $(Build.BuildNumber)
               - task: onebranch.pipeline.imagebuildinfo@1
-                continueOnError: true
                 displayName: Build symphony-k8s
                 inputs:
                   repositoryName: symphony-k8s
