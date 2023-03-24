@@ -1,0 +1,131 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)-pr
+parameters: []
+trigger: none
+variables:
+  LinuxContainerImage: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
+  DEBIAN_FRONTEND: noninteractive
+  ROOT: $(Build.SourcesDirectory)
+  REPOROOT: $(Build.SourcesDirectory)
+  OUTPUTROOT: $(REPOROOT)\out
+  ComponentDetection.Timeout: 1200
+  DisableGoCliScan: true
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+extends:
+  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates
+  parameters:
+    globalSdl:
+      policheck:
+        break: true
+      tsa:
+        enabled: false
+    stages:
+      - stage: prebuild
+        jobs:
+          - job: prebuild
+            pool:
+              type: linux
+            variables:
+              ob_outputDirectory: $(Build.SourcesDirectory)
+              ob_sdl_binskim_scanOutputDirectoryOnly: true
+              ob_sdl_codeSignValidation_legacyCiPolicyConfig: true
+            steps:
+              - task: NodeTool@0
+                displayName: Install Node.js
+                inputs:
+                  versionSpec: 16.x
+              - task: Bash@3
+                displayName: create npmrc
+                condition: ne(variables['Agent.OS'], 'Windows_NT')
+                inputs:
+                  targetType: inline
+                  script: |-
+                    #!/bin/bash
+                    npmrcStr="@azure-iot:registry=https://pkgs.dev.azure.com/msazure/_packaging/AzureIOTSaas/npm/registry/\n\nalways-auth=true"
+                    echo -e $npmrcStr > ./.setup/pipelines/.npmrc
+              - task: npmAuthenticate@0
+                continueOnError: true
+                displayName: configure npmrc
+                inputs:
+                  workingFile: .setup/pipelines/.npmrc
+              - task: Bash@3
+                displayName: copy creds to folders
+                condition: ne(variables['Agent.OS'], 'Windows_NT')
+                inputs:
+                  targetType: inline
+                  script: |-
+                    #!/bin/bash
+                    cp ./.setup/pipelines/.npmrc ./api/.npmrc
+                    printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./api/devops-pat.txt
+                    cp ./.setup/pipelines/.npmrc ./k8s/.npmrc
+                    printf "$CDP_DEFAULT_CLIENT_PACKAGE_PAT" > ./k8s/devops-pat.txt
+              - task: GoTool@0
+                displayName: 'Install Go 1.19'
+                inputs:
+                  version: '1.19'
+              - task: Go@0
+                displayName: 'Run go mod vendor in Symphony API'
+                inputs:
+                  command: 'custom'
+                  customCommand: 'mod'
+                  arguments: 'vendor'
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: Go@0
+                displayName: 'Run go mod vendor in K8S'
+                inputs:
+                  command: 'custom'
+                  customCommand: 'mod'
+                  arguments: 'vendor'
+                  workingDirectory: '$(REPOROOT)/k8s' 
+              - task: Go@0
+                displayName: 'Test Symphony API'
+                inputs:
+                  command: 'test'
+                  arguments: '-v ./...'
+                  workingDirectory: '$(REPOROOT)/api'
+              - task: Go@0
+                displayName: 'Test Symphony K8s'
+                continueOnError: true
+                inputs:
+                  command: 'test'
+                  arguments: '-v ./...'
+                  workingDirectory: '$(REPOROOT)/k8s'               
+      - stage: build
+        dependsOn: prebuild
+        jobs:
+          - job: build_1
+            pool:
+              type: docker
+              os: linux
+            steps:
+              - task: DownloadPipelineArtifact@2
+                displayName: Download artifacts
+                inputs:
+                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
+                  artifact: drop_prebuild_prebuild 
+              - task: onebranch.pipeline.imagebuildinfo@1
+                displayName: Build symphony-api
+                inputs:
+                  repositoryName: symphony-api
+                  dockerFileRelPath: drop_prebuild_prebuild/api/Dockerfile
+                  dockerFileContextPath: drop_prebuild_prebuild/api/
+                  saveImageToPath: symphony-api.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
+              - task: onebranch.pipeline.imagebuildinfo@1
+                displayName: Build symphony-k8s
+                inputs:
+                  repositoryName: symphony-k8s
+                  dockerFileRelPath: drop_prebuild_prebuild/k8s/Dockerfile
+                  dockerFileContextPath: drop_prebuild_prebuild/k8s/
+                  saveImageToPath: symphony-k8s.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
