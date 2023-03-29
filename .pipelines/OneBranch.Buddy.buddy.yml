@@ -94,6 +94,13 @@ extends:
                   command: 'test'
                   arguments: '-v ./...'
                   workingDirectory: '$(REPOROOT)/k8s'
+              - task: Go@0
+                displayName: 'Run go mod vendor in GitOps'
+                inputs:
+                  command: 'custom'
+                  customCommand: 'mod'
+                  arguments: 'vendor'
+                  workingDirectory: '$(REPOROOT)/gitops'
       - stage: build
         dependsOn: prebuild
         jobs:
@@ -131,6 +138,21 @@ extends:
                   enable_acr_push: true
                   endpoint: symphony_corp_acr
               - task: onebranch.pipeline.imagebuildinfo@1
+                displayName: Build symphony-agent
+                inputs:
+                  repositoryName: symphony-api
+                  dockerFileRelPath: drop_prebuild_prebuild/api/Dockerfile.agent
+                  dockerFileContextPath: drop_prebuild_prebuild/api/
+                  saveImageToPath: symphony-agent.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
+                  enable_isolated_acr_push: false
+                  enable_service_tree_acr_path: false
+                  enable_acr_push: true
+                  endpoint: symphony_corp_acr
+              - task: onebranch.pipeline.imagebuildinfo@1
                 displayName: Build symphony-k8s
                 inputs:
                   repositoryName: symphony-k8s
@@ -138,6 +160,21 @@ extends:
                   dockerFileContextPath: drop_prebuild_prebuild/k8s/
                   registry: symphonycr.azurecr.io
                   saveImageToPath: symphony-k8s.tar
+                  buildkit: 1
+                  enable_network: true
+                  arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
+                  build_tag: $(Build.BuildNumber)
+                  enable_isolated_acr_push: false
+                  enable_service_tree_acr_path: false
+                  enable_acr_push: true
+                  endpoint: symphony_corp_acr
+              - task: onebranch.pipeline.imagebuildinfo@1
+                displayName: Build GitOps
+                inputs:
+                  repositoryName: gitops-service
+                  dockerFileRelPath: drop_prebuild_prebuild/gitops/Dockerfile
+                  dockerFileContextPath: drop_prebuild_prebuild/gitops/
+                  saveImageToPath: gitops.tar
                   buildkit: 1
                   enable_network: true
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'

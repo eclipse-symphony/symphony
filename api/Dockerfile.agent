@@ -10,14 +10,16 @@ ENV CGO_ENABLED=0
 RUN mkdir /src
 WORKDIR /src
 COPY . .
-RUN apk add --no-cache git    
+ 
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-agent
 
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 RUN \
     set -x \
-    && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates ffmpeg jq  android-tools-adb
+    && tdnf check-update \
+    && tdnf install -y ca-certificates openssl jq 
+# RUN tdnf install -y ffmpeg android-tools-adb
+
 COPY --from=build /dist /
 ADD ./symphony-agent.json /
 EXPOSE 8088
