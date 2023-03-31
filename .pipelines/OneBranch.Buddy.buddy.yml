@@ -140,9 +140,10 @@ extends:
               - task: onebranch.pipeline.imagebuildinfo@1
                 displayName: Build symphony-agent
                 inputs:
-                  repositoryName: symphony-api
+                  repositoryName: symphony-agent                  
                   dockerFileRelPath: drop_prebuild_prebuild/api/Dockerfile.agent
                   dockerFileContextPath: drop_prebuild_prebuild/api/
+                  registry: symphonycr.azurecr.io
                   saveImageToPath: symphony-agent.tar
                   buildkit: 1
                   enable_network: true
@@ -174,6 +175,7 @@ extends:
                   repositoryName: gitops-service
                   dockerFileRelPath: drop_prebuild_prebuild/gitops/Dockerfile
                   dockerFileContextPath: drop_prebuild_prebuild/gitops/
+                  registry: symphonycr.azurecr.io
                   saveImageToPath: gitops.tar
                   buildkit: 1
                   enable_network: true
