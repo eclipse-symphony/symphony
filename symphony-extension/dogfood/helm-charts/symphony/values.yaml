@@ -1,0 +1,9 @@
+symphonyImage:
+  repository: possprod.azurecr.io/symphony-k8s
+  pullPolicy: IfNotPresent
+  tag: "0.42.5"
+paiImage:
+  repository: symphonycr.azurecr.io/nc-symphony-api
+  pullPolicy: IfNotPresent
+  tag: "0.42.5-patch-2"
+CUSTOM_VISION_KEY: "AAAA"

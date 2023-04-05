@@ -1,0 +1,15 @@
+{
+    "artifactEndpoints": [
+        {
+            "Regions": ["eastus", "eastus2", "westus", "westus2", "centralus"],
+            "Releasetrains": ["dev", "staging"],
+            "FullPathToHelmChart": "symphonycr.azurecr.io/arc-extension/symphony",
+            "ExtensionUpdateFrequencyInMinutes": 60,
+            "AutoUpdateImagePath": null,
+            "IsCustomerHidden": true,
+            "ReadyforRollout": true,
+            "RollbackVersion": null,
+            "PackageConfigName": "private-symphony-production-0"
+        }
+    ]
+}

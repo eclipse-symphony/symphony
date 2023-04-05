@@ -1,0 +1,36 @@
+{
+    "extensionType": "Private.Symphony",
+    "publisher": "Azure IoT Solutions",
+    "description": "Enables customers to manage their edges sites using symphony",
+    "AdminSubscriptions": ["77969078-2897-47b0-9143-917252379303"],
+    "InternalTestSubscriptions": [
+        "77969078-2897-47b0-9143-917252379303"
+    ],
+    "SupportedClusterTypes": [
+        "Connectedclusters",
+        "Managedclusters"
+    ],
+    "UsingNewSystem": true,
+    "supportedScopes": {
+        "DefaultScope": "cluster",
+        "ClusterScopeSettings": {
+            "AllowMultipleInstances": false,
+            "DefaultReleaseNamespace": "symphony-rp"
+        },
+        "NamespaceScopeSettings": {}
+    },
+    "ResourceSyncSettings": [
+        {
+            "EventHubNamespace": "FEH-Production-EUS.servicebus.windows.net",
+            "EventHubName": "resourceSync",
+            "ProviderNamespace": "Private.Symphony",
+            "Regions": ["eastus", "eastus2", "westus", "westus2", "centralus", "eastus2euap"]
+        }
+    ],
+    "BillingSettings": {
+        "ExtensionBillingEnabled": true,
+        "BillingConfigurations": []
+    },
+    "IcmTeamAlias": "IoT Central\\Expert_Flash",
+    "PublisherProvidedErrorDetails": "Please reach out to Microsoft tech care if you need help with debugging the problems with your extension resource"
+}

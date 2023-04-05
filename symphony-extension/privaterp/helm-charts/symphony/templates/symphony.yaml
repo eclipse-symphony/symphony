@@ -1,0 +1,1991 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: symphony-k8s-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: devices.fabric.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: fabric.symphony
+  names:
+    kind: Device
+    listKind: DeviceList
+    plural: devices
+    singular: device
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Device is the Schema for the devices API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DeviceSpec defines the desired state of Device
+            properties:
+              bindings:
+                items:
+                  properties:
+                    config:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    provider:
+                      type: string
+                    role:
+                      type: string
+                  required:
+                  - provider
+                  - role
+                  type: object
+                type: array
+              displayName:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            description: DeviceStatus defines the observed state of Device
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: Device properties
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: instances.solution.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: solution.symphony
+  names:
+    kind: Instance
+    listKind: InstanceList
+    plural: instances
+    singular: instance
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.properties.status
+      name: Status
+      type: string
+    - jsonPath: .status.properties.targets
+      name: Targets
+      type: string
+    - jsonPath: .status.properties.deployed
+      name: Deployed
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Instance is the Schema for the instances API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: InstanceSpec defines the desired state of Instance
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+              parameters:
+                additionalProperties:
+                  type: string
+                type: object
+              scope:
+                type: string
+              stage:
+                type: string
+              stages:
+                items:
+                  properties:
+                    arguments:
+                      additionalProperties:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      type: object
+                    name:
+                      type: string
+                    pipelines:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          parameters:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          skill:
+                            type: string
+                        required:
+                        - name
+                        - skill
+                        type: object
+                      type: array
+                    schedule:
+                      type: string
+                    solution:
+                      type: string
+                    target:
+                      properties:
+                        name:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    topologies:
+                      items:
+                        properties:
+                          bindings:
+                            items:
+                              properties:
+                                config:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                provider:
+                                  type: string
+                                role:
+                                  type: string
+                              required:
+                              - provider
+                              - role
+                              type: object
+                            type: array
+                          device:
+                            type: string
+                          selector:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      type: array
+                  required:
+                  - name
+                  - solution
+                  type: object
+                type: array
+            required:
+            - stages
+            type: object
+          status:
+            description: InstanceStatus defines the observed state of Instance
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: models.ai.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: ai.symphony
+  names:
+    kind: Model
+    listKind: ModelList
+    plural: models
+    singular: model
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Model is the Schema for the models API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ModelSpec defines the desired state of Model
+            properties:
+              bindings:
+                items:
+                  properties:
+                    parameters:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    role:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - role
+                  - type
+                  type: object
+                type: array
+              constraints:
+                items:
+                  description: 'NOTE: json tags are required.  Any new fields you
+                    add must have json tags for the fields to be serialized.'
+                  properties:
+                    operator:
+                      type: string
+                    value:
+                      type: string
+                    values:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - operator
+                  type: object
+                type: array
+              displayName:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              routes:
+                items:
+                  properties:
+                    filters:
+                      items:
+                        properties:
+                          direction:
+                            type: string
+                          parameters:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          type:
+                            type: string
+                        required:
+                        - direction
+                        - type
+                        type: object
+                      type: array
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    route:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - route
+                  - type
+                  type: object
+                type: array
+            type: object
+          status:
+            description: ModelStatus defines the observed state of Model
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: projectconfigs.config.symphony
+spec:
+  group: config.symphony
+  names:
+    kind: ProjectConfig
+    listKind: ProjectConfigList
+    plural: projectconfigs
+    singular: projectconfig
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: ProjectConfig is the Schema for the projectconfigs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          cacheNamespace:
+            description: "CacheNamespace if specified restricts the manager's cache
+              to watch objects in the desired namespace Defaults to all namespaces
+              \n Note: If a namespace is specified, controllers can still Watch for
+              a cluster-scoped resource (e.g Node).  For namespaced resources the
+              cache will only hold objects from the desired namespace."
+            type: string
+          controller:
+            description: Controller contains global configuration options for controllers
+              registered within this manager.
+            properties:
+              cacheSyncTimeout:
+                description: CacheSyncTimeout refers to the time limit set to wait
+                  for syncing caches. Defaults to 2 minutes if not set.
+                format: int64
+                type: integer
+              groupKindConcurrency:
+                additionalProperties:
+                  type: integer
+                description: "GroupKindConcurrency is a map from a Kind to the number
+                  of concurrent reconciliation allowed for that controller. \n When
+                  a controller is registered within this manager using the builder
+                  utilities, users have to specify the type the controller reconciles
+                  in the For(...) call. If the object's kind passed matches one of
+                  the keys in this map, the concurrency for that controller is set
+                  to the number specified. \n The key is expected to be consistent
+                  in form with GroupKind.String(), e.g. ReplicaSet in apps group (regardless
+                  of version) would be `ReplicaSet.apps`."
+                type: object
+            type: object
+          gracefulShutDown:
+            description: GracefulShutdownTimeout is the duration given to runnable
+              to stop before the manager actually returns on stop. To disable graceful
+              shutdown, set to time.Duration(0) To use graceful shutdown without timeout,
+              set to a negative duration, e.G. time.Duration(-1) The graceful shutdown
+              is skipped for safety reasons in case the leader election lease is lost.
+            type: string
+          health:
+            description: Health contains the controller health configuration
+            properties:
+              healthProbeBindAddress:
+                description: HealthProbeBindAddress is the TCP address that the controller
+                  should bind to for serving health probes
+                type: string
+              livenessEndpointName:
+                description: LivenessEndpointName, defaults to "healthz"
+                type: string
+              readinessEndpointName:
+                description: ReadinessEndpointName, defaults to "readyz"
+                type: string
+            type: object
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          leaderElection:
+            description: LeaderElection is the LeaderElection config to be used when
+              configuring the manager.Manager leader election
+            properties:
+              leaderElect:
+                description: leaderElect enables a leader election client to gain
+                  leadership before executing the main loop. Enable this when running
+                  replicated components for high availability.
+                type: boolean
+              leaseDuration:
+                description: leaseDuration is the duration that non-leader candidates
+                  will wait after observing a leadership renewal until attempting
+                  to acquire leadership of a led but unrenewed leader slot. This is
+                  effectively the maximum duration that a leader can be stopped before
+                  it is replaced by another candidate. This is only applicable if
+                  leader election is enabled.
+                type: string
+              renewDeadline:
+                description: renewDeadline is the interval between attempts by the
+                  acting master to renew a leadership slot before it stops leading.
+                  This must be less than or equal to the lease duration. This is only
+                  applicable if leader election is enabled.
+                type: string
+              resourceLock:
+                description: resourceLock indicates the resource object type that
+                  will be used to lock during leader election cycles.
+                type: string
+              resourceName:
+                description: resourceName indicates the name of resource object that
+                  will be used to lock during leader election cycles.
+                type: string
+              resourceNamespace:
+                description: resourceName indicates the namespace of resource object
+                  that will be used to lock during leader election cycles.
+                type: string
+              retryPeriod:
+                description: retryPeriod is the duration the clients should wait between
+                  attempting acquisition and renewal of a leadership. This is only
+                  applicable if leader election is enabled.
+                type: string
+            required:
+            - leaderElect
+            - leaseDuration
+            - renewDeadline
+            - resourceLock
+            - resourceName
+            - resourceNamespace
+            - retryPeriod
+            type: object
+          metadata:
+            type: object
+          metrics:
+            description: Metrics contains thw controller metrics configuration
+            properties:
+              bindAddress:
+                description: BindAddress is the TCP address that the controller should
+                  bind to for serving prometheus metrics. It can be set to "0" to
+                  disable the metrics serving.
+                type: string
+            type: object
+          syncIntervalSeconds:
+            type: integer
+          syncPeriod:
+            description: SyncPeriod determines the minimum frequency at which watched
+              resources are reconciled. A lower period will correct entropy more quickly,
+              but reduce responsiveness to change if there are many watched resources.
+              Change this value only if you know what you are doing. Defaults to 10
+              hours if unset. there will a 10 percent jitter between the SyncPeriod
+              of all controllers so that all controllers will not send list requests
+              simultaneously.
+            type: string
+          validationPolicies:
+            additionalProperties:
+              items:
+                properties:
+                  message:
+                    type: string
+                  selectorKey:
+                    type: string
+                  selectorType:
+                    type: string
+                  selectorValue:
+                    type: string
+                  specField:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - message
+                - selectorType
+                - specField
+                - type
+                type: object
+              type: array
+            type: object
+          webhook:
+            description: Webhook contains the controllers webhook configuration
+            properties:
+              certDir:
+                description: CertDir is the directory that contains the server key
+                  and certificate. if not set, webhook server would look up the server
+                  key and certificate in {TempDir}/k8s-webhook-server/serving-certs.
+                  The server key and certificate must be named tls.key and tls.crt,
+                  respectively.
+                type: string
+              host:
+                description: Host is the hostname that the webhook server binds to.
+                  It is used to set webhook.Server.Host.
+                type: string
+              port:
+                description: Port is the port that the webhook server serves at. It
+                  is used to set webhook.Server.Port.
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: skillpackages.ai.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: ai.symphony
+  names:
+    kind: SkillPackage
+    listKind: SkillPackageList
+    plural: skillpackages
+    singular: skillpackage
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: SkillPackage is the Schema for the skillpackages API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SkillPackageSpec defines the desired state of SkillPackage
+            properties:
+              constraints:
+                items:
+                  description: 'NOTE: json tags are required.  Any new fields you
+                    add must have json tags for the fields to be serialized.'
+                  properties:
+                    operator:
+                      type: string
+                    value:
+                      type: string
+                    values:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - operator
+                  type: object
+                type: array
+              displayName:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              routes:
+                items:
+                  properties:
+                    filters:
+                      items:
+                        properties:
+                          direction:
+                            type: string
+                          parameters:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          type:
+                            type: string
+                        required:
+                        - direction
+                        - type
+                        type: object
+                      type: array
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    route:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - route
+                  - type
+                  type: object
+                type: array
+              skill:
+                type: string
+            required:
+            - skill
+            type: object
+          status:
+            description: SkillPackageStatus defines the observed state of SkillPackage
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: skills.ai.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: ai.symphony
+  names:
+    kind: Skill
+    listKind: SkillList
+    plural: skills
+    singular: skill
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Skill is the Schema for the skills API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SkillSpec defines the desired state of Skill
+            properties:
+              bindings:
+                items:
+                  properties:
+                    parameters:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    role:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - role
+                  - type
+                  type: object
+                type: array
+              displayName:
+                type: string
+              edges:
+                items:
+                  properties:
+                    source:
+                      properties:
+                        node:
+                          type: string
+                        route:
+                          type: string
+                      required:
+                      - node
+                      - route
+                      type: object
+                    target:
+                      properties:
+                        node:
+                          type: string
+                        route:
+                          type: string
+                      required:
+                      - node
+                      - route
+                      type: object
+                  required:
+                  - source
+                  - target
+                  type: object
+                type: array
+              nodes:
+                items:
+                  properties:
+                    configurations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    id:
+                      type: string
+                    inputs:
+                      items:
+                        properties:
+                          filters:
+                            items:
+                              properties:
+                                direction:
+                                  type: string
+                                parameters:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                type:
+                                  type: string
+                              required:
+                              - direction
+                              - type
+                              type: object
+                            type: array
+                          metadata:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          route:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - route
+                        - type
+                        type: object
+                      type: array
+                    model:
+                      type: string
+                    name:
+                      type: string
+                    outputs:
+                      items:
+                        properties:
+                          filters:
+                            items:
+                              properties:
+                                direction:
+                                  type: string
+                                parameters:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                type:
+                                  type: string
+                              required:
+                              - direction
+                              - type
+                              type: object
+                            type: array
+                          metadata:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          route:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - route
+                        - type
+                        type: object
+                      type: array
+                    type:
+                      type: string
+                  required:
+                  - id
+                  - name
+                  - type
+                  type: object
+                type: array
+              parameters:
+                additionalProperties:
+                  type: string
+                type: object
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+            required:
+            - edges
+            - nodes
+            type: object
+          status:
+            description: SkillStatus defines the observed state of Skill
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: solutions.solution.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: solution.symphony
+  names:
+    kind: Solution
+    listKind: SolutionList
+    plural: solutions
+    singular: solution
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Solution is the Schema for the solutions API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SolutionSpec defines the desired state of Solution
+            properties:
+              components:
+                items:
+                  properties:
+                    constraints:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          qualifier:
+                            type: string
+                          value:
+                            type: string
+                          values:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        type: object
+                      type: array
+                    dependencies:
+                      items:
+                        type: string
+                      type: array
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    properties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    routes:
+                      items:
+                        properties:
+                          filters:
+                            items:
+                              properties:
+                                direction:
+                                  type: string
+                                parameters:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                type:
+                                  type: string
+                              required:
+                              - direction
+                              - type
+                              type: object
+                            type: array
+                          properties:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          route:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - route
+                        - type
+                        type: object
+                      type: array
+                    skills:
+                      items:
+                        type: string
+                      type: array
+                    type:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              displayName:
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            description: SolutionStatus defines the observed state of Solution
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  name: targets.fabric.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: symphony-k8s-webhook-service
+          namespace: symphony-k8s-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: fabric.symphony
+  names:
+    kind: Target
+    listKind: TargetList
+    plural: targets
+    singular: target
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.properties.status
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Target is the Schema for the targets API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TargetSpec defines the desired state of Target
+            properties:
+              components:
+                items:
+                  properties:
+                    constraints:
+                      items:
+                        description: 'NOTE: json tags are required.  Any new fields
+                          you add must have json tags for the fields to be serialized.'
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          qualifier:
+                            type: string
+                          value:
+                            type: string
+                          values:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        type: object
+                      type: array
+                    dependencies:
+                      items:
+                        type: string
+                      type: array
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    properties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    routes:
+                      items:
+                        properties:
+                          filters:
+                            items:
+                              properties:
+                                direction:
+                                  type: string
+                                parameters:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                type:
+                                  type: string
+                              required:
+                              - direction
+                              - type
+                              type: object
+                            type: array
+                          metadata:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          name:
+                            type: string
+                          route:
+                            type: string
+                        required:
+                        - name
+                        - route
+                        type: object
+                      type: array
+                    skills:
+                      items:
+                        type: string
+                      type: array
+                    type:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              constraints:
+                items:
+                  description: 'NOTE: json tags are required.  Any new fields you
+                    add must have json tags for the fields to be serialized.'
+                  properties:
+                    key:
+                      type: string
+                    operator:
+                      type: string
+                    qualifier:
+                      type: string
+                    value:
+                      type: string
+                    values:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - key
+                  type: object
+                type: array
+              displayName:
+                type: string
+              forceRedeploy:
+                type: boolean
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              topologies:
+                items:
+                  properties:
+                    bindings:
+                      items:
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          provider:
+                            type: string
+                          role:
+                            type: string
+                        required:
+                        - provider
+                        - role
+                        type: object
+                      type: array
+                    device:
+                      type: string
+                    selector:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                type: array
+            type: object
+          status:
+            description: TargetStatus defines the observed state of Target
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: symphony-k8s-controller-manager
+  namespace: symphony-k8s-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: symphony-k8s-leader-election-role
+  namespace: symphony-k8s-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: symphony-k8s-manager-role
+rules:
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - models/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skillpackages/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.symphony
+  resources:
+  - skills/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - devices/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.symphony
+  resources:
+  - targets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: symphony-k8s-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: symphony-k8s-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: symphony-k8s-leader-election-rolebinding
+  namespace: symphony-k8s-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: symphony-k8s-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: symphony-k8s-controller-manager
+  namespace: symphony-k8s-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: symphony-k8s-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: symphony-k8s-manager-role
+subjects:
+- kind: ServiceAccount
+  name: symphony-k8s-controller-manager
+  namespace: symphony-k8s-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: symphony-k8s-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: symphony-k8s-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: symphony-k8s-controller-manager
+  namespace: symphony-k8s-system
+---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |-
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: 33405cb8.symphony
+    syncIntervalSeconds: 180
+    validationPolicies:
+      model:
+      - selectorType: properties
+        specField: model.project
+        type: unique
+        message: "there's already a model associated with the Custom Vision project: %s"
+      target:
+      - selectorType: topologies.bindings
+        selectorKey: provider
+        selectorValue: providers.target.azure.iotedge
+        specField: binding.config.deviceName
+        type: unique
+        message: "there's already a target associated with the IoT Edge device: %s"
+kind: ConfigMap
+metadata:
+  name: symphony-k8s-manager-config
+  namespace: symphony-k8s-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: symphony-k8s-controller-manager-metrics-service
+  namespace: symphony-k8s-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: symphony-k8s-webhook-service
+  namespace: symphony-k8s-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: symphony-k8s-controller-manager
+  namespace: symphony-k8s-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        command:
+        - /manager
+        image: possprod.azurecr.io/symphony-k8s:0.42.5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=0
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: symphony-k8s-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: symphony-k8s-serving-cert
+  namespace: symphony-k8s-system
+spec:
+  dnsNames:
+  - symphony-k8s-webhook-service.symphony-k8s-system.svc
+  - symphony-k8s-webhook-service.symphony-k8s-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: symphony-k8s-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: symphony-k8s-selfsigned-issuer
+  namespace: symphony-k8s-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+  name: symphony-k8s-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-ai-symphony-v1-model
+  failurePolicy: Fail
+  name: mmodel.kb.io
+  rules:
+  - apiGroups:
+    - ai.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - models
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-ai-symphony-v1-skill
+  failurePolicy: Fail
+  name: mskill.kb.io
+  rules:
+  - apiGroups:
+    - ai.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - skills
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-fabric-symphony-v1-device
+  failurePolicy: Fail
+  name: mdevice.kb.io
+  rules:
+  - apiGroups:
+    - fabric.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - devices
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-fabric-symphony-v1-target
+  failurePolicy: Fail
+  name: mtarget.kb.io
+  rules:
+  - apiGroups:
+    - fabric.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-solution-symphony-v1-instance
+  failurePolicy: Fail
+  name: minstance.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /mutate-solution-symphony-v1-solution
+  failurePolicy: Fail
+  name: msolution.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - solutions
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+  name: symphony-k8s-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-ai-symphony-v1-model
+  failurePolicy: Fail
+  name: vmodel.kb.io
+  rules:
+  - apiGroups:
+    - ai.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - models
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-ai-symphony-v1-skill
+  failurePolicy: Fail
+  name: vskill.kb.io
+  rules:
+  - apiGroups:
+    - ai.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - skills
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-fabric-symphony-v1-device
+  failurePolicy: Fail
+  name: vdevice.kb.io
+  rules:
+  - apiGroups:
+    - fabric.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - devices
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-fabric-symphony-v1-target
+  failurePolicy: Fail
+  name: vtarget.kb.io
+  rules:
+  - apiGroups:
+    - fabric.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-solution-symphony-v1-instance
+  failurePolicy: Fail
+  name: vinstance.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: symphony-k8s-webhook-service
+      namespace: symphony-k8s-system
+      path: /validate-solution-symphony-v1-solution
+  failurePolicy: Fail
+  name: vsolution.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - solutions
+  sideEffects: None
