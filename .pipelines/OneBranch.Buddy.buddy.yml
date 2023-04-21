@@ -7,6 +7,7 @@ variables:
   ROOT: $(Build.SourcesDirectory)
   REPOROOT: $(Build.SourcesDirectory)
   OUTPUTROOT: $(REPOROOT)\out
+  ACR: symphonycr.azurecr.io
   ComponentDetection.Timeout: 1200
   DisableGoCliScan: true
 resources:
@@ -184,4 +185,44 @@ extends:
                   enable_isolated_acr_push: false
                   enable_service_tree_acr_path: false
                   enable_acr_push: true
-                  endpoint: symphony_corp_acr
+                  endpoint: symphony_corp_acr     
+      - stage: helm
+        dependsOn: prebuild
+        jobs:
+          - job: package_1
+            pool:
+              type: linux
+              isCustom: true
+              name: Azure Pipelines
+              vmImage: ubuntu-latest
+            variables:
+              ob_outputDirectory: $(Build.SourcesDirectory)
+              ob_sdl_binskim_scanOutputDirectoryOnly: true
+              ob_sdl_codeSignValidation_legacyCiPolicyConfig: true
+              ob_build_container: true
+            steps:
+              - task: DownloadPipelineArtifact@2
+                displayName: Download artifacts
+                inputs:
+                  targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild
+                  artifact: drop_prebuild_prebuild
+              - task: HelmInstaller@0
+                displayName: Helm tool install
+                inputs:
+                  helmVersion: '3.11.2'
+              - task: Docker@2
+                displayName: Login to Helm ACR
+                inputs:
+                  containerRegistry: symphony_corp_acr
+                  command: login
+                  addPipelineData: false
+                  addBaseImageData: false
+              - task: CmdLine@2
+                displayName: Helm package
+                inputs:
+                  script: |
+                    HELM_PACKAGE_OUTPUT=$(helm package $(REPOROOT)/symphony-extension/privaterp/helm-charts/symphony)
+                    HELM_PACKAGE_OUTPUT_TRIM="${HELM_PACKAGE_OUTPUT##*/}"
+                    HELM_PACKAGE_NAME="${HELM_PACKAGE_OUTPUT_TRIM##*\\}"
+                    helm push ./$HELM_PACKAGE_NAME oci://$(ACR)/arc-extensions/
+              
