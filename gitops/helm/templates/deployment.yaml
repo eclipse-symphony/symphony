@@ -35,6 +35,9 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ include "gitops.secretName" . }}
+          env:
+            - name: IMAGE_TAG
+              value: {{ .Values.image.tag | default .Chart.AppVersion }}
           ports:
             - name: http
               containerPort: {{ .Values.image.containerPort }}

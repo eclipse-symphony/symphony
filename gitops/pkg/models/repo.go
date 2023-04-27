@@ -7,7 +7,7 @@ type GitOpsRepoResource struct {
 
 type GitOpsRepoProperties struct {
 	Branch                         string                         `json:"branch,omitempty"`
-	Name                           string                         `json:"url,omitempty"`
+	Name                           string                         `json:"name,omitempty"`
 	Owner                          string                         `json:"owner,omitempty"`
 	Provider                       string                         `json:"provider,omitempty"`
 	ConfigurationProtectedSettings ConfigurationProtectedSettings `json:"configurationProtectedSettings,omitempty"`

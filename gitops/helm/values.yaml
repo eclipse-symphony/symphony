@@ -29,6 +29,7 @@ ingress:
   annotations: 
     nginx.ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/ingress.class: addon-http-application-routing
+    cert-manager.io/cluster-issuer: letsencrypt
   hosts:
     - host: gitops.e718708818f943b3813b.eastus.aksapp.io
       paths:
@@ -39,3 +40,7 @@ ingress:
               name: gitops-service
               port:
                 number: 80
+  tls: 
+    - secretName: tls-secret
+      hosts:
+        - gitops.e718708818f943b3813b.eastus.aksapp.io

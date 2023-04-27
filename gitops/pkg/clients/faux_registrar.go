@@ -3,8 +3,10 @@ package clients
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/models"
+	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/serving"
 )
 
 type (
@@ -30,14 +32,18 @@ func NewFauxRegistrar() GitOpsRegistrar {
 }
 
 func buildRepoId(subscriptionId string, resourceGroupName string, repoName string) string {
-	return "/subscriptions/" + subscriptionId + "/resourceGroups/" + resourceGroupName + "/providers/Microsoft.GitOps/repo/" + repoName
+	id := serving.RepoURLEndpoint
+	id = strings.Replace(id, "{subscriptionId}", subscriptionId, 1)
+	id = strings.Replace(id, "{resourceGroup}", resourceGroupName, 1)
+	id = strings.Replace(id, "{repoName}", repoName, 1)
+	return id
 }
 
 func (c *fauxRegistrar) GetRepoClient(subscriptionId string, resourceGroupName string, repoName string) (client RepoClient, err error) {
 	if store, ok := c.repoStore[buildRepoId(subscriptionId, resourceGroupName, repoName)]; ok {
 		return store.repoClient, nil
 	}
-	return nil, fmt.Errorf("not found")
+	return nil, fmt.Errorf("Repository not found: %s", buildRepoId(subscriptionId, resourceGroupName, repoName))
 }
 
 func (c *fauxRegistrar) GetDeploymentUtilization(subscriptionId string, resourceGroupName string, repoName string, utilizationName string) (result *models.CloudGitOpsResource, err error) {
@@ -46,7 +52,7 @@ func (c *fauxRegistrar) GetDeploymentUtilization(subscriptionId string, resource
 			return deployment, nil
 		}
 	}
-	return nil, fmt.Errorf("not found")
+	return nil, fmt.Errorf("Deployment not found: %s", utilizationName)
 }
 
 func (c *fauxRegistrar) GetEdgeUtilization(subscriptionId string, resourceGroupName string, repoName string, utilizationName string) (result *models.EdgeGitOpsResource, err error) {
@@ -55,7 +61,7 @@ func (c *fauxRegistrar) GetEdgeUtilization(subscriptionId string, resourceGroupN
 			return edgeUtil, nil
 		}
 	}
-	return nil, fmt.Errorf("not found")
+	return nil, fmt.Errorf("Edge Utilization not found: %s", utilizationName)
 }
 
 func (c *fauxRegistrar) RegisterRepo(repo *models.GitOpsRepoResource) (err error) {
@@ -77,7 +83,7 @@ func (c *fauxRegistrar) RegisterDeploymentUtilization(resource *models.CloudGitO
 		store.deployments[resource.Name] = resource
 		return nil
 	}
-	return fmt.Errorf("not found")
+	return fmt.Errorf("Repository not found: %s", buildRepoId(resource.GetSubscription(), resource.GetResourceGroup(), resource.GetAzRepoShortName()))
 }
 
 func (c *fauxRegistrar) RegisterEdgeUtilization(resource *models.EdgeGitOpsResource) (err error) {
@@ -85,7 +91,7 @@ func (c *fauxRegistrar) RegisterEdgeUtilization(resource *models.EdgeGitOpsResou
 		store.edge[resource.Name] = resource
 		return nil
 	}
-	return fmt.Errorf("not found")
+	return fmt.Errorf("Repository not found: %s", buildRepoId(resource.GetSubscription(), resource.GetResourceGroup(), resource.GetAzRepoShortName()))
 }
 
 func init() {

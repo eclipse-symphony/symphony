@@ -12,6 +12,7 @@ import (
 	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/clients"
 	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/logger"
 	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/models"
+	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/serving"
 	"dev.azure.com/msazure/One/_git/symphony/gitops/pkg/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -227,13 +228,13 @@ func (e *edgeRunner) apply(gitOpsEdgeTemplates map[string]models.GitOpsEdgeTempl
 
 func buildSolution(gitOpsEdgeTemplate models.GitOpsEdgeTemplate, exl armextendedlocation.CustomLocation) map[string]interface{} {
 	return map[string]interface{}{
-		"apiVersion": "2020-01-01-preview",
+		"apiVersion": serving.ApiVersion,
 		"location":   exl.Location,
 		"extendedLocation": map[string]interface{}{
 			"name": exl.ID,
 			"type": "CustomLocation",
 		},
-		"type":       "Microsoft.Symphony/Solutions",
+		"type":       fmt.Sprintf("%s/Solutions", serving.ProviderNamespace),
 		"name":       gitOpsEdgeTemplate.Name,
 		"properties": gitOpsEdgeTemplate.Template,
 	}
@@ -263,13 +264,13 @@ func buildInstance(gitops *models.EdgeGitOpsResource, gitOpsEdgeTemplates map[st
 	//HACK: delete instance.name because it's not supported yet
 	delete(instanceMap, "name")
 	return map[string]interface{}{
-		"apiVersion": "2020-01-01-preview",
+		"apiVersion": serving.ApiVersion,
 		"location":   exl.Location,
 		"extendedLocation": map[string]interface{}{
 			"name": exl.ID,
 			"type": "CustomLocation",
 		},
-		"type":       "Microsoft.Symphony/Instances",
+		"type":       fmt.Sprintf("%s/Instances", serving.ProviderNamespace),
 		"name":       gitops.Name,
 		"properties": instanceMap,
 		"dependsOn":  dependencies,
