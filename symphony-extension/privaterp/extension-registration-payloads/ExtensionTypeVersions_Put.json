@@ -9,7 +9,7 @@
             "IsCustomerHidden": true,
             "ReadyforRollout": true,
             "RollbackVersion": null,
-            "PackageConfigName": "private-symphony-production-0"
+            "PackageConfigName": "private-symphony-prod-2"
         }
     ]
 }

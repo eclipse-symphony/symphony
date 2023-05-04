@@ -2,7 +2,7 @@
   "mappings": [
     {
       "ApiVersion": "2020-01-01-preview",
-      "ResourceType": "solutions",
+      "ResourceType": "edgeTemplates",
       "ProviderName": "Private.Symphony",
       "ResourceMapping": {
         "Version": "v1",
@@ -13,7 +13,7 @@
     },
     {
       "ApiVersion": "2020-01-01-preview",
-      "ResourceType": "instances",
+      "ResourceType": "edgeDeployments",
       "ResourceProviderName": "Private.Symphony",
       "ResourceMapping": {
           "Version": "v1",
