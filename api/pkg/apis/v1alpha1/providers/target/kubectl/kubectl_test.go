@@ -61,7 +61,7 @@ func TestInitWithBadData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestReadYamlFromUrl(t *testing.T) {
-	msgChan, errChan := readYamlFromUrl("https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml")
+	msgChan, errChan := readYaml("https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml")
 	totalSize := 0
 	for {
 		select {
@@ -72,6 +72,55 @@ func TestReadYamlFromUrl(t *testing.T) {
 			assert.True(t, ok)
 			if err == io.EOF {
 				assert.True(t, totalSize > 10000)
+				return
+			}
+			assert.Nil(t, err)
+		}
+	}
+}
+
+func TestReadYamlData(t *testing.T) {
+	msgChan, errChan := readYaml(`apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+      - ct`)
+	totalSize := 0
+	for {
+		select {
+		case data, ok := <-msgChan:
+			assert.True(t, ok)
+			totalSize += len(data)
+		case err, ok := <-errChan:
+			println(err)
+			assert.True(t, ok)
+			if err == io.EOF {
+				assert.True(t, totalSize > 500, totalSize)
 				return
 			}
 			assert.Nil(t, err)
@@ -102,7 +151,71 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 							Name: "gatekeepr",
 							Type: "yaml.k8s",
 							Properties: map[string]string{
-								"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+								"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+}
+
+func TestKubectlTargetProviderApplyYaml(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL_GATEKEEPER")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER enviornment variable is not set")
+	}
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "crontabs",
+		},
+		Stages: []model.DeploymentStage{
+			{
+				Solution: model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "crontabs",
+							Type: "yaml.k8s",
+							Properties: map[string]string{
+								"yaml": `apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+      - ct`,
 							},
 						},
 					},
@@ -136,7 +249,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 							Name: "policies",
 							Type: "yaml.k8s",
 							Properties: map[string]string{
-								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+								"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 							},
 						},
 					},
@@ -170,7 +283,7 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 							Name: "gatekeepr1",
 							Type: "yaml.k8s",
 							Properties: map[string]string{
-								"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+								"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 							},
 						},
 					},
@@ -205,7 +318,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 							Name: "policies",
 							Type: "yaml.k8s",
 							Properties: map[string]string{
-								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+								"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 							},
 						},
 					},

@@ -33,16 +33,18 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	utilUrl "net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -218,8 +220,8 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range desired {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml.url"]; ok {
-				chanMes, chanErr := readYamlFromUrl(v)
+			if v, ok := component.Properties["yaml"]; ok {
+				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {
 					select {
@@ -290,8 +292,8 @@ func (i *KubectlTargetProvider) Remove(ctx context.Context, deployment model.Dep
 
 	for _, component := range components {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml.url"]; ok {
-				chanMes, chanErr := readYamlFromUrl(v)
+			if v, ok := component.Properties["yaml"]; ok {
+				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {
 					select {
@@ -356,8 +358,8 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	for _, component := range components {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml.url"]; ok {
-				chanMes, chanErr := readYamlFromUrl(v)
+			if v, ok := component.Properties["yaml"]; ok {
+				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {
 					select {
@@ -411,31 +413,49 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	return nil
 }
 
-func readYamlFromUrl(url string) (<-chan []byte, <-chan error) {
+func readYaml(yaml string) (<-chan []byte, <-chan error) {
 	var (
 		chanErr   = make(chan error)
 		chanBytes = make(chan []byte)
 	)
 	go func() {
-		response, err := http.Get(url)
-		if err != nil {
-			chanErr <- err
-			return
-		}
-		defer response.Body.Close()
-		data, err := io.ReadAll(response.Body)
-		if err != nil {
-			chanErr <- err
-			return
-		}
-		multidocReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
-		for {
-			buf, err := multidocReader.Read()
+		_, err := utilUrl.Parse(yaml)
+		if err == nil {
+			response, err := http.Get(yaml)
 			if err != nil {
 				chanErr <- err
 				return
 			}
-			chanBytes <- buf
+			defer response.Body.Close()
+			data, err := io.ReadAll(response.Body)
+			if err != nil {
+				chanErr <- err
+				return
+			}
+			multidocReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+			for {
+				buf, err := multidocReader.Read()
+				if err != nil {
+					chanErr <- err
+					return
+				}
+				chanBytes <- buf
+			}
+		} else {
+			data, err := io.ReadAll(strings.NewReader(yaml))
+			if err != nil {
+				chanErr <- err
+				return
+			}
+			multidocReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+			for {
+				buf, err := multidocReader.Read()
+				if err != nil {
+					chanErr <- err
+					return
+				}
+				chanBytes <- buf
+			}
 		}
 	}()
 	return chanBytes, chanErr
