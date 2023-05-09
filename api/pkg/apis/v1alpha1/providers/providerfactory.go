@@ -21,6 +21,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extension"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
@@ -146,6 +147,13 @@ func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (m
 					return ret, err
 				}
 				ret[m.Name][k] = mProvider
+			case "providers.target.extension":
+				mProvider := &extension.ExtensionTargetProvider{}
+				err := mProvider.Init(p.Config)
+				if err != nil {
+					return ret, err
+				}
+				ret[m.Name][k] = mProvider
 			case "providers.target.kubectl":
 				mProvider := &kubectl.KubectlTargetProvider{}
 				err := mProvider.Init(p.Config)
@@ -253,6 +261,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					}
 					return provider, nil
 				case "providers.target.k8s":
+					provider := &k8s.K8sTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.target.extension":
 					provider := &k8s.K8sTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {

@@ -29,7 +29,8 @@ import (
 	"encoding/json"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -108,13 +109,13 @@ func (m *AzureBlobUploader) Upload(name string, data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	blobClient, err := azblob.NewBlockBlobClient(url+m.Config.Container+"/"+name, credential, nil)
+	blobClient, err := blockblob.NewClient(url+m.Config.Container+"/"+name, credential, nil)
 	if err != nil {
 		return "", err
 	}
 	mime := "image/jpeg"
-	_, err = blobClient.UploadBufferToBlockBlob(ctx, data, azblob.HighLevelUploadToBlockBlobOption{
-		HTTPHeaders: &azblob.BlobHTTPHeaders{
+	_, err = blobClient.UploadBuffer(ctx, data, &blockblob.UploadBufferOptions{
+		HTTPHeaders: &blob.HTTPHeaders{
 			BlobContentType: &mime,
 		},
 	})

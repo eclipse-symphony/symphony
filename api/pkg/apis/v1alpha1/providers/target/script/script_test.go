@@ -2,6 +2,7 @@ package script
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -168,6 +169,10 @@ func TestApplyScript(t *testing.T) {
 }
 
 func TestGetScriptFromUrl(t *testing.T) {
+	testScriptProvider := os.Getenv("TEST_SCRIPT_PROVIDER")
+	if testScriptProvider == "" {
+		t.Skip("Skipping because TEST_SCRIPT_PROVIDER environment variable is not set")
+	}
 	provider := ScriptProvider{}
 	err := provider.Init(ScriptProviderConfig{
 		GetScript:    "mock-get.sh",
