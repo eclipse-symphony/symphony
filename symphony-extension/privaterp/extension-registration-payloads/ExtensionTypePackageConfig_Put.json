@@ -5,7 +5,7 @@
         "EnabledResourceTypes": [
             {
                 "ApiVersion": "2020-01-01-preview",
-                "ResourceType": "edgeTemplates",
+                "ResourceType": "solutions",
                 "ResourceProviderNamespace": "Private.Symphony",
                 "ResourceMapping": {
                     "Version": "v1",
@@ -16,7 +16,7 @@
             },
             {
                 "ApiVersion": "2020-01-01-preview",
-                "ResourceType": "edgeDeployments",
+                "ResourceType": "instances",
                 "ResourceProviderNamespace": "Private.Symphony",
                 "ResourceMapping": {
                     "Version": "v1",

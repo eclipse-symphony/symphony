@@ -4,11 +4,16 @@
     "description": "Enables customers to manage their edges sites using symphony",
     "AdminSubscriptions": ["77969078-2897-47b0-9143-917252379303"],
     "InternalTestSubscriptions": [
-        "77969078-2897-47b0-9143-917252379303"
+        "77969078-2897-47b0-9143-917252379303",
+        "2bd4119a-4d8d-4090-9183-f9e516c21723",
+        "af342bf1-1ace-41df-902c-47921400551b",
+        "6f4c2c84-1e91-412f-9697-b8877c7a2a17"
     ],
     "SupportedClusterTypes": [
         "Connectedclusters",
-        "Managedclusters"
+        "Managedclusters",
+        "Appliances",
+        "ProvisionedClusters"
     ],
     "UsingNewSystem": true,
     "supportedScopes": {
