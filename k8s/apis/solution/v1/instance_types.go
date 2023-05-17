@@ -64,10 +64,25 @@ type InstanceSpec struct {
 	OptOutReconciliation bool              `json:"optOutReconciliation,omitempty"`
 }
 
+type ErrorType struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+type ProvisioningStatus struct {
+	OperationID  string            `json:"operationId"`
+	Status       string            `json:"status"`
+	FailureCause string            `json:"failureCause,omitempty"`
+	LogErrors    bool              `json:"logErrors,omitempty"`
+	Error        ErrorType         `json:"error,omitempty"`
+	Output       map[string]string `json:"output,omitempty"`
+}
+
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
-	Properties map[string]string `json:"properties,omitempty"`
+	Properties         map[string]string  `json:"properties,omitempty"`
+	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
 }
 
 //+kubebuilder:object:root=true

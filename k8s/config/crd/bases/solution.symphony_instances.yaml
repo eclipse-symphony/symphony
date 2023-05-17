@@ -136,6 +136,33 @@ spec:
                 description: 'Important: Run "make" to regenerate code after modifying
                   this file'
                 type: object
+              provisioningStatus:
+                properties:
+                  error:
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - provisioningStatus
             type: object
         type: object
     served: true

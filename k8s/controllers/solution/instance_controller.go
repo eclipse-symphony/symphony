@@ -44,9 +44,11 @@ import (
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	utils "gopls-workspace/utils"
 
+	provisioningstates "gopls-workspace/utils/models"
+
 	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -71,7 +73,7 @@ type InstanceReconciler struct {
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	myFinalizerName := "instance.solution.symphony/finalizer"
 
-	log := ctrllog.FromContext(ctx)
+	log := log.FromContext(ctx)
 	log.Info("Reconcile Instance")
 
 	// Get instance
@@ -85,6 +87,15 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		instance.Status.Properties = make(map[string]string)
 	}
 
+	if instance.Status.ProvisioningStatus.Status == "" {
+		instance.Status.ProvisioningStatus = solutionv1.ProvisioningStatus{
+			Status:      provisioningstates.Reconciling,
+			OperationID: instance.ObjectMeta.Annotations["management.azure.com/operationId"],
+		}
+	} else if instance.Status.ProvisioningStatus.OperationID == "" {
+		instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
+	}
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
 			controllerutil.AddFinalizer(instance, myFinalizerName)
@@ -92,6 +103,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 		}
+
 		solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
 
 		if solution != nil && targets != nil && len(targets) > 0 {
@@ -99,25 +111,30 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err == nil {
 				summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
 				if err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", summary)
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Reconciling, summary)
 				}
 
 				if err := r.Update(ctx, instance); err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", summary)
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Reconciling, summary)
 				} else {
-					err = r.updateInstanceStatus(instance, "OK", summary)
+					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary)
 					if err != nil {
 						return ctrl.Result{}, err
 					}
 				}
+
 			} else {
 				instance.Status.Properties["status"] = "Failed to create deployment"
 				instance.Status.Properties["status-details"] = err.Error()
+				instance.Status.ProvisioningStatus.Status = provisioningstates.Failed
+				instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
+				instance.Status.ProvisioningStatus.Error.Message = err.Error()
 				iErr := r.Status().Update(context.Background(), instance)
 				if iErr != nil {
 					return ctrl.Result{}, iErr
 				}
 			}
+
 		} else if err != "" && errDetails != "" {
 			instance.Status.Properties["status"] = err
 			instance.Status.Properties["status-details"] = errDetails
@@ -126,6 +143,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, iErr
 			}
 		}
+
 		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
 	} else { // remove
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
@@ -147,6 +165,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			} else if errP != "" && errDetails != "" {
 				log.Error(errors.New(errDetails), errP)
 			}
+
 			controllerutil.RemoveFinalizer(instance, myFinalizerName)
 			if err := r.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
@@ -183,13 +202,25 @@ func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Requ
 	return solution, targetCandidates, "", ""
 }
 
-func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, summary model.SummarySpec) error {
+func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, provisioningStatus string, summary model.SummarySpec) error {
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
+
+	if instance.Status.ProvisioningStatus.Status == "" {
+		instance.Status.ProvisioningStatus = solutionv1.ProvisioningStatus{
+			Status:      provisioningstates.Reconciling,
+			OperationID: instance.ObjectMeta.Annotations["management.azure.com/operationId"],
+		}
+	} else if instance.Status.ProvisioningStatus.OperationID == "" {
+		instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
+	}
+
 	instance.Status.Properties["status"] = status
 	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
+	instance.Status.ProvisioningStatus.Status = provisioningStatus
+
 	for k, v := range summary.TargetResults {
 		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 	}
