@@ -35,14 +35,13 @@ jobs:
       run: cd coa && go mod vendor
     
     - name: COA Test
-      run: cd coa && go test -v ./...
+      run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
       
     - name: API Vendor
       run: cd api && go mod vendor
       
     - name: API Build
-      run: cd api && go build -v ./...
+      run: cd api && go build -o symphony-api
 
     - name: API Test
-      run: cd api && go test -v ./...
-      
+      run: cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'

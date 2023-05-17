@@ -1,5 +1,8 @@
 # Chapter 1: Introduction
-Welcome to Symphony! Symphony orchestrates existing services and tools to form an end-to-end, consistent intelligent edge experience. Symphony offers a K8s-native control plane that can be deployed and used on Kubernetes clusters, such as AKS clusters on Azure Stack Edge and K3s clusters on Raspberry Pis.
+
+_(last edit: 4/11/2023)_
+
+Welcome to Symphony! Symphony orchestrates existing services and tools to form an end-to-end, consistent intelligent edge experience. Symphony offers a K8s-native control plane that can be deployed and used on Kubernetes clusters, such as AKS clusters on Azure Stack Edge and K3s clusters on Raspberry Pis. Symphony also runs in a standalone mode as a single process. For more information, please see [Running Symphony in Standalone Mode](../build_deployment/standalone.md).
 
 Symphony is platform neutral and protocol neutral. Through its extensible architecture, Symphony supports a broad range of AI frameworks, devices, hardware, services and many more. The following table summarizes some of the supported technologies and the list grows rapidly.
 
@@ -7,8 +10,8 @@ Symphony is platform neutral and protocol neutral. Through its extensible archit
 |--------|--------|
 | AI Pipeline | ![ONNX](../images/onnx.png) ![OpenCV](../images/opencv.png), DeepStream* |
 | Application Model | ![Helm](../images/helm.png), Symphony, Radius*, ARM* |
-| Device Updates | ![GitOps](../images/gitops.png) ![Flux](../images/flux.png), ADU for IoT Hub, ![Arc](../images/arc.png) ![pyOCD](../images/pyocd.png)|
-| Discovery | ![ONVIF](../images/onvif.png) ![OPC UA](../images/opcua.png), udev (via Akri) |
+| Device Updates | ![GitOps](../images/gitops.png) ![Flux](../images/flux.png)*, ADU for IoT Hub, ![Arc](../images/arc.png) ![pyOCD](../images/pyocd.png)*|
+| Discovery | ![ONVIF](../images/onvif.png) ![OPC UA](../images/opcua.png)*, udev (via Akri) |
 | Hardware | Azure Stack HCI, MIMXRT1170-EVK, Nvidia Jeston Orin, Nvidia dGPU |
 | K8s Distributions | ![Kubernetes](../images/k8s.png) ![Azure Kubernetes Service](../images/aks.png) ![MicroK8s](../images/microk8s.png) ![Kind](../images/kind.png) ![K3s](../images/k3s.png) AKS-IoT |
 | Observability | ![Open Telemetry](../images/open-telemetry.png), Azure Monitor |
@@ -18,16 +21,16 @@ Symphony is platform neutral and protocol neutral. Through its extensible archit
 | Runtime | Azure IoT Edge, Kubernetes, Windows 10, Samsung DERAM* |
 | Scripting | Bash, ![PowerShell](../images/powershell.png), Windows Batch |
 
+_*:upcoming_
 
 ## Feature set
 Symphony offers the following key features:
 
-* Symphony resources projected as native K8s CRDs, allowing the control plane to be managed using K8s native tools such as kubectl.
-* Support different application model formats, including Helm charts, OAM/Kubevela, Radius, Docker Compose, and a ModuleGroup format that is designed to group multiple Azure IoT Edge modules.
+* Symphony resources are projected as native K8s CRDs, allowing the control plane to be managed using K8s native tools such as kubectl.
+* Support different application model formats, including Helm charts, OAM/Kubevela*, Radius*, Docker Compose*, and a ModuleGroup format that is designed to group multiple Azure IoT Edge modules.
 * Support hardware-accelerated AI payloads using media pipelines through Live AI, OpenVINO, etc.
 * Share the same solution management, security management and device management logic to ensure consistent behavior across cloud and edge.
 * Designed to work well with AKS, Arc, IoT Hub and other Azure services.
-* State reconcilation between Auzre Percept ARM control plane on Azure (for limited scenarios).
 * Support dynamic device discovery and update through Akri.
 * Support additional computational nodes such Azure Sphere through Virutal Kubelet.
 * End-to-end observability with distributed tracing using OpenTelemetry.

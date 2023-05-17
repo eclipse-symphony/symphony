@@ -733,7 +733,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 			Name: "symphony-agent",
 			Properties: map[string]string{
 				"container.createOptions": "",
-				"container.image":         "possprod.azurecr.io/symphony-agent:0.39.9",
+				ContainerImage:            "possprod.azurecr.io/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
 				"container.type":          "docker",
 				"container.version":       "1.0",
@@ -751,7 +751,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 			Name: "symphony-agent",
 			Properties: map[string]string{
 				"container.createOptions": "",
-				"container.image":         "possprod.azurecr.io/symphony-agent:0.39.9",
+				ContainerImage:            "possprod.azurecr.io/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
 				"container.type":          "docker",
 				"container.version":       "1.0",

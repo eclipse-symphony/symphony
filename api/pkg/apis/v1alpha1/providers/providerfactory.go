@@ -21,6 +21,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extension"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
@@ -35,6 +36,7 @@ import (
 	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	mockconfig "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
+	mempubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
 	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
@@ -55,175 +57,12 @@ func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (m
 	for _, m := range config.Managers {
 		ret[m.Name] = make(map[string]cp.IProvider)
 		for k, p := range m.Providers {
-			switch p.Type {
-			case "providers.state.memory":
-				mProvider := &memorystate.MemoryStateProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.state.k8s":
-				mProvider := &k8sstate.K8sStateProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.state.http":
-				mProvider := &httpstate.HttpStateProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.reference.k8s":
-				mProvider := &k8sref.K8sReferenceProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.reference.customvision":
-				mProvider := &cvref.CustomVisionReferenceProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.reference.http":
-				mProvider := &httpref.HTTPReferenceProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.reporter.k8s":
-				mProvider := &k8sreporter.K8sReporter{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.reporter.http":
-				mProvider := &httpreporter.HTTPReporter{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.probe.rtsp":
-				mProvider := &rtsp.RTSPProbeProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.uploader.azure.blob":
-				mProvider := &blob.AzureBlobUploader{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.azure.iotedge":
-				mProvider := &iotedge.IoTEdgeTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.azure.adu":
-				mProvider := &adu.ADUTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.k8s":
-				mProvider := &k8s.K8sTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.extension":
-				mProvider := &extension.ExtensionTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.kubectl":
-				mProvider := &kubectl.KubectlTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.staging":
-				mProvider := &staging.StagingTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.script":
-				mProvider := &script.ScriptProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.http":
-				mProvider := &targethttp.HttpTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.win10.sideload":
-				mProvider := &sideload.Win10SideLoadProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.adb":
-				mProvider := &adb.AdbProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.proxy":
-				mProvider := &proxy.ProxyUpdateProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.target.mqtt":
-				mProvider := &mqtt.MQTTTargetProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.config.mock":
-				mProvider := &mockconfig.MockConfigProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
-			case "providers.secret.mock":
-				mProvider := &mocksecret.MockSecretProvider{}
-				err := mProvider.Init(p.Config)
-				if err != nil {
-					return ret, err
-				}
-				ret[m.Name][k] = mProvider
+			provider, err := c.CreateProvider(p.Type, p.Config)
+			if err != nil {
+				return ret, err
+			}
+			if provider != nil {
+				ret[m.Name][k] = provider
 			}
 		}
 	}
@@ -231,11 +70,160 @@ func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (m
 }
 
 func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.IProviderConfig) (cp.IProvider, error) {
+	var err error
 	switch providerType {
-	case "providers.target.iotedge":
-
+	case "providers.state.memory":
+		mProvider := &memorystate.MemoryStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.state.k8s":
+		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.state.http":
+		mProvider := &httpstate.HttpStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reference.k8s":
+		mProvider := &k8sref.K8sReferenceProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reference.customvision":
+		mProvider := &cvref.CustomVisionReferenceProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reference.http":
+		mProvider := &httpref.HTTPReferenceProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reporter.k8s":
+		mProvider := &k8sreporter.K8sReporter{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reporter.http":
+		mProvider := &httpreporter.HTTPReporter{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.probe.rtsp":
+		mProvider := &rtsp.RTSPProbeProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.uploader.azure.blob":
+		mProvider := &blob.AzureBlobUploader{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.azure.iotedge":
+		mProvider := &iotedge.IoTEdgeTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.azure.adu":
+		mProvider := &adu.ADUTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.k8s":
+		mProvider := &k8s.K8sTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.docker":
+		mProvider := &docker.DockerTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.kubectl":
+		mProvider := &kubectl.KubectlTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.staging":
+		mProvider := &staging.StagingTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.script":
+		mProvider := &script.ScriptProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.http":
+		mProvider := &targethttp.HttpTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.win10.sideload":
+		mProvider := &sideload.Win10SideLoadProvider{}
+		err := mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.adb":
+		mProvider := &adb.AdbProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.proxy":
+		mProvider := &proxy.ProxyUpdateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.mqtt":
+		mProvider := &mqtt.MQTTTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.config.mock":
+		mProvider := &mockconfig.MockConfigProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.secret.mock":
+		mProvider := &mocksecret.MockSecretProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.pubsub.memory":
+		mProvider := &mempubsub.InMemoryPubSubProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	}
-	return nil, nil
+	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
 func CreateProviderForTargetRole(role string, target model.TargetSpec, override cp.IProvider) (cp.IProvider, error) {
 	for _, topology := range target.Topologies {
@@ -268,7 +256,14 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					}
 					return provider, nil
 				case "providers.target.extension":
-					provider := &k8s.K8sTargetProvider{}
+					provider := &extension.ExtensionTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.target.docker":
+					provider := &docker.DockerTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

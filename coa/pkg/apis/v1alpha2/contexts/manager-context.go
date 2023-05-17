@@ -41,7 +41,11 @@ func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error 
 	} else {
 		v.Logger = logger.NewLogger("coa.runtime")
 	}
-	v.PubsubProvider = p
+	if c == nil {
+		v.PubsubProvider = p
+	} else {
+		v.PubsubProvider = c.PubsubProvider
+	}
 	return nil
 }
 

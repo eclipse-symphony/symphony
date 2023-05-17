@@ -118,6 +118,7 @@
       },
       {
         "type": "vendors.solution",
+        "loopInterval": 15,
         "route": "solution",
         "managers": [
           {
@@ -147,6 +148,7 @@
       },
       {
         "type": "vendors.agent",
+        "loopInterval": 15,
         "route": "agent",
         "managers": [
           {

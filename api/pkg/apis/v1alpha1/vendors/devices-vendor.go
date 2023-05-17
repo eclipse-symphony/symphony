@@ -28,16 +28,17 @@ package vendors
 import (
 	"encoding/json"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/valyala/fasthttp"
 )
 
@@ -56,8 +57,8 @@ func (o *DevicesVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-func (e *DevicesVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
-	err := e.Vendor.Init(config, factories, providers)
+func (e *DevicesVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
+	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -70,10 +71,6 @@ func (e *DevicesVendor) Init(config vendors.VendorConfig, factories []managers.I
 		return v1alpha2.NewCOAError(nil, "devices manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
-}
-
-func (o *DevicesVendor) HasLoop() bool {
-	return false
 }
 
 func (o *DevicesVendor) GetEndpoints() []v1alpha2.Endpoint {

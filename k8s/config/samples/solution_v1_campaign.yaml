@@ -1,0 +1,12 @@
+apiVersion: solution.symphony/v1
+kind: Campaign
+metadata:
+  labels:
+    app.kubernetes.io/name: campaign
+    app.kubernetes.io/instance: campaign-sample
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: symphony-k8s
+  name: campaign-sample
+spec:
+  # TODO(user): Add fields here

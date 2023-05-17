@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,24 +92,20 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					DisplayName: "policies",
-					Scope:       "",
-					Components: []model.ComponentSpec{
-						{
-							Name: "policies",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			DisplayName: "policies",
+			Scope:       "",
+			Components: []model.ComponentSpec{
+				{
+					Name: "policies",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 
@@ -126,23 +123,27 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					DisplayName: "policies",
-					Scope:       "",
-					Components: []model.ComponentSpec{
-						{
-							Name: "policies",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			DisplayName: "policies",
+			Scope:       "",
+			Components: []model.ComponentSpec{
+				{
+					Name: "policies",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
 		},
 	}, nil)
 	assert.Nil(t, err)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &StagingTargetProvider{}
+	_ = provider.Init(StagingTargetProviderConfig{})
+	// assert.Nil(t, err) okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

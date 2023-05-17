@@ -27,6 +27,7 @@ package solution
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -39,13 +40,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	utils "gopls-workspace/utils"
 
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -70,14 +69,10 @@ type InstanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
 	myFinalizerName := "instance.solution.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Instance")
-
-	solutionGone := false
-	targetsGone := false
 
 	// Get instance
 	instance := &solutionv1.Instance{}
@@ -89,70 +84,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
-	// Get solution
-	solution := &solutionv1.Solution{}
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Stages[0].Solution, Namespace: req.Namespace}, solution); err != nil {
-		log.Error(err, "unable to fetch Solution object")
-		instance.Status.Properties["status"] = "Solution Missing"
-		iErr := r.Status().Update(context.Background(), instance)
-		if iErr != nil {
-			return ctrl.Result{}, iErr
-		}
-		if !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		solutionGone = true
-	}
-
-	// Get targets
-	targets := &fabricv1.TargetList{}
-	if err := r.List(ctx, targets, client.InNamespace(req.Namespace)); err != nil {
-		log.Error(err, "unable to fetch Target objects")
-		instance.Status.Properties["status"] = "No Targets"
-		iErr := r.Status().Update(context.Background(), instance)
-		if iErr != nil {
-			return ctrl.Result{}, iErr
-		}
-		if !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		targetsGone = true
-	}
-
-	// Get target candidates
-	var targetCandidates []fabricv1.Target
-
-	if !targetsGone {
-		targetCandidates = utils.MatchTargets(*instance, *targets)
-		if len(targetCandidates) == 0 {
-			log.Info("no Targets are selected")
-			instance.Status.Properties["status"] = "No Targets"
-			iErr := r.Status().Update(context.Background(), instance)
-			if iErr != nil {
-				return ctrl.Result{}, iErr
-			}
-			// return ctrl.Result{}, nil
-			// if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-			// 	return ctrl.Result{RequeueAfter: 180 * time.Second}, nil //keep checking matching targets
-			// }
-		}
-	}
-
-	// UPDATE extenral resources
-	deployment := model.DeploymentSpec{}
-	var err error
-	if !solutionGone && !targetsGone {
-		deployment, err = utils.CreateSymphonyDeployment(*instance, *solution, targetCandidates, nil)
-		if err != nil {
-			log.Error(err, "failed to generate Symphony deployment")
-			instance.Status.Properties["status"] = "Creation failed"
-			iErr := r.Status().Update(context.Background(), instance)
-			if iErr != nil {
-				return ctrl.Result{}, iErr
-			}
-			return ctrl.Result{}, err
-		}
-	}
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
@@ -161,41 +92,95 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 		}
-		if !solutionGone && !targetsGone && len(targetCandidates) > 0 {
-			summary, err := utils.Deploy(deployment)
-			if err != nil {
-				return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", summary)
-			}
+		solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
 
-			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", summary)
-			} else {
-				err = r.updateInstanceStatus(instance, "OK", summary)
+		if solution != nil && targets != nil && len(targets) > 0 {
+			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets, nil)
+			if err == nil {
+				summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", summary)
 				}
+
+				if err := r.Update(ctx, instance); err != nil {
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", summary)
+				} else {
+					err = r.updateInstanceStatus(instance, "OK", summary)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+				}
+			} else {
+				instance.Status.Properties["status"] = "Failed to create deployment"
+				instance.Status.Properties["status-details"] = err.Error()
+				iErr := r.Status().Update(context.Background(), instance)
+				if iErr != nil {
+					return ctrl.Result{}, iErr
+				}
+			}
+		} else if err != "" && errDetails != "" {
+			instance.Status.Properties["status"] = err
+			instance.Status.Properties["status-details"] = errDetails
+			iErr := r.Status().Update(context.Background(), instance)
+			if iErr != nil {
+				return ctrl.Result{}, iErr
 			}
 		}
 		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
-
 	} else { // remove
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			summary := model.SummarySpec{}
-			if !solutionGone && !targetsGone {
-				summary, err = utils.Remove(deployment)
-				if err != nil { // TODO: this could stop the CRD being removed if the underlying component is permanantly destroyed
-					log.Error(err, "failed to delete components")
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "Remove Failed", summary)
+			//summary := model.SummarySpec{}
+			solution, targets, errP, errDetails := r.prepareForUpdate(ctx, req, instance)
+			if solution != nil && targets != nil && len(targets) > 0 {
+				deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets, nil)
+				if err == nil {
+					_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+					if err != nil {
+						log.Error(err, "failed to delete components")
+						// Note: we only log errors and allow objects to be removed. Otherwise the instance
+						// object may get stuck, which causes problems during system update/removal. The downside
+						// of this is that external resources may get left behind
+					}
+				} else {
+					log.Error(err, "failed to create deployment")
 				}
+			} else if errP != "" && errDetails != "" {
+				log.Error(errors.New(errDetails), errP)
 			}
 			controllerutil.RemoveFinalizer(instance, myFinalizerName)
 			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", summary)
+				return ctrl.Result{}, err
 			}
 		}
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Request, instance *solutionv1.Instance) (*solutionv1.Solution, []fabricv1.Target, string, string) {
+	var solution *solutionv1.Solution
+
+	// Get solution
+	solution = &solutionv1.Solution{}
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: req.Namespace}, solution); err != nil {
+		return nil, nil, "Solution Missing", fmt.Sprintf("unable to fetch Solution object: %v", err)
+	}
+
+	// Get targets
+	targets := &fabricv1.TargetList{}
+	if err := r.List(ctx, targets, client.InNamespace(req.Namespace)); err != nil {
+		return nil, nil, "No Targets", fmt.Sprintf("unable to fetch Target objects: %v", err)
+	}
+
+	// Get target candidates
+	var targetCandidates []fabricv1.Target
+
+	targetCandidates = utils.MatchTargets(*instance, *targets)
+	if len(targetCandidates) == 0 {
+		return nil, nil, "No Matching Targets", "no Targets are selected"
+	}
+
+	return solution, targetCandidates, "", ""
 }
 
 func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, summary model.SummarySpec) error {

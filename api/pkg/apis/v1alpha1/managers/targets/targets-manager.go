@@ -29,25 +29,18 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 type TargetsManager struct {
 	managers.Manager
 	StateProvider    states.IStateProvider
 	RegistryProvider registry.IRegistryProvider
-}
-
-type TargetState struct {
-	Id       string            `json:"id"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Status   map[string]string `json:"status,omitempty"`
-	Spec     *model.TargetSpec `json:"spec,omitempty"`
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -101,14 +94,14 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 	return nil
 }
 
-func (t *TargetsManager) ReportState(ctx context.Context, current TargetState) (TargetState, error) {
+func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetState) (model.TargetState, error) {
 	getRequest := states.GetRequest{
 		ID:       current.Id,
 		Metadata: current.Metadata,
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
 	dict := target.Body.(map[string]interface{})
@@ -127,13 +120,13 @@ func (t *TargetsManager) ReportState(ctx context.Context, current TargetState) (
 	var rStatus map[string]interface{}
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 	j, _ = json.Marshal(rStatus["properties"])
 	var rProperties map[string]string
 	err = json.Unmarshal(j, &rProperties)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
 	for k, v := range current.Status {
@@ -151,16 +144,16 @@ func (t *TargetsManager) ReportState(ctx context.Context, current TargetState) (
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
-	return TargetState{
+	return model.TargetState{
 		Id:       current.Id,
 		Metadata: metadata,
 		Status:   rProperties,
 	}, nil
 }
-func (t *TargetsManager) ListSpec(ctx context.Context) ([]TargetState, error) {
+func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, error) {
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -172,7 +165,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]TargetState, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]TargetState, 0)
+	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		rt, err := getTargetState(t.ID, t.Body)
 		if err != nil {
@@ -183,7 +176,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]TargetState, error) {
 	return ret, nil
 }
 
-func getTargetState(id string, body interface{}) (TargetState, error) {
+func getTargetState(id string, body interface{}) (model.TargetState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
@@ -192,23 +185,23 @@ func getTargetState(id string, body interface{}) (TargetState, error) {
 	var rSpec model.TargetSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
 	j, _ = json.Marshal(status)
 	var rStatus map[string]interface{}
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 	j, _ = json.Marshal(rStatus["properties"])
 	var rProperties map[string]string
 	err = json.Unmarshal(j, &rProperties)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
-	state := TargetState{
+	state := model.TargetState{
 		Id:     id,
 		Spec:   &rSpec,
 		Status: rProperties,
@@ -216,7 +209,7 @@ func getTargetState(id string, body interface{}) (TargetState, error) {
 	return state, nil
 }
 
-func (t *TargetsManager) GetSpec(ctx context.Context, id string) (TargetState, error) {
+func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetState, error) {
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
@@ -227,12 +220,12 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (TargetState, e
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 
 	ret, err := getTargetState(id, target.Body)
 	if err != nil {
-		return TargetState{}, err
+		return model.TargetState{}, err
 	}
 	return ret, nil
 }

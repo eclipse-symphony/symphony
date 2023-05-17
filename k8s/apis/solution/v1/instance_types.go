@@ -45,24 +45,23 @@ type PipelineSpec struct {
 	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
-type StageSpec struct {
-	Name       string                       `json:"name"`
-	Solution   string                       `json:"solution"`
-	Target     TargetSpec                   `json:"target,omitempty"`
-	Topologies []TopologySpec               `json:"topologies,omitempty"`
-	Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
-	Schedule   string                       `json:"schedule,omitempty"`
-	Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+type VersionSpec struct {
+	Solution   string `json:"solution"`
+	Percentage int    `json:"percentage"`
 }
 
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
-	DisplayName string            `json:"displayName,omitempty"`
-	Scope       string            `json:"scope,omitempty"`
-	Parameters  map[string]string `json:"parameters,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Stage       string            `json:"stage,omitempty"`
-	Stages      []StageSpec       `json:"stages"`
+	DisplayName          string            `json:"displayName,omitempty"`
+	Scope                string            `json:"scope,omitempty"`
+	Parameters           map[string]string `json:"parameters,omitempty"`
+	Metadata             map[string]string `json:"metadata,omitempty"`
+	Solution             string            `json:"solution"`
+	Versions             []VersionSpec     `json:"versions,omitempty"`
+	Target               TargetSpec        `json:"target,omitempty"`
+	Topologies           []TopologySpec    `json:"topologies,omitempty"`
+	Pipelines            []PipelineSpec    `json:"pipelines,omitempty"`
+	OptOutReconciliation bool              `json:"optOutReconciliation,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance

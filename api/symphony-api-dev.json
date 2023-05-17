@@ -118,6 +118,7 @@
       },
       {
         "type": "vendors.solution",
+        "loopInterval": 15,
         "route": "solution",
         "managers": [
           {
@@ -147,6 +148,7 @@
       },
       {
         "type": "vendors.agent",
+        "loopInterval": 15,
         "route": "agent",
         "managers": [
           {
@@ -184,7 +186,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8080,
+        "port": 8082,
         "pipeline": [          
           {
             "type": "middleware.http.cors",
@@ -272,7 +274,7 @@
     {
       "type": "bindings.http",
       "config": {
-          "port": 8081,
+          "port": 8083,
           "tls": true,
           "certProvider": {
           "type": "certs.autogen",

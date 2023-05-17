@@ -54,8 +54,7 @@ type IManager interface {
 	Init(context *contexts.VendorContext, config ManagerConfig, providers map[string]providers.IProvider) error
 }
 
-type ITargetManager interface {
-	Init(context *contexts.VendorContext, config ManagerConfig, providers map[string]providers.IProvider) error
+type ISchedulable interface {
 	Poll() []error
 	Reconcil() []error
 }
@@ -71,11 +70,13 @@ type IManagerFactroy interface {
 type Manager struct {
 	VendorContext *contexts.VendorContext
 	Context       *contexts.ManagerContext
+	Config        ManagerConfig
 }
 
 func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, providers map[string]providers.IProvider) error {
 	m.VendorContext = context
 	m.Context = &contexts.ManagerContext{}
+	m.Config = config
 	err := m.Context.Init(m.VendorContext, nil)
 	m.Context.Logger.Debugf(" M (%s): initalize manager type '%s'", config.Name, config.Type)
 	return err

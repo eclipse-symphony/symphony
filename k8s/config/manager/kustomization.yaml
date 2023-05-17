@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: possprod.azurecr.io/symphony-k8s
-  newTag: 0.42.5
+  newTag: 0.43.11

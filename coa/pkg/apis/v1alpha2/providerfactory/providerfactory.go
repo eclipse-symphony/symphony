@@ -31,4 +31,5 @@ import (
 
 type IProviderFactory interface {
 	CreateProviders(config vendors.VendorConfig) (map[string]map[string]providers.IProvider, error)
+	CreateProvider(providerType string, config providers.IProviderConfig) (providers.IProvider, error)
 }

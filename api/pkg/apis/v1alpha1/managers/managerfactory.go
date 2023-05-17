@@ -14,15 +14,16 @@ limitations under the License.
 package managers
 
 import (
-	cm "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/target"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
+	cm "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 )
 
 type SymphonyManagerFactory struct {
@@ -46,6 +47,8 @@ func (c SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMana
 		return &instances.InstancesManager{}, nil
 	case "managers.symphony.users":
 		return &users.UsersManager{}, nil
+	case "managers.symphony.jobs":
+		return &jobs.JobsManager{}, nil
 	default:
 		return nil, nil //TBD: can't throw errors here as other manages may pick up creation process
 	}

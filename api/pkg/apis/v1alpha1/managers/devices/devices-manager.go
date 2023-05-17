@@ -29,21 +29,16 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 type DevicesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-}
-
-type DeviceState struct {
-	Id   string            `json:"id"`
-	Spec *model.DeviceSpec `json:"spec,omitempty"`
 }
 
 func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -96,7 +91,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 	return nil
 }
 
-func (t *DevicesManager) ListSpec(ctx context.Context) ([]DeviceState, error) {
+func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, error) {
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -108,7 +103,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]DeviceState, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]DeviceState, 0)
+	ret := make([]model.DeviceState, 0)
 	for _, t := range solutions {
 		rt, err := getDeviceState(t.ID, t.Body)
 		if err != nil {
@@ -119,7 +114,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]DeviceState, error) {
 	return ret, nil
 }
 
-func getDeviceState(id string, body interface{}) (DeviceState, error) {
+func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 
@@ -127,16 +122,16 @@ func getDeviceState(id string, body interface{}) (DeviceState, error) {
 	var rSpec model.DeviceSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
-		return DeviceState{}, err
+		return model.DeviceState{}, err
 	}
-	state := DeviceState{
+	state := model.DeviceState{
 		Id:   id,
 		Spec: &rSpec,
 	}
 	return state, nil
 }
 
-func (t *DevicesManager) GetSpec(ctx context.Context, id string) (DeviceState, error) {
+func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceState, error) {
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
@@ -147,12 +142,12 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (DeviceState, e
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return DeviceState{}, err
+		return model.DeviceState{}, err
 	}
 
 	ret, err := getDeviceState(id, target.Body)
 	if err != nil {
-		return DeviceState{}, err
+		return model.DeviceState{}, err
 	}
 	return ret, nil
 }

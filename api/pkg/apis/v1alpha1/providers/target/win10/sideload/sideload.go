@@ -34,12 +34,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var sLog = logger.NewLogger("coa.runtime")
@@ -248,13 +248,23 @@ func (i *Win10SideLoadProvider) Remove(ctx context.Context, deployment model.Dep
 	return nil
 }
 
-func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	for _, component := range components {
 		if path, ok := component.Properties["app.package.path"]; ok {
@@ -285,4 +295,13 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+func (*Win10SideLoadProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

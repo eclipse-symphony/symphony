@@ -30,6 +30,11 @@ class PipelineSpec:
     parameters: Dict[str, str] = None
 
 @dataclass
+class VersionSpec:
+    solution: str = ""
+    percentage: int = 100
+
+@dataclass
 class InstanceSpec:
     name: str = ""
     parameters: Dict[str, str] = None
@@ -40,6 +45,9 @@ class InstanceSpec:
     scope: str = ""    
     displayName: str = ""
     metadata: Dict[str, str] = None
+    versions: List[VersionSpec] = None
+    arguments: Dict[str, Dict[str, str]] = None
+    optOutReconciliation: bool = False
     
 
 @dataclass
@@ -72,6 +80,8 @@ class ComponentSpec:
     properties: Dict[str, str] = None
     depedencies: List[str] = None
     skills: List[str] = None
+    metadata: Dict[str, str] = None
+    parameters: Dict[str, str] = None
     
 
 @dataclass
@@ -91,6 +101,7 @@ class TargetSpec:
     scope: str = ""
     displayName: str = ""
     metadata: Dict[str, str] = None
+    forceRedeploy: bool = False
     
 
 @dataclass
@@ -102,6 +113,7 @@ class DeviceSpec:
 
 @dataclass
 class DeploymentSpec:
+    solutionName: str = ""
     solution: SolutionSpec = None
     instance: InstanceSpec = None
     targets: Dict[str, TargetSpec] = None

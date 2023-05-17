@@ -8,6 +8,7 @@
       },
       {
         "type": "vendors.solution",
+        "loopInterval": 15,
         "route": "solution",
         "managers": [
           {

@@ -299,7 +299,7 @@ func getParameterMap(data []byte, skill string, alias string) (map[string]string
 		}
 	}
 	if skill != "" && alias != "" {
-		params, err = jsonpath.JsonPathLookup(obj, fmt.Sprintf("$.stages[0].pipelines[?(@.name == '%s' && @.skill == '%s')].parameters", skill, alias))
+		params, err = jsonpath.JsonPathLookup(obj, fmt.Sprintf("$.pipelines[?(@.name == '%s' && @.skill == '%s')].parameters", skill, alias))
 		if err == nil {
 			coll := params.([]interface{})
 			for _, p := range coll {

@@ -188,6 +188,16 @@ func ReadInt32(col map[string]string, key string, defaultVal int32) int32 {
 	}
 	return defaultVal
 }
+func GetString(col map[string]string, key string) (string, error) {
+	if v, ok := col[key]; ok {
+		i, e := ParseValue(v)
+		if e != nil {
+			return "", e
+		}
+		return i.(string), nil
+	}
+	return "", fmt.Errorf("key %s is not found", key)
+}
 func ReadString(col map[string]string, key string, defaultVal string) string {
 	if v, ok := col[key]; ok {
 		i, e := ParseValue(v)

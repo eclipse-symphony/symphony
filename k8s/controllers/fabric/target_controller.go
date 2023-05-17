@@ -37,11 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	utils "gopls-workspace/utils"
 
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -65,7 +64,6 @@ type TargetReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
 	myFinalizerName := "target.fabric.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
@@ -78,12 +76,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
-	if err != nil {
-		log.Error(err, "failed to generate Symphony deployment")
-		return ctrl.Result{}, err
-	}
-
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(target, myFinalizerName) {
 			controllerutil.AddFinalizer(target, myFinalizerName)
@@ -92,8 +84,23 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 
-		if len(deployment.Stages[0].Assignments) != 0 {
-			summary, err := utils.Deploy(deployment)
+		deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
+		if err != nil {
+			log.Error(err, "failed to generate Symphony deployment")
+			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", model.SummarySpec{
+				TargetCount:  1,
+				SuccessCount: 0,
+				TargetResults: map[string]model.TargetResultSpec{
+					"self": {
+						Status:  "Failed",
+						Message: err.Error(),
+					},
+				},
+			})
+		}
+
+		if len(deployment.Assignments) != 0 {
+			summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
 			if err != nil {
 				log.Error(err, "failed to deploy to Symphony")
 				return ctrl.Result{}, r.updateTargetStatus(target, "Failed", summary)
@@ -109,18 +116,21 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
-
 	} else { // remove
 		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
-			summary, err := utils.Remove(deployment)
-			if err != nil { // TODO: this could stop the CRD being removed if the underlying component is permanantly destroyed
-				log.Error(err, "failed to delete components")
-				return ctrl.Result{}, r.updateTargetStatus(target, "Remove Failed", summary)
+			//summary := model.SummarySpec{}
+			deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
+			if err != nil {
+				log.Error(err, "failed to generate Symphony deployment")
+			} else {
+				_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+				if err != nil { // TODO: this could stop the CRD being removed if the underlying component is permanantly destroyed
+					log.Error(err, "failed to delete components")
+				}
 			}
-
 			controllerutil.RemoveFinalizer(target, myFinalizerName)
 			if err := r.Update(ctx, target); err != nil {
-				return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", summary)
+				return ctrl.Result{}, err
 			}
 		}
 	}

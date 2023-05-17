@@ -22,6 +22,6 @@
 | ```Type``` | ```string``` | component type |
 
 ### Depedencies
-When Symphony deploys a solution, it first sorts all solution components by their depedencies. This allows [providers](../providers/providers.md) that allow ordering to apply the components in order. 
+When Symphony deploys a solution, it first sorts all solution components by their depedencies. This allows [providers](../providers/overview.md) that allow ordering to apply the components in order. 
 
 > **NOTE**: Circular references are not allowed.

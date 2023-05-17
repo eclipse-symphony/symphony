@@ -1,4 +1,7 @@
 # Symphony Quick Start - Deploying a Prometheus server to a Kubernetes cluster
+
+_(last edit: 4/11/2023)_
+
 Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane on your Kubernetes cluster and deploying a new Symphony solution instance to the cluster.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
@@ -12,6 +15,8 @@ maestro samples run hello-k8s
 ```
 
 Maestro displays the service public IP that you can open with a browser. If the IP doesn't show up, repeat the above command (it takes a while for a public IP to be provisioned).
+
+> **NOTE**: If you are using Kubernetes distributions that don't support assigning public IPs, you can set up port forwarding to access the deployed Prometheus server.
 
 To clean up, use:
 ```
@@ -29,12 +34,12 @@ maestro samples remove hello-k8s
 
 The easiest way to install Symphony is to use Helm:
 ```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.41.2
+helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.43.9
 ```
 
-Or, if you already have the ```symphony-k8s``` repository cloned:
+Or, if you already have the ```symphony``` repository cloned:
 ```bash
-cd symphony-k8s/helm
+cd k8s/helm
 helm install symphony ./symphony
 ```
 ### 2. Register the current cluster as a Symphony Target

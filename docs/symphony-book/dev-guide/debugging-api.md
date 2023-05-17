@@ -17,7 +17,7 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
    # folder: symphony/api
    go mod vendor
    go build -o symphon-api
-    ./symphony-api -c ./symphony-api-dev.json -l Debug
+    ./symphony-api -c ./symphony-api-no-k8s.json -l Debug
     ```
 2. Use Postman to send API calls to ```http://localhost:8080/v1alpha2```. See [Sample Requests](#sample-requests) for examples of API requests.
 3. Add temporary log statements to trace what's happenin, rebuild and re-launch and use the console to observe logs.
@@ -36,53 +36,45 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
             "instance": {
                 "scope": "default",
                 "name": "redis-instance",
-                "stages": [
+                "solution": "my-solution",
+                "target": {
+                    "name": "my-k8s"
+                }                 
+            },
+            "solution": {
+                "name": "my-solution",
+                "components": [
                     {
-                        "solution": "my-solution",
-                        "target": {
-                            "name": "my-k8s"
+                        "name": "redis-server",
+                        "properties": {
+                            "type": "docker",
+                            "container.image": "docker.io/redis:6.0.5"
                         }
                     }
                 ]
             },
-            "stages": [
-                {
-                    "solution": {
-                        "name": "my-solution",
-                        "components": [
-                            {
-                                "name": "redis-server",
-                                "properties": {
-                                    "type": "docker",
-                                    "container.image": "docker.io/redis:6.0.5"
-                                }
-                            }
-                        ]
-                    },
-                    "targets": {
-                        "my-k8s": {
-                            "topologies": [
+            "targets": {
+                "my-k8s": {
+                    "topologies": [
+                        {
+                            "bindings": [
                                 {
-                                    "bindings": [
-                                        {
-                                            "role": "instance",
-                                            "provider": "providers.target.k8s",
-                                            "config": {
-                                                "configType": "path"
-                                            }
-                                        }
-                                    ]
+                                    "role": "instance",
+                                    "provider": "providers.target.k8s",
+                                    "config": {
+                                        "configType": "path"
+                                    }
                                 }
                             ]
                         }
-                    },
-                    "assignments": {
-                        "my-k8s": "{redis-server}"
-                    },
-                    "componentStartIndex": 0,
-                    "componentEndIndex": 0
+                    ]
                 }
-            ]
+            },
+            "assignments": {
+                "my-k8s": "{redis-server}"
+            },
+            "componentStartIndex": 0,
+            "componentEndIndex": 0                
         }
 
 2. Delete the above Instance:

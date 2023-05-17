@@ -143,13 +143,36 @@ func CheckK8sConnection(verbose bool) (string, bool) {
 
 func CheckHelm(verbose bool) bool {
 	info, err := RunCommand("Checking Helm", "found", verbose, "helm", "version")
-	re := regexp.MustCompile(`v[0-9]+\.[0-9]+\.[0-9]+`)
-	version := re.FindString(info)
-	if version < "v3.8" {
-		fmt.Printf("\n%s  Helm v3.8 or above is required but %s is found%s\n\n", ColorRed(), version, ColorReset())
+	if err != nil {
 		return false
 	}
-	return err == nil
+	re := regexp.MustCompile(`v[0-9]+\.[0-9]+\.[0-9]+`)
+	versionStr := re.FindString(info)
+	versionStr = strings.TrimPrefix(versionStr, "v")
+
+	// Split the version string into its major, minor, and patch components
+	versionParts := strings.Split(versionStr, ".")
+	if len(versionParts) < 2 {
+		fmt.Printf("\n%s Error parsing Helm version: %s %s\n\n", ColorRed(), versionStr, ColorReset())
+		return false
+	}
+	major, err := strconv.Atoi(versionParts[0])
+	if err != nil {
+		fmt.Printf("\n%s Error parsing Helm version: %s %s\n\n", ColorRed(), versionStr, ColorReset())
+		return false
+	}
+	minor, err := strconv.Atoi(versionParts[1])
+	if err != nil {
+		fmt.Printf("\n%s Error parsing Helm version: %s %s\n\n", ColorRed(), versionStr, ColorReset())
+		return false
+	}
+
+	// Check if the Helm version is at least 3.8
+	if major < 3 || (major == 3 && minor < 8) {
+		fmt.Printf("\n%s  Helm version 3.8 or above is required but %s is found%s\n\n", ColorRed(), versionStr, ColorReset())
+		return false
+	}
+	return true
 }
 
 func InstallDocker(verbose bool) bool {

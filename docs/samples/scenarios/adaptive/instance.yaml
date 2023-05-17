@@ -4,10 +4,8 @@ metadata:
   name: my-instance
 spec:
   scope: basic-k8s
-  stages:
-  - name: default
-    solution: redis-server
-    target:
-      selector: 
-        group: demo
+  solution: redis-server
+  target:
+    selector: 
+      group: demo
         

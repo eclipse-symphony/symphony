@@ -1,9 +1,11 @@
 # Hosts
 
+_(last edit: 4/12/2023)_
+
 Hosts are configurable hosting processes that load a group of configured [Vendors](../vendors/overview.md) and bind them to one or multiple [Bindings](../bindings/overview.md). 
 
 ## Host Configurations
-Under the root folder of the ```symphony-api``` repo, you can find a bunch of ```*.json``` files – these are different configuration files for various Symphony roles and purposes. For example:
+Under the ```api``` folder of the ```symphony``` repo, you can find a bunch of ```*.json``` files – these are different configuration files for various Symphony roles and purposes. For example:
 * ```symphony-agent.json``` This is the default configuration for a Symphony Agent.
 * ```symphony-api-dev-console-trace.json``` This is the same configuration as ```symphony-api-dev.json```, plus a Console exporter for [OpenTelemetry](https://opentelemetry.io/). 
 * ```symphony-api-dev-zipkin-trace.json``` This is the same configuration as ```symphony-api-dev.json```, plus a [Zipkin](https://zipkin.io/) exporter for [OpenTelemetry](https://opentelemetry.io/). 

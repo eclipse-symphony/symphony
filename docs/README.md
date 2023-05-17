@@ -1,4 +1,7 @@
-# Symphony
+# The Symphony Book
+
+_(last edit: 4/25/2023)_
+
 ## Table of Content
 
 ### Part I: Fundamentals
@@ -10,8 +13,10 @@
 * [**Chapter 2**: Build & Deployment](symphony-book/build_deployment/build_deployment.md)
     * [Build Symphony](symphony-book/build_deployment/build.md)
     * [Deploy Symphony](symphony-book/build_deployment/deploy.md)
+    * [Running Symphony in standalone mode](symphony-book/build_deployment/standalone.md)
     * [Deploy Symphony Behind API Management](symphony-book/build_deployment/apim.md)
 * [**Chapter 3**: Symphony Object Model](symphony-book/uom/uom.md)
+    * Compaign
     * [Device](symphony-book/uom/device.md)    
     * [Instance](symphony-book/uom/instance.md)
     * [Model](symphony-book/uom/ai-model.md)
@@ -20,6 +25,7 @@
     * Skill Package
     * [Solution](symphony-book/uom/solution.md)    
     * [Target](symphony-book/uom/target.md)
+    * [Modeling Language](./symphony-book/uom/property-expressions.md)
 * [**Chapter 4**: Target Management](symphony-book/target-management/target-management.md)    
 * [**Chapter 5**: Device Management](symphony-book/device-management/device-management.md)
 * [**Chapter 6**: Solution Management](symphony-book/solution-management/solution-management.md)
@@ -46,6 +52,7 @@
     * [Staging Provider](symphony-book/providers/staging_provider.md)
     * Terraform Provider
     * [Provider Interface](symphony-book/providers/provider_interface.md)
+    * [Provider Conformance](symphony-book/providers/conformance.md)
     * [Write Custom Providers](symphony-book/providers/python_provider.md)
 * [**Chapter 13**: Managers](symphony-book/managers/overview.md)
 * [**Chapter 14**: Vendors](symphony-book/vendors/overview.md)
@@ -80,6 +87,7 @@
     * [Gated deployments](symphony-book/scenarios/gated-deployment.md) - _adds control points to your deployments_
     * [Human approval](symphony-book/scenarios/human-approval.md) - _requires manual approval_
     * Hybrid deployments - _deploys to both edge and cloud_
+    * [Remote deployments over MQTT](symphony-book/scenarios/remote-deployment-over-mqtt.md) - _drive remote PowerShell deployment over MQTT_
     * [Scheduled deployments](symphony-book/instance-management/instance-management.md#scheduled-deployment) - _deploys at given schedule_
     * [Split deployments](symphony-book/scenarios/linux-with-uwp-frontend.md) - _distributes components to matching targets (such as Windows frontend and Linux backend)_
     * Staged deployments - _deploys app across rings_
@@ -102,3 +110,6 @@
 * **Chapter 25**: Federation
     * Component Name Resolutions
     * Federated Queries
+* **Chapter 26**: Developer Guide
+    * [Getting Started](./symphony-book/dev-guide/getting-started.md)
+    * [Debugging](./symphony-book/dev-guide/debugging-api.md)

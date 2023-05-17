@@ -15,3 +15,6 @@
 vendor/
 dist/
 symphony-api
+symphony-agent
+symphony-api-mac
+symphony-api.exe

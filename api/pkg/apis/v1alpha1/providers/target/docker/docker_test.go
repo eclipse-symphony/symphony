@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,22 +34,18 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "redis-test",
-							Type: "container",
-							Properties: map[string]string{
-								"container.image": "redis:latest",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "redis-test",
+					Type: "container",
+					Properties: map[string]string{
+						model.ContainerImage: "redis:latest",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 
@@ -62,17 +59,13 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "redis-test",
-							Type: "container",
-							Properties: map[string]string{
-								"container.image": "redis:latest",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "redis-test",
+					Type: "container",
+					Properties: map[string]string{
+						model.ContainerImage: "redis:latest",
 					},
 				},
 			},
@@ -80,7 +73,7 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
-	assert.Equal(t, "redis:latest", components[0].Properties["container.image"])
+	assert.Equal(t, "redis:latest", components[0].Properties[model.ContainerImage])
 	assert.Equal(t, "", components[0].Properties["container.ports"])
 }
 
@@ -94,21 +87,24 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := provider.Remove(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "redis-test",
-							Type: "container",
-							Properties: map[string]string{
-								"container.image": "redis:latest",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "redis-test",
+					Type: "container",
+					Properties: map[string]string{
+						model.ContainerImage: "redis:latest",
 					},
 				},
 			},
 		},
-	})
+	}, nil)
 	assert.Nil(t, component)
+}
+
+func TestConformanceSuite(t *testing.T) {
+	provider := &DockerTargetProvider{}
+	err := provider.Init(DockerTargetProviderConfig{})
+	assert.Nil(t, err)
+	conformance.ConformanceSuite(t, provider)
 }

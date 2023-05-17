@@ -3,6 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![build](https://github.com/Azure/symphony/actions/workflows/go.yml/badge.svg)
 
+_(last edit: 4/11/2023)_
+
 Symphony is a powerful service orchestration engine that enables the organization of multiple intelligent edge services into a seamless, end-to-end experience. Its primary purpose is to address the inherent complexity of edge deployment by providing a set of technology-agnostic workflow APIs, which are designed to deliver a streamlined experience for users across all device profiles.
 
 Symphony is uniquely capable of providing consistency across the entire software stack, from drivers to containers to configurations and policies. This comprehensive approach ensures that all aspects of your intelligent edge projects are effectively managed and optimized. Moreover, Symphony provides full support for the entire lifecycle of your edge computing initiatives, spanning from the initial deployment to ongoing updates and maintenance.
@@ -15,11 +17,13 @@ With Symphony, users can benefit from a powerful and versatile platform that str
 
     Symphony is a versatile and standards-based solution that delivers exceptional flexibility and extensibility. It natively runs on Kubernetes, which means users can leverage all existing Kubernetes tooling to interact with Symphony. Moreover, Symphony supports a wide range of popular industrial standards, protocols, and frameworks, including [OpenTelemetry](https://opentelemetry.io/), [Distributed Application Runtime (Dapr)](https://dapr.io/), [Message Queuing Telemetry Transport (MQTT)](https://mqtt.org/), [Open Neural Network Exchange (ONNX)](https://onnx.ai/), [Akri](https://github.com/project-akri/akri), [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/), [Helm](https://helm.sh/), and many others. This broad range of support makes Symphony an ideal solution for organizations seeking to build and deploy edge services that meet their specific needs.
 
+    Symphony also supports running in a standalone mode independent from Kubernetes. All you need is a single Symphony binary and nothing else!
+
 * Meet customers where they are
 
     Another key advantage of Symphony is its extensibility. It supports the integration of first-party and third-party services, and all Symphony capabilities, including device registry, device updates, and solution deployment, can be replaced with custom implementations. This means that Symphony can be tailored to meet the specific needs of any organization, regardless of their size or complexity.
 
-* Zero-frction adoption
+* Zero-friction adoption
 
     Symphony's zero-friction adoption approach is another key feature that sets it apart from other solutions. Users can get started with Symphony using a single computer, and there is no need for special hardware, an Azure subscription, or Kubernetes to start experimenting with the solution. Additionally, the same Symphony artifacts used during testing and development can be carried over into production deployments, ensuring a smooth transition and reducing overall deployment time and costs.
 
@@ -31,6 +35,9 @@ With Symphony, users can benefit from a powerful and versatile platform that str
 There are several ways to get started with Symphony, including using the CLI tool, Helm, Docker, or the symphony-api binary.
 
 ### Using Symphony CLI
+
+> **NOTE**: The following GitHub URL is a temporary parking location and is sugject to change.
+
 The easiest way to get started with Symphony is by using Symphony's CLI tool, called maestro. The CLI tool can be installed on **Linux**, **WSL**, and **Mac** using the following command:
 
 ```Bash
@@ -45,26 +52,51 @@ After Symphony is installed, you can use `maestro` to try out sample scenarios.
 ```bash
 maestro up
 ```
-You can also install Symphony using Helm by running the following command:
+
 ### Using Helm
-After Symphony is installed, you can use maestro to try out sample scenarios.
-```Bash
-helm install symphony oci://symphonyk8s.azurecr.io/helm/symphony --version 0.41.42
-```
-### Using Docker
 You can also install Symphony using Helm by running the following command:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 possprod.azurecr.io/symphony-api:0.41.42 
+helm install symphony oci://symphonyk8s.azurecr.io/helm/symphony --version 0.43.1
+```
+After Symphony is installed, you can use maestro to try out sample scenarios.
+
+### Using Docker
+You can also install Symphony using Docker by running the following command:
+```Bash
+docker run -d --name symphony-api -p 8080:8080 possprod.azurecr.io/symphony-api:0.43.1
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:
 ```Bash
 ./symphony-api -c ./symphony-api-dev.json -l Debug
 ```
+## Provider Conformance Test Results
+Symphony is an extensible system with the concept of providers. For each provider types, we define one or multiple conformance test suites that ensure provider implementations behaves consistently and predictably.
+
+### Target Providers
+
+| Provider | Basic<sup>1</sup> | 
+|--------|--------|
+| ```providers.target.adb``` |![](https://byob.yarr.is/Haishi2016/badges/target-adb-app)|
+| ```providers.target.azure.adu``` |![](https://byob.yarr.is/Haishi2016/badges/target-adu-app)|
+| ```providers.target.azure.iotedge``` |![](https://byob.yarr.is/Haishi2016/badges/target-iotedge-app)|
+| ```providers.target.docker```|![](https://byob.yarr.is/Haishi2016/badges/target-docker-app)|
+| ```providers.target.heml```|![](https://byob.yarr.is/Haishi2016/badges/target-helm-app)|
+| ```providers.target.http```|![](https://byob.yarr.is/Haishi2016/badges/target-http-app)|
+| ```providers.target.k8s``` |![](https://byob.yarr.is/Haishi2016/badges/target-k8s-app)|
+| ```providers.target.kubectl```|![](https://byob.yarr.is/Haishi2016/badges/target-kubectl-app)|
+| ```providers.target.mqtt```|![](https://byob.yarr.is/Haishi2016/badges/target-mqtt-app)|
+| ```providers.target.proxy```|![](https://byob.yarr.is/Haishi2016/badges/target-proxy-app)|
+| ```providers.target.script```|![](https://byob.yarr.is/Haishi2016/badges/target-script-app)|
+| ```providers.target.staging```|![](https://byob.yarr.is/Haishi2016/badges/target-staging-app)|
+| ```providers.target.win10```|![](https://byob.yarr.is/Haishi2016/badges/target-win10-app)|
+
+1. **Basic** conformance level requires a provider to properly respond to missing properties
+
 ## What's Next
 
 * [Quickstart scenarios](./docs/symphony-book/quick_start/quick_start.md)
-* [Symphony Docs](./docs/README.md)
+* [The Symphony Book](./docs/README.md)
 
 ## Contributing
 

@@ -209,6 +209,7 @@ func toKubectlTargetProviderConfig(config providers.IProviderConfig) (KubectlTar
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
+
 func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Kubectl Target Provider", ctx, &map[string]string{
 		"method": "Get",
@@ -348,13 +349,23 @@ func (i *KubectlTargetProvider) Remove(ctx context.Context, deployment model.Dep
 	return nil
 }
 
-func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Kubectl Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Kubectl Target Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	for _, component := range components {
 		if component.Type == "yaml.k8s" {
@@ -412,7 +423,15 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
-
+func (*KubectlTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
+}
 func readYaml(yaml string) (<-chan []byte, <-chan error) {
 	var (
 		chanErr   = make(chan error)

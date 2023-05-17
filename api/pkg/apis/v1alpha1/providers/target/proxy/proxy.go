@@ -34,6 +34,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -41,7 +42,6 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var sLog = logger.NewLogger("coa.runtime")
@@ -167,14 +167,25 @@ func (i *ProxyUpdateProvider) Remove(ctx context.Context, deployment model.Deplo
 	return nil
 }
 
-func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
+
 	data, _ := json.Marshal(deployment)
-	_, err := i.callRestAPI("instances", "POST", data)
+
+	_, err = i.callRestAPI("instances", "POST", data)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
 		return err
@@ -187,6 +198,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
+
 func (i *ProxyUpdateProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
 		"method": "NeedsUpdate",
@@ -218,6 +230,15 @@ func (i *ProxyUpdateProvider) NeedsRemove(ctx context.Context, desired []model.C
 	}
 	observ_utils.CloseSpanWithError(span, nil)
 	return true
+}
+func (*ProxyUpdateProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }
 
 type TwoComponentSlices struct {

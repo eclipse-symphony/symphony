@@ -3,9 +3,7 @@ kind: Instance
 metadata:
   name: sample-prometheus-instance
 spec:
-  scope: sample-k8s-scope
-  stages:
-  - name: default
-    solution: sample-prometheus-server
-    target: 
-      name: sample-k8s-target
+  scope: sample-k8s-scope  
+  solution: sample-prometheus-server
+  target: 
+    name: sample-k8s-target

@@ -1,5 +1,7 @@
 # Building and Releasing Maestro CLI
 
+_(last edit: 4/12/2023)_
+
 ## Manually create a new CLI release
 0. If you are doing this from WSL/Ubuntu, you need to install ```zip```:
    ```bash
@@ -7,19 +9,23 @@
    ```
 1. Build symphony-api and maestro for Windows, Mac and Linux
    ```bash
-   # under symphony-api folder
+   # under symphony/api folder
    go mod vendor
    go build -o symphony-api
    GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
    GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
-
-   # under symphony-docs/cli folder
+   ```
+2. Update maestro version
+   Update the ```SymphonyAPIVersion``` constant under ```cli/cmd/up.go``` to reflect the latest Symphony version.
+3. Build maestro
+   ```bash
+   # under symphony/cli folder
    go mod vendor
    go build -o maestro
    GOOS=windows GOARCH=amd64 go build -o maestro.exe
    GOOS=darwin GOARCH=amd64 go build -o maestro-mac
    ```
-2. In a separate working folder:
+4. In a separate working folder:
    ```bash
    # This example assumes you are under ~/assemble folder, and you've checked out
    # Symphony repos to the ~/projects/go/src/github.com/azure folder
@@ -31,38 +37,37 @@
    rm maestro_darwin_amd64.tar.gz
 
    # copy new binary files, configuration files and scripts
-   cp ../projects/go/src/github.com/azure/symphony-api/symphony-api .
-   cp ../projects/go/src/github.com/azure/symphony-api/symphony-api.exe .
-   cp ../projects/go/src/github.com/azure/symphony-api/symphony-api-mac .
-   cp ../projects/go/src/github.com/azure/symphony-api/symphony-api-dev.json .
-   cp ../projects/go/src/github.com/azure/symphony-docs/cli/maestro .
-   cp ../projects/go/src/github.com/azure/symphony-docs/cli/maestro.exe .
-   cp ../projects/go/src/github.com/azure/symphony-docs/cli/maestro-mac .
-   cp ../projects/go/src/github.com/azure/PerceptOSS/Installer/poss-test-installer.sh .
+   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api .
+   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api.exe .
+   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api-mac .
+   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api-no-k8s.json .
+   cp ../projects/go/src/github.com/azure/symphony/cli/maestro .
+   cp ../projects/go/src/github.com/azure/symphony/cli/maestro.exe .
+   cp ../projects/go/src/github.com/azure/symphony/cli/maestro-mac .
    
    # Copy over samples
-   cp ../projects/go/src/github.com/azure/symphony-docs/samples/samples.json .
+   cp ../projects/go/src/github.com/azure/symphony/docs/samples/samples.json .
    mkdir -p ./k8s
    mkdir -p ./iot-edge
-   cp -r ../projects/go/src/github.com/azure/symphony-docs/samples/k8s/hello-world/ ./k8s/
-   cp -r ../projects/go/src/github.com/azure/symphony-docs/samples/k8s/staged/ ./k8s/
-   cp -r ../projects/go/src/github.com/azure/symphony-docs/samples/iot-edge/simulated-temperature-sensor/ ./iot-edge/
+   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/k8s/hello-world/ ./k8s/
+   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/k8s/staged/ ./k8s/
+   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/iot-edge/simulated-temperature-sensor/ ./iot-edge/
 
    # package Linux
-   tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-dev.json poss-test-installer.sh samples.json k8s iot-edge
+   tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge
    # package Windows
-   zip maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-dev.json poss-test-installer.sh samples.json k8s iot-edge
+   zip maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge
    # package Mac
    rm maestro
    rm symphony-api
    mv maestro-mac maestro
    mv symphony-api-mac symphony-api
-   tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-dev.json poss-test-installer.sh samples.json k8s iot-edge
+   tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge
    ```
-3. Edit your release to include the three **.gz** files from the previous step:
+5. Edit your release to include the three **.gz** files from the previous step:
    ![CLI release](../images/cli-release.png)
 
-4. Check ```symphony-docs/cli/install/install.sh``` and ```symphony-docs/cli/install/install.ps1``` to a public repository. Users will be instructed to use scripts from this repo for the one-command experience, for example:
+6. Check ```symphony/cli/install/install.sh``` and ```symphony/cli/install/install.ps1``` to a public repository. Users will be instructed to use scripts from this repo for the one-command experience, for example:
    ```bash
    wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
    ```

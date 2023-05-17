@@ -1,5 +1,12 @@
 {
   "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
     "vendors": [
       {
         "type": "vendors.echo",
@@ -7,17 +14,22 @@
         "managers": []
       },
       {
-        "type": "vendors.targets",
-        "route": "targets",
+        "type": "vendors.jobs",
+        "route": "jobs",
+        "loopInterval": 15,
         "managers": [
           {
-            "name": "targets-manager",
-            "type": "managers.symphony.targets",
+            "name": "jobs-manager",
+            "type": "managers.symphony.jobs",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.state": "mem-state",
+              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15"
             },
             "providers": {
-              "k8s-state": {
+              "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -26,14 +38,38 @@
         ]
       },
       {
+        "type": "vendors.targets",
+        "loopInterval": 15,
+        "route": "targets",
+        "managers": [
+          {
+            "name": "targets-manager",
+            "type": "managers.symphony.targets",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
+      },
+      {
         "type": "vendors.solutions",
+        "loopInterval": 15,
         "route": "solutions",
         "managers": [
           {
             "name": "solutions-manager",
             "type": "managers.symphony.solutions",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.state": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -46,13 +82,14 @@
       },
       {
         "type": "vendors.instances",
+        "loopInterval": 15,
         "route": "instances",
         "managers": [
           {
             "name": "instances-manager",
             "type": "managers.symphony.instances",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.state": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -61,17 +98,21 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
       },
       {
         "type": "vendors.devices",
+        "loopInterval": 15,
         "route": "devices",
         "managers": [
           {
             "name": "devices-manager",
             "type": "managers.symphony.devices",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.state": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -84,6 +125,7 @@
       },
       {
         "type": "vendors.users",
+        "loopInterval": 15,
         "route": "users",
         "properties": {
           "test-users": "true"
@@ -93,7 +135,7 @@
             "name": "users-manager",
             "type": "managers.symphony.users",
             "properties": {
-              "providers.state": "mem-state"              
+              "providers.state": "mem-state"
             },
             "providers": {
               "mem-state": {
@@ -106,6 +148,7 @@
       },
       {
         "type": "vendors.solution",
+        "loopInterval": 15,
         "route": "solution",
         "managers": [
           {
@@ -113,7 +156,7 @@
             "type": "managers.symphony.solution",
             "properties": {
               "providers.state": "mem-state",
-              "providers.config": "mock-config",  
+              "providers.config": "mock-config",
               "providers.secret": "mock-secret"
             },
             "providers": {
@@ -129,37 +172,38 @@
                 "type": "providers.secret.mock",
                 "config": {}
               }
-            }     
+            }
           }
         ]
       },
       {
         "type": "vendors.agent",
+        "loopInterval": 15,
         "route": "agent",
         "managers": [
           {
             "name": "reference-manager",
             "type": "managers.symphony.reference",
             "properties": {
-              "providers.reference": "k8s-reference",
+              "providers.reference": "http-reference",
               "providers.state": "memory",
-              "providers.reporter": "k8s-reporter"
+              "providers.reporter": "http-reporter"
             },
             "providers": {
               "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               },
-              "k8s-reference": {
-                "type": "providers.reference.k8s",
+              "http-reference": {
+                "type": "providers.reference.http",
                 "config": {
-                  "inCluster": false
+                  "url": "http://localhost:8082/v1alpha2/"
                 }
               },
-              "k8s-reporter": {
-                "type": "providers.reporter.k8s",
+              "http-reporter": {
+                "type": "providers.reporter.http",
                 "config": {
-                  "inCluster": false
+                  "url": "http://localhost:8082/v1alpha2/"
                 }
               }
             }
@@ -172,7 +216,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8080,
+        "port": 8082,
         "pipeline": [
           {
             "type": "middleware.http.cors",
@@ -184,10 +228,10 @@
             }
           },
           {
-            "type": "middleware.http.jwt",                   
+            "type": "middleware.http.jwt",
             "properties": {
               "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
-              "verifyKey": "SymphonyKey",              
+              "verifyKey": "SymphonyKey",
               "enableRBAC": true,
               "roles": [
                 {
@@ -216,10 +260,10 @@
                   "value": "solution-operator"
                 }
               ],
-              "policy": {                
+              "policy": {
                 "administrator": {
                   "items": {
-                    "*": "*"                    
+                    "*": "*"
                   }
                 },
                 "reader": {
@@ -241,12 +285,12 @@
                   "items": {
                     "/v1alpha2/instances": "*"
                   }
-                }                
+                }
               }
             }
           }
         ]
-      }      
+      }
     }
   ]
 }

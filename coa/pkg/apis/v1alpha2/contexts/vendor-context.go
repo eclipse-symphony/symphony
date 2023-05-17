@@ -25,14 +25,32 @@ SOFTWARE
 package contexts
 
 import (
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	logger "github.com/azure/symphony/coa/pkg/logger"
 )
 
 type VendorContext struct {
-	Logger logger.Logger
+	Logger         logger.Logger
+	PubsubProvider pubsub.IPubSubProvider
 }
 
-func (v *VendorContext) Init() error {
+func (v *VendorContext) Init(p pubsub.IPubSubProvider) error {
 	v.Logger = logger.NewLogger("coa.runtime")
+	v.PubsubProvider = p
+	return nil
+}
+
+func (v *VendorContext) Publish(feed string, event v1alpha2.Event) error {
+	if v.PubsubProvider != nil {
+		return v.PubsubProvider.Publish(feed, event)
+	}
+	return nil
+}
+
+func (v *VendorContext) Subscribe(feed string, handler v1alpha2.EventHandler) error {
+	if v.PubsubProvider != nil {
+		return v.PubsubProvider.Subscribe(feed, handler)
+	}
 	return nil
 }

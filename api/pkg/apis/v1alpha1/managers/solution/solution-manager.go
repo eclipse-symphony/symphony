@@ -127,7 +127,7 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 
 	summary := model.SummarySpec{
 		TargetResults: make(map[string]model.TargetResultSpec),
-		TargetCount:   len(deployment.Stages[0].Targets),
+		TargetCount:   len(deployment.Targets),
 		SuccessCount:  0,
 	}
 
@@ -166,11 +166,11 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 		}
 	}
 
-	for k, v := range deployment.Stages[0].Assignments {
+	for k, v := range deployment.Assignments {
 		if v != "" {
 			components := make([]model.ComponentSpec, 0)
 			// get components that are assigned to the current target
-			for _, component := range deployment.Stages[0].Solution.Components {
+			for _, component := range deployment.Solution.Components {
 				if strings.Contains(v, "{"+component.Name+"}") {
 					components = append(components, component)
 				}
@@ -183,7 +183,7 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 				return summary, err
 			}
 
-			for key, target := range deployment.Stages[0].Targets {
+			for key, target := range deployment.Targets {
 				if key == k {
 					summary.TargetResults[key] = model.TargetResultSpec{Status: "OK", Message: ""}
 					groups := collectGroups(components)
@@ -200,7 +200,7 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 							log.Errorf(" M (Solution): failed to create provider: %+v", err)
 							return summary, err
 						}
-						col := utils.MergeCollection(deployment.Stages[0].Solution.Metadata, deployment.Instance.Metadata)
+						col := utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 						agent := findAgent(target)
 						if agent != "" {
 							col[ENV_NAME] = agent
@@ -208,19 +208,19 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 						var current []model.ComponentSpec
 						dep := deployment
 						dep.Instance.Metadata = col
-						dep.Stages[0].ActiveTarget = key
-						dep.Stages[0].Solution.Components = components
+						dep.ActiveTarget = key
+						dep.Solution.Components = components
 
 						if i == len(groups)-1 {
 
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = len(components)
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = len(components)
 
 							for counter := 0; counter < 3; counter++ {
 								current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
 								if err == nil {
 									if (notLastSeen && target.ForceRedeploy) || (provider.(tgt.ITargetProvider)).NeedsUpdate(ctx, components[index:], current) {
-										err = (provider.(tgt.ITargetProvider)).Apply(ctx, dep)
+										err = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, false)
 										if err == nil {
 											break
 										} else {
@@ -238,14 +238,14 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 								return summary, err
 							}
 						} else {
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = groups[i+1].Index
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = groups[i+1].Index
 
 							for counter := 0; counter < 3; counter++ {
 								current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
 								if err == nil {
 									if (notLastSeen && target.ForceRedeploy) || (provider.(tgt.ITargetProvider)).NeedsUpdate(ctx, components[index:groups[i+1].Index], current) {
-										err = (provider.(tgt.ITargetProvider)).Apply(ctx, dep)
+										err = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, false)
 										if err == nil {
 											break
 										} else {
@@ -303,11 +303,11 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 
 	ret := make([]model.ComponentSpec, 0)
 
-	for k, v := range deployment.Stages[0].Assignments {
+	for k, v := range deployment.Assignments {
 		if v != "" {
 			components := make([]model.ComponentSpec, 0)
 			// get components that are assigned to the current target
-			for _, component := range deployment.Stages[0].Solution.Components {
+			for _, component := range deployment.Solution.Components {
 				if strings.Contains(v, "{"+component.Name+"}") {
 					components = append(components, component)
 				}
@@ -320,7 +320,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 				return ret, err
 			}
 
-			for key, target := range deployment.Stages[0].Targets {
+			for key, target := range deployment.Targets {
 				if key == k {
 					groups := collectGroups(components)
 					index := 0
@@ -336,7 +336,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 							log.Errorf(" M (Solution): failed to create provider: %+v", err)
 							return ret, err
 						}
-						col := utils.MergeCollection(deployment.Stages[0].Solution.Metadata, deployment.Instance.Metadata)
+						col := utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 						agent := findAgent(target)
 						if agent != "" {
 							col[ENV_NAME] = agent
@@ -345,13 +345,13 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 
 						dep := deployment
 						dep.Instance.Metadata = col
-						dep.Stages[0].ActiveTarget = key
-						dep.Stages[0].Solution.Components = components
+						dep.ActiveTarget = key
+						dep.Solution.Components = components
 
 						if i == len(groups)-1 {
 
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = len(components)
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = len(components)
 
 							current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
 							if err != nil {
@@ -361,8 +361,8 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 							}
 							ret = append(ret, current...)
 						} else {
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = groups[i+1].Index
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = groups[i+1].Index
 
 							current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
 							if err != nil {
@@ -403,14 +403,14 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 
 	summary := model.SummarySpec{
 		TargetResults: make(map[string]model.TargetResultSpec),
-		TargetCount:   len(deployment.Stages[0].Targets),
-		SuccessCount:  len(deployment.Stages[0].Targets),
+		TargetCount:   len(deployment.Targets),
+		SuccessCount:  len(deployment.Targets),
 	}
-	for k, v := range deployment.Stages[0].Assignments {
+	for k, v := range deployment.Assignments {
 		if v != "" {
 			components := make([]model.ComponentSpec, 0)
 			// get components that are assigned to the current target
-			for _, component := range deployment.Stages[0].Solution.Components {
+			for _, component := range deployment.Solution.Components {
 				if strings.Contains(v, "{"+component.Name+"}") {
 					components = append(components, component)
 				}
@@ -420,7 +420,7 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 			if err != nil {
 				return updateSummary(summary, v, err)
 			}
-			for key, target := range deployment.Stages[0].Targets {
+			for key, target := range deployment.Targets {
 				if key == k {
 					cd, _ := json.Marshal(components)
 					log.Debug(string(cd))
@@ -434,7 +434,7 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 						if err != nil {
 							return updateSummary(summary, k, err)
 						}
-						col := utils.MergeCollection(deployment.Stages[0].Solution.Metadata, deployment.Instance.Metadata)
+						col := utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 						agent := findAgent(target)
 						if agent != "" {
 							col[ENV_NAME] = agent
@@ -442,11 +442,11 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 						var current []model.ComponentSpec
 						dep := deployment
 						dep.Instance.Metadata = col
-						dep.Stages[0].ActiveTarget = key
-						dep.Stages[0].Solution.Components = components
+						dep.ActiveTarget = key
+						dep.Solution.Components = components
 						if i == len(groups)-1 {
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = len(components)
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = len(components)
 
 							for counter := 0; counter < 3; counter++ {
 								current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
@@ -468,8 +468,8 @@ func (s *SolutionManager) Remove(ctx context.Context, deployment model.Deploymen
 								time.Sleep(5 * time.Second)
 							}
 						} else {
-							dep.Stages[0].ComponentStartIndex = index
-							dep.Stages[0].ComponentEndIndex = groups[i+1].Index
+							dep.ComponentStartIndex = index
+							dep.ComponentEndIndex = groups[i+1].Index
 
 							for counter := 0; counter < 3; counter++ {
 								current, err = (provider.(tgt.ITargetProvider)).Get(ctx, dep)
@@ -520,7 +520,7 @@ func (s *SolutionManager) Reconcil() []error {
 }
 func findAgent(target model.TargetSpec) string {
 	for _, c := range target.Components {
-		if v, ok := c.Properties["container.image"]; ok {
+		if v, ok := c.Properties[model.ContainerImage]; ok {
 			if strings.Contains(v, SYMPHONY_AGENT) {
 				return c.Name
 			}

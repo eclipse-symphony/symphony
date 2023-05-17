@@ -4,6 +4,8 @@ go 1.19
 
 replace github.com/azure/symphony/api => ../api
 
+replace github.com/azure/symphony/coa => ../coa
+
 require (
 	github.com/azure/symphony/api v0.0.0
 	github.com/onsi/ginkgo v1.16.5
@@ -18,6 +20,7 @@ require (
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/azure/symphony/coa v0.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
@@ -27,6 +30,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9 // indirect
 	helm.sh/helm/v3 v3.10.0 // indirect
 )

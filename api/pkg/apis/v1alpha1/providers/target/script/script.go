@@ -38,13 +38,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/google/uuid"
 )
 
@@ -57,8 +57,9 @@ type ScriptProviderConfig struct {
 	GetScript     string `json:"getScript"`
 	NeedsUpdate   string `json:"needsUpdate,omitempty"`
 	NeedsRemove   string `json:"needsRemove,omitempty"`
-	ScriptFolder  string `json:"scriptFolder,omitempty`
-	StagingFolder string `json:"stagingFolder,omitempty`
+	ScriptFolder  string `json:"scriptFolder,omitempty"`
+	StagingFolder string `json:"stagingFolder,omitempty"`
+	ScriptEngine  string `json:"scriptEngine,omitempty"`
 }
 
 type ScriptProvider struct {
@@ -97,6 +98,14 @@ func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderCo
 		ret.GetScript = v
 	} else {
 		return ret, v1alpha2.NewCOAError(nil, "invalid script provider config, exptected 'getScript'", v1alpha2.BadConfig)
+	}
+	if v, ok := properties["scriptEngine"]; ok {
+		ret.ScriptEngine = v
+	} else {
+		ret.ScriptEngine = "bash"
+	}
+	if ret.ScriptEngine != "bash" && ret.ScriptEngine != "powershell" {
+		return ret, v1alpha2.NewCOAError(nil, "invalid script engine, exptected 'bash' or 'powershell'", v1alpha2.BadConfig)
 	}
 	return ret, nil
 }
@@ -188,7 +197,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("~~~ Script Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	id := uuid.New().String()
 	input := id + ".json"
@@ -199,20 +208,19 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	_ = ioutil.WriteFile(staging, file, 0644)
 
 	abs, _ := filepath.Abs(staging)
-	params := make([]string, 0)
-	params = append(params, abs)
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.GetScript))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.GetScript))
 	}
-	_, err := exec.Command(scriptAbs, params...).Output()
+
+	_, err := i.runCommand(scriptAbs, abs)
 
 	os.Remove(abs)
 
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to run get script: %+v", err)
+		sLog.Errorf("  P (Script Target): failed to run get script: %+v", err)
 		return nil, err
 	}
 
@@ -222,11 +230,12 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
 		return nil, err
 	}
 
 	abs, _ = filepath.Abs(outputStaging)
+
 	os.Remove(abs)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -251,8 +260,8 @@ func (i *ScriptProvider) NeedsUpdate(ctx context.Context, desired []model.Compon
 		return !model.SlicesCover(desired, current)
 	}
 
-	currentId := uuid.New().String() + ".json"
-	desiredId := uuid.New().String() + ".json"
+	currentId := uuid.New().String() + "-current.json"
+	desiredId := uuid.New().String() + "-desired.json"
 
 	stagingCurrent := filepath.Join(i.Config.StagingFolder, currentId)
 	file, _ := json.MarshalIndent(current, "", " ")
@@ -265,15 +274,12 @@ func (i *ScriptProvider) NeedsUpdate(ctx context.Context, desired []model.Compon
 	absCurrent, _ := filepath.Abs(stagingCurrent)
 	absDesired, _ := filepath.Abs(stagingDesired)
 
-	params := make([]string, 0)
-	params = append(params, absCurrent)
-	params = append(params, absDesired)
-
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.NeedsUpdate))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.NeedsUpdate))
 	}
-	out, err := exec.Command(scriptAbs, params...).Output()
+
+	out, err := i.runCommand(scriptAbs, absCurrent, absDesired)
 
 	os.Remove(absCurrent)
 	os.Remove(absDesired)
@@ -284,6 +290,7 @@ func (i *ScriptProvider) NeedsUpdate(ctx context.Context, desired []model.Compon
 		return false
 	}
 	str := string(out)
+
 	if str != "" {
 		s := strings.ToLower(strings.TrimSpace(str))
 		observ_utils.CloseSpanWithError(span, nil)
@@ -318,15 +325,12 @@ func (i *ScriptProvider) NeedsRemove(ctx context.Context, desired []model.Compon
 	absCurrent, _ := filepath.Abs(stagingCurrent)
 	absDesired, _ := filepath.Abs(stagingDesired)
 
-	params := make([]string, 0)
-	params = append(params, absCurrent)
-	params = append(params, absDesired)
-
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.NeedsRemove))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.NeedsRemove))
 	}
-	out, err := exec.Command(scriptAbs, params...).Output()
+
+	out, err := i.runCommand(scriptAbs, absCurrent, absDesired)
 
 	os.Remove(absCurrent)
 	os.Remove(absDesired)
@@ -367,15 +371,12 @@ func (i *ScriptProvider) Remove(ctx context.Context, deployment model.Deployment
 	absDeployment, _ := filepath.Abs(stagingDeployment)
 	absRef, _ := filepath.Abs(stagingRef)
 
-	params := make([]string, 0)
-	params = append(params, absDeployment)
-	params = append(params, absRef)
-
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
 	}
-	_, err := exec.Command(scriptAbs, params...).Output()
+
+	_, err := i.runCommand(scriptAbs, absDeployment, absRef)
 
 	os.Remove(absDeployment)
 	os.Remove(absRef)
@@ -389,11 +390,21 @@ func (i *ScriptProvider) Remove(ctx context.Context, deployment model.Deployment
 	return nil
 }
 
-func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Script Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	id := uuid.New().String() + ".json"
 
@@ -402,14 +413,13 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	_ = ioutil.WriteFile(staging, file, 0644)
 
 	abs, _ := filepath.Abs(staging)
-	params := make([]string, 0)
-	params = append(params, abs)
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
 	}
-	_, err := exec.Command(scriptAbs, params...).Output()
+
+	_, err = i.runCommand(scriptAbs, abs)
 
 	os.Remove(abs)
 
@@ -421,4 +431,36 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
+}
+
+func (i *ScriptProvider) runCommand(scriptAbs string, parameters ...string) ([]byte, error) {
+	// Sanitize input to prevent command injection
+	scriptAbs = strings.ReplaceAll(scriptAbs, "|", "")
+	scriptAbs = strings.ReplaceAll(scriptAbs, "&", "")
+	for idx, param := range parameters {
+		parameters[idx] = strings.ReplaceAll(param, "|", "")
+		parameters[idx] = strings.ReplaceAll(param, "&", "")
+	}
+
+	var err error
+	var out []byte
+	params := make([]string, 0)
+	if i.Config.ScriptEngine == "" || i.Config.ScriptEngine == "bash" {
+		params = append(params, parameters...)
+		out, err = exec.Command(scriptAbs, params...).Output()
+	} else {
+		params = append(params, scriptAbs)
+		params = append(params, parameters...)
+		out, err = exec.Command("powershell", params...).Output()
+	}
+	return out, err
 }

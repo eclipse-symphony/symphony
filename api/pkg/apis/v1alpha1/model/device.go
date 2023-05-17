@@ -15,6 +15,11 @@ package model
 
 import "errors"
 
+type DeviceState struct {
+	Id   string      `json:"id"`
+	Spec *DeviceSpec `json:"spec,omitempty"`
+}
+
 type DeviceSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Properties  map[string]string `json:"properties,omitempty"`

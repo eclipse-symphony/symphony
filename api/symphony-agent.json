@@ -8,6 +8,7 @@
       },
       {
         "type": "vendors.agent",
+        "loopInterval": 15,
         "route": "agent",
         "managers": [
           {

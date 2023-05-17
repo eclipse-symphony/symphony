@@ -28,11 +28,13 @@ package mqtt
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
-	"os"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/stretchr/testify/assert"
 )
@@ -273,7 +275,7 @@ func TestApply(t *testing.T) {
 		}
 	}
 
-	err = provider.Apply(context.Background(), model.DeploymentSpec{})
+	err = provider.Apply(context.Background(), model.DeploymentSpec{}, false)
 
 	assert.Nil(t, err)
 }
@@ -316,7 +318,7 @@ func TestApplyBad(t *testing.T) {
 		}
 	}
 
-	err = provider.Apply(context.Background(), model.DeploymentSpec{})
+	err = provider.Apply(context.Background(), model.DeploymentSpec{}, false)
 
 	assert.NotNil(t, err)
 }
@@ -550,6 +552,14 @@ func TestGetApply(t *testing.T) {
 	err = provider.Init(config)
 	assert.Nil(t, err)
 
-	err = provider.Apply(context.Background(), model.DeploymentSpec{})
+	err = provider.Apply(context.Background(), model.DeploymentSpec{}, false)
 	assert.Nil(t, err)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &MQTTTargetProvider{}
+	_ = provider.Init(MQTTTargetProviderConfig{})
+	// assert.Nil(t, err) okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

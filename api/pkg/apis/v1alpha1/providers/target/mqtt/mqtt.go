@@ -29,15 +29,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 )
@@ -45,11 +46,14 @@ import (
 var sLog = logger.NewLogger("coa.runtime")
 
 type MQTTTargetProviderConfig struct {
-	Name          string `json:"name"`
-	BrokerAddress string `json:"brokerAddress"`
-	ClientID      string `json:"clientID"`
-	RequestTopic  string `json:"requestTopic"`
-	ResponseTopic string `json:"responseTopic"`
+	Name               string `json:"name"`
+	BrokerAddress      string `json:"brokerAddress"`
+	ClientID           string `json:"clientID"`
+	RequestTopic       string `json:"requestTopic"`
+	ResponseTopic      string `json:"responseTopic"`
+	TimeoutSeconds     int    `json:"timeoutSeconds,omitempty"`
+	KeepAliveSeconds   int    `json:"keepAliveSeconds,omitempty"`
+	PingTimeoutSeconds int    `json:"pingTimeoutSeconds,omitempty"`
 }
 
 var lock sync.Mutex
@@ -95,6 +99,33 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 	} else {
 		return ret, v1alpha2.NewCOAError(nil, "'responseTopic' is missing in MQTT provider config", v1alpha2.BadConfig)
 	}
+	if v, ok := properties["timeoutSeconds"]; ok {
+		if num, err := strconv.Atoi(v); err == nil {
+			ret.TimeoutSeconds = num
+		} else {
+			return ret, v1alpha2.NewCOAError(nil, "'timeoutSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
+		}
+	} else {
+		ret.TimeoutSeconds = 8
+	}
+	if v, ok := properties["keepAliveSeconds"]; ok {
+		if num, err := strconv.Atoi(v); err == nil {
+			ret.KeepAliveSeconds = num
+		} else {
+			return ret, v1alpha2.NewCOAError(nil, "'keepAliveSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
+		}
+	} else {
+		ret.KeepAliveSeconds = 2
+	}
+	if v, ok := properties["pingTimeoutSeconds"]; ok {
+		if num, err := strconv.Atoi(v); err == nil {
+			ret.PingTimeoutSeconds = num
+		} else {
+			return ret, v1alpha2.NewCOAError(nil, "'pingTimeoutSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
+		}
+	} else {
+		ret.PingTimeoutSeconds = 1
+	}
 	return ret, nil
 }
 
@@ -127,8 +158,8 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	i.Config = updateConfig
 	id := uuid.New()
 	opts := gmqtt.NewClientOptions().AddBroker(i.Config.BrokerAddress).SetClientID(id.String())
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(time.Duration(i.Config.KeepAliveSeconds) * time.Second)
+	opts.SetPingTimeout(time.Duration(i.Config.PingTimeoutSeconds) * time.Second)
 	opts.CleanSession = true
 	i.MQTTClient = gmqtt.NewClient(opts)
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
@@ -192,6 +223,7 @@ func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetPro
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
+
 func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Get",
@@ -216,7 +248,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	}
 
 	observ_utils.CloseSpanWithError(span, nil)
-	timeout := time.After(8 * time.Second)
+	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.GetChan:
 		if resp.IsOK {
@@ -263,7 +295,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 
 	observ_utils.CloseSpanWithError(span, nil)
 
-	timeout := time.After(8 * time.Second)
+	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.RemoveChan:
 		if resp.IsOK {
@@ -302,7 +334,7 @@ func (i *MQTTTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Co
 
 	observ_utils.CloseSpanWithError(span, nil)
 
-	timeout := time.After(8 * time.Second)
+	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.NeedsUpdateChan:
 		if resp.IsOK {
@@ -341,7 +373,7 @@ func (i *MQTTTargetProvider) NeedsRemove(ctx context.Context, desired []model.Co
 
 	observ_utils.CloseSpanWithError(span, nil)
 
-	timeout := time.After(8 * time.Second)
+	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.NeedsRemoveChan:
 		if resp.IsOK {
@@ -354,11 +386,21 @@ func (i *MQTTTargetProvider) NeedsRemove(ctx context.Context, desired []model.Co
 	}
 }
 
-func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	data, _ := json.Marshal(deployment)
 	request := v1alpha2.COARequest{
@@ -378,7 +420,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	observ_utils.CloseSpanWithError(span, nil)
 
-	timeout := time.After(8 * time.Second)
+	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.ApplyChan:
 		if resp.IsOK {
@@ -388,6 +430,15 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		}
 	case <-timeout:
 		return v1alpha2.NewCOAError(nil, "didn't get response to Apply() call over MQTT", v1alpha2.InternalError)
+	}
+}
+func (*MQTTTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
 	}
 }
 

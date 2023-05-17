@@ -4,7 +4,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
   name: instances.solution.symphony
 spec:
   group: solution.symphony
@@ -51,88 +50,82 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              optOutReconciliation:
+                type: boolean
               parameters:
                 additionalProperties:
                   type: string
                 type: object
-              scope:
-                type: string
-              stage:
-                type: string
-              stages:
+              pipelines:
                 items:
                   properties:
-                    arguments:
-                      additionalProperties:
-                        additionalProperties:
-                          type: string
-                        type: object
-                      type: object
                     name:
                       type: string
-                    pipelines:
-                      items:
-                        properties:
-                          name:
-                            type: string
-                          parameters:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          skill:
-                            type: string
-                        required:
-                        - name
-                        - skill
-                        type: object
-                      type: array
-                    schedule:
-                      type: string
-                    solution:
-                      type: string
-                    target:
-                      properties:
-                        name:
-                          type: string
-                        selector:
-                          additionalProperties:
-                            type: string
-                          type: object
+                    parameters:
+                      additionalProperties:
+                        type: string
                       type: object
-                    topologies:
-                      items:
-                        properties:
-                          bindings:
-                            items:
-                              properties:
-                                config:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                                provider:
-                                  type: string
-                                role:
-                                  type: string
-                              required:
-                              - provider
-                              - role
-                              type: object
-                            type: array
-                          device:
-                            type: string
-                          selector:
-                            additionalProperties:
-                              type: string
-                            type: object
-                        type: object
-                      type: array
+                    skill:
+                      type: string
                   required:
                   - name
+                  - skill
+                  type: object
+                type: array
+              scope:
+                type: string
+              solution:
+                type: string
+              target:
+                properties:
+                  name:
+                    type: string
+                  selector:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
+              topologies:
+                items:
+                  properties:
+                    bindings:
+                      items:
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          provider:
+                            type: string
+                          role:
+                            type: string
+                        required:
+                        - provider
+                        - role
+                        type: object
+                      type: array
+                    device:
+                      type: string
+                    selector:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                type: array
+              versions:
+                items:
+                  properties:
+                    percentage:
+                      type: integer
+                    solution:
+                      type: string
+                  required:
+                  - percentage
                   - solution
                   type: object
                 type: array
             required:
-            - stages
+            - solution
             type: object
           status:
             description: InstanceStatus defines the observed state of Instance

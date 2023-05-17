@@ -17,14 +17,15 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/valyala/fasthttp"
 )
 
@@ -41,8 +42,8 @@ func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
-	err := e.Vendor.Init(config, factories, providers)
+func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
+	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -55,10 +56,6 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
-}
-
-func (o *SolutionVendor) HasLoop() bool {
-	return true
 }
 
 func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {

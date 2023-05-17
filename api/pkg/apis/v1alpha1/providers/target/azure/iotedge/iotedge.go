@@ -36,6 +36,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	azureutils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/cloudutils/azure"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -43,8 +45,6 @@ import (
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/google/uuid"
 )
 
@@ -179,12 +179,12 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("IoT Edge Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	sLog.Info("~~~ IoT Edge Target Provider ~~~ : Init()")
+	sLog.Info("  P(IoT Edge Target): Init()")
 
 	updateConfig, err := toIoTEdgeTargetProviderConfig(config)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : expected IoTEdgeTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P(IoT Edge Target): expected IoTEdgeTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -193,13 +193,23 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Info("~~~ IoT Edge Update Provider ~~~ : applying components")
+	sLog.Info("  P(IoT Edge Target): applying components")
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	if len(components) == 0 {
 		observ_utils.CloseSpanWithError(span, nil)
@@ -210,7 +220,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		module, e := toModule(a, deployment.Instance.Name, deployment.Instance.Metadata[ENV_NAME])
 		if e != nil {
 			observ_utils.CloseSpanWithError(span, e)
-			sLog.Errorf("~~~ IoT Edge Target Provider ~~~ : +%v", e)
+			sLog.Errorf("  P(IoT Edge Target): +%v", e)
 			return e
 		}
 		modules[a.Name] = module
@@ -219,21 +229,21 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	edgeAgent, err := i.getIoTEdgeModuleTwin(ctx, "$edgeAgent")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Errorf("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
 	edgeHub, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Errorf("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
 	err = i.deployToIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Errorf("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
@@ -246,19 +256,19 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		"method": "Get",
 	})
 
-	sLog.Info("~~~ IoT Edge Update Provider ~~~ : getting components")
+	sLog.Info("  P(IoT Edge Target): getting components")
 
 	hubTwin, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Error("  P(IoT Edge Target): +%v", err)
 		return nil, err
 	}
 
 	modules, err := i.getIoTEdgeModules(ctx)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Error("  P(IoT Edge Target): +%v", err)
 		return nil, err
 	}
 	components := make([]model.ComponentSpec, 0)
@@ -267,13 +277,13 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 			twin, err := i.getIoTEdgeModuleTwin(ctx, k)
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
-				sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+				sLog.Error("  P(IoT Edge Target): +%v", err)
 				return nil, err
 			}
 			component, err := toComponent(hubTwin, twin, deployment.Instance.Name, m)
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
-				sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+				sLog.Error("  P(IoT Edge Target): +%v", err)
 				return nil, err
 			}
 			components = append(components, component)
@@ -300,7 +310,7 @@ func isSame(a model.ComponentSpec, b model.ComponentSpec) bool {
 	if !model.CheckProperty(a.Properties, b.Properties, "container.type", false) {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, "container.image", false) {
+	if !model.CheckProperty(a.Properties, b.Properties, model.ContainerImage, false) {
 		return false
 	}
 	for k, v := range a.Properties {
@@ -346,7 +356,7 @@ func (i *IoTEdgeTargetProvider) Remove(ctx context.Context, deployment model.Dep
 	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
-	sLog.Info("~~~ IoT Edge Update Provider ~~~ : deleting components")
+	sLog.Info("  P(IoT Edge Target): deleting components")
 
 	components := deployment.GetComponentSlice()
 
@@ -367,27 +377,36 @@ func (i *IoTEdgeTargetProvider) Remove(ctx context.Context, deployment model.Dep
 	edgeAgent, err := i.getIoTEdgeModuleTwin(ctx, "$edgeAgent")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Error("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
 	edgeHub, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Error("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
 	err = i.remvoefromIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("~~~ IoT Edge Target Provider ~~~ : +%v", err)
+		sLog.Error("  P(IoT Edge Target): +%v", err)
 		return err
 	}
 
 	//TODO: Should we raise events to remove AVA graphs?
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+func (*IoTEdgeTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{model.ContainerImage, "container.version", "container.type"},
+		OptionalProperties:    []string{"container.restartPolicy", "container.createOptions", "env.*"},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }
 
 func toIoTEdgeTargetProviderConfig(config providers.IProviderConfig) (IoTEdgeTargetProviderConfig, error) {
@@ -465,7 +484,7 @@ func toComponent(hubTwin ModuleTwin, twin ModuleTwin, name string, module Module
 		component.Properties["container.createOptions"] = v
 	}
 	if v, ok := module.Settings["image"]; ok {
-		component.Properties["container.image"] = v
+		component.Properties[model.ContainerImage] = v
 	}
 	//TODO: We are extracting only keys starting with a lower-case letter here.
 	interestedKey := regexp.MustCompile(`^[a-zA-Z]+`)
@@ -545,7 +564,7 @@ func toModule(component model.ComponentSpec, name string, agentName string) (Mod
 	if err != nil {
 		return Module{}, err
 	}
-	image, err := readProperty(component.Properties, "container.image", "", true)
+	image, err := readProperty(component.Properties, model.ContainerImage, "", true)
 	if err != nil {
 		return Module{}, err
 	}

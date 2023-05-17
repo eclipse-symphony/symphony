@@ -83,48 +83,30 @@ func (c PipelineSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
-type StageSpec struct {
-	Name       string                       `json:"name"`
-	Solution   string                       `json:"solution"`
-	Target     TargetRefSpec                `json:"target,omitempty"`
-	Topologies []TopologySpec               `json:"topologies,omitempty"`
-	Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
-	Schedule   string                       `json:"schedule,omitempty"`
-	Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+type VersionSpec struct {
+	Solution   string `json:"solution"`
+	Percentage int    `json:"percentage"`
 }
 
-func (c StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC StageSpec
+func (c VersionSpec) DeepEquals(other IDeepEquals) (bool, error) {
+	var otherC VersionSpec
 	var ok bool
-	if otherC, ok = other.(StageSpec); !ok {
-		return false, errors.New("parameter is not a StageSpec type")
-	}
-	if c.Name != otherC.Name {
-		return false, nil
+	if otherC, ok = other.(VersionSpec); !ok {
+		return false, errors.New("parameter is not a VersionSpec type")
 	}
 	if c.Solution != otherC.Solution {
 		return false, nil
 	}
-	equal, err := c.Target.DeepEquals(otherC.Target)
-	if err != nil {
-		return false, err
-	}
-	if !equal {
-		return false, nil
-	}
-	if !SlicesEqual(c.Topologies, otherC.Topologies) {
-		return false, nil
-	}
-	if !SlicesEqual(c.Pipelines, otherC.Pipelines) {
-		return false, nil
-	}
-	if c.Schedule != otherC.Schedule {
-		return false, nil
-	}
-	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
+	if c.Percentage != otherC.Percentage {
 		return false, nil
 	}
 	return true, nil
+}
+
+type InstanceState struct {
+	Id     string            `json:"id"`
+	Spec   *InstanceSpec     `json:"spec,omitempty"`
+	Status map[string]string `json:"status,omitempty"`
 }
 
 // InstanceSpec defines the desired state of Instance
@@ -134,8 +116,18 @@ type InstanceSpec struct {
 	Scope       string            `json:"scope,omitempty"`
 	Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
 	Metadata    map[string]string `json:"metadata,omitempty"`
-	Stage       string            `json:"stage,omitempty"`
-	Stages      []StageSpec       `json:"stages"`
+	Solution    string            `json:"solution"`
+	// Instead of a single solution, users can specify a mixture of multiple solutions with percentage weight. This is for
+	// scenarios like canary deployment and blue-green deployment (used in conjunction with the Compagin object)
+	Versions   []VersionSpec                `json:"versions,omitempty"`
+	Target     TargetRefSpec                `json:"target,omitempty"`
+	Topologies []TopologySpec               `json:"topologies,omitempty"`
+	Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
+	Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+	// We allow optining out reconciliation to support deployment campaign, which operates on a collection of instances. As
+	// the compaign progresses, it needs to turn off reconciliation of all but one instances so that reconciliation is driven
+	// by only one instance.
+	OptOutReconciliation bool `json:"optOutReconciliation,omitempty"`
 }
 
 func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -153,11 +145,38 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if c.Scope != otherC.Scope {
 		return false, nil
 	}
-	if c.Stage != otherC.Stage {
+
+	// TODO: These are not compared in current version. Metadata is usually not considred part of the state so
+	// it's reasonable not to compare. The parameters (same arguments apply to arguments below) are dynamic so
+	// comparision is unpredictable. Should we not compare the arguments as well? Or, should we get rid of the
+	// dynamic things altoghter so everyting is explicitly declared? I feel we are mixing some templating features
+	// into the object model.
+
+	// if !StringMapsEqual(c.Parameters, otherC.Parameters, nil) {
+	// 	return false, nil
+	// }
+	// if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+	// 	return false, nil
+	// }
+	if !SlicesEqual(c.Versions, otherC.Versions) {
 		return false, nil
 	}
-	if !SlicesEqual(c.Stages, otherC.Stages) {
+	equal, err := c.Target.DeepEquals(otherC.Target)
+	if err != nil {
+		return false, err
+	}
+	if !equal {
 		return false, nil
 	}
+	if !SlicesEqual(c.Topologies, otherC.Topologies) {
+		return false, nil
+	}
+	if !SlicesEqual(c.Pipelines, otherC.Pipelines) {
+		return false, nil
+	}
+	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
+		return false, nil
+	}
+
 	return true, nil
 }

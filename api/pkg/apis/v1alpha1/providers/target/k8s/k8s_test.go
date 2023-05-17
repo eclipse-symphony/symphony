@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -146,8 +147,8 @@ func TestDeploymentToComponents(t *testing.T) {
 	assert.Equal(t, 2, len(components))
 	assert.Equal(t, "evs", components[0].Name)
 	assert.Equal(t, "rocket", components[1].Name)
-	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", components[0].Properties["container.image"])
-	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", components[1].Properties["container.image"])
+	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", components[0].Properties[model.ContainerImage])
+	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", components[1].Properties[model.ContainerImage])
 	assert.Equal(t, "Always", components[0].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "Always", components[1].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "[\"endpointLocal=http://localhost:7788/api/ImageItems\",\"line=https://aka.ms/linesample\"]", components[0].Properties["container.args"])
@@ -270,4 +271,12 @@ func TestNullProjector(t *testing.T) {
 	projector, err := createProjector("")
 	assert.Nil(t, err)
 	assert.Nil(t, projector)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &K8sTargetProvider{}
+	_ = provider.Init(K8sTargetProviderConfig{})
+	// assert.Nil(t, err) okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

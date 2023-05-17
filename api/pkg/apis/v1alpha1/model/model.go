@@ -19,3 +19,9 @@ type ModelSpec struct {
 	Constraints []ConstraintSpec  `json:"constraints,omitempty"`
 	Bindings    []BindingSpec     `json:"bindings,omitempty"`
 }
+
+const (
+	AppPackage     = "app.package"
+	AppImage       = "app.image"
+	ContainerImage = "container.image"
+)

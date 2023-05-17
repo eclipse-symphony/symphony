@@ -29,22 +29,16 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 type InstancesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-}
-
-type InstanceState struct {
-	Id     string              `json:"id"`
-	Spec   *model.InstanceSpec `json:"spec,omitempty"`
-	Status map[string]string   `json:"status,omitempty"`
 }
 
 func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -97,7 +91,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return nil
 }
 
-func (t *InstancesManager) ListSpec(ctx context.Context) ([]InstanceState, error) {
+func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState, error) {
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -109,7 +103,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]InstanceState, error
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]InstanceState, 0)
+	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		rt, err := getInstanceState(t.ID, t.Body)
 		if err != nil {
@@ -120,7 +114,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]InstanceState, error
 	return ret, nil
 }
 
-func getInstanceState(id string, body interface{}) (InstanceState, error) {
+func getInstanceState(id string, body interface{}) (model.InstanceState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
@@ -129,23 +123,23 @@ func getInstanceState(id string, body interface{}) (InstanceState, error) {
 	var rSpec model.InstanceSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
-		return InstanceState{}, err
+		return model.InstanceState{}, err
 	}
 
 	j, _ = json.Marshal(status)
 	var rStatus map[string]interface{}
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		return InstanceState{}, err
+		return model.InstanceState{}, err
 	}
 	j, _ = json.Marshal(rStatus["properties"])
 	var rProperties map[string]string
 	err = json.Unmarshal(j, &rProperties)
 	if err != nil {
-		return InstanceState{}, err
+		return model.InstanceState{}, err
 	}
 
-	state := InstanceState{
+	state := model.InstanceState{
 		Id:     id,
 		Spec:   &rSpec,
 		Status: rProperties,
@@ -153,7 +147,7 @@ func getInstanceState(id string, body interface{}) (InstanceState, error) {
 	return state, nil
 }
 
-func (t *InstancesManager) GetSpec(ctx context.Context, id string) (InstanceState, error) {
+func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.InstanceState, error) {
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
@@ -164,12 +158,12 @@ func (t *InstancesManager) GetSpec(ctx context.Context, id string) (InstanceStat
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return InstanceState{}, err
+		return model.InstanceState{}, err
 	}
 
 	ret, err := getInstanceState(id, target.Body)
 	if err != nil {
-		return InstanceState{}, err
+		return model.InstanceState{}, err
 	}
 	return ret, nil
 }

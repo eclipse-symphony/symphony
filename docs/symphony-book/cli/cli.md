@@ -1,7 +1,8 @@
 # Symphony CLI (maestro)
 
-## Download and install
+_(last edit: 4/12/2023)_
 
+## Download and install
 
 ### Linux/Mac
 ```bash
@@ -19,7 +20,6 @@ Install all prerequisites and Symphony, including:
 * Kubectl
 * Helm 3
 * Symphony API
-* Symphony Portal (with ```--with-portal``` switch)
 ```bash
 ./maestro up
 ```

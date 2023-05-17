@@ -26,17 +26,14 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
-	"io/ioutil"
-	"net/http"
 	"regexp"
 	"strings"
 
 	symphony "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils" //TODO: Eventually, most logic here should be moved into this
 )
 
 const (
@@ -45,18 +42,18 @@ const (
 
 func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []fabricv1.Target {
 	ret := make(map[string]fabricv1.Target)
-	if instance.Spec.Stages[0].Target.Name != "" {
+	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
 
-			if matchString(instance.Spec.Stages[0].Target.Name, t.ObjectMeta.Name) {
+			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
-	if len(instance.Spec.Stages[0].Target.Selector) > 0 {
+	if len(instance.Spec.Target.Selector) > 0 {
 		for _, t := range targets.Items {
 			fullMatch := true
-			for k, v := range instance.Spec.Stages[0].Target.Selector {
+			for k, v := range instance.Spec.Target.Selector {
 				if tv, ok := t.Spec.Properties[k]; !ok || !matchString(v, tv) {
 					fullMatch = false
 				}
@@ -74,10 +71,7 @@ func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []f
 }
 
 func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.DeploymentSpec, error) {
-	ret := symphony.DeploymentSpec{
-		Stages: make([]symphony.DeploymentStage, 1),
-	}
-	ret.Stages[0] = symphony.DeploymentStage{}
+	ret := symphony.DeploymentSpec{}
 	// create solution
 	solution := symphony.SolutionSpec{
 		DisplayName: "target-runtime",
@@ -113,36 +107,29 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 		Name:        "target-runtime",
 		DisplayName: "target-runtime-" + target.ObjectMeta.Name,
 		Scope:       "default",
-		Stages: []symphony.StageSpec{
-			{
-				Solution: "target-runtime",
-				Target: symphony.TargetRefSpec{
-					Name: target.ObjectMeta.Name,
-				},
-			},
+		Solution:    "target-runtime",
+		Target: symphony.TargetRefSpec{
+			Name: target.ObjectMeta.Name,
 		},
 	}
 
-	ret.Stages[0].Solution = solution
+	ret.Solution = solution
 	ret.Instance = instance
-	ret.Stages[0].Targets = targets
-	ret.Stages[0].SolutionName = "target-runtime"
-	assignments, err := assignComponentsToTargets(ret.Stages[0].Solution.Components, ret.Stages[0].Targets)
+	ret.Targets = targets
+	ret.SolutionName = "target-runtime"
+	assignments, err := api_utils.AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
-	ret.Stages[0].Assignments = make(map[string]string)
+	ret.Assignments = make(map[string]string)
 	for k, v := range assignments {
-		ret.Stages[0].Assignments[k] = v
+		ret.Assignments[k] = v
 	}
 	return ret, nil
 }
 
 func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.Solution, targets []fabricv1.Target, devices []fabricv1.Device) (symphony.DeploymentSpec, error) {
-	ret := symphony.DeploymentSpec{
-		Stages: make([]symphony.DeploymentStage, 1),
-	}
-	ret.Stages[0] = symphony.DeploymentStage{}
+	ret := symphony.DeploymentSpec{}
 	// convert instance
 	var sInstance symphony.InstanceSpec
 	data, _ := json.Marshal(instance.Spec)
@@ -181,71 +168,20 @@ func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.
 	}
 
 	//TODO: handle devices
-	ret.Stages[0].Solution = sSolution
-	ret.Stages[0].Targets = sTargets
+	ret.Solution = sSolution
+	ret.Targets = sTargets
 	ret.Instance = sInstance
-	ret.Stages[0].SolutionName = solution.ObjectMeta.Name
+	ret.SolutionName = solution.ObjectMeta.Name
 
-	assignments, err := assignComponentsToTargets(ret.Stages[0].Solution.Components, ret.Stages[0].Targets)
+	assignments, err := api_utils.AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
-	ret.Stages[0].Assignments = make(map[string]string)
+	ret.Assignments = make(map[string]string)
 	for k, v := range assignments {
-		ret.Stages[0].Assignments[k] = v
+		ret.Assignments[k] = v
 	}
 	return ret, nil
-}
-
-func assignComponentsToTargets(components []symphony.ComponentSpec, targets map[string]symphony.TargetSpec) (map[string]string, error) {
-	//TODO: evaluate constraints
-	ret := make(map[string]string)
-	for key, target := range targets {
-		ret[key] = ""
-		for _, component := range components {
-			match := true
-			for _, s := range component.Constraints {
-				if !s.Match(target.Properties) {
-					match = false
-				}
-			}
-			if match {
-				ret[key] += "{" + component.Name + "}"
-			}
-		}
-	}
-	return ret, nil
-}
-func Deploy(deployment symphony.DeploymentSpec) (symphony.SummarySpec, error) {
-	summary := symphony.SummarySpec{}
-	payload, _ := json.Marshal(deployment)
-	ret, err := callRestAPI("solution/instances", "POST", payload)
-	if err != nil {
-		return summary, err
-	}
-	if ret != nil {
-		err = json.Unmarshal(ret, &summary)
-		if err != nil {
-			return summary, err
-		}
-	}
-	return summary, nil
-}
-
-func Remove(deployment symphony.DeploymentSpec) (symphony.SummarySpec, error) {
-	summary := symphony.SummarySpec{}
-	payload, _ := json.Marshal(deployment)
-	ret, err := callRestAPI("solution/instances", "DELETE", payload)
-	if err != nil {
-		return summary, err
-	}
-	if ret != nil {
-		err = json.Unmarshal(ret, &summary)
-		if err != nil {
-			return summary, err
-		}
-	}
-	return summary, nil
 }
 
 // func Get(scope string, name string, targets map[string]symphony.TargetSpec) ([]symphony.ComponentSpec, error) {
@@ -278,30 +214,4 @@ func matchString(src string, target string) bool {
 	} else {
 		return src == target
 	}
-}
-
-func callRestAPI(route string, method string, payload []byte) ([]byte, error) {
-	client := &http.Client{}
-	rUrl := SymphonyAPIAddressBase + route
-	req, err := http.NewRequest(method, rUrl, bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to invoke Symphony API: [%d] - %v", resp.StatusCode, string(bodyBytes))
-	}
-	return bodyBytes, nil
 }

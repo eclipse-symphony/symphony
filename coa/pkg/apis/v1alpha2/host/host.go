@@ -37,6 +37,7 @@ import (
 	mf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	pf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providerfactory"
 	pv "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -47,9 +48,13 @@ type HostConfig struct {
 	API      APIConfig       `json:"api"`
 	Bindings []BindingConfig `json:"bindings"`
 }
-
+type PubSubConfig struct {
+	Shared   bool              `json:"shared"`
+	Provider mf.ProviderConfig `json:"provider"`
+}
 type APIConfig struct {
 	Vendors []vendors.VendorConfig `json:"vendors"`
+	PubSub  PubSubConfig           `json:"pubsub,omitempty"`
 }
 
 type BindingConfig struct {
@@ -57,16 +62,21 @@ type BindingConfig struct {
 	Config interface{} `json:"config"`
 }
 
+type VendorSpec struct {
+	Vendor       vendors.IVendor
+	LoopInterval int
+}
 type APIHost struct {
-	Vendors  []vendors.IVendor
-	Bindings []bindings.IBinding
+	Vendors              []VendorSpec
+	Bindings             []bindings.IBinding
+	SharedPubSubProvider pv.IProvider
 }
 
 func (h *APIHost) Launch(config HostConfig,
 	vendorFactories []vendors.IVendorFactory,
 	managerFactories []mf.IManagerFactroy,
 	providerFactories []pf.IProviderFactory, wait bool) error {
-	h.Vendors = make([]vendors.IVendor, 0)
+	h.Vendors = make([]VendorSpec, 0)
 	h.Bindings = make([]bindings.IBinding, 0)
 	log.Info("--- launching COA host ---")
 	for _, v := range config.API.Vendors {
@@ -77,6 +87,29 @@ func (h *APIHost) Launch(config HostConfig,
 				return err
 			}
 			if vendor != nil {
+				var pubsubProvider pv.IProvider
+				// make pub/sub provider
+				if config.API.PubSub.Provider.Type != "" {
+					if config.API.PubSub.Shared && h.SharedPubSubProvider != nil {
+						pubsubProvider = h.SharedPubSubProvider
+					} else {
+						for _, providerFactory := range providerFactories {
+							mProvider, err := providerFactory.CreateProvider(
+								config.API.PubSub.Provider.Type,
+								config.API.PubSub.Provider.Config)
+							if err != nil {
+								return err
+							}
+							pubsubProvider = mProvider
+							if config.API.PubSub.Shared {
+								h.SharedPubSubProvider = pubsubProvider
+							}
+							break
+						}
+					}
+				}
+
+				// make other providers
 				providers := make(map[string]map[string]pv.IProvider, 0)
 				for _, providerFactory := range providerFactories {
 					mProviders, err := providerFactory.CreateProviders(v)
@@ -97,11 +130,15 @@ func (h *APIHost) Launch(config HostConfig,
 						}
 					}
 				}
-				err = vendor.Init(v, managerFactories, providers)
+				if pubsubProvider != nil {
+					err = vendor.Init(v, managerFactories, providers, pubsubProvider.(pubsub.IPubSubProvider))
+				} else {
+					err = vendor.Init(v, managerFactories, providers, nil)
+				}
 				if err != nil {
 					return err
 				}
-				h.Vendors = append(h.Vendors, vendor)
+				h.Vendors = append(h.Vendors, VendorSpec{Vendor: vendor, LoopInterval: v.LoopInterval})
 				created = true
 				break
 			}
@@ -113,19 +150,19 @@ func (h *APIHost) Launch(config HostConfig,
 	if len(h.Vendors) > 0 {
 		var wg sync.WaitGroup
 		for _, v := range h.Vendors {
-			if v.HasLoop() {
+			if v.LoopInterval > 0 {
 				if wait {
 					wg.Add(1)
 				}
-				go func() {
-					v.RunLoop(15 * time.Second)
-				}()
+				go func(v VendorSpec) {
+					v.Vendor.RunLoop(time.Duration(v.LoopInterval) * time.Second)
+				}(v)
 			}
 		}
 		if len(config.Bindings) > 0 {
 			endpoints := make([]v1alpha2.Endpoint, 0)
 			for _, v := range h.Vendors {
-				endpoints = append(endpoints, v.GetEndpoints()...)
+				endpoints = append(endpoints, v.Vendor.GetEndpoints()...)
 			}
 
 			for _, b := range config.Bindings {

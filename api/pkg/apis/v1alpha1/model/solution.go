@@ -15,6 +15,11 @@ package model
 
 import "errors"
 
+type SolutionState struct {
+	Id   string        `json:"id"`
+	Spec *SolutionSpec `json:"spec,omitempty"`
+}
+
 type SolutionSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Scope       string            `json:"scope,omitempty"`

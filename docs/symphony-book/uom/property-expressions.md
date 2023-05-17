@@ -38,7 +38,7 @@ The following table summarizes how operators work:
 |--------|--------|--------|
 | ```"+2"```| ```"2"```| Unary plus|
 | ```"-3"```| ```"-2"```| Unary minus|
-| ```"-abc"```| ```"abc"```| Dash ABC |
+| ```"-abc"```| ```"-abc"```| Dash ABC |
 | ```"abc-"```| ```"abc-"```| ABC dash |
 | ```"+a"``` | ```"a"```| (empty) plus a |
 | ```"a+"``` | ```"a"```| a plus (empty) |
@@ -62,7 +62,11 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 | Function | Behavior|
 |--------|--------|
 |```$config(<config object>, <config key>)``` | Reads a configuration from a config provider |
+|```$instance()```| Gets instance name of the current deployment |
+|```$param(<parameter name>)```| Reads a component parameter<sup>1</sup>|
 |```$secret(<secret object>, <secret key>)```| Reads a secret from a secret store provider |
+
+<sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overriden by stage Arguments in [Instance](./instance.md).
 
 ## Using Operators Alone
 
@@ -73,3 +77,13 @@ We try to parse properties as closely as strings as possible with limited calcul
 * When used alone, a minus(```-```) is treated as a unary operator, which means a single ```-``` is evaluated to empty string, as “minus nothing” is “nothing”. However, when you use two minus signs, the second minus is treated as “dash”, and a negative “dash” is still “dash”. Hence ```--``` evalutes to ```-```. 
 * When used alone, a forward-slash (```/```) are returned as it is, such as ```/``` and ```///``` are returned as they are.
 
+## Skipping Parsing
+The parser can't parse arbitrary strings as an expression. For example, complex file paths and URLs (with parameters and encodings) are probably parsed incorrectly. To skip the expression parsing, you need to put the string into a pair of single quotes (```'```), for example:
+```json
+"'c:\\demo\\HomeHub.Package_1.0.9.0_Debug_Test\\HomeHub.Package_1.0.9.0_x64_Debug.appxbundle'"
+```
+and 
+```json
+"'https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<secret>'"
+```
+In such cases, the string is returned as it is (with surrounding single quotes removed).

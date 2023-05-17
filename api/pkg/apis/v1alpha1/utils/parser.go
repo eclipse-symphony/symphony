@@ -37,6 +37,7 @@ const (
 	STRING
 	RUNON
 	AMPHERSAND
+	SLASH
 )
 
 var opNames = map[Token]string{
@@ -44,6 +45,7 @@ var opNames = map[Token]string{
 	MINUS:      "-",
 	MULT:       "*",
 	DIV:        "/",
+	SLASH:      "\\",
 	COMMA:      ",",
 	PERIOD:     ".",
 	COLON:      ":",
@@ -270,6 +272,24 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 		} else {
 			return fmt.Sprintf("%v/%v", lv, rv), nil
 		}
+	case SLASH:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v\\%v", lv, rv), nil
 	case PERIOD:
 		var lv interface{} = ""
 		var le error
@@ -389,21 +409,14 @@ type FunctionNode struct {
 }
 
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
-	currentStage := deployment.Instance.Stage
-	stageIndex := 0
-	for i, stage := range deployment.Instance.Stages {
-		if stage.Name == currentStage {
-			stageIndex = i
-			break
-		}
-	}
-	arguments := deployment.Instance.Stages[stageIndex].Arguments
+
+	arguments := deployment.Instance.Arguments
 	if ca, ok := arguments[component]; ok {
 		if a, ok := ca[key]; ok {
 			return a, nil
 		}
 	}
-	components := deployment.Stages[stageIndex].Solution.Components
+	components := deployment.Solution.Components
 	for _, c := range components {
 		if c.Name == component {
 			if v, ok := c.Parameters[key]; ok {
@@ -420,9 +433,6 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		if len(n.Args) == 1 {
 			if context.Component == "" {
 				return nil, errors.New("a component name is needed to evaluate $param()")
-			}
-			if len(context.DeploymentSpec.Stages) == 0 {
-				return nil, errors.New("a deployment spec is needed to evaluate $param()")
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -469,9 +479,6 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
-			if len(context.DeploymentSpec.Stages) == 0 {
-				return nil, errors.New("a deployment spec is needed to evaluate $instance()")
-			}
 			return context.DeploymentSpec.Instance.Name, nil
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
@@ -549,6 +556,8 @@ func (p *Parser) scan() Token {
 		return MULT
 	case '/':
 		return DIV
+	case '\\':
+		return SLASH
 	case ',':
 		return COMMA
 	case '.':
@@ -623,6 +632,9 @@ func (p *Parser) factor() Node {
 		case DIV:
 			p.next()
 			node = &BinaryNode{DIV, node, p.primary()}
+		case SLASH:
+			p.next()
+			node = &BinaryNode{SLASH, node, p.primary()}
 		case PERIOD:
 			p.next()
 			node = &BinaryNode{PERIOD, node, p.primary()}
@@ -688,19 +700,17 @@ func (p *Parser) function() Node {
 
 func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error) {
 	ret := context.DeploymentSpec
-	for is, s := range ret.Stages {
-		for ic, c := range s.Solution.Components {
-			for k, v := range c.Properties {
-				context.Component = c.Name
-				parser := NewParser(v)
-				val, err := parser.Eval(context)
-				if err != nil {
-					return ret, err
-				}
-				ret.Stages[is].Solution.Components[ic].Properties[k] = val
+	for ic, c := range context.DeploymentSpec.Solution.Components {
+		for k, v := range c.Properties {
+			context.Component = c.Name
+			parser := NewParser(v)
+			val, err := parser.Eval(context)
+			if err != nil {
+				return ret, err
 			}
-
+			ret.Solution.Components[ic].Properties[k] = val
 		}
+
 	}
 	return ret, nil
 }

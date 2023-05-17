@@ -321,11 +321,19 @@ func (i *StagingTargetProvider) Remove(ctx context.Context, deployment model.Dep
 	return nil
 }
 
-func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Staging Target Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	if err != nil {
+		return err
+	}
+	if isDryRun {
+		return nil
+	}
 
 	scope := deployment.Instance.Scope
 	if scope == "" {
@@ -355,7 +363,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if target.Spec.Metadata == nil {
 		target.Spec.Metadata = make(map[string]string)
 	}
-	target.Spec.Metadata["__solution"] = deployment.Stages[0].SolutionName
+	target.Spec.Metadata["__solution"] = deployment.SolutionName
 
 	components := deployment.GetComponentSlice()
 
@@ -401,4 +409,13 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+func (*StagingTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

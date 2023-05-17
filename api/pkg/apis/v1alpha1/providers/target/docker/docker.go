@@ -112,8 +112,12 @@ func (i *DockerTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec
 	for _, component := range slice {
 		info, err := cli.ContainerInspect(ctx, component.Name)
 		if err == nil {
+			name := info.Name
+			if len(name) > 0 && name[0] == '/' {
+				name = name[1:]
+			}
 			component := model.ComponentSpec{
-				Name:       info.Name,
+				Name:       name,
 				Properties: make(map[string]string),
 			}
 			// container.args
@@ -122,7 +126,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec
 				component.Properties["container.args"] = string(argsData)
 			}
 			// container.image
-			component.Properties["container.image"] = info.Config.Image
+			component.Properties[model.ContainerImage] = info.Config.Image
 			if info.HostConfig != nil {
 				resources, _ := json.Marshal(info.HostConfig.Resources)
 				component.Properties["container.resources"] = string(resources)
@@ -150,7 +154,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec
 	return components, nil
 }
 
-func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -158,15 +162,25 @@ func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Stages[0].Solution,
-		TargetId:   deployment.Stages[0].ActiveTarget,
+		SolutionId: deployment.Instance.Solution,
+		TargetId:   deployment.ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()
 
+	err := d.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
+
 	for _, component := range components {
 		if component.Type == "container" {
-			image := model.ReadProperty(component.Properties, "container.image", injections)
+			image := model.ReadProperty(component.Properties, model.ContainerImage, injections)
 			resources := model.ReadProperty(component.Properties, "container.resources", injections)
 			if image == "" {
 				err := errors.New("component doesn't have container.image property")
@@ -257,12 +271,13 @@ func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				}
 
 			}
+
 		}
 	}
 	return nil
 }
 
-func (d *DockerTargetProvider) Remove(ctx context.Context, dep model.DeploymentSpec) error {
+func (d *DockerTargetProvider) Remove(ctx context.Context, dep model.DeploymentSpec, currentRef []model.ComponentSpec) error {
 	_, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
@@ -277,20 +292,20 @@ func (d *DockerTargetProvider) Remove(ctx context.Context, dep model.DeploymentS
 
 	components := dep.GetComponentSlice()
 	for _, component := range components {
-		if component.Type == "container" {
-			err = cli.ContainerStop(context.Background(), component.Name, nil)
-			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
-				sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
-				return err
-			}
-			err = cli.ContainerRemove(context.Background(), component.Name, types.ContainerRemoveOptions{})
-			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
-				sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
-				return err
-			}
+		//if component.Type == "container" {
+		err = cli.ContainerStop(context.Background(), component.Name, nil)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
+			return err
 		}
+		err = cli.ContainerRemove(context.Background(), component.Name, types.ContainerRemoveOptions{})
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
+			return err
+		}
+		//}
 	}
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
@@ -303,7 +318,7 @@ func (d *DockerTargetProvider) NeedsRemove(ctx context.Context, desired []model.
 	sLog.Infof("  P (Docker Target Provider): NeedsRemove: %d - %d", len(desired), len(current))
 	for _, dc := range desired {
 		for _, cc := range current {
-			if cc.Name == dc.Name && cc.Properties["container.image"] == dc.Properties["container.image"] {
+			if cc.Name == dc.Name && cc.Properties[model.ContainerImage] == dc.Properties[model.ContainerImage] {
 				observ_utils.CloseSpanWithError(span, nil)
 				sLog.Info("  P (Docker Target Provider): NeedsRemove: returning true")
 				return true
@@ -320,28 +335,31 @@ func (d *DockerTargetProvider) NeedsUpdate(ctx context.Context, desired []model.
 		"method": "NeedsUpdate",
 	})
 	sLog.Infof(" P (Docker Target): NeedsUpdate: %d - %d", len(desired), len(current))
+
 	for _, dc := range desired {
-		found := false
+		needsUpdate := true
 		for _, cc := range current {
 			if cc.Name == dc.Name {
 				// compare container image
-				if cc.Properties["container.image"] != dc.Properties["container.image"] {
-					found = true
+				if cc.Properties[model.ContainerImage] != dc.Properties[model.ContainerImage] {
+					needsUpdate = true
 					break
 				}
 				// compare container port
-				if cc.Properties["container.ports"] != "" && cc.Properties["container.ports"] != dc.Properties["container.ports"] {
-					found = true
+				if cc.Properties["container.ports"] != "" && dc.Properties["container.ports"] != "" && cc.Properties["container.ports"] != dc.Properties["container.ports"] {
+					needsUpdate = true
 					break
 				}
 				//compare container resources
-				if cc.Properties["container.resources"] != "" && cc.Properties["container.resources"] != dc.Properties["container.resources"] {
-					found = true
+				if cc.Properties["container.resources"] != "" && dc.Properties["container.resources"] != "" && cc.Properties["container.resources"] != dc.Properties["container.resources"] {
+					needsUpdate = true
 					break
 				}
+				needsUpdate = false
+				break
 			}
 		}
-		if found {
+		if needsUpdate {
 			// container needs an update
 			sLog.Info(" P (Docker Target): NeedsUpdate: returning true")
 			observ_utils.CloseSpanWithError(span, nil)
@@ -351,4 +369,13 @@ func (d *DockerTargetProvider) NeedsUpdate(ctx context.Context, desired []model.
 	observ_utils.CloseSpanWithError(span, nil)
 	sLog.Info(" P (Docker Target): NeedsUpdate: returning false")
 	return false
+}
+func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{model.ContainerImage},
+		OptionalProperties:    []string{"container.resources"},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

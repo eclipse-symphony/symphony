@@ -31,6 +31,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	azureutils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/cloudutils/azure"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -38,7 +39,6 @@ import (
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/google/uuid"
 )
 
@@ -231,13 +231,23 @@ func (i *ADUTargetProvider) NeedsRemove(ctx context.Context, desired []model.Com
 	return model.SlicesAny(desired, current)
 }
 
-func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Info("~~~ ADU Update Provider ~~~ : applying components")
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	for _, c := range components {
 		deployment, err := getDeploymentFromComponent(c)
@@ -325,4 +335,13 @@ func (i *ADUTargetProvider) applyDeployment(deployment azureutils.ADUDeployment)
 		}
 	}
 	return nil
+}
+func (*ADUTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

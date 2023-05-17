@@ -30,16 +30,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -59,8 +60,8 @@ func (o *TargetsVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-func (e *TargetsVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
-	err := e.Vendor.Init(config, factories, providers)
+func (e *TargetsVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
+	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -73,10 +74,6 @@ func (e *TargetsVendor) Init(config vendors.VendorConfig, factories []managers.I
 		return v1alpha2.NewCOAError(nil, "targets manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
-}
-
-func (o *TargetsVendor) HasLoop() bool {
-	return false
 }
 
 func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -226,18 +223,45 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				Body:  []byte(err.Error()),
 			})
 		}
+		if c.Config.Properties["useJobManager"] == "true" {
+			c.Context.Publish("job", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": "target",
+				},
+				Body: v1alpha2.JobData{
+					Id:     id,
+					Action: "UPDATE",
+				},
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onRegistry-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.TargetsManager.DeleteSpec(ctx, id)
-		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
+		direct := request.Parameters["direct"]
+		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
+			c.Context.Publish("job", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": "target",
+				},
+				Body: v1alpha2.JobData{
+					Id:     id,
+					Action: "DELETE",
+				},
 			})
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.OK,
+			})
+		} else {
+			err := c.TargetsManager.DeleteSpec(ctx, id)
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
@@ -314,7 +338,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		}
 	}
 
-	state, err := c.TargetsManager.ReportState(request.Context, targets.TargetState{
+	state, err := c.TargetsManager.ReportState(request.Context, model.TargetState{
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -376,7 +400,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Targets Vendor", request.Context, nil)
 
-	_, err := c.TargetsManager.ReportState(request.Context, targets.TargetState{
+	_, err := c.TargetsManager.ReportState(request.Context, model.TargetState{
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",

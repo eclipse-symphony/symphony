@@ -69,12 +69,12 @@ func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Http Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	sLog.Info("~~~ Http Target Provider ~~~ : Init()")
+	sLog.Info("  P(HTTP Target): Init()")
 
 	updateConfig, err := toHttpTargetProviderConfig(config)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Http Target Provider ~~~ : expected HttpTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P(HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -95,7 +95,7 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("~~~ Http Target Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P(HTTP Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 
@@ -106,7 +106,7 @@ func (i *HttpTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
-	sLog.Infof("~~~ Http Target Provider ~~~ : deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P(HTTP Target): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	// This provider doesn't remove anything
 
@@ -122,19 +122,29 @@ func (i *HttpTargetProvider) NeedsRemove(ctx context.Context, desired []model.Co
 	return model.SlicesAny(desired, current)
 }
 
-func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("~~~ Http Target Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P(HTTP Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Stages[0].Solution,
-		TargetId:   deployment.Stages[0].ActiveTarget,
+		SolutionId: deployment.Instance.Solution,
+		TargetId:   deployment.ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	for _, component := range components {
 
@@ -145,18 +155,17 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		if url == "" {
 			err := errors.New("component doesn't have a http.url property")
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Error("~~~ HTML Target Provider ~~~ : +%v", err)
+			sLog.Errorf("  P(HTTP Target): %v", err)
 			return err
 		}
 		if method == "" {
 			method = "POST"
 		}
-
 		jsonData := []byte(body)
 		request, err := http.NewRequest(method, url, bytes.NewBuffer(jsonData))
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Error("~~~ HTML Target Provider ~~~ : +%v", err)
+			sLog.Errorf("  P(HTTP Target): %v", err)
 			return err
 		}
 		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -165,17 +174,26 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		resp, err := client.Do(request)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Error("~~~ HTML Target Provider ~~~ : +%v", err)
+			sLog.Errorf("  P(HTTP Target): %v", err)
 			return err
 		}
 		if resp.StatusCode != http.StatusOK {
 			err = errors.New("HTTP request didn't respond 200 OK")
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Error("~~~ HTML Target Provider ~~~ : +%v", err)
+			sLog.Errorf("  P(HTTP Target): %v", err)
 			return err
 		}
 	}
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{"http.url"},
+		OptionalProperties:    []string{"http.method", "http.body"},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

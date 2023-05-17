@@ -28,14 +28,14 @@ package target
 import (
 	"context"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type ITargetProvider interface {
 	Init(config providers.IProviderConfig) error
 	// apply components to a target
-	Apply(ctx context.Context, deployment model.DeploymentSpec) error
+	Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error
 	// remove components from a target
 	Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error
 	// get current component states from a target. The desired state is passed in as a reference
@@ -46,4 +46,6 @@ type ITargetProvider interface {
 	NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
 	// Provider decides if components should be removed
 	NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
+	// get validation rules
+	GetValidationRule(ctx context.Context) model.ValidationRule
 }

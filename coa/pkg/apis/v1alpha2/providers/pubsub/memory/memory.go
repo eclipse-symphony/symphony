@@ -28,12 +28,14 @@ import (
 	"encoding/json"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type InMemoryPubSubProvider struct {
 	Config      InMemoryPubSubConfig               `json:"config"`
 	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
+	Context     *contexts.ManagerContext
 }
 
 type InMemoryPubSubConfig struct {
@@ -50,6 +52,19 @@ func InMemoryPubSubConfigFromMap(properties map[string]string) (InMemoryPubSubCo
 
 func (v *InMemoryPubSubProvider) ID() string {
 	return v.Config.Name
+}
+
+func (s *InMemoryPubSubProvider) SetContext(ctx *contexts.ManagerContext) error {
+	s.Context = ctx
+	return nil
+}
+
+func (i *InMemoryPubSubProvider) InitWithMap(properties map[string]string) error {
+	config, err := InMemoryPubSubConfigFromMap(properties)
+	if err != nil {
+		return err
+	}
+	return i.Init(config)
 }
 
 func (i *InMemoryPubSubProvider) Init(config providers.IProviderConfig) error {

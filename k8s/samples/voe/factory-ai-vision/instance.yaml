@@ -3,16 +3,14 @@ kind: Instance
 metadata:
   name: factory-floor-1
 spec:
-  stages:
-  - name: default
-    solution: factory-ai-vision
-    target:
-      name: iot-edge-target
-    topologies:
-    - role: video
-      selector:
-        tag: "factory-floor-1"
-      parameters:
-        foo: bar
+  solution: factory-ai-vision
+  target:
+    name: iot-edge-target
+  topologies:
+  - role: video
+    selector:
+      tag: "factory-floor-1"
+    parameters:
+      foo: bar
 
 

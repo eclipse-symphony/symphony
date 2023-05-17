@@ -51,6 +51,7 @@ const (
 	APIRedirect        State = 3030
 	FileAccessError    State = 4000
 	SerializationError State = 5000
+	DeleteRequested    State = 6000
 	Untouched          State = 9998
 	NotImplemented     State = 9999
 )

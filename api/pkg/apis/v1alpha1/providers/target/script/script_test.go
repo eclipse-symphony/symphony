@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,14 +51,10 @@ func TestGet(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "com1",
-						},
-					},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "com1",
 				},
 			},
 		},
@@ -164,7 +161,7 @@ func TestApplyScript(t *testing.T) {
 		ApplyScript: "mock-apply.sh",
 	})
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{})
+	err = provider.Apply(context.Background(), model.DeploymentSpec{}, false)
 	assert.Nil(t, err)
 }
 
@@ -181,4 +178,12 @@ func TestGetScriptFromUrl(t *testing.T) {
 		ScriptFolder: "https://demopolicies.blob.core.windows.net/gatekeeper",
 	})
 	assert.Nil(t, err)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &ScriptProvider{}
+	err := provider.Init(ScriptProviderConfig{})
+	assert.Nil(t, err)
+	conformance.ConformanceSuite(t, provider)
 }

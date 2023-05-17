@@ -241,16 +241,16 @@ func buildSolution(gitOpsEdgeTemplate models.GitOpsEdgeTemplate, exl armextended
 }
 
 func buildInstance(gitops *models.EdgeGitOpsResource, gitOpsEdgeTemplates map[string]models.GitOpsEdgeTemplate, gitOpsEdgeParameters map[string]models.GitOpsEdgeParameters, exl armextendedlocation.CustomLocation) map[string]interface{} {
-	instance := model.InstanceSpec{
-		Stages: make([]model.StageSpec, len(gitops.Properties.DeploymentScheme.Stages)),
-		Scope:  gitops.Properties.DeploymentScheme.Scope,
+	var stage models.GitOpsStage
+	if len(gitops.Properties.DeploymentScheme.Stages) != 0 {
+		stage = gitops.Properties.DeploymentScheme.Stages[0]
 	}
-	for i, stage := range gitops.Properties.DeploymentScheme.Stages {
-		instance.Stages[i] = model.StageSpec{
-			Name:     stage.Name,
-			Solution: gitOpsEdgeTemplates[stage.Name].Name,
-			Target:   stage.TargetRef,
-		}
+
+	instance := model.InstanceSpec{
+		Scope:    gitops.Properties.DeploymentScheme.Scope,
+		Name:     stage.Name,
+		Solution: gitOpsEdgeTemplates[stage.Name].Name,
+		Target:   stage.TargetRef,
 	}
 
 	dependencies := make([]string, 0)

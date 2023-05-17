@@ -302,6 +302,7 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, 
 	}
 	return nil
 }
+
 func (i *K8sTargetProvider) Remove(ctx context.Context, dep model.DeploymentSpec, currentRef []model.ComponentSpec) error {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "Remove",
@@ -367,7 +368,7 @@ func (i *K8sTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Com
 	for _, d := range desired {
 		found := false
 		for _, c := range current {
-			if c.Name == d.Name && c.Properties["container.image"] == d.Properties["container.image"] {
+			if c.Name == d.Name && c.Properties[model.ContainerImage] == d.Properties[model.ContainerImage] {
 				if model.EnvMapsEqual(c.Properties, d.Properties) {
 					found = true
 					break
@@ -392,7 +393,7 @@ func (i *K8sTargetProvider) NeedsRemove(ctx context.Context, desired []model.Com
 
 	for _, d := range desired {
 		for _, c := range current {
-			if c.Name == d.Name && c.Properties["container.image"] == d.Properties["container.image"] {
+			if c.Name == d.Name && c.Properties[model.ContainerImage] == d.Properties[model.ContainerImage] {
 				return true
 			}
 		}
@@ -509,7 +510,16 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 	}
 	return nil
 }
-func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec) error {
+func (*K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
+}
+func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec, isDryRun bool) error {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -523,6 +533,16 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec)
 	}
 
 	components := dep.GetComponentSlice()
+
+	err = i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	switch i.Config.DeploymentStrategy {
 	case "", SINGLE_POD:
@@ -564,7 +584,7 @@ func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, er
 			Name:       c.Name,
 			Properties: make(map[string]string),
 		}
-		component.Properties["container.image"] = c.Image
+		component.Properties[model.ContainerImage] = c.Image
 		policy := string(c.ImagePullPolicy)
 		if policy != "" {
 			component.Properties["container.imagePullPolicy"] = policy
@@ -675,7 +695,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		container := apiv1.Container{
 			Name:            c.Name,
-			Image:           c.Properties["container.image"],
+			Image:           c.Properties[model.ContainerImage],
 			Ports:           ports,
 			ImagePullPolicy: apiv1.PullPolicy(utils.ReadString(c.Properties, "container.imagePullPolicy", "Always")),
 		}

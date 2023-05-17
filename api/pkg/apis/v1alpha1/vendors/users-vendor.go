@@ -30,14 +30,15 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -57,8 +58,8 @@ func (o *UsersVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-func (e *UsersVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
-	err := e.Vendor.Init(config, factories, providers)
+func (e *UsersVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
+	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -79,10 +80,6 @@ func (e *UsersVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	}
 
 	return nil
-}
-
-func (o *UsersVendor) HasLoop() bool {
-	return false
 }
 
 func (o *UsersVendor) GetEndpoints() []v1alpha2.Endpoint {

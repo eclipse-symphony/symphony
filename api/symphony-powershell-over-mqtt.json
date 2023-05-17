@@ -1,0 +1,66 @@
+{
+  "api": {
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.target": "script",
+              "providers.state": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"  
+            },
+            "providers": {
+              "script": {
+                "type": "providers.target.script",
+                "config": {
+                  "name": "script",
+                  "scriptEngine": "powershell",
+                  "scriptFolder": "c:\\demo",
+                  "stagingFolder": "c:\\demo\\staging",
+		              "applyScript": "run-notepad.ps1",
+		              "removeScript": "",
+                  "getScript": "get-notepad.ps1",
+                  "needsUpdate": "mock-needsupdate.ps1"
+                }
+              },
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "tcp://localhost:1883",
+        "clientID": "windows-pc",
+        "requestTopic": "symphony-request",
+        "responseTopic": "symphony-response"
+      }
+    }
+  ]
+}

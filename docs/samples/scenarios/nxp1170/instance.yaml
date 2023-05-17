@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: tiny-ml-2
 spec:
-  stages:
-  - name: default
-    solution: tiny-ml
-    target:
-      name: mac-book
+  solution: tiny-ml
+  target:
+    name: mac-book

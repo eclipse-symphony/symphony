@@ -291,6 +291,15 @@ func (i *HelmTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
+func (*HelmTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{"helm.chart.repo", "helm.chart.name"},
+		OptionalProperties:    []string{"helm.chart.version", "helm.values.*"},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
+}
 func downloadFile(url string, fileName string) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -306,7 +315,7 @@ func downloadFile(url string, fileName string) error {
 	_, err = io.Copy(fileHandle, resp.Body)
 	return err
 }
-func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Helm Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -314,11 +323,21 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Stages[0].Solution,
-		TargetId:   deployment.Stages[0].ActiveTarget,
+		SolutionId: deployment.Instance.Solution,
+		TargetId:   deployment.ActiveTarget,
 	}
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
 
 	for _, component := range components {
 		if component.Type == "helm.v3" {

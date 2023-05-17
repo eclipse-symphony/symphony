@@ -39,11 +39,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const SymphonyAPIVersion = "0.43.11"
+const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
+
 var (
-	symphonyVersion     string
-	portalVersion       string
-	portalType          string
-	useWizard           bool
+	symphonyVersion string
+	portalVersion   string
+	//portalType          string
+	//useWizard           bool
 	noK8s               bool
 	storageRP           string
 	storageAccount      string
@@ -60,27 +63,23 @@ var UpCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Install Symphony on a Kubernetes cluster, or run Symphony locally",
 	Run: func(cmd *cobra.Command, args []string) {
-		if portalType == "list" {
-			fmt.Println("NAME\t\tDESCRIPTION")
-			fmt.Println("OSS\t\tPercept Open Source Portal")
-			fmt.Println("Samsung\t\tSamsung Management Portal")
-			fmt.Println("Playground\tSymphony Playground")
-			return
-		}
+		// if portalType == "list" {
+		// 	fmt.Println("NAME\t\tDESCRIPTION")
+		// 	fmt.Println("OSS\t\tPercept Open Source Portal")
+		// 	fmt.Println("Samsung\t\tSamsung Management Portal")
+		// 	fmt.Println("Playground\tSymphony Playground")
+		// 	return
+		// }
 		u, err := user.Current()
 		if err != nil {
 			fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
-		if useWizard {
-			fmt.Println(filepath.Join(u.HomeDir, ".symphony/poss-test-installer.sh"))
-			_, err := utils.RunCommandNoCapture("Launching Symphony installer script", "done", filepath.Join(u.HomeDir, "/root/.symphony/poss-test-installer.sh"))
-			if err != nil {
-				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+		if noK8s {
+			if !updateSymphonyContext("no-k8s", "localhost") {
 				return
 			}
-		} else if noK8s {
-			_, err := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-dev.json"), "-l", "Debug")
+			_, err := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json"), "-l", "Debug")
 			if err != nil {
 				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 				return
@@ -113,28 +112,28 @@ var UpCmd = &cobra.Command{
 				return
 			}
 
-			if portalType != "" {
-				if !handlePortal(apiAddress) {
-					return
-				}
-			}
+			// if portalType != "" {
+			// 	if !handlePortal(apiAddress) {
+			// 		return
+			// 	}
+			// }
 
-			portalAddress := ""
-			if portalType != "" {
-				ret, portalAddress = checkPortalAddress()
-				if !ret {
-					return
-				}
-			}
+			// portalAddress := ""
+			// if portalType != "" {
+			// 	ret, portalAddress = checkPortalAddress()
+			// 	if !ret {
+			// 		return
+			// 	}
+			// }
 
 			if !updateSymphonyContext(k8sContext, apiAddress) {
 				return
 			}
 
 			fmt.Printf("\n%s  Done!%s\n\n", utils.ColorCyan(), utils.ColorReset())
-			if portalType != "" {
-				fmt.Printf("  %sSymphony portal:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+portalAddress+"/", utils.ColorReset())
-			}
+			// if portalType != "" {
+			// 	fmt.Printf("  %sSymphony portal:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+portalAddress+"/", utils.ColorReset())
+			// }
 			fmt.Printf("  %sSymphony API:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+apiAddress+":8080/v1alpha2/greetings", utils.ColorReset())
 			fmt.Println()
 		}
@@ -142,52 +141,49 @@ var UpCmd = &cobra.Command{
 }
 
 func init() {
-	UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", "0.39.0-main-603f4b9-amd64", "Symphony Portal version")
-	UpCmd.Flags().StringVarP(&symphonyVersion, "symphony-version", "s", "0.41.40", "Symphony API version")
-	UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
-	UpCmd.Flags().BoolVar(&useWizard, "wizard", false, "Use installation wizard script")
+	//UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", KANPortalVersion, "Symphony Portal version")
+	UpCmd.Flags().StringVarP(&symphonyVersion, "symphony-version", "s", SymphonyAPIVersion, "Symphony API version")
+	//UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
 	UpCmd.Flags().BoolVar(&noK8s, "no-k8s", false, "Launch in standalone mode (no Kubernetes)")
-	UpCmd.Flags().StringVarP(&storageRP, "storage-resource-group", "", "", "Azure Storage account resource group")
-	UpCmd.Flags().StringVarP(&storageAccount, "storage-account", "", "", "Azure Storage account")
-	UpCmd.Flags().StringVarP(&storageContainer, "storage-container", "", "", "Azure Storage container")
-	UpCmd.Flags().StringVarP(&azureSubscription, "azure-subscription", "", "", "Azure subscription")
-	UpCmd.Flags().StringVarP(&tenantId, "sp-tenant-id", "", "", "AAD tenant id")
-	UpCmd.Flags().StringVarP(&clientId, "sp-client-id", "", "", "AAD client id")
-	UpCmd.Flags().StringVarP(&clientSecret, "sp-client-secret", "", "", "AAD client secret")
-	UpCmd.Flags().StringVarP(&customVisionRP, "custom-vision-resource-group", "", "", "Azure Custom Vision resource group")
-	UpCmd.Flags().StringVarP(&customVisionAccount, "custom-vision-account", "", "", "Azure Custom Vision account")
+	// UpCmd.Flags().StringVarP(&storageRP, "storage-resource-group", "", "", "Azure Storage account resource group")
+	// UpCmd.Flags().StringVarP(&storageAccount, "storage-account", "", "", "Azure Storage account")
+	// UpCmd.Flags().StringVarP(&storageContainer, "storage-container", "", "", "Azure Storage container")
+	// UpCmd.Flags().StringVarP(&azureSubscription, "azure-subscription", "", "", "Azure subscription")
+	// UpCmd.Flags().StringVarP(&tenantId, "sp-tenant-id", "", "", "AAD tenant id")
+	// UpCmd.Flags().StringVarP(&clientId, "sp-client-id", "", "", "AAD client id")
+	// UpCmd.Flags().StringVarP(&clientSecret, "sp-client-secret", "", "", "AAD client secret")
+	// UpCmd.Flags().StringVarP(&customVisionRP, "custom-vision-resource-group", "", "", "Azure Custom Vision resource group")
+	// UpCmd.Flags().StringVarP(&customVisionAccount, "custom-vision-account", "", "", "Azure Custom Vision account")
 	//UpCmd.MarkFlagsRequiredTogether("with-portal", "storage-resource-group", "storage-account", "storage-container", "azure-subscription", "sp-tenant-id", "sp-client-id", "sp-client-secret", "custom-vision-resource-group", "custom-vision-account")
-	UpCmd.MarkFlagsMutuallyExclusive("wizard", "with-portal")
-	UpCmd.MarkFlagsMutuallyExclusive("wizard", "no-k8s")
-	UpCmd.MarkFlagsMutuallyExclusive("with-portal", "no-k8s")
+	//iUpCmd.MarkFlagsMutuallyExclusive("with-portal", "no-k8s")
 	RootCmd.AddCommand(UpCmd)
 }
 
-func checkPortalAddress() (bool, string) {
-	switch strings.ToLower(portalType) {
-	case "oss":
-		count := 0
-		for {
-			str, err := utils.RunCommand("Checking Symphony Portal address", "OK", verbose, "kubectl", "get", "svc", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
-			if err != nil {
-				fmt.Printf("\n%s  Failed to check Symphony Portal address./%s\n\n", utils.ColorRed(), utils.ColorReset())
-				return false, ""
-			}
-			if str != "" {
-				return true, str
-			}
-			count += 1
-			if count > 5 {
-				fmt.Printf("\n%s  Failed to check public Symphony Portal address. You may need to set up port forwarding to access the portal locally. %s\n\n", utils.ColorYellow(), utils.ColorReset())
-				return true, ""
-			}
-			time.Sleep(5 * time.Second)
-		}
-	case "samsung":
-		return true, "localhost:3000"
-	}
-	return false, ""
-}
+// func checkPortalAddress() (bool, string) {
+// 	switch strings.ToLower(portalType) {
+// 	case "oss":
+// 		count := 0
+// 		for {
+// 			str, err := utils.RunCommand("Checking Symphony Portal address", "OK", verbose, "kubectl", "get", "svc", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+// 			if err != nil {
+// 				fmt.Printf("\n%s  Failed to check Symphony Portal address./%s\n\n", utils.ColorRed(), utils.ColorReset())
+// 				return false, ""
+// 			}
+// 			if str != "" {
+// 				return true, str
+// 			}
+// 			count += 1
+// 			if count > 5 {
+// 				fmt.Printf("\n%s  Failed to check public Symphony Portal address. You may need to set up port forwarding to access the portal locally. %s\n\n", utils.ColorYellow(), utils.ColorReset())
+// 				return true, ""
+// 			}
+// 			time.Sleep(5 * time.Second)
+// 		}
+// 	case "samsung":
+// 		return true, "localhost:3000"
+// 	}
+// 	return false, ""
+// }
 
 func checkSymphonyAddress() (bool, string) {
 	count := 0
@@ -209,40 +205,40 @@ func checkSymphonyAddress() (bool, string) {
 	}
 }
 
-func handlePortal(apiAddress string) bool {
-	switch strings.ToLower(portalType) {
-	case "oss":
-		str, _ := utils.RunCommand("Checking OSS portal", "done", verbose, "helm", "list", "-q", "-l", "name=voe")
+// func handlePortal(apiAddress string) bool {
+// 	switch strings.ToLower(portalType) {
+// 	case "oss":
+// 		str, _ := utils.RunCommand("Checking OSS portal", "done", verbose, "helm", "list", "-q", "-l", "name=voe")
 
-		if str != "voe" {
-			_, err := utils.RunCommand("Deploying OSS portal", "done", verbose, "helm", "upgrade", "--install", "voe", "oci://p4etest.azurecr.io/helm/voe", "--version", portalVersion,
-				"--set", "storage.storageResourceGroup="+storageRP,
-				"--set", "storage.storageAccount="+storageAccount,
-				"--set", "storage.storageContainer="+storageContainer,
-				"--set", "storage.subscriptionId="+azureSubscription,
-				"--set", "customvision.endpoint=$(az cognitiveservices account show -n "+customVisionAccount+" -g "+customVisionRP+" | jq -r .properties.endpoint)",
-				"--set", `customvision.trainingKey=$(az cognitiveservices account keys list -n `+customVisionAccount+` -g `+customVisionRP+` | jq -r ".key1")`,
-				"--set", "servicePrincipal.tenantId="+tenantId,
-				"--set", "servicePrincipal.clientId="+clientId,
-				"--set", "servicePrincipal.clientSecret="+clientSecret)
-			if err != nil {
-				fmt.Printf("\n%s  Failed to deploy OSS Portal.%s\n\n", utils.ColorRed(), utils.ColorReset())
-				return false
-			}
-		}
-		if verbose {
-			fmt.Printf("\n%s  WARNING: existing OSS portal deployment is found. To install new version, use p4ectl remove to remove it first.%s\n\n", utils.ColorYellow(), utils.ColorReset())
-		}
-		return true
-	case "samsung":
-		_, err := utils.RunCommand("Launching Samsung portal", "done", verbose, "docker", "run", "-dit", "--rm", "-p", "3000:3000", "-e", "NEXT_PUBLIC_BACKEND="+apiAddress, "dcp-symphony:1.0.2")
-		if err != nil {
-			fmt.Printf("\n%s  Failed to launch Samsung Portal.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return false
-		}
-	}
-	return true
-}
+// 		if str != "voe" {
+// 			_, err := utils.RunCommand("Deploying OSS portal", "done", verbose, "helm", "upgrade", "--install", "voe", "oci://p4etest.azurecr.io/helm/voe", "--version", portalVersion,
+// 				"--set", "storage.storageResourceGroup="+storageRP,
+// 				"--set", "storage.storageAccount="+storageAccount,
+// 				"--set", "storage.storageContainer="+storageContainer,
+// 				"--set", "storage.subscriptionId="+azureSubscription,
+// 				"--set", "customvision.endpoint=$(az cognitiveservices account show -n "+customVisionAccount+" -g "+customVisionRP+" | jq -r .properties.endpoint)",
+// 				"--set", `customvision.trainingKey=$(az cognitiveservices account keys list -n `+customVisionAccount+` -g `+customVisionRP+` | jq -r ".key1")`,
+// 				"--set", "servicePrincipal.tenantId="+tenantId,
+// 				"--set", "servicePrincipal.clientId="+clientId,
+// 				"--set", "servicePrincipal.clientSecret="+clientSecret)
+// 			if err != nil {
+// 				fmt.Printf("\n%s  Failed to deploy OSS Portal.%s\n\n", utils.ColorRed(), utils.ColorReset())
+// 				return false
+// 			}
+// 		}
+// 		if verbose {
+// 			fmt.Printf("\n%s  WARNING: existing OSS portal deployment is found. To install new version, use p4ectl remove to remove it first.%s\n\n", utils.ColorYellow(), utils.ColorReset())
+// 		}
+// 		return true
+// 	case "samsung":
+// 		_, err := utils.RunCommand("Launching Samsung portal", "done", verbose, "docker", "run", "-dit", "--rm", "-p", "3000:3000", "-e", "NEXT_PUBLIC_BACKEND="+apiAddress, "dcp-symphony:1.0.2")
+// 		if err != nil {
+// 			fmt.Printf("\n%s  Failed to launch Samsung Portal.%s\n\n", utils.ColorRed(), utils.ColorReset())
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
 
 func handleSymphony() bool {
 	str, _ := utils.RunCommand("Checking Symphony API (Symphony)", "done", verbose, "helm", "list", "-q", "-l", "name=symphony")
@@ -264,16 +260,15 @@ func handleSymphony() bool {
 			c := exec.Command("kubectl", "patch", "instance.solution.symphony", t, "-p", `'{"metadata":{"finalizers":null}}'`, "--type=merge")
 			c.Run()
 		}
-
-		_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://possprod.azurecr.io/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy")
-		if err != nil {
-			fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return false
-		}
 	}
-	if verbose {
-		fmt.Printf("\n%s  WARNING: existing Symphony deployment is found. To install new version, use p4ectl remove to remove it first.%s\n\n", utils.ColorYellow(), utils.ColorReset())
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://possprod.azurecr.io/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy")
+	if err != nil {
+		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
+		return false
 	}
+	// if verbose {
+	// 	fmt.Printf("\n%s  WARNING: existing Symphony deployment is found. To install new version, use p4ectl remove to remove it first.%s\n\n", utils.ColorYellow(), utils.ColorReset())
+	// }
 	return true
 }
 

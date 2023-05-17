@@ -175,7 +175,7 @@ kubectl delete instance my-instance-1
 kubectl delete solution simulated-temperature-sensor
 kubectl delete target voe-target
 ```
-## 10. To remvoe Symphony control plane (optional)
+## 10. To remove Symphony control plane (optional)
 ```bash
 helm delete symphony
 ```

@@ -4,8 +4,8 @@ import subprocess
 import re
 import os
 
-WINAPPINSTALL = "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe"
-TARGET_IP = "192.168.50.55"
+WINAPPINSTALL = "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22000.0\\x64\\WinAppDeployCmd.exe"
+TARGET_IP = "192.168.50.29"
 
 def deploy(components):    
     for component in components:
@@ -17,6 +17,7 @@ def deploy(components):
     return ""
 
 def get_packages(components, remove_postfix = True):
+
     cmd = WINAPPINSTALL + " list -ip " + TARGET_IP
 
     returned_output = subprocess.check_output(cmd)

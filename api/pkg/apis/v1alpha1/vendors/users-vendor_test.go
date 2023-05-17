@@ -30,12 +30,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	sym_mgr "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	sym_mgr "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +68,7 @@ func initVendor(t *testing.T) UsersVendor {
 		"users-manager": map[string]providers.IProvider{
 			"mem-state": &p,
 		},
-	})
+	}, nil)
 	assert.Nil(t, err)
 	return vendor
 }

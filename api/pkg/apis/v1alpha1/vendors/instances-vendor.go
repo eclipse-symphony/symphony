@@ -37,6 +37,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -57,8 +58,8 @@ func (o *InstancesVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-func (e *InstancesVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
-	err := e.Vendor.Init(config, factories, providers)
+func (e *InstancesVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
+	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -71,10 +72,6 @@ func (e *InstancesVendor) Init(config vendors.VendorConfig, factories []managers
 		return v1alpha2.NewCOAError(nil, "instances manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
-}
-
-func (o *InstancesVendor) HasLoop() bool {
-	return false
 }
 
 func (o *InstancesVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -142,14 +139,10 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			instance = model.InstanceSpec{
 				DisplayName: id,
 				Name:        id,
-				Stages: []model.StageSpec{
-					{
-						Solution: solution,
-					},
-				},
+				Solution:    solution,
 			}
 			if target != "" {
-				instance.Stages[0].Target = model.TargetRefSpec{
+				instance.Target = model.TargetRefSpec{
 					Name: target,
 				}
 			} else {
@@ -160,7 +153,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Stages[0].Target = model.TargetRefSpec{
+				instance.Target = model.TargetRefSpec{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},
@@ -182,18 +175,45 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				Body:  []byte(err.Error()),
 			})
 		}
+		if c.Config.Properties["useJobManager"] == "true" {
+			c.Context.Publish("job", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": "instance",
+				},
+				Body: v1alpha2.JobData{
+					Id:     id,
+					Action: "UPDATE",
+				},
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onInstances-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.InstancesManager.DeleteSpec(ctx, id)
-		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
+		direct := request.Parameters["direct"]
+		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
+			c.Context.Publish("job", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": "instance",
+				},
+				Body: v1alpha2.JobData{
+					Id:     id,
+					Action: "DELETE",
+				},
 			})
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.OK,
+			})
+		} else {
+			err := c.InstancesManager.DeleteSpec(ctx, id)
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

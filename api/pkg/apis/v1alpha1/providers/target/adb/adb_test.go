@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,16 +36,12 @@ func TestGetOneDesired(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "MyApp",
-							Properties: map[string]string{
-								"apk.package": "com.sec.hiddenmenu",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "MyApp",
+					Properties: map[string]string{
+						model.AppPackage: "com.sec.hiddenmenu",
 					},
 				},
 			},
@@ -65,16 +62,12 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "MyApp",
-							Properties: map[string]string{
-								"apk.package": "doesnt.exist",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "MyApp",
+					Properties: map[string]string{
+						model.AppPackage: "doesnt.exist",
 					},
 				},
 			},
@@ -95,22 +88,18 @@ func TestApply(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "MyApp",
-							Properties: map[string]string{
-								"apk.package": "com.companyname.beacon",
-								"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "MyApp",
+					Properties: map[string]string{
+						model.AppPackage: "com.companyname.beacon",
+						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 
@@ -125,21 +114,25 @@ func TestRemove(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "MyApp",
-							Properties: map[string]string{
-								"apk.package": "com.companyname.beacon",
-								"apk.file":    "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "MyApp",
+					Properties: map[string]string{
+						model.AppPackage: "com.companyname.beacon",
+						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
 					},
 				},
 			},
 		},
 	}, nil)
 	assert.Nil(t, err)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &AdbProvider{}
+	err := provider.Init(AdbProviderConfig{})
+	assert.Nil(t, err)
+	conformance.ConformanceSuite(t, provider)
 }

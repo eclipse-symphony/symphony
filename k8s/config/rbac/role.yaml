@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -131,6 +130,32 @@ rules:
   - fabric.symphony
   resources:
   - targets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - campaigns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - campaigns/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - campaigns/status
   verbs:
   - get
   - patch

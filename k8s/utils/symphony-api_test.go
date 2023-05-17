@@ -40,12 +40,8 @@ func TestSingleWildcardMismatch(t *testing.T) {
 func TestDirectTargetMatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Name: "gateway-1",
-					},
-				},
+			Target: solutionv1.TargetSpec{
+				Name: "gateway-1",
 			},
 		},
 	}
@@ -76,12 +72,8 @@ func TestDirectTargetMatch(t *testing.T) {
 func TestDirectTargetMismatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Name: "gateway-1",
-					},
-				},
+			Target: solutionv1.TargetSpec{
+				Name: "gateway-1",
 			},
 		},
 	}
@@ -111,12 +103,8 @@ func TestDirectTargetMismatch(t *testing.T) {
 func TestTargetWildcardMatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Name: "gateway*",
-					},
-				},
+			Target: solutionv1.TargetSpec{
+				Name: "gateway*",
 			},
 		},
 	}
@@ -154,12 +142,8 @@ func TestTargetWildcardMatch(t *testing.T) {
 func TestTargetSincleWildcardMatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Name: "gateway%1",
-					},
-				},
+			Target: solutionv1.TargetSpec{
+				Name: "gateway%1",
 			},
 		},
 	}
@@ -197,13 +181,9 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 func TestTargetSelectorMatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Selector: map[string]string{
-							"OS": "windows",
-						},
-					},
+			Target: solutionv1.TargetSpec{
+				Selector: map[string]string{
+					"OS": "windows",
 				},
 			},
 		},
@@ -249,13 +229,9 @@ func TestTargetSelectorMatch(t *testing.T) {
 func TestTargetSelectorMismatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Selector: map[string]string{
-							"OS": "windows",
-						},
-					},
+			Target: solutionv1.TargetSpec{
+				Selector: map[string]string{
+					"OS": "windows",
 				},
 			},
 		},
@@ -300,13 +276,9 @@ func TestTargetSelectorMismatch(t *testing.T) {
 func TestTargetSelectorWildcardMatch(t *testing.T) {
 	instance := solutionv1.Instance{
 		Spec: solutionv1.InstanceSpec{
-			Stages: []solutionv1.StageSpec{
-				{
-					Target: solutionv1.TargetSpec{
-						Selector: map[string]string{
-							"tag": "floor-*",
-						},
-					},
+			Target: solutionv1.TargetSpec{
+				Selector: map[string]string{
+					"tag": "floor-*",
 				},
 			},
 		},

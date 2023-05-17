@@ -148,17 +148,13 @@ func TestCacheLifespan(t *testing.T) {
 }
 func TestFillParametersFromInstance(t *testing.T) {
 	instance := model.InstanceSpec{
-		Stages: []model.StageSpec{
+		Pipelines: []model.PipelineSpec{
 			{
-				Pipelines: []model.PipelineSpec{
-					{
-						Name:  "pipeline1",
-						Skill: "skill1",
-						Parameters: map[string]string{
-							"c": "value-c",
-							"a": "value-a",
-						},
-					},
+				Name:  "pipeline1",
+				Skill: "skill1",
+				Parameters: map[string]string{
+					"c": "value-c",
+					"a": "value-a",
 				},
 			},
 		},
@@ -193,16 +189,12 @@ func TestFillParametersFromInstanceMixWithTopParameters(t *testing.T) {
 		Parameters: map[string]string{
 			"a": "value-a",
 		},
-		Stages: []model.StageSpec{
+		Pipelines: []model.PipelineSpec{
 			{
-				Pipelines: []model.PipelineSpec{
-					{
-						Name:  "pipeline1",
-						Skill: "skill1",
-						Parameters: map[string]string{
-							"c": "value-c",
-						},
-					},
+				Name:  "pipeline1",
+				Skill: "skill1",
+				Parameters: map[string]string{
+					"c": "value-c",
 				},
 			},
 		},
@@ -234,16 +226,12 @@ func TestFillParametersFromInstanceMixWithTopParameters(t *testing.T) {
 }
 func TestFillParametersFromInstanceMissingA(t *testing.T) {
 	instance := model.InstanceSpec{
-		Stages: []model.StageSpec{
+		Pipelines: []model.PipelineSpec{
 			{
-				Pipelines: []model.PipelineSpec{
-					{
-						Name:  "pipeline1",
-						Skill: "skill1",
-						Parameters: map[string]string{
-							"c": "value-c",
-						},
-					},
+				Name:  "pipeline1",
+				Skill: "skill1",
+				Parameters: map[string]string{
+					"c": "value-c",
 				},
 			},
 		},

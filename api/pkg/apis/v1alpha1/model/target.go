@@ -15,6 +15,13 @@ package model
 
 import "errors"
 
+type TargetState struct {
+	Id       string            `json:"id"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+	Status   map[string]string `json:"status,omitempty"`
+	Spec     *TargetSpec       `json:"spec,omitempty"`
+}
+
 type TargetSpec struct {
 	DisplayName   string            `json:"displayName,omitempty"`
 	Scope         string            `json:"scope,omitempty"`

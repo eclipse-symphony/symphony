@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -80,9 +81,9 @@ func TestGetVMDevice(t *testing.T) {
 func TestToMoudleEmptyVersion(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"container.version": "",
-			"container.type":    "docker",
-			"container.image":   "docker/hello-world",
+			"container.version":  "",
+			"container.type":     "docker",
+			model.ContainerImage: "docker/hello-world",
 		},
 	}
 	_, err := toModule(component, "test", "")
@@ -94,8 +95,8 @@ func TestToMoudleEmptyVersion(t *testing.T) {
 func TestToMoudleNoVersions(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"container.type":  "docker",
-			"container.image": "docker/hello-world",
+			"container.type":     "docker",
+			model.ContainerImage: "docker/hello-world",
 		},
 	}
 	_, err := toModule(component, "test", "")
@@ -107,9 +108,9 @@ func TestToMoudleNoVersions(t *testing.T) {
 func TestToMoudleEmptyType(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"container.version": "1.0",
-			"container.type":    "",
-			"container.image":   "docker/hello-world",
+			"container.version":  "1.0",
+			"container.type":     "",
+			model.ContainerImage: "docker/hello-world",
 		},
 	}
 	_, err := toModule(component, "test", "")
@@ -121,8 +122,8 @@ func TestToMoudleEmptyType(t *testing.T) {
 func TestToMoudleNoTypes(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"container.version": "1.0",
-			"container.image":   "docker/hello-world",
+			"container.version":  "1.0",
+			model.ContainerImage: "docker/hello-world",
 		},
 	}
 	_, err := toModule(component, "test", "")
@@ -134,9 +135,9 @@ func TestToMoudleNoTypes(t *testing.T) {
 func TestToMoudleEmptyImage(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"container.version": "1.0",
-			"container.type":    "docker",
-			"container.image":   "",
+			"container.version":  "1.0",
+			"container.type":     "docker",
+			model.ContainerImage: "",
 		},
 	}
 	_, err := toModule(component, "test", "")
@@ -160,12 +161,12 @@ func TestToMoudleNoImage(t *testing.T) {
 func TestToModuleDesiredProperties(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"image":             "docker/hello-world",
-			"desired.A1":        "ABC",
-			"desired.A2":        "DEF",
-			"container.version": "1.0",
-			"container.type":    "docker",
-			"container.image":   "redis",
+			"image":              "docker/hello-world",
+			"desired.A1":         "ABC",
+			"desired.A2":         "DEF",
+			"container.version":  "1.0",
+			"container.type":     "docker",
+			model.ContainerImage: "redis",
 		},
 	}
 	module, err := toModule(component, "test", "")
@@ -176,12 +177,12 @@ func TestToModuleDesiredProperties(t *testing.T) {
 func TestToModuleDesiredPropertiesWithAgent(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"image":             "docker/hello-world",
-			"desired.A1":        "ABC",
-			"desired.A2":        "DEF",
-			"container.version": "1.0",
-			"container.type":    "docker",
-			"container.image":   "redis",
+			"image":              "docker/hello-world",
+			"desired.A1":         "ABC",
+			"desired.A2":         "DEF",
+			"container.version":  "1.0",
+			"container.type":     "docker",
+			model.ContainerImage: "redis",
 		},
 	}
 	module, err := toModule(component, "test", "symphony-agent")
@@ -193,12 +194,12 @@ func TestToModuleDesiredPropertiesWithAgent(t *testing.T) {
 func TestToModuleEnvVariables(t *testing.T) {
 	component := model.ComponentSpec{
 		Properties: map[string]string{
-			"image":             "docker/hello-world",
-			"env.A1":            "ABC",
-			"env.A2":            "DEF",
-			"container.version": "1.0",
-			"container.type":    "docker",
-			"container.image":   "redis",
+			"image":              "docker/hello-world",
+			"env.A1":             "ABC",
+			"env.A2":             "DEF",
+			"container.version":  "1.0",
+			"container.type":     "docker",
+			model.ContainerImage: "redis",
 		},
 	}
 	module, err := toModule(component, "test", "")
@@ -557,4 +558,12 @@ func TestReduceDeploymentWithMoreModuleAndRoutes(t *testing.T) {
 	col2 := deployment.ModulesContent["$edgeHub"].DesiredProperties["routes"].(map[string]string)
 	assert.Equal(t, 1, len(col2))
 	assert.Equal(t, "FROM messagees/modules/my-instance-2-my-module INTO messages/modules/cool", col2["my-instance-2-route-1"])
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &IoTEdgeTargetProvider{}
+	_ = provider.Init(IoTEdgeTargetProvider{})
+	// assert.Nil(t, err) it's okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

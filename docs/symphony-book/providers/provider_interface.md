@@ -1,4 +1,4 @@
-# Provider Interface
+# Target Provider Interface
 
 Symphony defines a simple Provider interface with 5 methods:
 

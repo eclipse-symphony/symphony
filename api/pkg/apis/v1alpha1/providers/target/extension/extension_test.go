@@ -51,23 +51,19 @@ func TestExtensionTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "ClusterMonitor",
-							Type: "arc-extensions",
-							Properties: map[string]string{
-								"extensionName":       "ClusterMonitor",
-								"extensionType":       "azuremonitor-containers",
-								"clusterName":         "my-arc-cluster",
-								"clusterRp":           "Microsoft.Kubernetes",
-								"clusterResourceName": "connectedClusters",
-								"resourceGroup":       "MyResourceGroup",
-								"apiVersion":          "0.41.2",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "ClusterMonitor",
+					Type: "arc-extensions",
+					Properties: map[string]string{
+						"extensionName":       "ClusterMonitor",
+						"extensionType":       "azuremonitor-containers",
+						"clusterName":         "my-arc-cluster",
+						"clusterRp":           "Microsoft.Kubernetes",
+						"clusterResourceName": "connectedClusters",
+						"resourceGroup":       "MyResourceGroup",
+						"apiVersion":          "0.41.2",
 					},
 				},
 			},
@@ -92,23 +88,19 @@ func TestExtensionTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "ClusterMonitor",
-							Type: "arc-extensions",
-							Properties: map[string]string{
-								"extensionName":       "ClusterMonitor",
-								"extensionType":       "azuremonitor-containers",
-								"clusterName":         "my-arc-cluster",
-								"clusterRp":           "Microsoft.Kubernetes",
-								"clusterResourceName": "connectedClusters",
-								"resourceGroup":       "MyResourceGroup",
-								"apiVersion":          "0.41.2",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "ClusterMonitor",
+					Type: "arc-extensions",
+					Properties: map[string]string{
+						"extensionName":       "ClusterMonitor",
+						"extensionType":       "azuremonitor-containers",
+						"clusterName":         "my-arc-cluster",
+						"clusterRp":           "Microsoft.Kubernetes",
+						"clusterResourceName": "connectedClusters",
+						"resourceGroup":       "MyResourceGroup",
+						"apiVersion":          "0.41.2",
 					},
 				},
 			},
@@ -132,23 +124,19 @@ func TestExtensionTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "ClusterMonitor",
-							Type: "arc-extensions",
-							Properties: map[string]string{
-								"extensionName":       "ClusterMonitor",
-								"extensionType":       "azuremonitor-containers",
-								"clusterName":         "my-arc-cluster",
-								"clusterRp":           "Microsoft.Kubernetes",
-								"clusterResourceName": "connectedClusters",
-								"resourceGroup":       "MyResourceGroup",
-								"apiVersion":          "0.41.2",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "ClusterMonitor",
+					Type: "arc-extensions",
+					Properties: map[string]string{
+						"extensionName":       "ClusterMonitor",
+						"extensionType":       "azuremonitor-containers",
+						"clusterName":         "my-arc-cluster",
+						"clusterRp":           "Microsoft.Kubernetes",
+						"clusterResourceName": "connectedClusters",
+						"resourceGroup":       "MyResourceGroup",
+						"apiVersion":          "0.41.2",
 					},
 				},
 			},

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,14 +35,10 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: testHelmChart,
-						},
-					},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: testHelmChart,
 				},
 			},
 		},
@@ -60,25 +57,21 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "symphony-com",
-							Type: "helm.v3",
-							Properties: map[string]string{
-								"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
-								"helm.chart.name":               "symphony",
-								"helm.chart.version":            testSymphonyHelmVersion,
-								"helm.values.CUSTOM_VISION_KEY": "BBB",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "symphony-com",
+					Type: "helm.v3",
+					Properties: map[string]string{
+						"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
+						"helm.chart.name":               "symphony",
+						"helm.chart.version":            testSymphonyHelmVersion,
+						"helm.values.CUSTOM_VISION_KEY": "BBB",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 func TestHelmTargetProviderInstallNoOci(t *testing.T) {
@@ -92,24 +85,20 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "akri",
-							Type: "helm.v3",
-							Properties: map[string]string{
-								"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
-								"helm.chart.name":    "akri",
-								"helm.chart.version": "",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "akri",
+					Type: "helm.v3",
+					Properties: map[string]string{
+						"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
+						"helm.chart.name":    "akri",
+						"helm.chart.version": "",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
@@ -122,23 +111,19 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "gatekeeper",
-							Type: "helm.v3",
-							Properties: map[string]string{
-								"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-								"helm.chart.name": "gatekeeper",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "gatekeeper",
+					Type: "helm.v3",
+					Properties: map[string]string{
+						"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+						"helm.chart.name": "gatekeeper",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 func TestHelmTargetProviderRemove(t *testing.T) {
@@ -154,19 +139,15 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "symphony",
 		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "symphony-com",
-							Type: "helm.v3",
-							Properties: map[string]string{
-								"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
-								"helm.chart.name":    "symphony",
-								"helm.chart.version": testSymphonyHelmVersion,
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "symphony-com",
+					Type: "helm.v3",
+					Properties: map[string]string{
+						"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
+						"helm.chart.name":    "symphony",
+						"helm.chart.version": testSymphonyHelmVersion,
 					},
 				},
 			},
@@ -211,4 +192,11 @@ users:
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
+}
+
+func TestConformanceSuite(t *testing.T) {
+	provider := &HelmTargetProvider{}
+	_ = provider.Init(HelmTargetProviderConfig{InCluster: true})
+	//assert.Nil(t, err) okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

@@ -35,19 +35,20 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 )
 
 type VendorConfig struct {
-	Type       string                   `json:"type"`
-	Route      string                   `json:"route"`
-	Managers   []managers.ManagerConfig `json:"managers"`
-	Properties map[string]string        `json:"properties,omitempty"`
+	Type         string                   `json:"type"`
+	Route        string                   `json:"route"`
+	Managers     []managers.ManagerConfig `json:"managers"`
+	Properties   map[string]string        `json:"properties,omitempty"`
+	LoopInterval int                      `json:"loopInterval,omitempty"`
 }
 
 type IVendor interface {
-	HasLoop() bool
 	RunLoop(interval time.Duration) error
-	Init(config VendorConfig, managers []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error
+	Init(config VendorConfig, managers []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error
 	GetEndpoints() []v1alpha2.Endpoint
 	GetInfo() VendorInfo
 }
@@ -67,6 +68,7 @@ type Vendor struct {
 	Version  string
 	Route    string
 	Context  *contexts.VendorContext
+	Config   VendorConfig
 }
 
 func (v *Vendor) RunLoop(interval time.Duration) error {
@@ -79,7 +81,7 @@ func (v *Vendor) RunLoop(interval time.Duration) error {
 	}()
 	for true {
 		for _, m := range v.Managers {
-			if c, ok := m.(managers.ITargetManager); ok {
+			if c, ok := m.(managers.ISchedulable); ok {
 				c.Poll()     //TODO: report errors
 				c.Reconcil() //TODO: report errors
 			}
@@ -89,9 +91,9 @@ func (v *Vendor) RunLoop(interval time.Duration) error {
 	return nil
 }
 
-func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider) error {
+func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	v.Context = &contexts.VendorContext{}
-	err := v.Context.Init()
+	err := v.Context.Init(pubsubProvider)
 	if err != nil {
 		return err
 	}
@@ -125,5 +127,6 @@ func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy,
 	}
 	v.Version = "v1alpha2"
 	v.Route = config.Route
+	v.Config = config
 	return nil
 }

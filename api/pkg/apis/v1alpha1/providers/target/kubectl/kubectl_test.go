@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,86 +144,18 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
 		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "gatekeepr",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "gatekeepr",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
 			},
 		},
-	})
-	assert.Nil(t, err)
-}
-
-func TestKubectlTargetProviderApplyYaml(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL_GATEKEEPER")
-	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER enviornment variable is not set")
-	}
-	config := KubectlTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-	}
-	provider := KubectlTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "crontabs",
-		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "crontabs",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml": `apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: crontabs.stable.example.com
-spec:
-  group: stable.example.com
-  versions:
-    - name: v1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
-              properties:
-                cronSpec:
-                  type: string
-                image:
-                  type: string
-                replicas:
-                  type: integer
-  scope: Namespaced
-  names:
-    plural: crontabs
-    singular: crontab
-    kind: CronTab
-    shortNames:
-      - ct`,
-							},
-						},
-					},
-				},
-			},
-		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
@@ -241,22 +174,18 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "policies",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "policies",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
 		},
-	})
+	}, false)
 	assert.Nil(t, err)
 }
 func TestKubectlTargetProviderDelete(t *testing.T) {
@@ -275,17 +204,13 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
 		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "gatekeepr1",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "gatekeepr1",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
 			},
@@ -310,17 +235,13 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
-		Stages: []model.DeploymentStage{
-			{
-				Solution: model.SolutionSpec{
-					Components: []model.ComponentSpec{
-						{
-							Name: "policies",
-							Type: "yaml.k8s",
-							Properties: map[string]string{
-								"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-							},
-						},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "policies",
+					Type: "yaml.k8s",
+					Properties: map[string]string{
+						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
@@ -328,4 +249,12 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 	}, nil)
 
 	assert.Nil(t, err)
+}
+
+// Conformance: you should call the conformance suite to ensure provider conformance
+func TestConformanceSuite(t *testing.T) {
+	provider := &KubectlTargetProvider{}
+	_ = provider.Init(KubectlTargetProviderConfig{})
+	// assert.Nil(t, err) okay if provider is not fully initialized
+	conformance.ConformanceSuite(t, provider)
 }

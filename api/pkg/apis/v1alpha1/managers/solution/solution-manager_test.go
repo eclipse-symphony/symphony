@@ -31,7 +31,7 @@ func TestFindAgentMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]string{
-					"container.image": "possprod.azurecr.io/symphony-agent:0.38.0",
+					model.ContainerImage: "possprod.azurecr.io/symphony-agent:0.38.0",
 				},
 			},
 		},
@@ -44,7 +44,7 @@ func TestFindAgentNotMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]string{
-					"container.image": "possprod.azurecr.io/symphony-api:0.38.0",
+					model.ContainerImage: "possprod.azurecr.io/symphony-api:0.38.0",
 				},
 			},
 		},

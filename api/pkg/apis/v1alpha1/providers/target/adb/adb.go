@@ -33,12 +33,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var aLog = logger.NewLogger("coa.runtime")
@@ -102,10 +102,11 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec) 
 
 	ret := make([]model.ComponentSpec, 0)
 	desired := deployment.GetComponentSlice()
+
 	re := regexp.MustCompile(`^package:(\w+\.)+\w+$`)
 
 	for _, component := range desired {
-		if p, ok := component.Properties["apk.package"]; ok {
+		if p, ok := component.Properties[model.AppPackage]; ok {
 			params := make([]string, 0)
 			params = append(params, "shell")
 			params = append(params, "pm")
@@ -124,7 +125,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec) 
 				if re.Match([]byte(line)) {
 					ret = append(ret, model.ComponentSpec{
 						Name: line[8:],
-						Type: "apk.package",
+						Type: model.AppPackage,
 					})
 				}
 			}
@@ -138,7 +139,7 @@ func (i *AdbProvider) NeedsUpdate(ctx context.Context, desired []model.Component
 	for _, d := range desired {
 		found := false
 		for _, c := range current {
-			if c.Name == d.Name && c.Properties["apk.package"] == d.Properties["apk.package"] {
+			if c.Name == d.Name && c.Properties[model.AppPackage] == d.Properties[model.AppPackage] {
 				found = true
 			}
 		}
@@ -152,7 +153,7 @@ func (i *AdbProvider) NeedsUpdate(ctx context.Context, desired []model.Component
 func (i *AdbProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	for _, d := range desired {
 		for _, c := range current {
-			if c.Name == d.Name && c.Properties["apk.package"] == d.Properties["apk.package"] {
+			if c.Name == d.Name && c.Properties[model.AppPackage] == d.Properties[model.AppPackage] {
 				return true
 			}
 		}
@@ -160,25 +161,37 @@ func (i *AdbProvider) NeedsRemove(ctx context.Context, desired []model.Component
 	return false
 }
 
-func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
 	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := deployment.GetComponentSlice()
+
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil
+	}
+
 	for _, component := range components {
 		if component.Name != "" {
-			if p, ok := component.Properties["apk.file"]; ok && p != "" {
-				params := make([]string, 0)
-				params = append(params, "install")
-				params = append(params, p)
-
-				cmd := exec.Command("adb", params...)
-				err := cmd.Run()
-				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
-					return err
+			if p, ok := component.Properties[model.AppImage]; ok && p != "" {
+				if !isDryRun {
+					params := make([]string, 0)
+					params = append(params, "install")
+					params = append(params, p)
+					cmd := exec.Command("adb", params...)
+					err := cmd.Run()
+					if err != nil {
+						observ_utils.CloseSpanWithError(span, err)
+						return err
+					}
 				}
 			}
 		}
@@ -197,7 +210,7 @@ func (i *AdbProvider) Remove(ctx context.Context, deployment model.DeploymentSpe
 	components := deployment.GetComponentSlice()
 	for _, component := range components {
 		if component.Name != "" {
-			if p, ok := component.Properties["apk.package"]; ok && p != "" {
+			if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
 				params := make([]string, 0)
 				params = append(params, "uninstall")
 				params = append(params, p)
@@ -214,4 +227,14 @@ func (i *AdbProvider) Remove(ctx context.Context, deployment model.DeploymentSpe
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
+}
+
+func (*AdbProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{model.AppPackage, model.AppImage},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+	}
 }

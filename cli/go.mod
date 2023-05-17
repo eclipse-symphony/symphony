@@ -4,11 +4,16 @@ go 1.19
 
 replace github.com/azure/symphony/api => ../api
 
+replace github.com/azure/symphony/coa => ../coa
+
 require github.com/spf13/cobra v1.6.1
 
 require (
+	github.com/azure/symphony/coa v0.0.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	helm.sh/helm/v3 v3.10.0 // indirect
 )
 
 require (
