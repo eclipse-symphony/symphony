@@ -19,10 +19,11 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extension"
+	extendedlocation "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extendedlocation"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
@@ -52,6 +53,7 @@ import (
 type SymphonyProviderFactory struct {
 }
 
+// CreateProviders initializes the config for the providers from the vendor config
 func (c SymphonyProviderFactory) CreateProviders(config vendors.VendorConfig) (map[string]map[string]cp.IProvider, error) {
 	ret := make(map[string]map[string]cp.IProvider)
 	for _, m := range config.Managers {
@@ -162,6 +164,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.target.arcextension":
+		mProvider := &arcextension.ArcExtensionTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.target.staging":
 		mProvider := &staging.StagingTargetProvider{}
 		err = mProvider.Init(config)
@@ -255,8 +263,8 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
-				case "providers.target.extension":
-					provider := &extension.ExtensionTargetProvider{}
+				case "providers.target.arcextension":
+					provider := &arcextension.ArcExtensionTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
@@ -391,6 +399,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.target.helm":
 					provider := &helm.HelmTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.target.extendedlocation":
+					provider := &extendedlocation.ExtendedLocationTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

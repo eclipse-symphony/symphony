@@ -7,7 +7,7 @@ replace github.com/azure/symphony/coa => ../coa
 require (
 	github.com/azure/symphony/coa v0.0.0
 	github.com/spf13/cobra v1.5.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.2
 	github.com/valyala/fasthttp v1.40.0
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/extendedlocation/armextendedlocation v1.1.0-beta.2
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration v1.1.1
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9
@@ -25,6 +26,7 @@ require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
