@@ -1,7 +1,7 @@
 symphonyImage:
-  repository: possprod.azurecr.io/symphony-k8s
+  repository: symphonycr.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "0.43.11"
+  tag: "20230517.1-buddy"
 paiImage:
   repository: possprod.azurecr.io/symphony-api
   pullPolicy: IfNotPresent

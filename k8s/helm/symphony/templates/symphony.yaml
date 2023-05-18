@@ -1750,7 +1750,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: possprod.azurecr.io/symphony-k8s:0.43.11
+        image: {{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag }}
         livenessProbe:
           httpGet:
             path: /healthz

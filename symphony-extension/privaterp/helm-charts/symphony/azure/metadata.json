@@ -19,7 +19,8 @@
           "Version": "v1",
           "Group": "solution.symphony",
           "Kind": "Instance",
-          "Name": "instances.solution.symphony"
+          "Name": "instances.solution.symphony",
+          "IsAsync": true
       }
   },
   {
