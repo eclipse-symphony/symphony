@@ -62,7 +62,7 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 				{
 					Name: "symphony-com",
 					Type: "helm.v3",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
 						"helm.chart.name":               "symphony",
 						"helm.chart.version":            testSymphonyHelmVersion,
@@ -90,7 +90,7 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 				{
 					Name: "akri",
 					Type: "helm.v3",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
 						"helm.chart.name":    "akri",
 						"helm.chart.version": "",
@@ -116,7 +116,7 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 				{
 					Name: "gatekeeper",
 					Type: "helm.v3",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
 						"helm.chart.name": "gatekeeper",
 					},
@@ -144,7 +144,7 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 				{
 					Name: "symphony-com",
 					Type: "helm.v3",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
 						"helm.chart.name":    "symphony",
 						"helm.chart.version": testSymphonyHelmVersion,

@@ -35,8 +35,8 @@ func TestHttpTargetProviderApply(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "http-component",
-					Properties: map[string]string{
-						"http.url":    "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>",
+					Properties: map[string]interface{}{
+						"http.url":    "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<redacted>",
 						"http.method": "POST",
 						"http.body":   `{"solution":"$solution()", "instance": "$instance()", "target": "$target()", "id": "$instance()-$solution()-$target()"}`,
 					},

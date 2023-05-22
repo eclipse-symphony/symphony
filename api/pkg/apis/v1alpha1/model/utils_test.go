@@ -120,7 +120,7 @@ func TestComponentSpecNamePropertiesSliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -129,7 +129,7 @@ func TestComponentSpecNamePropertiesSliceDeepEquals(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -141,7 +141,7 @@ func TestComponentSpecNamePropertiesSliceDeepNotEqual(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -150,7 +150,7 @@ func TestComponentSpecNamePropertiesSliceDeepNotEqual(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bb",
 				"ccc": "ddd",
 			},
@@ -162,7 +162,7 @@ func TestComponentSpecNamePropertiesRoutesSliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -189,7 +189,7 @@ func TestComponentSpecNamePropertiesRoutesSliceDeepEquals(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -219,7 +219,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV1(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -246,7 +246,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV1(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -276,7 +276,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV2(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -303,7 +303,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV2(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -333,7 +333,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV3(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -360,7 +360,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV3(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -390,7 +390,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV4(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -417,7 +417,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV4(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -447,7 +447,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV5(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -474,7 +474,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV5(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -504,7 +504,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV6(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -531,7 +531,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV6(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -603,7 +603,7 @@ func TestComponentSpecNamePropertiesSliceCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -612,7 +612,7 @@ func TestComponentSpecNamePropertiesSliceCover(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -627,7 +627,7 @@ func TestComponentSpecNamePropertiesSliceNotCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
@@ -636,7 +636,7 @@ func TestComponentSpecNamePropertiesSliceNotCover(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "abc",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"aaa": "bb",
 				"ccc": "ddd",
 			},
@@ -731,7 +731,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
 			Name: "symphony-agent",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"container.createOptions": "",
 				ContainerImage:            "possprod.azurecr.io/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
@@ -749,7 +749,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 	c2 := []ComponentSpec{
 		{
 			Name: "symphony-agent",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"container.createOptions": "",
 				ContainerImage:            "possprod.azurecr.io/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
@@ -768,7 +768,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 }
 
 func TestCollectPropertiesWithoutHierarchy(t *testing.T) {
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"helm.values.abc":     "ABC",
 		"helm.values.def.geh": "DEF",
 	}
@@ -777,7 +777,7 @@ func TestCollectPropertiesWithoutHierarchy(t *testing.T) {
 	assert.Equal(t, "DEF", ret["def.geh"])
 }
 func TestCollectPropertiesWithHierarchy(t *testing.T) {
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"helm.values.abc":             "ABC",
 		"helm.values.def.geh":         "DEF",
 		"helm.values.def.somebool":    "true",

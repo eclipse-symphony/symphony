@@ -118,7 +118,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec
 			}
 			component := model.ComponentSpec{
 				Name:       name,
-				Properties: make(map[string]string),
+				Properties: make(map[string]interface{}),
 			}
 			// container.args
 			if len(info.Args) > 0 {
@@ -180,8 +180,8 @@ func (d *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	for _, component := range components {
 		if component.Type == "container" {
-			image := model.ReadProperty(component.Properties, model.ContainerImage, injections)
-			resources := model.ReadProperty(component.Properties, "container.resources", injections)
+			image := model.ReadPropertyCompat(component.Properties, model.ContainerImage, injections)
+			resources := model.ReadPropertyCompat(component.Properties, "container.resources", injections)
 			if image == "" {
 				err := errors.New("component doesn't have container.image property")
 				observ_utils.CloseSpanWithError(span, err)

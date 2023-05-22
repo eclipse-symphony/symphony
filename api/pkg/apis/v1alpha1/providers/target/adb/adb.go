@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -112,7 +113,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec) 
 			params = append(params, "pm")
 			params = append(params, "list")
 			params = append(params, "packages")
-			params = append(params, p)
+			params = append(params, fmt.Sprintf("%v", p))
 			out, err := exec.Command("adb", params...).Output()
 
 			if err != nil {
@@ -185,7 +186,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 				if !isDryRun {
 					params := make([]string, 0)
 					params = append(params, "install")
-					params = append(params, p)
+					params = append(params, p.(string))
 					cmd := exec.Command("adb", params...)
 					err := cmd.Run()
 					if err != nil {
@@ -213,7 +214,7 @@ func (i *AdbProvider) Remove(ctx context.Context, deployment model.DeploymentSpe
 			if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
 				params := make([]string, 0)
 				params = append(params, "uninstall")
-				params = append(params, p)
+				params = append(params, p.(string))
 
 				cmd := exec.Command("adb", params...)
 				err := cmd.Run()

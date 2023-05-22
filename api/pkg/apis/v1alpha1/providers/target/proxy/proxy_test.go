@@ -26,7 +26,7 @@ func TestGet(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 					},
 				},
@@ -75,7 +75,7 @@ func TestNeedsUpdate(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 					},
 				},
@@ -110,7 +110,7 @@ func TestNeedsUpdate(t *testing.T) {
 	desired := []model.ComponentSpec{
 		{
 			Name: "HomeHub_1.0.4.0_x64",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 			},
 		},
@@ -134,7 +134,7 @@ func TestNeedsRemove(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 					},
 				},
@@ -168,7 +168,7 @@ func TestNeedsRemove(t *testing.T) {
 	desired := []model.ComponentSpec{
 		{
 			Name: "HomeHub_1.0.4.0_x64",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 			},
 		},
@@ -191,7 +191,7 @@ func TestRemove(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 					},
 				},
@@ -243,7 +243,7 @@ func TestApply(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
 					},
 				},

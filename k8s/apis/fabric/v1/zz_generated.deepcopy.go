@@ -57,13 +57,7 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.Properties != nil {
-		in, out := &in.Properties, &out.Properties
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
+	in.Properties.DeepCopyInto(&out.Properties)
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
 		*out = make([]RouteSpec, len(*in))

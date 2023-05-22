@@ -244,7 +244,7 @@ func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.D
 			ret = append(ret, model.ComponentSpec{
 				Name: deployment.Name,
 				Type: deployment.Type,
-				Properties: map[string]string{
+				Properties: map[string]interface{}{
 					"clusterName":         deployment.ClusterName,
 					"clusterRp":           deployment.ClusterRp,
 					"clusterResourceName": deployment.ClusterResourceName,

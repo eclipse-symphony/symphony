@@ -221,7 +221,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range desired {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml"]; ok {
+			if v, ok := component.Properties["yaml"].(string); ok {
 				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {
@@ -293,7 +293,7 @@ func (i *KubectlTargetProvider) Remove(ctx context.Context, deployment model.Dep
 
 	for _, component := range components {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml"]; ok {
+			if v, ok := component.Properties["yaml"].(string); ok {
 				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {
@@ -369,7 +369,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	for _, component := range components {
 		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml"]; ok {
+			if v, ok := component.Properties["yaml"].(string); ok {
 				chanMes, chanErr := readYaml(v)
 				stop := false
 				for !stop {

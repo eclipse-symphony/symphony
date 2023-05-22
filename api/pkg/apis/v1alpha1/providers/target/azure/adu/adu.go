@@ -187,7 +187,7 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec) (
 	if deployment.DeploymentId != "" {
 		ret = append(ret, model.ComponentSpec{
 			Name: deployment.UpdateId.Name,
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"update.name":     deployment.UpdateId.Name,
 				"update.provider": deployment.UpdateId.Provider,
 				"update.version":  deployment.UpdateId.Version,
@@ -205,13 +205,13 @@ func getDeploymentFromComponent(c model.ComponentSpec) (azureutils.ADUDeployment
 	name := ""
 	ok := false
 	deployment := azureutils.ADUDeployment{}
-	if provider, ok = c.Properties["update.provider"]; !ok {
+	if provider, ok = c.Properties["update.provider"].(string); !ok {
 		return deployment, errors.New("component doesn't contain a update.provider property")
 	}
-	if version, ok = c.Properties["update.version"]; !ok {
+	if version, ok = c.Properties["update.version"].(string); !ok {
 		return deployment, errors.New("component doesn't contain a update.version property")
 	}
-	if name, ok = c.Properties["update.name"]; !ok {
+	if name, ok = c.Properties["update.name"].(string); !ok {
 		return deployment, errors.New("component doesn't contain a update.name property")
 	}
 	deployment.DeploymentId = uuid.New().String()

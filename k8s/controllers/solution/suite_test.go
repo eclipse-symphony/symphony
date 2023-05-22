@@ -17,11 +17,13 @@ limitations under the License.
 package solution
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/yaml"
 
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	//+kubebuilder:scaffold:imports
@@ -47,6 +50,36 @@ func TestAPIs(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
+}
+
+func TestUnmarshalSolution(t *testing.T) {
+	solutionYaml := `apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: sample-staged-solution
+spec:  
+  components:
+  - name: staged-component
+    properties:
+      foo: "bar"
+      bar:
+        baz: "qux"
+`
+	solution := &solutionv1.Solution{}
+	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	assert.NoError(t, err)
+
+	expectedProperties := map[string]interface{}{
+		"foo": "bar",
+		"bar": map[string]interface{}{
+			"baz": "qux",
+		},
+	}
+	actualProperties := map[string]interface{}{}
+	err = json.Unmarshal(solution.Spec.Components[0].Properties.Raw, &actualProperties)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedProperties, actualProperties)
 }
 
 var _ = BeforeSuite(func() {

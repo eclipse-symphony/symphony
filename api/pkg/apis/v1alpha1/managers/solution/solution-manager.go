@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -521,7 +522,7 @@ func (s *SolutionManager) Reconcil() []error {
 func findAgent(target model.TargetSpec) string {
 	for _, c := range target.Components {
 		if v, ok := c.Properties[model.ContainerImage]; ok {
-			if strings.Contains(v, SYMPHONY_AGENT) {
+			if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
 				return c.Name
 			}
 		}

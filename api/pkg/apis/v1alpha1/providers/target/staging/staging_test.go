@@ -99,7 +99,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 				{
 					Name: "policies",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
@@ -130,7 +130,7 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 				{
 					Name: "policies",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},

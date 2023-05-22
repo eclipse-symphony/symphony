@@ -88,6 +88,17 @@ func StringStringMapsEqual(a map[string]map[string]string, b map[string]map[stri
 	return true
 }
 
+// Compatibility Helper
+func ExtractRawEnvFromProperties(properties map[string]interface{}) map[string]string {
+	env := make(map[string]string)
+	for k, v := range properties {
+		if strings.HasPrefix(k, "env.") {
+			env[k] = fmt.Sprintf("%v", v)
+		}
+	}
+	return env
+}
+
 func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 	// if len(a) != len(b) {
 	// 	return false
@@ -188,11 +199,38 @@ func CheckProperty(a map[string]string, b map[string]string, key string, ignoreC
 	}
 	return true
 }
+
+func CheckPropertyCompat(a map[string]interface{}, b map[string]interface{}, key string, ignoreCase bool) bool {
+	if va, oka := a[key]; oka {
+		if vb, okb := b[key]; okb {
+			if ignoreCase {
+				return strings.EqualFold(fmt.Sprintf("%v", va), fmt.Sprintf("%v", vb))
+			} else {
+				return va == vb
+			}
+		}
+		return false
+	}
+	return true
+}
+
 func HasSameProperty(a map[string]string, b map[string]string, key string) bool {
 	va, oka := a[key]
 	vb, okb := b[key]
 	if oka && okb {
 		return va == vb
+	} else if !oka && !okb {
+		return true
+	} else {
+		return false
+	}
+}
+
+func HasSamePropertyCompat(a map[string]interface{}, b map[string]interface{}, key string) bool {
+	va, oka := a[key]
+	vb, okb := b[key]
+	if oka && okb {
+		return fmt.Sprintf("%v", va) == fmt.Sprintf("%v", vb)
 	} else if !oka && !okb {
 		return true
 	} else {
@@ -206,10 +244,10 @@ type ValueInjections struct {
 	TargetId   string
 }
 
-func CollectPropertiesWithPrefix(col map[string]string, prefix string, injections *ValueInjections, withHierarchy bool) map[string]interface{} {
+func CollectPropertiesWithPrefix(col map[string]interface{}, prefix string, injections *ValueInjections, withHierarchy bool) map[string]interface{} {
 	ret := make(map[string]interface{})
 	for k, v := range col {
-		if strings.HasPrefix(k, prefix) {
+		if v, ok := v.(string); ok && strings.HasPrefix(k, prefix) {
 			key := k[len(prefix):]
 			if withHierarchy {
 				strvals.ParseInto(fmt.Sprintf("%s=%s", key, ResolveString(v, injections)), ret)
@@ -220,6 +258,14 @@ func CollectPropertiesWithPrefix(col map[string]string, prefix string, injection
 	}
 	return ret
 }
+
+func ReadPropertyCompat(col map[string]interface{}, key string, injections *ValueInjections) string {
+	if v, ok := col[key]; ok {
+		return ResolveString(fmt.Sprintf("%v", v), injections)
+	}
+	return ""
+}
+
 func ReadProperty(col map[string]string, key string, injections *ValueInjections) string {
 	if v, ok := col[key]; ok {
 		return ResolveString(v, injections)

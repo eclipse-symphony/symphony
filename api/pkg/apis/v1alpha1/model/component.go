@@ -13,18 +13,21 @@ limitations under the License.
 
 package model
 
-import "errors"
+import (
+	"errors"
+	"reflect"
+)
 
 type ComponentSpec struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
-	Properties   map[string]string `json:"properties,omitempty"`
-	Parameters   map[string]string `json:"parameters,omitempty"`
-	Routes       []RouteSpec       `json:"routes,omitempty"`
-	Constraints  []ConstraintSpec  `json:"constraints,omitempty"`
-	Dependencies []string          `json:"dependencies,omitempty"`
-	Skills       []string          `json:"skills,omitempty"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type,omitempty"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
+	Properties   map[string]interface{} `json:"properties,omitempty"`
+	Parameters   map[string]string      `json:"parameters,omitempty"`
+	Routes       []RouteSpec            `json:"routes,omitempty"`
+	Constraints  []ConstraintSpec       `json:"constraints,omitempty"`
+	Dependencies []string               `json:"dependencies,omitempty"`
+	Skills       []string               `json:"skills,omitempty"`
 }
 
 func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid using reflect, which has performance problems
@@ -37,7 +40,8 @@ func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid us
 	if c.Name != otherC.Name {
 		return false, nil
 	}
-	if !StringMapsEqual(c.Properties, otherC.Properties, []string{"container.version", "container.type", "app.package.path"}) {
+
+	if !reflect.DeepEqual(c.Properties, otherC.Properties) {
 		return false, nil
 	}
 	if !StringMapsEqual(c.Metadata, otherC.Metadata, []string{"SYMPHONY_AGENT_ADDRESS"}) {

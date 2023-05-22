@@ -141,7 +141,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 					{
 						Name: embed_component,
 						Type: embed_type,
-						Properties: map[string]string{
+						Properties: map[string]interface{}{
 							embed_property: string(request.Body),
 						},
 					},

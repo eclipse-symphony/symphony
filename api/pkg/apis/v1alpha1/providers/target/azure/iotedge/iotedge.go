@@ -298,26 +298,30 @@ func isSame(a model.ComponentSpec, b model.ComponentSpec) bool {
 	if a.Name != b.Name {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, "container.restartPolicy", true) {
+	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.restartPolicy", true) {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, "container.createOptions", false) {
+	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.createOptions", false) {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, "container.version", false) {
+	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.version", false) {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, "container.type", false) {
+	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.type", false) {
 		return false
 	}
-	if !model.CheckProperty(a.Properties, b.Properties, model.ContainerImage, false) {
+	if !model.CheckPropertyCompat(a.Properties, b.Properties, model.ContainerImage, false) {
 		return false
 	}
 	for k, v := range a.Properties {
-		if !strings.Contains(v, "$instance()") {
-			if strings.HasPrefix(k, "desired.") || strings.HasPrefix(k, "env.") {
-				if !model.CheckProperty(a.Properties, b.Properties, k, false) {
-					return false
+		// TODO: Transition from map[string]string to map[string]interface{}
+		// for now we would only do this for string properties
+		if sv, ok := v.(string); ok {
+			if !strings.Contains(sv, "$instance()") {
+				if strings.HasPrefix(k, "desired.") || strings.HasPrefix(k, "env.") {
+					if !model.CheckPropertyCompat(a.Properties, b.Properties, k, false) {
+						return false
+					}
 				}
 			}
 		}
@@ -448,7 +452,7 @@ func toComponent(hubTwin ModuleTwin, twin ModuleTwin, name string, module Module
 	moduleId, _ := reduceKey(twin.ModuleId, name)
 	component := model.ComponentSpec{
 		Name:       moduleId,
-		Properties: make(map[string]string),
+		Properties: make(map[string]interface{}),
 		Routes:     make([]model.RouteSpec, 0),
 	}
 	for k, v := range module.Environments {
@@ -538,9 +542,9 @@ func toComponent(hubTwin ModuleTwin, twin ModuleTwin, name string, module Module
 	}
 	return component, nil
 }
-func readProperty(properties map[string]string, key string, defaultVal string, required bool) (string, error) {
+func readProperty(properties map[string]interface{}, key string, defaultVal string, required bool) (string, error) {
 	if v, ok := properties[key]; ok && v != "" {
-		return v, nil
+		return fmt.Sprintf("%v", v), nil
 	}
 	if required && defaultVal == "" {
 		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missng", key), v1alpha2.BadRequest)
@@ -584,17 +588,21 @@ func toModule(component model.ComponentSpec, name string, agentName string) (Mod
 	module.IotHubRoutes = make(map[string]string)
 	module.Environments = make(map[string]EnvValue)
 	for k, v := range component.Properties {
-		tv := utils.ProjectValue(v, name)
-		if strings.HasPrefix(k, "desired.") {
-			module.DesiredProperties[k[8:]] = tv
-			// } else if strings.HasPrefix(k, "graph.") {
-			// 	if k == "graph.methodFlavor" {
-			// 		module.GraphFlavor = v
-			// 	} else {
-			// 		module.Graph[k[6:]] = v
-			// 	}
-		} else if strings.HasPrefix(k, "env.") {
-			module.Environments[k[4:]] = EnvValue{Value: tv}
+		// TODO: Transition from map[string]string to map[string]interface{}
+		// for now we would only do this for string properties
+		if sv, ok := v.(string); ok {
+			tv := utils.ProjectValue(sv, name)
+			if strings.HasPrefix(k, "desired.") {
+				module.DesiredProperties[k[8:]] = tv
+				// } else if strings.HasPrefix(k, "graph.") {
+				// 	if k == "graph.methodFlavor" {
+				// 		module.GraphFlavor = v
+				// 	} else {
+				// 		module.Graph[k[6:]] = v
+				// 	}
+			} else if strings.HasPrefix(k, "env.") {
+				module.Environments[k[4:]] = EnvValue{Value: tv}
+			}
 		}
 	}
 

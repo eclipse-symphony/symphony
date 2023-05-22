@@ -39,7 +39,7 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 				{
 					Name: "redis-test",
 					Type: "container",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.ContainerImage: "redis:latest",
 					},
 				},
@@ -64,7 +64,7 @@ func TestDockerTargetProviderGet(t *testing.T) {
 				{
 					Name: "redis-test",
 					Type: "container",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.ContainerImage: "redis:latest",
 					},
 				},
@@ -92,7 +92,7 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 				{
 					Name: "redis-test",
 					Type: "container",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.ContainerImage: "redis:latest",
 					},
 				},

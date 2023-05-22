@@ -149,7 +149,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 				{
 					Name: "gatekeepr",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
@@ -179,7 +179,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 				{
 					Name: "policies",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
@@ -209,7 +209,7 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 				{
 					Name: "gatekeepr1",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
@@ -240,7 +240,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 				{
 					Name: "policies",
 					Type: "yaml.k8s",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},

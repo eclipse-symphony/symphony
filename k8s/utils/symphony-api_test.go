@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestSimpleStringMatch(t *testing.T) {
@@ -322,4 +323,64 @@ func TestTargetSelectorWildcardMatch(t *testing.T) {
 	}
 	ts := MatchTargets(instance, targets)
 	assert.Equal(t, 3, len(ts))
+}
+
+func TestCreateSymphonyDeployment(t *testing.T) {
+	instance := solutionv1.Instance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-instance",
+		},
+		Spec: solutionv1.InstanceSpec{
+			Target: solutionv1.TargetSpec{
+				Selector: map[string]string{
+					"tag": "floor-*",
+				},
+			},
+		},
+	}
+	targets := []fabricv1.Target{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "gateway-1",
+			},
+			Spec: fabricv1.TargetSpec{
+				DisplayName: "gateway-1",
+				Properties: map[string]string{
+					"tag": "floor-23",
+				},
+				Components: []fabricv1.ComponentSpec{
+					{
+						Properties: runtime.RawExtension{
+							Raw: []byte(`{"targetKey": "targetValue", "nested": {"targetKey2": "targetValue2"}}`),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	solution := solutionv1.Solution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-solution",
+		},
+		Spec: solutionv1.SolutionSpec{
+			Components: []solutionv1.ComponentSpec{
+				{
+					Properties: runtime.RawExtension{
+						Raw: []byte(`{"key": "value", "nested": {"key": "value"}}`),
+					},
+				},
+			},
+		},
+	}
+	deployment, err := CreateSymphonyDeployment(instance, solution, targets, []fabricv1.Device{})
+	assert.NoError(t, err)
+	assert.IsType(t, map[string]interface{}{}, deployment.Solution.Components[0].Properties)
+	assert.IsType(t, map[string]interface{}{}, deployment.Targets["gateway-1"].Components[0].Properties)
+	propertiesMap := deployment.Solution.Components[0].Properties
+	assert.Equal(t, "value", propertiesMap["key"])
+	assert.Equal(t, "value", propertiesMap["nested"].(map[string]interface{})["key"])
+	targetPropertiesMap := deployment.Targets["gateway-1"].Components[0].Properties
+	assert.Equal(t, "targetValue", targetPropertiesMap["targetKey"])
+	assert.Equal(t, "targetValue2", targetPropertiesMap["nested"].(map[string]interface{})["targetKey2"])
 }

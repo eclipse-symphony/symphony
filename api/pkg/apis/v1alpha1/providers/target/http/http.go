@@ -148,9 +148,9 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	for _, component := range components {
 
-		body := model.ReadProperty(component.Properties, "http.body", injections)
-		url := model.ReadProperty(component.Properties, "http.url", injections)
-		method := model.ReadProperty(component.Properties, "http.method", injections)
+		body := model.ReadPropertyCompat(component.Properties, "http.body", injections)
+		url := model.ReadPropertyCompat(component.Properties, "http.url", injections)
+		method := model.ReadPropertyCompat(component.Properties, "http.method", injections)
 
 		if url == "" {
 			err := errors.New("component doesn't have a http.url property")

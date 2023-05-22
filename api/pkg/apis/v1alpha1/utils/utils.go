@@ -43,7 +43,7 @@ func evaluateTargetCompatibility(target model.TargetSpec, component model.Compon
 	if score1 < 0 {
 		score1 = 0
 	}
-	score2, err := evaluateConstraints(component.Constraints, target.Properties)
+	score2, err := evaluateConstraints(component.Constraints, toInterfaceMap(target.Properties))
 	if err != nil {
 		return -1, err
 	}
@@ -56,7 +56,7 @@ func evaluateTargetCompatibility(target model.TargetSpec, component model.Compon
 	return score1 + score2, nil
 }
 
-func evaluateConstraints(constraints interface{}, properties map[string]string) (int, error) {
+func evaluateConstraints(constraints interface{}, properties map[string]interface{}) (int, error) {
 	data, _ := json.Marshal(constraints)
 	var cons []model.ConstraintSpec
 	json.Unmarshal(data, &cons)
@@ -81,13 +81,16 @@ func evaluateConstraints(constraints interface{}, properties map[string]string) 
 	}
 }
 
+// TODO: Re-visit constraint logic now that properties is a map[string]interface{}
+// In the interim, we would only analize string properties at the root level
+//
 // Evaluate a constraint. Returns:  -1 = denied; -2 = allowed; -3 = value presents but no decision is made; 0-n = preferred value
-func evaluateConstraint(constraint model.ConstraintSpec, properties map[string]string) (int, error) {
+func evaluateConstraint(constraint model.ConstraintSpec, properties map[string]interface{}) (int, error) {
 	if constraint.Key == "" {
 		return -1, errors.New("constraint is missing key")
 	}
 	if constraint.Value != "" {
-		if v, ok := properties[constraint.Key]; ok && matchString(constraint.Value, v) {
+		if v, ok := properties[constraint.Key].(string); ok && matchString(constraint.Value, v) {
 			switch constraint.Qualifier {
 			case Reject:
 				return -1, nil
@@ -198,6 +201,18 @@ func GetString(col map[string]string, key string) (string, error) {
 	}
 	return "", fmt.Errorf("key %s is not found", key)
 }
+
+func ReadStringFromMapCompat(col map[string]interface{}, key string, defaultVal string) string {
+	if v, ok := col[key]; ok {
+		i, e := ParseValue(fmt.Sprintf("%v", v))
+		if e != nil {
+			return defaultVal
+		}
+		return i.(string)
+	}
+	return defaultVal
+}
+
 func ReadString(col map[string]string, key string, defaultVal string) string {
 	if v, ok := col[key]; ok {
 		i, e := ParseValue(v)
@@ -335,4 +350,12 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 		}
 	}
 	return jData, nil
+}
+
+func toInterfaceMap(m map[string]string) map[string]interface{} {
+	ret := make(map[string]interface{})
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
 }

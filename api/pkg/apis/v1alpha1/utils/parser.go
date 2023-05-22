@@ -701,16 +701,51 @@ func (p *Parser) function() Node {
 func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error) {
 	ret := context.DeploymentSpec
 	for ic, c := range context.DeploymentSpec.Solution.Components {
-		for k, v := range c.Properties {
-			context.Component = c.Name
-			parser := NewParser(v)
-			val, err := parser.Eval(context)
-			if err != nil {
-				return ret, err
-			}
-			ret.Solution.Components[ic].Properties[k] = val
+		val, err := evalProperties(context, c.Properties)
+		if err != nil {
+			return ret, err
 		}
+		props, ok := val.(map[string]interface{})
+		if !ok {
+			return ret, fmt.Errorf("properties must be a map")
+		}
+		ret.Solution.Components[ic].Properties = props
 
 	}
 	return ret, nil
+}
+
+func evalProperties(context EvaluationContext, properties interface{}) (interface{}, error) {
+	switch props := properties.(type) {
+	case map[string]interface{}:
+		for k, v := range props {
+			val, err := evalProperties(context, v)
+			if err != nil {
+				return nil, err
+			}
+			props[k] = val
+		}
+	case []interface{}:
+		for i, v := range props {
+			val, err := evalProperties(context, v)
+			if err != nil {
+				return nil, err
+			}
+			props[i] = val
+		}
+	case string:
+		parser := NewParser(props)
+		val, err := parser.Eval(context)
+		if err != nil {
+			return nil, err
+		}
+		properties = val
+	case float64:
+	case bool:
+	case nil:
+	case int:
+	default:
+		return nil, fmt.Errorf("unsupported type %T", properties)
+	}
+	return properties, nil
 }

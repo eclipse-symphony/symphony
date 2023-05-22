@@ -80,7 +80,7 @@ func TestGetVMDevice(t *testing.T) {
 
 func TestToMoudleEmptyVersion(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.version":  "",
 			"container.type":     "docker",
 			model.ContainerImage: "docker/hello-world",
@@ -94,7 +94,7 @@ func TestToMoudleEmptyVersion(t *testing.T) {
 
 func TestToMoudleNoVersions(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.type":     "docker",
 			model.ContainerImage: "docker/hello-world",
 		},
@@ -107,7 +107,7 @@ func TestToMoudleNoVersions(t *testing.T) {
 
 func TestToMoudleEmptyType(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.version":  "1.0",
 			"container.type":     "",
 			model.ContainerImage: "docker/hello-world",
@@ -121,7 +121,7 @@ func TestToMoudleEmptyType(t *testing.T) {
 
 func TestToMoudleNoTypes(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.version":  "1.0",
 			model.ContainerImage: "docker/hello-world",
 		},
@@ -134,7 +134,7 @@ func TestToMoudleNoTypes(t *testing.T) {
 
 func TestToMoudleEmptyImage(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.version":  "1.0",
 			"container.type":     "docker",
 			model.ContainerImage: "",
@@ -148,7 +148,7 @@ func TestToMoudleEmptyImage(t *testing.T) {
 
 func TestToMoudleNoImage(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"container.version": "1.0",
 			"container.type":    "docker",
 		},
@@ -160,7 +160,7 @@ func TestToMoudleNoImage(t *testing.T) {
 }
 func TestToModuleDesiredProperties(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"image":              "docker/hello-world",
 			"desired.A1":         "ABC",
 			"desired.A2":         "DEF",
@@ -176,7 +176,7 @@ func TestToModuleDesiredProperties(t *testing.T) {
 }
 func TestToModuleDesiredPropertiesWithAgent(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"image":              "docker/hello-world",
 			"desired.A1":         "ABC",
 			"desired.A2":         "DEF",
@@ -193,7 +193,7 @@ func TestToModuleDesiredPropertiesWithAgent(t *testing.T) {
 }
 func TestToModuleEnvVariables(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"image":              "docker/hello-world",
 			"env.A1":             "ABC",
 			"env.A2":             "DEF",

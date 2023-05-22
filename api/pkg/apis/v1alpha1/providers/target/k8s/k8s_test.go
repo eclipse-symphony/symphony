@@ -167,7 +167,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 	}, []model.ComponentSpec{
 		{
 			Name: "evs",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
 				"container.ports":           "[{\"containerPort\":8888}]",
 				"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
@@ -177,7 +177,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 		},
 		{
 			Name: "rocket",
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"container.image":           "evaamscontreg.azurecr.io/rocket:detection",
 				"container.ports":           "[{\"containerPort\":7788}]",
 				"container.args":            "[\"pipeline=3\", \"line=https://aka.ms/lineeast960\", \"cat=car person\"]",

@@ -40,7 +40,7 @@ func TestGetOneDesired(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "MyApp",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.AppPackage: "com.sec.hiddenmenu",
 					},
 				},
@@ -66,7 +66,7 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "MyApp",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.AppPackage: "doesnt.exist",
 					},
 				},
@@ -92,7 +92,7 @@ func TestApply(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "MyApp",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.AppPackage: "com.companyname.beacon",
 						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
 					},
@@ -118,7 +118,7 @@ func TestRemove(t *testing.T) {
 			Components: []model.ComponentSpec{
 				{
 					Name: "MyApp",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						model.AppPackage: "com.companyname.beacon",
 						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
 					},

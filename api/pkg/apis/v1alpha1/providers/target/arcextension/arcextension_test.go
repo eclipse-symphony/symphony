@@ -57,7 +57,7 @@ func TestExtensionTargetProviderGet(t *testing.T) {
 				{
 					Name: "ClusterMonitor",
 					Type: "arc-extension",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":      "77969078-2897-47b0-9143-917252379303",
 						"extensionName":       "ClusterMonitor",
 						"extensionType":       "azuremonitor-containers",
@@ -96,7 +96,7 @@ func TestExtensionTargetProviderInstall(t *testing.T) {
 				{
 					Name: "ClusterMonitor",
 					Type: "arc-extension",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":          "77969078-2897-47b0-9143-917252379303",
 						"extensionName":           "ClusterMonitor",
 						"extensionType":           "azuremonitor-containers",
@@ -137,7 +137,7 @@ func TestExtensionTargetProviderRemove(t *testing.T) {
 				{
 					Name: "ClusterMonitor",
 					Type: "arc-extension",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":      "77969078-2897-47b0-9143-917252379303",
 						"extensionName":       "ClusterMonitor",
 						"extensionType":       "azuremonitor-containers",

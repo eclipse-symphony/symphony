@@ -1009,7 +1009,7 @@ func TestEvaluateDeployment(t *testing.T) {
 							"a": "b",
 							"c": "d",
 						},
-						Properties: map[string]string{
+						Properties: map[string]interface{}{
 							"foo": "$param(a)",
 							"bar": "$param(c) + ' ' + $param(a)",
 						},
@@ -1023,4 +1023,168 @@ func TestEvaluateDeployment(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
 	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
+}
+
+func TestEvaluateDeploymentWithNestedProperties(t *testing.T) {
+	context := EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Properties: map[string]interface{}{
+							"nested": map[string]interface{}{
+								"foo": "$param(a)",
+								"array": []interface{}{
+									"$param(a)",
+									"$param(c) + ' ' + $param(a)",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	nested, ok := deployment.Solution.Components[0].Properties["nested"].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "new-value", nested["foo"])
+	array, ok := nested["array"].([]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "new-value", array[0])
+	assert.Equal(t, "d new-value", array[1])
+}
+func TestEvaluateDeploymentWithSupportedTypedProperties(t *testing.T) {
+	context := EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Properties: map[string]interface{}{
+							"stringProp": "$param(a)",
+							"array":      []interface{}{"$param(a)", true},
+							"boolProp":   false,
+							"intProp":    1,
+							"floatProp":  1.1,
+							"nullProp":   nil,
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["stringProp"])
+	arr, ok := deployment.Solution.Components[0].Properties["array"].([]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "new-value", arr[0])
+	assert.Equal(t, true, arr[1])
+	assert.Equal(t, false, deployment.Solution.Components[0].Properties["boolProp"])
+	assert.Equal(t, 1, deployment.Solution.Components[0].Properties["intProp"])
+	assert.Equal(t, 1.1, deployment.Solution.Components[0].Properties["floatProp"])
+	assert.Equal(t, nil, deployment.Solution.Components[0].Properties["nullProp"])
+}
+func TestEvaluateDeploymentWithUnsupportedFunctionProperty(t *testing.T) {
+	context := EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Properties: map[string]interface{}{
+							"foo":         "$param(a)",
+							"bar":         "$param(c) + ' ' + $param(a)",
+							"unssuported": func() {},
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	_, err := EvaluateDeployment(context)
+	assert.NotNil(t, err)
+	assert.Equal(t, "unsupported type func()", err.Error())
+}
+
+func TestEvaluateDeploymentWithUnsupportedPointerProperty(t *testing.T) {
+	val := "new-value"
+	context := EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Properties: map[string]interface{}{
+							"foo":         "$param(a)",
+							"bar":         "$param(c) + ' ' + $param(a)",
+							"unssuported": &val,
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	_, err := EvaluateDeployment(context)
+	assert.NotNil(t, err)
+	assert.Equal(t, "unsupported type *string", err.Error())
 }

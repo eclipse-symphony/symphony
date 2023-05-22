@@ -369,7 +369,9 @@ func (i *K8sTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Com
 		found := false
 		for _, c := range current {
 			if c.Name == d.Name && c.Properties[model.ContainerImage] == d.Properties[model.ContainerImage] {
-				if model.EnvMapsEqual(c.Properties, d.Properties) {
+				currentEnv := model.ExtractRawEnvFromProperties(c.Properties)
+				desiredEnv := model.ExtractRawEnvFromProperties(d.Properties)
+				if model.EnvMapsEqual(currentEnv, desiredEnv) {
 					found = true
 					break
 				}
@@ -582,7 +584,7 @@ func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, er
 	for i, c := range deployment.Spec.Template.Spec.Containers {
 		component := model.ComponentSpec{
 			Name:       c.Name,
-			Properties: make(map[string]string),
+			Properties: make(map[string]interface{}),
 		}
 		component.Properties[model.ContainerImage] = c.Image
 		policy := string(c.ImagePullPolicy)
@@ -687,7 +689,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 	}
 	for _, c := range components {
 		ports := make([]apiv1.ContainerPort, 0)
-		if v, ok := c.Properties["container.ports"]; ok && v != "" {
+		if v, ok := c.Properties["container.ports"].(string); ok && v != "" {
 			e := json.Unmarshal([]byte(v), &ports)
 			if e != nil {
 				return nil, e
@@ -695,13 +697,13 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		container := apiv1.Container{
 			Name:            c.Name,
-			Image:           c.Properties[model.ContainerImage],
+			Image:           c.Properties[model.ContainerImage].(string),
 			Ports:           ports,
-			ImagePullPolicy: apiv1.PullPolicy(utils.ReadString(c.Properties, "container.imagePullPolicy", "Always")),
+			ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(c.Properties, "container.imagePullPolicy", "Always")),
 		}
 		if v, ok := c.Properties["container.args"]; ok && v != "" {
 			args := make([]string, 0)
-			e := json.Unmarshal([]byte(v), &args)
+			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &args)
 			if e != nil {
 				return nil, e
 			}
@@ -709,7 +711,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		if v, ok := c.Properties["container.commands"]; ok && v != "" {
 			cmds := make([]string, 0)
-			e := json.Unmarshal([]byte(v), &cmds)
+			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &cmds)
 			if e != nil {
 				return nil, e
 			}
@@ -717,7 +719,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		if v, ok := c.Properties["container.resources"]; ok && v != "" {
 			res := apiv1.ResourceRequirements{}
-			e := json.Unmarshal([]byte(v), &res)
+			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &res)
 			if e != nil {
 				return nil, e
 			}
@@ -725,22 +727,27 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		if v, ok := c.Properties["container.volumeMounts"]; ok && v != "" {
 			mounts := make([]apiv1.VolumeMount, 0)
-			e := json.Unmarshal([]byte(v), &mounts)
+			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &mounts)
 			if e != nil {
 				return nil, e
 			}
 			container.VolumeMounts = mounts
 		}
 		for k, v := range c.Properties {
-			tv := utils.ProjectValue(v, instanceName)
-			if strings.HasPrefix(k, "env.") {
-				if container.Env == nil {
-					container.Env = make([]apiv1.EnvVar, 0)
+			// Transitioning from map[string]string to map[string]interface{}
+			// for now we'll assume that all relevant values are strings till we
+			// refactor the code to handle the new format
+			if sv, ok := v.(string); !ok {
+				tv := utils.ProjectValue(sv, instanceName)
+				if strings.HasPrefix(k, "env.") {
+					if container.Env == nil {
+						container.Env = make([]apiv1.EnvVar, 0)
+					}
+					container.Env = append(container.Env, apiv1.EnvVar{
+						Name:  k[4:],
+						Value: tv,
+					})
 				}
-				container.Env = append(container.Env, apiv1.EnvVar{
-					Name:  k[4:],
-					Value: tv,
-				})
 			}
 		}
 		agentName := metadata[ENV_NAME]

@@ -201,7 +201,7 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 		ret = append(ret, model.ComponentSpec{
 			Name: deployment.Name,
 			Type: deployment.Type,
-			Properties: map[string]string{
+			Properties: map[string]interface{}{
 				"resourceGroupName": deployment.ResourceGroupName,
 				"resourceName":      deployment.ResourceName,
 			},

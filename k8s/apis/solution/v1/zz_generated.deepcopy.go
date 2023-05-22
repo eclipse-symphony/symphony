@@ -42,7 +42,6 @@ func (in *BindingSpec) DeepCopy() *BindingSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(BindingSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -62,7 +61,6 @@ func (in *Campaign) DeepCopy() *Campaign {
 	if in == nil {
 		return nil
 	}
-
 	out := new(Campaign)
 	in.DeepCopyInto(out)
 	return out
@@ -73,7 +71,6 @@ func (in *Campaign) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -96,7 +93,6 @@ func (in *CampaignList) DeepCopy() *CampaignList {
 	if in == nil {
 		return nil
 	}
-
 	out := new(CampaignList)
 	in.DeepCopyInto(out)
 	return out
@@ -107,7 +103,6 @@ func (in *CampaignList) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -121,7 +116,6 @@ func (in *CampaignSpec) DeepCopy() *CampaignSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(CampaignSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -137,7 +131,6 @@ func (in *CampaignStatus) DeepCopy() *CampaignStatus {
 	if in == nil {
 		return nil
 	}
-
 	out := new(CampaignStatus)
 	in.DeepCopyInto(out)
 	return out
@@ -153,15 +146,7 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 			(*out)[key] = val
 		}
 	}
-
-	if in.Properties != nil {
-		in, out := &in.Properties, &out.Properties
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-
+	in.Properties.DeepCopyInto(&out.Properties)
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
 		*out = make([]RouteSpec, len(*in))
@@ -169,7 +154,6 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-
 	if in.Constraints != nil {
 		in, out := &in.Constraints, &out.Constraints
 		*out = make([]ConstraintSpec, len(*in))
@@ -177,13 +161,11 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-
 	if in.Dependencies != nil {
 		in, out := &in.Dependencies, &out.Dependencies
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-
 	if in.Skills != nil {
 		in, out := &in.Skills, &out.Skills
 		*out = make([]string, len(*in))
@@ -196,7 +178,6 @@ func (in *ComponentSpec) DeepCopy() *ComponentSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(ComponentSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -217,7 +198,6 @@ func (in *ConstraintSpec) DeepCopy() *ConstraintSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(ConstraintSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -233,7 +213,6 @@ func (in *ErrorType) DeepCopy() *ErrorType {
 	if in == nil {
 		return nil
 	}
-
 	out := new(ErrorType)
 	in.DeepCopyInto(out)
 	return out
@@ -256,7 +235,6 @@ func (in *FilterSpec) DeepCopy() *FilterSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(FilterSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -276,7 +254,6 @@ func (in *Instance) DeepCopy() *Instance {
 	if in == nil {
 		return nil
 	}
-
 	out := new(Instance)
 	in.DeepCopyInto(out)
 	return out
@@ -287,7 +264,6 @@ func (in *Instance) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -310,7 +286,6 @@ func (in *InstanceList) DeepCopy() *InstanceList {
 	if in == nil {
 		return nil
 	}
-
 	out := new(InstanceList)
 	in.DeepCopyInto(out)
 	return out
@@ -321,7 +296,6 @@ func (in *InstanceList) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -335,7 +309,6 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 			(*out)[key] = val
 		}
 	}
-
 	if in.Metadata != nil {
 		in, out := &in.Metadata, &out.Metadata
 		*out = make(map[string]string, len(*in))
@@ -343,13 +316,11 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 			(*out)[key] = val
 		}
 	}
-
 	if in.Versions != nil {
 		in, out := &in.Versions, &out.Versions
 		*out = make([]VersionSpec, len(*in))
 		copy(*out, *in)
 	}
-
 	in.Target.DeepCopyInto(&out.Target)
 	if in.Topologies != nil {
 		in, out := &in.Topologies, &out.Topologies
@@ -358,7 +329,6 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-
 	if in.Pipelines != nil {
 		in, out := &in.Pipelines, &out.Pipelines
 		*out = make([]PipelineSpec, len(*in))
@@ -373,7 +343,6 @@ func (in *InstanceSpec) DeepCopy() *InstanceSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(InstanceSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -389,7 +358,6 @@ func (in *InstanceStatus) DeepCopyInto(out *InstanceStatus) {
 			(*out)[key] = val
 		}
 	}
-
 	in.ProvisioningStatus.DeepCopyInto(&out.ProvisioningStatus)
 }
 
@@ -398,7 +366,6 @@ func (in *InstanceStatus) DeepCopy() *InstanceStatus {
 	if in == nil {
 		return nil
 	}
-
 	out := new(InstanceStatus)
 	in.DeepCopyInto(out)
 	return out
@@ -421,7 +388,6 @@ func (in *PipelineSpec) DeepCopy() *PipelineSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(PipelineSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -445,7 +411,6 @@ func (in *ProvisioningStatus) DeepCopy() *ProvisioningStatus {
 	if in == nil {
 		return nil
 	}
-
 	out := new(ProvisioningStatus)
 	in.DeepCopyInto(out)
 	return out
@@ -461,7 +426,6 @@ func (in *RouteSpec) DeepCopyInto(out *RouteSpec) {
 			(*out)[key] = val
 		}
 	}
-
 	if in.Filters != nil {
 		in, out := &in.Filters, &out.Filters
 		*out = make([]FilterSpec, len(*in))
@@ -476,7 +440,6 @@ func (in *RouteSpec) DeepCopy() *RouteSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(RouteSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -496,7 +459,6 @@ func (in *Solution) DeepCopy() *Solution {
 	if in == nil {
 		return nil
 	}
-
 	out := new(Solution)
 	in.DeepCopyInto(out)
 	return out
@@ -507,7 +469,6 @@ func (in *Solution) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -530,7 +491,6 @@ func (in *SolutionList) DeepCopy() *SolutionList {
 	if in == nil {
 		return nil
 	}
-
 	out := new(SolutionList)
 	in.DeepCopyInto(out)
 	return out
@@ -541,7 +501,6 @@ func (in *SolutionList) DeepCopyObject() runtime.Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
-
 	return nil
 }
 
@@ -555,7 +514,6 @@ func (in *SolutionSpec) DeepCopyInto(out *SolutionSpec) {
 			(*out)[key] = val
 		}
 	}
-
 	if in.Components != nil {
 		in, out := &in.Components, &out.Components
 		*out = make([]ComponentSpec, len(*in))
@@ -570,7 +528,6 @@ func (in *SolutionSpec) DeepCopy() *SolutionSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(SolutionSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -593,7 +550,6 @@ func (in *SolutionStatus) DeepCopy() *SolutionStatus {
 	if in == nil {
 		return nil
 	}
-
 	out := new(SolutionStatus)
 	in.DeepCopyInto(out)
 	return out
@@ -616,7 +572,6 @@ func (in *TargetSpec) DeepCopy() *TargetSpec {
 	if in == nil {
 		return nil
 	}
-
 	out := new(TargetSpec)
 	in.DeepCopyInto(out)
 	return out
@@ -632,7 +587,6 @@ func (in *TopologySpec) DeepCopyInto(out *TopologySpec) {
 			(*out)[key] = val
 		}
 	}
-
 	if in.Bindings != nil {
 		in, out := &in.Bindings, &out.Bindings
 		*out = make([]BindingSpec, len(*in))
@@ -647,7 +601,6 @@ func (in *TopologySpec) DeepCopy() *TopologySpec {
 	if in == nil {
 		return nil
 	}
-	
 	out := new(TopologySpec)
 	in.DeepCopyInto(out)
 	return out
@@ -663,7 +616,6 @@ func (in *VersionSpec) DeepCopy() *VersionSpec {
 	if in == nil {
 		return nil
 	}
-	
 	out := new(VersionSpec)
 	in.DeepCopyInto(out)
 	return out

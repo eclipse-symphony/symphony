@@ -18,6 +18,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -43,16 +44,20 @@ type RouteSpec struct {
 }
 
 type ComponentSpec struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
-	Properties   map[string]string `json:"properties,omitempty"`
-	Routes       []RouteSpec       `json:"routes,omitempty"`
-	Constraints  []ConstraintSpec  `json:"constraints,omitempty"`
-	Dependencies []string          `json:"dependencies,omitempty"`
-	Skills       []string          `json:"skills,omitempty"`
+	Name     string            `json:"name"`
+	Type     string            `json:"type,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Properties   ComponentProperties `json:"properties,omitempty"`
+	Routes       []RouteSpec         `json:"routes,omitempty"`
+	Constraints  []ConstraintSpec    `json:"constraints,omitempty"`
+	Dependencies []string            `json:"dependencies,omitempty"`
+	Skills       []string            `json:"skills,omitempty"`
 }
 
+// +k8s:deepcopy-gen=false
+type ComponentProperties = runtime.RawExtension
 type BindingSpec struct {
 	Role     string            `json:"role"`
 	Provider string            `json:"provider"`

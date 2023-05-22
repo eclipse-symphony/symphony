@@ -53,7 +53,7 @@ func (v ValidationRule) validateComponent(component ComponentSpec) error {
 	}
 	// required properties must all present
 	for _, p := range v.RequiredProperties {
-		if ReadProperty(component.Properties, p, nil) == "" {
+		if ReadPropertyCompat(component.Properties, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missing", p), v1alpha2.BadRequest)
 		}
 	}

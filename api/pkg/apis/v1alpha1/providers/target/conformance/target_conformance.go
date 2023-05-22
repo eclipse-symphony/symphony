@@ -38,7 +38,7 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 	desired := []model.ComponentSpec{
 		{
 			Name:       "test-1",
-			Properties: map[string]string{},
+			Properties: map[string]interface{}{},
 			Metadata:   map[string]string{},
 		},
 	}
@@ -67,7 +67,7 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 	desired := []model.ComponentSpec{
 		{
 			Name:       "test-1",
-			Properties: map[string]string{},
+			Properties: map[string]interface{}{},
 			Metadata:   map[string]string{},
 		},
 	}
@@ -79,7 +79,7 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 	}
 
 	for i, _ := range rule.RequiredProperties {
-		desired[0].Properties = make(map[string]string, len(rule.RequiredProperties)-1)
+		desired[0].Properties = make(map[string]interface{}, len(rule.RequiredProperties)-1)
 		slice := append(append([]string{}, rule.RequiredProperties[:i]...), rule.RequiredProperties[i+1:]...)
 		for _, property := range slice {
 			desired[0].Properties[property] = "dummy property"

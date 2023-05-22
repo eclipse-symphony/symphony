@@ -3,6 +3,17 @@
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.23
+KUSTOMIZE_VERSION ?= v4.5.7
+CONTROLLER_GEN_VERSION ?= v0.11.1
+
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+LOCAL_BIN := $(PROJECT_DIR)/bin
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+
+CONTROLLER_GEN = $(LOCAL_BIN)/controller-gen
+ENVTEST = $(LOCAL_BIN)/setup-envtest
+KUSTOMIZE = $(LOCAL_BIN)/kustomize
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -38,6 +49,8 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
+$(LOCAL_BIN):
+	mkdir -p $(LOCAL_BIN)
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -71,6 +84,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
+	go mod vendor
 	docker build --no-cache -t ${IMG} .
 
 .PHONY: docker-push
@@ -105,23 +119,26 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-CONTROLLER_GEN = $(PROJECT_DIR)/bin/controller-gen
+##@ Build Tools
 .PHONY: controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.1)
+controller-gen: $(LOCAL_BIN)  ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
+	@[ -s $(LOCAL_BIN)/controller-gen ] && $(LOCAL_BIN)/controller-gen --version | grep -q $(CONTROLLER_GEN_VERSION) || \
+	GOBIN=$(LOCAL_BIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
 
-KUSTOMIZE = $(PROJECT_DIR)/bin/kustomize
+
 .PHONY: kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5@v5.0.1)
+kustomize: $(LOCAL_BIN) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
+	@if [ -x $(LOCAL_BIN)/kustomize ] && ! $(LOCAL_BIN)/kustomize version | grep -q $(KUSTOMIZE_VERSION); then \
+		echo "$(LOCAL_BIN)/kustomize version is not expected $(KUSTOMIZE_VERSION). Removing it before installing."; \
+		rm -rf $(LOCAL_BIN)/kustomize; \
+	fi
+	@[ -s $(LOCAL_BIN)/kustomize ] || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCAL_BIN); }
 
-ENVTEST = $(PROJECT_DIR)/bin/setup-envtest
 .PHONY: envtest
-envtest: ## Download envtest-setup locally if necessary.
+envtest: $(LOCAL_BIN) ## Download envtest-setup locally if necessary.
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+# go-get-tool will 'go install' any package $2 and install it to LOCAL_BIN if $(1) is not found
 define go-get-tool
 @[ -f $(1) ] || { \
 set -e ;\

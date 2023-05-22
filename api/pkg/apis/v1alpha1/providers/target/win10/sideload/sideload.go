@@ -267,7 +267,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	for _, component := range components {
-		if path, ok := component.Properties["app.package.path"]; ok {
+		if path, ok := component.Properties["app.package.path"].(string); ok {
 			params := make([]string, 0)
 			params = append(params, "install")
 			params = append(params, "-ip")

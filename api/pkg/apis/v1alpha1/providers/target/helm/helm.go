@@ -201,13 +201,13 @@ func (i *HelmTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Co
 		for _, cc := range current {
 			if cc.Name == dc.Name {
 				found = true
-				if !model.HasSameProperty(dc.Properties, cc.Properties, "helm.chart.name") {
+				if !model.HasSamePropertyCompat(dc.Properties, cc.Properties, "helm.chart.name") {
 					differ = true
 					break
 				}
 				// only compare version if desired version is supplied
 				if dc.Properties["helm.chart.version"] != "" {
-					if !model.HasSameProperty(dc.Properties, cc.Properties, "helm.chart.version") {
+					if !model.HasSamePropertyCompat(dc.Properties, cc.Properties, "helm.chart.version") {
 						differ = true
 						break
 					}
@@ -259,7 +259,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 				ret = append(ret, model.ComponentSpec{
 					Name: res.Name,
 					Type: "helm.v3",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"helm.chart.version": res.Chart.Metadata.Version,
 						"helm.chart.repo":    repo,
 						"helm.chart.name":    res.Chart.Metadata.Name,
@@ -347,9 +347,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.Errorf("  P (Helm Target): failed to create registry client: %+v", err)
 				return err
 			}
-			repo := model.ReadProperty(component.Properties, "helm.chart.repo", injections)
-			version := model.ReadProperty(component.Properties, "helm.chart.version", injections)
-			chartName := model.ReadProperty(component.Properties, "helm.chart.name", injections)
+			repo := model.ReadPropertyCompat(component.Properties, "helm.chart.repo", injections)
+			version := model.ReadPropertyCompat(component.Properties, "helm.chart.version", injections)
+			chartName := model.ReadPropertyCompat(component.Properties, "helm.chart.name", injections)
 
 			if repo == "" {
 				err = errors.New("component doesn't have helm.chart.repo property")

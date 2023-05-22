@@ -56,7 +56,7 @@ func TestAzureResourceTargetProviderGet(t *testing.T) {
 				{
 					Name: "customLocation01",
 					Type: "custom-location",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName": "MyResourceGroup",
 						"resourceName":      "customLocation01",
@@ -65,7 +65,7 @@ func TestAzureResourceTargetProviderGet(t *testing.T) {
 				{
 					Name: "resourceSyncRule01",
 					Type: "resource-sync-rule",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName": "MyResourceGroup",
 						"resourceName":      "customLocation01",
@@ -101,7 +101,7 @@ func TestAzureResourceTargetProviderInstall(t *testing.T) {
 				{
 					Name: "customLocation01",
 					Type: "custom-location",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":     "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName":  "MyResourceGroup",
 						"resourceName":       "customLocation01",
@@ -114,7 +114,7 @@ func TestAzureResourceTargetProviderInstall(t *testing.T) {
 				{
 					Name: "resourceSyncRule01",
 					Type: "resource-sync-rule",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":          "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName":       "MyResourceGroup",
 						"resourceName":            "customLocation01",
@@ -156,7 +156,7 @@ func TestAzureResourceTargetProviderRemove(t *testing.T) {
 				{
 					Name: "customLocation01",
 					Type: "custom-location",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName": "MyResourceGroup",
 						"resourceName":      "customLocation01",
@@ -165,7 +165,7 @@ func TestAzureResourceTargetProviderRemove(t *testing.T) {
 				{
 					Name: "resourceSyncRule01",
 					Type: "resource-sync-rule",
-					Properties: map[string]string{
+					Properties: map[string]interface{}{
 						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
 						"resourceGroupName": "MyResourceGroup",
 						"resourceName":      "customLocation01",

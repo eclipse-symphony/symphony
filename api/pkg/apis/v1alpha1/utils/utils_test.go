@@ -14,7 +14,7 @@ func TestSimpleMustConstraint(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x86",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x86",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -28,7 +28,7 @@ func TestSimpleMustConstraintMiss(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x86",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "arm",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -41,7 +41,7 @@ func TestSimpleRejectConstraint(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x86",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x86",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -54,7 +54,7 @@ func TestSimpleRejectConstraintMiss(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x86",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X86",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -67,7 +67,7 @@ func TestSimplePreferConstraint(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -80,7 +80,7 @@ func TestSimplePreferConstraintMiss(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -93,7 +93,7 @@ func TestSimpleEmptyConstraint(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -106,7 +106,7 @@ func TestSimpleEmptyConstraintMiss(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -119,7 +119,7 @@ func TestSimpleInvalidConstraint(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -130,7 +130,7 @@ func TestConstraintWithoutKey(t *testing.T) {
 		Qualifier: "must",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -142,7 +142,7 @@ func TestSimpleInvalidConstraintMiss(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -165,7 +165,7 @@ func TestAnyRejection(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "arm",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -189,7 +189,7 @@ func TestAnyRejectionAllMiss(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "dragon",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -213,7 +213,7 @@ func TestAnyEmptyOperator(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "arm",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -238,7 +238,7 @@ func TestAnyEmptyQualifierDeepReject(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -264,7 +264,7 @@ func TestAnyEmptyQualifierDeepMust(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -288,7 +288,7 @@ func TestAnyEmptyQualifierDeepMissingKey(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -301,7 +301,7 @@ func TestAnyBadJson(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{"BAD JSON"},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "HIJ",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -324,7 +324,7 @@ func TestAnyPreferred(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "arm",
 		"GPU": "t4",
 	}
@@ -349,7 +349,7 @@ func TestAnyMust(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraint(constraint, properties)
@@ -373,7 +373,7 @@ func TestAnyBad(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -396,7 +396,7 @@ func TestBadOperator(t *testing.T) {
 		Key:       "CPU",
 		Values:    []string{string(dataA), string(dataB)},
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -408,7 +408,7 @@ func TestIncomplete(t *testing.T) {
 		Operator:  "bad",
 		Key:       "CPU",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "arm",
 	}
 	_, err := evaluateConstraint(constraint, properties)
@@ -425,7 +425,7 @@ func TestMultipleMust(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 		"GPU": "t4",
 	}
@@ -442,7 +442,7 @@ func TestMultipleMustMissingKey(t *testing.T) {
 		Qualifier: "must",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 		"GPU": "t4",
 	}
@@ -460,7 +460,7 @@ func TestMultipleMustMiss(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 		"GPU": "t4",
 	}
@@ -479,7 +479,7 @@ func TestMultipleReject(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraints([]model.ConstraintSpec{constraintA, constraintB}, properties)
@@ -497,7 +497,7 @@ func TestMultipleRejectMiss(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 		"GPU": "orin",
 	}
@@ -516,7 +516,7 @@ func TestMultiplePreferred(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 		"GPU": "t4",
 	}
@@ -535,7 +535,7 @@ func TestMultiplePreferredMiss(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "X64",
 		"GPU": "T4",
 	}
@@ -554,7 +554,7 @@ func TestMultipleEmpty(t *testing.T) {
 		Key:       "GPU",
 		Value:     "t4",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 		"GPU": "t4",
 	}
@@ -573,7 +573,7 @@ func TestMixedMustAndReject(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraints([]model.ConstraintSpec{constraintA, constraintB}, properties)
@@ -591,7 +591,7 @@ func TestMixedPreferredandReject(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraints([]model.ConstraintSpec{constraintA, constraintB}, properties)
@@ -609,7 +609,7 @@ func TestMixedEmptyandReject(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraints([]model.ConstraintSpec{constraintA, constraintB}, properties)
@@ -627,7 +627,7 @@ func TestMixedMustAndPreferred(t *testing.T) {
 		Key:       "CPU",
 		Value:     "x64",
 	}
-	properties := map[string]string{
+	properties := map[string]interface{}{
 		"CPU": "x64",
 	}
 	res, err := evaluateConstraints([]model.ConstraintSpec{constraintA, constraintB}, properties)
@@ -885,7 +885,7 @@ func TestEvaluateTargetComponentMultipleRejects(t *testing.T) {
 
 func TestTargetMismatchComponent(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"GPU": "T-5",
 		},
 	}
@@ -904,7 +904,7 @@ func TestTargetMismatchComponent(t *testing.T) {
 }
 func TestTargetRejectComponent(t *testing.T) {
 	component := model.ComponentSpec{
-		Properties: map[string]string{
+		Properties: map[string]interface{}{
 			"GPU": "T-4",
 		},
 	}
