@@ -83,10 +83,27 @@ type TargetSpec struct {
 	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
 }
 
+type ErrorType struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// ProvisioningStatus defines the state of the ARM resource for long running operations
+type ProvisioningStatus struct {
+	OperationID  string            `json:"operationId"`
+	Status       string            `json:"status"`
+	FailureCause string            `json:"failureCause,omitempty"`
+	LogErrors    bool              `json:"logErrors,omitempty"`
+	Error        ErrorType         `json:"error,omitempty"`
+	Output       map[string]string `json:"output,omitempty"`
+}
+
 // TargetStatus defines the observed state of Target
 type TargetStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
-	Properties map[string]string `json:"properties,omitempty"`
+	Properties         map[string]string  `json:"properties,omitempty"`
+	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+	LastModified       metav1.Time        `json:"lastModified,omitempty"`
 }
 
 //+kubebuilder:object:root=true

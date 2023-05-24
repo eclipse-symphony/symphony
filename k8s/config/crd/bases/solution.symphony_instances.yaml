@@ -131,6 +131,9 @@ spec:
           status:
             description: InstanceStatus defines the observed state of Instance
             properties:
+              lastModified:
+                format: date-time
+                type: string
               properties:
                 additionalProperties:
                   type: string
@@ -138,6 +141,8 @@ spec:
                   this file'
                 type: object
               provisioningStatus:
+                description: ProvisioningStatus defines the state of the ARM resource
+                  for long running operations
                 properties:
                   error:
                     properties:

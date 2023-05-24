@@ -31,7 +31,8 @@
           "Version": "v1",
           "Group": "fabric.symphony",
           "Kind": "Target",
-          "Name": "targets.fabric.symphony"
+          "Name": "targets.fabric.symphony",
+          "IsAsync": true
       }
   }
   ]

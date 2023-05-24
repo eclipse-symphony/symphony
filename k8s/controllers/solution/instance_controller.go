@@ -32,23 +32,22 @@ import (
 	"strconv"
 	"time"
 
+	fabricv1 "gopls-workspace/apis/fabric/v1"
+	solutionv1 "gopls-workspace/apis/solution/v1"
+	utils "gopls-workspace/utils"
+	provisioningstates "gopls-workspace/utils/models"
+
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
-	utils "gopls-workspace/utils"
-
-	provisioningstates "gopls-workspace/utils/models"
-
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -111,21 +110,25 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err == nil {
 				summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
 				if err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Reconciling, summary)
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Failed, summary, err)
 				}
 
 				if err := r.Update(ctx, instance); err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Reconciling, summary)
+					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
 				} else {
-					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary)
+					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, err)
 					if err != nil {
 						return ctrl.Result{}, err
 					}
 				}
 
 			} else {
+				if instance.Status.Properties == nil {
+					instance.Status.Properties = make(map[string]string)
+				}
 				instance.Status.Properties["status"] = "Failed to create deployment"
 				instance.Status.Properties["status-details"] = err.Error()
+				instance.Status.LastModified = metav1.Now()
 				instance.Status.ProvisioningStatus.Status = provisioningstates.Failed
 				instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 				instance.Status.ProvisioningStatus.Error.Message = err.Error()
@@ -136,8 +139,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 
 		} else if err != "" && errDetails != "" {
+			if instance.Status.Properties == nil {
+				instance.Status.Properties = make(map[string]string)
+			}
 			instance.Status.Properties["status"] = err
 			instance.Status.Properties["status-details"] = errDetails
+			instance.Status.LastModified = metav1.Now()
 			iErr := r.Status().Update(context.Background(), instance)
 			if iErr != nil {
 				return ctrl.Result{}, iErr
@@ -202,7 +209,7 @@ func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Requ
 	return solution, targetCandidates, "", ""
 }
 
-func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, provisioningStatus string, summary model.SummarySpec) error {
+func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, provisioningStatus string, summary model.SummarySpec, provisioningError error) error {
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
@@ -220,10 +227,15 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance,
 	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
 	instance.Status.ProvisioningStatus.Status = provisioningStatus
+	if provisioningError != nil {
+		instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
+		instance.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
+	}
 
 	for k, v := range summary.TargetResults {
 		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 	}
+	instance.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), instance)
 }
 

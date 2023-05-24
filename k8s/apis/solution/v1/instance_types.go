@@ -69,6 +69,7 @@ type ErrorType struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ProvisioningStatus defines the state of the ARM resource for long running operations
 type ProvisioningStatus struct {
 	OperationID  string            `json:"operationId"`
 	Status       string            `json:"status"`
@@ -83,6 +84,7 @@ type InstanceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Properties         map[string]string  `json:"properties,omitempty"`
 	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+	LastModified       metav1.Time        `json:"lastModified,omitempty"`
 }
 
 //+kubebuilder:object:root=true

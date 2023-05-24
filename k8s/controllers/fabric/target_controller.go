@@ -31,16 +31,17 @@ import (
 	"strconv"
 	"time"
 
+	fabricv1 "gopls-workspace/apis/fabric/v1"
+	utils "gopls-workspace/utils"
+	provisioningstates "gopls-workspace/utils/models"
+
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	utils "gopls-workspace/utils"
-
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -87,7 +88,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
 		if err != nil {
 			log.Error(err, "failed to generate Symphony deployment")
-			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", model.SummarySpec{
+			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, model.SummarySpec{
 				TargetCount:  1,
 				SuccessCount: 0,
 				TargetResults: map[string]model.TargetResultSpec{
@@ -96,25 +97,26 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 						Message: err.Error(),
 					},
 				},
-			})
+			}, err)
 		}
 
 		if len(deployment.Assignments) != 0 {
 			summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
 			if err != nil {
 				log.Error(err, "failed to deploy to Symphony")
-				return ctrl.Result{}, r.updateTargetStatus(target, "Failed", summary)
+				return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, summary, err)
 			}
 
 			if err := r.Update(ctx, target); err != nil {
-				return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", summary)
+				return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", provisioningstates.Failed, summary, err)
 			} else {
-				err = r.updateTargetStatus(target, "OK", summary)
+				err = r.updateTargetStatus(target, "OK", provisioningstates.Succeeded, summary, err)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
 			}
 		}
+
 		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
 	} else { // remove
 		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
@@ -128,6 +130,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					log.Error(err, "failed to delete components")
 				}
 			}
+
 			controllerutil.RemoveFinalizer(target, myFinalizerName)
 			if err := r.Update(ctx, target); err != nil {
 				return ctrl.Result{}, err
@@ -138,16 +141,32 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *TargetReconciler) updateTargetStatus(target *fabricv1.Target, status string, summary model.SummarySpec) error {
+func (r *TargetReconciler) updateTargetStatus(target *fabricv1.Target, status string, provisioningStatus string, summary model.SummarySpec, provisioningError error) error {
 	if target.Status.Properties == nil {
 		target.Status.Properties = make(map[string]string)
 	}
+
+	if target.Status.ProvisioningStatus.Status == "" {
+		target.Status.ProvisioningStatus = fabricv1.ProvisioningStatus{
+			Status:      provisioningstates.Reconciling,
+			OperationID: target.ObjectMeta.Annotations["management.azure.com/operationId"],
+		}
+	} else if target.Status.ProvisioningStatus.OperationID == "" {
+		target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations["management.azure.com/operationId"]
+	}
+
 	target.Status.Properties["status"] = status
 	target.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	target.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
+	target.Status.ProvisioningStatus.Status = provisioningStatus
+	if provisioningError != nil {
+		target.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
+		target.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
+	}
 	for k, v := range summary.TargetResults {
 		target.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 	}
+	target.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), target)
 }
 

@@ -282,6 +282,9 @@ spec:
           status:
             description: InstanceStatus defines the observed state of Instance
             properties:
+              lastModified:
+                format: date-time
+                type: string
               properties:
                 additionalProperties:
                   type: string
@@ -289,6 +292,8 @@ spec:
                   this file'
                 type: object
               provisioningStatus:
+                description: ProvisioningStatus defines the state of the ARM resource
+                  for long running operations
                 properties:
                   error:
                     properties:
@@ -1059,9 +1064,7 @@ spec:
                     name:
                       type: string
                     properties:
-                      additionalProperties:
-                        type: string
-                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
                         properties:
@@ -1214,9 +1217,7 @@ spec:
                     name:
                       type: string
                     properties:
-                      additionalProperties:
-                        type: string
-                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
                         properties:
@@ -1323,12 +1324,44 @@ spec:
           status:
             description: TargetStatus defines the observed state of Target
             properties:
+              lastModified:
+                format: date-time
+                type: string
               properties:
                 additionalProperties:
                   type: string
                 description: 'Important: Run "make" to regenerate code after modifying
                   this file'
                 type: object
+              provisioningStatus:
+                description: ProvisioningStatus defines the state of the ARM resource
+                  for long running operations
+                properties:
+                  error:
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - provisioningStatus
             type: object
         type: object
     served: true
