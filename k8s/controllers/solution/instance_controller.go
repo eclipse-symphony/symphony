@@ -86,14 +86,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		instance.Status.Properties = make(map[string]string)
 	}
 
-	if instance.Status.ProvisioningStatus.Status == "" {
-		instance.Status.ProvisioningStatus = solutionv1.ProvisioningStatus{
-			Status:      provisioningstates.Reconciling,
-			OperationID: instance.ObjectMeta.Annotations["management.azure.com/operationId"],
-		}
-	} else if instance.Status.ProvisioningStatus.OperationID == "" {
-		instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
-	}
+	ensureOperationState(instance, provisioningstates.Reconciling)
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
@@ -128,10 +121,10 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				}
 				instance.Status.Properties["status"] = "Failed to create deployment"
 				instance.Status.Properties["status-details"] = err.Error()
-				instance.Status.LastModified = metav1.Now()
-				instance.Status.ProvisioningStatus.Status = provisioningstates.Failed
+				ensureOperationState(instance, provisioningstates.Failed)
 				instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 				instance.Status.ProvisioningStatus.Error.Message = err.Error()
+				instance.Status.LastModified = metav1.Now()
 				iErr := r.Status().Update(context.Background(), instance)
 				if iErr != nil {
 					return ctrl.Result{}, iErr
@@ -144,6 +137,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 			instance.Status.Properties["status"] = err
 			instance.Status.Properties["status-details"] = errDetails
+			ensureOperationState(instance, provisioningstates.Reconciling)
 			instance.Status.LastModified = metav1.Now()
 			iErr := r.Status().Update(context.Background(), instance)
 			if iErr != nil {
@@ -214,19 +208,10 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance,
 		instance.Status.Properties = make(map[string]string)
 	}
 
-	if instance.Status.ProvisioningStatus.Status == "" {
-		instance.Status.ProvisioningStatus = solutionv1.ProvisioningStatus{
-			Status:      provisioningstates.Reconciling,
-			OperationID: instance.ObjectMeta.Annotations["management.azure.com/operationId"],
-		}
-	} else if instance.Status.ProvisioningStatus.OperationID == "" {
-		instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
-	}
-
+	ensureOperationState(instance, provisioningStatus)
 	instance.Status.Properties["status"] = status
 	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
-	instance.Status.ProvisioningStatus.Status = provisioningStatus
 	if provisioningError != nil {
 		instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 		instance.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
@@ -260,4 +245,9 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return ret
 			})).
 		Complete(r)
+}
+
+func ensureOperationState(instance *solutionv1.Instance, provisioningState string) {
+	instance.Status.ProvisioningStatus.Status = provisioningState
+	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
 }

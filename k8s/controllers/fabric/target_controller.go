@@ -146,19 +146,10 @@ func (r *TargetReconciler) updateTargetStatus(target *fabricv1.Target, status st
 		target.Status.Properties = make(map[string]string)
 	}
 
-	if target.Status.ProvisioningStatus.Status == "" {
-		target.Status.ProvisioningStatus = fabricv1.ProvisioningStatus{
-			Status:      provisioningstates.Reconciling,
-			OperationID: target.ObjectMeta.Annotations["management.azure.com/operationId"],
-		}
-	} else if target.Status.ProvisioningStatus.OperationID == "" {
-		target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations["management.azure.com/operationId"]
-	}
-
 	target.Status.Properties["status"] = status
 	target.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	target.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
-	target.Status.ProvisioningStatus.Status = provisioningStatus
+	ensureOperationState(target, provisioningStatus)
 	if provisioningError != nil {
 		target.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 		target.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
@@ -175,4 +166,9 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&fabricv1.Target{}).
 		Complete(r)
+}
+
+func ensureOperationState(target *fabricv1.Target, provisioningState string) {
+	target.Status.ProvisioningStatus.Status = provisioningState
+	target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations["management.azure.com/operationId"]
 }
