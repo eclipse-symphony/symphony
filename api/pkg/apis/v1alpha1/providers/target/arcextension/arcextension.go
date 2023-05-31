@@ -28,7 +28,7 @@ package arcextension
 import (
 	"context"
 	"errors"
-	"strconv"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration"
@@ -52,16 +52,11 @@ type (
 
 	// ArcExtensionTargetProviderProperty ARC extension property
 	ArcExtensionTargetProviderProperty struct {
-		Name                    string `json:"extensionName"`
-		Type                    string `json:"extensionType"`
-		ClusterName             string `json:"clusterName"`
-		ClusterRp               string `json:"clusterRp"`
-		ClusterResourceName     string `json:"clusterResourceName"`
-		ResourceGroup           string `json:"resourceGroup"`
-		Version                 string `json:"apiVersion"`
-		SubscriptionID          string `json:"subscriptionID"`
-		ReleaseTrain            string `json:"releaseTrain,omitempty"`
-		AutoUpgradeMinorVersion string `json:"autoUpgradeMinorVersion,omitempty"`
+		Name           string `json:"extensionName"`
+		Type           string `json:"extensionType"`
+		Cluster        string `json:"cluster"`
+		ResourceGroup  string `json:"resourceGroup"`
+		SubscriptionID string `json:"subscriptionID"`
 	}
 
 	// ArcExtensionTargetProvider ARC extension provider
@@ -72,11 +67,10 @@ type (
 )
 
 const (
-	clusterNameKey         = "clusterName"
-	clusterRpKey           = "clusterRp"
-	clusterResourceNameKey = "clusterResourceName"
-	resourceGroupKey       = "resourceGroup"
-	apiVersionKey          = "apiVersion"
+	clusterKey        = "cluster"
+	resourceGroupKey  = "resourceGroup"
+	versionKey        = "version"
+	subscriptionIDKey = "subscriptionID"
 )
 
 // ArcExtensionTargetProviderConfigFromMap creates the config map for ARC extension provider
@@ -149,7 +143,7 @@ func toArcExtensionTargetProviderConfig(config providers.IProviderConfig) (ArcEx
 // NeedsUpdate checks if the ARC extension needs an update
 func (i *ArcExtensionTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	sLog.Infof(" P (Arc Extension Target): NeedsUpdate: %d - %d", len(desired), len(current))
-	extensionProperty := []string{clusterNameKey, clusterRpKey, clusterResourceNameKey, resourceGroupKey, apiVersionKey}
+	extensionProperty := []string{clusterKey, resourceGroupKey, versionKey, subscriptionIDKey}
 	for _, dc := range desired {
 		found := false
 		for _, cc := range current {
@@ -175,7 +169,7 @@ func (i *ArcExtensionTargetProvider) NeedsUpdate(ctx context.Context, desired []
 // NeedsRemove checks if the Arc extension component needs to be removed
 func (i *ArcExtensionTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	sLog.Infof("  P (Arc Extension Target Provider): NeedsRemove: %d - %d", len(desired), len(current))
-	extensionProperty := []string{clusterNameKey, apiVersionKey}
+	extensionProperty := []string{clusterKey, versionKey, subscriptionIDKey}
 	for _, dc := range desired {
 		for _, cc := range current {
 			if cc.Name == dc.Name && cc.Type == "arc-extension" {
@@ -235,7 +229,13 @@ func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.D
 				return nil, err
 			}
 
-			_, err = clientFactory.NewExtensionsClient().Get(ctx, deployment.ResourceGroup, deployment.ClusterRp, deployment.ClusterResourceName, deployment.ClusterName, deployment.Name, nil)
+			clusterDetails := strings.Split(deployment.Cluster, "/")
+			if len(clusterDetails) < 3 {
+				err = errors.New("ArcExtensionTargetProvider cluster details are missing")
+				return ret, err
+			}
+
+			_, err = clientFactory.NewExtensionsClient().Get(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, nil)
 			if err != nil {
 				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
 				return nil, err
@@ -245,11 +245,8 @@ func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.D
 				Name: deployment.Name,
 				Type: deployment.Type,
 				Properties: map[string]interface{}{
-					"clusterName":         deployment.ClusterName,
-					"clusterRp":           deployment.ClusterRp,
-					"clusterResourceName": deployment.ClusterResourceName,
-					"resourceGroup":       deployment.ResourceGroup,
-					"apiVersion":          deployment.Version,
+					"cluster":       deployment.Cluster,
+					"resourceGroup": deployment.ResourceGroup,
 				},
 			})
 		}
@@ -299,7 +296,13 @@ func (i *ArcExtensionTargetProvider) Remove(ctx context.Context, deployment mode
 				return err
 			}
 
-			_, err = clientFactory.NewExtensionsClient().BeginDelete(ctx, deployment.ResourceGroup, deployment.ClusterRp, deployment.ClusterResourceName, deployment.ClusterName, deployment.Name, &armkubernetesconfiguration.ExtensionsClientBeginDeleteOptions{ForceDelete: nil})
+			clusterDetails := strings.Split(deployment.Cluster, "/")
+			if len(clusterDetails) < 3 {
+				err = errors.New("ArcExtensionTargetProvider cluster details are missing")
+				return err
+			}
+
+			_, err = clientFactory.NewExtensionsClient().BeginDelete(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, &armkubernetesconfiguration.ExtensionsClientBeginDeleteOptions{ForceDelete: nil})
 			if err != nil {
 				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
 				return err
@@ -351,17 +354,18 @@ func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model
 				return err
 			}
 
-			upgradeVersion, err := strconv.ParseBool(deployment.AutoUpgradeMinorVersion)
-			// extension sets the ARC extension property object
-			extension := armkubernetesconfiguration.Extension{
-				Properties: &armkubernetesconfiguration.ExtensionProperties{
-					AutoUpgradeMinorVersion: &upgradeVersion,
-					ExtensionType:           &deployment.Type,
-					ReleaseTrain:            &deployment.ReleaseTrain,
-				},
+			clusterDetails := strings.Split(deployment.Cluster, "/")
+			if len(clusterDetails) < 3 {
+				err = errors.New("ArcExtensionTargetProvider cluster details are missing")
+				return err
 			}
 
-			_, err = clientFactory.NewExtensionsClient().BeginCreate(ctx, deployment.ResourceGroup, deployment.ClusterRp, deployment.ClusterResourceName, deployment.ClusterName, deployment.Name, extension, nil)
+			extensionDetails, err := toExtensionProperties(c)
+			if err != nil {
+				return err
+			}
+
+			_, err = clientFactory.NewExtensionsClient().BeginCreate(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, extensionDetails, nil)
 			if err != nil {
 				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
 				return err
@@ -370,6 +374,74 @@ func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model
 	}
 
 	return nil
+}
+
+// toExtensionProperties sets the arc extension properties
+func toExtensionProperties(c model.ComponentSpec) (armkubernetesconfiguration.Extension, error) {
+	ret := armkubernetesconfiguration.Extension{Properties: &armkubernetesconfiguration.ExtensionProperties{}}
+	if c.Properties["arcExtension"] == nil {
+		return ret, errors.New("Arc extension properties are not set")
+	}
+
+	extension := c.Properties["arcExtension"]
+	arcExt, ok := extension.(map[string]interface{})
+	if !ok {
+		return ret, errors.New("The Arc extension properties are not set")
+	}
+
+	extType, ok := arcExt["extensionType"].(string)
+	if !ok {
+		return ret, errors.New("The Arc extension type property is not set")
+	}
+
+	ret.Properties.ExtensionType = &extType
+	upgradeVersion, ok := arcExt["autoUpgradeMinorVersion"].(bool)
+	if !ok {
+		return ret, errors.New("The Arc extension autoUpgradeMinorVersion property is not set")
+	}
+
+	ret.Properties.AutoUpgradeMinorVersion = &upgradeVersion
+	version, ok := arcExt["version"].(string)
+	if !ok {
+		return ret, errors.New("The Arc extension version property is not set")
+	}
+
+	ret.Properties.Version = &version
+	releaseTrain, ok := arcExt["releaseTrain"].(string)
+	if !ok {
+		return ret, errors.New("The Arc extension releaseTrain property is not set")
+	}
+
+	ret.Properties.ReleaseTrain = &releaseTrain
+	if arcExt["configurationSettings"] != nil {
+		configurationSettings, ok := arcExt["configurationSettings"].(map[string]string)
+		if !ok {
+			return ret, errors.New("The Arc extension configuration settings are not set")
+		}
+
+		settings := map[string]*string{}
+		for index, data := range configurationSettings {
+			settings[index] = &data
+		}
+
+		ret.Properties.ConfigurationSettings = settings
+	}
+
+	if arcExt["configurationProtectedSettings"] != nil {
+		configurationProtectedSettings, ok := arcExt["configurationProtectedSettings"].(map[string]string)
+		if !ok {
+			return ret, errors.New("The Arc extension configuration protected settings are not set")
+		}
+
+		protectedSettings := map[string]*string{}
+		for index, data := range configurationProtectedSettings {
+			protectedSettings[index] = &data
+		}
+
+		ret.Properties.ConfigurationSettings = protectedSettings
+	}
+
+	return ret, nil
 }
 
 // getDeploymentFromComponent gets the ARC extension component properties

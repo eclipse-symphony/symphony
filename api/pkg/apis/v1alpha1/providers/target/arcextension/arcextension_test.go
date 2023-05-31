@@ -55,17 +55,12 @@ func TestExtensionTargetProviderGet(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "ClusterMonitor",
+					Name: "Bluefin",
 					Type: "arc-extension",
 					Properties: map[string]interface{}{
-						"subscriptionID":      "77969078-2897-47b0-9143-917252379303",
-						"extensionName":       "ClusterMonitor",
-						"extensionType":       "azuremonitor-containers",
-						"clusterName":         "my-arc-cluster",
-						"clusterRp":           "Microsoft.Kubernetes",
-						"clusterResourceName": "connectedClusters",
-						"resourceGroup":       "MyResourceGroup",
-						"apiVersion":          "2023-05-02",
+						"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+						"resourceGroup":  "MyResourceGroup",
+						"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
 					},
 				},
 			},
@@ -74,6 +69,78 @@ func TestExtensionTargetProviderGet(t *testing.T) {
 	)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(components))
+}
+
+// TestExtensionProviderConfigSettingProperties tests the properties functions when config settings and protected settings are missing
+func TestExtensionProviderConfigSettingProperties(t *testing.T) {
+	_, err := toExtensionProperties(model.ComponentSpec{
+		Name: "Bluefin",
+		Type: "arc-extension",
+		Properties: map[string]interface{}{
+			"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+			"resourceGroup":  "MyResourceGroup",
+			"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+			"arcExtension": map[string]interface{}{
+				"extensionType":           "azuremonitor-containers",
+				"autoUpgradeMinorVersion": false,
+				"version":                 "0.1.1",
+				"releaseTrain":            "dev",
+			},
+		},
+	},
+	)
+	require.Nil(t, err)
+}
+
+// TestExtensionProviderProtectedConfigSettingProperties tests the properties functions when only the protected settings are present
+func TestExtensionProviderProtectedConfigSettingProperties(t *testing.T) {
+	_, err := toExtensionProperties(model.ComponentSpec{
+		Name: "Bluefin",
+		Type: "arc-extension",
+		Properties: map[string]interface{}{
+			"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+			"resourceGroup":  "MyResourceGroup",
+			"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+			"arcExtension": map[string]interface{}{
+				"extensionType":           "azuremonitor-containers",
+				"autoUpgradeMinorVersion": false,
+				"version":                 "0.1.1",
+				"releaseTrain":            "dev",
+				"configurationProtectedSettings": map[string]string{
+					"secret.key": "secretKeyValue01",
+				},
+			},
+		},
+	},
+	)
+	require.Nil(t, err)
+}
+
+// TestExtensionTargetProviderProperties tests the properties function of ARC extension provider
+func TestExtensionTargetProviderProperties(t *testing.T) {
+	_, err := toExtensionProperties(model.ComponentSpec{
+		Name: "Bluefin",
+		Type: "arc-extension",
+		Properties: map[string]interface{}{
+			"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+			"resourceGroup":  "MyResourceGroup",
+			"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+			"arcExtension": map[string]interface{}{
+				"extensionType":           "azuremonitor-containers",
+				"autoUpgradeMinorVersion": false,
+				"version":                 "0.1.1",
+				"releaseTrain":            "dev",
+				"configurationSettings": map[string]string{
+					"cluster": "my-arc-cluster",
+				},
+				"configurationProtectedSettings": map[string]string{
+					"secret.key": "secretKeyValue01",
+				},
+			},
+		},
+	},
+	)
+	require.Nil(t, err)
 }
 
 // TestExtensionTargetProviderInstall tests the install function of the ARC extension provider
@@ -94,19 +161,20 @@ func TestExtensionTargetProviderInstall(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "ClusterMonitor",
+					Name: "Bluefin",
 					Type: "arc-extension",
 					Properties: map[string]interface{}{
-						"subscriptionID":          "77969078-2897-47b0-9143-917252379303",
-						"extensionName":           "ClusterMonitor",
-						"extensionType":           "azuremonitor-containers",
-						"clusterName":             "my-arc-cluster",
-						"clusterRp":               "Microsoft.Kubernetes",
-						"clusterResourceName":     "connectedClusters",
-						"resourceGroup":           "MyResourceGroup",
-						"autoUpgradeMinorVersion": "false",
-						"apiVersion":              "2023-05-02",
-						"releaseTrain":            "preview",
+						"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+						"resourceGroup":  "MyResourceGroup",
+						"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+						"arcExtension": map[string]interface{}{
+							"extensionType":                  "azuremonitor-containers",
+							"autoUpgradeMinorVersion":        false,
+							"version":                        "0.1.1",
+							"releaseTrain":                   "dev",
+							"configurationSettings":          map[string]string{},
+							"configurationProtectedSettings": map[string]string{},
+						},
 					},
 				},
 			},
@@ -135,17 +203,12 @@ func TestExtensionTargetProviderRemove(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "ClusterMonitor",
+					Name: "Bluefin",
 					Type: "arc-extension",
 					Properties: map[string]interface{}{
-						"subscriptionID":      "77969078-2897-47b0-9143-917252379303",
-						"extensionName":       "ClusterMonitor",
-						"extensionType":       "azuremonitor-containers",
-						"clusterName":         "my-arc-cluster",
-						"clusterRp":           "Microsoft.Kubernetes",
-						"clusterResourceName": "connectedClusters",
-						"resourceGroup":       "MyResourceGroup",
-						"apiVersion":          "2023-05-02",
+						"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+						"resourceGroup":  "MyResourceGroup",
+						"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
 					},
 				},
 			},

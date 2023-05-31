@@ -51,21 +51,13 @@ type (
 
 	// ExtendedLocationProperty the extended location property
 	ExtendedLocationProperty struct {
-		Name                    string `json:"name"`
-		Type                    string `json:"type"`
-		ResourceGroupName       string `json:"resourceGroupName"`
-		ResourceName            string `json:"ResourceName"`
-		SubscriptionID          string `json:"subscriptionID"`
-		Location                string `json:"location,omitempty"`
-		Namespace               string `json:"namespace,omitempty"`
-		HostResourceID          string `json:"hostResourceID,omitempty"`
-		ClusterExtensionID      string `json:"clusterExtensionID,omitempty"`
-		Priority                string `json:"priority,omitempty"`
-		MatchExpressionKey      string `json:"matchExpressionKey,omitempty"`
-		MatchExpressionValue    string `json:"matchExpressionValue,omitempty"`
-		MatchExpressionOperator string `json:"matchExpressionOperator,omitempty"`
-		MatchLabelKey           string `json:"matchLabelKey,omitempty"`
-		TargetResourceGroup     string `json:"targetResourceGroup,omitempty"`
+		Name              string `json:"name"`
+		Type              string `json:"type"`
+		ResourceGroupName string `json:"resourceGroupName"`
+		SubscriptionID    string `json:"subscriptionID"`
+		Location          string `json:"location,omitempty"`
+		ResourceName      string `json:"resourceName,omitempty"`
+		ResourceSyncRule  string `json:"resourceSyncRule,omitempty"`
 	}
 
 	// ExtendedLocationTargetProvider the target location provider
@@ -76,8 +68,11 @@ type (
 )
 
 const (
-	resourceNameKey      = "resourceName"
 	resourceGroupNameKey = "resourceGroupName"
+	resourceNameKey      = "resourceName"
+	resourceSyncRuleKey  = "resourceSyncRule"
+	subscriptionIDKey    = "subscriptionID"
+	locationKey          = "location"
 )
 
 // ExtendedLocationTargetProviderConfigFromMap sets the config map for extended location provider
@@ -186,26 +181,23 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 			return ret, err
 		}
 
-		switch c.Type {
-		case "custom-location":
-			_, err = clientFactory.NewCustomLocationsClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
+		if c.Type == "extended-location" {
+			if c.Properties[resourceNameKey] != "" {
+				_, err = clientFactory.NewCustomLocationsClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
+				if err != nil {
+					sLog.Errorf(" P (Custom Location Target Get):", err)
+					return nil, err
+				}
+			}
 
-		case "resource-sync-rule":
-			_, err = clientFactory.NewResourceSyncRulesClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, nil)
+			if c.Properties[resourceSyncRuleKey] != "" {
+				_, err = clientFactory.NewResourceSyncRulesClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceSyncRule, deployment.Name, nil)
+				if err != nil {
+					sLog.Errorf(" P (Resource Sync Rule Target Get):", err)
+					return nil, err
+				}
+			}
 		}
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Target Get):", err)
-			return nil, err
-		}
-
-		ret = append(ret, model.ComponentSpec{
-			Name: deployment.Name,
-			Type: deployment.Type,
-			Properties: map[string]interface{}{
-				"resourceGroupName": deployment.ResourceGroupName,
-				"resourceName":      deployment.ResourceName,
-			},
-		})
 	}
 
 	return ret, nil
@@ -250,26 +242,31 @@ func (i *ExtendedLocationTargetProvider) Remove(ctx context.Context, deployment 
 			return err
 		}
 
-		switch c.Type {
-		case "custom-location":
-			_, err = clientFactory.NewCustomLocationsClient().BeginDelete(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
+		if c.Type == "extended-location" {
+			if c.Properties[resourceNameKey] != "" {
+				_, err = clientFactory.NewCustomLocationsClient().BeginDelete(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
+				if err != nil {
+					sLog.Errorf(" P (Extended Location Target Remove):", err)
+					return err
+				}
+			}
 
-		case "resource-sync-rule":
-			_, err = clientFactory.NewResourceSyncRulesClient().Delete(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, nil)
-		}
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Target Remove):", err)
-			return err
+			if c.Properties[resourceSyncRuleKey] != "" {
+				_, err = clientFactory.NewResourceSyncRulesClient().Delete(ctx, deployment.ResourceGroupName, deployment.ResourceSyncRule, deployment.Name, nil)
+				if err != nil {
+					sLog.Errorf(" P (Extended Location Target Remove):", err)
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 
 // NeedsUpdate checks for any updates for the extended location
 func (i *ExtendedLocationTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	sLog.Infof("  P (Extended Location Target Provider): NeedsUpdate: %d - %d", len(desired), len(current))
-	locationProperty := []string{resourceNameKey, resourceGroupNameKey}
+	locationProperty := []string{locationKey, subscriptionIDKey, resourceGroupNameKey}
 	for _, dc := range desired {
 		for _, cc := range current {
 			for _, param := range locationProperty {
@@ -288,7 +285,7 @@ func (i *ExtendedLocationTargetProvider) NeedsUpdate(ctx context.Context, desire
 // NeedsRemove checks if the solution component needs to be removed
 func (i *ExtendedLocationTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
 	sLog.Infof("  P (Extended Location Target Provider): NeedsRemove: %d - %d", len(desired), len(current))
-	locationProperty := []string{resourceNameKey, resourceGroupNameKey}
+	locationProperty := []string{locationKey, subscriptionIDKey, resourceGroupNameKey}
 	for _, dc := range desired {
 		for _, cc := range current {
 			for _, param := range locationProperty {
@@ -342,51 +339,107 @@ func (i *ExtendedLocationTargetProvider) Apply(ctx context.Context, deployment m
 			return err
 		}
 
-		switch c.Type {
-		case "custom-location":
+		if c.Type == "extended-location" {
 			// customLocation sets the custom location property object
-			customLocation := armextendedlocation.CustomLocation{
-				Location: &deployment.Location,
-				Properties: &armextendedlocation.CustomLocationProperties{
-					ClusterExtensionIDs: []*string{&deployment.ClusterExtensionID},
-					DisplayName:         &deployment.Name,
-					HostResourceID:      &deployment.HostResourceID,
-					Namespace:           &deployment.Namespace,
-				},
+			customLocation, err := toCustomLocationProperties(c)
+			if err != nil {
+				sLog.Errorf(" P (Extended Location Target Deployment):", err)
+				return err
 			}
 
+			// creates a new custom location
 			_, err = clientFactory.NewCustomLocationsClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, customLocation, nil)
-
-		case "resource-sync-rule":
-			//resourceSyncRule sets the resource sync rule property object
-			resourceSyncRule := armextendedlocation.ResourceSyncRule{
-				Location: &deployment.Location,
-				Properties: &armextendedlocation.ResourceSyncRuleProperties{
-					Selector: &armextendedlocation.ResourceSyncRulePropertiesSelector{
-						MatchExpressions: []*armextendedlocation.MatchExpressionsProperties{
-							{
-								Key:      &deployment.MatchExpressionKey,
-								Operator: &deployment.MatchExpressionOperator,
-								Values: []*string{
-									&deployment.MatchExpressionValue},
-							}},
-						MatchLabels: map[string]*string{
-							"key1": &deployment.MatchLabelKey,
-						},
-					},
-					TargetResourceGroup: &deployment.TargetResourceGroup,
-				},
+			if err != nil {
+				sLog.Errorf(" P (Custom Location Target Deployment):", err)
+				return err
 			}
 
-			_, err = clientFactory.NewResourceSyncRulesClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, resourceSyncRule, nil)
-		}
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Target Deployment):", err)
-			return err
+			//resourceSyncRule sets the resource sync rule property object
+			resourceSyncRule, err := toResourceSyncRuleProperties(c)
+			if err != nil {
+				sLog.Errorf(" P (Extended Location Target Deployment):", err)
+				return err
+			}
+
+			// creates a resource sync rule (optional)
+			if resourceSyncRule.Properties != nil {
+				_, err = clientFactory.NewResourceSyncRulesClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, resourceSyncRule, nil)
+				if err != nil {
+					sLog.Errorf(" P (Resource Sync Rule Target Deployment):", err)
+					return err
+				}
+			}
 		}
 	}
 
 	return nil
+}
+
+// toCustomLocationProperties sets the custom location properties
+func toCustomLocationProperties(c model.ComponentSpec) (armextendedlocation.CustomLocation, error) {
+	ret := armextendedlocation.CustomLocation{
+		Properties: &armextendedlocation.CustomLocationProperties{},
+	}
+	if c.Properties["customLocation"] == nil {
+		return ret, errors.New("Custom location properties are not set")
+	}
+
+	customLocation := c.Properties["customLocation"]
+	location, ok := customLocation.(map[string]interface{})
+	if !ok {
+		return ret, errors.New("Custom location is not set")
+	}
+
+	customLocationProperties := location["properties"]
+	locationProperties, ok := customLocationProperties.(map[string]interface{})
+	if !ok {
+		return ret, errors.New("Custom location properties are not set")
+	}
+
+	data, err := json.Marshal(locationProperties)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+// toResourceSyncRuleProperties sets the resource sync rule properties
+func toResourceSyncRuleProperties(c model.ComponentSpec) (armextendedlocation.ResourceSyncRule, error) {
+	ret := armextendedlocation.ResourceSyncRule{
+		Properties: &armextendedlocation.ResourceSyncRuleProperties{},
+	}
+
+	customLocation := c.Properties["customLocation"]
+	extendedLocation, ok := customLocation.(map[string]interface{})
+	if !ok {
+		return ret, errors.New("Custom location is not set")
+	}
+
+	if extendedLocation["resourceSyncRule"] != nil {
+		rule := extendedLocation["resourceSyncRule"]
+		resourceSyncRule, ok := rule.(map[string]interface{})
+		if !ok {
+			return ret, errors.New("Resource Sync Rule is not set")
+		}
+
+		data, err := json.Marshal(resourceSyncRule)
+		if err != nil {
+			return ret, err
+		}
+
+		err = json.Unmarshal(data, &ret)
+		if err != nil {
+			return ret, err
+		}
+	}
+
+	return ret, nil
 }
 
 // getDeploymentFromComponent gets the extended location properties from the component
