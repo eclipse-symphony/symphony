@@ -221,7 +221,7 @@ extends:
                 displayName: Helm package
                 inputs:
                   script: |
-                    HELM_PACKAGE_OUTPUT=$(helm package $(REPOROOT)/symphony-extension/privaterp/helm-charts/symphony)
+                    HELM_PACKAGE_OUTPUT=$(helm package $(REPOROOT)/symphony-extension/helm/symphony-chart)
                     HELM_PACKAGE_OUTPUT_TRIM="${HELM_PACKAGE_OUTPUT##*/}"
                     HELM_PACKAGE_NAME="${HELM_PACKAGE_OUTPUT_TRIM##*\\}"
                     helm push ./$HELM_PACKAGE_NAME oci://$(ACR)/arc-extensions/

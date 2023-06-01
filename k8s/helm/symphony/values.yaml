@@ -1,9 +1,0 @@
-symphonyImage:
-  repository: symphonycr.azurecr.io/symphony-k8s
-  pullPolicy: IfNotPresent
-  tag: "20230525.1-buddy"
-paiImage:
-  repository: possprod.azurecr.io/symphony-api
-  pullPolicy: IfNotPresent
-  tag: "0.43.11"
-CUSTOM_VISION_KEY: "AAAA"
