@@ -10,26 +10,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestHelmTargetProviderConfigFromMapNil tests the HelmTargetProviderConfigFromMap function with nil input
 func TestHelmTargetProviderConfigFromMapNil(t *testing.T) {
 	_, err := HelmTargetProviderConfigFromMap(nil)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
+
+// TestHelmTargetProviderConfigFromMapEmpty tests the HelmTargetProviderConfigFromMap function with empty input
 func TestHelmTargetProviderConfigFromMapEmpty(t *testing.T) {
 	_, err := HelmTargetProviderConfigFromMap(map[string]string{})
 	assert.Nil(t, err)
 }
+
+// TestHelmTargetProviderInitEmptyConfig tests the Init function of HelmTargetProvider with empty config
 func TestHelmTargetProviderInitEmptyConfig(t *testing.T) {
 	config := HelmTargetProviderConfig{}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.NotNil(t, err)
 }
+
+// TestHelmTargetProviderGet tests the Get function of HelmTargetProvider
 func TestHelmTargetProviderGet(t *testing.T) {
 	// To run this test case successfully, you need to have a symphony Helm chart deployed to your current Kubernetes context
 	testHelmChart := os.Getenv("TEST_HELM_CHART")
 	if testHelmChart == "" {
-		t.Skip("Skipping because TEST_HELM_CHART enviornment variable is not set")
+		t.Skip("Skipping because TEST_HELM_CHART environment variable is not set")
 	}
+
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -38,7 +46,7 @@ func TestHelmTargetProviderGet(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: testHelmChart,
+					Name: "bluefin-arc-extensions",
 				},
 			},
 		},
@@ -46,12 +54,73 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 }
+
+// TestHelmTargetProviderGetChartDetails tests the getHelmChartFromComponent function with valid input
+func TestHelmTargetProviderGetChartDetails(t *testing.T) {
+	_, err := getHelmChartFromComponent(model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+		},
+	})
+	assert.Nil(t, err)
+}
+
+// TestHelmTargetProviderGetChartValues tests the getHelmValuesFromComponent function with valid input
+func TestHelmTargetProviderGetChartValues(t *testing.T) {
+	_, err := getHelmValuesFromComponent(model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+			"values": map[string]interface{}{
+				"CUSTOM_VISION_KEY": "BBB",
+				"CLUSTER_SECRET":    "test",
+				"CERTIFICATES":      []string{"a", "b"},
+			},
+		},
+	})
+	assert.Nil(t, err)
+}
+
+// TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
+func TestHelmTargetProviderGetHelmProperty(t *testing.T) {
+	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+			"values": map[string]interface{}{
+				"CUSTOM_VISION_KEY": "BBB",
+				"CLUSTER_SECRET":    "test",
+				"CERTIFICATES":      []string{"a", "b"},
+			},
+		},
+	})
+	assert.Nil(t, err)
+}
+
+// TestHelmTargetProviderInstall tests the Apply function of HelmTargetProvider
 func TestHelmTargetProviderInstall(t *testing.T) {
 	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
 	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
 	if testSymphonyHelmVersion == "" {
-		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION enviornment variable is not set")
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
 	}
+
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -60,13 +129,19 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "symphony-com",
+					Name: "bluefin-arc-extensions",
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
-						"helm.chart.repo":               "possprod.azurecr.io/helm/symphony",
-						"helm.chart.name":               "symphony",
-						"helm.chart.version":            testSymphonyHelmVersion,
-						"helm.values.CUSTOM_VISION_KEY": "BBB",
+						"chart": map[string]string{
+							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+							"name":    "bluefin-arc-extension",
+							"version": "0.1.1",
+						},
+						"values": map[string]interface{}{
+							"CUSTOM_VISION_KEY": "BBB",
+							"CLUSTER_SECRET":    "test",
+							"CERTIFICATES":      []string{"a", "b"},
+						},
 					},
 				},
 			},
@@ -74,12 +149,15 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 	}, false)
 	assert.Nil(t, err)
 }
+
+// TestHelmTargetProviderInstallNoOci tests the Apply function of HelmTargetProvider with no OCI registry
 func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
 	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
 	if testSymphonyHelmVersion == "" {
-		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION enviornment variable is not set")
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
 	}
+
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -91,9 +169,11 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 					Name: "akri",
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
-						"helm.chart.repo":    "https://project-akri.github.io/akri/akri",
-						"helm.chart.name":    "akri",
-						"helm.chart.version": "",
+						"chart": map[string]string{
+							"repo":    "https://project-akri.github.io/akri/akri",
+							"name":    "akri",
+							"version": "",
+						},
 					},
 				},
 			},
@@ -101,11 +181,14 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	}, false)
 	assert.Nil(t, err)
 }
+
+// TestHelmTargetProviderInstallDirectDownload tests the Apply function of HelmTargetProvider with direct download
 func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_HELM_GATEKEEPER")
 	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_HELM_GATEKEEPER enviornment variable is not set")
+		t.Skip("Skipping because TEST_HELM_GATEKEEPER environment variable is not set")
 	}
+
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -117,8 +200,10 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 					Name: "gatekeeper",
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
-						"helm.chart.repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-						"helm.chart.name": "gatekeeper",
+						"chart": map[string]string{
+							"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+							"name": "gatekeeper",
+						},
 					},
 				},
 			},
@@ -126,11 +211,142 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	}, false)
 	assert.Nil(t, err)
 }
+
+func TestHelmTargetProviderNeedsUpdateNil(t *testing.T) {
+	desired := []model.ComponentSpec{
+		{
+			Name: "gatekeeper",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+					"name": "gatekeeper",
+				},
+				"values": map[string]interface{}{
+					"CUSTOM_VISION_KEY": "BBB",
+					"CLUSTER_SECRET":    "test",
+					"CERTIFICATES":      []string{"a", "b"},
+				},
+			},
+		},
+	}
+
+	current := []model.ComponentSpec{
+		{
+			Name: "gatekeeper",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+					"name": "gatekeeper",
+				},
+			},
+		},
+	}
+
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	res := provider.NeedsUpdate(context.Background(), desired, current)
+	assert.True(t, res)
+}
+
+func TestHelmTargetProviderNeedsUpdateRearrangedValues(t *testing.T) {
+	desired := []model.ComponentSpec{
+		{
+			Name: "gatekeeper",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+					"name": "gatekeeper",
+				},
+				"values": map[string]interface{}{
+					"CUSTOM_VISION_KEY": "BBB",
+					"CLUSTER_SECRET":    "test",
+					"CERTIFICATES":      []string{"a", "b"},
+					"OTHER": map[string]interface{}{
+						"c": "d",
+						"a": "b",
+					},
+				},
+			},
+		},
+	}
+
+	current := []model.ComponentSpec{
+		{
+			Name: "gatekeeper",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+					"name": "gatekeeper",
+				},
+				"values": map[string]interface{}{
+					"CLUSTER_SECRET":    "test",
+					"CUSTOM_VISION_KEY": "BBB", // Order is different
+					"CERTIFICATES":      []string{"a", "b"},
+					"OTHER": map[string]interface{}{
+						"a": "b",
+						"c": "d", // Order is different
+					},
+				},
+			},
+		},
+	}
+
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	res := provider.NeedsUpdate(context.Background(), desired, current)
+	assert.False(t, res)
+}
+
+func TestHelmTargetProviderNeedsUpdateSameComponents(t *testing.T) {
+	desired := []model.ComponentSpec{
+		{
+			Name: "bluefin-arc-extensions",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+					"name":    "bluefin-arc-extension",
+					"version": "0.1.1",
+				},
+			},
+		},
+	}
+	current := []model.ComponentSpec{
+		{
+			Name: "bluefin-arc-extensions",
+			Type: "helm.v3",
+			Properties: map[string]interface{}{
+				"chart": map[string]string{
+					"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+					"name":    "bluefin-arc-extension",
+					"version": "0.1.1",
+				},
+			},
+		},
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	res := provider.NeedsUpdate(context.Background(), desired, current)
+	assert.False(t, res)
+}
+
+// TestHelmTargetProviderRemove tests the Remove function of HelmTargetProvider
 func TestHelmTargetProviderRemove(t *testing.T) {
 	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
 	if testSymphonyHelmVersion == "" {
-		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION enviornment variable is not set")
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
 	}
+
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -142,12 +358,14 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "symphony-com",
+					Name: "bluefin-arc-extensions",
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
-						"helm.chart.repo":    "possprod.azurecr.io/helm/symphony",
-						"helm.chart.name":    "symphony",
-						"helm.chart.version": testSymphonyHelmVersion,
+						"chart": map[string]string{
+							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+							"name":    "bluefin-arc-extension",
+							"version": "0.1.1",
+						},
 					},
 				},
 			},
@@ -155,12 +373,14 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 	}, nil)
 	assert.Nil(t, err)
 }
+
+// TestHelmTargetProviderGetAnotherCluster tests the Get function of HelmTargetProvider with another cluster
 func TestHelmTargetProviderGetAnotherCluster(t *testing.T) {
 	//to run this test successfully, you need to fix the cluster config below, and the target cluster shouldn't have symphony Helm chart installed
 	//THIS CASE IS BROKERN
 	testotherK8s := os.Getenv("TEST_HELM_OTHER_K8S")
 	if testotherK8s == "" {
-		t.Skip("Skipping because TEST_HELM_OTHER_K8S enviornment variable is not set")
+		t.Skip("Skipping because TEST_HELM_OTHER_K8S environment variable is not set")
 	}
 	config := HelmTargetProviderConfig{
 		InCluster:  false,
@@ -194,9 +414,10 @@ users:
 	assert.Equal(t, 1, len(components))
 }
 
+// TestConformanceSuite tests the HelmTargetProvider for conformance
 func TestConformanceSuite(t *testing.T) {
 	provider := &HelmTargetProvider{}
-	_ = provider.Init(HelmTargetProviderConfig{InCluster: true})
-	//assert.Nil(t, err) okay if provider is not fully initialized
+	err := provider.Init(HelmTargetProviderConfig{InCluster: true})
+	assert.Nil(t, err)
 	conformance.ConformanceSuite(t, provider)
 }
