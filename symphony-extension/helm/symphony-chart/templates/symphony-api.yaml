@@ -19,6 +19,7 @@ spec:
       affinity:
 {{ toYaml . | indent 8 }}
       {{- end }}
+      serviceAccountName: pai-sp
       containers:
       - name: symphony-api
         securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
@@ -27,9 +28,15 @@ spec:
         - containerPort: 8080
         - containerPort: 8081
         env:          
-          - name: "CUSTOM_VISION_KEY"
-            valueFrom:
-              secretKeyRef:
-                key:  CUSTOM_VISION_KEY
-                name: {{ .Release.Name }}-auth
-      serviceAccountName: pai-sp
+          - name: "HELM_NAMESPACE"
+            value: default
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-auth
+      {{- if .Values.global.azure.identity.mSIAdapterYaml }}
+      - name: msi-adapter
+        env:
+        - name: TOKEN_NAMESPACE
+          value: symphony-k8s-system
+        {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
+      {{- end }}

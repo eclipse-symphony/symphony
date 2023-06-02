@@ -1,0 +1,14 @@
+{{ if .Values.global.azure.identity.enabled -}}
+apiVersion: clusterconfig.azure.com/v1beta1
+kind: AzureExtensionIdentity
+metadata:
+  name: {{ .Release.Name }}-override
+  namespace: azure-arc
+spec:
+  serviceAccounts:
+    - name: pai-sp
+      namespace: symphony-k8s-system
+    - name: symphony-k8s-controller-manager
+      namespace: symphony-k8s-system
+  tokenNamespace: symphony-k8s-system
+{{- end }}

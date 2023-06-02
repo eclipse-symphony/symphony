@@ -8,3 +8,7 @@ paiImage:
   tag: "0.43.11"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: false
+global:
+  azure:
+    identity:
+      enabled: true
