@@ -11,14 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestKubectlTargetProviderConfigFromMapNil tests that passing nil to KubectlTargetProviderConfigFromMap returns a valid config
 func TestKubectlTargetProviderConfigFromMapNil(t *testing.T) {
 	_, err := KubectlTargetProviderConfigFromMap(nil)
 	assert.Nil(t, err)
 }
+
+// TestKubectlTargetProviderConfigFromMapEmpty tests that passing an empty map to KubectlTargetProviderConfigFromMap returns a valid config
 func TestKubectlTargetProviderConfigFromMapEmpty(t *testing.T) {
 	_, err := KubectlTargetProviderConfigFromMap(map[string]string{})
 	assert.Nil(t, err)
 }
+
+// TestInitWithBadConfigType tests that passing an invalid config type to Init returns an error
 func TestInitWithBadConfigType(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		ConfigType: "Bad",
@@ -27,6 +32,8 @@ func TestInitWithBadConfigType(t *testing.T) {
 	err := provider.Init(config)
 	assert.NotNil(t, err)
 }
+
+// TestInitWithEmptyFile tests that passing an empty file to Init returns an error
 func TestInitWithEmptyFile(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		ConfigType: "path",
@@ -35,6 +42,8 @@ func TestInitWithEmptyFile(t *testing.T) {
 	provider.Init(config)
 	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
+
+// TestInitWithBadFile tests that passing a bad file to Init returns an error
 func TestInitWithBadFile(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		ConfigType: "path",
@@ -44,23 +53,34 @@ func TestInitWithBadFile(t *testing.T) {
 	err := provider.Init(config)
 	assert.NotNil(t, err)
 }
+
+// TestInitWithEmptyData tests that passing empty data to Init returns an error
 func TestInitWithEmptyData(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
 	config := KubectlTargetProviderConfig{
-		ConfigType: "bytes",
+		ConfigType: "inline",
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
+
+// TestInitWithBadData tests that passing bad data to Init returns an error
 func TestInitWithBadData(t *testing.T) {
 	config := KubectlTargetProviderConfig{
-		ConfigType: "bytes",
+		ConfigType: "inline",
 		ConfigData: "bad data",
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.NotNil(t, err)
 }
+
+// TestReadYamlFromUrl tests that reading yaml from a url works
 func TestReadYamlFromUrl(t *testing.T) {
 	msgChan, errChan := readYaml("https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml")
 	totalSize := 0
@@ -69,70 +89,26 @@ func TestReadYamlFromUrl(t *testing.T) {
 		case data, ok := <-msgChan:
 			assert.True(t, ok)
 			totalSize += len(data)
+
 		case err, ok := <-errChan:
 			assert.True(t, ok)
 			if err == io.EOF {
 				assert.True(t, totalSize > 10000)
 				return
 			}
+
 			assert.Nil(t, err)
 		}
 	}
 }
 
-func TestReadYamlData(t *testing.T) {
-	msgChan, errChan := readYaml(`apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: crontabs.stable.example.com
-spec:
-  group: stable.example.com
-  versions:
-    - name: v1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
-              properties:
-                cronSpec:
-                  type: string
-                image:
-                  type: string
-                replicas:
-                  type: integer
-  scope: Namespaced
-  names:
-    plural: crontabs
-    singular: crontab
-    kind: CronTab
-    shortNames:
-      - ct`)
-	totalSize := 0
-	for {
-		select {
-		case data, ok := <-msgChan:
-			assert.True(t, ok)
-			totalSize += len(data)
-		case err, ok := <-errChan:
-			println(err)
-			assert.True(t, ok)
-			if err == io.EOF {
-				assert.True(t, totalSize > 500, totalSize)
-				return
-			}
-			assert.Nil(t, err)
-		}
-	}
-}
-func TestKubectlTargetProviderApply(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL_GATEKEEPER")
+// TestKubectlTargetProviderApply tests that applying a deployment works
+func TestKubectlTargetProviderPathApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER enviornment variable is not set")
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
+
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -140,17 +116,19 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceSpec{
-			Name: "gatekeeper",
+			Name:  "gatekeeper",
+			Scope: "gatekeeper-system",
 		},
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
-					Name: "gatekeepr",
+					Name: "gatekeeper",
 					Type: "yaml.k8s",
 					Properties: map[string]interface{}{
-						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+						"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
 			},
@@ -158,18 +136,170 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	}, false)
 	assert.Nil(t, err)
 }
-func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
-	testPolicy := os.Getenv("TEST_KUBECTL_GATEKEEPER_POLICY")
-	if testPolicy == "" {
-		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER_POLICY enviornment variable is not set")
+
+func TestKubectlTargetProviderInlineApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "inline"}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "nginx-deployment",
+			Scope: "default",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "nginx",
+					Type: "yaml.k8s",
+					Properties: map[string]interface{}{
+						"resource": map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       "Deployment",
+							"metadata": map[string]interface{}{
+								"name": "nginx",
+							},
+							"spec": map[string]interface{}{
+								"replicas": 3,
+								"selector": map[string]interface{}{
+									"matchLabels": map[string]string{
+										"app": "nginx",
+									},
+								},
+								"template": map[string]interface{}{
+									"metadata": map[string]interface{}{
+										"labels": map[string]string{
+											"app": "nginx",
+										},
+									},
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  "nginx",
+												"image": "nginx:1.16.1",
+												"ports": []map[string]interface{}{
+													{
+														"containerPort": 80,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, false)
+	assert.Nil(t, err)
+}
+func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "inline",
+	}
+
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "nginx-deployment-test",
+			Scope: "default",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "nginx",
+					Type: "yaml.k8s",
+					Properties: map[string]interface{}{
+						"resource": map[string]interface{}{
+							"apiVersion": "apiextensions.k8s.io/v1",
+							"kind":       "CustomResourceDefinition",
+							"metadata": map[string]interface{}{
+								"name": "crontabs.stable.example.com",
+							},
+							"spec": map[string]interface{}{
+								"group": "stable.example.com",
+								"scope": "Namespaced",
+								"names": map[string]interface{}{
+									"plural":   "crontabs",
+									"singular": "crontab",
+									"kind":     "CronTab",
+									"shortNames": []string{
+										"ct",
+									},
+								},
+								"versions": []map[string]interface{}{
+									{
+										"name":    "v1",
+										"served":  true,
+										"storage": true,
+										"schema": map[string]interface{}{
+											"openAPIV3Schema": map[string]interface{}{
+												"type": "object",
+												"properties": map[string]interface{}{
+													"spec": map[string]interface{}{
+														"type": "object",
+														"properties": map[string]interface{}{
+															"cronSpec": map[string]interface{}{
+																"type": "string",
+															},
+															"image": map[string]interface{}{
+																"type": "string",
+															},
+															"replicas": map[string]interface{}{
+																"type": "integer",
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, false)
+	assert.Nil(t, err)
+}
+
+// TestKubectlTargetProviderApplyPolicy tests that applying a policy works
+func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
+	testPolicy := os.Getenv("TEST_KUBECTL")
+	if testPolicy == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	}
+
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+
 	err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "policies",
@@ -180,7 +310,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 					Name: "policies",
 					Type: "yaml.k8s",
 					Properties: map[string]interface{}{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+						"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
@@ -188,18 +318,23 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 	}, false)
 	assert.Nil(t, err)
 }
+
+// TestKubectlTargetProviderDelete tests that deleting a deployment works
 func TestKubectlTargetProviderDelete(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL_GATEKEEPER")
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER enviornment variable is not set")
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
+
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	}
+
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+
 	err = provider.Remove(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
@@ -210,24 +345,95 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 					Name: "gatekeepr1",
 					Type: "yaml.k8s",
 					Properties: map[string]interface{}{
-						"yaml.url": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+						"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 					},
 				},
 			},
 		},
 	}, nil)
-
 	assert.Nil(t, err)
 }
-func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
-	testPolicy := os.Getenv("TEST_KUBECTL_GATEKEEPER_POLICY")
-	if testPolicy == "" {
-		t.Skip("Skipping because TEST_KUBECTL_GATEKEEPER_POLICY enviornment variable is not set")
+
+func TestKubectlTargetProviderDeleteInline(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "inline",
+	}
+
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	err = provider.Remove(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "nginx-deployment",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "nginx-deployment",
+					Type: "yaml.k8s",
+					Properties: map[string]interface{}{
+						"resource": map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       "Deployment",
+							"metadata": map[string]interface{}{
+								"name": "nginx-deployment",
+							},
+							"spec": map[string]interface{}{
+								"replicas": 3,
+								"selector": map[string]interface{}{
+									"matchLabels": map[string]string{
+										"app": "nginx",
+									},
+								},
+								"template": map[string]interface{}{
+									"metadata": map[string]interface{}{
+										"labels": map[string]string{
+											"app": "nginx",
+										},
+									},
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  "nginx",
+												"image": "nginx:1.16.1",
+												"ports": []map[string]interface{}{
+													{
+														"containerPort": 80,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+	assert.Nil(t, err)
+}
+
+// TestKubectlTargetProviderDeletePolicies tests that deleting a policy works
+func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
+	testPolicy := os.Getenv("TEST_KUBECTL")
+	if testPolicy == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	}
+
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
@@ -241,20 +447,26 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 					Name: "policies",
 					Type: "yaml.k8s",
 					Properties: map[string]interface{}{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+						"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
 					},
 				},
 			},
 		},
 	}, nil)
-
 	assert.Nil(t, err)
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance
 func TestConformanceSuite(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
 	provider := &KubectlTargetProvider{}
-	_ = provider.Init(KubectlTargetProviderConfig{})
-	// assert.Nil(t, err) okay if provider is not fully initialized
+	err := provider.Init(KubectlTargetProviderConfig{
+		ConfigType: "inline",
+	})
+	assert.Nil(t, err)
 	conformance.ConformanceSuite(t, provider)
 }
