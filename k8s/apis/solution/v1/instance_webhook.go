@@ -37,6 +37,10 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		target := rawObj.(*Instance)
 		return []string{target.Spec.DisplayName}
 	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
+		target := rawObj.(*Instance)
+		return []string{target.Spec.Solution}
+	})
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()

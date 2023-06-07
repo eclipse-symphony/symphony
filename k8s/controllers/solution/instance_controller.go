@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -226,14 +227,26 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance,
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	generationChange := predicate.GenerationChangedPredicate{}
+	annotationChange := predicate.AnnotationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solutionv1.Instance{}).
+		WithEventFilter(predicate.Or(generationChange, annotationChange)).
 		Watches(&source.Kind{Type: &solutionv1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []ctrl.Request {
 				ret := make([]ctrl.Request, 0)
 				solObj := obj.(*solutionv1.Solution)
 				var instances solutionv1.InstanceList
-				mgr.GetClient().List(context.Background(), &instances, client.InNamespace(solObj.Namespace), client.MatchingFields{".spec.solution": solObj.Name})
+				options := []client.ListOption{
+					client.InNamespace(solObj.Namespace),
+					client.MatchingFields{"spec.solution": solObj.Name},
+				}
+				error := mgr.GetClient().List(context.Background(), &instances, options...)
+				if error != nil {
+					log.Log.Error(error, "Failed to list instances")
+					return ret
+				}
+
 				for _, instance := range instances.Items {
 					ret = append(ret, ctrl.Request{
 						NamespacedName: types.NamespacedName{
