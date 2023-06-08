@@ -36,6 +36,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -57,6 +58,10 @@ import (
 )
 
 var sLog = logger.NewLogger("coa.runtime")
+
+const (
+	DEFAULT_NAMESPACE = "default"
+)
 
 type (
 	// HelmTargetProviderConfig is the configuration for the Helm provider
@@ -86,24 +91,38 @@ type (
 		Repo    string `json:"repo"`
 		Name    string `json:"name"`
 		Version string `json:"version"`
+		Wait    bool   `json:"wait"`
 	}
 )
 
 // HelmTargetProviderConfigFromMap converts a map to a HelmTargetProviderConfig
 func HelmTargetProviderConfigFromMap(properties map[string]string) (HelmTargetProviderConfig, error) {
 	ret := HelmTargetProviderConfig{}
-	if properties == nil {
-		return ret, errors.New("helm provider config cannot be nil")
+	if v, ok := properties["name"]; ok {
+		ret.Name = v
 	}
 
-	data, err := json.Marshal(properties)
-	if err != nil {
-		return ret, err
+	if v, ok := properties["configType"]; ok {
+		ret.ConfigType = v
 	}
 
-	err = json.Unmarshal(data, &ret)
-	if err != nil {
-		return ret, err
+	if v, ok := properties["configData"]; ok {
+		ret.ConfigData = v
+	}
+
+	if v, ok := properties["context"]; ok {
+		ret.Context = v
+	}
+
+	if v, ok := properties["inCluster"]; ok {
+		val := v
+		if val != "" {
+			bVal, err := strconv.ParseBool(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'inCluster' setting of Helm provider", v1alpha2.BadConfig)
+			}
+			ret.InCluster = bVal
+		}
 	}
 
 	return ret, nil
@@ -161,7 +180,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 					return err
 				}
 
-				namespace := "default"
+				namespace := DEFAULT_NAMESPACE
 				actionConfig, err = getActionConfig(context.Background(), namespace, kConfig)
 				if err != nil {
 					sLog.Errorf("  P (Helm Target): failed to init with config bytes: %+v", err)
@@ -226,9 +245,10 @@ func (i *HelmTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Co
 			sLog.Errorf("  P (Helm Provider): %+v", err)
 			return true
 		}
-
+		found := false
 		for _, cc := range current {
 			if cc.Name == dc.Name && cc.Type == dc.Type && cc.Type == "helm.v3" {
+				found = true
 				currentHelmChart, err := getHelmPropertyFromComponent(cc)
 				if err != nil {
 					sLog.Errorf("  P (Helm Provider): %+v", err)
@@ -243,7 +263,7 @@ func (i *HelmTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Co
 
 				// check if helm values needs an update
 				if isEmpty(desiredHelmChart.Values) && isEmpty(currentHelmChart.Values) {
-					return false
+					break
 				}
 
 				if !reflect.DeepEqual(desiredHelmChart.Values, currentHelmChart.Values) {
@@ -252,6 +272,11 @@ func (i *HelmTargetProvider) NeedsUpdate(ctx context.Context, desired []model.Co
 				}
 
 			}
+		}
+
+		if !found {
+			sLog.Info("  P (Helm Provider): NeedsUpdate: returning true")
+			return true
 		}
 	}
 
@@ -320,7 +345,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 							"name":    res.Chart.Metadata.Name,
 							"version": res.Chart.Metadata.Version,
 						},
-						"values": res.Chart.Values,
+						"values": res.Config,
 					},
 				})
 			}
@@ -417,17 +442,17 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			return err
 		}
 
-		var helmChart HelmChartProperty
-		helmChart, err = getHelmChartFromComponent(component)
+		var helmProp *HelmProperty
+		helmProp, err = getHelmPropertyFromComponent(component)
 		if err != nil {
 			err = errors.New("component doesn't have chart property")
 			sLog.Errorf("  P (Helm Target): component doesn't have chart property")
 			return err
 		}
 
-		repo := helmChart.Repo
-		version := helmChart.Version
-		chartName := helmChart.Name
+		repo := helmProp.Chart.Repo
+		version := helmProp.Chart.Version
+		chartName := helmProp.Chart.Name
 		var fileName string
 		if version == "" {
 			fileName = fmt.Sprintf("%s.tgz", chartName)
@@ -463,31 +488,12 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		}
 
 		chart.Metadata.Tags = "SYM:" + repo //this is not used by Helm SDK, we use this to carry repo info
-		if deployment.Instance.Scope == "" {
-			i.InstallClient.Namespace = "default"
-			i.UpgradeClient.Namespace = "default"
+		i.configureUpsertClients(component.Name, &helmProp.Chart, &deployment)
 
-		} else {
-			i.InstallClient.Namespace = deployment.Instance.Scope
-			i.UpgradeClient.Namespace = deployment.Instance.Scope
-		}
-
-		i.InstallClient.ReleaseName = component.Name
-		i.InstallClient.IsUpgrade = true
-		//i.UpgradeClient.ReleaseName = component.Name
-		i.UpgradeClient.Install = true
-		if component.Properties["values"] != nil {
-			var properties map[string]interface{}
-			properties, err = getHelmValuesFromComponent(component)
-			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to get values from component: %+v", err)
+		if _, err = i.UpgradeClient.Run(component.Name, chart, helmProp.Values); err != nil {
+			if _, err = i.InstallClient.Run(chart, helmProp.Values); err != nil {
+				sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
 				return err
-			}
-			if _, err = i.UpgradeClient.Run(component.Name, chart, properties); err != nil {
-				if _, err = i.InstallClient.Run(chart, properties); err != nil {
-					sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
-					return err
-				}
 			}
 		}
 
@@ -497,61 +503,45 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	return nil
 }
 
-// getHelmChartFromComponent will get the helm chart from a component
-func getHelmChartFromComponent(component model.ComponentSpec) (HelmChartProperty, error) {
-	ret := HelmChartProperty{}
-	if component.Name == "" {
-		return ret, errors.New("component doesn't have name property")
+func (i *HelmTargetProvider) configureUpsertClients(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec) {
+	if deployment.Instance.Scope == "" {
+		i.InstallClient.Namespace = DEFAULT_NAMESPACE
+		i.UpgradeClient.Namespace = DEFAULT_NAMESPACE
+	} else {
+		i.InstallClient.Namespace = deployment.Instance.Scope
+		i.UpgradeClient.Namespace = deployment.Instance.Scope
 	}
 
-	if component.Properties == nil {
-		return ret, errors.New("component doesn't have properties")
-	}
-
-	if component.Properties["chart"] == nil {
-		return ret, errors.New("component doesn't have chart property")
-	}
-
-	data, err := json.Marshal(component.Properties["chart"])
-	if err != nil {
-		return ret, err
-	}
-
-	err = json.Unmarshal(data, &ret)
-	if err != nil {
-		return ret, err
-	}
-
-	return ret, nil
+	i.InstallClient.Wait = componentProps.Wait
+	i.UpgradeClient.Wait = componentProps.Wait
+	i.InstallClient.ReleaseName = name
+	i.InstallClient.IsUpgrade = true
+	i.UpgradeClient.Install = true
 }
 
-// getHelmValuesFromComponent will get the helm values from a component
-func getHelmValuesFromComponent(component model.ComponentSpec) (map[string]interface{}, error) {
-	ret := map[string]interface{}{}
-	data, err := json.Marshal(component.Properties["values"])
-	if err != nil {
-		return ret, err
-	}
-
-	err = json.Unmarshal(data, &ret)
-	if err != nil {
-		return ret, err
-	}
-
-	return ret, nil
-}
-
-func getHelmPropertyFromComponent(component model.ComponentSpec) (HelmProperty, error) {
+func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty, error) {
 	ret := HelmProperty{}
 	data, err := json.Marshal(component.Properties)
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
-	return ret, nil
+	return validateProps(&ret)
+}
+
+func validateProps(props *HelmProperty) (*HelmProperty, error) {
+	if props.Chart.Name == "" {
+		return nil, errors.New("chart name is required")
+	}
+
+	if props.Chart.Repo == "" {
+		return nil, errors.New("chart repo is required")
+	}
+
+	return props, nil
 }

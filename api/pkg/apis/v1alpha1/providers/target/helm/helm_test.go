@@ -13,7 +13,7 @@ import (
 // TestHelmTargetProviderConfigFromMapNil tests the HelmTargetProviderConfigFromMap function with nil input
 func TestHelmTargetProviderConfigFromMapNil(t *testing.T) {
 	_, err := HelmTargetProviderConfigFromMap(nil)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 // TestHelmTargetProviderConfigFromMapEmpty tests the HelmTargetProviderConfigFromMap function with empty input
@@ -55,30 +55,14 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	assert.Equal(t, 1, len(components))
 }
 
-// TestHelmTargetProviderGetChartDetails tests the getHelmChartFromComponent function with valid input
-func TestHelmTargetProviderGetChartDetails(t *testing.T) {
-	_, err := getHelmChartFromComponent(model.ComponentSpec{
+// TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
+func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
+	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
 		Name: "bluefin-arc-extensions",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-				"name":    "bluefin-arc-extension",
-				"version": "0.1.1",
-			},
-		},
-	})
-	assert.Nil(t, err)
-}
-
-// TestHelmTargetProviderGetChartValues tests the getHelmValuesFromComponent function with valid input
-func TestHelmTargetProviderGetChartValues(t *testing.T) {
-	_, err := getHelmValuesFromComponent(model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
-		Type: "helm.v3",
-		Properties: map[string]interface{}{
-			"chart": map[string]string{
-				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"repo":    "", // blank repo
 				"name":    "bluefin-arc-extension",
 				"version": "0.1.1",
 			},
@@ -89,10 +73,9 @@ func TestHelmTargetProviderGetChartValues(t *testing.T) {
 			},
 		},
 	})
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
-// TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
 func TestHelmTargetProviderGetHelmProperty(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
 		Name: "bluefin-arc-extensions",
