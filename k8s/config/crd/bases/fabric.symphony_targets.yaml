@@ -150,6 +150,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              scope:
+                type: string
               topologies:
                 items:
                   properties:

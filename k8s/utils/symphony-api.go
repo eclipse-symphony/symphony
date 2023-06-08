@@ -73,15 +73,22 @@ func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []f
 func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.DeploymentSpec, error) {
 	ret := symphony.DeploymentSpec{}
 	// create solution
+	scope := target.Spec.Scope
+	if scope == "" {
+		scope = "default"
+	}
+
 	solution := symphony.SolutionSpec{
 		DisplayName: "target-runtime",
-		Scope:       "default",
+		Scope:       scope,
 		Components:  make([]symphony.ComponentSpec, 0),
 		Metadata:    make(map[string]string, 0),
 	}
+
 	for k, v := range target.Spec.Metadata {
 		solution.Metadata[k] = v
 	}
+
 	for _, component := range target.Spec.Components {
 		var c symphony.ComponentSpec
 		data, _ := json.Marshal(component)
@@ -100,13 +107,14 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 	if err != nil {
 		return ret, err
 	}
+
 	targets[target.ObjectMeta.Name] = t
 
 	// create instance
 	instance := symphony.InstanceSpec{
 		Name:        "target-runtime",
 		DisplayName: "target-runtime-" + target.ObjectMeta.Name,
-		Scope:       "default",
+		Scope:       scope,
 		Solution:    "target-runtime",
 		Target: symphony.TargetRefSpec{
 			Name: target.ObjectMeta.Name,
@@ -121,10 +129,13 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 	if err != nil {
 		return ret, err
 	}
+
 	ret.Assignments = make(map[string]string)
+
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+
 	return ret, nil
 }
 

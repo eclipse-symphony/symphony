@@ -10,6 +10,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
   name: campaigns.solution.symphony
 spec:
   group: solution.symphony
@@ -1293,6 +1294,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              scope:
+                type: string
               topologies:
                 items:
                   properties:
@@ -1416,6 +1419,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  creationTimestamp: null
   name: symphony-k8s-manager-role
 rules:
 - apiGroups:

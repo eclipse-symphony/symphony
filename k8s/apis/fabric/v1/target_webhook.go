@@ -69,6 +69,10 @@ func (r *Target) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
+
+	if r.Spec.Scope == "" {
+		r.Spec.Scope = "default"
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

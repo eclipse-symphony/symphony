@@ -81,6 +81,7 @@ type TargetSpec struct {
 	Constraints   []ConstraintSpec  `json:"constraints,omitempty"`
 	Topologies    []TopologySpec    `json:"topologies,omitempty"`
 	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
+	Scope         string            `json:"scope,omitempty"`
 }
 
 type ErrorType struct {
