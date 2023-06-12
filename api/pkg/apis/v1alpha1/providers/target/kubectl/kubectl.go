@@ -31,7 +31,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -44,12 +43,12 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -422,6 +421,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							return err
 						}
 
+						i.ensureNamespace(ctx, deployment.Instance.Scope)
 						err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 						if err != nil {
 							sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
@@ -451,6 +451,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					return err
 				}
 
+				i.ensureNamespace(ctx, deployment.Instance.Scope)
 				err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 				if err != nil {
 					sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply custom resource: +%v", err)
@@ -463,6 +464,42 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// ensureNamespace ensures that the namespace exists
+func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace string) error {
+	_, span := observability.StartSpan(
+		"Kubectl Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "ensureNamespace",
+		},
+	)
+	var err error
+	defer utils.CloseSpanWithError(span, err)
+
+	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err == nil {
+		return nil
+	}
+
+	if kerrors.IsNotFound(err) {
+		_, err = k.Client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to create namespace: +%v", err)
+			return err
+		}
+
+	} else {
+		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to get namespace: +%v", err)
+		return err
 	}
 
 	return nil
@@ -537,16 +574,8 @@ func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope str
 	// Obtain REST interface for the GVR
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		// namespaced resources should specify the namespace
-		// TODO: Do we really want to accept the namespace from the component? typically this component is part
-		// of a deployment and the namespace should be set by the deployment
-		namespace := obj.GetNamespace()
-		if namespace == "" {
-			namespace = "default"
-		}
-		if namespace != scope {
-			return obj, dr, fmt.Errorf("namespace %s does not match scope %s", namespace, scope)
-		}
-		dr = i.DynamicClient.Resource(mapping.Resource).Namespace(namespace)
+		obj.SetNamespace(scope)
+		dr = i.DynamicClient.Resource(mapping.Resource).Namespace(scope)
 	} else {
 		// for cluster-wide resources
 		dr = i.DynamicClient.Resource(mapping.Resource)
@@ -598,8 +627,9 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to build a new dynamic client: +%v", err)
 		return err
 	}
+
 	// Check if the object exists
-	_, err = dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
+	existing, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
@@ -614,9 +644,9 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		return nil
 	}
 
-	_, err = dr.Patch(ctx, obj.GetName(), types.ApplyPatchType, dataBytes, metav1.PatchOptions{
-		FieldManager: "application/apply-patch",
-	})
+	// Update the object
+	obj.SetResourceVersion(existing.GetResourceVersion())
+	_, err = dr.Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
 		return err
