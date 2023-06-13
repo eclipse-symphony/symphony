@@ -46,6 +46,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/google/uuid"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -61,6 +62,7 @@ var sLog = logger.NewLogger("coa.runtime")
 
 const (
 	DEFAULT_NAMESPACE = "default"
+	TEMP_CHART_DIR    = "/tmp/symphony/charts"
 )
 
 type (
@@ -89,7 +91,6 @@ type (
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
 		Repo    string `json:"repo"`
-		Name    string `json:"name"`
 		Version string `json:"version"`
 		Wait    bool   `json:"wait"`
 	}
@@ -150,6 +151,12 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error
 	defer utils.CloseSpanWithError(span, err)
 	sLog.Info("  P (Helm Target): Init()")
+
+	err = initChartsDir()
+	if err != nil {
+		sLog.Errorf("  P (Helm Target): failed to init charts dir: %+v", err)
+		return err
+	}
 
 	// convert config to HelmTargetProviderConfig type
 	var helmConfig HelmTargetProviderConfig
@@ -342,7 +349,6 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 					Properties: map[string]interface{}{
 						"chart": map[string]string{
 							"repo":    repo,
-							"name":    res.Chart.Metadata.Name,
 							"version": res.Chart.Metadata.Version,
 						},
 						"values": res.Config,
@@ -435,51 +441,21 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 
 	for _, component := range components {
-		var regClient *registry.Client
-		regClient, err = registry.NewClient()
-		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to create registry client: %+v", err)
-			return err
-		}
 
 		var helmProp *HelmProperty
 		helmProp, err = getHelmPropertyFromComponent(component)
 		if err != nil {
-			err = errors.New("component doesn't have chart property")
-			sLog.Errorf("  P (Helm Target): component doesn't have chart property")
+			sLog.Errorf("  P (Helm Target): failed to get Helm properties: %+v", err)
 			return err
 		}
 
-		repo := helmProp.Chart.Repo
-		version := helmProp.Chart.Version
-		chartName := helmProp.Chart.Name
-		var fileName string
-		if version == "" {
-			fileName = fmt.Sprintf("%s.tgz", chartName)
-		} else {
-			fileName = fmt.Sprintf("%s-%s.tgz", chartName, version)
+		fileName, err := i.pullChart(&helmProp.Chart)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
+			return err
 		}
+		defer os.Remove(fileName)
 
-		var pullRes *registry.PullResult
-		if strings.HasSuffix(repo, ".tgz") && strings.HasPrefix(repo, "http") {
-			err = downloadFile(repo, fileName)
-			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to download chart from repo: %+v", err)
-				return err
-			}
-		} else {
-			pullRes, err = regClient.Pull(fmt.Sprintf("%s:%s", repo, version), registry.PullOptWithChart(true))
-			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to pull chart from repo: %+v", err)
-				return err
-			}
-
-			err = ioutil.WriteFile(fileName, pullRes.Chart.Data, 0644)
-			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to save chart: %+v", err)
-				return err
-			}
-		}
 		var chart *chart.Chart
 		chart, err = loader.Load(fileName)
 		if err != nil {
@@ -487,7 +463,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			return err
 		}
 
-		chart.Metadata.Tags = "SYM:" + repo //this is not used by Helm SDK, we use this to carry repo info
+		chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
 		i.configureUpsertClients(component.Name, &helmProp.Chart, &deployment)
 
 		if _, err = i.UpgradeClient.Run(component.Name, chart, helmProp.Values); err != nil {
@@ -497,10 +473,42 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 		}
 
-		os.Remove(fileName)
 	}
 
 	return nil
+}
+
+func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName string, err error) {
+	fileName = fmt.Sprintf("%s/%s.tgz", TEMP_CHART_DIR, uuid.New().String())
+
+	var pullRes *registry.PullResult
+	if strings.HasSuffix(chart.Repo, ".tgz") && strings.HasPrefix(chart.Repo, "http") {
+		err = downloadFile(chart.Repo, fileName)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to download chart from repo: %+v", err)
+			return "", err
+		}
+	} else {
+		var regClient *registry.Client
+		regClient, err = registry.NewClient()
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to create registry client: %+v", err)
+			return
+		}
+
+		pullRes, err = regClient.Pull(fmt.Sprintf("%s:%s", chart.Repo, chart.Version), registry.PullOptWithChart(true))
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to pull chart from repo: %+v", err)
+			return
+		}
+
+		err = ioutil.WriteFile(fileName, pullRes.Chart.Data, 0644)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to save chart: %+v", err)
+			return
+		}
+	}
+	return fileName, nil
 }
 
 func (i *HelmTargetProvider) configureUpsertClients(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec) {
@@ -514,6 +522,7 @@ func (i *HelmTargetProvider) configureUpsertClients(name string, componentProps 
 
 	i.InstallClient.Wait = componentProps.Wait
 	i.UpgradeClient.Wait = componentProps.Wait
+	i.InstallClient.CreateNamespace = true
 	i.InstallClient.ReleaseName = name
 	i.InstallClient.IsUpgrade = true
 	i.UpgradeClient.Install = true
@@ -535,13 +544,19 @@ func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty,
 }
 
 func validateProps(props *HelmProperty) (*HelmProperty, error) {
-	if props.Chart.Name == "" {
-		return nil, errors.New("chart name is required")
-	}
-
 	if props.Chart.Repo == "" {
 		return nil, errors.New("chart repo is required")
 	}
 
 	return props, nil
+}
+
+func initChartsDir() error {
+	if _, err := os.Stat(TEMP_CHART_DIR); os.IsNotExist(err) {
+		err = os.MkdirAll(TEMP_CHART_DIR, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
