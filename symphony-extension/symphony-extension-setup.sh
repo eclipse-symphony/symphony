@@ -5,8 +5,8 @@ read -p "Enter the version you are working on (please pick a version existing in
 echo "*********** Setting up your environment ***********"
 minikube delete
 minikube start -n 2
-ExtensionType="private.symphony" 
-ServiceAccount="private.symphony"
+ExtensionType="private.projectalicesprings" 
+ServiceAccount="private.projectalicesprings"
 
 postFix=$(date +%m%d%H%M%S)
 location="westus"
