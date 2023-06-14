@@ -109,7 +109,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
 				} else {
-					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, err)
+					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, nil)
 					if err != nil {
 						return ctrl.Result{}, err
 					}
@@ -178,10 +178,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Request, instance *symphonyv1.Instance) (*symphonyv1.Solution, []symphonyv1.Target, string, string) {
-	var solution *symphonyv1.Solution
-
 	// Get solution
-	solution = &symphonyv1.Solution{}
+	solution := &symphonyv1.Solution{}
 	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: req.Namespace}, solution); err != nil {
 		return nil, nil, "Solution Missing", fmt.Sprintf("unable to fetch Solution object: %v", err)
 	}
@@ -193,9 +191,7 @@ func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Requ
 	}
 
 	// Get target candidates
-	var targetCandidates []symphonyv1.Target
-
-	targetCandidates = utils.MatchTargets(*instance, *targets)
+	targetCandidates := utils.MatchTargets(*instance, *targets)
 	if len(targetCandidates) == 0 {
 		return nil, nil, "No Matching Targets", "no Targets are selected"
 	}
@@ -212,6 +208,8 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 	instance.Status.Properties["status"] = status
 	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
+
+	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
 	if provisioningError != nil {
 		instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 		instance.Status.ProvisioningStatus.Error.Message = provisioningError.Error()

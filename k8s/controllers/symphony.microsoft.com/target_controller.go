@@ -110,7 +110,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			if err := r.Update(ctx, target); err != nil {
 				return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", provisioningstates.Failed, summary, err)
 			} else {
-				err = r.updateTargetStatus(target, "OK", provisioningstates.Succeeded, summary, err)
+				err = r.updateTargetStatus(target, "OK", provisioningstates.Succeeded, summary, nil)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -149,7 +149,9 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, status 
 	target.Status.Properties["status"] = status
 	target.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	target.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
+
 	ensureTargetOperationState(target, provisioningStatus)
+	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
 	if provisioningError != nil {
 		target.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 		target.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
