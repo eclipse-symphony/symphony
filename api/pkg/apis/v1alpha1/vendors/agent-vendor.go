@@ -189,7 +189,7 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var data []byte
 	var err error
 	if instance != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, "solution.symphony", "instances", "v1", "", alias)
+		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, "symphony.microsoft.com", "instances", "v1", "", alias)
 	} else if lookup != "" {
 		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
 	} else {

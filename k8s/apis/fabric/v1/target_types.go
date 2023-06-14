@@ -107,10 +107,9 @@ type TargetStatus struct {
 	LastModified       metav1.Time        `json:"lastModified,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
 // Target is the Schema for the targets API
 type Target struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -120,8 +119,7 @@ type Target struct {
 	Status TargetStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // TargetList contains a list of Target
 type TargetList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -129,6 +127,6 @@ type TargetList struct {
 	Items           []Target `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Target{}, &TargetList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Target{}, &TargetList{})
+// }

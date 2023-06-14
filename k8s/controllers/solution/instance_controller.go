@@ -27,24 +27,18 @@ package solution
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
-	utils "gopls-workspace/utils"
-	provisioningstates "gopls-workspace/utils/models"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -71,109 +65,109 @@ type InstanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	myFinalizerName := "instance.solution.symphony/finalizer"
+	// myFinalizerName := "instance.solution.symphony/finalizer"
 
-	log := log.FromContext(ctx)
-	log.Info("Reconcile Instance")
+	// log := log.FromContext(ctx)
+	// log.Info("Reconcile Instance")
 
-	// Get instance
-	instance := &solutionv1.Instance{}
-	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		log.Error(err, "unable to fetch Instance object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+	// // Get instance
+	// instance := &solutionv1.Instance{}
+	// if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+	// 	log.Error(err, "unable to fetch Instance object")
+	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
+	// }
 
-	if instance.Status.Properties == nil {
-		instance.Status.Properties = make(map[string]string)
-	}
+	// if instance.Status.Properties == nil {
+	// 	instance.Status.Properties = make(map[string]string)
+	// }
 
-	ensureOperationState(instance, provisioningstates.Reconciling)
+	// ensureOperationState(instance, provisioningstates.Reconciling)
 
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			controllerutil.AddFinalizer(instance, myFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
+	// if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
+	// 	if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
+	// 		controllerutil.AddFinalizer(instance, myFinalizerName)
+	// 		if err := r.Update(ctx, instance); err != nil {
+	// 			return ctrl.Result{}, err
+	// 		}
+	// 	}
 
-		solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
+	// 	solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
 
-		if solution != nil && targets != nil && len(targets) > 0 {
-			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets, nil)
-			if err == nil {
-				summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-				if err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Failed, summary, err)
-				}
+	// 	if solution != nil && targets != nil && len(targets) > 0 {
+	// 		deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
+	// 		if err == nil {
+	// 			summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+	// 			if err != nil {
+	// 				return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Failed, summary, err)
+	// 			}
 
-				if err := r.Update(ctx, instance); err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
-				} else {
-					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, err)
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-				}
+	// 			if err := r.Update(ctx, instance); err != nil {
+	// 				return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
+	// 			} else {
+	// 				err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, err)
+	// 				if err != nil {
+	// 					return ctrl.Result{}, err
+	// 				}
+	// 			}
 
-			} else {
-				if instance.Status.Properties == nil {
-					instance.Status.Properties = make(map[string]string)
-				}
-				instance.Status.Properties["status"] = "Failed to create deployment"
-				instance.Status.Properties["status-details"] = err.Error()
-				ensureOperationState(instance, provisioningstates.Failed)
-				instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
-				instance.Status.ProvisioningStatus.Error.Message = err.Error()
-				instance.Status.LastModified = metav1.Now()
-				iErr := r.Status().Update(context.Background(), instance)
-				if iErr != nil {
-					return ctrl.Result{}, iErr
-				}
-			}
+	// 		} else {
+	// 			if instance.Status.Properties == nil {
+	// 				instance.Status.Properties = make(map[string]string)
+	// 			}
+	// 			instance.Status.Properties["status"] = "Failed to create deployment"
+	// 			instance.Status.Properties["status-details"] = err.Error()
+	// 			ensureOperationState(instance, provisioningstates.Failed)
+	// 			instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
+	// 			instance.Status.ProvisioningStatus.Error.Message = err.Error()
+	// 			instance.Status.LastModified = metav1.Now()
+	// 			iErr := r.Status().Update(context.Background(), instance)
+	// 			if iErr != nil {
+	// 				return ctrl.Result{}, iErr
+	// 			}
+	// 		}
 
-		} else if err != "" && errDetails != "" {
-			if instance.Status.Properties == nil {
-				instance.Status.Properties = make(map[string]string)
-			}
-			instance.Status.Properties["status"] = err
-			instance.Status.Properties["status-details"] = errDetails
-			ensureOperationState(instance, provisioningstates.Reconciling)
-			instance.Status.LastModified = metav1.Now()
-			iErr := r.Status().Update(context.Background(), instance)
-			if iErr != nil {
-				return ctrl.Result{}, iErr
-			}
-		}
+	// 	} else if err != "" && errDetails != "" {
+	// 		if instance.Status.Properties == nil {
+	// 			instance.Status.Properties = make(map[string]string)
+	// 		}
+	// 		instance.Status.Properties["status"] = err
+	// 		instance.Status.Properties["status-details"] = errDetails
+	// 		ensureOperationState(instance, provisioningstates.Reconciling)
+	// 		instance.Status.LastModified = metav1.Now()
+	// 		iErr := r.Status().Update(context.Background(), instance)
+	// 		if iErr != nil {
+	// 			return ctrl.Result{}, iErr
+	// 		}
+	// 	}
 
-		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
-	} else { // remove
-		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			//summary := model.SummarySpec{}
-			solution, targets, errP, errDetails := r.prepareForUpdate(ctx, req, instance)
-			if solution != nil && targets != nil && len(targets) > 0 {
-				deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets, nil)
-				if err == nil {
-					_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-					if err != nil {
-						log.Error(err, "failed to delete components")
-						// Note: we only log errors and allow objects to be removed. Otherwise the instance
-						// object may get stuck, which causes problems during system update/removal. The downside
-						// of this is that external resources may get left behind
-					}
-				} else {
-					log.Error(err, "failed to create deployment")
-				}
-			} else if errP != "" && errDetails != "" {
-				log.Error(errors.New(errDetails), errP)
-			}
+	// 	return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
+	// } else { // remove
+	// 	if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
+	// 		//summary := model.SummarySpec{}
+	// 		solution, targets, errP, errDetails := r.prepareForUpdate(ctx, req, instance)
+	// 		if solution != nil && targets != nil && len(targets) > 0 {
+	// 			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
+	// 			if err == nil {
+	// 				_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+	// 				if err != nil {
+	// 					log.Error(err, "failed to delete components")
+	// 					// Note: we only log errors and allow objects to be removed. Otherwise the instance
+	// 					// object may get stuck, which causes problems during system update/removal. The downside
+	// 					// of this is that external resources may get left behind
+	// 				}
+	// 			} else {
+	// 				log.Error(err, "failed to create deployment")
+	// 			}
+	// 		} else if errP != "" && errDetails != "" {
+	// 			log.Error(errors.New(errDetails), errP)
+	// 		}
 
-			controllerutil.RemoveFinalizer(instance, myFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	}
+	// 		controllerutil.RemoveFinalizer(instance, myFinalizerName)
+	// 		if err := r.Update(ctx, instance); err != nil {
+	// 			return ctrl.Result{}, err
+	// 		}
+	// 	}
+	// }
 
 	return ctrl.Result{}, nil
 }
@@ -196,7 +190,7 @@ func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Requ
 	// Get target candidates
 	var targetCandidates []fabricv1.Target
 
-	targetCandidates = utils.MatchTargets(*instance, *targets)
+	// targetCandidates = utils.MatchTargets(*instance, *targets)
 	if len(targetCandidates) == 0 {
 		return nil, nil, "No Matching Targets", "no Targets are selected"
 	}

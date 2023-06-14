@@ -342,7 +342,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "targets",
 		},
 		Status: properties,
@@ -404,7 +404,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "targets",
 		},
 		Status: map[string]string{

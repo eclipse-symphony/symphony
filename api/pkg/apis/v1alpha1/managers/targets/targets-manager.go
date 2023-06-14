@@ -59,7 +59,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -71,7 +71,7 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": name,
@@ -80,9 +80,9 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -157,7 +157,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "targets",
 		},
 	}
@@ -214,7 +214,7 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "targets",
 		},
 	}

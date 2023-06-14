@@ -71,9 +71,8 @@ type SolutionStatus struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Solution is the Schema for the solutions API
 type Solution struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -83,8 +82,7 @@ type Solution struct {
 	Status SolutionStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // SolutionList contains a list of Solution
 type SolutionList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -92,6 +90,6 @@ type SolutionList struct {
 	Items           []Solution `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Solution{}, &SolutionList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Solution{}, &SolutionList{})
+// }

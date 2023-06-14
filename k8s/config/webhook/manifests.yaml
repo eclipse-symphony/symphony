@@ -11,92 +11,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-ai-symphony-v1-model
-  failurePolicy: Fail
-  name: mmodel.kb.io
-  rules:
-  - apiGroups:
-    - ai.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - models
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-ai-symphony-v1-skill
-  failurePolicy: Fail
-  name: mskill.kb.io
-  rules:
-  - apiGroups:
-    - ai.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - skills
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-fabric-symphony-v1-device
-  failurePolicy: Fail
-  name: mdevice.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - devices
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-fabric-symphony-v1-target
-  failurePolicy: Fail
-  name: mtarget.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - targets
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-solution-symphony-v1-instance
+      path: /mutate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -111,12 +31,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-solution-symphony-v1-solution
+      path: /mutate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -124,6 +44,26 @@ webhooks:
     - UPDATE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-symphony-microsoft-com-v1-target
+  failurePolicy: Fail
+  name: mtarget.kb.io
+  rules:
+  - apiGroups:
+    - symphony.microsoft.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -138,92 +78,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-ai-symphony-v1-model
-  failurePolicy: Fail
-  name: vmodel.kb.io
-  rules:
-  - apiGroups:
-    - ai.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - models
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-ai-symphony-v1-skill
-  failurePolicy: Fail
-  name: vskill.kb.io
-  rules:
-  - apiGroups:
-    - ai.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - skills
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-fabric-symphony-v1-device
-  failurePolicy: Fail
-  name: vdevice.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - devices
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-fabric-symphony-v1-target
-  failurePolicy: Fail
-  name: vtarget.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - targets
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-solution-symphony-v1-instance
+      path: /validate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony-microsoft-com
     apiVersions:
     - v1
     operations:
@@ -238,12 +98,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-solution-symphony-v1-solution
+      path: /validate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -251,4 +111,24 @@ webhooks:
     - UPDATE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-symphony-microsoft-com-v1-target
+  failurePolicy: Fail
+  name: vtarget.kb.io
+  rules:
+  - apiGroups:
+    - symphony.microsoft.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
   sideEffects: None

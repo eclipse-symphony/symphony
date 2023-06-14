@@ -213,3 +213,81 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - instances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - instances/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - solutions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - solutions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - targets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - targets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - symphony.microsoft.com
+  resources:
+  - targets/status
+  verbs:
+  - get
+  - patch
+  - update

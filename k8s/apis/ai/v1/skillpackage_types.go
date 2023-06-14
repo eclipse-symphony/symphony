@@ -39,9 +39,8 @@ type SkillPackageStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // SkillPackage is the Schema for the skillpackages API
 type SkillPackage struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -51,8 +50,7 @@ type SkillPackage struct {
 	Status SkillPackageStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // SkillPackageList contains a list of SkillPackage
 type SkillPackageList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -60,6 +58,6 @@ type SkillPackageList struct {
 	Items           []SkillPackage `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&SkillPackage{}, &SkillPackageList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&SkillPackage{}, &SkillPackageList{})
+// }

@@ -59,6 +59,6 @@ type CampaignList struct {
 	Items           []Campaign `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
+// }

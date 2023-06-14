@@ -9,6 +9,7 @@ replace github.com/azure/symphony/coa => ../coa
 require (
 	github.com/azure/symphony/api v0.0.0
 	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/stretchr/testify v1.8.2
 	k8s.io/api v0.25.0

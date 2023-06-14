@@ -1,8 +1,7 @@
 package utils
 
 import (
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,28 +38,28 @@ func TestSingleWildcardMismatch(t *testing.T) {
 }
 
 func TestDirectTargetMatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Name: "gateway-1",
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
@@ -71,28 +70,28 @@ func TestDirectTargetMatch(t *testing.T) {
 	assert.Equal(t, "gateway-1", ts[0].ObjectMeta.Name)
 }
 func TestDirectTargetMismatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Name: "gateway-1",
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-3",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-3",
 				},
 			},
@@ -102,36 +101,36 @@ func TestDirectTargetMismatch(t *testing.T) {
 	assert.Equal(t, 0, len(ts))
 }
 func TestTargetWildcardMatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Name: "gateway*",
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "file-server",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "file-server",
 				},
 			},
@@ -141,36 +140,36 @@ func TestTargetWildcardMatch(t *testing.T) {
 	assert.Equal(t, 2, len(ts))
 }
 func TestTargetSincleWildcardMatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Name: "gateway%1",
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway_1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway_1",
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway1",
 				},
 			},
@@ -180,44 +179,44 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 	assert.Equal(t, 2, len(ts))
 }
 func TestTargetSelectorMatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Selector: map[string]string{
 					"OS": "windows",
 				},
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"OS": "windows",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"OS": "linux",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
@@ -228,44 +227,44 @@ func TestTargetSelectorMatch(t *testing.T) {
 	assert.Equal(t, "gateway-1", ts[0].ObjectMeta.Name)
 }
 func TestTargetSelectorMismatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Selector: map[string]string{
 					"OS": "windows",
 				},
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"OS": "linux",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"OS": "mac",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-3",
 				},
 			},
@@ -275,44 +274,44 @@ func TestTargetSelectorMismatch(t *testing.T) {
 	assert.Equal(t, 0, len(ts))
 }
 func TestTargetSelectorWildcardMatch(t *testing.T) {
-	instance := solutionv1.Instance{
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+	instance := symphonyv1.Instance{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Selector: map[string]string{
 					"tag": "floor-*",
 				},
 			},
 		},
 	}
-	targets := fabricv1.TargetList{
-		Items: []fabricv1.Target{
-			fabricv1.Target{
+	targets := symphonyv1.TargetList{
+		Items: []symphonyv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"tag": "floor-23",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"tag": "floor-34",
 					},
 				},
 			},
-			fabricv1.Target{
+			symphonyv1.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-3",
 				},
-				Spec: fabricv1.TargetSpec{
+				Spec: symphonyv1.TargetSpec{
 					DisplayName: "gateway-3",
 					Properties: map[string]string{
 						"tag": "floor-88",
@@ -326,29 +325,29 @@ func TestTargetSelectorWildcardMatch(t *testing.T) {
 }
 
 func TestCreateSymphonyDeployment(t *testing.T) {
-	instance := solutionv1.Instance{
+	instance := symphonyv1.Instance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-instance",
 		},
-		Spec: solutionv1.InstanceSpec{
-			Target: solutionv1.TargetSpec{
+		Spec: symphonyv1.InstanceSpec{
+			Target: symphonyv1.TargetSelector{
 				Selector: map[string]string{
 					"tag": "floor-*",
 				},
 			},
 		},
 	}
-	targets := []fabricv1.Target{
+	targets := []symphonyv1.Target{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "gateway-1",
 			},
-			Spec: fabricv1.TargetSpec{
+			Spec: symphonyv1.TargetSpec{
 				DisplayName: "gateway-1",
 				Properties: map[string]string{
 					"tag": "floor-23",
 				},
-				Components: []fabricv1.ComponentSpec{
+				Components: []symphonyv1.ComponentSpec{
 					{
 						Properties: runtime.RawExtension{
 							Raw: []byte(`{"targetKey": "targetValue", "nested": {"targetKey2": "targetValue2"}}`),
@@ -359,12 +358,12 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		},
 	}
 
-	solution := solutionv1.Solution{
+	solution := symphonyv1.Solution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-solution",
 		},
-		Spec: solutionv1.SolutionSpec{
-			Components: []solutionv1.ComponentSpec{
+		Spec: symphonyv1.SolutionSpec{
+			Components: []symphonyv1.ComponentSpec{
 				{
 					Properties: runtime.RawExtension{
 						Raw: []byte(`{"key": "value", "nested": {"key": "value"}}`),
@@ -373,7 +372,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			},
 		},
 	}
-	deployment, err := CreateSymphonyDeployment(instance, solution, targets, []fabricv1.Device{})
+	deployment, err := CreateSymphonyDeployment(instance, solution, targets)
 	assert.NoError(t, err)
 	assert.IsType(t, map[string]interface{}{}, deployment.Solution.Components[0].Properties)
 	assert.IsType(t, map[string]interface{}{}, deployment.Targets["gateway-1"].Components[0].Properties)

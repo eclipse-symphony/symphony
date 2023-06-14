@@ -31,13 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	aiv1 "gopls-workspace/apis/ai/v1"
 	configv1 "gopls-workspace/apis/config/v1"
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
-	aicontrollers "gopls-workspace/controllers/ai"
-	fabriccontrollers "gopls-workspace/controllers/fabric"
-	solutioncontrollers "gopls-workspace/controllers/solution"
+	symphonymicrosoftcomv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
+	symphonymicrosoftcomcontrollers "gopls-workspace/controllers/symphony.microsoft.com"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,10 +45,11 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(solutionv1.AddToScheme(scheme))
-	utilruntime.Must(fabricv1.AddToScheme(scheme))
-	utilruntime.Must(aiv1.AddToScheme(scheme))
-	utilruntime.Must(configv1.AddToScheme(scheme))
+	// utilruntime.Must(solutionv1.AddToScheme(scheme))
+	// utilruntime.Must(fabricv1.AddToScheme(scheme))
+	// utilruntime.Must(aiv1.AddToScheme(scheme))
+	// utilruntime.Must(configv1.AddToScheme(scheme))
+	utilruntime.Must(symphonymicrosoftcomv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -102,84 +99,117 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&solutioncontrollers.SolutionReconciler{
+	// if err = (&solutioncontrollers.SolutionReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Solution")
+	// 	os.Exit(1)
+	// }
+	// if err = (&solutioncontrollers.InstanceReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Instance")
+	// 	os.Exit(1)
+	// }
+	// if err = (&fabriccontrollers.TargetReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Target")
+	// 	os.Exit(1)
+	// }
+	// if err = (&fabriccontrollers.DeviceReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Device")
+	// 	os.Exit(1)
+	// }
+	// if err = (&aicontrollers.ModelReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Model")
+	// 	os.Exit(1)
+	// }
+	// if err = (&aicontrollers.SkillReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Skill")
+	// 	os.Exit(1)
+	// }
+	// if err = (&aicontrollers.SkillPackageReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "SkillPackage")
+	// 	os.Exit(1)
+	// }
+	// if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Device")
+	// 	os.Exit(1)
+	// }
+	// if err = (&fabricv1.Target{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Target")
+	// 	os.Exit(1)
+	// }
+	// if err = (&solutionv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
+	// 	os.Exit(1)
+	// }
+	// if err = (&solutionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
+	// 	os.Exit(1)
+	// }
+	// if err = (&aiv1.Model{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Model")
+	// 	os.Exit(1)
+	// }
+	// if err = (&aiv1.Skill{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
+	// 	os.Exit(1)
+	// }
+	// if err = (&solutioncontrollers.CampaignReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "Campaign")
+	// 	os.Exit(1)
+	// }
+	if err = (&symphonymicrosoftcomcontrollers.SolutionReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Solution")
 		os.Exit(1)
 	}
-	if err = (&solutioncontrollers.InstanceReconciler{
+	if err = (&symphonymicrosoftcomcontrollers.InstanceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
-	if err = (&fabriccontrollers.TargetReconciler{
+	if err = (&symphonymicrosoftcomcontrollers.TargetReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Target")
 		os.Exit(1)
 	}
-	if err = (&fabriccontrollers.DeviceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Device")
-		os.Exit(1)
-	}
-	if err = (&aicontrollers.ModelReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Model")
-		os.Exit(1)
-	}
-	if err = (&aicontrollers.SkillReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Skill")
-		os.Exit(1)
-	}
-	if err = (&aicontrollers.SkillPackageReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SkillPackage")
-		os.Exit(1)
-	}
-	if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Device")
-		os.Exit(1)
-	}
-	if err = (&fabricv1.Target{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Target")
-		os.Exit(1)
-	}
-	if err = (&solutionv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&symphonymicrosoftcomv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
 		os.Exit(1)
 	}
-	if err = (&solutionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&symphonymicrosoftcomv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
 		os.Exit(1)
 	}
-	if err = (&aiv1.Model{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Model")
-		os.Exit(1)
-	}
-	if err = (&aiv1.Skill{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
-		os.Exit(1)
-	}
-	if err = (&solutioncontrollers.CampaignReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Campaign")
+	if err = (&symphonymicrosoftcomv1.Target{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Target")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

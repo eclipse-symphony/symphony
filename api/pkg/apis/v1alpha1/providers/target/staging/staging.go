@@ -210,7 +210,7 @@ type localTarget struct {
 
 func (i *StagingTargetProvider) getTarget(ctx context.Context, scope string) (model.TargetSpec, error) {
 	resourceId := schema.GroupVersionResource{
-		Group:    "fabric.symphony",
+		Group:    "symphony.microsoft.com",
 		Version:  "v1",
 		Resource: "targets",
 	}
@@ -265,7 +265,7 @@ func (i *StagingTargetProvider) Remove(ctx context.Context, deployment model.Dep
 	}
 
 	resourceId := schema.GroupVersionResource{
-		Group:    "fabric.symphony",
+		Group:    "symphony.microsoft.com",
 		Version:  "v1",
 		Resource: "targets",
 	}
@@ -341,7 +341,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	resourceId := schema.GroupVersionResource{
-		Group:    "fabric.symphony",
+		Group:    "symphony.microsoft.com",
 		Version:  "v1",
 		Resource: "targets",
 	}

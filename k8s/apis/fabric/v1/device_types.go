@@ -37,9 +37,8 @@ type DeviceStatus struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Device is the Schema for the devices API
 type Device struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -49,8 +48,7 @@ type Device struct {
 	Status DeviceStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // DeviceList contains a list of Device
 type DeviceList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -58,6 +56,6 @@ type DeviceList struct {
 	Items           []Device `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Device{}, &DeviceList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Device{}, &DeviceList{})
+// }

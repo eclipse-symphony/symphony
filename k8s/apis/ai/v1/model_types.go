@@ -57,9 +57,8 @@ type ModelStatus struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Model is the Schema for the models API
 type Model struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -69,8 +68,7 @@ type Model struct {
 	Status ModelStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // ModelList contains a list of Model
 type ModelList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -78,6 +76,6 @@ type ModelList struct {
 	Items           []Model `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Model{}, &ModelList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Model{}, &ModelList{})
+// }

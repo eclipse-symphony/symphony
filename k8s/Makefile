@@ -54,6 +54,7 @@ $(LOCAL_BIN):
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	rm -rf config/crd/bases
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
@@ -93,6 +94,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: helm-template
 helm-template: kustomize ## Generate helm template.
+	rm -rf symphony-extension/helm/symphony-chart/templates/symphony.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default -o ../symphony-extension/helm/symphony-chart/templates/symphony.yaml
 

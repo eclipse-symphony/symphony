@@ -58,8 +58,6 @@ func (r *Model) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-ai-symphony-v1-model,mutating=true,failurePolicy=fail,sideEffects=None,groups=ai.symphony,resources=models,verbs=create;update,versions=v1,name=mmodel.kb.io,admissionReviewVersions=v1
-
 var _ webhook.Defaulter = &Model{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -72,8 +70,6 @@ func (r *Model) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-
-//+kubebuilder:webhook:path=/validate-ai-symphony-v1-model,mutating=false,failurePolicy=fail,sideEffects=None,groups=ai.symphony,resources=models,verbs=create;update,versions=v1,name=vmodel.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Model{}
 

@@ -6,9 +6,9 @@
       "ProviderName": "Private.Symphony",
       "ResourceMapping": {
         "Version": "v1",
-        "Group": "solution.symphony",
+        "Group": "symphony.microsoft.com",
         "Kind": "Solution",
-        "Name": "solutions.solution.symphony"
+        "Name": "solutions.symphony.microsoft.com"
       }
     },
     {
@@ -17,9 +17,9 @@
       "ResourceProviderName": "Private.Symphony",
       "ResourceMapping": {
           "Version": "v1",
-          "Group": "solution.symphony",
+          "Group": "symphony.microsoft.com",
           "Kind": "Instance",
-          "Name": "instances.solution.symphony",
+          "Name": "instances.symphony.microsoft.com",
           "IsAsync": true
       }
   },
@@ -29,9 +29,9 @@
       "ResourceProviderName": "Private.Symphony",
       "ResourceMapping": {
           "Version": "v1",
-          "Group": "fabric.symphony",
+          "Group": "symphony.microsoft.com",
           "Kind": "Target",
-          "Name": "targets.fabric.symphony",
+          "Name": "targets.symphony.microsoft.com",
           "IsAsync": true
       }
   }

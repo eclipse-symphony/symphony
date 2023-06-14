@@ -44,8 +44,6 @@ func (r *Skill) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-ai-symphony-v1-skill,mutating=true,failurePolicy=fail,sideEffects=None,groups=ai.symphony,resources=skills,verbs=create;update,versions=v1,name=mskill.kb.io,admissionReviewVersions=v1
-
 var _ webhook.Defaulter = &Skill{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -58,8 +56,6 @@ func (r *Skill) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-
-//+kubebuilder:webhook:path=/validate-ai-symphony-v1-skill,mutating=false,failurePolicy=fail,sideEffects=None,groups=ai.symphony,resources=skills,verbs=create;update,versions=v1,name=vskill.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Skill{}
 

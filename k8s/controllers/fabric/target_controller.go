@@ -29,20 +29,14 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	fabricv1 "gopls-workspace/apis/fabric/v1"
-	utils "gopls-workspace/utils"
-	provisioningstates "gopls-workspace/utils/models"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // TargetReconciler reconciles a Target object
@@ -65,78 +59,78 @@ type TargetReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	myFinalizerName := "target.fabric.symphony/finalizer"
+	// myFinalizerName := "target.fabric.symphony/finalizer"
 
-	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target")
+	// log := ctrllog.FromContext(ctx)
+	// log.Info("Reconcile Target")
 
-	// Get target
-	target := &fabricv1.Target{}
-	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		log.Error(err, "unable to fetch Target object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+	// // Get target
+	// target := &fabricv1.Target{}
+	// if err := r.Get(ctx, req.NamespacedName, target); err != nil {
+	// 	log.Error(err, "unable to fetch Target object")
+	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
+	// }
 
-	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		if !controllerutil.ContainsFinalizer(target, myFinalizerName) {
-			controllerutil.AddFinalizer(target, myFinalizerName)
-			if err := r.Update(ctx, target); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
+	// if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
+	// 	if !controllerutil.ContainsFinalizer(target, myFinalizerName) {
+	// 		controllerutil.AddFinalizer(target, myFinalizerName)
+	// 		if err := r.Update(ctx, target); err != nil {
+	// 			return ctrl.Result{}, err
+	// 		}
+	// 	}
 
-		deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
-		if err != nil {
-			log.Error(err, "failed to generate Symphony deployment")
-			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, model.SummarySpec{
-				TargetCount:  1,
-				SuccessCount: 0,
-				TargetResults: map[string]model.TargetResultSpec{
-					"self": {
-						Status:  "Failed",
-						Message: err.Error(),
-					},
-				},
-			}, err)
-		}
+	// 	deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
+	// 	if err != nil {
+	// 		log.Error(err, "failed to generate Symphony deployment")
+	// 		return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, model.SummarySpec{
+	// 			TargetCount:  1,
+	// 			SuccessCount: 0,
+	// 			TargetResults: map[string]model.TargetResultSpec{
+	// 				"self": {
+	// 					Status:  "Failed",
+	// 					Message: err.Error(),
+	// 				},
+	// 			},
+	// 		}, err)
+	// 	}
 
-		if len(deployment.Assignments) != 0 {
-			summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-			if err != nil {
-				log.Error(err, "failed to deploy to Symphony")
-				return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, summary, err)
-			}
+	// 	if len(deployment.Assignments) != 0 {
+	// 		summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+	// 		if err != nil {
+	// 			log.Error(err, "failed to deploy to Symphony")
+	// 			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, summary, err)
+	// 		}
 
-			if err := r.Update(ctx, target); err != nil {
-				return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", provisioningstates.Failed, summary, err)
-			} else {
-				err = r.updateTargetStatus(target, "OK", provisioningstates.Succeeded, summary, err)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-		}
+	// 		if err := r.Update(ctx, target); err != nil {
+	// 			return ctrl.Result{}, r.updateTargetStatus(target, "State Failed", provisioningstates.Failed, summary, err)
+	// 		} else {
+	// 			err = r.updateTargetStatus(target, "OK", provisioningstates.Succeeded, summary, err)
+	// 			if err != nil {
+	// 				return ctrl.Result{}, err
+	// 			}
+	// 		}
+	// 	}
 
-		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
-	} else { // remove
-		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
-			//summary := model.SummarySpec{}
-			deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
-			if err != nil {
-				log.Error(err, "failed to generate Symphony deployment")
-			} else {
-				_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-				if err != nil { // TODO: this could stop the CRD being removed if the underlying component is permanantly destroyed
-					log.Error(err, "failed to delete components")
-				}
-			}
+	// 	return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
+	// } else { // remove
+	// 	if controllerutil.ContainsFinalizer(target, myFinalizerName) {
+	// 		//summary := model.SummarySpec{}
+	// 		deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
+	// 		if err != nil {
+	// 			log.Error(err, "failed to generate Symphony deployment")
+	// 		} else {
+	// 			_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
+	// 			if err != nil { // TODO: this could stop the CRD being removed if the underlying component is permanantly destroyed
+	// 				log.Error(err, "failed to delete components")
+	// 			}
+	// 		}
 
-			controllerutil.RemoveFinalizer(target, myFinalizerName)
-			if err := r.Update(ctx, target); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	}
+	// 		controllerutil.RemoveFinalizer(target, myFinalizerName)
+	// 		if err := r.Update(ctx, target); err != nil {
+	// 			return ctrl.Result{}, err
+	// 		}
+	// 	}
+	// }
 
 	return ctrl.Result{}, nil
 }

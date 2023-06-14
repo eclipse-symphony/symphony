@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +76,7 @@ func TestUpSert(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "s123",
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": "s123",
@@ -89,9 +89,9 @@ func TestUpSert(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -122,7 +122,7 @@ func TestList(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -131,7 +131,7 @@ func TestList(t *testing.T) {
 	entries, _, err := provider.List(context.Background(), states.ListRequest{
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -157,9 +157,9 @@ func TestDelete(t *testing.T) {
 			ID: "s123",
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -169,7 +169,7 @@ func TestDelete(t *testing.T) {
 		ID: "s123",
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -191,7 +191,7 @@ func TestGet(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "s123",
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": "s123",
@@ -204,9 +204,9 @@ func TestGet(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -216,7 +216,7 @@ func TestGet(t *testing.T) {
 		ID: "s123",
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targetds",
 		},
@@ -239,7 +239,7 @@ func TestUpSertWithState(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "s234",
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": "s234",
@@ -257,9 +257,9 @@ func TestUpSertWithState(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -282,7 +282,7 @@ func TestUpSertWithStateOnly(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "s234",
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": "s234",
@@ -295,9 +295,9 @@ func TestUpSertWithStateOnly(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "targets",
 		},

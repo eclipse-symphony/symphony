@@ -5,24 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: targets.fabric.symphony
+  name: solutions.symphony.microsoft.com
 spec:
-  group: fabric.symphony
+  group: symphony.microsoft.com
   names:
-    kind: Target
-    listKind: TargetList
-    plural: targets
-    singular: target
+    kind: Solution
+    listKind: SolutionList
+    plural: solutions
+    singular: solution
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
-      name: Status
-      type: string
-    name: v1
+  - name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: Solution is the Schema for the solutions API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -37,15 +33,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: TargetSpec defines the desired state of Target
+            description: SolutionSpec defines the desired state of Solution
             properties:
               components:
                 items:
                   properties:
                     constraints:
                       items:
-                        description: 'NOTE: json tags are required.  Any new fields
-                          you add must have json tags for the fields to be serialized.'
                         properties:
                           key:
                             type: string
@@ -94,17 +88,17 @@ spec:
                               - type
                               type: object
                             type: array
-                          metadata:
+                          properties:
                             additionalProperties:
                               type: string
                             type: object
-                          name:
-                            type: string
                           route:
                             type: string
+                          type:
+                            type: string
                         required:
-                        - name
                         - route
+                        - type
                         type: object
                       type: array
                     skills:
@@ -117,110 +111,24 @@ spec:
                   - name
                   type: object
                 type: array
-              constraints:
-                items:
-                  description: 'NOTE: json tags are required.  Any new fields you
-                    add must have json tags for the fields to be serialized.'
-                  properties:
-                    key:
-                      type: string
-                    operator:
-                      type: string
-                    qualifier:
-                      type: string
-                    value:
-                      type: string
-                    values:
-                      items:
-                        type: string
-                      type: array
-                  required:
-                  - key
-                  type: object
-                type: array
               displayName:
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
                 type: string
-              forceRedeploy:
-                type: boolean
               metadata:
                 additionalProperties:
                   type: string
                 type: object
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-              scope:
-                type: string
-              topologies:
-                items:
-                  properties:
-                    bindings:
-                      items:
-                        properties:
-                          config:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          provider:
-                            type: string
-                          role:
-                            type: string
-                        required:
-                        - provider
-                        - role
-                        type: object
-                      type: array
-                    device:
-                      type: string
-                    selector:
-                      additionalProperties:
-                        type: string
-                      type: object
-                  type: object
-                type: array
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
+            description: SolutionStatus defines the observed state of Solution
             properties:
-              lastModified:
-                format: date-time
-                type: string
               properties:
                 additionalProperties:
                   type: string
                 description: 'Important: Run "make" to regenerate code after modifying
                   this file'
                 type: object
-              provisioningStatus:
-                description: ProvisioningStatus defines the state of the ARM resource
-                  for long running operations
-                properties:
-                  error:
-                    properties:
-                      code:
-                        type: string
-                      message:
-                        type: string
-                    type: object
-                  failureCause:
-                    type: string
-                  logErrors:
-                    type: boolean
-                  operationId:
-                    type: string
-                  output:
-                    additionalProperties:
-                      type: string
-                    type: object
-                  status:
-                    type: string
-                required:
-                - operationId
-                - status
-                type: object
-            required:
-            - provisioningStatus
             type: object
         type: object
     served: true

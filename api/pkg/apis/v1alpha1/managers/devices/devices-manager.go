@@ -56,7 +56,7 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "devices",
 		},
@@ -68,7 +68,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "fabric.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "device",
 				"metadata": map[string]interface{}{
 					"name": name,
@@ -77,9 +77,9 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"fabric.symphony/v1", "kind": "Device", "metadata": {"name": "$device()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Device", "metadata": {"name": "$device()"}}`,
 			"scope":    "",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "devices",
 		},
@@ -95,7 +95,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "devices",
 		},
 	}
@@ -136,7 +136,7 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "fabric.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "devices",
 		},
 	}

@@ -64,9 +64,8 @@ type SkillStatus struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Skill is the Schema for the skills API
 type Skill struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -76,8 +75,7 @@ type Skill struct {
 	Status SkillStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // SkillList contains a list of Skill
 type SkillList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -85,6 +83,6 @@ type SkillList struct {
 	Items           []Skill `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Skill{}, &SkillList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Skill{}, &SkillList{})
+// }

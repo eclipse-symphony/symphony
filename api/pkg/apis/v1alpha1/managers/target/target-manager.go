@@ -34,6 +34,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -42,7 +43,6 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var log = logger.NewLogger("coa.runtime")
@@ -114,7 +114,7 @@ func (s *TargetManager) Remove(ctx context.Context, target model.TargetSpec) err
 func (s *TargetManager) Poll() []error {
 	target := s.ReferenceProvider.TargetID()
 
-	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", "fabric.symphony", "devices", "v1", "v1alpha2.ReferenceK8sCRD")
+	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", "symphony.microsoft.com", "devices", "v1", "v1alpha2.ReferenceK8sCRD")
 	if err != nil {
 		return []error{err}
 	}
@@ -195,7 +195,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[targetName+".err"] = errStr
 	}
-	err := s.Reporter.Report(deviceName, "default", "fabric.symphony", "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
+	err := s.Reporter.Report(deviceName, "default", "symphony.microsoft.com", "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
 	if err != nil {
 		log.Debugf("failed to report device status: %s", err.Error())
 		ret = append(ret, err)
@@ -205,7 +205,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[deviceName+".err"] = errStr
 	}
-	err = s.Reporter.Report(targetName, "default", "fabric.symphony", "targets", "v1", report, overwrite)
+	err = s.Reporter.Report(targetName, "default", "symphony.microsoft.com", "targets", "v1", report, overwrite)
 	if err != nil {
 		log.Debugf("failed to report target status: %s", err.Error())
 		ret = append(ret, err)

@@ -56,7 +56,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "solution.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "instances",
 		},
@@ -68,7 +68,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "solution.symphony/v1",
+				"apiVersion": "symphony.microsoft.com/v1",
 				"kind":       "Instance",
 				"metadata": map[string]interface{}{
 					"name": name,
@@ -77,9 +77,9 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"solution.symphony/v1", "kind": "Instance", "metadata": {"name": "$instance()"}}`,
+			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Instance", "metadata": {"name": "$instance()"}}`,
 			"scope":    "",
-			"group":    "solution.symphony",
+			"group":    "symphony.microsoft.com",
 			"version":  "v1",
 			"resource": "instances",
 		},
@@ -95,7 +95,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "solution.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "instances",
 		},
 	}
@@ -152,7 +152,7 @@ func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.Instan
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "solution.symphony",
+			"group":    "symphony.microsoft.com",
 			"resource": "instances",
 		},
 	}

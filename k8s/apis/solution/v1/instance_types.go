@@ -87,11 +87,11 @@ type InstanceStatus struct {
 	LastModified       metav1.Time        `json:"lastModified,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
-//+kubebuilder:printcolumn:name="Targets",type=string,JSONPath=`.status.properties.targets`
-//+kubebuilder:printcolumn:name="Deployed",type=string,JSONPath=`.status.properties.deployed`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
+// +kubebuilder:printcolumn:name="Targets",type=string,JSONPath=`.status.properties.targets`
+// +kubebuilder:printcolumn:name="Deployed",type=string,JSONPath=`.status.properties.deployed`
 
 // Instance is the Schema for the instances API
 type Instance struct {
@@ -102,8 +102,7 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // InstanceList contains a list of Instance
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -111,6 +110,6 @@ type InstanceList struct {
 	Items           []Instance `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Instance{}, &InstanceList{})
-}
+// func init() {
+// 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
+// }

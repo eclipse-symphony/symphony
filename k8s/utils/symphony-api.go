@@ -27,8 +27,7 @@ package utils
 
 import (
 	"encoding/json"
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"regexp"
 	"strings"
 
@@ -40,8 +39,8 @@ const (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
 )
 
-func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []fabricv1.Target {
-	ret := make(map[string]fabricv1.Target)
+func MatchTargets(instance symphonyv1.Instance, targets symphonyv1.TargetList) []symphonyv1.Target {
+	ret := make(map[string]symphonyv1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
 
@@ -63,14 +62,14 @@ func MatchTargets(instance solutionv1.Instance, targets fabricv1.TargetList) []f
 			}
 		}
 	}
-	slice := make([]fabricv1.Target, 0, len(ret))
+	slice := make([]symphonyv1.Target, 0, len(ret))
 	for _, v := range ret {
 		slice = append(slice, v)
 	}
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.DeploymentSpec, error) {
+func CreateSymphonyDeploymentFromTarget(target symphonyv1.Target) (symphony.DeploymentSpec, error) {
 	ret := symphony.DeploymentSpec{}
 	// create solution
 	scope := target.Spec.Scope
@@ -139,7 +138,7 @@ func CreateSymphonyDeploymentFromTarget(target fabricv1.Target) (symphony.Deploy
 	return ret, nil
 }
 
-func CreateSymphonyDeployment(instance solutionv1.Instance, solution solutionv1.Solution, targets []fabricv1.Target, devices []fabricv1.Device) (symphony.DeploymentSpec, error) {
+func CreateSymphonyDeployment(instance symphonyv1.Instance, solution symphonyv1.Solution, targets []symphonyv1.Target) (symphony.DeploymentSpec, error) {
 	ret := symphony.DeploymentSpec{}
 	// convert instance
 	var sInstance symphony.InstanceSpec
