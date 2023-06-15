@@ -30,7 +30,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	utils "gopls-workspace/utils"
@@ -145,7 +144,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 
-		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
+		return ctrl.Result{}, nil
 	} else { // remove
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
 			//summary := model.SummarySpec{}

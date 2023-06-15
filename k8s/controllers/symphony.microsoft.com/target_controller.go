@@ -29,7 +29,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	utils "gopls-workspace/utils"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // TargetReconciler reconciles a Target object
@@ -117,7 +117,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 
-		return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
+		return ctrl.Result{}, nil
 	} else { // remove
 		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
 			//summary := model.SummarySpec{}
@@ -165,7 +165,10 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, status 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	genChangePredicate := predicate.GenerationChangedPredicate{}
+	annotationPredicate := predicate.AnnotationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
+		WithEventFilter(predicate.Or(genChangePredicate, annotationPredicate)).
 		For(&symphonyv1.Target{}).
 		Complete(r)
 }

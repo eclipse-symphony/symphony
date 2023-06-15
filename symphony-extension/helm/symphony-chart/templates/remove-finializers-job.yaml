@@ -1,0 +1,23 @@
+# this is a helm hook that runs when the chart is about to be deleted
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-remove-finalizers
+  annotations:
+    "helm.sh/hook": pre-upgrade,pre-delete
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation,hook-failed
+    "helm.sh/hook-weight": "2"
+spec:
+  template:
+    spec:
+      containers:
+      - name: pre-delete
+        image: bitnami/kubectl:1.25.10
+        command:
+        - /bin/bash
+        - -c
+        - |-
+          {{- .Files.Get "files/remove-finalizers.sh" | nindent 12 }}
+      restartPolicy: Never
+      serviceAccountName: {{ .Release.Name }}-hook-sa
+  backoffLimit: 3

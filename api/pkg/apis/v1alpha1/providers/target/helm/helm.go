@@ -526,6 +526,7 @@ func (i *HelmTargetProvider) configureUpsertClients(name string, componentProps 
 	i.InstallClient.ReleaseName = name
 	i.InstallClient.IsUpgrade = true
 	i.UpgradeClient.Install = true
+	i.UpgradeClient.ResetValues = true
 }
 
 func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty, error) {
