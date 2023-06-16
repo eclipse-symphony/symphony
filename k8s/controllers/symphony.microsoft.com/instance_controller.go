@@ -32,6 +32,7 @@ import (
 	"strconv"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
+	"gopls-workspace/constants"
 	utils "gopls-workspace/utils"
 	provisioningstates "gopls-workspace/utils/models"
 
@@ -81,11 +82,16 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	r.ensureOperationState(instance, provisioningstates.Reconciling)
+	err := r.Status().Update(ctx, instance)
+	if err != nil {
+		log.Error(err, "unable to update Instance status")
+		return ctrl.Result{}, err
+	}
+
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
-
-	ensureInstanceOperationState(instance, provisioningstates.Reconciling)
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
@@ -95,7 +101,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 
-		solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
+		solution, targets, errStatus, errDetails := r.prepareForUpdate(ctx, req, instance)
 
 		if solution != nil && targets != nil && len(targets) > 0 {
 			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
@@ -120,7 +126,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				}
 				instance.Status.Properties["status"] = "Failed to create deployment"
 				instance.Status.Properties["status-details"] = err.Error()
-				ensureInstanceOperationState(instance, provisioningstates.Failed)
+				r.ensureOperationState(instance, provisioningstates.Failed)
 				instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
 				instance.Status.ProvisioningStatus.Error.Message = err.Error()
 				instance.Status.LastModified = metav1.Now()
@@ -130,13 +136,13 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				}
 			}
 
-		} else if err != "" && errDetails != "" {
+		} else if errStatus != "" && errDetails != "" {
 			if instance.Status.Properties == nil {
 				instance.Status.Properties = make(map[string]string)
 			}
-			instance.Status.Properties["status"] = err
+			instance.Status.Properties["status"] = errStatus
 			instance.Status.Properties["status-details"] = errDetails
-			ensureInstanceOperationState(instance, provisioningstates.Reconciling)
+			r.ensureOperationState(instance, provisioningstates.Reconciling)
 			instance.Status.LastModified = metav1.Now()
 			iErr := r.Status().Update(context.Background(), instance)
 			if iErr != nil {
@@ -203,7 +209,7 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 		instance.Status.Properties = make(map[string]string)
 	}
 
-	ensureInstanceOperationState(instance, provisioningStatus)
+	r.ensureOperationState(instance, provisioningStatus)
 	instance.Status.Properties["status"] = status
 	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
@@ -256,7 +262,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func ensureInstanceOperationState(instance *symphonyv1.Instance, provisioningState string) {
+func (r *InstanceReconciler) ensureOperationState(instance *symphonyv1.Instance, provisioningState string) {
 	instance.Status.ProvisioningStatus.Status = provisioningState
-	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
+	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations[constants.AzureOperationKey]
 }

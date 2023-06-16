@@ -31,6 +31,7 @@ import (
 	"strconv"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
+	"gopls-workspace/constants"
 	utils "gopls-workspace/utils"
 	provisioningstates "gopls-workspace/utils/models"
 
@@ -77,7 +78,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	r.ensureOperationState(target, provisioningstates.Reconciling)
+	err := r.Status().Update(ctx, target)
+	if err != nil {
+		log.Error(err, "unable to update Target status")
+		return ctrl.Result{}, err
+	}
+
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
+
 		if !controllerutil.ContainsFinalizer(target, myFinalizerName) {
 			controllerutil.AddFinalizer(target, myFinalizerName)
 			if err := r.Update(ctx, target); err != nil {
@@ -150,7 +159,7 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, status 
 	target.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	target.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
 
-	ensureTargetOperationState(target, provisioningStatus)
+	r.ensureOperationState(target, provisioningStatus)
 	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
 	if provisioningError != nil {
 		target.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
@@ -173,7 +182,7 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func ensureTargetOperationState(target *symphonyv1.Target, provisioningState string) {
+func (r *TargetReconciler) ensureOperationState(target *symphonyv1.Target, provisioningState string) {
 	target.Status.ProvisioningStatus.Status = provisioningState
-	target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations["management.azure.com/operationId"]
+	target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations[constants.AzureOperationKey]
 }
