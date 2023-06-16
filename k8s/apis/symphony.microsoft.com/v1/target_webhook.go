@@ -41,7 +41,7 @@ var targetValidationPolicies []configv1.ValidationPolicy
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myTargetClient = mgr.GetClient()
 
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, ".spec.displayName", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, "spec.displayName", func(rawObj client.Object) []string {
 		target := rawObj.(*Target)
 		return []string{target.Spec.DisplayName}
 	})
@@ -110,7 +110,7 @@ func (r *Target) ValidateDelete() error {
 func (r *Target) validateCreateTarget() error {
 	var allErrs field.ErrorList
 	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
 		return apierrors.NewInvalid(schema.GroupKind{Group: "symphony.microsoft.com", Kind: "Target"}, r.Name, allErrs)
@@ -143,7 +143,7 @@ func (r *Target) validateCreateTarget() error {
 func (r *Target) validateUpdateTarget() error {
 	var allErrs field.ErrorList
 	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
 		return apierrors.NewInvalid(schema.GroupKind{Group: "symphony.microsoft.com", Kind: "Target"}, r.Name, allErrs)

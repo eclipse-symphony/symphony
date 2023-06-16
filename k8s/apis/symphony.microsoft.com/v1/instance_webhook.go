@@ -33,7 +33,7 @@ var myInstanceClient client.Client
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, ".spec.displayName", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.displayName", func(rawObj client.Object) []string {
 		target := rawObj.(*Instance)
 		return []string{target.Spec.DisplayName}
 	})
@@ -95,7 +95,7 @@ func (r *Instance) ValidateDelete() error {
 
 func (r *Instance) validateCreateInstance() error {
 	var instances InstanceList
-	myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if len(instances.Items) != 0 {
 		return fmt.Errorf("instance display name '%s' is already taken", r.Spec.DisplayName)
 	}
@@ -104,7 +104,7 @@ func (r *Instance) validateCreateInstance() error {
 
 func (r *Instance) validateUpdateInstance() error {
 	var instances InstanceList
-	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if err != nil {
 		return err
 	}
