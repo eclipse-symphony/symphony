@@ -45,6 +45,7 @@ type InstanceSpec struct {
 	Topologies           []TopologySpec    `json:"topologies,omitempty"`
 	Pipelines            []PipelineSpec    `json:"pipelines,omitempty"`
 	OptOutReconciliation bool              `json:"optOutReconciliation,omitempty"`
+	Version              string            `json:"version,omitempty"`
 }
 type TargetSelector struct {
 	Name     string            `json:"name,omitempty"`

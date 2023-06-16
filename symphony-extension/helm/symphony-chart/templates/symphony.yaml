@@ -9,7 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
     controller-gen.kubebuilder.io/version: v0.11.1
   name: instances.symphony.microsoft.com
 spec:
@@ -129,6 +129,8 @@ spec:
                       type: object
                   type: object
                 type: array
+              version:
+                type: string
               versions:
                 items:
                   properties:
@@ -196,7 +198,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
     controller-gen.kubebuilder.io/version: v0.11.1
   name: solutions.symphony.microsoft.com
 spec:
@@ -322,6 +324,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              version:
+                type: string
             type: object
           status:
             description: SolutionStatus defines the observed state of Solution
@@ -515,6 +519,8 @@ spec:
                       type: object
                   type: object
                 type: array
+              version:
+                type: string
             type: object
           status:
             description: TargetStatus defines the observed state of Target
@@ -1057,7 +1063,11 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: controller:latest
+        env:
+        - name: APP_VERSION
+          value: '{{ .Values.symphonyImage.tag }}'
+        image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
+          }}'
         livenessProbe:
           httpGet:
             path: /healthz

@@ -93,10 +93,9 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 .PHONY: helm-template
-helm-template: kustomize ## Generate helm template.
+helm-template: manifests    ## Generate helm template.
 	rm -rf symphony-extension/helm/symphony-chart/templates/symphony.yaml
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default -o ../symphony-extension/helm/symphony-chart/templates/symphony.yaml
+	$(KUSTOMIZE) build config/helm -o ../symphony-extension/helm/symphony-chart/templates/symphony.yaml
 
 ##@ Deployment
 

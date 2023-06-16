@@ -113,6 +113,8 @@ spec:
                       type: object
                   type: object
                 type: array
+              version:
+                type: string
               versions:
                 items:
                   properties:

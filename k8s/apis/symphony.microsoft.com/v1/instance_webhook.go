@@ -59,6 +59,10 @@ func (r *Instance) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
+
+	if r.Spec.Version == "" {
+		r.Spec.Version = AppVersion
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

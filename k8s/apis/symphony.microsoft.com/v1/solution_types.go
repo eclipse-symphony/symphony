@@ -28,6 +28,7 @@ type SolutionSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 	Components  []ComponentSpec   `json:"components,omitempty"`
+	Version     string            `json:"version,omitempty"`
 }
 
 // SolutionStatus defines the observed state of Solution

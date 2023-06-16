@@ -119,6 +119,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              version:
+                type: string
             type: object
           status:
             description: SolutionStatus defines the observed state of Solution

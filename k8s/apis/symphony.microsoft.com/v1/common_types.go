@@ -75,4 +75,5 @@ type TargetSpec struct {
 	Topologies    []TopologySpec    `json:"topologies,omitempty"`
 	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
 	Scope         string            `json:"scope,omitempty"`
+	Version       string            `json:"version,omitempty"`
 }

@@ -67,7 +67,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: devices.fabric.symphony
+      name: instances.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -77,7 +77,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: instances.solution.symphony
+      name: solutions.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -87,37 +87,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: models.ai.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 0
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: projectconfigs.config.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 0
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: solutions.solution.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 0
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: targets.fabric.symphony
+      name: targets.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -154,7 +124,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: devices.fabric.symphony
+      name: instances.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -164,7 +134,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: instances.solution.symphony
+      name: solutions.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -174,37 +144,7 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: models.ai.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 1
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: projectconfigs.config.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 1
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: solutions.solution.symphony
-    fieldPaths:
-    - metadata.annotations.[cert-manager.io/inject-ca-from]
-    options:
-      delimiter: '/'
-      index: 1
-  - select:
-      kind: CustomResourceDefinition
-      group: apiextensions.k8s.io
-      version: v1
-      name: targets.fabric.symphony
+      name: targets.symphony.microsoft.com
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:

@@ -73,6 +73,10 @@ func (r *Target) Default() {
 	if r.Spec.Scope == "" {
 		r.Spec.Scope = "default"
 	}
+
+	if r.Spec.Version == "" {
+		r.Spec.Version = AppVersion
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
