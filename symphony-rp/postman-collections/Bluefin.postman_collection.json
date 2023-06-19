@@ -1,0 +1,1149 @@
+{
+	"info": {
+		"_postman_id": "a5d1dd72-db39-4f91-adb6-c069f2a2008b",
+		"name": "Bluefin",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "19948895",
+		"_collection_link": "https://solar-shadow-224876.postman.co/workspace/DH-RP-work~774dd7e8-e45a-49fb-9feb-704dd4b67da0/collection/8544368-a5d1dd72-db39-4f91-adb6-c069f2a2008b?action=share&creator=19948895&source=collection_link"
+	},
+	"item": [
+		{
+			"name": "Arc Enabled RP POC",
+			"item": [
+				{
+					"name": "Bluefin Create",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSIsImtpZCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLXBwZS5uZXQvZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkLyIsImlhdCI6MTY3MzQ5OTE0NSwibmJmIjoxNjczNDk5MTQ1LCJleHAiOjE2NzM1MDM5NjYsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLnBwZS53aW5kb3dzLm5ldC9mNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QvdXNlcnMvYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVlFBcS84V0FBQUFWY1VhNDJIdEdQbVJ1R0tDbTczb1JaN3IrV3JsYkpBTjhqaVdDdFFlUWlDeE1nTWhLK3lQWmFwTEpOR2prd1F0bXFLUVExQ3FEUEpnWmFkMlZEbWJmWHhsNmxRQWRaZFJNeWFwbmlDS3hQMD0iLCJhbXIiOlsicnNhIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJLYXpha292YSIsImdpdmVuX25hbWUiOiJMaWEiLCJpcGFkZHIiOiI1MC40Ni4yNDYuMTE1IiwibmFtZSI6IkxpYSBLYXpha292YSIsIm9pZCI6ImEyYzNkNWVlLTRhNDAtNGZkYy05OWMyLWZjODI5ODQ5MzUwYiIsIm9ucHJlbV9zaWQiOiJTLTEtNS0yMS0yMTI3NTIxMTg0LTE2MDQwMTI5MjAtMTg4NzkyNzUyNy0zNTI2NTc3NyIsInB1aWQiOiIxMDAzREZGRDAwMDAwNkNDIiwicmgiOiIwLkFBQUFKdFNHOWhhTjIwS0J0NnRYamhFTXpVWklmM2tBdXRkUHVrUGF3ZmoyTUJNQkFJay4iLCJzY3AiOiJ1c2VyX2ltcGVyc29uYXRpb24iLCJzdWIiOiJEeGNtN284Sm02QnctX2FhcjJpTVV6Rnh3SklQOTdnWExna3hTUmc4WF9VIiwidGlkIjoiZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkIiwidW5pcXVlX25hbWUiOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImxpYWthekBtaWNyb3NvZnQuY29tIiwidXRpIjoibE9xSDRZR2xyRUdadEdIZldPRUhBQSIsInZlciI6IjEuMCIsIndpZHMiOlsiYjc5ZmJmNGQtM2VmOS00Njg5LTgxNDMtNzZiMTk0ZTg1NTA5Il0sInhtc190Y2R0IjoxMjg0NjkwNjkzfQ.M2nYANKjdpgob8kbHqONJTonQ8X61fDxigo7R_sVz-1VfxZpOMpkw1W1_mCnMk95myRqWBHEjIEOPXmp1LZGaNYhQoUlUGa5CGj90g1UPx5imDuRF0Pmd7xJs__0580ULbMQQ8W_5hGFwwAtnQmdW0gRLFYS1mCl_IDp6-m4sRWhJZQw_3QPGSfI9rJ7akw8jUN3N8wvsM_G3UNxcuv_ckj8RNafv0IbJUYR-bGoZsiRf2ff61t93bEB4wiTugpOWlk4kiko5nHypsHjHg3ixJAq3Ba2czrrlu1z09_rYfhn0sTArwAglvC3syeMoZ9PHdMgOTEg8_PweAN8lhARNg"
+							}
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"ExtendedLocation\": {\r\n            \"type\": \"CustomLocation\",\r\n            \"name\": \"/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.ExtendedLocation/customLocations/B17-3Q00\"\r\n          },\r\n    \"properties\": {\r\n        \"replicaCount\": 1,\r\n        \"image\": \"iotctiadfcontainers.azurecr.io/data-processor:latest\",\r\n        \"nats\":\r\n            {\r\n                \"domainName\": \"edge-ecosystem\",\r\n                \"port\": 4222\r\n            },\r\n        \"mqttBroker\":\r\n            {\r\n                \"hostname\": \"azedge-dmqtt-frontend\",\r\n                \"port\": 1883,\r\n                \"scheme\": \"tcp\",\r\n                \"username\": \"client1\",\r\n                \"password\": \"password\"\r\n            },\r\n        \"sdpDisableProcessor\": \"false\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://api-dogfood.resources.windows-int.net/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.Bluefin/workspaces/data-processor-sample-1?api-version=2022-11-01-preview",
+							"protocol": "https",
+							"host": [
+								"api-dogfood",
+								"resources",
+								"windows-int",
+								"net"
+							],
+							"path": [
+								"subscriptions",
+								"34d077e3-2c1a-48f5-8629-ffc0e657e0ed",
+								"resourceGroups",
+								"liakaz-bluefin-arc",
+								"providers",
+								"Microsoft.Bluefin",
+								"workspaces",
+								"data-processor-sample-1"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2022-11-01-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bluefin Delete",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSIsImtpZCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLXBwZS5uZXQvZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkLyIsImlhdCI6MTY3MzQ5OTE0NSwibmJmIjoxNjczNDk5MTQ1LCJleHAiOjE2NzM1MDM5NjYsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLnBwZS53aW5kb3dzLm5ldC9mNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QvdXNlcnMvYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVlFBcS84V0FBQUFWY1VhNDJIdEdQbVJ1R0tDbTczb1JaN3IrV3JsYkpBTjhqaVdDdFFlUWlDeE1nTWhLK3lQWmFwTEpOR2prd1F0bXFLUVExQ3FEUEpnWmFkMlZEbWJmWHhsNmxRQWRaZFJNeWFwbmlDS3hQMD0iLCJhbXIiOlsicnNhIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJLYXpha292YSIsImdpdmVuX25hbWUiOiJMaWEiLCJpcGFkZHIiOiI1MC40Ni4yNDYuMTE1IiwibmFtZSI6IkxpYSBLYXpha292YSIsIm9pZCI6ImEyYzNkNWVlLTRhNDAtNGZkYy05OWMyLWZjODI5ODQ5MzUwYiIsIm9ucHJlbV9zaWQiOiJTLTEtNS0yMS0yMTI3NTIxMTg0LTE2MDQwMTI5MjAtMTg4NzkyNzUyNy0zNTI2NTc3NyIsInB1aWQiOiIxMDAzREZGRDAwMDAwNkNDIiwicmgiOiIwLkFBQUFKdFNHOWhhTjIwS0J0NnRYamhFTXpVWklmM2tBdXRkUHVrUGF3ZmoyTUJNQkFJay4iLCJzY3AiOiJ1c2VyX2ltcGVyc29uYXRpb24iLCJzdWIiOiJEeGNtN284Sm02QnctX2FhcjJpTVV6Rnh3SklQOTdnWExna3hTUmc4WF9VIiwidGlkIjoiZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkIiwidW5pcXVlX25hbWUiOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImxpYWthekBtaWNyb3NvZnQuY29tIiwidXRpIjoibE9xSDRZR2xyRUdadEdIZldPRUhBQSIsInZlciI6IjEuMCIsIndpZHMiOlsiYjc5ZmJmNGQtM2VmOS00Njg5LTgxNDMtNzZiMTk0ZTg1NTA5Il0sInhtc190Y2R0IjoxMjg0NjkwNjkzfQ.M2nYANKjdpgob8kbHqONJTonQ8X61fDxigo7R_sVz-1VfxZpOMpkw1W1_mCnMk95myRqWBHEjIEOPXmp1LZGaNYhQoUlUGa5CGj90g1UPx5imDuRF0Pmd7xJs__0580ULbMQQ8W_5hGFwwAtnQmdW0gRLFYS1mCl_IDp6-m4sRWhJZQw_3QPGSfI9rJ7akw8jUN3N8wvsM_G3UNxcuv_ckj8RNafv0IbJUYR-bGoZsiRf2ff61t93bEB4wiTugpOWlk4kiko5nHypsHjHg3ixJAq3Ba2czrrlu1z09_rYfhn0sTArwAglvC3syeMoZ9PHdMgOTEg8_PweAN8lhARNg"
+							}
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "https://api-dogfood.resources.windows-int.net/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.Bluefin/workspaces/dataprocessor-sample-1?api-version=2022-11-01-preview",
+							"protocol": "https",
+							"host": [
+								"api-dogfood",
+								"resources",
+								"windows-int",
+								"net"
+							],
+							"path": [
+								"subscriptions",
+								"34d077e3-2c1a-48f5-8629-ffc0e657e0ed",
+								"resourceGroups",
+								"liakaz-bluefin-arc",
+								"providers",
+								"Microsoft.Bluefin",
+								"workspaces",
+								"dataprocessor-sample-1"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2022-11-01-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "HydrationRule",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IjRTZnZzYnR4MmtVcGNHLXNYTGNQR3FpVUNxWSIsImtpZCI6IjRTZnZzYnR4MmtVcGNHLXNYTGNQR3FpVUNxWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLXBwZS5uZXQvZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkLyIsImlhdCI6MTY3Mjg3Mzk1MiwibmJmIjoxNjcyODczOTUyLCJleHAiOjE2NzI4Nzg5OTAsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLnBwZS53aW5kb3dzLm5ldC9mNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QvdXNlcnMvYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVlFBcS84V0FBQUFyNEhybnBUS3RHVGRUMUNFZzRyYjZjd3N5UHVyMWhlSU82d3JNTmdOS2xXcFdlNnE5R0JMQ0xYelNhZVBHY2o4T0N5ZkxISVhGbmN2SHBub3JYUHRRUDROdFh6R0QveGZRdldiQ2FZNmZOUT0iLCJhbXIiOlsicnNhIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJLYXpha292YSIsImdpdmVuX25hbWUiOiJMaWEiLCJpcGFkZHIiOiIxMzEuMTA3LjguODciLCJuYW1lIjoiTGlhIEthemFrb3ZhIiwib2lkIjoiYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiIiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxMjc1MjExODQtMTYwNDAxMjkyMC0xODg3OTI3NTI3LTM1MjY1Nzc3IiwicHVpZCI6IjEwMDNERkZEMDAwMDA2Q0MiLCJyaCI6IjAuQUFBQUp0U0c5aGFOMjBLQnQ2dFhqaEVNelVaSWYza0F1dGRQdWtQYXdmajJNQk1CQUlrLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IkR4Y203bzhKbTZCdy1fYWFyMmlNVXpGeHdKSVA5N2dYTGdreFNSZzhYX1UiLCJ0aWQiOiJmNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QiLCJ1bmlxdWVfbmFtZSI6ImxpYWthekBtaWNyb3NvZnQuY29tIiwidXBuIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1dGkiOiJpV0NRYWtHQm9VcUZPc0xVY0ZNQ0FBIiwidmVyIjoiMS4wIiwid2lkcyI6WyJiNzlmYmY0ZC0zZWY5LTQ2ODktODE0My03NmIxOTRlODU1MDkiXSwieG1zX3RjZHQiOjEyODQ2OTA2OTN9.OcYJ_0fJd0CccfXjSZkcEROMLcUuxB5X23iSHW7lXQjU3rTcdjVLOl43F7HfujpHdzHo5DoFjUFnlUYKwk8BwfS55sAWZJJ59wiEIAsbGGI82ElRqu_-jxmhY_bCtbIEyn-xq0gE4_5AtUjpO1mNgciOnjjmMVa08ltNk6stM3H0F7Qrvb41F7u6DZrtorBgCsBVr2PXmu6UKYx7EJ-nUlr5GPWyjPwUGZDV-_i-L31PcbX_Y0MiOQ0m2SfBVfEnPi4enDQ-myW-fuzOj_THQJTMuSws5vfkFtzL-_bbEIY8B_1moMBarSFKBQCKpCCCf5dmGbQF4NePQYPKeXf_4w"
+							}
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"priority\": 150,\r\n        \"targetResourceGroup\": \"/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc\",\r\n        \"selector\": {}\r\n    },\r\n    \"location\": \"westus\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://api-dogfood.resources.windows-int.net/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.ExtendedLocation/customLocations/b17-3q00/resourceSyncRules/dprule?api-version=2021-08-31-preview",
+							"protocol": "https",
+							"host": [
+								"api-dogfood",
+								"resources",
+								"windows-int",
+								"net"
+							],
+							"path": [
+								"subscriptions",
+								"34d077e3-2c1a-48f5-8629-ffc0e657e0ed",
+								"resourceGroups",
+								"liakaz-bluefin-arc",
+								"providers",
+								"Microsoft.ExtendedLocation",
+								"customLocations",
+								"b17-3q00",
+								"resourceSyncRules",
+								"dprule"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-31-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "HydrationRule",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSIsImtpZCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLXBwZS5uZXQvZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkLyIsImlhdCI6MTY3MzM5MTM1MywibmJmIjoxNjczMzkxMzUzLCJleHAiOjE2NzMzOTU0NTMsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLnBwZS53aW5kb3dzLm5ldC9mNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QvdXNlcnMvYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVlFBcS84V0FBQUEza2JLdjhPSW40S2RpMTBncWRzby9sK0ZjenNZSEhrV2hXZ0l3M09sU2RkTTEyRGVVZGxjWFNFbTl4cHZYRDJzUldqZVk2UUhGQnkvOWovYmdJTlZXZHUyTkRmSnAzaXY0UU1qNmRhd3lVQT0iLCJhbXIiOlsicnNhIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJLYXpha292YSIsImdpdmVuX25hbWUiOiJMaWEiLCJpcGFkZHIiOiIxMzEuMTA3LjguODciLCJuYW1lIjoiTGlhIEthemFrb3ZhIiwib2lkIjoiYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiIiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxMjc1MjExODQtMTYwNDAxMjkyMC0xODg3OTI3NTI3LTM1MjY1Nzc3IiwicHVpZCI6IjEwMDNERkZEMDAwMDA2Q0MiLCJyaCI6IjAuQUFBQUp0U0c5aGFOMjBLQnQ2dFhqaEVNelVaSWYza0F1dGRQdWtQYXdmajJNQk1CQUlrLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IkR4Y203bzhKbTZCdy1fYWFyMmlNVXpGeHdKSVA5N2dYTGdreFNSZzhYX1UiLCJ0aWQiOiJmNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QiLCJ1bmlxdWVfbmFtZSI6ImxpYWthekBtaWNyb3NvZnQuY29tIiwidXBuIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1dGkiOiJDYTczUDlFTGMwMm1ORHk0RHljQkFBIiwidmVyIjoiMS4wIiwid2lkcyI6WyJiNzlmYmY0ZC0zZWY5LTQ2ODktODE0My03NmIxOTRlODU1MDkiXSwieG1zX3RjZHQiOjEyODQ2OTA2OTN9.otM62QSDeeEYDq1wiMdggIqLtwRtVrs3PPAOFioZzrDjn_fXTR7ZOtHWxI6BjwpKjO9D0VhtDIM6Dr1yrtJsZoi1rxH3Ya5LWVrKqWajRI-6yHDmG9HXrh8EXTaN_4gc89sZdcx6Ejlf5LB15aY7ga0O-CJtmuzYHwX6ie1oI1yf6lQCn0RvVi5Pswp9m-DSGGGCbX5x7pEtfOnz6pTP3Lsxk7VvnL_oOExOR-Wn3RuoOErSEnMgCEIcPCzuJ1i9elSQpaCpcacckhUhc3Ds8Pt2kpWXqnYVM22C2hr5zhX4H1Rf9f8HyICuGPDHAbUPo9-BFbI22PgOYV9vGLZ4XA"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-dogfood.resources.windows-int.net/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.ExtendedLocation/customLocations/b17-3q00/resourceSyncRules/dprule?api-version=2021-08-31-preview",
+							"protocol": "https",
+							"host": [
+								"api-dogfood",
+								"resources",
+								"windows-int",
+								"net"
+							],
+							"path": [
+								"subscriptions",
+								"34d077e3-2c1a-48f5-8629-ffc0e657e0ed",
+								"resourceGroups",
+								"liakaz-bluefin-arc",
+								"providers",
+								"Microsoft.ExtendedLocation",
+								"customLocations",
+								"b17-3q00",
+								"resourceSyncRules",
+								"dprule"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-31-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bluefin",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSIsImtpZCI6ImlkYzRyYW5ZNXJGVS0wdkFmWHRkQlVPa2dBTSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLXBwZS5uZXQvZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkLyIsImlhdCI6MTY3MzQ5OTE0NSwibmJmIjoxNjczNDk5MTQ1LCJleHAiOjE2NzM1MDM5NjYsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLnBwZS53aW5kb3dzLm5ldC9mNjg2ZDQyNi04ZDE2LTQyZGItODFiNy1hYjU3OGUxMTBjY2QvdXNlcnMvYTJjM2Q1ZWUtNGE0MC00ZmRjLTk5YzItZmM4Mjk4NDkzNTBiL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVlFBcS84V0FBQUFWY1VhNDJIdEdQbVJ1R0tDbTczb1JaN3IrV3JsYkpBTjhqaVdDdFFlUWlDeE1nTWhLK3lQWmFwTEpOR2prd1F0bXFLUVExQ3FEUEpnWmFkMlZEbWJmWHhsNmxRQWRaZFJNeWFwbmlDS3hQMD0iLCJhbXIiOlsicnNhIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJLYXpha292YSIsImdpdmVuX25hbWUiOiJMaWEiLCJpcGFkZHIiOiI1MC40Ni4yNDYuMTE1IiwibmFtZSI6IkxpYSBLYXpha292YSIsIm9pZCI6ImEyYzNkNWVlLTRhNDAtNGZkYy05OWMyLWZjODI5ODQ5MzUwYiIsIm9ucHJlbV9zaWQiOiJTLTEtNS0yMS0yMTI3NTIxMTg0LTE2MDQwMTI5MjAtMTg4NzkyNzUyNy0zNTI2NTc3NyIsInB1aWQiOiIxMDAzREZGRDAwMDAwNkNDIiwicmgiOiIwLkFBQUFKdFNHOWhhTjIwS0J0NnRYamhFTXpVWklmM2tBdXRkUHVrUGF3ZmoyTUJNQkFJay4iLCJzY3AiOiJ1c2VyX2ltcGVyc29uYXRpb24iLCJzdWIiOiJEeGNtN284Sm02QnctX2FhcjJpTVV6Rnh3SklQOTdnWExna3hTUmc4WF9VIiwidGlkIjoiZjY4NmQ0MjYtOGQxNi00MmRiLTgxYjctYWI1NzhlMTEwY2NkIiwidW5pcXVlX25hbWUiOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImxpYWthekBtaWNyb3NvZnQuY29tIiwidXRpIjoibE9xSDRZR2xyRUdadEdIZldPRUhBQSIsInZlciI6IjEuMCIsIndpZHMiOlsiYjc5ZmJmNGQtM2VmOS00Njg5LTgxNDMtNzZiMTk0ZTg1NTA5Il0sInhtc190Y2R0IjoxMjg0NjkwNjkzfQ.M2nYANKjdpgob8kbHqONJTonQ8X61fDxigo7R_sVz-1VfxZpOMpkw1W1_mCnMk95myRqWBHEjIEOPXmp1LZGaNYhQoUlUGa5CGj90g1UPx5imDuRF0Pmd7xJs__0580ULbMQQ8W_5hGFwwAtnQmdW0gRLFYS1mCl_IDp6-m4sRWhJZQw_3QPGSfI9rJ7akw8jUN3N8wvsM_G3UNxcuv_ckj8RNafv0IbJUYR-bGoZsiRf2ff61t93bEB4wiTugpOWlk4kiko5nHypsHjHg3ixJAq3Ba2czrrlu1z09_rYfhn0sTArwAglvC3syeMoZ9PHdMgOTEg8_PweAN8lhARNg"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-dogfood.resources.windows-int.net/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourceGroups/liakaz-bluefin-arc/providers/Microsoft.Bluefin/workspaces?api-version=2022-11-01-preview",
+							"protocol": "https",
+							"host": [
+								"api-dogfood",
+								"resources",
+								"windows-int",
+								"net"
+							],
+							"path": [
+								"subscriptions",
+								"34d077e3-2c1a-48f5-8629-ffc0e657e0ed",
+								"resourceGroups",
+								"liakaz-bluefin-arc",
+								"providers",
+								"Microsoft.Bluefin",
+								"workspaces"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2022-11-01-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PrivateRP",
+			"item": [
+				{
+					"name": "Bluefin APIs",
+					"item": [
+						{
+							"name": "Pipeline",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"ExtendedLocation\": {\r\n            \"type\": \"CustomLocation\",\r\n            \"name\": \"/subscriptions/5a705084-8084-4075-89f4-18b37f247e26/resourceGroups/arc-resources/providers/Microsoft.ExtendedLocation/customLocations/bluefin-location-2\"\r\n          },\r\n    \"properties\": {\r\n        \"displayName\": \"K8s API Pipeline\",\r\n        \"enabled\": true,\r\n        \"input\": {\r\n            \"description\": \"Read from topic foo\",\r\n            \"displayName\": \"E4K\",\r\n            \"format\": {\r\n                \"type\": \"json\"\r\n            },\r\n            \"mqttConnectionInfo\": {\r\n                \"broker\": \"tcp://hello-world-broker:6221\",\r\n                \"password\": \"test-password\",\r\n                \"username\": \"test-user\"\r\n            },\r\n            \"next\": [\r\n                \"node-22f2\"\r\n            ],\r\n            \"topics\": [\r\n                {\r\n                    \"name\": \"/opc-connector/opc-ua-connector/humidifier\"\r\n                }\r\n            ],\r\n            \"type\": \"input/mqtt@v1\",\r\n            \"viewOptions\": {\r\n                \"position\": {\r\n                    \"x\": 0,\r\n                    \"y\": 80\r\n                }\r\n            }\r\n        },\r\n        \"partitionCount\": 6,\r\n        \"stages\": {\r\n            \"node-22f2\": {\r\n                \"displayName\": \"Node - 22f2\",\r\n                \"next\": [\r\n                    \"output\"\r\n                ],\r\n                \"query\": \".\",\r\n                \"type\": \"processor/transform@v1\",\r\n                \"viewOptions\": {\r\n                    \"position\": {\r\n                        \"x\": 0,\r\n                        \"y\": 208\r\n                    }\r\n                }\r\n            },\r\n            \"output\": {\r\n                \"broker\": \"tcp://hello-world-broker:6221\",\r\n                \"description\": \"Publish to topic baz\",\r\n                \"displayName\": \"E4K\",\r\n                \"format\": {\r\n                    \"type\": \"json\"\r\n                },\r\n                \"password\": \"test-password\",\r\n                \"timeout\": \"45ms\",\r\n                \"topic\": \"tcp://hello-world:5998\",\r\n                \"type\": \"output/mqtt@v1\",\r\n                \"username\": \"test-user\",\r\n                \"viewOptions\": {\r\n                    \"position\": {\r\n                        \"x\": 0,\r\n                        \"y\": 336\r\n                    }\r\n                }\r\n            }\r\n        }\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://eastus2euap.management.azure.com/subscriptions/{{bfInfraSub}}/resourceGroups/arc-resources/providers/Private.Bluefin/instances/test-bf-0616-6/pipelines/pipeline-21?api-version={{bluefinPrpApiVersion}}",
+									"protocol": "https",
+									"host": [
+										"eastus2euap",
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{bfInfraSub}}",
+										"resourceGroups",
+										"arc-resources",
+										"providers",
+										"Private.Bluefin",
+										"instances",
+										"test-bf-0616-6",
+										"pipelines",
+										"pipeline-21"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "{{bluefinPrpApiVersion}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Instance",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"ExtendedLocation\": {\r\n            \"type\": \"CustomLocation\",\r\n            \"name\": \"/subscriptions/5a705084-8084-4075-89f4-18b37f247e26/resourceGroups/arc-resources/providers/Microsoft.ExtendedLocation/customLocations/bluefin-location-2\"\r\n          },\r\n    \"properties\": {\r\n        \"displayName\": \"Bluefin Instance 1\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://eastus2euap.management.azure.com/subscriptions/{{bfInfraSub}}/resourceGroups/arc-resources/providers/Private.Bluefin/instances/test-bf-0616-6?api-version={{bluefinPrpApiVersion}}",
+									"protocol": "https",
+									"host": [
+										"eastus2euap",
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{bfInfraSub}}",
+										"resourceGroups",
+										"arc-resources",
+										"providers",
+										"Private.Bluefin",
+										"instances",
+										"test-bf-0616-6"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "{{bluefinPrpApiVersion}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Instance",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"ExtendedLocation\": {\r\n            \"type\": \"CustomLocation\",\r\n            \"name\": \"/subscriptions/5a705084-8084-4075-89f4-18b37f247e26/resourceGroups/arc-resources/providers/Microsoft.ExtendedLocation/customLocations/bluefin-location\"\r\n          },\r\n    \"properties\": {\r\n        \"displayName\": \"Bluefin Instance 1\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://eastus2euap.management.azure.com/subscriptions/{{bfInfraSub}}/resourceGroups/arc-resources/providers/Private.Bluefin/instances/test-bf-0616-6?api-version={{bluefinPrpApiVersion}}",
+									"protocol": "https",
+									"host": [
+										"eastus2euap",
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{bfInfraSub}}",
+										"resourceGroups",
+										"arc-resources",
+										"providers",
+										"Private.Bluefin",
+										"instances",
+										"test-bf-0616-6"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "{{bluefinPrpApiVersion}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Instance",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://eastus2euap.management.azure.com/subscriptions/{{bfInfraSub}}/resourceGroups/arc-resources/providers/Private.Bluefin/instances/test-bf-0616-6?api-version={{bluefinPrpApiVersion}}",
+									"protocol": "https",
+									"host": [
+										"eastus2euap",
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{bfInfraSub}}",
+										"resourceGroups",
+										"arc-resources",
+										"providers",
+										"Private.Bluefin",
+										"instances",
+										"test-bf-0616-6"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "{{bluefinPrpApiVersion}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Register RP to Subscription",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{armurl}}/subscriptions/5a705084-8084-4075-89f4-18b37f247e26/providers/{{rpnamespace}}/register?api-version=2020-01-01-preview",
+									"host": [
+										"{{armurl}}"
+									],
+									"path": [
+										"subscriptions",
+										"5a705084-8084-4075-89f4-18b37f247e26",
+										"providers",
+										"{{rpnamespace}}",
+										"register"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Random",
+					"item": [
+						{
+							"name": "Workspace Type",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": true,\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}\r\n ",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetyperegistrations/workspaces/resourcetyperegistrations/pipelines?api-version=2021-10-01-privatepreview",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"providerRegistrations",
+										"{{rpnamespace}}",
+										"resourcetyperegistrations",
+										"workspaces",
+										"resourcetyperegistrations",
+										"pipelines"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-10-01-privatepreview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DocDB Register",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/register?api-version=2021-04-01",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"register"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-04-01"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "RP Administration",
+					"item": [
+						{
+							"name": "Resource Types",
+							"item": [
+								{
+									"name": "Intstance Type",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": {
+												"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNjg1OTkxODE3LCJuYmYiOjE2ODU5OTE4MTcsImV4cCI6MTY4NTk5Njg0NiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzY4MzMyZTNlLWU1OTEtNDQ2Yy04ZTA3LTYyMzQ5MmM0NWViZC9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFRBQUFBNmVPdEorMXoxSG1ONG85K2tFZU4wejIwalR0bXFZakkrMVVNazRDeVFlMVlFa2dtVXNoSm1sUzFXUWlQODdVbC91S0tVQ2s5UGhVRWwvUGZ4L2NndUV5b1hnMGhVUzdkb2hEODRIeUNCRlU9IiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImZhbWlseV9uYW1lIjoiS2F6YWtvdmEiLCJnaXZlbl9uYW1lIjoiTGlhIiwiaW5fY29ycCI6InRydWUiLCJpcGFkZHIiOiIyMC4yMjguMTIxLjIxMyIsIm5hbWUiOiJMaWEgS2F6YWtvdmEiLCJvaWQiOiI2ODMzMmUzZS1lNTkxLTQ0NmMtOGUwNy02MjM0OTJjNDVlYmQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMjEyNzUyMTE4NC0xNjA0MDEyOTIwLTE4ODc5Mjc1MjctMzUyNjU3NzciLCJwdWlkIjoiMTAwMzIwMDA0Njk4MjQ5NCIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBQUUuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiZ0NqcDBKblg5Tm1UdmI2d1kzZzNFbzQyMlp6c050a0dwWmdIWmZOUllxTSIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInV0aSI6Ik9xLTFGOHpaeFUyU0dNbXVHamhFQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.rQhtMlNByj6c72cw0v4qDuAWXdTpxHYZ-x0XTblNQOKQdi154o3ZpRftwyaFXD8MRmaj1S1juc_pyTKop16R1B5ZOg3sdAhI7XrXcQqUo17RVKfJLiTe9bIkuwmDLEQeb54YLBGbCm-Dwn9EUfRza2b4L34kM-SHyP_f8zHbbjvydK_WSabAn3QA1A3aPx_iF12BHmou_UM16gHXU9I3Kx4Sjuu-z05epKdWzlImPEfTEiJfzMYt3KxvfhVOgSxgO2WVPFCyKD5Fn17dc0rhQ-f1wd-7gYYNgO-dqfF4eheJIu2oJ0WftYsUcHPSg2H7SURAIAYooqzdqpTXgUrIOw"
+											}
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": true,\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}\r\n ",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetyperegistrations/instances?api-version=2021-10-01-privatepreview",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetyperegistrations",
+												"instances"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "2021-10-01-privatepreview"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Pipeine Type",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": {
+												"token": "{{token}}"
+											}
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": true,\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}\r\n ",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetyperegistrations/instances/resourcetyperegistrations/pipelines?api-version=2021-10-01-privatepreview",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetyperegistrations",
+												"instances",
+												"resourcetyperegistrations",
+												"pipelines"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "2021-10-01-privatepreview"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Location/Operation Statuses Type",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": {
+												"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNjg1OTkxODE3LCJuYmYiOjE2ODU5OTE4MTcsImV4cCI6MTY4NTk5Njg0NiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzY4MzMyZTNlLWU1OTEtNDQ2Yy04ZTA3LTYyMzQ5MmM0NWViZC9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFRBQUFBNmVPdEorMXoxSG1ONG85K2tFZU4wejIwalR0bXFZakkrMVVNazRDeVFlMVlFa2dtVXNoSm1sUzFXUWlQODdVbC91S0tVQ2s5UGhVRWwvUGZ4L2NndUV5b1hnMGhVUzdkb2hEODRIeUNCRlU9IiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImZhbWlseV9uYW1lIjoiS2F6YWtvdmEiLCJnaXZlbl9uYW1lIjoiTGlhIiwiaW5fY29ycCI6InRydWUiLCJpcGFkZHIiOiIyMC4yMjguMTIxLjIxMyIsIm5hbWUiOiJMaWEgS2F6YWtvdmEiLCJvaWQiOiI2ODMzMmUzZS1lNTkxLTQ0NmMtOGUwNy02MjM0OTJjNDVlYmQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMjEyNzUyMTE4NC0xNjA0MDEyOTIwLTE4ODc5Mjc1MjctMzUyNjU3NzciLCJwdWlkIjoiMTAwMzIwMDA0Njk4MjQ5NCIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBQUUuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiZ0NqcDBKblg5Tm1UdmI2d1kzZzNFbzQyMlp6c050a0dwWmdIWmZOUllxTSIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInV0aSI6Ik9xLTFGOHpaeFUyU0dNbXVHamhFQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.rQhtMlNByj6c72cw0v4qDuAWXdTpxHYZ-x0XTblNQOKQdi154o3ZpRftwyaFXD8MRmaj1S1juc_pyTKop16R1B5ZOg3sdAhI7XrXcQqUo17RVKfJLiTe9bIkuwmDLEQeb54YLBGbCm-Dwn9EUfRza2b4L34kM-SHyP_f8zHbbjvydK_WSabAn3QA1A3aPx_iF12BHmou_UM16gHXU9I3Kx4Sjuu-z05epKdWzlImPEfTEiJfzMYt3KxvfhVOgSxgO2WVPFCyKD5Fn17dc0rhQ-f1wd-7gYYNgO-dqfF4eheJIu2oJ0WftYsUcHPSg2H7SURAIAYooqzdqpTXgUrIOw"
+											}
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"ProxyOnly, LocationBased\",\r\n        \"regionality\": \"Regional\",\r\n        \"allowedUnauthorizedActions\": [\r\n            \"{{rpnamespace}}/Locations/OperationStatuses/read\"\r\n        ],\r\n        \"subscriptionStateRules\": [\r\n            {\r\n                \"state\": \"disabled\",\r\n                \"allowedActions\": [\r\n                    \"{{rpnamespace}}/locations/OperationStatuses/write\"\r\n                ]\r\n            },\r\n            {\r\n                \"state\": \"warned\",\r\n                \"allowedActions\": [\r\n                    \"{{rpnamespace}}/locations/OperationStatuses/write\"\r\n                ]\r\n            }\r\n        ],\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetypeRegistrations/locations/resourcetypeRegistrations/operationStatuses?api-version={{rpassApiVersion}}",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetypeRegistrations",
+												"locations",
+												"resourcetypeRegistrations",
+												"operationStatuses"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "{{rpassApiVersion}}"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Locations Type",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": {
+												"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNjg1OTkxODE3LCJuYmYiOjE2ODU5OTE4MTcsImV4cCI6MTY4NTk5Njg0NiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzY4MzMyZTNlLWU1OTEtNDQ2Yy04ZTA3LTYyMzQ5MmM0NWViZC9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFRBQUFBNmVPdEorMXoxSG1ONG85K2tFZU4wejIwalR0bXFZakkrMVVNazRDeVFlMVlFa2dtVXNoSm1sUzFXUWlQODdVbC91S0tVQ2s5UGhVRWwvUGZ4L2NndUV5b1hnMGhVUzdkb2hEODRIeUNCRlU9IiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImZhbWlseV9uYW1lIjoiS2F6YWtvdmEiLCJnaXZlbl9uYW1lIjoiTGlhIiwiaW5fY29ycCI6InRydWUiLCJpcGFkZHIiOiIyMC4yMjguMTIxLjIxMyIsIm5hbWUiOiJMaWEgS2F6YWtvdmEiLCJvaWQiOiI2ODMzMmUzZS1lNTkxLTQ0NmMtOGUwNy02MjM0OTJjNDVlYmQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMjEyNzUyMTE4NC0xNjA0MDEyOTIwLTE4ODc5Mjc1MjctMzUyNjU3NzciLCJwdWlkIjoiMTAwMzIwMDA0Njk4MjQ5NCIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBQUUuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiZ0NqcDBKblg5Tm1UdmI2d1kzZzNFbzQyMlp6c050a0dwWmdIWmZOUllxTSIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInV0aSI6Ik9xLTFGOHpaeFUyU0dNbXVHamhFQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.rQhtMlNByj6c72cw0v4qDuAWXdTpxHYZ-x0XTblNQOKQdi154o3ZpRftwyaFXD8MRmaj1S1juc_pyTKop16R1B5ZOg3sdAhI7XrXcQqUo17RVKfJLiTe9bIkuwmDLEQeb54YLBGbCm-Dwn9EUfRza2b4L34kM-SHyP_f8zHbbjvydK_WSabAn3QA1A3aPx_iF12BHmou_UM16gHXU9I3Kx4Sjuu-z05epKdWzlImPEfTEiJfzMYt3KxvfhVOgSxgO2WVPFCyKD5Fn17dc0rhQ-f1wd-7gYYNgO-dqfF4eheJIu2oJ0WftYsUcHPSg2H7SURAIAYooqzdqpTXgUrIOw"
+											}
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"ProxyOnly\",\r\n        \"regionality\": \"Global\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"Global\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetypeRegistrations/locations?api-version={{rpassApiVersion}}",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetypeRegistrations",
+												"locations"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "{{rpassApiVersion}}"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Operations on Instances",
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"name\": \"Operations\",\r\n        \"routingType\": \"ProxyOnly, Tenant\",\r\n        \"regionality\": \"Global\",\r\n        \"allowedUnauthorizedActions\": [\r\n            \"private.bluefin/operations/read\"\r\n        ],\r\n        \"Contents\": [\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Read\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances\",\r\n                    \"Operation\": \"Gets/List instance resources\",\r\n                    \"Description\": \"Read Instances\"\r\n                }\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Write\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances\",\r\n                    \"Operation\": \"Create/update instance resources\",\r\n                    \"Description\": \"Writes Instances\"\r\n                },\r\n                \"IsDataAction\": false\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Delete\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances\",\r\n                    \"Operation\": \"Deletes instance resource\",\r\n                    \"Description\": \"Deletes Instances\"\r\n                },\r\n                \"IsDataAction\": false,\r\n                \"Origin\": \"User\"\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Action\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances\",\r\n                    \"Operation\": \"Create/update instance resources\",\r\n                    \"Description\": \"Writes Instances\"\r\n                },\r\n                \"IsDataAction\": true,\r\n                \"Origin\": \"System\"\r\n            }\r\n        ],\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetypeRegistrations/Operations?api-version=2021-10-01-privatepreview",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetypeRegistrations",
+												"Operations"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "2021-10-01-privatepreview"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Operations on Pipelines",
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"properties\": {\r\n        \"name\": \"Operations\",\r\n        \"routingType\": \"ProxyOnly, Tenant\",\r\n        \"regionality\": \"Global\",\r\n        \"allowedUnauthorizedActions\": [\r\n            \"private.bluefin/operations/read\"\r\n        ],\r\n        \"Contents\": [\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Pipelines/Read\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances/Pipelines\",\r\n                    \"Operation\": \"Gets/List pipelines resources\",\r\n                    \"Description\": \"Read Pipelines\"\r\n                }\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Pipelines/Write\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances/Pipelines\",\r\n                    \"Operation\": \"Create/update pipelines resources\",\r\n                    \"Description\": \"Writes Pipelines\"\r\n                },\r\n                \"IsDataAction\": false\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Pipelines/Delete\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances/Pipelines\",\r\n                    \"Operation\": \"Deletes pipelines resource\",\r\n                    \"Description\": \"Deletes Pipelines\"\r\n                },\r\n                \"IsDataAction\": false,\r\n                \"Origin\": \"User\"\r\n            },\r\n            {\r\n                \"Name\": \"Private.Bluefin/Instances/Pipelines/Action\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Private.Bluefin\",\r\n                    \"Resource\": \"Instances/Pipelines\",\r\n                    \"Operation\": \"Create/update pipelines resources\",\r\n                    \"Description\": \"Writes Pipelines\"\r\n                },\r\n                \"IsDataAction\": true,\r\n                \"Origin\": \"System\"\r\n            }\r\n        ],\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"{{bluefinPrpApiVersion}}\"\r\n                ],\r\n                \"locations\": [\r\n                    \"\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/resourcetypeRegistrations/Operations?api-version=2021-10-01-privatepreview",
+											"protocol": "https",
+											"host": [
+												"management",
+												"azure",
+												"com"
+											],
+											"path": [
+												"subscriptions",
+												"{{rpsubsciption}}",
+												"providers",
+												"Microsoft.ProviderHub",
+												"providerRegistrations",
+												"{{rpnamespace}}",
+												"resourcetypeRegistrations",
+												"Operations"
+											],
+											"query": [
+												{
+													"key": "api-version",
+													"value": "2021-10-01-privatepreview"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Provider Registration",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"properties\": {\r\n    \"providerHubMetadata\": {\r\n        \"providerauthorizations\": [\r\n            {\r\n            \"applicationId\": \"<Your app id allowlisted by RPaaS>\",\r\n            \"roleDefinitionId\": \"<Role definition created by RPSAAS>\"\r\n            }\r\n        ],\r\n        \"providerAuthentication\": {\r\n            \"allowedAudiences\": [\r\n                \"319f651f-7ddb-4fc6-9857-7aef9250bd05\"\r\n            ]\r\n        }\r\n    },\r\n    \"providerType\": \"Internal, Hidden\",\r\n    \"providerVersion\": \"{{bluefinPrpApiVersion}}\",\r\n    \"privateResourceProviderConfiguration\": {\r\n        \"allowedSubscriptions\": [\r\n          \"5a705084-8084-4075-89f4-18b37f247e26\",\r\n          \"77969078-2897-47b0-9143-917252379303\"\r\n        ]\r\n    },\r\n    \"management\": {\r\n        \"manifestOwners\": [\r\n                \"SPARTA-PlatformServiceAdministrator\",\r\n                \"RPAAS-PlatformServiceAdministrator\"\r\n            ],\r\n        \"incidentRoutingService\": \"Azure Digital Operations\",\r\n        \"incidentRoutingTeam\": \"IoT Central DerpyHooves\",\r\n        \"incidentContactEmail\": \"liakaz@microsoft.com\",\r\n        \"serviceTreeInfos\": [\r\n            {\r\n                \"serviceId\": \"00000000-0000-0000-0000-000000000000\",\r\n                \"componentId\": \"00000000-0000-0000-0000-000000000000\",\r\n                \"readiness\": \"InDevelopment\"\r\n            }\r\n        ]\r\n    }\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com:443/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerregistrations/Private.Bluefin?api-version=2021-10-01-privatepreview",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"port": "443",
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"providerregistrations",
+										"Private.Bluefin"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-10-01-privatepreview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Provider Registration",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com:443/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerregistrations/Private.Bluefin?api-version=2021-10-01-privatepreview",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"port": "443",
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"providerregistrations",
+										"Private.Bluefin"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-10-01-privatepreview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ProviderHub Register",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": {
+										"token": "{{token}}"
+									}
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/register?api-version=2021-04-01",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"register"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-04-01"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Manifest Checkin",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"Environment\": \"Prod\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com:443/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerRegistrations/{{rpnamespace}}/checkinManifest?api-version=2021-10-01-privatepreview",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"port": "443",
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"providerRegistrations",
+										"{{rpnamespace}}",
+										"checkinManifest"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2021-10-01-privatepreview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "K8Bridge Authotized Application",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"properties\": {\r\n    \"dataAuthorizations\": [\r\n        {\r\n            \"role\": \"ServiceOwner\",\r\n            \"resourceTypes\": [\r\n                \"*\"\r\n            ]\r\n        }\r\n    ]\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://management.azure.com:443/subscriptions/{{rpsubsciption}}/providers/Microsoft.ProviderHub/providerregistrations/{{rpnamespace}}/authorizedApplications/{{k8BridgeAppId}}?api-version=2023-01-01-privatepreview",
+									"protocol": "https",
+									"host": [
+										"management",
+										"azure",
+										"com"
+									],
+									"port": "443",
+									"path": [
+										"subscriptions",
+										"{{rpsubsciption}}",
+										"providers",
+										"Microsoft.ProviderHub",
+										"providerregistrations",
+										"{{rpnamespace}}",
+										"authorizedApplications",
+										"{{k8BridgeAppId}}"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2023-01-01-privatepreview"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": {
+			"token": "{{token}}"
+		}
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "rpsubsciption",
+			"value": "b06e4b2f-00ff-4380-baa0-ca680a65b9c3"
+		},
+		{
+			"key": "rpnamespace",
+			"value": "Private.Bluefin"
+		},
+		{
+			"key": "token",
+			"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNjg2MDE4Nzg3LCJuYmYiOjE2ODYwMTg3ODcsImV4cCI6MTY4NjAyMjc5NCwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzY4MzMyZTNlLWU1OTEtNDQ2Yy04ZTA3LTYyMzQ5MmM0NWViZC9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFRBQUFBTmcvSEpGN2NCQWxCZjBCQjlPeUNnd0NUNmsvMTlDek1KUis4aTQ5UllIREsvTjI1disxNHR2REFON09zdkxraFVRVmhJQ01oSkdERkpnNWhJdXBNQ1JXMkx0QTZOb0RCWHRYUWxpU1phclU9IiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImZhbWlseV9uYW1lIjoiS2F6YWtvdmEiLCJnaXZlbl9uYW1lIjoiTGlhIiwiaW5fY29ycCI6InRydWUiLCJpcGFkZHIiOiIyMC4yMjguMTIxLjIxMyIsIm5hbWUiOiJMaWEgS2F6YWtvdmEiLCJvaWQiOiI2ODMzMmUzZS1lNTkxLTQ0NmMtOGUwNy02MjM0OTJjNDVlYmQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMjEyNzUyMTE4NC0xNjA0MDEyOTIwLTE4ODc5Mjc1MjctMzUyNjU3NzciLCJwdWlkIjoiMTAwMzIwMDA0Njk4MjQ5NCIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBQUUuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiZ0NqcDBKblg5Tm1UdmI2d1kzZzNFbzQyMlp6c050a0dwWmdIWmZOUllxTSIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoibGlha2F6QG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJsaWFrYXpAbWljcm9zb2Z0LmNvbSIsInV0aSI6InY2RVdLZXZlcFVHT3FPMjhoZ0VxQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.AncnNFy2gDFK8hE3ldEmmAChycBBIkAU3FIO-PfT6R8pYnkQJ16bgGxiTHsgQYB7fp6eAGsjiByoYhEnU2xITCEu-EVmj5ittghwHWiHafqerdcjIdcWuLuY2W261UldtqNjtbCdF9GIFVWj0bYTvE9s5Ri6jBLmETHVhay9wdEYryU42cInTvGowFLJgNRjJT1iW4G4ZsG9pWvCQ64Vv13p8KvlkiBTgtPe_8r6FltR_KBOhuh-qoKHf6J30ZmK3SfbBZqsUXa-oNW2GtVo6k8j0Mqccsoq46Xb8LaLDpSaaAHxHm7O6D9C-dXsBvQ9f0Jw39uYLhok9B987AKIfg",
+			"type": "string"
+		},
+		{
+			"key": "bfInfraSub",
+			"value": "5a705084-8084-4075-89f4-18b37f247e26"
+		},
+		{
+			"key": "bluefinPrpApiVersion",
+			"value": "2023-02-01-preview"
+		},
+		{
+			"key": "armurl",
+			"value": "https://eastus2euap.management.azure.com"
+		},
+		{
+			"key": "k8BridgeAppId",
+			"value": "319f651f-7ddb-4fc6-9857-7aef9250bd05"
+		}
+	]
+}

@@ -1,0 +1,2918 @@
+{
+	"info": {
+		"_postman_id": "8ab52868-7d43-4502-a75e-6efc2d7992a4",
+		"name": "Symphony - PrivateRP",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "19948895",
+		"_collection_link": "https://solar-shadow-224876.postman.co/workspace/DH-RP-work~774dd7e8-e45a-49fb-9feb-704dd4b67da0/collection/19948895-8ab52868-7d43-4502-a75e-6efc2d7992a4?action=share&creator=19948895&source=collection_link"
+	},
+	"item": [
+		{
+			"name": "CRUD on Resources",
+			"item": [
+				{
+					"name": "Gitops",
+					"item": [
+						{
+							"name": "git repos- create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{authorization}}",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\" : \"eastus\",\r\n    \"properties\": {\r\n        \"branch\": \"demo\",\r\n        \"name\": \"DeviceGitOpsTesting\",\r\n        \"owner\": \"nonsocode\",\r\n        \"configurationProtectedSettings\": {\r\n            \"token\": \"{{gitToken}}\"\r\n        }\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/gitRepos/my-repo?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"gitRepos",
+										"my-repo"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "armDeployment- create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyMjYyNiwibmJmIjoxNjgxMzIyNjI2LCJleHAiOjE2ODEzMjc4ODUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQXR1OFNob2t5d1BJMVdQUXppaXdXUGdlQlZNMUpEMk5qY2NjdFRyakZXNU83ak1OTFNBdHBoNmsyY3BJc05MNExTYk1qTUFjQTkwMnFOWTczZkM0a3p4Qmo2MzV0b3gxRUkzWDZWREhWQkp3PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlhyaHVJNzBZRzBpak1JUzU4cGd2QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.cZFkMoiuwMWjxZsrjKmzRu-hCPnU98jGRkdFejJqLbiWIfUTbhJEQiFig3jbsIjDgxgDIGvSc6nwPm3eimw-heKVSq6-PxRrO0ojmaVQrg3Xg4siBYRoXx5WYe9dOa_WtGiHsuF9HwAbVQmxI8U0M25yKSv5wT_qiebpoku_bBjrJ-MNQLjkQ0XeM8PQMBU2ty-lE4ocj5qGHwxhBDcjsg4qOfkjMWLij6TB_tUiisNK05e6iq66S3JZB6CNl0pUfmdjQi_GH9hfI34nrbEJb8F4V7AfzJ8iLHLOlrcSEygL3zRs9E18o8jWEjnNkuAwwQse_wHY9cjCXAJ0Q95YGA",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"id\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/gitRepos/my-repo/armDeploymentGitOps/arm-sync\",\r\n    \"name\": \"arm-sync\",\r\n    \"location\": \"eastus\",\r\n    \"properties\": {\r\n        \"interval\": 10,\r\n        \"templatePath\": \"/symphony/template.json\",\r\n        \"parametersPath\": \"/symphony/parameters.json\",\r\n        \"mode\": \"Incremental\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/gitRepos/my-repo/armDeploymentGitOps/arm-sync/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"gitRepos",
+										"my-repo",
+										"armDeploymentGitOps",
+										"arm-sync",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "edgeDeployment - create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyMjYyNiwibmJmIjoxNjgxMzIyNjI2LCJleHAiOjE2ODEzMjc4ODUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQXR1OFNob2t5d1BJMVdQUXppaXdXUGdlQlZNMUpEMk5qY2NjdFRyakZXNU83ak1OTFNBdHBoNmsyY3BJc05MNExTYk1qTUFjQTkwMnFOWTczZkM0a3p4Qmo2MzV0b3gxRUkzWDZWREhWQkp3PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlhyaHVJNzBZRzBpak1JUzU4cGd2QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.cZFkMoiuwMWjxZsrjKmzRu-hCPnU98jGRkdFejJqLbiWIfUTbhJEQiFig3jbsIjDgxgDIGvSc6nwPm3eimw-heKVSq6-PxRrO0ojmaVQrg3Xg4siBYRoXx5WYe9dOa_WtGiHsuF9HwAbVQmxI8U0M25yKSv5wT_qiebpoku_bBjrJ-MNQLjkQ0XeM8PQMBU2ty-lE4ocj5qGHwxhBDcjsg4qOfkjMWLij6TB_tUiisNK05e6iq66S3JZB6CNl0pUfmdjQi_GH9hfI34nrbEJb8F4V7AfzJ8iLHLOlrcSEygL3zRs9E18o8jWEjnNkuAwwQse_wHY9cjCXAJ0Q95YGA",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"properties\": {\r\n        \"interval\": 10,\r\n        \"mode\": \"Incremental\",\r\n        \"extendedLocationId\": \"/subscriptions/{{subscription}}/resourcegroups/{{resourceGroup}}/providers/microsoft.extendedlocation/customlocations/{{customLocation}}\",\r\n        \"deploymentScheme\": {\r\n            \"scope\": \"default\",\r\n            \"stages\": [\r\n                {\r\n                    \"name\": \"stage-1\",\r\n                    \"template\": {\r\n                        \"path\": \"edge/template_2.json\",\r\n                        \"name\": \"edge-template\"\r\n                    },\r\n                    \"parameters\": {\r\n                        \"name\": \"edge-parameters\",\r\n                        \"path\": \"edge/parameters.json\"\r\n                    },\r\n                    \"targetRef\": {\r\n                        \"name\": \"self-nc-vancify\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/gitRepos/my-repo/edgeDeploymentGitOps/my-edge/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"gitRepos",
+										"my-repo",
+										"edgeDeploymentGitOps",
+										"my-edge",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "gates - create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{authorization}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\"location\": \"westus\",\r\n\"properties\": {}\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/gates/myGate2/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"gates",
+										"myGate2",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Symphony",
+					"item": [
+						{
+							"name": "solution",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"westus\",\r\n    \"ExtendedLocation\": {\r\n        \"type\": \"CustomLocation\",\r\n        \"name\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}\"\r\n    },\r\n    \"properties\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"e4i-assets\",\r\n                \"type\": \"helm.v3\",\r\n                \"properties\": {\r\n                    \"chart\": {\r\n                        \"repo\": \"e4ipreview.azurecr.io/helm/az-e4i-demo-assets\",\r\n                        \"version\": \"0.4.0\"\r\n                    }\r\n                },\r\n                \"dependencies\": []\r\n            }\r\n        ]\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/solutions/edge-solution-opcua7/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"solutions",
+										"edge-solution-opcua7",
+										""
+									],
+									"query": [
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "solution",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/solutions/edge-solution-opcua5/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"solutions",
+										"edge-solution-opcua5",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "solution",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/solutions/edge-solution-opcua45/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"solutions",
+										"edge-solution-opcua45",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "target",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"westus\",\r\n    \"ExtendedLocation\": {\r\n        \"type\": \"CustomLocation\",\r\n        \"name\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}\"\r\n    },\r\n    \"properties\": {\r\n        \"scope\": \"alice-springs\",\r\n        \"components\": [\r\n            {\r\n            \"name\": \"e4k\",\r\n            \"type\": \"helm.v3\",\r\n            \"properties\": {\r\n              \"chart\": {\r\n                \"repo\": \"e4kpreview.azurecr.io/helm/az-e4k\",\r\n                \"version\": \"0.3.0\"\r\n              }\r\n            }\r\n          }\r\n        ],\r\n        \"topologies\": [\r\n            {\r\n                \"bindings\": [\r\n                    {\r\n                        \"role\": \"instance\",\r\n                        \"provider\": \"providers.target.k8s\",\r\n                        \"config\": {\r\n                            \"inCluster\": \"true\"\r\n                        }\r\n                    },\r\n                    {\r\n                        \"role\": \"helm.v3\",\r\n                        \"provider\": \"providers.target.helm\",\r\n                        \"config\": {\r\n                            \"inCluster\": \"true\"\r\n                        }\r\n                    },\r\n                    {\r\n                        \"role\": \"yaml.k8s\",\r\n                        \"provider\": \"providers.target.kubectl\",\r\n                        \"config\": {\r\n                            \"inCluster\": \"true\"\r\n                        }\r\n                    }\r\n                ]\r\n            }\r\n        ]\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/edge-target7/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"edge-target7",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "target",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/edge-target5/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"edge-target5",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "target",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/edge-target6/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"edge-target6",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "instance",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"westus\",\r\n    \"ExtendedLocation\": {\r\n        \"type\": \"CustomLocation\",\r\n        \"name\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}\"\r\n    },\r\n    \"properties\": {\r\n        \"scope\": \"default\",\r\n        \"solution\": \"edge-solution-opcua7\",\r\n        \"target\": {\r\n            \"name\": \"edge-target6\"\r\n        }\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/instances/edge-instance7/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"instances",
+										"edge-instance7",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "instance",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/instances/:instance/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"instances",
+										":instance",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									],
+									"variable": [
+										{
+											"key": "instance",
+											"value": null
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "instance",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/instances/edge-instance46/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"instances",
+										"edge-instance46",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "[DEPRECATING] edgeTemplates - get resources",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyMjYyNiwibmJmIjoxNjgxMzIyNjI2LCJleHAiOjE2ODEzMjc4ODUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQXR1OFNob2t5d1BJMVdQUXppaXdXUGdlQlZNMUpEMk5qY2NjdFRyakZXNU83ak1OTFNBdHBoNmsyY3BJc05MNExTYk1qTUFjQTkwMnFOWTczZkM0a3p4Qmo2MzV0b3gxRUkzWDZWREhWQkp3PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlhyaHVJNzBZRzBpak1JUzU4cGd2QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.cZFkMoiuwMWjxZsrjKmzRu-hCPnU98jGRkdFejJqLbiWIfUTbhJEQiFig3jbsIjDgxgDIGvSc6nwPm3eimw-heKVSq6-PxRrO0ojmaVQrg3Xg4siBYRoXx5WYe9dOa_WtGiHsuF9HwAbVQmxI8U0M25yKSv5wT_qiebpoku_bBjrJ-MNQLjkQ0XeM8PQMBU2ty-lE4ocj5qGHwxhBDcjsg4qOfkjMWLij6TB_tUiisNK05e6iq66S3JZB6CNl0pUfmdjQi_GH9hfI34nrbEJb8F4V7AfzJ8iLHLOlrcSEygL3zRs9E18o8jWEjnNkuAwwQse_wHY9cjCXAJ0Q95YGA",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/edgeTemplates/edge-template?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"edgeTemplates",
+										"edge-template"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "[DEPRECATING] edgeDeployments - get resources",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyMjYyNiwibmJmIjoxNjgxMzIyNjI2LCJleHAiOjE2ODEzMjc4ODUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQXR1OFNob2t5d1BJMVdQUXppaXdXUGdlQlZNMUpEMk5qY2NjdFRyakZXNU83ak1OTFNBdHBoNmsyY3BJc05MNExTYk1qTUFjQTkwMnFOWTczZkM0a3p4Qmo2MzV0b3gxRUkzWDZWREhWQkp3PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlhyaHVJNzBZRzBpak1JUzU4cGd2QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.cZFkMoiuwMWjxZsrjKmzRu-hCPnU98jGRkdFejJqLbiWIfUTbhJEQiFig3jbsIjDgxgDIGvSc6nwPm3eimw-heKVSq6-PxRrO0ojmaVQrg3Xg4siBYRoXx5WYe9dOa_WtGiHsuF9HwAbVQmxI8U0M25yKSv5wT_qiebpoku_bBjrJ-MNQLjkQ0XeM8PQMBU2ty-lE4ocj5qGHwxhBDcjsg4qOfkjMWLij6TB_tUiisNK05e6iq66S3JZB6CNl0pUfmdjQi_GH9hfI34nrbEJb8F4V7AfzJ8iLHLOlrcSEygL3zRs9E18o8jWEjnNkuAwwQse_wHY9cjCXAJ0Q95YGA",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/instances/edge-instance2?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"instances",
+										"edge-instance2"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "[DEPRECATING]  edgeTemplates - create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\"location\": \"westus\",\r\n\"ExtendedLocation\": {\r\n        \"type\": \"CustomLocation\",\r\n        \"name\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}\"\r\n        },\r\n\"properties\":{}\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/edgeTemplates/edge-template-opcua3/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"edgeTemplates",
+										"edge-template-opcua3",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										},
+										{
+											"key": "subscription",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "[DEPRECATING] edgeDeployments - create privaterp",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDYyNjYzMywibmJmIjoxNjgwNjI2NjMzLCJleHAiOjE2ODA2MzA1OTQsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWdrSTRoaUJrWUNTQW80ZkVkeVNiSHkyTTFYdlozZlFUTHQ5VkNHOTBJY2xhb2E2VU1GekxzalhESDkrRGdEenduTU92Y0ZJODlTRjZiZVZqM0R2MkVOeE03YnhOMUJsdXR0RW9qcEV3aTI4PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFIYWlDUi1ESTBLOEVmZlZPbTNYQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Rqu4aSDkatqLey2shLaNrxBH4c7c0bmDTvs6PsWwacF-RxPfTLllajGbbRvxx8734WWTted4YrX0D_g8klVI1XvZHxNMmUtSiJVpgL-oNieNV9nkz88WDQcPAeK8bpIMqemOIfgsj7ubOJfTld4MKrOvzFM2GLFePlnZFjgbZVUdabi8ya700Grts4nIWOu9vLL_8YVerySFsbj37uNWGDOrV_Ou38Hy-GlRpPAX-oKmeLe5qkmUUDJ3lDOMQSVj5-vv0XDx6sO5Qu7Hq3MlgHqdo3XUffFzDh9lAMl2vjcDAKchqBDLKZrDr8s_kX8tLksivDHtIenZGz2Q3U6yCg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"location\": \"westus\",\r\n    \"ExtendedLocation\": {\r\n        \"type\": \"CustomLocation\",\r\n        \"name\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}\"\r\n    },\r\n    \"properties\": {\r\n        \"scope\": \"e4i-runtime\",\r\n        \"stages\": [\r\n            {\r\n                \"solution\": \"edge-template-opcua2\",\r\n                \"target\": {\r\n                    \"name\": \"edge-target\"\r\n                }\r\n            }\r\n        ]\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/edgeDeployments/edge-instance3/?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"edgeDeployments",
+										"edge-instance3",
+										""
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "RP Administration",
+			"item": [
+				{
+					"name": "register RP to subscription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTE3MTAyMCwibmJmIjoxNjgxMTcxMDIwLCJleHAiOjE2ODExNzUyNzcsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWNIRldoTEZYQW1Cb1NwK2FXSHNJSDBSaDRoRDhEU0ZYbG9FU3dUYUJxbWEraEJHUWluSUZpbmNTNEt3L016QndzcHM2RFFhbVhDNnAxdHNCQng0a0tJc3hiUW5yd2lYMGgwQVpYSXMvL3pBPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6ImRMNUNGODVqdUVDbmFGRENFWXFPQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.p0bB4BDhPt-RQqlyDBMzp4QFU27SE96tlcq9clfy7IUP1SALZ6VVC8ilW8IQbHW65Yfubw54WOrq6HLll0z71JVawjEBcT7XSlubPZM3v107CtU27_QIQWONLDI4Rdw8XNAnJcSzv3yk3qqw1vKVQsp81AXL3vY39A0gvJQb3CC5F6LDciFP12MOQ_lmzAH32BffirON7UANJAauwfmZ9eWtJCaMGk3pWmfM0nIyGUHCYx9hZHxwqQP9i3HnN1BYl7uzTkfLleb1Pft31B0LBC7BVtsnHSffU4EGnbJOc8Fk4yR0B9Q783W66TDWnGdSopfhvYAZREl27GjOAVRqBw",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/db4e2fdb-6d80-4e6e-b7cd-736098270664/providers/{{resourceProvider}}/register?api-version=2020-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"db4e2fdb-6d80-4e6e-b7cd-736098270664",
+								"providers",
+								"{{resourceProvider}}",
+								"register"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2020-01-01-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ResourceSyncRule",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDE5OTYyNywibmJmIjoxNjgwMTk5NjI3LCJleHAiOjE2ODAyMDM5ODYsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQVJ1VUhoVUx0ZklUaEJ4a1hZNHMzTk0xVm55bEc2a2RyUGNlVHdmVWlVSmVXTFlEb2lhSVFUOXcyT1lyUSswaUlEZzNUZEptMVhmVyswTGdPUldzQStneXlZWk0vbE1haHZGVWNFZFZ1akFrPSIsImFtciI6WyJ3aWEiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InllTnA0TzZrYzBDdk96bWRuaGhQQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.pTO_B5Z2CHahXGIIlZQeacm2ga3HPjnN7xeYX5LWG1sEmZATAZo_BgrH2WR9iUEMJatJ6lnq9iZgqNyHAaahS2ti94Fl_6WDbx4GniYQ04rbwto5otF23XLGKs3TWq6873QVgKio0-qv7wLttKEUpsrFU08ndLZV4axIgcbbmottP1QkbifW6nrqOjIobnfA2QAjIuCmfSafCL-iQ96EkPg7B5Yl1HytlggrSUA82LW5UMjwG-K2T4XjK3VxLaDHSdbrQD5J33G77L19dqWmgWdnb3tJOQol0MfBLW8BYqgjL8UY1k0t93Zp2BGXI3w6vSKoNYCAnj3-giTtQwwyqA",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"location\": \"westus\",\r\n    \"properties\":{\r\n        \"targetResourceGroup\": \"/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}\",\r\n        \"priority\": 100,\r\n        \"selector\": {\r\n            \"matchLabels\": {\r\n                \"management.azure.com/provider-name\" : \"Private.Symphony\"\r\n            }\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/resourcegroups/{{resourceGroup}}/providers/microsoft.extendedlocation/customlocations/{{customLocation}}/resourcesyncrules/defaultresourcesyncrule?api-version=2021-08-31-preview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourcegroups",
+								"{{resourceGroup}}",
+								"providers",
+								"microsoft.extendedlocation",
+								"customlocations",
+								"{{customLocation}}",
+								"resourcesyncrules",
+								"defaultresourcesyncrule"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-31-preview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "operations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/providers/{{resourceProvider}}/Operations?api-version=2021-10-01-privatepreview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"{{resourceProvider}}",
+								"Operations"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource provider registration",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyNzY1NywibmJmIjoxNjgxMzI3NjU3LCJleHAiOjE2ODEzMzMxNDIsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWhYSkJXcktOMURqRVZCN1hSVUI3T1hJa3VDU2NaNjdyWVBvMVYrcDhhOXY1L3B6T1BVcytjOWVmWjJjTThHdWRJQWZmL1pGZ2Z2QzZUM29ZZGpxTHVERGRoVEpZbS8zVWM1S0UzMUVNVy9BPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjBMeFowUWRqRDB5ejNiWjFMaTB0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.d3g-6fNRBZQnyTv3pvxtHzmil0W7wyh3rxXa3x-isu1fmlUTMcXVT61RXiPJZyDZIfA_30GOwWAABhJSMK-pVkcSBl3cNAmWg0Oz1vfVicAyHRkURMMDicBhEH2ZciVsv-qRCctVYg7_v_fiLyp_-ceK7n7unqo-WczvXHIUaHmn8IwoEn2dtCmPr7k7xD3C46JxwwCw4p2hfSEqnL4daSnsLBT4-833jJUD7q1Vk54TV7VYSXV1qkPcX-OL9BuuJkSvDRoS5ApjoGbVpPyPbeqS3F9lfPR8Gsc5K5TRysmpahbl--9oU8Ta79tGokAfIEczufJ5hRkDGPH-Gi7dkg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n        \"properties\": {\r\n        \"providerHubMetadata\": {\r\n            \"providerAuthentication\": {\r\n                \"allowedAudiences\": [\r\n                    \"319f651f-7ddb-4fc6-9857-7aef9250bd05\"\r\n                ]\r\n            }\r\n        },\r\n        \"privateResourceProviderConfiguration\": {\r\n            \"allowedSubscriptions\": [\r\n                \"77969078-2897-47b0-9143-917252379303\",\r\n                \"2bd4119a-4d8d-4090-9183-f9e516c21723\",\r\n                \"af342bf1-1ace-41df-902c-47921400551b\",\r\n                \"6f4c2c84-1e91-412f-9697-b8877c7a2a17\",\r\n                \"db4e2fdb-6d80-4e6e-b7cd-736098270664\"\r\n            ]\r\n        },\r\n        \"namespace\": \"Private.Symphony\",\r\n        \"providerVersion\": \"2.0\",\r\n        \"providerType\": \"Internal, Hidden\",\r\n        \"management\": {\r\n            \"manifestOwners\": [\r\n                \"SPARTA-PlatformServiceAdministrator\",\r\n                \"RPAAS-PlatformServiceAdministrator\"\r\n            ],\r\n            \"incidentRoutingService\": \"IoT Solutions\",\r\n            \"incidentRoutingTeam\": \"IoT Solutions Derpyhooves\",\r\n            \"incidentContactEmail\": \"derpyhooves@microsoft.com\",\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"serviceId\": \"00000000-0000-0000-0000-000000000000\",\r\n                    \"componentId\": \"00000000-0000-0000-0000-000000000000\",\r\n                    \"readiness\": \"InDevelopment\"\r\n                }\r\n            ]\r\n        },\r\n        \"capabilities\": [\r\n            {\r\n                \"quotaId\": \"CSP_2015-05-01\",\r\n                \"effect\": \"Allow\"\r\n            },\r\n            {\r\n                \"quotaId\": \"CSP_MG_2017-12-01\",\r\n                \"effect\": \"Allow\"\r\n            }\r\n        ],\r\n        \"metadata\": null\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource provider registration",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDkwODkxMSwibmJmIjoxNjgwOTA4OTExLCJleHAiOjE2ODA5MTQxMDgsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWErTWNJbUE1a21NNlRNRXc5aExMVWc1SXpOZ3B6SXBidUMvK3NKbUFyMXVsbnBmUCtRckxvcWd6MkMrM2ZiWHppVmhNd2JtaVIzcy96WUZoaTFHMnNMVkJDLzNkaitqdHBwWHNHMW9ZdTJFPSIsImFtciI6WyJ3aWEiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjF0OUhoNTdfUEUyVVBaNkhlMUppQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.mMjSVgBhgyj-qgatI900oTYu4e2gqdh3yuzvfqZi_I7eUHVXpBLq0uwlNItEGpIj3oa42ZR4dChinvkSK9KmRfbk0uf8gEpqQy0rA2yAl0aU3dLZ3CV65aB4XXalX-9TbXEaZ-xIyWJ6YhhZEpxPjCrPEkL0jfQXCLTlV1kZG8zlk8cKOvTgLyPCN5mzysbnyrUV76T6yv7rX23k1sYY8R_vaMA84Z17E5WV81kdvUuOXr1_Q6otL0uFTKtPcMebmblpD-3GA0afSk4z14Hrt5P_pPdsVymWoMIxKJEHvN55_dA3jhfBGAXCFG5ZWryyIB06NEAHo0Q73oaBsYf8ig",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/77969078-2897-47b0-9143-917252379303/providers/Microsoft.ProviderHub/providerRegistrations/Private.Symphony?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"77969078-2897-47b0-9143-917252379303",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"Private.Symphony"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - targets",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": true,\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/targets?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"targets"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - solutions",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/solutions?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"solutions"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - instances",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": true,\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/instances?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"instances"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - operations",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"name\": \"Operations\",\r\n        \"routingType\": \"ProxyOnly, Tenant\",\r\n        \"regionality\": \"Global\",\r\n        \"allowedUnauthorizedActions\": [\r\n            \"private.symphony/operations/read\"\r\n        ],\r\n        \"Contents\": [\r\n            {\r\n                \"Name\": \"Private.Symphony/Solutions/Read\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Microsoft.Contoso\",\r\n                    \"Resource\": \"Employees\",\r\n                    \"Operation\": \"Gets/List employee resources\",\r\n                    \"Description\": \"Read employees\"\r\n                }\r\n            },\r\n            {\r\n                \"Name\": \"Private.Symphony/Solutions/Write\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Microsoft.Contoso\",\r\n                    \"Resource\": \"Employees\",\r\n                    \"Operation\": \"Create/update employee resources\",\r\n                    \"Description\": \"Writes employees\"\r\n                },\r\n                \"IsDataAction\": false\r\n            },\r\n            {\r\n                \"Name\": \"Private.Symphony/Solutions/Delete\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Microsoft.Contoso\",\r\n                    \"Resource\": \"Employees\",\r\n                    \"Operation\": \"Deletes employee resource\",\r\n                    \"Description\": \"Deletes employees\"\r\n                },\r\n                \"IsDataAction\": false,\r\n                \"Origin\": \"User\"\r\n            },\r\n            {\r\n                \"Name\": \"Private.Symphony/Solutions/Action\",\r\n                \"Display\": {\r\n                    \"Provider\": \"Microsoft.Contoso\",\r\n                    \"Resource\": \"Employees\",\r\n                    \"Operation\": \"Create/update employee resources\",\r\n                    \"Description\": \"Writes employees\"\r\n                },\r\n                \"IsDataAction\": true,\r\n                \"Origin\": \"System\"\r\n            }\r\n        ],\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/Operations?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"Operations"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - locations",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTE2NTcwMCwibmJmIjoxNjgxMTY1NzAwLCJleHAiOjE2ODExNzAwMzAsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWt0YlVLZ2syRVBZeG1YODVBa0RZNURXVWU0QzNmTWRlWGZCWk9NdENFQm5JK09kU2ozS3RNUEJSaU1ZdU9IM29oRGh1c1RYY3g3Lys0WnhmNCtyZnpIdWVYaUE1eU5HOHNIMWVqclh0WDRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkpxWXN5a2MxdlVPT2FuVk96MTdjQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.c2ol-zPhjn35wSEA2Zn7tGgZnZqSdxZJBjjYhcMGIoBF1oXr6Azdp66XugT07IYrx8SObPARk3hRBuSfPq1KgMk8vGbUjjUP4_mbzRvcIDssyiAVxQWGmOCje1vhJSWj_bnAzs7p59crObsbytiYlieASyaBR9O_n6lTNZCAC58bN7TYUU-IXKbx88dufVzZ-l9n4Tm4LvpEzboG6CNy2tXLDEFPeu7-qg4GE1grsCK3nwBVvphVc1LwckIMNnltiyTLFUI8EJR5jCTdFys6pnzBWkBaADFlg8lbSNPSAN9PvMGqTQ075kzsm9kyimV-WpNxLl1tIdWOUAtbyYpQBQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"ProxyOnly\",\r\n        \"regionality\": \"Global\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"Global\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/locations?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"locations"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - locations/operationStatuses",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTE2NTcwMCwibmJmIjoxNjgxMTY1NzAwLCJleHAiOjE2ODExNzAwMzAsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWt0YlVLZ2syRVBZeG1YODVBa0RZNURXVWU0QzNmTWRlWGZCWk9NdENFQm5JK09kU2ozS3RNUEJSaU1ZdU9IM29oRGh1c1RYY3g3Lys0WnhmNCtyZnpIdWVYaUE1eU5HOHNIMWVqclh0WDRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkpxWXN5a2MxdlVPT2FuVk96MTdjQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.c2ol-zPhjn35wSEA2Zn7tGgZnZqSdxZJBjjYhcMGIoBF1oXr6Azdp66XugT07IYrx8SObPARk3hRBuSfPq1KgMk8vGbUjjUP4_mbzRvcIDssyiAVxQWGmOCje1vhJSWj_bnAzs7p59crObsbytiYlieASyaBR9O_n6lTNZCAC58bN7TYUU-IXKbx88dufVzZ-l9n4Tm4LvpEzboG6CNy2tXLDEFPeu7-qg4GE1grsCK3nwBVvphVc1LwckIMNnltiyTLFUI8EJR5jCTdFys6pnzBWkBaADFlg8lbSNPSAN9PvMGqTQ075kzsm9kyimV-WpNxLl1tIdWOUAtbyYpQBQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"ProxyOnly, LocationBased\",\r\n        \"regionality\": \"Regional\",\r\n        \"allowedUnauthorizedActions\": [\r\n            \"{{resourceProvider}}/Locations/OperationStatuses/read\"\r\n        ],\r\n        \"subscriptionStateRules\": [\r\n            {\r\n                \"state\": \"disabled\",\r\n                \"allowedActions\": [\r\n                    \"{{resourceProvider}}/locations/OperationStatuses/write\"\r\n                ]\r\n            },\r\n            {\r\n                \"state\": \"warned\",\r\n                \"allowedActions\": [\r\n                    \"{{resourceProvider}}/locations/OperationStatuses/write\"\r\n                ]\r\n            }\r\n        ],\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/locations/resourcetypeRegistrations/operationStatuses?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"locations",
+								"resourcetypeRegistrations",
+								"operationStatuses"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - gitrepos",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyNzY1NywibmJmIjoxNjgxMzI3NjU3LCJleHAiOjE2ODEzMzMxNDIsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWhYSkJXcktOMURqRVZCN1hSVUI3T1hJa3VDU2NaNjdyWVBvMVYrcDhhOXY1L3B6T1BVcytjOWVmWjJjTThHdWRJQWZmL1pGZ2Z2QzZUM29ZZGpxTHVERGRoVEpZbS8zVWM1S0UzMUVNVy9BPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjBMeFowUWRqRDB5ejNiWjFMaTB0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.d3g-6fNRBZQnyTv3pvxtHzmil0W7wyh3rxXa3x-isu1fmlUTMcXVT61RXiPJZyDZIfA_30GOwWAABhJSMK-pVkcSBl3cNAmWg0Oz1vfVicAyHRkURMMDicBhEH2ZciVsv-qRCctVYg7_v_fiLyp_-ceK7n7unqo-WczvXHIUaHmn8IwoEn2dtCmPr7k7xD3C46JxwwCw4p2hfSEqnL4daSnsLBT4-833jJUD7q1Vk54TV7VYSXV1qkPcX-OL9BuuJkSvDRoS5ApjoGbVpPyPbeqS3F9lfPR8Gsc5K5TRysmpahbl--9oU8Ta79tGokAfIEczufJ5hRkDGPH-Gi7dkg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://symphony-gitops.azurewebsites.net\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationValidate\",\r\n                            \"ResourceCreationBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/gitrepos?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"gitrepos"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - gates",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTE2NTcwMCwibmJmIjoxNjgxMTY1NzAwLCJleHAiOjE2ODExNzAwMzAsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWt0YlVLZ2syRVBZeG1YODVBa0RZNURXVWU0QzNmTWRlWGZCWk9NdENFQm5JK09kU2ozS3RNUEJSaU1ZdU9IM29oRGh1c1RYY3g3Lys0WnhmNCtyZnpIdWVYaUE1eU5HOHNIMWVqclh0WDRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkpxWXN5a2MxdlVPT2FuVk96MTdjQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.c2ol-zPhjn35wSEA2Zn7tGgZnZqSdxZJBjjYhcMGIoBF1oXr6Azdp66XugT07IYrx8SObPARk3hRBuSfPq1KgMk8vGbUjjUP4_mbzRvcIDssyiAVxQWGmOCje1vhJSWj_bnAzs7p59crObsbytiYlieASyaBR9O_n6lTNZCAC58bN7TYUU-IXKbx88dufVzZ-l9n4Tm4LvpEzboG6CNy2tXLDEFPeu7-qg4GE1grsCK3nwBVvphVc1LwckIMNnltiyTLFUI8EJR5jCTdFys6pnzBWkBaADFlg8lbSNPSAN9PvMGqTQ075kzsm9kyimV-WpNxLl1tIdWOUAtbyYpQBQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/gates?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"gates"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - gitRepos/armDeploymentGitOps",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMxODA5MiwibmJmIjoxNjgxMzE4MDkyLCJleHAiOjE2ODEzMjI3OTgsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQUlMRGViQWZHLzN0SFhOVHlxWVJXZEhZRFNCbTBQUk1yTFh4NjBBR2NCZDU3VXdoUVV4SFRjZ2o3UzV6V1FPazFVSnpjL0dHS08zR1N5UXFoYWJ0NnRseVBlblpSTUhSRVhWTUhXK2M4aUhNPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6InFSVDg5YjFjbWttb0ZhMDdJelVlQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.NLJuK6GZDNZ0ArZeajrldaePX2K-QlFVQgYKV4zFveZIukEkUme7C2cjq8DjNg3fhVKZ1aXaZcp8c6XgoH4qZemgrGO2vJe7WkZFjYykZ2JlopoPZJsZxCZIuJcEgG9h-bM-x-RAQpWYLuP80IqS4y-rv_w-a97cW5QK2d1eQmbdy-c9UHBmZtx10kwypaZH5CrIexfl0K6EtPA9tyLK_hJ9hoY29H9DLLOM1yOLHxTifGuyPbHewWm7n07hrTma-v468Tl5Y9hCmzxCjedOlMJfU0LenEwGF3pCcW4FLCimpgFlrVziwIRVo-GDjJhet0qh7NWdjbMmPERVOkrqxA",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://symphony-gitops.azurewebsites.net\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationValidate\",\r\n                            \"ResourceCreationBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/gitrepos/resourcetyperegistrations/armDeploymentGitOps?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"gitrepos",
+								"resourcetyperegistrations",
+								"armDeploymentGitOps"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration - gitRepos/edgeDeploymentGitOps",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTE3MTAyMCwibmJmIjoxNjgxMTcxMDIwLCJleHAiOjE2ODExNzUyNzcsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWNIRldoTEZYQW1Cb1NwK2FXSHNJSDBSaDRoRDhEU0ZYbG9FU3dUYUJxbWEraEJHUWluSUZpbmNTNEt3L016QndzcHM2RFFhbVhDNnAxdHNCQng0a0tJc3hiUW5yd2lYMGgwQVpYSXMvL3pBPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6ImRMNUNGODVqdUVDbmFGRENFWXFPQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.p0bB4BDhPt-RQqlyDBMzp4QFU27SE96tlcq9clfy7IUP1SALZ6VVC8ilW8IQbHW65Yfubw54WOrq6HLll0z71JVawjEBcT7XSlubPZM3v107CtU27_QIQWONLDI4Rdw8XNAnJcSzv3yk3qqw1vKVQsp81AXL3vY39A0gvJQb3CC5F6LDciFP12MOQ_lmzAH32BffirON7UANJAauwfmZ9eWtJCaMGk3pWmfM0nIyGUHCYx9hZHxwqQP9i3HnN1BYl7uzTkfLleb1Pft31B0LBC7BVtsnHSffU4EGnbJOc8Fk4yR0B9Q783W66TDWnGdSopfhvYAZREl27GjOAVRqBw",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://symphony-gitops.azurewebsites.net\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationValidate\",\r\n                            \"ResourceCreationBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/gitrepos/resourcetyperegistrations/edgeDeploymentGitOps?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"gitrepos",
+								"resourcetyperegistrations",
+								"edgeDeploymentGitOps"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyMjYyNiwibmJmIjoxNjgxMzIyNjI2LCJleHAiOjE2ODEzMjc4ODUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQXR1OFNob2t5d1BJMVdQUXppaXdXUGdlQlZNMUpEMk5qY2NjdFRyakZXNU83ak1OTFNBdHBoNmsyY3BJc05MNExTYk1qTUFjQTkwMnFOWTczZkM0a3p4Qmo2MzV0b3gxRUkzWDZWREhWQkp3PSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlhyaHVJNzBZRzBpak1JUzU4cGd2QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.cZFkMoiuwMWjxZsrjKmzRu-hCPnU98jGRkdFejJqLbiWIfUTbhJEQiFig3jbsIjDgxgDIGvSc6nwPm3eimw-heKVSq6-PxRrO0ojmaVQrg3Xg4siBYRoXx5WYe9dOa_WtGiHsuF9HwAbVQmxI8U0M25yKSv5wT_qiebpoku_bBjrJ-MNQLjkQ0XeM8PQMBU2ty-lE4ocj5qGHwxhBDcjsg4qOfkjMWLij6TB_tUiisNK05e6iq66S3JZB6CNl0pUfmdjQi_GH9hfI34nrbEJb8F4V7AfzJ8iLHLOlrcSEygL3zRs9E18o8jWEjnNkuAwwQse_wHY9cjCXAJ0Q95YGA",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/operations?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"operations"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "check in manifest",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyNzY1NywibmJmIjoxNjgxMzI3NjU3LCJleHAiOjE2ODEzMzMxNDIsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWhYSkJXcktOMURqRVZCN1hSVUI3T1hJa3VDU2NaNjdyWVBvMVYrcDhhOXY1L3B6T1BVcytjOWVmWjJjTThHdWRJQWZmL1pGZ2Z2QzZUM29ZZGpxTHVERGRoVEpZbS8zVWM1S0UzMUVNVy9BPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjBMeFowUWRqRDB5ejNiWjFMaTB0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.d3g-6fNRBZQnyTv3pvxtHzmil0W7wyh3rxXa3x-isu1fmlUTMcXVT61RXiPJZyDZIfA_30GOwWAABhJSMK-pVkcSBl3cNAmWg0Oz1vfVicAyHRkURMMDicBhEH2ZciVsv-qRCctVYg7_v_fiLyp_-ceK7n7unqo-WczvXHIUaHmn8IwoEn2dtCmPr7k7xD3C46JxwwCw4p2hfSEqnL4daSnsLBT4-833jJUD7q1Vk54TV7VYSXV1qkPcX-OL9BuuJkSvDRoS5ApjoGbVpPyPbeqS3F9lfPR8Gsc5K5TRysmpahbl--9oU8Ta79tGokAfIEczufJ5hRkDGPH-Gi7dkg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"environment\": \"Prod\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/checkinManifest?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"checkinManifest"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "apply manifest",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MTMyNzY1NywibmJmIjoxNjgxMzI3NjU3LCJleHAiOjE2ODEzMzMxNDIsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWhYSkJXcktOMURqRVZCN1hSVUI3T1hJa3VDU2NaNjdyWVBvMVYrcDhhOXY1L3B6T1BVcytjOWVmWjJjTThHdWRJQWZmL1pGZ2Z2QzZUM29ZZGpxTHVERGRoVEpZbS8zVWM1S0UzMUVNVy9BPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjBMeFowUWRqRDB5ejNiWjFMaTB0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.d3g-6fNRBZQnyTv3pvxtHzmil0W7wyh3rxXa3x-isu1fmlUTMcXVT61RXiPJZyDZIfA_30GOwWAABhJSMK-pVkcSBl3cNAmWg0Oz1vfVicAyHRkURMMDicBhEH2ZciVsv-qRCctVYg7_v_fiLyp_-ceK7n7unqo-WczvXHIUaHmn8IwoEn2dtCmPr7k7xD3C46JxwwCw4p2hfSEqnL4daSnsLBT4-833jJUD7q1Vk54TV7VYSXV1qkPcX-OL9BuuJkSvDRoS5ApjoGbVpPyPbeqS3F9lfPR8Gsc5K5TRysmpahbl--9oU8Ta79tGokAfIEczufJ5hRkDGPH-Gi7dkg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/defaultRollouts/privateSymphonyInit?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"defaultRollouts",
+								"privateSymphonyInit"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get manifest",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{authorization}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/defaultRollouts/privateSymphonyInit?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"defaultRollouts",
+								"privateSymphonyInit"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Authorized First Party Apps",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDAzODIxMCwibmJmIjoxNjgwMDM4MjEwLCJleHAiOjE2ODAwNDM0NTYsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQVpSSFp5MVNTMllNMWtyZTBETWF1QW5kSDIxSFdjbU1hVkpUNFB4REtUekJ5QmdYK0dPZUJxa3ZkTlBuSDhKcmNMU1pXc3hlVmIwUjZMcDZTQzlIUTBiVVJFR2hmbXVEdkhGdHdTaHdZY2ZJPSIsImFtciI6WyJyc2EiLCJ3aWEiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjZUckxfbEF1VGtlV01ic2t3RXdtQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.Y1yKunY2YKpq0pkwZ80W6EkxK0x9KxvTo2AjujXyvOO5gi6Mx5iigiMsKLoDUUPd1s5WZNOC6kMJSE2pInGpBU9cTl1lJyh9xCiCu1GRjUHhWqbv9WxujhnjNBGBP1Boj1J8pzHcDZoFx8_fCvsTpnf7iarOhzkaQnOiUBTwrH9HNy_ofIF-ZOD6EqfDMMpRlSxv3wzIjf3hiE9-C0X3nwsc-LiM1bK6W-pJI28fklBxkHbwDVxBp-vwAZOklSj1KmJACfM-pn-ZwugZVLpgwKb4-9--M1-62q1fMIZNu1Y0oPk-IKy7aOUQyZYSxFvuG6Oa-GJtVMuCkcgTwORxDQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"dataAuthorizations\": [\r\n            {\r\n                \"role\": \"ServiceOwner\",\r\n                \"resourceTypes\": [\r\n                    \"*\"\r\n                ]\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerregistrations/{{resourceProvider}}/authorizedApplications/319f651f-7ddb-4fc6-9857-7aef9250bd05?api-version=2023-01-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerregistrations",
+								"{{resourceProvider}}",
+								"authorizedApplications",
+								"319f651f-7ddb-4fc6-9857-7aef9250bd05"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2023-01-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Force Regenerate Operations List",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/generateOperations?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"generateOperations"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Resources",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerregistrations/{{resourceProvider}}/resourceActions/default/deleteResources?api-version=2021-10-01-privatepreview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerregistrations",
+								"{{resourceProvider}}",
+								"resourceActions",
+								"default",
+								"deleteResources"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "resource type registration local - checknameavailability",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDkwODkxMSwibmJmIjoxNjgwOTA4OTExLCJleHAiOjE2ODA5MTQxMDgsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQWErTWNJbUE1a21NNlRNRXc5aExMVWc1SXpOZ3B6SXBidUMvK3NKbUFyMXVsbnBmUCtRckxvcWd6MkMrM2ZiWHppVmhNd2JtaVIzcy96WUZoaTFHMnNMVkJDLzNkaitqdHBwWHNHMW9ZdTJFPSIsImFtciI6WyJ3aWEiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6IjF0OUhoNTdfUEUyVVBaNkhlMUppQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.mMjSVgBhgyj-qgatI900oTYu4e2gqdh3yuzvfqZi_I7eUHVXpBLq0uwlNItEGpIj3oa42ZR4dChinvkSK9KmRfbk0uf8gEpqQy0rA2yAl0aU3dLZ3CV65aB4XXalX-9TbXEaZ-xIyWJ6YhhZEpxPjCrPEkL0jfQXCLTlV1kZG8zlk8cKOvTgLyPCN5mzysbnyrUV76T6yv7rX23k1sYY8R_vaMA84Z17E5WV81kdvUuOXr1_Q6otL0uFTKtPcMebmblpD-3GA0afSk4z14Hrt5P_pPdsVymWoMIxKJEHvN55_dA3jhfBGAXCFG5ZWryyIB06NEAHo0Q73oaBsYf8ig",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n    \"routingType\": \"ProxyOnly\",\r\n    \"regionality\": \"global\",\r\n    \"allowedUnauthorizedActions\": [\r\n        \"Microsoft.Contoso/checkNameAvailability/action\"\r\n    ],\r\n    \"checkNameAvailabilitySpecifications\": {\r\n        \"ResourceTypesWithCustomValidation\": [\r\n            \"Microsoft.Contoso/NestedEmployees\"\r\n        ]\r\n    },\r\n    \"endpoints\": [{\r\n        \"apiVersions\": [\r\n        \"2019-02-01-preview\"\r\n        ],\r\n        \"locations\": [\r\n        \"\"\r\n        ],\r\n        \"extensions\": [{\r\n            \"endpointUri\": \"https://contoso.userrp.com\",\r\n            \"extensionCategories\": [\r\n                \"ResourcePostAction\"\r\n            ]\r\n        }]\r\n    }],\r\n    \"swaggerSpecifications\": [{\r\n        \"apiVersions\": [\r\n        \"2019-02-01-preview\"\r\n        ],\r\n        \"swaggerSpecFolderUri\": \"https://github.com/Azure/azure-rest-api-specs/blob/feature/azure/contoso/specification/contoso/resource-manager/Microsoft.Contoso/\"\r\n    }]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/checkNameAvailability?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"checkNameAvailability"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[DEPRECATING] resource type registration - edgeTemplates",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/edgeTemplates?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"edgeTemplates"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[DEPRECATING] resource type registration - edgeDeployments",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuYXp1cmUuY29tIiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTY4MDI5ODU0MCwibmJmIjoxNjgwMjk4NTQwLCJleHAiOjE2ODAzMDM2NzUsIl9jbGFpbV9uYW1lcyI6eyJncm91cHMiOiJzcmMxIn0sIl9jbGFpbV9zb3VyY2VzIjp7InNyYzEiOnsiZW5kcG9pbnQiOiJodHRwczovL2dyYXBoLndpbmRvd3MubmV0LzcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0Ny91c2Vycy9jZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQvZ2V0TWVtYmVyT2JqZWN0cyJ9fSwiYWNyIjoiMSIsImFpbyI6IkFWUUFxLzhUQUFBQSszT0ZRQTh3U2syWXM5ZmVwTjJOQzdMUkFBZ2tncjZmQzlSdmJsem5vMWJxNVdBbGZkSExQOW8wMzhwWnJKeDk4d0d4dTlzUFRBbkdpUHJHZndkL2oybWdJM0hDWjcyZldzQjBvS0pOVmRnPSIsImFtciI6WyJyc2EiLCJtZmEiXSwiYXBwaWQiOiIwNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDYiLCJhcHBpZGFjciI6IjAiLCJmYW1pbHlfbmFtZSI6Ik1vcmFsZXMiLCJnaXZlbl9uYW1lIjoiSGVucnkiLCJpbl9jb3JwIjoidHJ1ZSIsImlwYWRkciI6IjIwLjIzNy4xNjAuMjE1IiwibmFtZSI6IkhlbnJ5IE1vcmFsZXMiLCJvaWQiOiJjZjgyOGVhMC1hZWNkLTQ4MzUtOGI0Ni00NDg2ZDUzMDkxMjQiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMTI0NTI1MDk1LTcwODI1OTYzNy0xNTQzMTE5MDIxLTIwOTcwNTciLCJwdWlkIjoiMTAwMzIwMDFEQzEwQzdDNiIsInJoIjoiMC5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSMFpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTWFBRGcuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoiTTJQYkp2cGdyZ2pFU21pcUNHMGluMGxmODhPU2Q4a1ZnR0V4NS1kaC0wayIsInRpZCI6IjcyZjk4OGJmLTg2ZjEtNDFhZi05MWFiLTJkN2NkMDExZGI0NyIsInVuaXF1ZV9uYW1lIjoiaGVucnltb3JhbGVzQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJoZW5yeW1vcmFsZXNAbWljcm9zb2Z0LmNvbSIsInV0aSI6Impmc05GdHBtbUVpSDFaUUxMbmhDQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.PyLh37xX5rgTWKJr-Mexl6fs6J1uiRjnDUY77XeA0FZsfACw6Cmw2dclgcBq27F3rtGeBziAb0gSeF99nooP6lNADPJYSN3sKDZbwMK6AN5W3GP00CA1p_IwUqye8DL3B6WdlxcoEM4PRVZYabRqQFzD9v_outfrThzum3LK5m-JGEJqt_2hcoda-94JC93qoEA_ilLCBn4kT9VOBYed3-jEP3LrqiLaF-Hu2AkNqYbYPFKMgdAeuIjfDh3_RqSKe5MNH03M3jmy5Y76jvtNtwDFKMWoMTu8jCbk9sqiCtWtnsBvcC3juU3Qok1W0mGLZGUbARFR_kC2nb4hwmtupg",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"properties\": {\r\n        \"routingType\": \"Default\",\r\n        \"regionality\": \"Regional\",\r\n        \"enableAsyncOperation\": \"true\",\r\n        \"endpoints\": [\r\n            {\r\n                \"apiVersions\": [\r\n                    \"2021-10-01-privatepreview\",\r\n                    \"2020-01-01-preview\"\r\n                ],\r\n                \"locations\": [\r\n                    \"West US\",\r\n                    \"West US2\",\r\n                    \"East US\"\r\n                ],\r\n                \"extensions\": [\r\n                    {\r\n                        \"endpointUri\": \"https://k8bridge.canary.production.fusion.azure.com/\",\r\n                        \"extensionCategories\": [\r\n                            \"ResourceCreationBegin\",\r\n                            \"ResourceDeletionBegin\"\r\n                        ]\r\n                    }\r\n                ]\r\n            }\r\n        ],\r\n        \"management\": {\r\n            \"serviceTreeInfos\": [\r\n                {\r\n                    \"readiness\": \"privatepreview\"\r\n                }\r\n            ]\r\n        },\r\n        \"extendedLocations\": [\r\n            {\r\n                \"type\": \"CustomLocation\",\r\n                \"supportedPolicy\": \"NotSpecified\"\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://management.azure.com/subscriptions/{{subscription}}/providers/Microsoft.ProviderHub/providerRegistrations/{{resourceProvider}}/resourcetypeRegistrations/edgeDeployments?api-version=2021-10-01-privatepreview",
+							"protocol": "https",
+							"host": [
+								"management",
+								"azure",
+								"com"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.ProviderHub",
+								"providerRegistrations",
+								"{{resourceProvider}}",
+								"resourcetypeRegistrations",
+								"edgeDeployments"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-10-01-privatepreview"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Demo Teardown",
+			"item": [
+				{
+					"name": "Delete instance",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/private.symphony/edgeDeployments/:instance?api-version=2020-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"private.symphony",
+								"edgeDeployments",
+								":instance"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2020-01-01-preview"
+								}
+							],
+							"variable": [
+								{
+									"key": "instance",
+									"value": "instance-nuc-5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete solution",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/private.symphony/edgeTemplates/:solution?api-version=2020-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"private.symphony",
+								"edgeTemplates",
+								":solution"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2020-01-01-preview"
+								}
+							],
+							"variable": [
+								{
+									"key": "solution",
+									"value": "solution-nuc-5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Target",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/private.symphony/targets/:target?api-version=2020-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"private.symphony",
+								"targets",
+								":target"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2020-01-01-preview"
+								}
+							],
+							"variable": [
+								{
+									"key": "target",
+									"value": "target-nuc-5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete ResourceSync Rule",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}/resourceSyncRules/:syncname?api-version=2021-08-31-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"Microsoft.ExtendedLocation",
+								"customLocations",
+								"{{customLocation}}",
+								"resourceSyncRules",
+								":syncname"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-31-preview"
+								}
+							],
+							"variable": [
+								{
+									"key": "syncname",
+									"value": "{{customLocation}}-sync"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Custom Location",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}?api-version=2021-08-15",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"Microsoft.ExtendedLocation",
+								"customLocations",
+								"{{customLocation}}"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-15"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Resource Group",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/Microsoft.ExtendedLocation/customLocations/{{customLocation}}?api-version=2021-08-15",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"Microsoft.ExtendedLocation",
+								"customLocations",
+								"{{customLocation}}"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2021-08-15"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/self?api-version=2020-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"resourceGroups",
+								"{{resourceGroup}}",
+								"providers",
+								"{{resourceProvider}}",
+								"targets",
+								"self"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2020-01-01-preview"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "after create",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"500078d4-0000-0100-0000-646813a00000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11998"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "239895c7-199a-440d-85c3-82eac2ab466d"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "c1f7cfa0-181d-4421-8dc8-d0fc18003a49"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T002719Z:c1f7cfa0-181d-4421-8dc8-d0fc18003a49"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:27:18 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"500078d4-0000-0100-0000-646813a00000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"319f651f-7ddb-4fc6-9857-7aef9250bd05\",\n        \"lastModifiedByType\": \"Application\",\n        \"lastModifiedAt\": \"2023-05-20T00:26:08.0797543Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"running\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ],\n        \"displayName\": \"testvm22\",\n        \"status\": {\n            \"properties\": {\n                \"deployed\": \"1\",\n                \"status\": \"OK\",\n                \"targets\": \"1\",\n                \"targets.testvm22\": \"OK - \"\n            }\n        }\n    }\n}"
+						},
+						{
+							"name": "AFter commit to stop, state updated and status missing",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"5000a1d9-0000-0100-0000-646814030000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11998"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "f5610a26-6e58-4080-8aa2-abe293253ece"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "075bf748-0325-40f2-ae61-6e02ab7420a4"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T003003Z:075bf748-0325-40f2-ae61-6e02ab7420a4"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:30:03 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"5000a1d9-0000-0100-0000-646814030000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"lastModifiedByType\": \"Application\",\n        \"lastModifiedAt\": \"2023-05-20T00:27:46.7642195Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"stopped\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ]\n    }\n}"
+						},
+						{
+							"name": "after Manually making put call to change state to running, state updated, status missing.",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"5000fbe6-0000-0100-0000-646815690000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11999"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "bc26cdb9-5443-400c-96e2-9a1670f8ad8a"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "612c061f-bd03-4c84-9ae4-a2711fe40aef"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T003402Z:612c061f-bd03-4c84-9ae4-a2711fe40aef"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:34:01 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"5000fbe6-0000-0100-0000-646815690000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"jiadu@microsoft.com\",\n        \"lastModifiedByType\": \"User\",\n        \"lastModifiedAt\": \"2023-05-20T00:33:41.952981Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"running\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Put experiment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"location\": \"eastus\",\r\n    \"properties\": {\r\n        \"roleName\": \"Banana Pudding Contributor\",\r\n        \"description\": \"\",\r\n        \"assignableScopes\": [\r\n            \"/subscriptions/2bd4119a-4d8d-4090-9183-f9e516c21723\"\r\n        ],\r\n        \"permissions\": [\r\n            {\r\n                \"actions\": [\r\n                    \"Microsoft.Resources/deployments/read\",\r\n                    \"Microsoft.Resources/deployments/write\",\r\n                    \"Microsoft.Resources/deployments/delete\",\r\n                    \"Microsoft.Resources/deployments/cancel/action\",\r\n                    \"Microsoft.Resources/deployments/validate/action\",\r\n                    \"Microsoft.Resources/deployments/whatIf/action\",\r\n                    \"Microsoft.Resources/deployments/exportTemplate/action\",\r\n                    \"Microsoft.Resources/deployments/operations/read\",\r\n                    \"Microsoft.Resources/deployments/operationstatuses/read\",\r\n                    \"Microsoft.Resources/resources/read\",\r\n                    \"Microsoft.Resources/subscriptions/resourceGroups/read\",\r\n                    \"Microsoft.Resources/subscriptions/resourceGroups/write\",\r\n                    \"Microsoft.Resources/subscriptions/resourceGroups/delete\",\r\n                    \"Microsoft.Resources/subscriptions/resourcegroups/deployments/read\",\r\n                    \"Microsoft.Resources/subscriptions/resourcegroups/deployments/write\",\r\n                    \"Microsoft.Resources/subscriptions/resourcegroups/deployments/operations/read\",\r\n                    \"Microsoft.Resources/subscriptions/resourcegroups/deployments/operationstatuses/read\",\r\n                    \"Microsoft.Resources/subscriptions/resourcegroups/resources/read\",\r\n                    \"Microsoft.KubernetesConfiguration/extensions/write\",\r\n                    \"Microsoft.KubernetesConfiguration/extensions/read\",\r\n                    \"Microsoft.KubernetesConfiguration/extensions/delete\",\r\n                    \"Microsoft.KubernetesConfiguration/extensionTypes/read\",\r\n                    \"Microsoft.KubernetesConfiguration/extensions/operations/read\",\r\n                    \"Microsoft.KubernetesConfiguration/operations/read\",\r\n                    \"Microsoft.Kubernetes/connectedClusters/Read\",\r\n                    \"Microsoft.Kubernetes/connectedClusters/Write\",\r\n                    \"Microsoft.Kubernetes/connectedClusters/Delete\",\r\n                    \"Microsoft.Kubernetes/connectedClusters/listClusterUserCredentials/action\",\r\n                    \"Microsoft.Kubernetes/connectedClusters/listClusterUserCredential/action\",\r\n                    \"Microsoft.Kubernetes/locations/operationstatuses/read\",\r\n                    \"Microsoft.Kubernetes/locations/operationstatuses/write\",\r\n                    \"Microsoft.Kubernetes/RegisteredSubscriptions/read\",\r\n                    \"Microsoft.ExtendedLocation/locations/operationresults/read\",\r\n                    \"Microsoft.ExtendedLocation/locations/operationsstatus/read\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/read\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/write\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/deploy/action\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/delete\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/findTargetResourceGroup/action\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/enabledresourcetypes/read\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/resourceSyncRules/read\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/resourceSyncRules/write\",\r\n                    \"Microsoft.ExtendedLocation/customLocations/resourceSyncRules/delete\",\r\n                    \"Microsoft.ExtendedLocation/operations/read\",\r\n                    \"Microsoft.Authorization/roleAssignments/write\"\r\n                ],\r\n                \"notActions\": [],\r\n                \"dataActions\": [],\r\n                \"notDataActions\": []\r\n            }\r\n        ]\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{armRegion}}/subscriptions/{{subscription}}/providers/Microsoft.Authorization/roleDefinitions/27de6841-e6f1-4fa6-a594-855ba9058568?api-version=2018-01-01-preview",
+							"host": [
+								"{{armRegion}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{subscription}}",
+								"providers",
+								"Microsoft.Authorization",
+								"roleDefinitions",
+								"27de6841-e6f1-4fa6-a594-855ba9058568"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2018-01-01-preview"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "after create",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"500078d4-0000-0100-0000-646813a00000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11998"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "239895c7-199a-440d-85c3-82eac2ab466d"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "c1f7cfa0-181d-4421-8dc8-d0fc18003a49"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T002719Z:c1f7cfa0-181d-4421-8dc8-d0fc18003a49"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:27:18 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"500078d4-0000-0100-0000-646813a00000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"319f651f-7ddb-4fc6-9857-7aef9250bd05\",\n        \"lastModifiedByType\": \"Application\",\n        \"lastModifiedAt\": \"2023-05-20T00:26:08.0797543Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"running\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ],\n        \"displayName\": \"testvm22\",\n        \"status\": {\n            \"properties\": {\n                \"deployed\": \"1\",\n                \"status\": \"OK\",\n                \"targets\": \"1\",\n                \"targets.testvm22\": \"OK - \"\n            }\n        }\n    }\n}"
+						},
+						{
+							"name": "AFter commit to stop, state updated and status missing",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"5000a1d9-0000-0100-0000-646814030000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11998"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "f5610a26-6e58-4080-8aa2-abe293253ece"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "075bf748-0325-40f2-ae61-6e02ab7420a4"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T003003Z:075bf748-0325-40f2-ae61-6e02ab7420a4"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:30:03 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"5000a1d9-0000-0100-0000-646814030000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"lastModifiedByType\": \"Application\",\n        \"lastModifiedAt\": \"2023-05-20T00:27:46.7642195Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"stopped\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ]\n    }\n}"
+						},
+						{
+							"name": "after Manually making put call to change state to running, state updated, status missing.",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{armRegion}}/subscriptions/{{subscription}}/resourceGroups/{{resourceGroup}}/providers/{{resourceProvider}}/targets/testvm22?api-version=2020-01-01-preview",
+									"host": [
+										"{{armRegion}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subscription}}",
+										"resourceGroups",
+										"{{resourceGroup}}",
+										"providers",
+										"{{resourceProvider}}",
+										"targets",
+										"testvm22"
+									],
+									"query": [
+										{
+											"key": "api-version",
+											"value": "2020-01-01-preview"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "no-cache"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Expires",
+									"value": "-1"
+								},
+								{
+									"key": "ETag",
+									"value": "\"5000fbe6-0000-0100-0000-646815690000\""
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-ms-ratelimit-remaining-subscription-reads",
+									"value": "11999"
+								},
+								{
+									"key": "x-ms-providerhub-traffic",
+									"value": "True"
+								},
+								{
+									"key": "x-ms-request-id",
+									"value": "bc26cdb9-5443-400c-96e2-9a1670f8ad8a"
+								},
+								{
+									"key": "x-ms-correlation-request-id",
+									"value": "612c061f-bd03-4c84-9ae4-a2711fe40aef"
+								},
+								{
+									"key": "x-ms-routing-request-id",
+									"value": "EASTUS2EUAP:20230520T003402Z:612c061f-bd03-4c84-9ae4-a2711fe40aef"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 20 May 2023 00:34:01 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/private.symphony/targets/testvm22\",\n    \"name\": \"testvm22\",\n    \"type\": \"private.symphony/targets\",\n    \"location\": \"eastus\",\n    \"extendedLocation\": {\n        \"name\": \"/subscriptions/6f4c2c84-1e91-412f-9697-b8877c7a2a17/resourceGroups/jiadu-testrg/providers/Microsoft.ExtendedLocation/customLocations/rr0904-akscluster01-cl3\",\n        \"type\": \"CustomLocation\"\n    },\n    \"etag\": \"\\\"5000fbe6-0000-0100-0000-646815690000\\\"\",\n    \"systemData\": {\n        \"createdBy\": \"645b18ac-2b7f-455f-9efb-d13c1cc1a0b5\",\n        \"createdByType\": \"Application\",\n        \"createdAt\": \"2023-05-20T00:25:39.6734701Z\",\n        \"lastModifiedBy\": \"jiadu@microsoft.com\",\n        \"lastModifiedByType\": \"User\",\n        \"lastModifiedAt\": \"2023-05-20T00:33:41.952981Z\"\n    },\n    \"properties\": {\n        \"provisioningState\": \"Succeeded\",\n        \"components\": [\n            {\n                \"name\": \"testvm22\",\n                \"properties\": {\n                    \"OSDiskPath\": \"C:\\\\ClusterStorage\\\\UserStorage_1\\\\vhds_templates\\\\template.vhdx\",\n                    \"app.package\": \"virtualmachine\",\n                    \"cpu\": \"4\",\n                    \"generation\": \"2\",\n                    \"memoryMB\": \"1024\",\n                    \"state\": \"running\"\n                },\n                \"type\": \"virtualmachine\"\n            }\n        ],\n        \"topologies\": [\n            {\n                \"bindings\": [\n                    {\n                        \"config\": {\n                            \"brokerAddress\": \"tcp://100.101.163.66:1883\",\n                            \"clientID\": \"control-plane\",\n                            \"requestTopic\": \"symphony-request\",\n                            \"responseTopic\": \"symphony-response\",\n                            \"timeoutSeconds\": \"300\"\n                        },\n                        \"provider\": \"providers.target.mqtt\",\n                        \"role\": \"virtualmachine\"\n                    }\n                ]\n            }\n        ]\n    }\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": {
+			"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNjg3MTkyODc4LCJuYmYiOjE2ODcxOTI4NzgsImV4cCI6MTY4NzE5NzI3MywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzA3MmYzOTYyLTRlYTMtNDFkNC1iMGZkLTA4MDBiNWU3N2ZlMy9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVlRQWUvOFRBQUFBNTA2SXZDeERRUW9vOXJUdGgvaWVmd3VST2hJbWdkbEZydnAzNlBCNFM4RStkVHpOOXEwUnFib29xVTlJcytoRzFvc1ZnaG9TY0JKTFhpR3lhVEVudi8xcjNya1V4VFUvTVpYMUw5YjU0RTV4UndXSTZxU2E0bGRwTjg0L1dzd3dYV0FpbnVDR05BNVc0c0tqN3VvdTczQWFqUkJ5SlpPeW5KVkQyeVg3VVp3PSIsImFtciI6WyJmaWRvIiwibWZhIl0sImFwcGlkIjoiMDRiMDc3OTUtOGRkYi00NjFhLWJiZWUtMDJmOWUxYmY3YjQ2IiwiYXBwaWRhY3IiOiIwIiwiZmFtaWx5X25hbWUiOiJDaHVrd3VvZ29yIiwiZ2l2ZW5fbmFtZSI6Ik5vbnNvIiwiaXBhZGRyIjoiMjAuMjUzLjE1Ny4yMzYiLCJuYW1lIjoiTm9uc28gQ2h1a3d1b2dvciIsIm9pZCI6IjA3MmYzOTYyLTRlYTMtNDFkNC1iMGZkLTA4MDBiNWU3N2ZlMyIsIm9ucHJlbV9zaWQiOiJTLTEtNS0yMS0yMTI3NTIxMTg0LTE2MDQwMTI5MjAtMTg4NzkyNzUyNy01NzU3OTM3NCIsInB1aWQiOiIxMDAzMjAwMUZBMzdCOUZFIiwicmgiOiIwLkFSb0F2NGo1Y3ZHR3IwR1JxeTE4MEJIYlIwWklmM2tBdXRkUHVrUGF3ZmoyTUJNYUFQYy4iLCJzY3AiOiJ1c2VyX2ltcGVyc29uYXRpb24iLCJzdWIiOiJhMWFsX1FlNWJmZjlIcDdHMFZ4dUJUbFNYTkxpZ2hTM3hPR0UxWkYyRnZVIiwidGlkIjoiNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3IiwidW5pcXVlX25hbWUiOiJuY2h1a3d1b2dvckBtaWNyb3NvZnQuY29tIiwidXBuIjoibmNodWt3dW9nb3JAbWljcm9zb2Z0LmNvbSIsInV0aSI6ImwyOEFrSTFsemtHSXRYcmV5SFh4QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfY2MiOlsiQ1AxIl0sInhtc190Y2R0IjoxMjg5MjQxNTQ3fQ.D-tDz3vShoVncrrgKFZmwQxJIj-0t9zWaUAMVwQL1ynLDlb4Bxr4Jd9wiTpwkbHkH2dRcOpgRlT5TwlX7-9dHd_8fRh3uitaEL-lQE6jWGixm3w30M80ClriSTI3rKLG-3TZshEBFklzQX6ODe36Zxkhg4sEjEDvgIPmWfdOFaI4NpyhvV_GSV1EfaOuRBQZTdUCqCwrSGOEWzonZfNvTcdt9zJCWTsTysjO1rcUf-81IANKcS0PhZEjPOz6x31V3BnS8vxj3sp_L_nrDd34lMSdLL2XKZnW50SxIb4f41YnodoyeG0t74FOZAob7CwWh9kXxvtQp7cfZoydy3dwkw"
+		}
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "resourceGroup",
+			"value": "demo-test-rg-2",
+			"type": "string"
+		},
+		{
+			"key": "subscription",
+			"value": "77969078-2897-47b0-9143-917252379303",
+			"type": "string"
+		},
+		{
+			"key": "resourceProvider",
+			"value": "private.symphony",
+			"type": "string"
+		},
+		{
+			"key": "armRegion",
+			"value": "https://eastus2euap.management.azure.com",
+			"type": "string"
+		},
+		{
+			"key": "customLocation",
+			"value": "demo-test-location-2",
+			"type": "string"
+		},
+		{
+			"key": "clusterName",
+			"value": "nuc-cluster-5"
+		}
+	]
+}

@@ -1,0 +1,606 @@
+{
+	"info": {
+		"_postman_id": "4bb726ba-538e-4a62-8bfd-3a0ec31bda4d",
+		"name": "Gitops",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "19948895",
+		"_collection_link": "https://solar-shadow-224876.postman.co/workspace/DH-RP-work~774dd7e8-e45a-49fb-9feb-704dd4b67da0/collection/26764949-4bb726ba-538e-4a62-8bfd-3a0ec31bda4d?action=share&creator=19948895&source=collection_link"
+	},
+	"item": [
+		{
+			"name": "Index",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{baseUrl}}/"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Repo",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/{{rpNamespace}}/gitRepos/:repo_name",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"{{rpNamespace}}",
+						"gitRepos",
+						":repo_name"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "my-repo"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Gitops Repo Resource",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"/subscriptions/{{subscription}}/resourceGroups/{{rg}}/providers/{{rpNamespace}}/repo/mygit\",\r\n    \"name\": \"mygit\",\r\n    \"properties\": {\r\n        \"branch\": \"demo\",\r\n        \"name\": \"DeviceGitOpsTesting\",\r\n        \"owner\": \"nonsocode\",\r\n        \"configurationProtectedSettings\": {\r\n            \"token\": \"{{gitToken}}\"\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/{{rpNamespace}}/repo/:repo_name",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"{{rpNamespace}}",
+						"repo",
+						":repo_name"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Gitops Resource for Cloud  Deployment",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"/subscriptions/{{subscription}}/resourceGroups/{{rg}}/providers/{{rpNamespace}}/repo/mygit/cloudResource/installer\",\r\n    \"name\": \"installer\",\r\n    \"identity\": {\r\n        \"type\": \"UserAssigned\",\r\n        \"userAssignedIdentities\": {\r\n            \"/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}\": {}\r\n        }\r\n    },\r\n    \"properties\": {\r\n        \"interval\": 10,\r\n        \"templatePath\": \"/symphony/template.json\",\r\n        \"parametersPath\": \"/symphony/parameters.json\",\r\n        \"mode\": \"Incremental\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/{{rpNamespace}}/repo/:repo_name/cloudResource/:deploymentUtilization",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"{{rpNamespace}}",
+						"repo",
+						":repo_name",
+						"cloudResource",
+						":deploymentUtilization"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						},
+						{
+							"key": "deploymentUtilization",
+							"value": "installer"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Gitops Resource for Cloud Deployment",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/{{rpNamespace}}/repo/:repo_name/cloudResource/:deploymentUtilization",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"{{rpNamespace}}",
+						"repo",
+						":repo_name",
+						"cloudResource",
+						":deploymentUtilization"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						},
+						{
+							"key": "deploymentUtilization",
+							"value": "installer"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Gitops Resource for Edge Deployment",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"/subscriptions/{{subscription}}/resourceGroups/{{rg}}/providers/{{rpNamespace}}/repo/mygit/edgeResource/edge-gitops\",\r\n    \"name\": \"edge-gitops\",\r\n    \"identity\": {\r\n        \"type\": \"UserAssigned\",\r\n        \"userAssignedIdentities\": {\r\n            \"/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}\": {}\r\n        }\r\n    },\r\n    \"properties\": {\r\n        \"interval\": 10,\r\n        \"mode\": \"Incremental\",\r\n        \"extendedLocationId\": \"/subscriptions/34d077e3-2c1a-48f5-8629-ffc0e657e0ed/resourcegroups/nc-rg-15/providers/microsoft.extendedlocation/customlocations/nc-vancify\",\r\n        \"deploymentScheme\": {\r\n            \"scope\": \"e4i-runtime\",\r\n            \"stages\": [\r\n                {\r\n                    \"name\": \"stage-1\",\r\n                    \"template\": {\r\n                        \"path\": \"edge/template.json\",\r\n                        \"name\": \"edge-template\"\r\n                    },\r\n                    \"parameters\": {\r\n                        \"name\": \"edge-parameters\",\r\n                        \"path\": \"edge/parameters.json\"\r\n                    },\r\n                    \"targetRef\": {\r\n                        \"name\": \"self-nc-vancify\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/{{rpNamespace}}/repo/:repo_name/edgeResource/:edgeUtilization",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"{{rpNamespace}}",
+						"repo",
+						":repo_name",
+						"edgeResource",
+						":edgeUtilization"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						},
+						{
+							"key": "edgeUtilization",
+							"value": "edge-gitops"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Gitops Resource for Edge Deployment",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/Microsoft.Gitops/repo/:repo_name/edgeResource/:edgeUtilization",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"Microsoft.Gitops",
+						"repo",
+						":repo_name",
+						"edgeResource",
+						":edgeUtilization"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						},
+						{
+							"key": "edgeUtilization",
+							"value": "edge-gitops"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Commit",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"commitMessage\": \"Create symphony installation\",\r\n    \"files\": [\r\n        {\r\n            \"path\": \"symphony/template.json\",\r\n            \"content\": \"{\\\"$schema\\\":\\\"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#\\\",\\\"contentVersion\\\":\\\"1.0.0.0\\\",\\\"parameters\\\":{\\\"clusterName\\\":{\\\"type\\\":\\\"string\\\"},\\\"clusterResourceGroup\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[resourceGroup().name]\\\"},\\\"clusterLocation\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[resourceGroup().location]\\\"},\\\"clusterSubscriptionId\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[subscription().subscriptionId]\\\"},\\\"symphonyName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony\\\"},\\\"installNamespace\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony\\\"},\\\"targetName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"self\\\"},\\\"customLocationName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony-custom-location\\\"},\\\"customLocationNamespace\\\":{\\\"type\\\":\\\"string\\\"}},\\\"variables\\\":{\\\"customLocationName\\\":\\\"[parameters('customLocationName')]\\\",\\\"clusterId\\\":\\\"[resourceId('Microsoft.Kubernetes/connectedClusters', parameters('clusterName'))]\\\",\\\"syncRuleName\\\":\\\"[concat(parameters('symphonyName'), '-sync')]\\\"},\\\"resources\\\":[{\\\"type\\\":\\\"Microsoft.KubernetesConfiguration/extensions\\\",\\\"apiVersion\\\":\\\"2022-03-01\\\",\\\"name\\\":\\\"[parameters('symphonyName')]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"extensionType\\\":\\\"microsoft.symphony\\\",\\\"autoUpgradeMinorVersion\\\":true,\\\"scope\\\":{\\\"cluster\\\":{\\\"releaseNamespace\\\":\\\"[parameters('installNamespace')]\\\"}},\\\"version\\\":\\\"0.42.5-patch-2\\\",\\\"releaseTrain\\\":\\\"dev\\\",\\\"configurationSettings\\\":{\\\"Microsoft.CustomLocation.ServiceAccount\\\":\\\"default\\\"}},\\\"scope\\\":\\\"[concat('Microsoft.Kubernetes/connectedClusters/', parameters('clusterName'))]\\\"},{\\\"type\\\":\\\"Microsoft.ExtendedLocation/customLocations\\\",\\\"apiVersion\\\":\\\"2021-08-31-preview\\\",\\\"name\\\":\\\"[variables('customLocationName')]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"hostResourceId\\\":\\\"[variables('clusterId')]\\\",\\\"namespace\\\":\\\"[parameters('customLocationNamespace')]\\\",\\\"displayName\\\":\\\"[variables('customLocationName')]\\\",\\\"clusterExtensionIds\\\":[\\\"[concat(variables('clusterId'), '/providers/Microsoft.KubernetesConfiguration/extensions/', parameters('symphonyName'))]\\\"]},\\\"dependsOn\\\":[\\\"[parameters('symphonyName')]\\\"]},{\\\"type\\\":\\\"Microsoft.Symphony/targets\\\",\\\"name\\\":\\\"[concat(parameters('targetName'), '-', variables('customLocationName'))]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"apiVersion\\\":\\\"2020-01-01-preview\\\",\\\"extendedLocation\\\":{\\\"name\\\":\\\"[resourceId('Microsoft.ExtendedLocation/customLocations', variables('customLocationName'))]\\\",\\\"type\\\":\\\"CustomLocation\\\"},\\\"properties\\\":{\\\"topologies\\\":[{\\\"bindings\\\":[{\\\"role\\\":\\\"instance\\\",\\\"provider\\\":\\\"providers.target.k8s\\\",\\\"config\\\":{\\\"inCluster\\\":\\\"true\\\"}},{\\\"role\\\":\\\"helm.v3\\\",\\\"provider\\\":\\\"providers.target.helm\\\",\\\"config\\\":{\\\"inCluster\\\":\\\"true\\\"}}]}]},\\\"dependsOn\\\":[\\\"[variables('customLocationName')]\\\"]},{\\\"type\\\":\\\"Microsoft.ExtendedLocation/customLocations/resourceSyncRules\\\",\\\"apiVersion\\\":\\\"2021-08-31-preview\\\",\\\"name\\\":\\\"[concat(variables('customLocationName'), '/', variables('syncRuleName'))]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"priority\\\":100,\\\"selector\\\":{\\\"matchLabels\\\":{\\\"management.azure.com/provider-name\\\":\\\"Microsoft.Symphony\\\"}},\\\"targetResourceGroup\\\":\\\"[resourceGroup().id]\\\"},\\\"dependsOn\\\":[\\\"[variables('customLocationName')]\\\"]}]}\"\r\n        },\r\n        {\r\n            \"path\": \"symphony/parameters.json\",\r\n            \"content\": \"{\\\"clusterName\\\":{\\\"value\\\":\\\"nc-arc-local\\\"},\\\"clusterResourceGroup\\\":{\\\"value\\\":\\\"nc-rg-15\\\"},\\\"clusterLocation\\\":{\\\"value\\\":\\\"westus\\\"},\\\"clusterSubscriptionId\\\":{\\\"value\\\":\\\"34d077e3-2c1a-48f5-8629-ffc0e657e0ed\\\"},\\\"symphonyName\\\":{\\\"value\\\":\\\"symphony\\\"},\\\"installNamespace\\\":{\\\"value\\\":\\\"default\\\"},\\\"customLocationName\\\":{\\\"value\\\":\\\"nc-vancify\\\"},\\\"customLocationNamespace\\\":{\\\"value\\\":\\\"nc-vancify\\\"}}\"\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/Microsoft.Gitops/repo/:repo_name/commit",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"subscriptions",
+						":subscription_id",
+						"resourceGroups",
+						":resource_group",
+						"providers",
+						"Microsoft.Gitops",
+						"repo",
+						":repo_name",
+						"commit"
+					],
+					"variable": [
+						{
+							"key": "subscription_id",
+							"value": "{{subscription}}"
+						},
+						{
+							"key": "resource_group",
+							"value": "{{rg}}"
+						},
+						{
+							"key": "repo_name",
+							"value": "mygit"
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Edge resource commit",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"commitMessage\": \"Create E4I, E4K templates file\",\r\n    \"branch\": \"demo\",\r\n    \"files\": [\r\n        {\r\n            \"path\": \"edge/template.json\",\r\n            \"content\": \"{\\\"components\\\":[{\\\"name\\\":\\\"e4k\\\",\\\"type\\\":\\\"helm.v3\\\",\\\"properties\\\":{\\\"helm.chart.repo\\\":\\\"e4kpreview.azurecr.io/helm/az-e4k\\\",\\\"helm.chart.name\\\":\\\"e4k\\\",\\\"helm.chart.version\\\":\\\"0.2.0\\\"}},{\\\"name\\\":\\\"e4i\\\",\\\"type\\\":\\\"helm.v3\\\",\\\"properties\\\":{\\\"helm.chart.repo\\\":\\\"e4ipreview.azurecr.io/helm/az-e4i\\\",\\\"helm.chart.name\\\":\\\"e4i\\\",\\\"helm.chart.version\\\":\\\"0.2.0\\\",\\\"helm.values.mqttBroker.authenticationMethod\\\":\\\"serviceAccountToken\\\",\\\"helm.values.mqttBroker.name\\\":\\\"azedge-dmqtt-frontend\\\",\\\"helm.values.mqttBroker.namespace\\\":\\\"e4i-runtime\\\",\\\"helm.values.opcPlcSimulation.deploy\\\":\\\"true\\\"},\\\"dependencies\\\":[\\\"e4k\\\"]},{\\\"name\\\":\\\"e4i-opcua-connector\\\",\\\"type\\\":\\\"helm.v3\\\",\\\"properties\\\":{\\\"helm.chart.repo\\\":\\\"e4ipreview.azurecr.io/helm/az-e4i-opcua-connector\\\",\\\"helm.chart.name\\\":\\\"e4i-opcua-connector\\\",\\\"helm.chart.version\\\":\\\"0.2.0\\\",\\\"helm.values.mqttBroker.authenticationMethod\\\":\\\"serviceAccountToken\\\",\\\"helm.values.mqttBroker.name\\\":\\\"azedge-dmqtt-frontend\\\",\\\"helm.values.mqttBroker.namespace\\\":\\\"e4i-runtime\\\",\\\"helm.values.opcUaConnector.settings.discoveryUrl\\\":\\\"opc.tcp://opcplc.e4i-runtime:50000\\\",\\\"helm.values.opcUaConnector.settings.authenticationMode\\\":\\\"Anonymous\\\",\\\"helm.values.opcUaConnector.settings.autoAcceptUntrustedCertificates\\\":\\\"true\\\"},\\\"dependencies\\\":[\\\"e4i\\\"]},{\\\"name\\\":\\\"e4i-assets\\\",\\\"type\\\":\\\"helm.v3\\\",\\\"properties\\\":{\\\"helm.chart.repo\\\":\\\"e4ipreview.azurecr.io/helm/az-e4i-demo-assets\\\",\\\"helm.chart.name\\\":\\\"e4i-assets\\\",\\\"helm.chart.version\\\":\\\"0.2.0\\\"},\\\"dependencies\\\":[\\\"e4i\\\"]}]}\"\r\n        },\r\n        {\r\n            \"path\": \"edge/parameters.json\",\r\n            \"content\": \"{}\"\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/Microsoft.Gitops/repo/:repo_name/commit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscriptions",
+								":subscription_id",
+								"resourceGroups",
+								":resource_group",
+								"providers",
+								"Microsoft.Gitops",
+								"repo",
+								":repo_name",
+								"commit"
+							],
+							"variable": [
+								{
+									"key": "subscription_id",
+									"value": "34d077e3-2c1a-48f5-8629-ffc0e657e0ed"
+								},
+								{
+									"key": "resource_group",
+									"value": "nc-rg-16"
+								},
+								{
+									"key": "repo_name",
+									"value": "dummy"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "Server",
+							"value": "fasthttp"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 15 Mar 2023 17:13:00 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "0"
+						}
+					],
+					"cookie": [],
+					"body": ""
+				},
+				{
+					"name": "Cloud template Delete",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"commitMessage\": \"Create empty Deployment\",\r\n    \"files\": [\r\n        {\r\n            \"path\": \"symphony/template.json\",\r\n            \"content\": \"{\\\"$schema\\\":\\\"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#\\\",\\\"contentVersion\\\":\\\"1.0.0.0\\\",\\\"resources\\\":[]}\"\r\n        },\r\n        {\r\n            \"path\": \"symphony/parameters.json\",\r\n            \"content\": \"{}\"\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/Microsoft.Gitops/repo/:repo_name/commit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscriptions",
+								":subscription_id",
+								"resourceGroups",
+								":resource_group",
+								"providers",
+								"Microsoft.Gitops",
+								"repo",
+								":repo_name",
+								"commit"
+							],
+							"variable": [
+								{
+									"key": "subscription_id",
+									"value": "34d077e3-2c1a-48f5-8629-ffc0e657e0ed"
+								},
+								{
+									"key": "resource_group",
+									"value": "nc-rg-16"
+								},
+								{
+									"key": "repo_name",
+									"value": "dummy"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "Server",
+							"value": "fasthttp"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 15 Mar 2023 17:13:00 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "0"
+						}
+					],
+					"cookie": [],
+					"body": ""
+				},
+				{
+					"name": "Symphony install files",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"commitMessage\": \"Create symphony installation\",\r\n    \"files\": [\r\n        {\r\n            \"path\": \"symphony/template.json\",\r\n            \"content\": \"{\\\"$schema\\\":\\\"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#\\\",\\\"contentVersion\\\":\\\"1.0.0.0\\\",\\\"parameters\\\":{\\\"clusterName\\\":{\\\"type\\\":\\\"string\\\"},\\\"clusterResourceGroup\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[resourceGroup().name]\\\"},\\\"clusterLocation\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[resourceGroup().location]\\\"},\\\"clusterSubscriptionId\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"[subscription().subscriptionId]\\\"},\\\"symphonyName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony\\\"},\\\"installNamespace\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony\\\"},\\\"targetName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"self\\\"},\\\"customLocationName\\\":{\\\"type\\\":\\\"string\\\",\\\"defaultValue\\\":\\\"symphony-custom-location\\\"},\\\"customLocationNamespace\\\":{\\\"type\\\":\\\"string\\\"}},\\\"variables\\\":{\\\"customLocationName\\\":\\\"[parameters('customLocationName')]\\\",\\\"clusterId\\\":\\\"[resourceId('Microsoft.Kubernetes/connectedClusters', parameters('clusterName'))]\\\",\\\"syncRuleName\\\":\\\"[concat(parameters('symphonyName'), '-sync')]\\\"},\\\"resources\\\":[{\\\"type\\\":\\\"Microsoft.KubernetesConfiguration/extensions\\\",\\\"apiVersion\\\":\\\"2022-03-01\\\",\\\"name\\\":\\\"[parameters('symphonyName')]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"extensionType\\\":\\\"microsoft.symphony\\\",\\\"autoUpgradeMinorVersion\\\":true,\\\"scope\\\":{\\\"cluster\\\":{\\\"releaseNamespace\\\":\\\"[parameters('installNamespace')]\\\"}},\\\"version\\\":\\\"0.42.5-patch-2\\\",\\\"releaseTrain\\\":\\\"dev\\\",\\\"configurationSettings\\\":{\\\"Microsoft.CustomLocation.ServiceAccount\\\":\\\"default\\\"}},\\\"scope\\\":\\\"[concat('Microsoft.Kubernetes/connectedClusters/', parameters('clusterName'))]\\\"},{\\\"type\\\":\\\"Microsoft.ExtendedLocation/customLocations\\\",\\\"apiVersion\\\":\\\"2021-08-31-preview\\\",\\\"name\\\":\\\"[variables('customLocationName')]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"hostResourceId\\\":\\\"[variables('clusterId')]\\\",\\\"namespace\\\":\\\"[parameters('customLocationNamespace')]\\\",\\\"displayName\\\":\\\"[variables('customLocationName')]\\\",\\\"clusterExtensionIds\\\":[\\\"[concat(variables('clusterId'), '/providers/Microsoft.KubernetesConfiguration/extensions/', parameters('symphonyName'))]\\\"]},\\\"dependsOn\\\":[\\\"[parameters('symphonyName')]\\\"]},{\\\"type\\\":\\\"Microsoft.Symphony/targets\\\",\\\"name\\\":\\\"[concat(parameters('targetName'), '-', variables('customLocationName'))]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"apiVersion\\\":\\\"2020-01-01-preview\\\",\\\"extendedLocation\\\":{\\\"name\\\":\\\"[resourceId('Microsoft.ExtendedLocation/customLocations', variables('customLocationName'))]\\\",\\\"type\\\":\\\"CustomLocation\\\"},\\\"properties\\\":{\\\"topologies\\\":[{\\\"bindings\\\":[{\\\"role\\\":\\\"instance\\\",\\\"provider\\\":\\\"providers.target.k8s\\\",\\\"config\\\":{\\\"inCluster\\\":\\\"true\\\"}},{\\\"role\\\":\\\"helm.v3\\\",\\\"provider\\\":\\\"providers.target.helm\\\",\\\"config\\\":{\\\"inCluster\\\":\\\"true\\\"}}]}]},\\\"dependsOn\\\":[\\\"[variables('customLocationName')]\\\"]},{\\\"type\\\":\\\"Microsoft.ExtendedLocation/customLocations/resourceSyncRules\\\",\\\"apiVersion\\\":\\\"2021-08-31-preview\\\",\\\"name\\\":\\\"[concat(variables('customLocationName'), '/', variables('syncRuleName'))]\\\",\\\"location\\\":\\\"[parameters('clusterLocation')]\\\",\\\"properties\\\":{\\\"priority\\\":100,\\\"selector\\\":{\\\"matchLabels\\\":{\\\"management.azure.com/provider-name\\\":\\\"Microsoft.Symphony\\\"}},\\\"targetResourceGroup\\\":\\\"[resourceGroup().id]\\\"},\\\"dependsOn\\\":[\\\"[variables('customLocationName')]\\\"]}]}\"\r\n        },\r\n        {\r\n            \"path\": \"symphony/parameters.json\",\r\n            \"content\": \"{\\\"clusterName\\\":{\\\"value\\\":\\\"nc-arc-local\\\"},\\\"clusterResourceGroup\\\":{\\\"value\\\":\\\"nc-rg-15\\\"},\\\"clusterLocation\\\":{\\\"value\\\":\\\"westus\\\"},\\\"clusterSubscriptionId\\\":{\\\"value\\\":\\\"34d077e3-2c1a-48f5-8629-ffc0e657e0ed\\\"},\\\"symphonyName\\\":{\\\"value\\\":\\\"symphony\\\"},\\\"installNamespace\\\":{\\\"value\\\":\\\"default\\\"},\\\"customLocationName\\\":{\\\"value\\\":\\\"nc-vancify\\\"},\\\"customLocationNamespace\\\":{\\\"value\\\":\\\"nc-vancify\\\"}}\"\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/subscriptions/:subscription_id/resourceGroups/:resource_group/providers/Microsoft.Gitops/repo/:repo_name/commit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscriptions",
+								":subscription_id",
+								"resourceGroups",
+								":resource_group",
+								"providers",
+								"Microsoft.Gitops",
+								"repo",
+								":repo_name",
+								"commit"
+							],
+							"variable": [
+								{
+									"key": "subscription_id",
+									"value": "34d077e3-2c1a-48f5-8629-ffc0e657e0ed"
+								},
+								{
+									"key": "resource_group",
+									"value": "nc-rg-16"
+								},
+								{
+									"key": "repo_name",
+									"value": "dummy"
+								}
+							]
+						}
+					},
+					"_postman_previewlanguage": "Text",
+					"header": [],
+					"cookie": [],
+					"body": ""
+				}
+			]
+		},
+		{
+			"name": "health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{baseUrl}}/healthz"
+			},
+			"response": []
+		},
+		{
+			"name": "ready",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{baseUrl}}/healthz"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "rpNamespace",
+			"value": "Microsoft.Gitops"
+		},
+		{
+			"key": "rg",
+			"value": "nc-rg-15"
+		},
+		{
+			"key": "subscription",
+			"value": "34d077e3-2c1a-48f5-8629-ffc0e657e0ed"
+		}
+	]
+}
