@@ -13,4 +13,4 @@ spec:
         name: manager
         env:
         - name: APP_VERSION
-          value: "{{ .Values.symphonyImage.tag }}"
+          value: "{{ .Chart.AppVersion }}"

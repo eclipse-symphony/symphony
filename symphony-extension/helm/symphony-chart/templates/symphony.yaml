@@ -1065,7 +1065,7 @@ spec:
         - /manager
         env:
         - name: APP_VERSION
-          value: '{{ .Values.symphonyImage.tag }}'
+          value: '{{ .Chart.AppVersion }}'
         image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
           }}'
         livenessProbe:

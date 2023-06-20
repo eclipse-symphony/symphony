@@ -2,8 +2,8 @@ apiVersion: v2
 name: symphony
 description: A Helm chart for Symphony control plane
 type: application
-version: 0.44.0
-appVersion: "0.44.0"
+version: 0.44.1
+appVersion: "0.44.1"
 dependencies:
   - name: cert-manager
     version: "1.4.0"

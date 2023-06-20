@@ -20,8 +20,6 @@ limitations under the License.
 package v1
 
 import (
-	"os"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -35,6 +33,4 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-
-	AppVersion = os.Getenv("APP_VERSION")
 )
