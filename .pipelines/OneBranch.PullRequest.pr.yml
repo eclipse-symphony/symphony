@@ -82,7 +82,7 @@ extends:
                   arguments: 'vendor'
                   workingDirectory: '$(REPOROOT)/k8s' 
               - task: CmdLine@2
-                displayName: 'Run make'
+                displayName: 'Test Symphony K8s'
                 inputs:
                   script: 'make test'
                   workingDirectory: '$(REPOROOT)/k8s'
@@ -98,13 +98,7 @@ extends:
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'
-                  workingDirectory: '$(REPOROOT)/api'
-              - task: Go@0
-                displayName: 'Test Symphony K8s'
-                inputs:
-                  command: 'test'
-                  arguments: '-v ./...'
-                  workingDirectory: '$(REPOROOT)/k8s'               
+                  workingDirectory: '$(REPOROOT)/api'             
       - stage: build
         dependsOn: prebuild
         jobs:
