@@ -81,6 +81,11 @@ extends:
                   customCommand: 'mod'
                   arguments: 'vendor'
                   workingDirectory: '$(REPOROOT)/k8s' 
+              - task: CmdLine@2
+                displayName: 'Run make'
+                inputs:
+                  script: 'make test'
+                  workingDirectory: '$(REPOROOT)/k8s'
               - task: Go@0
                 displayName: 'Run go mod vendor in GitOps'
                 inputs:
@@ -96,7 +101,6 @@ extends:
                   workingDirectory: '$(REPOROOT)/api'
               - task: Go@0
                 displayName: 'Test Symphony K8s'
-                continueOnError: true
                 inputs:
                   command: 'test'
                   arguments: '-v ./...'

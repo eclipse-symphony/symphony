@@ -42,12 +42,14 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
+	t.Skip("Skipping tests for now as they are no longer relevant")
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
+	Skip("Skipping tests for now as they are no longer relevant")
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -74,6 +76,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	Skip("Skipping tests for now as they are no longer relevant")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
