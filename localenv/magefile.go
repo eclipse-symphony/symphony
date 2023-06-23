@@ -23,6 +23,7 @@ const (
 	LOCAL_HOST_URL     = "http://localhost"
 	CONTAINER_REGISTRY = "symphonycr.azurecr.io"
 	NAMESPACE          = "default"
+	DOCKER_TAG         = "local"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -33,7 +34,7 @@ type Minikube mg.Namespace
 
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func Deploy() error {
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait --set global.azure.identity.enabled=false", RELEASE_NAME, "../symphony-extension/helm/symphony-chart", NAMESPACE)
+	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-chart-values.yaml", RELEASE_NAME, "../symphony-extension/helm/symphony-chart", NAMESPACE)
 	return shellcmd.Command(helmUpgrade).Run()
 }
 
@@ -43,6 +44,38 @@ func Destroy() error {
 		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s", RELEASE_NAME, NAMESPACE)),
 		"kubectl delete crd --all -A",
 	)
+}
+
+// Build all containers
+func Build() error {
+	err := buildAPI()
+	if err != nil {
+		return err
+	}
+
+	err = buildK8s()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func buildAPI() error {
+	return buildVendorBuildx("api")
+}
+
+func buildK8s() error {
+	return buildVendorBuildx("k8s")
+}
+
+func buildVendorBuildx(folder string) error {
+	err := dumpShellOutput(fmt.Sprintf("cd ../%s && go mod vendor", folder))
+	if err != nil {
+		return err
+	}
+
+	return shellcmd.Command(fmt.Sprintf("docker buildx build ../%s --platform linux/amd64 -t %s/symphony-%s:%s", folder, CONTAINER_REGISTRY, folder, DOCKER_TAG)).Run()
 }
 
 /******************** Minikube ********************/
@@ -99,8 +132,9 @@ func (Minikube) Stop() error {
 
 // Loads symphony component docker images onto the Minikube VM.
 func (Minikube) Load() error {
-	// TODO: Add any images that are built locally
-	return shellcmd.RunAll(load()...)
+	return shellcmd.RunAll(load(
+		fmt.Sprintf("symphony-api:%s", DOCKER_TAG),
+		fmt.Sprintf("symphony-k8s:%s", DOCKER_TAG))...)
 }
 
 // Deletes the Minikube cluster from you dev box.
@@ -123,7 +157,25 @@ func SetupIntegrationTests() error {
 	_ = mk.Delete()
 
 	// Start minikube and load containers
-	mk.Start()
+	err = mk.Start()
+	if err != nil {
+		return err
+	}
+
+	err = Build()
+	if err != nil {
+		return err
+	}
+
+	err = mk.Load()
+	if err != nil {
+		return err
+	}
+
+	err = Deploy()
+	if err != nil {
+		return err
+	}
 
 	// Show the state of the cluster for CI scenarios
 	// This should be shown even when an error occurs
@@ -222,13 +274,16 @@ func pull(names ...string) []shellcmd.Command {
 }
 
 // Run a command with | or other things that do not work in shellcmd
-func dumpShellOutput(cmd string) {
+func dumpShellOutput(cmd string) error {
 	fmt.Println("> ", cmd)
 
 	b, err := exec.Command("sh", "-c", cmd).CombinedOutput()
 	if err != nil {
 		fmt.Println("failed to run command", err)
+		return err
 	} else {
 		fmt.Println(string(b))
 	}
+
+	return nil
 }

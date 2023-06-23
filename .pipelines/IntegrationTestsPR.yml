@@ -15,7 +15,7 @@ variables:
 steps:
 - task: DockerInstaller@0
   inputs:
-    dockerVersion: '17.09.0-ce'
+    dockerVersion: '24.0.2'
 - task: GoTool@0
   inputs:
     version: '1.20.3'
@@ -38,8 +38,8 @@ steps:
       echo "MINIKUBE_HOME: $MINIKUBE_HOME"
 
       # fail on errors
-      set -e      
-     
+      set -e
+
       # load up minikube
       
       pushd localenv
