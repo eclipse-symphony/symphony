@@ -11,4 +11,4 @@ installServiceExt: false
 global:
   azure:
     identity:
-      enabled: true
+      enabled: false

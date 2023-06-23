@@ -39,7 +39,7 @@ function remove_finalizers {
 
   if kill -0 $patch_pid 2>/dev/null; then
     echo "$resource_type patch operation timed out"
-    kill $patch_pid
+    kill -9 $patch_pid
     return 1
   else
     echo "$resource_type patch operation completed"

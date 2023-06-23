@@ -8,3 +8,7 @@ rules:
 - apiGroups: ["symphony.microsoft.com"] 
   resources: ["targets", "instances", "solutions"]
   verbs: ["get", "watch","list", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["delete"]
+  resourceNames: ["targets.symphony.microsoft.com", "instances.symphony.microsoft.com", "solutions.symphony.microsoft.com"]

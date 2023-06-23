@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: pre-delete
-        image: bitnami/kubectl:1.25.10
+        image: mcr.microsoft.com/oss/kubernetes/kubectl:v1.25.10
         command:
         - /bin/bash
         - -c
