@@ -44,7 +44,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Instance is the Schema for the instances API
+        description: Defines an Instance resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -59,7 +59,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: InstanceSpec defines the desired state of Instance
+            description: Defines the desired state of Instance
             properties:
               displayName:
                 type: string
@@ -67,14 +67,13 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              optOutReconciliation:
-                type: boolean
               parameters:
                 additionalProperties:
                   type: string
                 type: object
               pipelines:
                 items:
+                  description: Defines an AI pipeline reference
                   properties:
                     name:
                       type: string
@@ -94,6 +93,7 @@ spec:
               solution:
                 type: string
               target:
+                description: Defines the target the Instance will deploy to
                 properties:
                   name:
                     type: string
@@ -104,9 +104,11 @@ spec:
                 type: object
               topologies:
                 items:
+                  description: Defines the device topology for a target or instance
                   properties:
                     bindings:
                       items:
+                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -130,6 +132,7 @@ spec:
                   type: object
                 type: array
               version:
+                description: Defines the version of a particular resource
                 type: string
               versions:
                 items:
@@ -147,7 +150,7 @@ spec:
             - solution
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance
+            description: Defines the observed state of Instance
             properties:
               lastModified:
                 format: date-time
@@ -155,14 +158,14 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
-                description: ProvisioningStatus defines the state of the ARM resource
-                  for long running operations
+                description: Defines the state of the ARM resource for long running
+                  operations
                 properties:
                   error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
                     properties:
                       code:
                         type: string
@@ -223,7 +226,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Solution is the Schema for the solutions API
+        description: Defines a Solution resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -238,10 +241,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: SolutionSpec defines the desired state of Solution
+            description: Defines the desired state of Solution
             properties:
               components:
                 items:
+                  description: Defines a desired runtime component
                   properties:
                     constraints:
                       items:
@@ -276,9 +280,12 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
+                        description: Defines the incoming and outgoing routes of the
+                          component
                         properties:
                           filters:
                             items:
+                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -314,27 +321,25 @@ spec:
                       type: string
                   required:
                   - name
+                  - type
                   type: object
                 type: array
               displayName:
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: string
               metadata:
                 additionalProperties:
                   type: string
                 type: object
               version:
+                description: Defines the version of a particular resource
                 type: string
             type: object
           status:
-            description: SolutionStatus defines the observed state of Solution
+            description: Defines the observed state of Solution
             properties:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
             type: object
         type: object
@@ -366,7 +371,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: Defines a Target resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -381,10 +386,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: TargetSpec defines the desired state of Target
+            description: Defines the desired state of Target
             properties:
               components:
                 items:
+                  description: Defines a desired runtime component
                   properties:
                     constraints:
                       items:
@@ -419,9 +425,12 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
+                        description: Defines the incoming and outgoing routes of the
+                          component
                         properties:
                           filters:
                             items:
+                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -457,6 +466,7 @@ spec:
                       type: string
                   required:
                   - name
+                  - type
                   type: object
                 type: array
               constraints:
@@ -494,9 +504,11 @@ spec:
                 type: string
               topologies:
                 items:
+                  description: Defines the device topology for a target or instance
                   properties:
                     bindings:
                       items:
+                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -520,10 +532,11 @@ spec:
                   type: object
                 type: array
               version:
+                description: Defines the version of a particular resource
                 type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
+            description: Defines the observed state of Target
             properties:
               lastModified:
                 format: date-time
@@ -531,14 +544,14 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
-                description: ProvisioningStatus defines the state of the ARM resource
-                  for long running operations
+                description: Defines the state of the ARM resource for long running
+                  operations
                 properties:
                   error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
                     properties:
                       code:
                         type: string

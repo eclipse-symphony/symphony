@@ -20,8 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
+// Defines an AI pipeline reference
 type PipelineSpec struct {
 	Name       string            `json:"name"`
 	Skill      string            `json:"skill"`
@@ -33,28 +32,29 @@ type VersionSpec struct {
 	Percentage int    `json:"percentage"`
 }
 
-// InstanceSpec defines the desired state of Instance
+// Defines the desired state of Instance
 type InstanceSpec struct {
-	DisplayName          string            `json:"displayName,omitempty"`
-	Scope                string            `json:"scope,omitempty"`
-	Parameters           map[string]string `json:"parameters,omitempty"`
-	Metadata             map[string]string `json:"metadata,omitempty"`
-	Solution             string            `json:"solution"`
-	Versions             []VersionSpec     `json:"versions,omitempty"`
-	Target               TargetSelector    `json:"target,omitempty"`
-	Topologies           []TopologySpec    `json:"topologies,omitempty"`
-	Pipelines            []PipelineSpec    `json:"pipelines,omitempty"`
-	OptOutReconciliation bool              `json:"optOutReconciliation,omitempty"`
-	Version              string            `json:"version,omitempty"`
+	DisplayName string            `json:"displayName,omitempty"`
+	Scope       string            `json:"scope,omitempty"`
+	Parameters  map[string]string `json:"parameters,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+	Solution    string            `json:"solution"`
+	Versions    []VersionSpec     `json:"versions,omitempty"`
+	Target      TargetSelector    `json:"target,omitempty"`
+	Topologies  []TopologySpec    `json:"topologies,omitempty"`
+	Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
+	// Defines the version of a particular resource
+	Version string `json:"version,omitempty"`
 }
+
+// Defines the target the Instance will deploy to
 type TargetSelector struct {
 	Name     string            `json:"name,omitempty"`
 	Selector map[string]string `json:"selector,omitempty"`
 }
 
-// InstanceStatus defines the observed state of Instance
+// Defines the observed state of Instance
 type InstanceStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
 	Properties         map[string]string  `json:"properties,omitempty"`
 	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
 	LastModified       metav1.Time        `json:"lastModified,omitempty"`
@@ -66,7 +66,7 @@ type InstanceStatus struct {
 //+kubebuilder:printcolumn:name="Targets",type=string,JSONPath=`.status.properties.targets`
 //+kubebuilder:printcolumn:name="Deployed",type=string,JSONPath=`.status.properties.deployed`
 
-// Instance is the Schema for the instances API
+// Defines an Instance resource
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -77,7 +77,7 @@ type Instance struct {
 
 //+kubebuilder:object:root=true
 
-// InstanceList contains a list of Instance
+// Defines a list of Instances
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

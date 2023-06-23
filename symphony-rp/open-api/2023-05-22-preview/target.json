@@ -1,0 +1,541 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Symphony",
+    "description": "The Microsoft.Symphony Rest API spec.",
+    "version": "2023-05-22-preview",
+    "x-ms-code-generation-settings": {
+      "name": "SymphonyClient"
+    }
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Symphony/targets/{targetsName}": {
+      "get": {
+        "operationId": "targets_Retrieve",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ResourceGroupNameParameter"
+          },
+          {
+            "$ref": "#/parameters/targetsNameParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves the targets resource.",
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "targets_CreateOrUpdate",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ResourceGroupNameParameter"
+          },
+          {
+            "$ref": "#/parameters/targetsNameParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          },
+          {
+            "name": "targets",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updates the targets resource.",
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          },
+          "201": {
+            "description": "Creates the targets resource.",
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "targets_Delete",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ResourceGroupNameParameter"
+          },
+          {
+            "$ref": "#/parameters/targetsNameParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deletes the targets resource."
+          }
+        }
+      },
+      "patch": {
+        "operationId": "targets_Update",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ResourceGroupNameParameter"
+          },
+          {
+            "$ref": "#/parameters/targetsNameParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          },
+          {
+            "name": "targets",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/targetPatch"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updates the targets resource.",
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          },
+          "201": {
+            "description": "Updates the targets resource.",
+            "schema": {
+              "$ref": "#/definitions/target"
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Symphony/targets": {
+      "get": {
+        "operationId": "targets_ListByResourceGroup",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ResourceGroupNameParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lists all targets under the resouce group.",
+            "schema": {
+              "$ref": "#/definitions/targetListResult"
+            }
+          }
+        },
+        "x-ms-pageable": {
+          "nextLinkName": "nextLink"
+        }
+      }
+    },
+    "/subscriptions/{subscriptionId}/providers/Microsoft.Symphony/targets": {
+      "get": {
+        "operationId": "targets_ListBySubscription",
+        "parameters": [
+          {
+            "$ref": "#/parameters/SubscriptionIdParameter"
+          },
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lists all targets under the subscription.",
+            "schema": {
+              "$ref": "#/definitions/targetListResult"
+            }
+          }
+        },
+        "x-ms-pageable": {
+          "nextLinkName": "nextLink"
+        }
+      }
+    },
+    "/providers/Microsoft.Symphony/operations": {
+      "get": {
+        "operationId": "Operations_List",
+        "parameters": [
+          {
+            "$ref": "#/parameters/ApiVersionParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Describe the result of a successful operation.",
+            "schema": {
+              "$ref": "#/definitions/ResourceProviderOperationList"
+            }
+          }
+        },
+        "x-ms-pageable": {
+          "nextLinkName": "nextLink"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "targetProperties": {
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type"
+            ],
+            "description": "Defines a desired runtime component",
+            "properties": {
+              "dependencies": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "properties": {
+                "x-kubernetes-preserve-unknown-fields": "true"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          },
+          "properties": {
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type"
+              ],
+              "description": "Defines a desired runtime component",
+              "properties": {
+                "dependencies": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "properties": {
+                  "x-kubernetes-preserve-unknown-fields": "true"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "topologies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Defines the device topology for a target or instance",
+            "properties": {
+              "bindings": {
+                "items": {
+                  "description": "Defines a component binding for a provider",
+                  "properties": {
+                    "config": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "type": "object"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "role"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "device": {
+                "type": "string"
+              },
+              "selector": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            }
+          },
+          "properties": {
+            "items": {
+              "type": "object",
+              "description": "Defines the device topology for a target or instance",
+              "properties": {
+                "bindings": {
+                  "items": {
+                    "description": "Defines a component binding for a provider",
+                    "properties": {
+                      "config": {
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "type": "object"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "provider",
+                      "role"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "device": {
+                  "type": "string"
+                },
+                "selector": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "version": {
+          "type": "string"
+        },
+        "provisioningState": {
+          "type": "string",
+          "readOnly": true
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "properties": {
+          "$ref": "#/definitions/targetProperties"
+        },
+        "id": {
+          "type": "string",
+          "readOnly": true,
+          "description": "Resource Id"
+        },
+        "name": {
+          "type": "string",
+          "readOnly": true,
+          "description": "Resource Name"
+        },
+        "type": {
+          "type": "string",
+          "readOnly": true,
+          "description": "Resource Type"
+        },
+        "location": {
+          "type": "string",
+          "description": "The resource location"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Resource tags"
+        },
+        "extendedLocation": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "The extended location type."
+            },
+            "name": {
+              "type": "string",
+              "description": "The extended location name."
+            }
+          }
+        }
+      },
+      "required": [
+        "location"
+      ],
+      "description": "The targets resource definition."
+    },
+    "targetPatch": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Resource tags"
+        }
+      },
+      "description": "The targets resource patch definition."
+    },
+    "targetListResult": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/target"
+          }
+        },
+        "nextLink": {
+          "type": "string"
+        }
+      }
+    },
+    "ResourceProviderOperationList": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceProviderOperation"
+          }
+        },
+        "nextLink": {
+          "type": "string"
+        }
+      },
+      "description": "Results of the request to list operations."
+    },
+    "ResourceProviderOperation": {
+      "type": "object",
+      "properties": {
+        "isDataAction": {
+          "type": "string",
+          "description": "Indicates whether the operation applies to data-plane."
+        },
+        "name": {
+          "type": "string",
+          "description": "Operation name, in format of {provider}/{resource}/{operation}"
+        },
+        "display": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "description": "The resource provider."
+            },
+            "resource": {
+              "type": "string",
+              "description": "Resource on which the operation is performed."
+            },
+            "operation": {
+              "type": "string",
+              "description": "Type of operation: get, read, delete, etc."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of this operation."
+            }
+          },
+          "description": "Display metadata associated with the operation."
+        }
+      },
+      "description": "Results of the request to list operations."
+    }
+  },
+  "parameters": {
+    "targetsNameParameter": {
+      "name": "targetsName",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 3
+    },
+    "SubscriptionIdParameter": {
+      "name": "subscriptionId",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "description": "The Azure subscription ID. This is a GUID-formatted string (e.g. 00000000-0000-0000-0000-000000000000)"
+    },
+    "ResourceGroupNameParameter": {
+      "name": "resourceGroupName",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "description": "The name of the resource group."
+    },
+    "ApiVersionParameter": {
+      "name": "api-version",
+      "in": "query",
+      "required": true,
+      "type": "string",
+      "description": "The API version to be used with the HTTP request (e.g. YYYY-MM-DD)."
+    }
+  }
+}

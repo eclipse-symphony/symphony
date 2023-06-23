@@ -22,7 +22,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: Defines a Target resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -37,10 +37,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: TargetSpec defines the desired state of Target
+            description: Defines the desired state of Target
             properties:
               components:
                 items:
+                  description: Defines a desired runtime component
                   properties:
                     constraints:
                       items:
@@ -75,9 +76,12 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
+                        description: Defines the incoming and outgoing routes of the
+                          component
                         properties:
                           filters:
                             items:
+                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -113,6 +117,7 @@ spec:
                       type: string
                   required:
                   - name
+                  - type
                   type: object
                 type: array
               constraints:
@@ -150,9 +155,11 @@ spec:
                 type: string
               topologies:
                 items:
+                  description: Defines the device topology for a target or instance
                   properties:
                     bindings:
                       items:
+                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -176,10 +183,11 @@ spec:
                   type: object
                 type: array
               version:
+                description: Defines the version of a particular resource
                 type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
+            description: Defines the observed state of Target
             properties:
               lastModified:
                 format: date-time
@@ -187,14 +195,14 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
-                description: ProvisioningStatus defines the state of the ARM resource
-                  for long running operations
+                description: Defines the state of the ARM resource for long running
+                  operations
                 properties:
                   error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
                     properties:
                       code:
                         type: string

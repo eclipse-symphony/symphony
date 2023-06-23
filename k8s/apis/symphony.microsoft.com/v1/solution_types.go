@@ -22,25 +22,24 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// SolutionSpec defines the desired state of Solution
+// Defines the desired state of Solution
 type SolutionSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
 	DisplayName string            `json:"displayName,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 	Components  []ComponentSpec   `json:"components,omitempty"`
-	Version     string            `json:"version,omitempty"`
+	// Defines the version of a particular resource
+	Version string `json:"version,omitempty"`
 }
 
-// SolutionStatus defines the observed state of Solution
+// Defines the observed state of Solution
 type SolutionStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// Solution is the Schema for the solutions API
+// Defines a Solution resource
 type Solution struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -51,7 +50,7 @@ type Solution struct {
 
 //+kubebuilder:object:root=true
 
-// SolutionList contains a list of Solution
+// Defines a list of Solutions
 type SolutionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -28,7 +28,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Instance is the Schema for the instances API
+        description: Defines an Instance resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -43,7 +43,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: InstanceSpec defines the desired state of Instance
+            description: Defines the desired state of Instance
             properties:
               displayName:
                 type: string
@@ -51,14 +51,13 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              optOutReconciliation:
-                type: boolean
               parameters:
                 additionalProperties:
                   type: string
                 type: object
               pipelines:
                 items:
+                  description: Defines an AI pipeline reference
                   properties:
                     name:
                       type: string
@@ -78,6 +77,7 @@ spec:
               solution:
                 type: string
               target:
+                description: Defines the target the Instance will deploy to
                 properties:
                   name:
                     type: string
@@ -88,9 +88,11 @@ spec:
                 type: object
               topologies:
                 items:
+                  description: Defines the device topology for a target or instance
                   properties:
                     bindings:
                       items:
+                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -114,6 +116,7 @@ spec:
                   type: object
                 type: array
               version:
+                description: Defines the version of a particular resource
                 type: string
               versions:
                 items:
@@ -131,7 +134,7 @@ spec:
             - solution
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance
+            description: Defines the observed state of Instance
             properties:
               lastModified:
                 format: date-time
@@ -139,14 +142,14 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
-                description: ProvisioningStatus defines the state of the ARM resource
-                  for long running operations
+                description: Defines the state of the ARM resource for long running
+                  operations
                 properties:
                   error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
                     properties:
                       code:
                         type: string

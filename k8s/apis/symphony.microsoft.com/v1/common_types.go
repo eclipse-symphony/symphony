@@ -2,24 +2,27 @@ package v1
 
 import "k8s.io/apimachinery/pkg/runtime"
 
+// Defines a component binding for a provider
 type BindingSpec struct {
 	Role     string            `json:"role"`
 	Provider string            `json:"provider"`
 	Config   map[string]string `json:"config,omitempty"`
 }
 
+// Defines the device topology for a target or instance
 type TopologySpec struct {
 	Device   string            `json:"device,omitempty"`
 	Selector map[string]string `json:"selector,omitempty"`
 	Bindings []BindingSpec     `json:"bindings,omitempty"`
 }
 
+// Defines an error in the ARM resource for long running operations
 type ErrorType struct {
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 }
 
-// ProvisioningStatus defines the state of the ARM resource for long running operations
+// Defines the state of the ARM resource for long running operations
 type ProvisioningStatus struct {
 	OperationID  string            `json:"operationId"`
 	Status       string            `json:"status"`
@@ -29,6 +32,7 @@ type ProvisioningStatus struct {
 	Output       map[string]string `json:"output,omitempty"`
 }
 
+// Defines a filter for a route
 type FilterSpec struct {
 	Direction  string            `json:"direction"`
 	Type       string            `json:"type"`
@@ -43,9 +47,10 @@ type ConstraintSpec struct {
 	Values    []string `json:"values,omitempty"` //TODO: It seems kubebuilder has difficulties handling recursive defs. This is supposed to be an ConstraintSpec array
 }
 
+// Defines a desired runtime component
 type ComponentSpec struct {
 	Name     string            `json:"name"`
-	Type     string            `json:"type,omitempty"`
+	Type     string            `json:"type"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
@@ -56,6 +61,7 @@ type ComponentSpec struct {
 	Skills       []string             `json:"skills,omitempty"`
 }
 
+// Defines the incoming and outgoing routes of the component
 type RouteSpec struct {
 	Route      string            `json:"route"`
 	Type       string            `json:"type"`
@@ -63,10 +69,8 @@ type RouteSpec struct {
 	Filters    []FilterSpec      `json:"filters,omitempty"`
 }
 
-// TargetSpec defines the desired state of Target
+// Defines the desired state of Target
 type TargetSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
-
 	DisplayName   string            `json:"displayName,omitempty"`
 	Metadata      map[string]string `json:"metadata,omitempty"`
 	Properties    map[string]string `json:"properties,omitempty"`
@@ -75,5 +79,6 @@ type TargetSpec struct {
 	Topologies    []TopologySpec    `json:"topologies,omitempty"`
 	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
 	Scope         string            `json:"scope,omitempty"`
-	Version       string            `json:"version,omitempty"`
+	// Defines the version of a particular resource
+	Version string `json:"version,omitempty"`
 }

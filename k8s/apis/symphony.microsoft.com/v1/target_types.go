@@ -26,9 +26,8 @@ import (
 // +k8s:deepcopy-gen=false
 type ComponentProperties = runtime.RawExtension
 
-// TargetStatus defines the observed state of Target
+// Defines the observed state of Target
 type TargetStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
 	Properties         map[string]string  `json:"properties,omitempty"`
 	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
 	LastModified       metav1.Time        `json:"lastModified,omitempty"`
@@ -38,7 +37,7 @@ type TargetStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
 
-// Target is the Schema for the targets API
+// Defines a Target resource
 type Target struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -49,7 +48,7 @@ type Target struct {
 
 //+kubebuilder:object:root=true
 
-// TargetList contains a list of Target
+// Defines a list of Targets
 type TargetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
