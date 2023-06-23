@@ -133,15 +133,17 @@ func (s *SolutionManager) Apply(ctx context.Context, deployment model.Deployment
 	}
 
 	var err error
-	deployment, err = utils.EvaluateDeployment(utils.EvaluationContext{
-		ConfigProvider: s.ConfigProvider,
-		SecretProvider: s.SecretProvoider,
-		DeploymentSpec: deployment,
-		Component:      "",
-	})
-	if err != nil {
-		return summary, err
-	}
+	// Disabling evaluation for now as it is not working as expected for PrivatePreview scenarios
+
+	// deployment, err = utils.EvaluateDeployment(utils.EvaluationContext{
+	// 	ConfigProvider: s.ConfigProvider,
+	// 	SecretProvider: s.SecretProvoider,
+	// 	DeploymentSpec: deployment,
+	// 	Component:      "",
+	// })
+	// if err != nil {
+	// 	return summary, err
+	// }
 
 	// at manager level, if we found deployment spec hasn't been changed, skip apply
 	// not to scale out the manager, a shared state provider such as Redis state provider
