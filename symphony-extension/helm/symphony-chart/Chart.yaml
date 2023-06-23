@@ -8,3 +8,7 @@ dependencies:
   - name: cert-manager
     version: "1.4.0"
     repository: "https://charts.jetstack.io"
+  - name: zipkin
+    version: "0.7.0"
+    repository: "https://openzipkin.github.io/zipkin"
+    condition: observability.tracing.exporter.zipkin

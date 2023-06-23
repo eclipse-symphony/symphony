@@ -12,3 +12,7 @@ global:
   azure:
     identity:
       enabled: false
+observability:
+  tracing:
+    exporter:
+      zipkin: true

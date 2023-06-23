@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: symphony-api-config
+  namespace: symphony-k8s-system
+data:
+  symphony-api.json: |-
+    {{ tpl (.Files.Get "files/symphony-api.json") . | nindent 4 }}

@@ -30,9 +30,14 @@ spec:
         env:          
           - name: "HELM_NAMESPACE"
             value: default
+          - name: "CONFIG"
+            value: /etc/symphony-api/config/symphony-api.json
         envFrom:
           - secretRef:
               name: {{ .Release.Name }}-auth
+        volumeMounts:
+        - name: symphony-api-config
+          mountPath: /etc/symphony-api/config
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
         env:
@@ -40,3 +45,7 @@ spec:
           value: symphony-k8s-system
         {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: symphony-api-config
+          configMap:
+            name: symphony-api-config

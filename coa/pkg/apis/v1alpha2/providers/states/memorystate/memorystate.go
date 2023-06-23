@@ -95,7 +95,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 }
 
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	_, span := observability.StartSpan("Memroy State Provider", ctx, &map[string]string{
+	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
 	sLog.Debug("  P (Memory State): list states")
@@ -117,7 +117,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 }
 
 func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	_, span := observability.StartSpan("Memroy State Provider", ctx, &map[string]string{
+	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	sLog.Debug("  P (Memory State): delete state")
@@ -134,7 +134,7 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 }
 
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	_, span := observability.StartSpan("Memroy State Provider", ctx, &map[string]string{
+	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	sLog.Debug("  P (Memory State): get state")

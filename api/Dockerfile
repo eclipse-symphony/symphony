@@ -24,9 +24,7 @@ RUN \
     && tdnf upgrade -y
 
 COPY --from=build /dist /
-ADD ./symphony-api.json /
 EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL Debug
-ENV CONFIG /symphony-api.json
 CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL
