@@ -1,11 +1,11 @@
 symphonyImage:
   repository: symphonycr.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "20230615.1-buddy"
+  tag: "20230626.1-buddy"
 paiImage:
   repository: symphonycr.azurecr.io/symphony-api
   pullPolicy: IfNotPresent
-  tag: "20230615.1-buddy"
+  tag: "20230626.1-buddy"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: false
 global:
