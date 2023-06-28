@@ -54,32 +54,53 @@ func GetInstances(baseUrl string, user string, password string) ([]model.Instanc
 	if err != nil {
 		return ret, err
 	}
+
 	response, err := callRestAPI(baseUrl, "instances", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
+
 	return ret, nil
 }
 
 func GetInstance(baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(baseUrl, user, password)
+
 	if err != nil {
 		return ret, err
 	}
+
 	response, err := callRestAPI(baseUrl, "instances/"+instance, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
+
 	return ret, nil
+}
+
+func CreateInstance(baseUrl string, instance string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "instances/"+instance, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DeleteInstance(baseUrl string, instance string, user string, password string) error {
@@ -87,10 +108,12 @@ func DeleteInstance(baseUrl string, instance string, user string, password strin
 	if err != nil {
 		return err
 	}
+
 	_, err = callRestAPI(baseUrl, "instances/"+instance+"?direct=true", "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -99,11 +122,33 @@ func DeleteTarget(baseUrl string, target string, user string, password string) e
 	if err != nil {
 		return err
 	}
+
 	_, err = callRestAPI(baseUrl, "targets/registry/"+target+"?direct=true", "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
+
 	return nil
+}
+
+func GetSolutions(baseUrl string, user string, password string) ([]model.SolutionState, error) {
+	ret := make([]model.SolutionState, 0)
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "solutions", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 func GetSolution(baseUrl string, solution string, user string, password string) (model.SolutionState, error) {
@@ -112,15 +157,46 @@ func GetSolution(baseUrl string, solution string, user string, password string) 
 	if err != nil {
 		return ret, err
 	}
+
 	response, err := callRestAPI(baseUrl, "solutions/"+solution, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
+
 	return ret, nil
+}
+
+func CreateSolution(baseUrl string, solution string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "solutions/"+solution, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteSolution(baseUrl string, solution string, user string, password string) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "solutions/"+solution, "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetTarget(baseUrl string, target string, user string, password string) (model.TargetState, error) {
@@ -129,14 +205,17 @@ func GetTarget(baseUrl string, target string, user string, password string) (mod
 	if err != nil {
 		return ret, err
 	}
+
 	response, err := callRestAPI(baseUrl, "targets/registry/"+target, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
+
 	return ret, nil
 }
 
@@ -146,27 +225,44 @@ func GetTargets(baseUrl string, user string, password string) ([]model.TargetSta
 	if err != nil {
 		return ret, err
 	}
+
 	response, err := callRestAPI(baseUrl, "targets/registry", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
+
 	return ret, nil
+}
+
+func CreateTarget(baseUrl string, target string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "targets/registry/"+target, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func MatchTargets(instance model.InstanceState, targets []model.TargetState) []model.TargetState {
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-
 			if matchString(instance.Spec.Target.Name, t.Id) {
 				ret[t.Id] = t
 			}
 		}
 	}
+
 	if len(instance.Spec.Target.Selector) > 0 {
 		for _, t := range targets {
 			fullMatch := true
@@ -175,21 +271,23 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 					fullMatch = false
 				}
 			}
+
 			if fullMatch {
 				ret[t.Id] = t
 			}
 		}
 	}
+
 	slice := make([]model.TargetState, 0, len(ret))
 	for _, v := range ret {
 		slice = append(slice, v)
 	}
+
 	return slice
 }
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{}
-	// create solution
 	solution := model.SolutionSpec{
 		DisplayName: "target-runtime",
 		Scope:       "default",
@@ -199,17 +297,18 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	for k, v := range target.Spec.Metadata {
 		solution.Metadata[k] = v
 	}
+
 	for _, component := range target.Spec.Components {
 		var c model.ComponentSpec
 		data, _ := json.Marshal(component)
 		err := json.Unmarshal(data, &c)
+
 		if err != nil {
 			return ret, err
 		}
 		solution.Components = append(solution.Components, c)
 	}
 
-	// create targets
 	targets := make(map[string]model.TargetSpec)
 	var t model.TargetSpec
 	data, _ := json.Marshal(target.Spec)
@@ -217,9 +316,9 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	if err != nil {
 		return ret, err
 	}
+
 	targets[target.Id] = t
 
-	// create instance
 	instance := model.InstanceSpec{
 		Name:        "target-runtime",
 		DisplayName: "target-runtime-" + target.Id,
@@ -238,10 +337,12 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	if err != nil {
 		return ret, err
 	}
+
 	ret.Assignments = make(map[string]string)
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+
 	return ret, nil
 }
 
@@ -278,10 +379,12 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	if err != nil {
 		return ret, err
 	}
+
 	ret.Assignments = make(map[string]string)
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+
 	return ret, nil
 }
 
@@ -297,11 +400,13 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 					match = false
 				}
 			}
+
 			if match {
 				ret[key] += "{" + component.Name + "}"
 			}
 		}
 	}
+
 	return ret, nil
 }
 
@@ -313,12 +418,14 @@ func Deploy(baseUrl string, user string, passwrod string, deployment model.Deplo
 	if err != nil {
 		return summary, err
 	}
+
 	if ret != nil {
 		err = json.Unmarshal(ret, &summary)
 		if err != nil {
 			return summary, err
 		}
 	}
+
 	return summary, nil
 }
 
@@ -329,12 +436,14 @@ func Remove(baseUrl string, user string, passwrod string, deployment model.Deplo
 	if err != nil {
 		return summary, err
 	}
+
 	if ret != nil {
 		err = json.Unmarshal(ret, &summary)
 		if err != nil {
 			return summary, err
 		}
 	}
+
 	return summary, nil
 }
 
@@ -345,11 +454,13 @@ func auth(baseUrl string, user string, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	var response authResponse
 	err = json.Unmarshal(ret, &response)
 	if err != nil {
 		return "", err
 	}
+
 	return response.AccessToken, nil
 }
 func callRestAPI(baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
@@ -362,6 +473,7 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, err = http.NewRequest(method, rUrl, nil)
@@ -369,24 +481,30 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 			return nil, err
 		}
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.StatusCode >= 300 {
 		if resp.StatusCode == 404 { // API service is already gone
 			return nil, nil
 		}
+
 		return nil, fmt.Errorf("failed to invoke Symphony API: [%d] - %v", resp.StatusCode, string(bodyBytes))
 	}
+
 	return bodyBytes, nil
 }
