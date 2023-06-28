@@ -4,6 +4,8 @@ go 1.19
 
 replace github.com/azure/symphony/coa => ../coa
 
+replace dev.azure.com/msazure/One/_git/symphony.git/packages/mage => ../packages/mage
+
 require (
 	github.com/azure/symphony/coa v0.0.0
 	github.com/spf13/cobra v1.5.0
@@ -16,6 +18,7 @@ require (
 )
 
 require (
+	dev.azure.com/msazure/One/_git/symphony.git/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/extendedlocation/armextendedlocation v1.1.0-beta.2
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration v1.1.1
 	github.com/eclipse/paho.mqtt.golang v1.4.2
@@ -27,11 +30,14 @@ require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
+	github.com/VividCortex/ewma v1.1.1 // indirect
+	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/microsoft/ApplicationInsights-Go v0.4.4 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
+	github.com/princjef/mageutil v1.0.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.11.1 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.11.1 // indirect
 )

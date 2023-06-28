@@ -24,6 +24,7 @@ spec:
       - name: symphony-api
         securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
         image: {{ .Values.paiImage.repository }}:{{ .Values.paiImage.tag }}
+        imagePullPolicy: {{ .Values.paiImage.pullPolicy }}
         ports:
         - containerPort: 8080
         - containerPort: 8081

@@ -1,0 +1,6 @@
+output: '{{.Dir}}/README.md'
+format: azure-devops
+repository:
+    url: https://dev.azure.com/msazure/One/_git/bluefin
+    defaultBranch: develop
+    path: <<.>>

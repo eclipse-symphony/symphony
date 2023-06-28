@@ -1,0 +1,63 @@
+run:
+  concurrency: 1
+  timeout: 30m
+
+linters:
+  enable:
+    - depguard
+    - forcetypeassert
+    - gocritic
+    - godot
+    - gofmt
+    - gofumpt
+    - goimports
+    - gosec
+    - makezero
+    - prealloc
+    - revive
+    - unconvert
+    - whitespace
+
+linters-settings:
+  depguard:
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: use github.com/goccy/go-json
+      - github.com/stretchr/testify/assert: use github.com/stretchr/testify/require
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+      
+    disabled-checks:
+      - redundantSprint
+
+      # Known to fail with generics
+      # https://github.com/go-critic/go-critic/issues/1253
+      - externalErrorReassign
+      - rangeValCopy
+
+  gofmt:
+    rewrite-rules:
+      - pattern: 'interface{}'
+        replacement: 'any'
+      - pattern: 'a[b:len(a)]'
+        replacement: 'a[b:]'
+
+  gofumpt:
+    extra-rules: true
+
+issues:
+  exclude:
+    # errcheck: Configure linter to disregard unchecked returned errors for these functions.
+    - Error return value of
+      .((os\.)?std(out|err)\..*|.*Close|.*LockRelease|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv|.*Err).
+      is not checked
+    - unnamedResult
+
+  exclude-use-default: false
+  fix: true

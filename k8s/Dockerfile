@@ -1,29 +1,26 @@
-# Build the manager binary
+## The build context is expected to be the root of the repository.
+## Either build the image from the root of the repository:
+##   docker build -f k8s/Dockerfile .
+## Or build with docker-compose file of k8s
+
 FROM mcr.microsoft.com/devcontainers/go as builder
 
-WORKDIR /workspace
-# Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
-
-COPY vendor/ vendor/
-# cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-
-# Copy the go source
-COPY main.go main.go
-COPY apis/ apis/
-COPY controllers/ controllers/
-COPY utils/ utils/
-COPY configutils/ configutils/
-COPY constants/ constants/
-
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
-
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+RUN go install github.com/magefile/mage@latest
 WORKDIR /
-COPY --from=builder /workspace/manager .
+# Copy the Go Modules 
+COPY api/ api/
+COPY coa/ coa/
+COPY packages/ packages/
+COPY k8s/ k8s/
+WORKDIR /k8s
+# Test
+RUN CGO_ENABLED=1 mage generate operatorTest
+# Build
+RUN CGO_ENABLED=0 mage build
+
+FROM mcr.microsoft.com/mirror/docker/library/alpine:3.16 AS manager
+WORKDIR /
+COPY --from=builder /k8s/bin/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

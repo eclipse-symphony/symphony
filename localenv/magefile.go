@@ -23,7 +23,8 @@ const (
 	LOCAL_HOST_URL     = "http://localhost"
 	CONTAINER_REGISTRY = "symphonycr.azurecr.io"
 	NAMESPACE          = "default"
-	DOCKER_TAG         = "local"
+	DOCKER_TAG         = "latest"
+	CHART_PATH         = "../symphony-extension/helm/symphony"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -34,7 +35,7 @@ type Minikube mg.Namespace
 
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func Deploy() error {
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-chart-values.yaml", RELEASE_NAME, "../symphony-extension/helm/symphony-chart", NAMESPACE)
+	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 	return shellcmd.Command(helmUpgrade).Run()
 }
 
@@ -62,20 +63,11 @@ func Build() error {
 }
 
 func buildAPI() error {
-	return buildVendorBuildx("api")
+	return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run()
 }
 
 func buildK8s() error {
-	return buildVendorBuildx("k8s")
-}
-
-func buildVendorBuildx(folder string) error {
-	err := dumpShellOutput(fmt.Sprintf("cd ../%s && go mod vendor", folder))
-	if err != nil {
-		return err
-	}
-
-	return shellcmd.Command(fmt.Sprintf("docker buildx build ../%s --platform linux/amd64 -t %s/symphony-%s:%s", folder, CONTAINER_REGISTRY, folder, DOCKER_TAG)).Run()
+	return shellcmd.Command("docker-compose -f ../k8s/docker-compose.yaml build").Run()
 }
 
 /******************** Minikube ********************/

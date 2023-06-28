@@ -1,14 +1,18 @@
 symphonyImage:
   repository: symphonycr.azurecr.io/symphony-k8s
-  pullPolicy: Never
-  tag: local
+  pullPolicy: IfNotPresent
+  tag: "latest"
 paiImage:
   repository: symphonycr.azurecr.io/symphony-api
-  pullPolicy: Never
-  tag: local
+  pullPolicy: IfNotPresent
+  tag: "latest"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: false
 global:
   azure:
     identity:
       enabled: false
+observability:
+  tracing:
+    exporter:
+      zipkin: true

@@ -1,4 +1,4 @@
 bases:
   - "../default"
 patches:
-  - "./manager-patch.yaml"
+  - path: "./manager-patch.yaml"

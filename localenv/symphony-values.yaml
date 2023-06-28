@@ -1,0 +1,4 @@
+symphonyImage:
+  pullPolicy: Never
+paiImage:
+  pullPolicy: Never

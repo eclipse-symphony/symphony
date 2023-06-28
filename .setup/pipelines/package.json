@@ -7,12 +7,13 @@
     "lint": "eslint -c .eslintrc.js --ext .ts . --fix",
     "clean": "rimraf ./dist",
     "prebuild": "npm run clean && npm run lint",
-    "pipelines": "npm run build && node ./dist/pipelines.js"
+    "pipelines": "npm run build && node ./dist/pipelines.js",
+    "build": "tsc -p ."
   },
   "author": "Microsoft",
   "license": "ISC",
   "dependencies": {
-    "@azure-iot/pipelines": "^0.1.0"
+    "@azure-iot/pipelines": "^1.3.0"
   },
   "devDependencies": {
     "@azure-iot/eslint-config": "^1.0.1",

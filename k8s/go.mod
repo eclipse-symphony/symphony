@@ -1,16 +1,21 @@
 module gopls-workspace
 
-go 1.19
+go 1.20
 
 replace github.com/azure/symphony/api => ../api
 
 replace github.com/azure/symphony/coa => ../coa
 
+replace dev.azure.com/msazure/One/_git/symphony.git/packages/mage => ../packages/mage
+
 require (
+	dev.azure.com/msazure/One/_git/symphony.git/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/azure/symphony/api v0.0.0
+	github.com/magefile/mage v1.15.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
+	github.com/princjef/mageutil v1.0.0
 	github.com/stretchr/testify v1.8.2
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -21,8 +26,11 @@ require (
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/azure/symphony/coa v0.0.0 // indirect
+	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
@@ -30,6 +38,9 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9 // indirect
@@ -72,7 +83,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.19.1 // indirect
+	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect

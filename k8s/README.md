@@ -8,13 +8,25 @@ There are a few routes to take when developing in Symphony-K8s
 
 Depending on what you're updating you will end up taking one of these two routes.
 
+> **Note** This guide is deprecated. The recommended way to do local development now is with localenv. See [localenv](../localenv/README.md) for more information.
+> To setup a local env with minikube run the following
+>```bash
+># k8s directory
+>mage helmTemplate
+># localenv directory
+>mage minikube:install # this will install minikube
+>mage minikube:start # this will start minikube
+>mage build # this will build the docker image for symphony-k8s and symphony-api
+>mage load # this will load the built images into the minikube cluster
+>mage deploy # this will install the symphony local helmchart
+>```
 Also included is info about the [Symphony Postman Collection](https://solar-shadow-224876.postman.co/workspace/DH-RP-work~774dd7e8-e45a-49fb-9feb-704dd4b67da0/collection/19948895-8ab52868-7d43-4502-a75e-6efc2d7992a4) at the bottom.
 
 ## Route 1: Updating Operator Code
 Updating the operator code is straight forward, if you are not seeing changes reflected in the `config/crd/bases` directory, you are most likely only changing the operator code.
 ### 1.1 Build Docker Image
 ```bash
-docker build -t symphonycr.azurecr.io/<your-repo>:<number> <path_to_dockerfile usually .>
+docker-compose build
 ```
 For now we are developing in the symphonycr acr. You would build the image in your own custom repository there.
 
@@ -40,7 +52,7 @@ If you would like to start with a fresh cluster and test out the arc-extension y
 However if you are just interested in installing symphony not as an arc-extension, you can just install it directly from the repo. Assuming you're in the root of the symphony-k8s directory you can run
 ```bash
 cd ../symphony-extension/helm/
-helm install symphony-chart --generate-name
+helm install symphony symphony/
 ```
 
 ## Route 2: Updating CRDs
@@ -50,18 +62,18 @@ If you're interested in updating the CRDs directly that will have to be done thr
 ### 2.2 Generate the CRDs
 This step will convert the types defined inside `k8s/apis/*` into CRDs and insert them into the directory `k8s/config/crd/bases`
 ```bash 
-make manifests
+mage manifests
 ```
 
 ### 2.3 Update Symphony.yaml 
 This step will combine all the generated CRDS from the previous step that live inside `k8s/config/crd/bases/` and insert them into the helm chart of the symphony extension located inside `symphony-extension/helm/symphony-chart`
 ```bash 
-make helm-template
+mage helmTemplate
 ```
 if no `IMG=""` parameter is provided with the make helm-template command then it will overwrite the controller manager image with `controller:latest`. You can either provide this parameter or manually update the image inside the deployments when the cluster is running or manually in the symphony.yaml template. Some work needs to be done here to fix this.
 ### 2.4 Build Docker Image
 ```bash
-docker build -t symphonycr.azurecr.io/<your-repo>:<number> <path_to_dockerfile usually .>
+docker-compose build 
 ```
 For now we are developing in the symphonycr acr. You would build the image in your own custom repository there.
 
@@ -76,7 +88,7 @@ At this step you have a new helm chart and need to update the existing one. Depe
 If you are just interested in locally installing symphony with no RP connection you can install symphony directly using
 ```bash
 cd ../symphony-extension/helm/
-helm install symphony-chart --generate-name
+helm install symphony symphony/
 ```
 assuming you're in the root of symphony-k8s directory
 ### 2.6.2 Symphony Helm Chart with RP and as an arc-extension
@@ -86,7 +98,7 @@ assuming you're in the root of symphony-k8s directory
 cd ../symphony-extension/helm/
 az login --use-device-code
 az acr login -n symphonycr
-helm package symphony-chart 
+helm package symphony/  
 helm push <your-package> oci://symphonycr.azurecr.io/arc-extension
 ```
 
