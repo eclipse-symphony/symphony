@@ -17,3 +17,7 @@ observability:
   tracing:
     exporter:
       zipkin: true
+zipkin:
+  fullnameOverride: symphony-zipkin
+cert-manager:
+  fullnameOverride: symphony-cert-manager
