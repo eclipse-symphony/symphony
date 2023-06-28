@@ -2,7 +2,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-delete-resources
+  name: {{ include "symphony.fullname" . }}-delete-resources
+  namespace: {{ .Release.Namespace }}
   annotations:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation,hook-failed
@@ -19,5 +20,5 @@ spec:
         - |-
           {{- .Files.Get "files/delete-objects.sh" | nindent 12 }}
       restartPolicy: Never
-      serviceAccountName: {{ .Release.Name }}-hook-sa
+      serviceAccountName: {{ include "symphony.fullname" . }}-hook-sa
   backoffLimit: 3

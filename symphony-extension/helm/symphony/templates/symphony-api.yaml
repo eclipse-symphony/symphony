@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: symphony-api
+  name: {{ include "symphony.fullname" . }}-api
   labels:
-    app: symphony-api
-  namespace: symphony-k8s-system
+    app: {{ include "symphony.appSelector" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: symphony-api
+      app: {{ include "symphony.appSelector" . }}
   template:
     metadata:
       labels:
-        app: symphony-api
+        app: {{ include "symphony.appSelector" . }}
     spec:
       {{- with .Values.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
       {{- end }}
-      serviceAccountName: pai-sp
+      serviceAccountName: {{ include "symphony.serviceAccountName" . }}
       containers:
       - name: symphony-api
         securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
@@ -35,7 +35,7 @@ spec:
             value: /etc/symphony-api/config/symphony-api.json
         envFrom:
           - secretRef:
-              name: {{ .Release.Name }}-auth
+              name: {{ include "symphony.fullname" . }}-auth
         volumeMounts:
         - name: symphony-api-config
           mountPath: /etc/symphony-api/config
@@ -43,10 +43,10 @@ spec:
       - name: msi-adapter
         env:
         - name: TOKEN_NAMESPACE
-          value: symphony-k8s-system
+          value: {{ .Release.Namespace }}
         {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
       {{- end }}
       volumes:
         - name: symphony-api-config
           configMap:
-            name: symphony-api-config
+            name: {{ include "symphony.configmapName" . }}

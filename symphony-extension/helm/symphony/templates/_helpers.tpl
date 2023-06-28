@@ -54,9 +54,19 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "symphony.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "symphony.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- printf "%s-api-sp" (include "symphony.fullname" .) }}
 {{- end }}
+
+{{/*
+Configmap Name
+*/}}
+{{- define "symphony.configmapName" -}}
+{{- printf "%s-api-config" (include "symphony.fullname" .) }}
+{{- end }}
+
+{{/*
+App Selector
+*/}}
+{{- define "symphony.appSelector" -}}
+{{- printf "%s-api" (include "symphony.fullname" .)  }}
 {{- end }}

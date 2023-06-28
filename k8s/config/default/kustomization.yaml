@@ -6,7 +6,7 @@ namespace: symphony-k8s-system
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: symphony-k8s-
+namePrefix: ""
 
 # Labels to add to all resources and selectors.
 #commonLabels:
@@ -196,6 +196,7 @@ resources:
 - ../certmanager
 patches:
 - path: manager_auth_proxy_patch.yaml
+# - path: manager_config_patch.yaml
 - path: manager_webhook_patch.yaml
 - path: mutatingwebhook_patch.yaml
 - path: validatingwebhook_patch.yaml

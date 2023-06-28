@@ -2,11 +2,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: symphony-service-ext
-  namespace: symphony-k8s-system
+  name: {{ include "symphony.fullname" .}}-service-ext
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
-    app: symphony-api
+    app: {{ include "symphony.appSelector" . }}
   externalTrafficPolicy: Local
   type: LoadBalancer
   ports:

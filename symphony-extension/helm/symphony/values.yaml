@@ -1,3 +1,4 @@
+fullnameOverride: symphony
 symphonyImage:
   repository: symphonycr.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent

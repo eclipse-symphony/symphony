@@ -6,9 +6,9 @@ metadata:
   namespace: azure-arc
 spec:
   serviceAccounts:
-    - name: pai-sp
-      namespace: symphony-k8s-system
-    - name: symphony-k8s-controller-manager
-      namespace: symphony-k8s-system
-  tokenNamespace: symphony-k8s-system
+    - name: {{ include "symphony.serviceAccountName" . }}
+      namespace: {{ .Release.Namespace }}
+    - name: {{ include "symphony.fullname" . }}-controller-manager
+      namespace: {{ .Release.Namespace }}
+  tokenNamespace: {{ .Release.Namespace }}
 {{- end }}

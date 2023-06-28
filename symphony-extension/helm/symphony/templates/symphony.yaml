@@ -1,15 +1,9 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: symphony-k8s-system
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
   name: instances.symphony.microsoft.com
 spec:
@@ -18,8 +12,8 @@ spec:
     webhook:
       clientConfig:
         service:
-          name: symphony-k8s-webhook-service
-          namespace: symphony-k8s-system
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
           path: /convert
       conversionReviewVersions:
       - v1
@@ -201,7 +195,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
   name: solutions.symphony.microsoft.com
 spec:
@@ -210,8 +205,8 @@ spec:
     webhook:
       clientConfig:
         service:
-          name: symphony-k8s-webhook-service
-          namespace: symphony-k8s-system
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
           path: /convert
       conversionReviewVersions:
       - v1
@@ -586,14 +581,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: symphony-k8s-controller-manager
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: symphony-k8s-leader-election-role
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-leader-election-role'
+  namespace: '{{ .Release.Namespace }}'
 rules:
 - apiGroups:
   - ""
@@ -631,7 +626,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: symphony-k8s-manager-role
+  name: '{{ include "symphony.fullname" . }}-manager-role'
 rules:
 - apiGroups:
   - ai.symphony
@@ -923,7 +918,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: symphony-k8s-metrics-reader
+  name: '{{ include "symphony.fullname" . }}-metrics-reader'
 rules:
 - nonResourceURLs:
   - /metrics
@@ -933,7 +928,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: symphony-k8s-proxy-role
+  name: '{{ include "symphony.fullname" . }}-proxy-role'
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -951,42 +946,42 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: symphony-k8s-leader-election-rolebinding
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-leader-election-rolebinding'
+  namespace: '{{ .Release.Namespace }}'
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: symphony-k8s-leader-election-role
+  name: '{{ include "symphony.fullname" . }}-leader-election-role'
 subjects:
 - kind: ServiceAccount
-  name: symphony-k8s-controller-manager
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: symphony-k8s-manager-rolebinding
+  name: '{{ include "symphony.fullname" . }}-manager-rolebinding'
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: symphony-k8s-manager-role
+  name: '{{ include "symphony.fullname" . }}-manager-role'
 subjects:
 - kind: ServiceAccount
-  name: symphony-k8s-controller-manager
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: symphony-k8s-proxy-rolebinding
+  name: '{{ include "symphony.fullname" . }}-proxy-rolebinding'
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: symphony-k8s-proxy-role
+  name: '{{ include "symphony.fullname" . }}-proxy-role'
 subjects:
 - kind: ServiceAccount
-  name: symphony-k8s-controller-manager
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
 ---
 apiVersion: v1
 data:
@@ -1018,16 +1013,16 @@ data:
         message: "there's already a target associated with the IoT Edge device: %s"
 kind: ConfigMap
 metadata:
-  name: symphony-k8s-manager-config
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-manager-config'
+  namespace: '{{ .Release.Namespace }}'
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
-  name: symphony-k8s-controller-manager-metrics-service
-  namespace: symphony-k8s-system
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  name: '{{ include "symphony.fullname" . }}-controller-manager-metrics-service'
+  namespace: '{{ .Release.Namespace }}'
 spec:
   ports:
   - name: https
@@ -1035,39 +1030,41 @@ spec:
     protocol: TCP
     targetPort: https
   selector:
-    control-plane: controller-manager
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: symphony-k8s-webhook-service
-  namespace: symphony-k8s-system
+  labels:
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  name: '{{ include "symphony.fullname" . }}-webhook-service'
+  namespace: '{{ .Release.Namespace }}'
 spec:
   ports:
   - port: 443
     protocol: TCP
     targetPort: 9443
   selector:
-    control-plane: controller-manager
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    control-plane: controller-manager
-  name: symphony-k8s-controller-manager
-  namespace: symphony-k8s-system
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: '{{ include "symphony.name" . }}-controller-manager'
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: controller-manager
+        control-plane: '{{ include "symphony.name" . }}-controller-manager'
     spec:
       containers:
       - args:
@@ -1079,8 +1076,11 @@ spec:
         env:
         - name: APP_VERSION
           value: '{{ .Chart.AppVersion }}'
+        - name: CONFIG_NAME
+          value: '{{ include "symphony.fullname" . }}-manager-config'
         image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
           }}'
+        imagePullPolicy: '{{ .Values.symphonyImage.pullPolicy }}'
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1131,33 +1131,33 @@ spec:
             memory: 64Mi
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: symphony-k8s-controller-manager
+      serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'
       terminationGracePeriodSeconds: 10
       volumes:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: webhook-server-cert
+          secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: symphony-k8s-serving-cert
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-serving-cert'
+  namespace: '{{ .Release.Namespace }}'
 spec:
   dnsNames:
-  - symphony-k8s-webhook-service.symphony-k8s-system.svc
-  - symphony-k8s-webhook-service.symphony-k8s-system.svc.cluster.local
+  - '{{ include "symphony.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc'
+  - '{{ include "symphony.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc.cluster.local'
   issuerRef:
     kind: Issuer
-    name: symphony-k8s-selfsigned-issuer
-  secretName: webhook-server-cert
+    name: '{{ include "symphony.fullname" . }}-selfsigned-issuer'
+  secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: symphony-k8s-selfsigned-issuer
-  namespace: symphony-k8s-system
+  name: '{{ include "symphony.fullname" . }}-selfsigned-issuer'
+  namespace: '{{ .Release.Namespace }}'
 spec:
   selfSigned: {}
 ---
@@ -1165,15 +1165,16 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-  name: symphony-k8s-mutating-webhook-configuration
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
+  name: '{{ include "symphony.fullname" . }}-mutating-webhook-configuration'
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
@@ -1192,8 +1193,8 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
@@ -1212,8 +1213,8 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-symphony-microsoft-com-v1-target
   failurePolicy: Fail
   name: mtarget.kb.io
@@ -1233,15 +1234,16 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: symphony-k8s-system/symphony-k8s-serving-cert
-  name: symphony-k8s-validating-webhook-configuration
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
+  name: '{{ include "symphony.fullname" . }}-validating-webhook-configuration'
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
@@ -1260,8 +1262,8 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
@@ -1280,8 +1282,8 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: symphony-k8s-webhook-service
-      namespace: symphony-k8s-system
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-symphony-microsoft-com-v1-target
   failurePolicy: Fail
   name: vtarget.kb.io

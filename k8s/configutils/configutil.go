@@ -2,6 +2,8 @@ package configutils
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 
 	configv1 "gopls-workspace/apis/config/v1"
 
@@ -9,6 +11,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
+)
+
+var (
+	namespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	configName    = os.Getenv("CONFIG_NAME")
 )
 
 func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
@@ -26,11 +33,18 @@ func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
-	configMap, err := clientset.CoreV1().ConfigMaps("symphony-k8s-system").Get(context.Background(), "symphony-k8s-manager-config", metav1.GetOptions{})
+
+	namespace, err := getNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +57,14 @@ func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
 	}
 
 	return myConfig.ValidationPolicies, nil
+}
+func getNamespace() (string, error) {
+	// read the namespace from the file
+	data, err := ioutil.ReadFile(namespaceFile)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func CheckValidationPack(myName string, myValue, validationType string, pack []configv1.ValidationStruct) (string, error) {

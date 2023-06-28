@@ -8,5 +8,5 @@ roleRef:
   name: pai-cluster-role
 subjects:
 - kind: ServiceAccount
-  name: pai-sp
-  namespace: symphony-k8s-system
+  name: {{ include "symphony.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
