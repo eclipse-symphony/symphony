@@ -25,6 +25,7 @@ func TestFilterMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
+
 func TestFilterDirectionNotMatch(t *testing.T) {
 	filter1 := FilterSpec{
 		Direction: "direction1",
@@ -44,6 +45,7 @@ func TestFilterDirectionNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestFilterTypeNotMatch(t *testing.T) {
 	filter1 := FilterSpec{
 		Direction: "direction1",
@@ -63,6 +65,7 @@ func TestFilterTypeNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestFilterTypeExtraParameter(t *testing.T) {
 	filter1 := FilterSpec{
 		Direction: "direction1",
@@ -83,6 +86,7 @@ func TestFilterTypeExtraParameter(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestFilterTypeMultiParameters(t *testing.T) {
 	filter1 := FilterSpec{
 		Direction: "direction1",

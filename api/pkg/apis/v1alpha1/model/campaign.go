@@ -20,13 +20,14 @@ type CampaignSpec struct {
 }
 
 func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC TargetRefSpec
-	var ok bool
-	if otherC, ok = other.(TargetRefSpec); !ok {
+	otherC, ok := other.(TargetRefSpec)
+	if !ok {
 		return false, errors.New("parameter is not a TargetRefSpec type")
 	}
+
 	if c.Name != otherC.Name {
 		return false, nil
 	}
+
 	return true, nil
 }

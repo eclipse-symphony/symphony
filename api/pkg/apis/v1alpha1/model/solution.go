@@ -15,35 +15,41 @@ package model
 
 import "errors"
 
-type SolutionState struct {
-	Id   string        `json:"id"`
-	Spec *SolutionSpec `json:"spec,omitempty"`
-}
+type (
+	SolutionState struct {
+		Id   string        `json:"id"`
+		Spec *SolutionSpec `json:"spec,omitempty"`
+	}
 
-type SolutionSpec struct {
-	DisplayName string            `json:"displayName,omitempty"`
-	Scope       string            `json:"scope,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Components  []ComponentSpec   `json:"components,omitempty"`
-}
+	SolutionSpec struct {
+		DisplayName string            `json:"displayName,omitempty"`
+		Scope       string            `json:"scope,omitempty"`
+		Metadata    map[string]string `json:"metadata,omitempty"`
+		Components  []ComponentSpec   `json:"components,omitempty"`
+	}
+)
 
 func (c SolutionSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC SolutionSpec
-	var ok bool
-	if otherC, ok = other.(SolutionSpec); !ok {
+	otherC, ok := other.(SolutionSpec)
+	if !ok {
 		return false, errors.New("parameter is not a SolutionSpec type")
 	}
+
 	if c.DisplayName != otherC.DisplayName {
 		return false, nil
 	}
+
 	if c.Scope != otherC.Scope {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Components, otherC.Components) {
 		return false, nil
 	}
+
 	return true, nil
 }

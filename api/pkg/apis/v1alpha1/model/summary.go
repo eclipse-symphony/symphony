@@ -13,12 +13,14 @@ limitations under the License.
 
 package model
 
-type TargetResultSpec struct {
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-}
-type SummarySpec struct {
-	TargetCount   int                         `json:"targetCount"`
-	SuccessCount  int                         `json:"successCount"`
-	TargetResults map[string]TargetResultSpec `json:"targets,omitempty"`
-}
+type (
+	TargetResultSpec struct {
+		Status  string `json:"status"`
+		Message string `json:"message,omitempty"`
+	}
+	SummarySpec struct {
+		TargetCount   int                         `json:"targetCount"`
+		SuccessCount  int                         `json:"successCount"`
+		TargetResults map[string]TargetResultSpec `json:"targets,omitempty"`
+	}
+)

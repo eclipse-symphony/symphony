@@ -21,16 +21,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCompareEmptyMaps(t *testing.T) {
+func TestStringMapsEqualCompareEmptyMaps(t *testing.T) {
 	assert.True(t, StringMapsEqual(nil, nil, nil))
 }
 
-func TestCompareEmptyVSOne(t *testing.T) {
+func TestStringMapsEqualCompareEmptyVSOne(t *testing.T) {
 	assert.False(t, StringMapsEqual(nil, map[string]string{
 		"A": "B",
 	}, nil))
 }
-func TestCompareDifferentSizes(t *testing.T) {
+
+func TestStringMapsEqualCompareDifferentSizes(t *testing.T) {
 	assert.False(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "D",
@@ -38,7 +39,8 @@ func TestCompareDifferentSizes(t *testing.T) {
 		"A": "B",
 	}, nil))
 }
-func TestCompareSameSizeDifferentKeys(t *testing.T) {
+
+func TestStringMapsEqualCompareSameSizeDifferentKeys(t *testing.T) {
 	assert.False(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "D",
@@ -47,7 +49,8 @@ func TestCompareSameSizeDifferentKeys(t *testing.T) {
 		"D": "C",
 	}, nil))
 }
-func TestCompareEqual(t *testing.T) {
+
+func TestStringMapsEqualCompareEqual(t *testing.T) {
 	assert.True(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "D",
@@ -56,7 +59,8 @@ func TestCompareEqual(t *testing.T) {
 		"A": "B",
 	}, nil))
 }
-func TestCompareEqualWithInstanceFunc(t *testing.T) {
+
+func TestStringMapsEqualCompareEqualWithInstanceFunc(t *testing.T) {
 	assert.True(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "$instance()",
@@ -65,7 +69,8 @@ func TestCompareEqualWithInstanceFunc(t *testing.T) {
 		"A": "B",
 	}, nil))
 }
-func TestCompareEqualWithIgnoredKeysLeft(t *testing.T) {
+
+func TestStringMapsEqualCompareEqualWithIgnoredKeysLeft(t *testing.T) {
 	assert.True(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "D",
@@ -75,7 +80,8 @@ func TestCompareEqualWithIgnoredKeysLeft(t *testing.T) {
 		"A": "B",
 	}, []string{"E"}))
 }
-func TestCompareEqualWithIgnoredKeysRight(t *testing.T) {
+
+func TestStringMapsEqualCompareEqualWithIgnoredKeysRight(t *testing.T) {
 	assert.True(t, StringMapsEqual(map[string]string{
 		"A": "B",
 		"C": "D",
@@ -85,11 +91,264 @@ func TestCompareEqualWithIgnoredKeysRight(t *testing.T) {
 		"E": "F",
 	}, []string{"E"}))
 }
+
+func TestStringStringMapsEqualCompareEmptyMaps(t *testing.T) {
+	assert.True(t, StringStringMapsEqual(nil, nil, nil))
+}
+
+func TestStringStringMapsEqualCompareEmptyVSOne(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+	assert.False(t, StringStringMapsEqual(outerMapA, nil, nil))
+}
+
+func TestStringStringMapsEqualCompareDifferentSizes(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+	}
+
+	assert.False(t, StringStringMapsEqual(outerMapA, outerMapB, nil))
+}
+
+func TestStringStringMapsEqualCompareSameSizeDifferentKeys(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+	}
+	assert.False(t, StringStringMapsEqual(outerMapA, outerMapB, nil))
+}
+
+func TestStringStringMapsEqualCompareEqual(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+
+	assert.True(t, StringStringMapsEqual(outerMapA, outerMapB, nil))
+}
+
+func TestStringStringMapsEqualCompareEqualWithInstanceFunc(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+		},
+		"C": {
+			"foo1": "$instance()",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+		},
+		"C": {
+			"foo1": "bar1",
+		},
+	}
+	assert.True(t, StringStringMapsEqual(outerMapA, outerMapB, nil))
+}
+
+func TestStringStringMapsEqualCompareEqualWithIgnoredKeysLeft(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+
+	assert.True(t, StringStringMapsEqual(outerMapA, outerMapB, []string{"C"}))
+}
+
+func TestStringStringMapsEqualCompareEqualWithIgnoredKeysRight(t *testing.T) {
+	outerMapA := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+		"C": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+	outerMapB := map[string]map[string]string{
+		"A": {
+			"foo1": "bar1",
+			"foo2": "bar1",
+		},
+		"B": {
+			"foo1": "bar1",
+			"foo2": "bar2",
+		},
+	}
+
+	assert.True(t, StringStringMapsEqual(outerMapA, outerMapB, []string{"C"}))
+}
+
+func TestEnvMapsEmptyMaps(t *testing.T) {
+	assert.True(t, EnvMapsEqual(nil, nil))
+}
+
+func TestEnvMapsCompareDifferentSizes(t *testing.T) {
+	assert.True(t, EnvMapsEqual(map[string]string{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.AZURE_TENANT_ID":   "\\u003cSP Tenant ID\\u003e",
+		"env.STORAGE_ACCOUNT":   "voestore",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.SYMPHONY_URL":      "http://20.118.178.8:8080/v1alpha2/agent/references",
+		"env.TARGET_NAME":       "symphony-k8s-target",
+	}, map[string]string{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.AZURE_TENANT_ID":   "\\u003cSP Tenant ID\\u003e",
+		"env.STORAGE_ACCOUNT":   "voestore",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.SYMPHONY_URL":      "http://20.118.178.8:8080/v1alpha2/agent/references",
+	}))
+}
+
+func TestEnvMapsCompareSameSizeDifferentKeys(t *testing.T) {
+	assert.True(t, EnvMapsEqual(map[string]string{
+		"env.CLIENT_ID": "\\u003cSP App ID\\u003e",
+		"env.TENANT_ID": "\\u003cSP Tenant ID\\u003e",
+		"env.ACCOUNT":   "voestore",
+		"env.CONTAINER": "snapshots",
+		"env.URL":       "http://20.118.178.8:8080/v1alpha2/agent/references",
+		"env.NAME":      "symphony-k8s-target",
+	}, map[string]string{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.AZURE_TENANT_ID":   "\\u003cSP Tenant ID\\u003e",
+		"env.STORAGE_ACCOUNT":   "voestore",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.SYMPHONY_URL":      "http://20.118.178.8:8080/v1alpha2/agent/references",
+		"env.TARGET_NAME":       "symphony-k8s-target",
+	}))
+}
+
+func TestEnvMapsCompareDifferentSizesWithTarget(t *testing.T) {
+	assert.True(t, EnvMapsEqual(map[string]string{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.TARGET_NAME":       "$target()",
+	}, map[string]string{
+		"env.AZURE_CLIENT_ID": "\\u003cSP App ID\\u003e",
+		"env.TARGET_NAME":     "someRandomName",
+	}))
+}
+
+func TestEnvMapsCompareDifferentSizesWithoutTarget(t *testing.T) {
+	assert.False(t, EnvMapsEqual(map[string]string{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.TARGET_NAME":       "someRandomName",
+	}, map[string]string{
+		"env.AZURE_CLIENT_ID": "\\u003cSP App ID\\u003e",
+		"env.TARGET_NAME":     "someOtherRandomName",
+	}))
+}
+
+func TestEnvMapsCompareEqual(t *testing.T) {
+	assert.True(t, EnvMapsEqual(map[string]string{
+		"A":               "B",
+		"env.TARGET_NAME": "someRandomName",
+	}, map[string]string{
+		"A":               "B",
+		"env.TARGET_NAME": "someRandomName",
+	}))
+}
+
 func TestEmptyComponentSpecSliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{}
 	c2 := []ComponentSpec{}
 	assert.True(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNameOnlySliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -103,6 +362,7 @@ func TestComponentSpecNameOnlySliceDeepEquals(t *testing.T) {
 	}
 	assert.True(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNameOnlySliceDeepNotEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -116,6 +376,7 @@ func TestComponentSpecNameOnlySliceDeepNotEquals(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesSliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -137,6 +398,7 @@ func TestComponentSpecNamePropertiesSliceDeepEquals(t *testing.T) {
 	}
 	assert.True(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesSliceDeepNotEqual(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -158,6 +420,7 @@ func TestComponentSpecNamePropertiesSliceDeepNotEqual(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceDeepEquals(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -215,6 +478,7 @@ func TestComponentSpecNamePropertiesRoutesSliceDeepEquals(t *testing.T) {
 	}
 	assert.True(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV1(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -272,6 +536,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV1(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV2(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -329,6 +594,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV2(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV3(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -386,6 +652,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV3(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV4(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -443,6 +710,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV4(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV5(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -500,6 +768,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV5(t *testing.T) {
 	}
 	assert.False(t, SlicesEqual(c1, c2))
 }
+
 func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV6(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -559,6 +828,7 @@ func TestComponentSpecNamePropertiesRoutesSliceNotDeepEqualV6(t *testing.T) {
 }
 
 // TestEmptyComponentSpecSliceCover tests if c1 covers c2 when both slices are empty
+
 func TestEmptyComponentSpecSliceCover(t *testing.T) {
 	c1 := []ComponentSpec{}
 	c2 := []ComponentSpec{}
@@ -567,6 +837,7 @@ func TestEmptyComponentSpecSliceCover(t *testing.T) {
 
 // TestComponentSpecNameOnlySliceCover tests if c1 covers c2 when they have same components
 // True should be returned in this case
+
 func TestComponentSpecNameOnlySliceCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -583,6 +854,7 @@ func TestComponentSpecNameOnlySliceCover(t *testing.T) {
 
 // TestComponentSpecNameOnlySliceNotCover tests if c1 covers c2 when they have different components
 // False should be returned in this case
+
 func TestComponentSpecNameOnlySliceNotCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -599,6 +871,7 @@ func TestComponentSpecNameOnlySliceNotCover(t *testing.T) {
 
 // TestComponentSpecNameOnlySliceNotCover tests if c1 covers c2 when they have same components with same properties
 // True should be returned in this case
+
 func TestComponentSpecNamePropertiesSliceCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -623,6 +896,7 @@ func TestComponentSpecNamePropertiesSliceCover(t *testing.T) {
 
 // TestComponentSpecNamePropertiesSliceNotCover tests if c1 covers c2 when they have different properties
 // False should be returned in this case
+
 func TestComponentSpecNamePropertiesSliceNotCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -647,6 +921,7 @@ func TestComponentSpecNamePropertiesSliceNotCover(t *testing.T) {
 
 // TestSlicesCoverMissingComponent tests if c1 covers c2 when c2 doesn't have c1 components
 // False should be returned as c2 doesn't contain c1 components
+
 func TestSlicesCoverMissingComponent(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -668,6 +943,7 @@ func TestSlicesCoverNil(t *testing.T) {
 }
 
 // TestSlicesCoverMissingComponentMultiple tests if c1 covers c2 when c2 contains 1 c1 component
+
 func TestSlicesCoverMissingComponentMultiple(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -688,6 +964,7 @@ func TestSlicesCoverMissingComponentMultiple(t *testing.T) {
 // TestSlicesCoverMissingComponentExtra tests if c1 covers c2 when c2 doesn't have any c1 components
 // but has an extra component by itself
 // False should be returned as c2 doesn't contain any c1 components
+
 func TestSlicesCoverMissingComponentExtra(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -727,6 +1004,97 @@ func TestSlicesCoverWithExtra(t *testing.T) {
 	}
 	assert.True(t, SlicesCover(c1, c2))
 }
+
+func TestSlicesAnySameSize(t *testing.T) {
+	c1 := []ComponentSpec{
+		{
+			Name: "abc",
+		},
+	}
+	c2 := []ComponentSpec{
+		{
+			Name: "abc",
+		},
+	}
+	assert.True(t, SlicesAny(c1, c2))
+}
+
+func TestSlicesAnyMissingComponent(t *testing.T) {
+	c1 := []ComponentSpec{
+		{
+			Name: "abc",
+		},
+	}
+	c2 := []ComponentSpec{}
+	assert.False(t, SlicesAny(c1, c2))
+}
+
+func TestSlicesAnyNil(t *testing.T) {
+	c1 := []ComponentSpec{
+		{
+			Name: "abc",
+		},
+	}
+	var c2 []ComponentSpec
+	assert.False(t, SlicesAny(c1, c2))
+}
+
+func TestCheckPropertyNil(t *testing.T) {
+	assert.True(t, CheckProperty(nil, nil, "", false))
+}
+
+func TestCheckPropertyOneEmptyWithKeyExisting(t *testing.T) {
+	assert.False(t, CheckProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, nil, "A", false))
+}
+
+func TestCheckPropertyOneEmptyWithoutKeyExisting(t *testing.T) {
+	assert.True(t, CheckProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, nil, "E", false))
+}
+
+func TestCheckPropertyWithKeyExisting(t *testing.T) {
+	assert.True(t, CheckProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, map[string]string{
+		"C": "D",
+		"A": "B",
+		"E": "F",
+	}, "A", false))
+}
+
+func TestCheckPropertyWithoutKeyExisting(t *testing.T) {
+	assert.True(t, CheckProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, map[string]string{
+		"C": "D",
+		"A": "B",
+		"E": "F",
+	}, "W", false))
+}
+
+func TestCheckPropertyWithoutIgnoreCase1(t *testing.T) {
+	assert.True(t, CheckProperty(map[string]string{
+		"A": "B",
+	}, map[string]string{
+		"A": "B",
+	}, "A", true))
+}
+
+func TestCheckPropertyWithoutIgnoreCase2(t *testing.T) {
+	assert.False(t, CheckProperty(map[string]string{
+		"A": "B",
+	}, map[string]string{
+		"A": "C",
+	}, "A", true))
+}
+
 func TestFullComponentSpecCover(t *testing.T) {
 	c1 := []ComponentSpec{
 		{
@@ -776,6 +1144,7 @@ func TestCollectPropertiesWithoutHierarchy(t *testing.T) {
 	assert.Equal(t, "ABC", ret["abc"])
 	assert.Equal(t, "DEF", ret["def.geh"])
 }
+
 func TestCollectPropertiesWithHierarchy(t *testing.T) {
 	properties := map[string]interface{}{
 		"helm.values.abc":             "ABC",

@@ -28,27 +28,31 @@ type ConstraintSpec struct {
 }
 
 func (c ConstraintSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid using reflect, which has performance problems
-	var otherC ConstraintSpec
-	var ok bool
-	if otherC, ok = other.(ConstraintSpec); !ok {
+	otherC, ok := other.(ConstraintSpec)
+	if !ok {
 		return false, errors.New("parameter is not a ConstraintSpec type")
 	}
 
 	if c.Key != otherC.Key {
 		return false, nil
 	}
+
 	if c.Qualifier != otherC.Qualifier {
 		return false, nil
 	}
+
 	if c.Operator != otherC.Operator {
 		return false, nil
 	}
+
 	if c.Value != otherC.Value {
 		return false, nil
 	}
+
 	if len(c.Values) != len(otherC.Values) {
 		return false, nil
 	}
+
 	//TODO: values should be order sensitive, so the following comparision needs to be modified
 	// However as we plan to refactor the constraint alltogether, we can postpone this
 	ca := make([]string, len(c.Values))
@@ -60,10 +64,12 @@ func (c ConstraintSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid u
 	sort.Strings(c.Values)
 	return strings.Join(ca, ",") == strings.Join(cb, ","), nil
 }
+
 func (c ConstraintSpec) Match(properties map[string]string) bool {
 	//TODO: expand on this, the following logic only handles "must" conditions
 	if v, ok := properties[c.Key]; ok {
 		return v == c.Value
 	}
+
 	return false
 }

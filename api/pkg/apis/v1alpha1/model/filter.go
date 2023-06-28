@@ -22,20 +22,22 @@ type FilterSpec struct {
 }
 
 func (c FilterSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid using reflect, which has performance problems
-	var otherC FilterSpec
-	var ok bool
-	if otherC, ok = other.(FilterSpec); !ok {
+	otherC, ok := other.(FilterSpec)
+	if !ok {
 		return false, errors.New("parameter is not a FilterSpec type")
 	}
 
 	if c.Direction != otherC.Direction {
 		return false, nil
 	}
+
 	if c.Type != otherC.Type {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Parameters, otherC.Parameters, nil) {
 		return false, nil
 	}
+
 	return true, nil
 }

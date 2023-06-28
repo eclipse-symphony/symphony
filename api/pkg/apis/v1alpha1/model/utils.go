@@ -23,16 +23,25 @@ import (
 	"helm.sh/helm/v3/pkg/strvals"
 )
 
-// IDeepEquals interface defines an interface for memberwise equality comparision
-type IDeepEquals interface {
-	DeepEquals(other IDeepEquals) (bool, error)
-}
+type (
+	// IDeepEquals interface defines an interface for memberwise equality comparision
+	IDeepEquals interface {
+		DeepEquals(other IDeepEquals) (bool, error)
+	}
+
+	ValueInjections struct {
+		InstanceId string
+		SolutionId string
+		TargetId   string
+	}
+)
 
 // stringMapsEqual compares two string maps for equality
 func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKeys []string) bool {
 	// if len(a) != len(b) {
 	// 	return false
 	// }
+
 	for k, v := range a {
 		if bv, ok := b[k]; ok {
 			if bv != v {
@@ -46,6 +55,7 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 			}
 		}
 	}
+
 	for k, v := range b {
 		if bv, ok := a[k]; ok {
 			if bv != v {
@@ -59,6 +69,7 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 			}
 		}
 	}
+
 	return true
 }
 
@@ -74,17 +85,19 @@ func StringStringMapsEqual(a map[string]map[string]string, b map[string]map[stri
 			}
 		}
 	}
+
 	for k, v := range b {
 		if bv, ok := a[k]; ok {
 			if !StringMapsEqual(v, bv, ignoredMissingKeys) {
 				return false
-			} else {
-				if !go_slices.Contains(ignoredMissingKeys, k) {
-					return false
-				}
+			}
+		} else {
+			if !go_slices.Contains(ignoredMissingKeys, k) {
+				return false
 			}
 		}
 	}
+
 	return true
 }
 
@@ -96,6 +109,7 @@ func ExtractRawEnvFromProperties(properties map[string]interface{}) map[string]s
 			env[k] = fmt.Sprintf("%v", v)
 		}
 	}
+
 	return env
 }
 
@@ -103,6 +117,7 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 	// if len(a) != len(b) {
 	// 	return false
 	// }
+
 	for k, v := range a {
 		if strings.HasPrefix(k, "env.") {
 			if bv, ok := b[k]; ok {
@@ -114,6 +129,7 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 			}
 		}
 	}
+
 	for k, v := range b {
 		if strings.HasPrefix(k, "env.") {
 			if bv, ok := a[k]; ok {
@@ -125,6 +141,7 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 			}
 		}
 	}
+
 	return true
 }
 
@@ -134,6 +151,7 @@ func SlicesEqual[K IDeepEquals](a []K, b []K) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	used := make(map[int]bool)
 	for _, ia := range a {
 		found := false
@@ -143,6 +161,7 @@ func SlicesEqual[K IDeepEquals](a []K, b []K) bool {
 				if e != nil {
 					return false
 				}
+
 				if t {
 					used[j] = true
 					found = true
@@ -150,10 +169,12 @@ func SlicesEqual[K IDeepEquals](a []K, b []K) bool {
 				}
 			}
 		}
+
 		if !found {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -167,10 +188,12 @@ func SlicesCover[K IDeepEquals](src []K, dest []K) bool {
 				break
 			}
 		}
+
 		if !found {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -183,6 +206,7 @@ func SlicesAny[K IDeepEquals](src []K, dest []K) bool {
 			}
 		}
 	}
+
 	return false
 }
 
@@ -195,8 +219,10 @@ func CheckProperty(a map[string]string, b map[string]string, key string, ignoreC
 				return va == vb
 			}
 		}
+
 		return false
 	}
+
 	return true
 }
 
@@ -209,8 +235,10 @@ func CheckPropertyCompat(a map[string]interface{}, b map[string]interface{}, key
 				return va == vb
 			}
 		}
+
 		return false
 	}
+
 	return true
 }
 
@@ -224,6 +252,7 @@ func HasSameProperty(a map[string]string, b map[string]string, key string) bool 
 	} else {
 		return false
 	}
+
 }
 
 func HasSamePropertyCompat(a map[string]interface{}, b map[string]interface{}, key string) bool {
@@ -236,12 +265,7 @@ func HasSamePropertyCompat(a map[string]interface{}, b map[string]interface{}, k
 	} else {
 		return false
 	}
-}
 
-type ValueInjections struct {
-	InstanceId string
-	SolutionId string
-	TargetId   string
 }
 
 func CollectPropertiesWithPrefix(col map[string]interface{}, prefix string, injections *ValueInjections, withHierarchy bool) map[string]interface{} {
@@ -256,6 +280,7 @@ func CollectPropertiesWithPrefix(col map[string]interface{}, prefix string, inje
 			}
 		}
 	}
+
 	return ret
 }
 
@@ -263,6 +288,7 @@ func ReadPropertyCompat(col map[string]interface{}, key string, injections *Valu
 	if v, ok := col[key]; ok {
 		return ResolveString(fmt.Sprintf("%v", v), injections)
 	}
+
 	return ""
 }
 
@@ -270,8 +296,10 @@ func ReadProperty(col map[string]string, key string, injections *ValueInjections
 	if v, ok := col[key]; ok {
 		return ResolveString(v, injections)
 	}
+
 	return ""
 }
+
 func ResolveString(value string, injections *ValueInjections) string {
 	//TODO: future enhancement - analyze the syntax instead of doing simply string replacement
 	if injections != nil {
@@ -279,5 +307,6 @@ func ResolveString(value string, injections *ValueInjections) string {
 		value = strings.ReplaceAll(value, "$solution()", injections.SolutionId)
 		value = strings.ReplaceAll(value, "$target()", injections.TargetId)
 	}
+
 	return value
 }

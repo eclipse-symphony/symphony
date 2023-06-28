@@ -22,19 +22,22 @@ type BindingSpec struct {
 }
 
 func (c BindingSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC BindingSpec
-	var ok bool
-	if otherC, ok = other.(BindingSpec); !ok {
+	otherC, ok := other.(BindingSpec)
+	if !ok {
 		return false, errors.New("parameter is not a BindingSpec type")
 	}
+
 	if c.Role != otherC.Role {
 		return false, nil
 	}
+
 	if c.Provider != otherC.Provider {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Config, otherC.Config, nil) {
 		return false, nil
 	}
+
 	return true, nil
 }

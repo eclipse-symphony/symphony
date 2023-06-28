@@ -15,7 +15,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 
 	go_slices "golang.org/x/exp/slices"
 )
@@ -41,46 +40,57 @@ func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
 }
 
 func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC DeploymentSpec
-	var ok bool
-	if otherC, ok = other.(DeploymentSpec); !ok {
+	otherC, ok := other.(DeploymentSpec)
+	if !ok {
 		return false, errors.New("parameter is not a DeploymentSpec type")
 	}
+
 	if c.SolutionName != otherC.SolutionName {
 		return false, nil
 	}
+
 	equal, err := c.Solution.DeepEquals(otherC.Solution)
 	if err != nil {
 		return false, err
 	}
+
 	if !equal {
 		return false, nil
 	}
+
 	equal, err = c.Instance.DeepEquals(otherC.Instance)
 	if err != nil {
 		return false, err
 	}
+
 	if !equal {
 		return false, nil
 	}
+
 	if !mapsEqual(c.Targets, otherC.Targets, nil) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Devices, otherC.Devices) {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Assignments, otherC.Assignments, nil) {
 		return false, nil
 	}
+
 	if c.ComponentStartIndex != otherC.ComponentStartIndex {
 		return false, nil
 	}
+
 	if c.ComponentEndIndex != otherC.ComponentEndIndex {
 		return false, nil
 	}
+
 	if c.ActiveTarget != otherC.ActiveTarget {
 		return false, nil
 	}
+
 	return true, nil
 }
 
@@ -89,29 +99,33 @@ func mapsEqual(a map[string]TargetSpec, b map[string]TargetSpec, ignoredMissingK
 		if bv, ok := b[k]; ok {
 			equal, err := bv.DeepEquals(v)
 			if err != nil || !equal {
-				fmt.Println("10")
 				return false
 			}
+
 		} else {
 			if !go_slices.Contains(ignoredMissingKeys, k) {
-				fmt.Println("11")
 				return false
 			}
+
 		}
+
 	}
+
 	for k, v := range b {
 		if bv, ok := a[k]; ok {
 			equal, err := bv.DeepEquals(v)
 			if err != nil || !equal {
-				fmt.Println("12")
 				return false
 			}
+
 		} else {
 			if !go_slices.Contains(ignoredMissingKeys, k) {
-				fmt.Println("14")
 				return false
 			}
+
 		}
+
 	}
+
 	return true
 }

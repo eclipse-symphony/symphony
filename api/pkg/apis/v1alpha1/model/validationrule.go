@@ -44,6 +44,7 @@ func (v ValidationRule) Validate(components []ComponentSpec) error {
 			return err
 		}
 	}
+
 	return nil
 }
 func (v ValidationRule) validateComponent(component ComponentSpec) error {
@@ -51,17 +52,20 @@ func (v ValidationRule) validateComponent(component ComponentSpec) error {
 	if v.RequiredComponentType != "" && v.RequiredComponentType != component.Type {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("provider requires component type '%s', but '%s' is found instead", v.RequiredComponentType, component.Type), v1alpha2.BadRequest)
 	}
+
 	// required properties must all present
 	for _, p := range v.RequiredProperties {
 		if ReadPropertyCompat(component.Properties, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missing", p), v1alpha2.BadRequest)
 		}
 	}
+
 	// required metadata must all present
 	for _, p := range v.RequiredMetadata {
 		if ReadProperty(component.Metadata, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required metadata '%s' is missing", p), v1alpha2.BadRequest)
 		}
 	}
+
 	return nil
 }

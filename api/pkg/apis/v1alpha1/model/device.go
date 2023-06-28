@@ -15,31 +15,38 @@ package model
 
 import "errors"
 
-type DeviceState struct {
-	Id   string      `json:"id"`
-	Spec *DeviceSpec `json:"spec,omitempty"`
-}
+type (
+	// DeviceState defines the current state of the device
+	DeviceState struct {
+		Id   string      `json:"id"`
+		Spec *DeviceSpec `json:"spec,omitempty"`
+	}
 
-type DeviceSpec struct {
-	DisplayName string            `json:"displayName,omitempty"`
-	Properties  map[string]string `json:"properties,omitempty"`
-	Bindings    []BindingSpec     `json:"bindings,omitempty"`
-}
+	// DeviceSpec defines the spec properties of the DeviceState
+	DeviceSpec struct {
+		DisplayName string            `json:"displayName,omitempty"`
+		Properties  map[string]string `json:"properties,omitempty"`
+		Bindings    []BindingSpec     `json:"bindings,omitempty"`
+	}
+)
 
 func (c DeviceSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC DeviceSpec
-	var ok bool
-	if otherC, ok = other.(DeviceSpec); !ok {
+	otherC, ok := other.(DeviceSpec)
+	if !ok {
 		return false, errors.New("parameter is not a DeviceSpec type")
 	}
+
 	if c.DisplayName != otherC.DisplayName {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Properties, otherC.Properties, nil) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Bindings, otherC.Bindings) {
 		return false, nil
 	}
+
 	return true, nil
 }

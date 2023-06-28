@@ -43,6 +43,7 @@ func TestRouteMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
+
 func TestRouteRouteNotMatch(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",
@@ -80,6 +81,7 @@ func TestRouteRouteNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestRouteTypeNotMatch(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",
@@ -117,6 +119,7 @@ func TestRouteTypeNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestRoutePropertiesNotMatch(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",
@@ -154,6 +157,7 @@ func TestRoutePropertiesNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestRouteExtraProperties(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",
@@ -192,6 +196,7 @@ func TestRouteExtraProperties(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestRouteExtraFilter(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",
@@ -236,6 +241,7 @@ func TestRouteExtraFilter(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
 func TestRouteMissingFilter(t *testing.T) {
 	route1 := RouteSpec{
 		Route: "route",

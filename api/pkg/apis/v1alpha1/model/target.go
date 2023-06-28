@@ -15,53 +15,65 @@ package model
 
 import "errors"
 
-type TargetState struct {
-	Id       string            `json:"id"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Status   map[string]string `json:"status,omitempty"`
-	Spec     *TargetSpec       `json:"spec,omitempty"`
-}
+type (
+	// TargetState defines the current state of the target
+	TargetState struct {
+		Id       string            `json:"id"`
+		Metadata map[string]string `json:"metadata,omitempty"`
+		Status   map[string]string `json:"status,omitempty"`
+		Spec     *TargetSpec       `json:"spec,omitempty"`
+	}
 
-type TargetSpec struct {
-	DisplayName   string            `json:"displayName,omitempty"`
-	Scope         string            `json:"scope,omitempty"`
-	Metadata      map[string]string `json:"metadata,omitempty"`
-	Properties    map[string]string `json:"properties,omitempty"`
-	Components    []ComponentSpec   `json:"components,omitempty"`
-	Constraints   []ConstraintSpec  `json:"constraints,omitempty"`
-	Topologies    []TopologySpec    `json:"topologies,omitempty"`
-	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
-}
+	// TargetSpec defines the spec property of the TargetState
+	TargetSpec struct {
+		DisplayName   string            `json:"displayName,omitempty"`
+		Scope         string            `json:"scope,omitempty"`
+		Metadata      map[string]string `json:"metadata,omitempty"`
+		Properties    map[string]string `json:"properties,omitempty"`
+		Components    []ComponentSpec   `json:"components,omitempty"`
+		Constraints   []ConstraintSpec  `json:"constraints,omitempty"`
+		Topologies    []TopologySpec    `json:"topologies,omitempty"`
+		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
+	}
+)
 
 func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	var otherC TargetSpec
-	var ok bool
-	if otherC, ok = other.(TargetSpec); !ok {
+	otherC, ok := other.(TargetSpec)
+	if !ok {
 		return false, errors.New("parameter is not a TargetSpec type")
 	}
+
 	if c.DisplayName != otherC.DisplayName {
 		return false, nil
 	}
+
 	if c.Scope != otherC.Scope {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 		return false, nil
 	}
+
 	if !StringMapsEqual(c.Properties, otherC.Properties, nil) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Components, otherC.Components) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Constraints, otherC.Constraints) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Topologies, otherC.Topologies) {
 		return false, nil
 	}
+
 	if c.ForceRedeploy != otherC.ForceRedeploy {
 		return false, nil
 	}
+
 	return true, nil
 }

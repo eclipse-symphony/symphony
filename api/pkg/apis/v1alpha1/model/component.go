@@ -31,9 +31,8 @@ type ComponentSpec struct {
 }
 
 func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid using reflect, which has performance problems
-	var otherC ComponentSpec
-	var ok bool
-	if otherC, ok = other.(ComponentSpec); !ok {
+	otherC, ok := other.(ComponentSpec)
+	if !ok {
 		return false, errors.New("parameter is not a ComponentSpec type")
 	}
 
@@ -47,9 +46,11 @@ func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid us
 	if !StringMapsEqual(c.Metadata, otherC.Metadata, []string{"SYMPHONY_AGENT_ADDRESS"}) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Routes, otherC.Routes) {
 		return false, nil
 	}
+
 	// if !SlicesEqual(c.Constraints, otherC.Constraints) {	Can't compare constraints as components from actual envrionments don't have constraints
 	// 	return false, nil
 	// }

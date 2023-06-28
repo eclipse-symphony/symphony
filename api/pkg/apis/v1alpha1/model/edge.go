@@ -13,11 +13,13 @@ limitations under the License.
 
 package model
 
-type ConnectionSpec struct {
-	Node  string `json:"node"`
-	Route string `json:"route"`
-}
-type EdgeSpec struct {
-	Source ConnectionSpec `json:"source"`
-	Target ConnectionSpec `json:"target"`
-}
+type (
+	ConnectionSpec struct {
+		Node  string `json:"node"`
+		Route string `json:"route"`
+	}
+	EdgeSpec struct {
+		Source ConnectionSpec `json:"source"`
+		Target ConnectionSpec `json:"target"`
+	}
+)

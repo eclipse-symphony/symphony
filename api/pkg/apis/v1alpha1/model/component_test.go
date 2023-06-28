@@ -51,6 +51,7 @@ func TestComponentDeepEqual(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
+
 func TestComponentDeepNotEqual(t *testing.T) {
 	c1 := ComponentSpec{
 		Name: "symphony-agent",
