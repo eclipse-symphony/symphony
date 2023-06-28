@@ -42,8 +42,7 @@ func Deploy() error {
 // Uninstall all components
 func Destroy() error {
 	return shellcmd.RunAll(
-		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s", RELEASE_NAME, NAMESPACE)),
-		"kubectl delete crd --all -A",
+		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", RELEASE_NAME, NAMESPACE)),
 	)
 }
 
@@ -134,19 +133,15 @@ func (Minikube) Delete() error {
 	return shellcmd.Command("minikube delete").Run()
 }
 
-// Deploys the symphony ecosystem to minikube and waits for all pods to be ready.
-// This is intended for use with the automated integration tests.
-// Dev workflows can use more optimized commands.
-func SetupIntegrationTests() error {
+// ClusterUp brings the cluster up with all images loaded
+// but does not deploy.
+func ClusterUp() error {
 	// Install minikube
 	mk := &Minikube{}
 	err := mk.Install()
 	if err != nil {
 		return err
 	}
-
-	// Delete if a minikube cluster already exists
-	_ = mk.Delete()
 
 	// Start minikube and load containers
 	err = mk.Start()
@@ -164,14 +159,15 @@ func SetupIntegrationTests() error {
 		return err
 	}
 
-	err = Deploy()
+	return nil
+}
+
+// Up brings the minikube cluster up with symphony deployed
+func Up() error {
+	err := ClusterUp()
 	if err != nil {
 		return err
 	}
-
-	// Show the state of the cluster for CI scenarios
-	// This should be shown even when an error occurs
-	defer ClusterStatus()
 
 	// Deploy the helm chart and wait for all pods to become ready
 	err = Deploy()
@@ -180,6 +176,33 @@ func SetupIntegrationTests() error {
 	}
 
 	return nil
+}
+
+// UpClean deletes minikube if it exists and then runs Up
+func UpClean() error {
+	// Delete if a minikube cluster already exists
+	mk := &Minikube{}
+	_ = mk.Delete()
+
+	// Run
+	return Up()
+}
+
+// Deploys the symphony ecosystem to minikube and waits for all pods to be ready.
+// This is intended for use with the automated integration tests.
+// Dev workflows can use more optimized commands.
+func SetupIntegrationTests() error {
+	// Show the state of the cluster for CI scenarios
+	// This should be shown even when an error occurs
+	defer ClusterStatus()
+
+	// Delete if a minikube cluster already exists
+	mk := &Minikube{}
+	_ = mk.Delete()
+
+	// Build and load images without deploying
+	// tests will run the deployment
+	return ClusterUp()
 }
 
 // Show the state of the cluster for CI scenarios

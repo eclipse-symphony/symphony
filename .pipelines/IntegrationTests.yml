@@ -38,16 +38,20 @@ steps:
       export MINIKUBE_HOME="$(pwd)/.minikube"
       echo "MINIKUBE_HOME: $MINIKUBE_HOME"
 
+      # Add mage to path
+      export PATH=$HOME/go/bin:$PATH
+
       # fail on errors
       set -e      
      
       # load up minikube
       
       pushd localenv
-      $HOME/go/bin/mage SetupIntegrationTests
+      mage SetupIntegrationTests
       popd
       
       # run integration tests
-      # TODO add tests
+      pushd test/integration
+      mage Test
       
       echo "DONE! exit: $?"

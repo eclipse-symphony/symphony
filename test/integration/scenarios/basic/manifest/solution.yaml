@@ -1,0 +1,107 @@
+apiVersion: symphony.microsoft.com/v1
+kind: Solution
+metadata:
+  annotations: {}
+  name: my-sol
+spec:
+  components:
+  - name: e4i-opcua-connector
+    properties:
+      chart:
+        repo: e4ipreview.azurecr.io/helm/az-e4i-opcua-connector
+        version: 0.4.0
+      values:
+        e4iNamespace: alice-springs
+        mqttBroker:
+          authenticationMethod: serviceAccountToken
+          name: azedge-dmqtt-frontend
+          namespace: alice-springs
+        opcUaConnector:
+          settings:
+            authenticationMode: Anonymous
+            autoAcceptUntrustedCertificates: "true"
+            discoveryUrl: opc.tcp://opcplc.alice-springs:50000
+        payloadCompression: none
+    type: helm.v3
+  - name: e4k-high-availability-broker
+    properties:
+      chart:
+        repo: symphonycr.azurecr.io/az-e4k-broker
+        version: 0.1.0
+    type: helm.v3
+  - name: e4i-assets
+    properties:
+      chart:
+        repo: e4ipreview.azurecr.io/helm/az-e4i-demo-assets
+        version: 0.4.0
+    type: helm.v3
+  - name: bluefin-instance
+    properties:
+      resource:
+        apiVersion: bluefin.az-bluefin.com/v1
+        kind: Instance
+        metadata:
+          name: bf-instance
+          namespace: default
+        spec:
+          displayName: Test Instance
+          otelCollectorAddress: otel-collector.alice-springs.svc.cluster.local:4317
+    type: yaml.k8s
+  - name: test-pipeline
+    properties:
+      resource:
+        apiVersion: bluefin.az-bluefin.com/v1
+        kind: Pipeline
+        metadata:
+          name: bf-pipeline
+          namespace: default
+        spec:
+          displayName: bf-pipeline
+          enabled: true
+          input:
+            description: Read from topic Thermostat 3
+            displayName: E4K
+            format:
+              type: json
+            mqttConnectionInfo:
+              broker: tcp://azedge-dmqtt-frontend:1883
+              password: password
+              username: client1
+            next:
+            - node-22f2
+            topics:
+            - name: alice-springs/data/opc-ua-connector/opc-ua-connector/thermostat-sample-3
+            type: input/mqtt@v1
+            viewOptions:
+              position:
+                x: 0
+                "y": 80
+          partitionCount: 6
+          stages:
+            node-22f2:
+              displayName: No-op
+              next:
+              - output
+              query: .
+              type: processor/transform@v1
+              viewOptions:
+                position:
+                  x: 0
+                  "y": 208
+            output:
+              broker: tcp://azedge-dmqtt-frontend:1883
+              description: Publish to topic demo-output-topic
+              displayName: E4K
+              format:
+                type: json
+              password: password
+              timeout: 45ms
+              topic: alice-springs/data/demo-output
+              type: output/mqtt@v1
+              username: client1
+              viewOptions:
+                position:
+                  x: 0
+                  "y": 336
+    type: yaml.k8s
+  displayName: My solution

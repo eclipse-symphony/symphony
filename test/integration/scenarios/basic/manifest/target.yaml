@@ -1,0 +1,62 @@
+apiVersion: symphony.microsoft.com/v1
+kind: Target
+metadata:
+  name: self
+spec:
+  components:
+  - name: observability
+    properties:
+      chart:
+        repo: symphonycr.azurecr.io/sample-dashboard
+        version: 0.4.0-dev
+      values:
+        obsConfig:
+          bluefin: true
+          e4i: true
+          e4k: true
+    type: helm.v3
+  - name: e4k
+    properties:
+      chart:
+        repo: e4kpreview.azurecr.io/helm/az-e4k
+        version: 0.3.0
+    type: helm.v3
+  - name: e4i
+    properties:
+      chart:
+        repo: e4ipreview.azurecr.io/helm/az-e4i
+        version: 0.4.0
+      values:
+        mqttBroker:
+          authenticationMethod: serviceAccountToken
+          name: azedge-dmqtt-frontend
+          namespace: alice-springs
+        opcPlcSimulation:
+          deploy: "true"
+        openTelemetry:
+          enabled: "true"
+          endpoint: http://otel-collector.alice-springs.svc.cluster.local:4317
+          protocol: grpc
+    type: helm.v3
+  - name: bluefin
+    properties:
+      chart:
+        repo: azbluefin.azurecr.io/helm/bluefin-arc-extension
+        version: "0.2.0-20230627.2-develop"
+    type: helm.v3
+  displayName: int-virtual-02
+  scope: alice-springs
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.k8s
+      role: instance
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3
+    - config:
+        inCluster: "true"
+      provider: providers.target.kubectl
+      role: yaml.k8s
