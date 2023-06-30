@@ -13,4 +13,4 @@ sed -i "s/\(\s*tag: \).*/\1\"$BUILD_NUMBER\"/" values.yaml
 
 # Update Chart.yaml
 sed -i "s/\(^appVersion: \).*/\1\"$BUILD_NUMBER\"/" Chart.yaml
-sed -i "s/\(^version: \).*/\1\"$BUILD_NUMBER\"/" Chart.yaml
+sed -i "s/\(version: [0-9.]*\)/\1-${BUILD_NUMBER}/" Chart.yaml

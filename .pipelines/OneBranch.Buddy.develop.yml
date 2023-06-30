@@ -1,6 +1,10 @@
-name: buddy-$(Date:yyyyMMdd)$(Rev:.r)
+name: develop-$(Date:yyyyMMdd)$(Rev:.r)
 parameters: []
-trigger: none
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
 variables:
   LinuxContainerImage: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
   DEBIAN_FRONTEND: noninteractive

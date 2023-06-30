@@ -25,6 +25,7 @@ export async function getIotPipelineParams(): Promise<IOTPipelineGeneratorParams
   const iotPipelineParams: IOTPipelineParams[] = [];
 
   iotPipelineParams.push(await getBuddyPipelineParams());
+  iotPipelineParams.push(await getDevPipelineParams());
   iotPipelineParams.push(getPRPipelineParams());
 
   return {
@@ -40,6 +41,20 @@ async function getBuddyPipelineParams(): Promise<IOTPipelineParams> {
     type: IOTPipelineType.Buddy,
     buildTagIdentifier: "buddy",
     parallelJobCount: 1,
+    showBuildServiceToggleOptions: false,
+    microservices: getAllMicroservices(),
+    acr: getDevSymphonyACR(),
+    helmConfig: getDevHelmConfig(),
+    customPrebuildScripts: await getCustomPrebuildScripts(),
+    editHook: await generateCustomPipelineHook("buddy"),
+  };
+}
+
+async function getDevPipelineParams(): Promise<IOTPipelineParams> {
+  return {
+    type: IOTPipelineType.Buddy,
+    buildTagIdentifier: "develop",
+    parallelJobCount: 1,
     trigger: {
       batch: true,
       branches: ["main"],
@@ -48,8 +63,8 @@ async function getBuddyPipelineParams(): Promise<IOTPipelineParams> {
     microservices: getAllMicroservices(),
     acr: getDevSymphonyACR(),
     helmConfig: getDevHelmConfig(),
-    customPrebuildScripts: await getBuddyPrebuildScripts(),
-    editHook: await generateBuddyPipelineHook(),
+    customPrebuildScripts: await getCustomPrebuildScripts(),
+    editHook: await generateCustomPipelineHook("develop"),
   };
 }
 
@@ -128,12 +143,17 @@ function splitJobs(pipelineYaml: PipelineYaml): PipelineYaml {
   return pipelineYaml;
 }
 
-async function generateBuddyPipelineHook() {
+async function generateCustomPipelineHook(name: string) {
+  name = name.trim().replace(/\s+/g, "-").toLowerCase()
+  const pipelineName = `${name}-$(Date:yyyyMMdd)$(Rev:.r)`;
+  
   const inlineScript = await readFile(
     path.join(__dirname, "../scripts/lock-artifacts.sh"),
     "utf8"
   );
+
   return (pipelineYaml: PipelineYaml): PipelineYaml => {
+    pipelineYaml.name = pipelineName;
     const finalJob = pipelineYaml.extends.parameters.stages.at(-1).jobs.at(-1);
     const task = {
       task: "AzureCLI@2",
@@ -144,6 +164,7 @@ async function generateBuddyPipelineHook() {
         scriptType: "bash",
         scriptLocation: "inlineScript",
         inlineScript,
+        workingDirectory: "$(Build.SourcesDirectory)/dst/drop_prebuild_prebuild",
       },
     };
     finalJob.steps.push(task);
@@ -151,7 +172,7 @@ async function generateBuddyPipelineHook() {
   };
 }
 
-async function getBuddyPrebuildScripts(): Promise<
+async function getCustomPrebuildScripts(): Promise<
   IOTPipelineParamsBuildScript[]
 > {
   const script = await readFile(
