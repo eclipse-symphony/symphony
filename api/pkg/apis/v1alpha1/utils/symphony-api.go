@@ -48,6 +48,21 @@ type authResponse struct {
 	TokenType   string `json:"tokenType"`
 }
 
+// SummarySpecError represents an error that includes a SummarySpec in its message
+// field.
+type SummarySpecError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *SummarySpecError) Error() string {
+	return fmt.Sprintf(
+		"failed to invoke Symphony API: [%s] - %s",
+		e.Code,
+		e.Message,
+	)
+}
+
 func GetInstances(baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(baseUrl, user, password)
@@ -502,8 +517,11 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 		if resp.StatusCode == 404 { // API service is already gone
 			return nil, nil
 		}
-
-		return nil, fmt.Errorf("failed to invoke Symphony API: [%d] - %v", resp.StatusCode, string(bodyBytes))
+		object := &SummarySpecError{
+			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
+			Message: string(bodyBytes),
+		}
+		return nil, object
 	}
 
 	return bodyBytes, nil

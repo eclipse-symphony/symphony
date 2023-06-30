@@ -96,8 +96,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		deployment, err := utils.CreateSymphonyDeploymentFromTarget(*target)
 		if err != nil {
-			log.Error(err, "failed to generate Symphony deployment")
-			return ctrl.Result{}, r.updateTargetStatus(target, "Failed", provisioningstates.Failed, model.SummarySpec{
+			log.Error(err, "failed to create Symphony deployment")
+			return ctrl.Result{}, r.updateTargetStatus(target, "deploymentCreationFailed", provisioningstates.Failed, model.SummarySpec{
 				TargetCount:  1,
 				SuccessCount: 0,
 				TargetResults: map[string]model.TargetResultSpec{
@@ -151,23 +151,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, status string, provisioningStatus string, summary model.SummarySpec, provisioningError error) error {
-	if target.Status.Properties == nil {
-		target.Status.Properties = make(map[string]string)
-	}
+	// Start clean and update all the fields in target.Status.Properties{}
+	target.Status.Properties = make(map[string]string)
 
 	target.Status.Properties["status"] = status
 	target.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
 	target.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
-
-	r.ensureOperationState(target, provisioningStatus)
-	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
-	if provisioningError != nil {
-		target.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
-		target.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
-	}
 	for k, v := range summary.TargetResults {
 		target.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 	}
+
+	r.updateProvisioningStatus(target, provisioningStatus, provisioningError)
+
 	target.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), target)
 }
@@ -185,4 +180,32 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TargetReconciler) ensureOperationState(target *symphonyv1.Target, provisioningState string) {
 	target.Status.ProvisioningStatus.Status = provisioningState
 	target.Status.ProvisioningStatus.OperationID = target.ObjectMeta.Annotations[constants.AzureOperationKey]
+}
+
+func (r *TargetReconciler) updateProvisioningStatus(target *symphonyv1.Target, provisioningStatus string, provisioningError error) {
+	r.ensureOperationState(target, provisioningStatus)
+	// Start with a clean Error object and update all the fields
+	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+
+	// Fill error details into target
+	errorObj := &target.Status.ProvisioningStatus.Error
+	if provisioningError != nil {
+		parsedError, err := utils.ParseAsAPIError(provisioningError)
+		if err != nil {
+			errorObj.Code = "500"
+			errorObj.Message = fmt.Sprintf("Deployment failed. %s", provisioningError.Error())
+			return
+		}
+		errorObj.Code = parsedError.Code
+		errorObj.Message = "Deployment failed."
+		errorObj.Target = "Symphony"
+		errorObj.Details = make([]symphonyv1.TargetError, 0)
+		for k, v := range parsedError.Spec.TargetResults {
+			errorObj.Details = append(errorObj.Details, symphonyv1.TargetError{
+				Code:    v.Status,
+				Message: v.Message,
+				Target:  k,
+			})
+		}
+	}
 }

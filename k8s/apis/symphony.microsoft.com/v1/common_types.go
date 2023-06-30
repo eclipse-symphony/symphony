@@ -18,8 +18,25 @@ type TopologySpec struct {
 
 // Defines an error in the ARM resource for long running operations
 type ErrorType struct {
+	Code    string        `json:"code,omitempty"`
+	Message string        `json:"message,omitempty"`
+	Target  string        `json:"target,omitempty"`
+	Details []TargetError `json:"details,omitempty"`
+}
+
+// Defines an error for symphony target
+type TargetError struct {
+	Code    string           `json:"code,omitempty"`
+	Message string           `json:"message,omitempty"`
+	Target  string           `json:"target,omitempty"`
+	Details []ComponentError `json:"details,omitempty"`
+}
+
+// Defines an error for components defined in symphony
+type ComponentError struct {
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
+	Target  string `json:"target,omitempty"`
 }
 
 // Defines the state of the ARM resource for long running operations

@@ -225,3 +225,27 @@ func matchString(src string, target string) bool {
 		return src == target
 	}
 }
+
+type ParsedAPIError struct {
+	Code string               `json:"code"`
+	Spec symphony.SummarySpec `json:"spec"`
+}
+
+// ParseAsAPIError returns the original error object as an error if errObj can not be parsed as
+// SummarySpecError
+func ParseAsAPIError(errObj error) (ParsedAPIError, error) {
+	res := ParsedAPIError{
+		Spec: symphony.SummarySpec{},
+	}
+	// Check if errObj is type of SummarySpecError
+	summarySpecError, ok := errObj.(*api_utils.SummarySpecError)
+	if !ok {
+		return res, errObj
+	}
+	// Convert SummarySpecError to ParsedAPIError
+	if err := json.Unmarshal([]byte(summarySpecError.Message), &res.Spec); err != nil {
+		return res, err
+	}
+	res.Code = summarySpecError.Code
+	return res, nil
+}

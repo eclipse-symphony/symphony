@@ -163,7 +163,34 @@ spec:
                     properties:
                       code:
                         type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
                       message:
+                        type: string
+                      target:
                         type: string
                     type: object
                   failureCause:
@@ -550,7 +577,34 @@ spec:
                     properties:
                       code:
                         type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
                       message:
+                        type: string
+                      target:
                         type: string
                     type: object
                   failureCause:
