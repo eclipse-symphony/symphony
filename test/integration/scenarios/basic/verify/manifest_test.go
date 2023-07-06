@@ -42,12 +42,14 @@ func TestBasic_TargetStatus(t *testing.T) {
 		require.Len(t, resources.Items, 1, "there should be only one target")
 
 		status := getStatus(resources.Items[0])
+		fmt.Printf("Current target status: %s\n", status)
+		require.NotEqual(t, "Failed", status, "target should not be in failed state")
 		if status == "Succeeded" {
 			break
-		} else {
-			fmt.Printf("Current target status: %s", status)
-			time.Sleep(time.Second * 1)
 		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
 	}
 }
 
@@ -71,12 +73,14 @@ func TestBasic_InstanceStatus(t *testing.T) {
 		require.Len(t, resources.Items, 1, "there should be only one instance")
 
 		status := getStatus(resources.Items[0])
+		fmt.Printf("Current instance status: %s\n", status)
+		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
 		if status == "Succeeded" {
 			break
-		} else {
-			fmt.Printf("Current instance status: %s", status)
-			time.Sleep(time.Second * 1)
 		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
 	}
 }
 
