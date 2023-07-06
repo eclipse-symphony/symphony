@@ -25,7 +25,6 @@ export async function getIotPipelineParams(): Promise<IOTPipelineGeneratorParams
   const iotPipelineParams: IOTPipelineParams[] = [];
 
   iotPipelineParams.push(await getBuddyPipelineParams());
-  iotPipelineParams.push(await getDevPipelineParams());
   iotPipelineParams.push(getPRPipelineParams());
 
   return {
@@ -41,6 +40,10 @@ async function getBuddyPipelineParams(): Promise<IOTPipelineParams> {
     type: IOTPipelineType.Buddy,
     buildTagIdentifier: "buddy",
     parallelJobCount: 1,
+    trigger:{
+      branches: ["main"],
+      batch: true,
+    },
     showBuildServiceToggleOptions: false,
     microservices: getAllMicroservices(),
     acr: getDevSymphonyACR(),
@@ -50,23 +53,6 @@ async function getBuddyPipelineParams(): Promise<IOTPipelineParams> {
   };
 }
 
-async function getDevPipelineParams(): Promise<IOTPipelineParams> {
-  return {
-    type: IOTPipelineType.Buddy,
-    buildTagIdentifier: "develop",
-    parallelJobCount: 1,
-    trigger: {
-      batch: true,
-      branches: ["main"],
-    },
-    showBuildServiceToggleOptions: false,
-    microservices: getAllMicroservices(),
-    acr: getDevSymphonyACR(),
-    helmConfig: getDevHelmConfig(),
-    customPrebuildScripts: await getCustomPrebuildScripts(),
-    editHook: await generateCustomPipelineHook("develop"),
-  };
-}
 
 function getPRPipelineParams(): IOTPipelineParams {
   return {
@@ -88,11 +74,17 @@ function getAllMicroservices(): IOTPipelineParamsMicroservice[] {
       repositoryName: "symphony-api",
       dockerFilePath: "/api/Dockerfile",
       dockerFileContextPath: "/",
+      buildByDefault: true,
+      useCache: true,
+      staticTags: ["latest"],
     },
     {
       repositoryName: "symphony-k8s",
       dockerFilePath: "/k8s/Dockerfile",
       dockerFileContextPath: "/",
+      buildByDefault: true,
+      useCache: true,
+      staticTags: ["latest"],
     }
   );
 

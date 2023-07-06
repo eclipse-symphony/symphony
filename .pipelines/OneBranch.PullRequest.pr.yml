@@ -43,7 +43,7 @@ extends:
                   saveImageToPath: symphony-api.tar
                   buildkit: 1
                   enable_network: true
-                  enable_cache: false
+                  enable_cache: true
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
                   build_tag: $(Build.BuildNumber)
           - job: build_2
@@ -63,7 +63,7 @@ extends:
                   saveImageToPath: symphony-k8s.tar
                   buildkit: 1
                   enable_network: true
-                  enable_cache: false
+                  enable_cache: true
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
                   build_tag: $(Build.BuildNumber)
 schedules: []

@@ -1,6 +1,10 @@
 name: buddy-$(Date:yyyyMMdd)$(Rev:.r)
 parameters: []
-trigger: none
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
 variables:
   LinuxContainerImage: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
   DEBIAN_FRONTEND: noninteractive
@@ -108,7 +112,7 @@ extends:
                   saveImageToPath: symphony-api.tar
                   buildkit: 1
                   enable_network: true
-                  enable_cache: false
+                  enable_cache: true
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
                   build_tag: $(Build.BuildNumber)
                   enable_isolated_acr_push: false
@@ -126,7 +130,7 @@ extends:
                   saveImageToPath: symphony-k8s.tar
                   buildkit: 1
                   enable_network: true
-                  enable_cache: false
+                  enable_cache: true
                   arguments: ' --build-arg VSS_NUGET_EXTERNAL_FEED_ENDPOINTS --build-arg VSS_NUGET_URI_PREFIXES --build-arg VSS_NUGET_ACCESSTOKEN'
                   build_tag: $(Build.BuildNumber)
                   enable_isolated_acr_push: false
@@ -189,6 +193,25 @@ extends:
                   targetPath: $(Build.SourcesDirectory)/dst/drop_prebuild_prebuild/ob_outputDirectory_helm
                   publishLocation: pipeline
                   artifact: drop_postbuild_postbuild
+              - task: Docker@2
+                displayName: Login to ACR
+                inputs:
+                  containerRegistry: symphony_corp_acr
+                  command: login
+                  addPipelineData: false
+                  addBaseImageData: false
+              - task: Bash@3
+                displayName: Update static tags on images
+                condition: ne(variables['Agent.OS'], 'Windows_NT')
+                inputs:
+                  targetType: inline
+                  script: |
+                    #!/bin/bash
+                    set -e
+                    docker manifest create symphonycr.azurecr.io/symphony-api:latest symphonycr.azurecr.io/symphony-api:$(Build.BuildNumber)
+                    docker manifest push symphonycr.azurecr.io/symphony-api:latest
+                    docker manifest create symphonycr.azurecr.io/symphony-k8s:latest symphonycr.azurecr.io/symphony-k8s:$(Build.BuildNumber)
+                    docker manifest push symphonycr.azurecr.io/symphony-k8s:latest
               - task: AzureCLI@2
                 displayName: Lock artifacts in ACR
                 condition: ne(variables['Agent.OS'], 'Windows_NT')
