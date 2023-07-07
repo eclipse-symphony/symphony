@@ -36,8 +36,7 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	// TODO: enable this once clean up works
-	// defer Cleanup()
+	defer Cleanup()
 
 	err := Setup()
 	if err != nil {
