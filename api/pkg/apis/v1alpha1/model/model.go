@@ -16,7 +16,7 @@ package model
 type ModelSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Properties  map[string]string `json:"properties,omitempty"`
-	Constraints []ConstraintSpec  `json:"constraints,omitempty"`
+	Constraints string            `json:"constraints,omitempty"`
 	Bindings    []BindingSpec     `json:"bindings,omitempty"`
 }
 

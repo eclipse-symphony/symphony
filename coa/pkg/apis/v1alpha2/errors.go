@@ -47,3 +47,17 @@ func NewCOAError(err error, msg string, state State) COAError {
 		State:      state,
 	}
 }
+func IsNotFound(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == NotFound
+}
+func IsDelayed(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == Delayed
+}

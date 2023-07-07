@@ -239,7 +239,9 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 func (s *ReferenceManager) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrite bool) error {
 	return s.Reporter.Report(id, namespace, group, kind, version, properties, overwrite)
 }
-
+func (s *ReferenceManager) Enabled() bool {
+	return s.Config.Properties["poll.enabled"] == "true"
+}
 func (s *ReferenceManager) Poll() []error {
 	return nil
 }

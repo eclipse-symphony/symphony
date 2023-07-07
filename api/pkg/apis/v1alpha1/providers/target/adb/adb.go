@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -95,19 +96,18 @@ func toAdbProviderConfig(config providers.IProviderConfig) (AdbProviderConfig, e
 	return ret, err
 }
 
-func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	desired := deployment.GetComponentSlice()
 
 	re := regexp.MustCompile(`^package:(\w+\.)+\w+$`)
 
-	for _, component := range desired {
-		if p, ok := component.Properties[model.AppPackage]; ok {
+	for _, component := range references {
+		if p, ok := component.Component.Properties[model.AppPackage]; ok {
 			params := make([]string, 0)
 			params = append(params, "shell")
 			params = append(params, "pm")
@@ -136,98 +136,73 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec) 
 	return ret, nil
 }
 
-func (i *AdbProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, d := range desired {
-		found := false
-		for _, c := range current {
-			if c.Name == d.Name && c.Properties[model.AppPackage] == d.Properties[model.AppPackage] {
-				found = true
-			}
-		}
-		if !found {
-			return true
-		}
-	}
-	return false
-}
-
-func (i *AdbProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, d := range desired {
-		for _, c := range current {
-			if c.Name == d.Name && c.Properties[model.AppPackage] == d.Properties[model.AppPackage] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	components := deployment.GetComponentSlice()
+	components := step.GetComponents()
 
 	err := i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
-
-	for _, component := range components {
-		if component.Name != "" {
-			if p, ok := component.Properties[model.AppImage]; ok && p != "" {
-				if !isDryRun {
-					params := make([]string, 0)
-					params = append(params, "install")
-					params = append(params, p.(string))
-					cmd := exec.Command("adb", params...)
-					err := cmd.Run()
-					if err != nil {
-						observ_utils.CloseSpanWithError(span, err)
-						return err
+	ret := step.PrepareResultMap()
+	components = step.GetUpdatedComponents()
+	if len(components) > 0 {
+		for _, component := range components {
+			if component.Name != "" {
+				if p, ok := component.Properties[model.AppImage]; ok && p != "" {
+					if !isDryRun {
+						params := make([]string, 0)
+						params = append(params, "install")
+						params = append(params, p.(string))
+						cmd := exec.Command("adb", params...)
+						err := cmd.Run()
+						if err != nil {
+							ret[component.Name] = model.ComponentResultSpec{
+								Status:  v1alpha2.UpdateFailed,
+								Message: err.Error(),
+							}
+							observ_utils.CloseSpanWithError(span, err)
+							return ret, err
+						}
 					}
 				}
 			}
 		}
 	}
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		for _, component := range components {
+			if component.Name != "" {
+				if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
+					params := make([]string, 0)
+					params = append(params, "uninstall")
+					params = append(params, p.(string))
 
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-
-func (i *AdbProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	aLog.Infof("  P (Android ADB Provider): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	components := deployment.GetComponentSlice()
-	for _, component := range components {
-		if component.Name != "" {
-			if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
-				params := make([]string, 0)
-				params = append(params, "uninstall")
-				params = append(params, p.(string))
-
-				cmd := exec.Command("adb", params...)
-				err := cmd.Run()
-				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
-					return err
+					cmd := exec.Command("adb", params...)
+					err := cmd.Run()
+					if err != nil {
+						ret[component.Name] = model.ComponentResultSpec{
+							Status:  v1alpha2.DeleteFailed,
+							Message: err.Error(),
+						}
+						observ_utils.CloseSpanWithError(span, err)
+						return ret, err
+					}
 				}
 			}
 		}
 	}
-
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 
 func (*AdbProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

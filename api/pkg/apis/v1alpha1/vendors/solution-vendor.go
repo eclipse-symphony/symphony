@@ -1,14 +1,26 @@
 /*
-Copyright 2022 The COA Authors
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+   MIT License
+
+   Copyright (c) Microsoft Corporation.
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE
+
 */
 
 package vendors
@@ -66,108 +78,140 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 	return []v1alpha2.Endpoint{
 		{
 			Methods: []string{fasthttp.MethodPost, fasthttp.MethodGet, fasthttp.MethodDelete},
-			Route:   route + "/instances",
+			Route:   route + "/instances", //this route is to support ITargetProvider interface via a proxy provider
 			Version: o.Version,
 			Handler: o.onApplyDeployment,
 		},
 		{
-			Methods: []string{fasthttp.MethodGet},
-			Route:   route + "/needsupdate",
-			Version: o.Version,
-			Handler: o.onNeedsUpdate,
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/reconcile",
+			Version:    o.Version,
+			Parameters: []string{"delete?"},
+			Handler:    o.onReconcile,
 		},
 		{
-			Methods: []string{fasthttp.MethodGet},
-			Route:   route + "/needsremove",
+			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Route:   route + "/queue",
 			Version: o.Version,
-			Handler: o.onNeedsRemove,
+			Handler: o.onQueue,
 		},
 	}
 }
+func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onQueue",
+	})
+	log.Info("V (Solution): onQueue")
 
-type TwoComponentSlices struct {
-	Current []model.ComponentSpec `json:"current"`
-	Desired []model.ComponentSpec `json:"desired"`
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
+		instance := request.Parameters["instance"]
+		if instance == "" {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\":\"400 - instance parameter is not found\"}"),
+				ContentType: "application/json",
+			})
+		}
+		summary, err := c.SolutionManager.GetSummary(ctx, instance)
+		data, _ := json.Marshal(summary)
+		if err != nil {
+			if v1alpha2.IsNotFound(err) {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.NotFound,
+					Body:  data,
+				})
+			} else {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  data,
+				})
+			}
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        data,
+			ContentType: "application/json",
+		})
+	case fasthttp.MethodPost:
+		_, span := observability.StartSpan("onQueue-POST", rContext, nil)
+		instance := request.Parameters["instance"]
+		delete := request.Parameters["delete"]
+		target := request.Parameters["target"]
+		if instance == "" {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\":\"400 - instance parameter is not found\"}"),
+				ContentType: "application/json",
+			})
+		}
+		action := "UPDATE"
+		if delete == "true" {
+			action = "DELETE"
+		}
+		objType := "instance"
+		if target == "true" {
+			objType = "target"
+		}
+		c.Vendor.Context.Publish("job", v1alpha2.Event{
+			Metadata: map[string]string{
+				"objectType": objType,
+			},
+			Body: v1alpha2.JobData{
+				Id:     instance,
+				Action: action,
+			},
+		})
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        []byte("{\"result\":\"200 - instance reconcilation job accepted\"}"),
+			ContentType: "application/json",
+		})
+	}
+	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	})
 }
-
-func (c *SolutionVendor) onNeedsUpdate(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Solution Vendor", context.Background(), &map[string]string{
+func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onNeedsUpdate",
 	})
-	log.Info("V (Solution): onNeedsUpdate")
+	log.Info("V (Solution): onReconcile")
 
 	switch request.Method {
-	case fasthttp.MethodGet:
-		ctx, span := observability.StartSpan("onNeedsUpdate", request.Context, nil)
-		slices := new(TwoComponentSlices)
-		err := json.Unmarshal(request.Body, &slices)
+	case fasthttp.MethodPost:
+		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
+		var deployment model.DeploymentSpec
+		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
 		}
-		b := c.SolutionManager.NeedsUpdate(ctx, slices.Desired, slices.Current)
-		if b {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.OK,
-				Body:  []byte("{\"result\":\"200\"}"),
-			})
-		} else {
+		delete := request.Parameters["delete"]
+		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true")
+		data, _ := json.Marshal(summary)
+		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
-				Body:  []byte("{\"result\":\"5001\"}"),
+				Body:  data,
 			})
 		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        data,
+			ContentType: "application/json",
+		})
 	}
-	resp := v1alpha2.COAResponse{
+	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 		ContentType: "application/json",
-	}
-	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
-	return resp
-}
-func (c *SolutionVendor) onNeedsRemove(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Solution Vendor", context.Background(), &map[string]string{
-		"method": "onNeedsRemove",
 	})
-	log.Info("V (Solution): onNeedsRemove")
-
-	switch request.Method {
-	case fasthttp.MethodGet:
-		ctx, span := observability.StartSpan("onNeedsRemove", request.Context, nil)
-		slices := new(TwoComponentSlices)
-		err := json.Unmarshal(request.Body, &slices)
-		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-		b := c.SolutionManager.NeedsRemove(ctx, slices.Desired, slices.Current)
-
-		if b {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.OK,
-				Body:  []byte("{\"result\":\"200\"}"),
-			})
-		} else {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte("{\"result\":\"5001\"}"),
-			})
-		}
-	}
-	resp := v1alpha2.COAResponse{
-		State:       v1alpha2.MethodNotAllowed,
-		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
-		ContentType: "application/json",
-	}
-	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
-	return resp
 }
 
 func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2.COAResponse {
@@ -225,7 +269,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 }
 
 func (c *SolutionVendor) doGet(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
-	components, err := c.SolutionManager.Get(ctx, deployment)
+	_, components, err := c.SolutionManager.Get(ctx, deployment)
 	if err != nil {
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
@@ -240,7 +284,7 @@ func (c *SolutionVendor) doGet(ctx context.Context, deployment model.DeploymentS
 	}
 }
 func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
-	summary, err := c.SolutionManager.Apply(ctx, deployment)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		return v1alpha2.COAResponse{
@@ -255,7 +299,7 @@ func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.Deployme
 	}
 }
 func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
-	summary, err := c.SolutionManager.Remove(ctx, deployment)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		return v1alpha2.COAResponse{

@@ -1,21 +1,18 @@
 # Target Provider Interface
 
+_(last edit: 6/26/2023)_
+
 Symphony defines a simple Provider interface with 5 methods:
 
 ```go
 type ITargetProvider interface {
-    // apply components to a target
-    Apply(ctx context.Context, deployment model.DeploymentSpec) error
-    // remove components from a target
-    Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error
+    Init(config providers.IProviderConfig) error
+    // get validation rules
+    GetValidationRule(ctx context.Context) model.ValidationRule
     // get current component states from a target. The desired state is passed in as a reference
-    Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error)
-    // the target decides if an update is needed based the the current components and deisred components
-    // when a provider re-construct state, it may be unable to re-construct some of the properties
-    // in such cases, a provider can choose to ignore some property comparisions
-    NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
-    // Provider decides if components should be removed
-    NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
+    Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error)
+    // apply components to a target
+    Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error)
 }
 ```
 To simplify developer development, Symphony assumes:
@@ -25,23 +22,19 @@ To simplify developer development, Symphony assumes:
 * A provider may or may not be idempotent
 
 ## Get()
-The ```Get()``` method probes the target device and returns the currently installed components. Because a target device may host applications from different sources, the ```Get()``` method passes in the expected deployment description as a reference to help the provider to narrow down the scope of interest. For example, a mobile phone may have tens of applications installed. the deployment description informs the provider which application(s) should be checked. Specifically, the deployment description has a ```GetComponentSlice()``` method that returns the exact component list to be checked. 
-A provider is expected to:
+The ```Get()``` method probes the target device and returns the currently installed components. Because a target device may host applications from different sources, the ```Get()``` method passes in the expected deployment description as well a component list as a reference to help the provider to narrow down the scope of interest. For example, a mobile phone may have dozens of applications installed. The deployment description informs the provider which application(s) should be checked. 
 
-1. Read installed components.
-2. Filter the components by the components in the ```GetComponentSlice()``` list.
-3. Return the filtered component list.
+A provider works mostly with the reference component list. In case if additional contexts is needed, the provider can consult the deployment spec.
 
 ## Apply()
-The ```Apply()``` method deploys given components, which can be retrieved by calling the ```GetComponentSlice()``` method, to the target device. This method is only called after the ```NeedsUpdate()``` method has returned true. Hence, even if a provider is not idempotent, the side effect is minimized. A provider is expected to take necessary actions to bring its state as specified in the deployment description. 
+The ```Apply()``` method runs a ```DeploymentStep```, which contains a list of ```ComponentStep```s. The provider needs to operate on each of the ```ComponentStep``` to apply the desired state to the target system.
 
-> **NOTE**: A provider is expected to operate only on components affected by the deployment descriptions. Some providers may need to wipe the whole device during deployment. In such cases, the development description is expected to contain the entire software stack. Or, a device image can be treated as a single component in a solution.
+A ```ComponentStep``` can be either an ```"update"``` or ```"delete"``` step. Your provider should preform corresponding actions based on this flag.
 
-## Remove()
-The ```Remove()``` method removes given components, which can be retrieved by calling the ```GetComponentSlice()``` method, from the target device. This method is only called after the ```NeedsRemove()``` method has returned true. 
+> **NOTE**: A provider is expected to operate only on components affected by the deployment descriptions. Some providers may need to wipe the whole device during deployment. In such cases, the development description is expected to contain the entire software stack. Or a device image can be treated as a single component in a solution. If a provider maintains a collection resource that holds components, it should remove the collection resource when the collection becomes empty.
 
-## NeedsUpdate()
-The ```NeedsUpdate()``` method allows a provider to decide if an update operation is needed by comparing the current state and the desired state. Because Symphony allows providers to be stateless, a provider doesn't necessarily have capabilities to reconstruct the state as specified in the original desired state. For example, once an UWP app is installed on a Windows 10 machine, the package name is appended with a random postfix. Such random postfix is unknown to the original desired state and doing a straight property comparison will cause a false positive. With the ```NeedsUpdate()``` method, a provider can implement custom comparison logics to handle such discrepancies. 
+## GetValidationRule()
+The ```GetValidationRule()``` method explicitly defines what properties the provider handles. Symphony component spec has an open properties collection, which may contain any key-value pairs. This method allows Symphony to probe the provider what exact properties are expected by the specific provider. This allows Symphony to offer consistent validation behaviors across all providers. 
 
-## NeedsRemove()
-The ```NeedsRemove()``` method allows a provider to decide if a remove operation is needed (see the [NeedsUpdate()](#needsupdate) method).
+## ```isDryRun``` flag
+When ```isDryRun``` is set, the provider validates the component specs without doing actual deployments. You can access the validation result through the returned ```err``` object.

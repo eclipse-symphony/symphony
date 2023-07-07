@@ -8,6 +8,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ func TestInitWithMap(t *testing.T) {
 		"name":          "test",
 		"needsUpdate":   "mock-needsupdate.sh",
 		"needsRemove":   "mock-needsremove.sh",
-		"stagingFolder": ".",
+		"stagingFolder": "./staging",
 		"scriptFolder":  "https://demopolicies.blob.core.windows.net/gatekeeper",
 		"applyScript":   "mock-apply.sh",
 		"removeScript":  "mock-remove.sh",
@@ -81,94 +82,20 @@ func TestGet(t *testing.T) {
 				},
 			},
 		},
+		Instance: model.InstanceSpec{
+			Scope: "test-scope",
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "com1",
+			},
+		},
 	})
 
-	require.Nil(t, err)
-	require.Equal(t, 1, len(components))
-}
-
-// TestNeedsUpdateEmptyScript tests that we can update a script
-func TestNeedsUpdateEmptyScript(t *testing.T) {
-	provider := ScriptProvider{}
-	err := provider.Init(ScriptProviderConfig{})
-	require.Nil(t, err)
-	b := provider.NeedsUpdate(context.Background(), []model.ComponentSpec{
-		{
-			Name: "com1",
-		},
-	},
-		[]model.ComponentSpec{
-			{
-				Name: "com1",
-			},
-		})
-
-	require.Nil(t, err)
-	require.False(t, b)
-}
-
-// TestNeedsUpdateScript tests that we can update a script
-func TestNeedsUpdateScript(t *testing.T) {
-	provider := ScriptProvider{}
-	err := provider.Init(ScriptProviderConfig{
-		NeedsUpdate: "mock-needsupdate.sh",
-	})
-	require.Nil(t, err)
-	b := provider.NeedsUpdate(context.Background(), []model.ComponentSpec{
-		{
-			Name: "com1",
-		},
-	},
-		[]model.ComponentSpec{
-			{
-				Name: "com1",
-			},
-		})
-
-	require.Nil(t, err)
-	require.True(t, b)
-}
-
-// TestNeedsRemoveEmptyScript tests that we can remove a script
-func TestNeedsRemoveEmptyScript(t *testing.T) {
-	provider := ScriptProvider{}
-	err := provider.Init(ScriptProviderConfig{})
-	require.Nil(t, err)
-	b := provider.NeedsRemove(context.Background(), []model.ComponentSpec{
-		{
-			Name: "com1",
-		},
-	},
-		[]model.ComponentSpec{
-			{
-				Name: "com1",
-			},
-		})
-
-	require.Nil(t, err)
-	require.True(t, b)
-}
-
-// TestNeedsRemoveScript tests that we can remove a script
-func TestNeedsRemoveScript(t *testing.T) {
-	provider := ScriptProvider{}
-	err := provider.Init(ScriptProviderConfig{
-		NeedsRemove: "mock-needsremove.sh",
-	})
-	require.Nil(t, err)
-	b := provider.NeedsRemove(context.Background(), []model.ComponentSpec{
-		{
-			Name: "com1",
-		},
-	},
-		[]model.ComponentSpec{
-			{
-				Name: "com1",
-			},
-		})
-
-	require.Nil(t, err)
-	require.False(t, b)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
 }
 
 // TestRemoveScript tests that we can remove a script
@@ -177,15 +104,29 @@ func TestRemoveScript(t *testing.T) {
 	err := provider.Init(ScriptProviderConfig{
 		RemoveScript: "mock-remove.sh",
 	})
-	require.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{},
-		[]model.ComponentSpec{
-			{
-				Name: "com1",
+	assert.Nil(t, err)
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "com1",
+				},
 			},
-		})
-
-	require.Nil(t, err)
+		},
+		Instance: model.InstanceSpec{
+			Scope: "test-scope",
+		},
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "com1",
+				},
+			},
+		},
+	}, false)
+	assert.Nil(t, err)
 }
 
 // TestApplyScript tests that we can apply a script
@@ -194,12 +135,31 @@ func TestApplyScript(t *testing.T) {
 	err := provider.Init(ScriptProviderConfig{
 		ApplyScript: "mock-apply.sh",
 	})
-	require.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{}, false)
-	require.Nil(t, err)
+	assert.Nil(t, err)
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "com1",
+				},
+			},
+		},
+		Instance: model.InstanceSpec{
+			Scope: "test-scope",
+		},
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "update",
+				Component: model.ComponentSpec{
+					Name: "com1",
+				},
+			},
+		},
+	}, false)
+	assert.Nil(t, err)
 }
 
-// TestGetScriptFromUrl tests that we can get a script from a url
 func TestGetScriptFromUrl(t *testing.T) {
 	testScriptProvider := os.Getenv("TEST_SCRIPT_PROVIDER")
 	if testScriptProvider == "" {
@@ -207,12 +167,13 @@ func TestGetScriptFromUrl(t *testing.T) {
 	}
 	provider := ScriptProvider{}
 	err := provider.Init(ScriptProviderConfig{
-		GetScript:    "mock-get.sh",
-		ApplyScript:  "mock-apply.sh",
-		RemoveScript: "mock-remove.sh",
-		ScriptFolder: "https://demopolicies.blob.core.windows.net/gatekeeper",
+		GetScript:     "mock-get.sh",
+		ApplyScript:   "mock-apply.sh",
+		RemoveScript:  "mock-remove.sh",
+		StagingFolder: "./staging",
+		ScriptFolder:  "https://demopolicies.blob.core.windows.net/gatekeeper",
 	})
-	require.Nil(t, err)
+	assert.Nil(t, err)
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance

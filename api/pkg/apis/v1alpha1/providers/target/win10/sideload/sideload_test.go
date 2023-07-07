@@ -22,7 +22,7 @@ func TestGetEmptyDesired(t *testing.T) {
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
 }
@@ -46,6 +46,13 @@ func TestGetOneDesired(t *testing.T) {
 				},
 			},
 		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "HomeHub_1.0.4.0_x64",
+			},
+		},
 	})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
@@ -62,19 +69,23 @@ func TestRemove(t *testing.T) {
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "HomeHub_1.0.4.0_x64",
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, []model.ComponentSpec{
-		{
-			Name: "HomeHub_1.0.4.0_x64__gjd5ncee18d88",
-		},
-	})
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 func TestApply(t *testing.T) {
@@ -89,18 +100,26 @@ func TestApply(t *testing.T) {
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+		Properties: map[string]interface{}{
+			"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]interface{}{
-						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 func TestConformanceSuite(t *testing.T) {

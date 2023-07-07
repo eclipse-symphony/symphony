@@ -20,13 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-type ConstraintSpec struct {
-	Operator string   `json:"operator"`
-	Value    string   `json:"value,omitempty"`
-	Values   []string `json:"values,omitempty"` //TODO: It seems kubebuilder has difficulties handling recursive defs. This is supposed to be an ConstraintSpec array
-}
-
 type BindingSpec struct {
 	Role       string            `json:"role"`
 	Type       string            `json:"type"`
@@ -46,7 +39,7 @@ type ModelSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	DisplayName string            `json:"displayName,omitempty"`
 	Properties  map[string]string `json:"properties,omitempty"`
-	Constraints []ConstraintSpec  `json:"constraints,omitempty"`
+	Constraints string            `json:"constraints,omitempty"`
 	Bindings    []BindingSpec     `json:"bindings,omitempty"`
 	Routes      []RouteSpec       `json:"routes,omitempty"`
 }

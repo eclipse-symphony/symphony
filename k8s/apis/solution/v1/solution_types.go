@@ -35,14 +35,6 @@ type RouteSpec struct {
 	Filters    []FilterSpec      `json:"filters,omitempty"`
 }
 
-type ConstraintSpec struct {
-	Key       string   `json:"key"`
-	Qualifier string   `json:"qualifier,omitempty"`
-	Operator  string   `json:"operator,omitempty"`
-	Value     string   `json:"value,omitempty"`
-	Values    []string `json:"values,omitempty"` //TODO: It seems kubebuilder has difficulties handling recursive defs. This is supposed to be an ConstraintSpec array
-}
-
 type ComponentSpec struct {
 	Name     string            `json:"name"`
 	Type     string            `json:"type,omitempty"`
@@ -52,7 +44,7 @@ type ComponentSpec struct {
 	// +k8s:deepcopy-gen=false
 	Properties   runtime.RawExtension `json:"properties,omitempty"`
 	Routes       []RouteSpec          `json:"routes,omitempty"`
-	Constraints  []ConstraintSpec     `json:"constraints,omitempty"`
+	Constraints  string               `json:"constraints,omitempty"`
 	Dependencies []string             `json:"dependencies,omitempty"`
 	Skills       []string             `json:"skills,omitempty"`
 }

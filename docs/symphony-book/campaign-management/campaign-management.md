@@ -1,4 +1,4 @@
-# Instance Management
+# Campaign Management
 
 ## Stages
 The instance object has a top-level property named **Stage**, which can be used to control different stages of an instance deployment. This property enables scenarios like [gated deployments](../scenarios/gated-deployment.md), [staged deployments](../scenarios/staged-development.md), [scheduled deployment](../scenarios/scheduled-development.md) as well as [canary deployments](../scenarios/canary-deployment.md).
@@ -72,4 +72,3 @@ spec:
 
 ### Scheduled deployment
 The **Stage** property is used in conjunction with the **Schedule** property in this case. To use scheduled deployment, you create an instance object with **BLOCK** stage and a scheduled date/time. Symphony will schedule a job to clear the stage property at given time, allowing the instance to be deployed at specified time. 
-

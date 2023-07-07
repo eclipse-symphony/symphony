@@ -1,6 +1,6 @@
 # Symphony Quick Start - Deploying a Prometheus server to a Kubernetes cluster
 
-_(last edit: 4/11/2023)_
+_(last edit: 6/26/2023)_
 
 Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane on your Kubernetes cluster and deploying a new Symphony solution instance to the cluster.
 
@@ -34,7 +34,7 @@ maestro samples remove hello-k8s
 
 The easiest way to install Symphony is to use Helm:
 ```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.43.9
+helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
 ```
 
 Or, if you already have the ```symphony``` repository cloned:

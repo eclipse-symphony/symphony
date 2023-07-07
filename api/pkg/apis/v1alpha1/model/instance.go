@@ -36,11 +36,11 @@ type (
 		// scenarios like canary deployment and blue-green deployment (used in conjunction with the Campagin object)
 
 		Solution   string                       `json:"solution"`
-		Versions   []VersionSpec                `json:"versions,omitempty"`
 		Target     TargetRefSpec                `json:"target,omitempty"`
 		Topologies []TopologySpec               `json:"topologies,omitempty"`
 		Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
 		Arguments  map[string]map[string]string `json:"arguments,omitempty"`
+		Generation string                       `json:"generation,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
@@ -61,12 +61,6 @@ type (
 		Name       string            `json:"name"`
 		Skill      string            `json:"skill"`
 		Parameters map[string]string `json:"parameters,omitempty"`
-	}
-
-	// VersionSpec defines the desired version of the instance
-	VersionSpec struct {
-		Solution   string `json:"solution"`
-		Percentage int    `json:"percentage"`
 	}
 )
 
@@ -129,23 +123,6 @@ func (c PipelineSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
-func (c VersionSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(VersionSpec)
-	if !ok {
-		return false, errors.New("parameter is not a VersionSpec type")
-	}
-
-	if c.Solution != otherC.Solution {
-		return false, nil
-	}
-
-	if c.Percentage != otherC.Percentage {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(InstanceSpec)
 	if !ok {
@@ -177,10 +154,6 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	// if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 	// 	return false, nil
 	// }
-
-	if !SlicesEqual(c.Versions, otherC.Versions) {
-		return false, nil
-	}
 
 	equal, err := c.Target.DeepEquals(otherC.Target)
 	if err != nil {

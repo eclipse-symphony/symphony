@@ -141,7 +141,7 @@ func toExtendedLocationTargetProviderConfig(config providers.IProviderConfig) (E
 }
 
 // Get gets the extended location details from ARC enabled cluster
-func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan(
 		"Extended Location Provider",
 		ctx,
@@ -165,10 +165,9 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 		return ret, err
 	}
 
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
+	for _, c := range references {
 		// deployment gets the extended location properties from component
-		deployment, err := getDeploymentFromComponent(c)
+		deployment, err := getDeploymentFromComponent(c.Component)
 		if err != nil {
 			sLog.Errorf(" P (Extended Location Custom Location Target):", err)
 			return ret, err
@@ -181,8 +180,8 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 			return ret, err
 		}
 
-		if c.Type == "extended-location" {
-			if c.Properties[resourceNameKey] != "" {
+		if c.Component.Type == "extended-location" {
+			if c.Component.Properties[resourceNameKey] != "" {
 				_, err = clientFactory.NewCustomLocationsClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
 				if err != nil {
 					sLog.Errorf(" P (Custom Location Target Get):", err)
@@ -190,7 +189,7 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 				}
 			}
 
-			if c.Properties[resourceSyncRuleKey] != "" {
+			if c.Component.Properties[resourceSyncRuleKey] != "" {
 				_, err = clientFactory.NewResourceSyncRulesClient().Get(ctx, deployment.ResourceGroupName, deployment.ResourceSyncRule, deployment.Name, nil)
 				if err != nil {
 					sLog.Errorf(" P (Resource Sync Rule Target Get):", err)
@@ -201,66 +200,6 @@ func (i *ExtendedLocationTargetProvider) Get(ctx context.Context, deployment mod
 	}
 
 	return ret, nil
-}
-
-// Remove deletes the extended location from ARC enabled cluster
-func (i *ExtendedLocationTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan(
-		"Extended Location Provider",
-		ctx,
-		&map[string]string{
-			"method": "Remove",
-		},
-	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
-
-	//opts sets the system assigned managed identity
-	opts := azidentity.ManagedIdentityCredentialOptions{
-		ID: azidentity.ClientID(i.Config.ClientID),
-	}
-
-	//cred gets the managed identity credentials
-	cred, err := azidentity.NewManagedIdentityCredential(&opts)
-	if err != nil {
-		sLog.Errorf(" P (Extended Location Target Managed Identity Credential):", err)
-		return err
-	}
-
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
-		deployment, err := getDeploymentFromComponent(c)
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Custom Location Target):", err)
-			return err
-		}
-
-		// clientFactory creates a new client for Azure API
-		clientFactory, err := armextendedlocation.NewClientFactory(deployment.SubscriptionID, cred, nil)
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Target Subscription ID):", err)
-			return err
-		}
-
-		if c.Type == "extended-location" {
-			if c.Properties[resourceNameKey] != "" {
-				_, err = clientFactory.NewCustomLocationsClient().BeginDelete(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
-				if err != nil {
-					sLog.Errorf(" P (Extended Location Target Remove):", err)
-					return err
-				}
-			}
-
-			if c.Properties[resourceSyncRuleKey] != "" {
-				_, err = clientFactory.NewResourceSyncRulesClient().Delete(ctx, deployment.ResourceGroupName, deployment.ResourceSyncRule, deployment.Name, nil)
-				if err != nil {
-					sLog.Errorf(" P (Extended Location Target Remove):", err)
-					return err
-				}
-			}
-		}
-	}
-	return nil
 }
 
 // NeedsUpdate checks for any updates for the extended location
@@ -302,7 +241,8 @@ func (i *ExtendedLocationTargetProvider) NeedsRemove(ctx context.Context, desire
 }
 
 // Apply creates the extended location on the ARC enabled cluster
-func (i *ExtendedLocationTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *ExtendedLocationTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+
 	_, span := observability.StartSpan(
 		"Extended Location Provider",
 		ctx, &map[string]string{
@@ -312,6 +252,17 @@ func (i *ExtendedLocationTargetProvider) Apply(ctx context.Context, deployment m
 	var err error
 	defer utils.CloseSpanWithError(span, err)
 
+	components := step.GetComponents()
+	err = i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		return nil, err
+	}
+	if isDryRun {
+		return nil, nil
+	}
+
+	ret := step.PrepareResultMap()
+
 	// opts sets system assigned managed identity
 	opts := azidentity.ManagedIdentityCredentialOptions{
 		ID: azidentity.ClientID(i.Config.ClientID),
@@ -320,59 +271,96 @@ func (i *ExtendedLocationTargetProvider) Apply(ctx context.Context, deployment m
 	// cred gets the managed identity credential
 	cred, err := azidentity.NewManagedIdentityCredential(&opts)
 	if err != nil {
-		return err
+		return ret, err
 	}
 
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
-		// deployment get extended location property from component
-		deployment, err := getDeploymentFromComponent(c)
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Custom Location Target):", err)
-			return err
-		}
-
-		// clientFactory gets a new client for Azure API
-		clientFactory, err := armextendedlocation.NewClientFactory(deployment.SubscriptionID, cred, nil)
-		if err != nil {
-			sLog.Errorf(" P (Extended Location Target Subscription ID):", err)
-			return err
-		}
-
-		if c.Type == "extended-location" {
-			// customLocation sets the custom location property object
-			customLocation, err := toCustomLocationProperties(c)
+	updated := step.GetUpdatedComponents()
+	if len(updated) > 0 {
+		for _, c := range components {
+			// deployment get extended location property from component
+			deployment, err := getDeploymentFromComponent(c)
 			if err != nil {
-				sLog.Errorf(" P (Extended Location Target Deployment):", err)
-				return err
+				sLog.Errorf(" P (Extended Location Custom Location Target):", err)
+				return ret, err
 			}
 
-			// creates a new custom location
-			_, err = clientFactory.NewCustomLocationsClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, customLocation, nil)
+			// clientFactory gets a new client for Azure API
+			clientFactory, err := armextendedlocation.NewClientFactory(deployment.SubscriptionID, cred, nil)
 			if err != nil {
-				sLog.Errorf(" P (Custom Location Target Deployment):", err)
-				return err
+				sLog.Errorf(" P (Extended Location Target Subscription ID):", err)
+				return ret, err
 			}
 
-			//resourceSyncRule sets the resource sync rule property object
-			resourceSyncRule, err := toResourceSyncRuleProperties(c)
-			if err != nil {
-				sLog.Errorf(" P (Extended Location Target Deployment):", err)
-				return err
-			}
-
-			// creates a resource sync rule (optional)
-			if resourceSyncRule.Properties != nil {
-				_, err = clientFactory.NewResourceSyncRulesClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, resourceSyncRule, nil)
+			if c.Type == "extended-location" {
+				// customLocation sets the custom location property object
+				customLocation, err := toCustomLocationProperties(c)
 				if err != nil {
-					sLog.Errorf(" P (Resource Sync Rule Target Deployment):", err)
-					return err
+					sLog.Errorf(" P (Extended Location Target Deployment):", err)
+					return ret, err
+				}
+
+				// creates a new custom location
+				_, err = clientFactory.NewCustomLocationsClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, customLocation, nil)
+				if err != nil {
+					sLog.Errorf(" P (Custom Location Target Deployment):", err)
+					return ret, err
+				}
+
+				//resourceSyncRule sets the resource sync rule property object
+				resourceSyncRule, err := toResourceSyncRuleProperties(c)
+				if err != nil {
+					sLog.Errorf(" P (Extended Location Target Deployment):", err)
+					return ret, err
+				}
+
+				// creates a resource sync rule (optional)
+				if resourceSyncRule.Properties != nil {
+					_, err = clientFactory.NewResourceSyncRulesClient().BeginCreateOrUpdate(ctx, deployment.ResourceGroupName, deployment.ResourceName, deployment.Name, resourceSyncRule, nil)
+					if err != nil {
+						sLog.Errorf(" P (Resource Sync Rule Target Deployment):", err)
+						return ret, err
+					}
+				}
+			}
+		}
+		deleted := step.GetDeletedComponents()
+		if len(deleted) > 0 {
+			for _, c := range components {
+				deployment, err := getDeploymentFromComponent(c)
+				if err != nil {
+					sLog.Errorf(" P (Extended Location Custom Location Target):", err)
+					return ret, err
+				}
+
+				// clientFactory creates a new client for Azure API
+				clientFactory, err := armextendedlocation.NewClientFactory(deployment.SubscriptionID, cred, nil)
+				if err != nil {
+					sLog.Errorf(" P (Extended Location Target Subscription ID):", err)
+					return ret, err
+				}
+
+				if c.Type == "extended-location" {
+					if c.Properties[resourceNameKey] != "" {
+						_, err = clientFactory.NewCustomLocationsClient().BeginDelete(ctx, deployment.ResourceGroupName, deployment.ResourceName, nil)
+						if err != nil {
+							sLog.Errorf(" P (Extended Location Target Remove):", err)
+							return ret, err
+						}
+					}
+
+					if c.Properties[resourceSyncRuleKey] != "" {
+						_, err = clientFactory.NewResourceSyncRulesClient().Delete(ctx, deployment.ResourceGroupName, deployment.ResourceSyncRule, deployment.Name, nil)
+						if err != nil {
+							sLog.Errorf(" P (Extended Location Target Remove):", err)
+							return ret, err
+						}
+					}
 				}
 			}
 		}
 	}
 
-	return nil
+	return ret, nil
 }
 
 // toCustomLocationProperties sets the custom location properties
@@ -468,4 +456,19 @@ func getDeploymentFromComponent(component model.ComponentSpec) (ExtendedLocation
 	}
 
 	return ret, nil
+}
+
+func (*ExtendedLocationTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{Name: locationKey, IgnoreCase: false, SkipIfMissing: true},
+			{Name: subscriptionIDKey, IgnoreCase: false, SkipIfMissing: true},
+			{Name: resourceGroupNameKey, IgnoreCase: false, SkipIfMissing: true},
+		},
+	}
 }

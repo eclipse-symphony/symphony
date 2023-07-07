@@ -48,7 +48,7 @@ func TestGetNullDevice(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, components)
 	assert.Equal(t, 0, len(components)) //null device shouldn't have any modules
@@ -71,7 +71,7 @@ func TestGetVMDevice(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, components)
 	assert.Equal(t, 1, len(components)) //test vm device should have 1 module
@@ -86,7 +86,7 @@ func TestToMoudleEmptyVersion(t *testing.T) {
 			model.ContainerImage: "docker/hello-world",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -99,7 +99,7 @@ func TestToMoudleNoVersions(t *testing.T) {
 			model.ContainerImage: "docker/hello-world",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -113,7 +113,7 @@ func TestToMoudleEmptyType(t *testing.T) {
 			model.ContainerImage: "docker/hello-world",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -126,7 +126,7 @@ func TestToMoudleNoTypes(t *testing.T) {
 			model.ContainerImage: "docker/hello-world",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -140,7 +140,7 @@ func TestToMoudleEmptyImage(t *testing.T) {
 			model.ContainerImage: "",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -153,7 +153,7 @@ func TestToMoudleNoImage(t *testing.T) {
 			"container.type":    "docker",
 		},
 	}
-	_, err := toModule(component, "test", "")
+	_, err := toModule(component, "test", "", "target")
 	assert.NotNil(t, err)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
@@ -169,7 +169,7 @@ func TestToModuleDesiredProperties(t *testing.T) {
 			model.ContainerImage: "redis",
 		},
 	}
-	module, err := toModule(component, "test", "")
+	module, err := toModule(component, "test", "", "target")
 	assert.Nil(t, err)
 	assert.Equal(t, "ABC", module.DesiredProperties["A1"].(string))
 	assert.Equal(t, "DEF", module.DesiredProperties["A2"].(string))
@@ -185,11 +185,11 @@ func TestToModuleDesiredPropertiesWithAgent(t *testing.T) {
 			model.ContainerImage: "redis",
 		},
 	}
-	module, err := toModule(component, "test", "symphony-agent")
+	module, err := toModule(component, "test", "symphony-agent", "target")
 	assert.Nil(t, err)
 	assert.Equal(t, "ABC", module.DesiredProperties["A1"].(string))
 	assert.Equal(t, "DEF", module.DesiredProperties["A2"].(string))
-	assert.Equal(t, "target-runtime-symphony-agent", module.Environments[ENV_NAME].Value)
+	assert.Equal(t, "target-runtime-target-symphony-agent", module.Environments[ENV_NAME].Value)
 }
 func TestToModuleEnvVariables(t *testing.T) {
 	component := model.ComponentSpec{
@@ -202,7 +202,7 @@ func TestToModuleEnvVariables(t *testing.T) {
 			model.ContainerImage: "redis",
 		},
 	}
-	module, err := toModule(component, "test", "")
+	module, err := toModule(component, "test", "", "target")
 	assert.Nil(t, err)
 	assert.Equal(t, "ABC", module.Environments["A1"].Value)
 	assert.Equal(t, "DEF", module.Environments["A2"].Value)

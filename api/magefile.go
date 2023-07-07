@@ -9,5 +9,5 @@ import (
 )
 
 func Build() error {
-	return shellcmd.Command("go build -o bin/symphony-api").Run()
+	return shellcmd.Command("go build -o bin/symphony-api -tags=azure").Run()
 }

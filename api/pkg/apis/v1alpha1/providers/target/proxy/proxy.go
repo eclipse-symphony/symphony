@@ -127,7 +127,7 @@ func (a *ProxyUpdateProvider) callRestAPI(route string, method string, payload [
 	return bodyBytes, nil
 }
 
-func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
@@ -150,87 +150,52 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 	return ret, nil
 }
 
-func (i *ProxyUpdateProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
-		"method": "Remove",
-	})
-	sLog.Infof("~~~ Proxy Provider ~~~ : removing artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	data, _ := json.Marshal(deployment)
-	_, err := i.callRestAPI("instances", "DELETE", data)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-
-func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	components := step.GetComponents()
+	err := i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
 
-	data, _ := json.Marshal(deployment)
+	ret := step.PrepareResultMap()
+	components = step.GetUpdatedComponents()
+	if len(components) > 0 {
+		data, _ := json.Marshal(deployment)
 
-	_, err = i.callRestAPI("instances", "POST", data)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
+		_, err = i.callRestAPI("instances", "POST", data)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			return ret, err
+		}
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			return ret, err
+		}
 	}
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		data, _ := json.Marshal(deployment)
+		_, err := i.callRestAPI("instances", "DELETE", data)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			return ret, err
+		}
 	}
-
+	//TODO: Should we remove empty namespaces?
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 
-func (i *ProxyUpdateProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
-		"method": "NeedsUpdate",
-	})
-	sLog.Info("~~~ Proxy Provider ~~~ : needs update")
-
-	data, _ := json.Marshal(TwoComponentSlices{Current: current, Desired: desired})
-	_, err := i.callRestAPI("needsupdate", "GET", data)
-
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return false
-	}
-	observ_utils.CloseSpanWithError(span, nil)
-	return true
-}
-func (i *ProxyUpdateProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
-		"method": "NeedsRemove",
-	})
-	sLog.Info("~~~ Proxy Provider ~~~ : needs remove")
-
-	data, _ := json.Marshal(TwoComponentSlices{Current: current, Desired: desired})
-
-	_, err := i.callRestAPI("needsremove", "GET", data)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return false
-	}
-	observ_utils.CloseSpanWithError(span, nil)
-	return true
-}
 func (*ProxyUpdateProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
 		RequiredProperties:    []string{},

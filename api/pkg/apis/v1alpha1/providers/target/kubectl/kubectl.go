@@ -136,11 +136,11 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, err)
-	sLog.Info("~~~ Kubectl Target Provider ~~~ : Init()")
+	sLog.Info("  P (Kubectl Target): Init()")
 
 	updateConfig, err := toKubectlTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : expected KubectlTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P (Kubectl Target): expected KubectlTargetProviderConfig - %+v", err)
 		return err
 	}
 
@@ -150,45 +150,55 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 		kConfig, err = rest.InClusterConfig()
 	} else {
 		switch i.Config.ConfigType {
-		case "path", "inline":
+		case "path":
 			if i.Config.ConfigData == "" {
 				if home := homedir.HomeDir(); home != "" {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+					sLog.Errorf("  P (Kubectl Target): %+v", err)
 					return err
 				}
 			}
-
 			kConfig, err = clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
-
+		case "inline":
+			if i.Config.ConfigData != "" {
+				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+				if err != nil {
+					sLog.Errorf("  P (Kubectl Target):  %+v", err)
+					return err
+				}
+			} else {
+				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
+				sLog.Errorf("  P (Kubectl Target): %+v", err)
+				return err
+			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and inline", v1alpha2.BadConfig)
-			sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+			sLog.Errorf("  P (Kubectl Target): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Kubectl Target): %+v", err)
 		return err
 	}
 
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Kubectl Target): %+v", err)
 		return err
 	}
 
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Kubectl Target): %+v", err)
 		return err
 	}
 
 	i.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("~~~ Kubectl Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Kubectl Target): %+v", err)
 		return err
 	}
 
@@ -210,7 +220,7 @@ func toKubectlTargetProviderConfig(config providers.IProviderConfig) (KubectlTar
 }
 
 // Get gets the artifacts for a deployment
-func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx, &map[string]string{
@@ -219,12 +229,11 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, err)
-	sLog.Infof("~~~ Kubectl Target Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	components := deployment.GetComponentSlice()
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range components {
-		if v, ok := component.Properties["yaml"].(string); ok {
+	for _, component := range references {
+		if v, ok := component.Component.Properties["yaml"].(string); ok {
 			chanMes, chanErr := readYaml(v)
 			stop := false
 			for !stop {
@@ -232,61 +241,61 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				case dataBytes, ok := <-chanMes:
 					if !ok {
 						err = errors.New("failed to receive from data channel")
-						sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
+						sLog.Error("  P (Kubectl Target): +%v", err)
 						return nil, err
 					}
 
 					_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 					if err != nil {
 						if kerrors.IsNotFound(err) {
-							sLog.Infof("~~~ Kubectl Target Provider ~~~ : resource not found: %s", err)
+							sLog.Infof("  P (Kubectl Target): resource not found: %s", err)
 							continue
 						}
-						sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
+						sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
 						return nil, err
 					}
 
-					ret = append(ret, component)
+					ret = append(ret, component.Component)
 					stop = true //we do early stop as soon as we found the first resource. we may want to support different strategy in the future
 
 				case err, ok := <-chanErr:
 					if !ok {
 						err = errors.New("failed to receive from error channel")
-						sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
+						sLog.Error("  P (Kubectl Target): +%v", err)
 						return nil, err
 					}
 
 					if err == io.EOF {
 						stop = true
 					} else {
-						sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
+						sLog.Error("  P (Kubectl Target): failed to apply Yaml: +%v", err)
 						return nil, err
 					}
 				}
 			}
-		} else if component.Properties["resource"] != nil {
+		} else if component.Component.Properties["resource"] != nil {
 			var dataBytes []byte
-			dataBytes, err = json.Marshal(component.Properties["resource"])
+			dataBytes, err = json.Marshal(component.Component.Properties["resource"])
 			if err != nil {
-				sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to get deployment bytes from component: +%v", err)
+				sLog.Error("  P (Kubectl Target): failed to get deployment bytes from component: +%v", err)
 				return nil, err
 			}
 
 			_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
-					sLog.Infof("~~~ Kubectl Target Provider ~~~ : resource not found: %s", err)
+					sLog.Infof("  P (Kubectl Target): resource not found: %s", err)
 					continue
 				}
-				sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
+				sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
 				return nil, err
 			}
 
-			ret = append(ret, component)
+			ret = append(ret, component.Component)
 
 		} else {
 			err = errors.New("component doesn't have yaml or resource property")
-			sLog.Error("~~~ Kubectl Target Provider ~~~ : component doesn't have yaml or resource property")
+			sLog.Error("  P (Kubectl Target): component doesn't have yaml or resource property")
 			return nil, err
 		}
 	}
@@ -294,98 +303,8 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	return ret, nil
 }
 
-// NeedsUpdate checks if the current artifacts need to be updated
-func (i *KubectlTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	// With symphony's current implementation, we don't have a reliable way of checking if the current artifacts need to be updated
-	// so we always return true and delegate the responsibility of updating (if needed) to the kubernetes api server
-	return true
-}
-
-// NeedsRemove checks if the current artifacts need to be removed
-func (i *KubectlTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	// With symphony's current implementation, we don't have a reliable way of checking if the current artifacts need to be removed
-	// so we always return false and delegate the responsibility of removing (if needed) to the kubernetes api server
-
-	return true
-}
-
-// Remove removes the current artifacts
-func (i *KubectlTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan(
-		"Kubectl Target Provider",
-		ctx,
-		&map[string]string{
-			"method": "Remove",
-		},
-	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
-	sLog.Infof("~~~ Kubectl Target Provider ~~~ : deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	components := deployment.GetComponentSlice()
-	for _, component := range components {
-		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml"].(string); ok {
-				chanMes, chanErr := readYaml(v)
-				stop := false
-				for !stop {
-					select {
-					case dataBytes, ok := <-chanMes:
-						if !ok {
-							err = errors.New("failed to receive from data channel")
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
-							return err
-						}
-
-						err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
-						if err != nil {
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
-							return err
-						}
-
-					case err, ok := <-chanErr:
-						if !ok {
-							err = errors.New("failed to receive from error channel")
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
-							return err
-						}
-
-						if err == io.EOF {
-							stop = true
-						} else {
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to remove resource: +%v", err)
-							return err
-						}
-					}
-				}
-			} else if component.Properties["resource"] != nil {
-				var dataBytes []byte
-				dataBytes, err = json.Marshal(component.Properties["resource"])
-				if err != nil {
-					sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to convert resource data to bytes: +%v", err)
-					return err
-				}
-
-				err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
-				if err != nil {
-					sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to delete custom resource: +%v", err)
-					return err
-				}
-
-			} else {
-				err = errors.New("component doesn't have yaml property or resource property")
-				sLog.Error("~~~ Kubectl Target Provider ~~~ : component doesn't have yaml property or resource property")
-				return err
-			}
-		}
-	}
-
-	//TODO: Should we remove empty namespaces?
-	return nil
-}
-
 // Apply applies the deployment artifacts
-func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx,
@@ -395,78 +314,139 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, err)
-	sLog.Infof("~~~ Kubectl Target Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	components := deployment.GetComponentSlice()
+	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	if isDryRun {
-		return nil
+		return nil, nil
 	}
 
-	for _, component := range components {
-		if component.Type == "yaml.k8s" {
-			if v, ok := component.Properties["yaml"].(string); ok {
-				chanMes, chanErr := readYaml(v)
-				stop := false
-				for !stop {
-					select {
-					case dataBytes, ok := <-chanMes:
-						if !ok {
-							err = errors.New("failed to receive from data channel")
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
-							return err
-						}
+	ret := step.PrepareResultMap()
+	components = step.GetUpdatedComponents()
+	if len(components) > 0 {
+		for _, component := range components {
+			if component.Type == "yaml.k8s" {
+				if v, ok := component.Properties["yaml"].(string); ok {
+					chanMes, chanErr := readYaml(v)
+					stop := false
+					for !stop {
+						select {
+						case dataBytes, ok := <-chanMes:
+							if !ok {
+								err = errors.New("failed to receive from data channel")
+								sLog.Error("  P (Kubectl Target):  +%v", err)
+								return ret, err
+							}
 
-						i.ensureNamespace(ctx, deployment.Instance.Scope)
-						err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
-						if err != nil {
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
-							return err
-						}
+							i.ensureNamespace(ctx, deployment.Instance.Scope)
+							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+							if err != nil {
+								sLog.Error("  P (Kubectl Target):  failed to apply Yaml: +%v", err)
+								return ret, err
+							}
 
-					case err, ok := <-chanErr:
-						if !ok {
-							err = errors.New("failed to receive from error channel")
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : +%v", err)
-							return err
-						}
+						case err, ok := <-chanErr:
+							if !ok {
+								err = errors.New("failed to receive from error channel")
+								sLog.Error("  P (Kubectl Target):  +%v", err)
+								return ret, err
+							}
 
-						if err == io.EOF {
-							stop = true
-						} else {
-							sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
-							return err
+							if err == io.EOF {
+								stop = true
+							} else {
+								sLog.Error("  P (Kubectl Target):  failed to apply Yaml: +%v", err)
+								return ret, err
+							}
 						}
 					}
-				}
-			} else if component.Properties["resource"] != nil {
-				var dataBytes []byte
-				dataBytes, err = json.Marshal(component.Properties["resource"])
-				if err != nil {
-					sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to convert resource data to bytes: +%v", err)
-					return err
-				}
+				} else if component.Properties["resource"] != nil {
+					var dataBytes []byte
+					dataBytes, err = json.Marshal(component.Properties["resource"])
+					if err != nil {
+						sLog.Error("  P (Kubectl Target): failed to convert resource data to bytes: +%v", err)
+						return ret, err
+					}
 
-				i.ensureNamespace(ctx, deployment.Instance.Scope)
-				err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
-				if err != nil {
-					sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply custom resource: +%v", err)
-					return err
-				}
+					i.ensureNamespace(ctx, deployment.Instance.Scope)
+					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+					if err != nil {
+						sLog.Error("  P (Kubectl Target):  failed to apply custom resource: +%v", err)
+						return ret, err
+					}
 
-			} else {
-				err := errors.New("component doesn't have yaml property or resource property")
-				sLog.Error("~~~ Kubectl Target Provider ~~~ : component doesn't have yaml property or resource property")
-				return err
+				} else {
+					err := errors.New("component doesn't have yaml property or resource property")
+					sLog.Error("  P (Kubectl Target):  component doesn't have yaml property or resource property")
+					return ret, err
+				}
 			}
 		}
 	}
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		for _, component := range components {
+			if component.Type == "yaml.k8s" {
+				if v, ok := component.Properties["yaml"].(string); ok {
+					chanMes, chanErr := readYaml(v)
+					stop := false
+					for !stop {
+						select {
+						case dataBytes, ok := <-chanMes:
+							if !ok {
+								err = errors.New("failed to receive from data channel")
+								sLog.Error("  P (Kubectl Target):  +%v", err)
+								return ret, err
+							}
 
-	return nil
+							err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+							if err != nil {
+								sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+								return ret, err
+							}
+
+						case err, ok := <-chanErr:
+							if !ok {
+								err = errors.New("failed to receive from error channel")
+								sLog.Error("  P (Kubectl Target): +%v", err)
+								return ret, err
+							}
+
+							if err == io.EOF {
+								stop = true
+							} else {
+								sLog.Error("  P (Kubectl Target): failed to remove resource: +%v", err)
+								return ret, err
+							}
+						}
+					}
+				} else if component.Properties["resource"] != nil {
+					var dataBytes []byte
+					dataBytes, err = json.Marshal(component.Properties["resource"])
+					if err != nil {
+						sLog.Error("  P (Kubectl Target): failed to convert resource data to bytes: +%v", err)
+						return ret, err
+					}
+
+					err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+					if err != nil {
+						sLog.Error("  P (Kubectl Target): failed to delete custom resource: +%v", err)
+						return ret, err
+					}
+
+				} else {
+					err = errors.New("component doesn't have yaml property or resource property")
+					sLog.Error("  P (Kubectl Target): component doesn't have yaml property or resource property")
+					return ret, err
+				}
+			}
+		}
+	}
+	return ret, nil
 }
 
 // ensureNamespace ensures that the namespace exists
@@ -588,13 +568,13 @@ func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope str
 func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes []byte, scope string) (*unstructured.Unstructured, error) {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to build a new dynamic client: +%v", err)
+		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
 		return nil, err
 	}
 
 	obj, err = dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
+		sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
 		return nil, err
 	}
 
@@ -605,14 +585,14 @@ func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes
 func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to build a new dynamic client: +%v", err)
+		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
 		return err
 	}
 
 	err = dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to delete Yaml: +%v", err)
+			sLog.Error("  P (Kubectl Target): failed to delete Yaml: +%v", err)
 			return err
 		}
 	}
@@ -624,7 +604,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to build a new dynamic client: +%v", err)
+		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
 		return err
 	}
 
@@ -632,13 +612,13 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 	existing, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to read object: +%v", err)
+			sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
 			return err
 		}
 		// Create the object
 		_, err = dr.Create(ctx, obj, metav1.CreateOptions{})
 		if err != nil {
-			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to create Yaml: +%v", err)
+			sLog.Error("  P (Kubectl Target): failed to create Yaml: +%v", err)
 			return err
 		}
 		return nil
@@ -648,7 +628,7 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 	obj.SetResourceVersion(existing.GetResourceVersion())
 	_, err = dr.Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to apply Yaml: +%v", err)
+		sLog.Error("  P (Kubectl Target): failed to apply Yaml: +%v", err)
 		return err
 	}
 

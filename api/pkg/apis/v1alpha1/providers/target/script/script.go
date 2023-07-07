@@ -55,8 +55,6 @@ type ScriptProviderConfig struct {
 	ApplyScript   string `json:"applyScript"`
 	RemoveScript  string `json:"removeScript"`
 	GetScript     string `json:"getScript"`
-	NeedsUpdate   string `json:"needsUpdate,omitempty"`
-	NeedsRemove   string `json:"needsRemove,omitempty"`
 	ScriptFolder  string `json:"scriptFolder,omitempty"`
 	StagingFolder string `json:"stagingFolder,omitempty"`
 	ScriptEngine  string `json:"scriptEngine,omitempty"`
@@ -71,12 +69,6 @@ func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderCo
 	ret := ScriptProviderConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
-	}
-	if v, ok := properties["needsUpdate"]; ok {
-		ret.NeedsUpdate = v
-	}
-	if v, ok := properties["needsRemove"]; ok {
-		ret.NeedsRemove = v
 	}
 	if v, ok := properties["stagingFolder"]; ok {
 		ret.StagingFolder = v
@@ -121,7 +113,7 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	sLog.Info("~~~ Script Provider ~~~ : Init()")
+	sLog.Info("  P (Script Target): Init()")
 
 	updateConfig, err := toScriptProviderConfig(config)
 	if err != nil {
@@ -141,18 +133,6 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 		err = downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder)
 		if err != nil {
 			return err
-		}
-		if i.Config.NeedsUpdate != "" {
-			err = downloadFile(i.Config.ScriptFolder, i.Config.NeedsUpdate, i.Config.StagingFolder)
-			if err != nil {
-				return err
-			}
-		}
-		if i.Config.NeedsRemove != "" {
-			err = downloadFile(i.Config.ScriptFolder, i.Config.NeedsRemove, i.Config.StagingFolder)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -193,7 +173,7 @@ func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderCon
 	return ret, err
 }
 
-func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
@@ -201,22 +181,30 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 
 	id := uuid.New().String()
 	input := id + ".json"
+	input_ref := id + "-ref.json"
 	output := id + "-output.json"
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(deployment, "", " ")
 	_ = ioutil.WriteFile(staging, file, 0644)
 
+	staging_ref := filepath.Join(i.Config.StagingFolder, input_ref)
+	file_ref, _ := json.MarshalIndent(references, "", " ")
+	_ = ioutil.WriteFile(staging_ref, file_ref, 0644)
+
 	abs, _ := filepath.Abs(staging)
+	abs_ref, _ := filepath.Abs(staging_ref)
+
+	defer os.Remove(abs)
+	defer os.Remove(abs_ref)
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.GetScript))
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.GetScript))
 	}
 
-	_, err := i.runCommand(scriptAbs, abs)
-
-	os.Remove(abs)
+	o, err := i.runCommand(scriptAbs, abs, abs_ref)
+	sLog.Debugf("  P (Script Target): get script output: %s", o)
 
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
@@ -234,203 +222,124 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 		return nil, err
 	}
 
-	abs, _ = filepath.Abs(outputStaging)
+	abs_output, _ := filepath.Abs(outputStaging)
 
-	os.Remove(abs)
+	defer os.Remove(abs_output)
 
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
 		return nil, err
 	}
 	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
-
-func (i *ScriptProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
-		"method": "NeedsUpdate",
-	})
-	sLog.Info("~~~ Script Provider ~~~ : needs update")
-
-	if i.Config.NeedsUpdate == "" {
-		observ_utils.CloseSpanWithError(span, nil)
-		return !model.SlicesCover(desired, current)
-	}
-
-	currentId := uuid.New().String() + "-current.json"
-	desiredId := uuid.New().String() + "-desired.json"
-
-	stagingCurrent := filepath.Join(i.Config.StagingFolder, currentId)
-	file, _ := json.MarshalIndent(current, "", " ")
-	_ = ioutil.WriteFile(stagingCurrent, file, 0644)
-
-	stagingDesired := filepath.Join(i.Config.StagingFolder, desiredId)
-	file, _ = json.MarshalIndent(desired, "", " ")
-	_ = ioutil.WriteFile(stagingDesired, file, 0644)
-
-	absCurrent, _ := filepath.Abs(stagingCurrent)
-	absDesired, _ := filepath.Abs(stagingDesired)
-
-	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.NeedsUpdate))
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.NeedsUpdate))
-	}
-
-	out, err := i.runCommand(scriptAbs, absCurrent, absDesired)
-
-	os.Remove(absCurrent)
-	os.Remove(absDesired)
-
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to run needsupdate script: %+v", err)
-		return false
-	}
-	str := string(out)
-
-	if str != "" {
-		s := strings.ToLower(strings.TrimSpace(str))
-		observ_utils.CloseSpanWithError(span, nil)
-		return s == "1" || s == "true"
-	} else { // The script opts to return nothing, return false
-		observ_utils.CloseSpanWithError(span, nil)
-		return false
-	}
-}
-func (i *ScriptProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
-		"method": "NeedsRemove",
-	})
-	sLog.Info("~~~ Script Provider ~~~ : needs remove")
-
-	if i.Config.NeedsRemove == "" {
-		observ_utils.CloseSpanWithError(span, nil)
-		return model.SlicesAny(desired, current)
-	}
-
-	currentId := uuid.New().String() + ".json"
-	desiredId := uuid.New().String() + ".json"
-
-	stagingCurrent := filepath.Join(i.Config.StagingFolder, currentId)
-	file, _ := json.MarshalIndent(current, "", " ")
-	_ = ioutil.WriteFile(stagingCurrent, file, 0644)
-
-	stagingDesired := filepath.Join(i.Config.StagingFolder, desiredId)
-	file, _ = json.MarshalIndent(desired, "", " ")
-	_ = ioutil.WriteFile(stagingDesired, file, 0644)
-
-	absCurrent, _ := filepath.Abs(stagingCurrent)
-	absDesired, _ := filepath.Abs(stagingDesired)
-
-	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.NeedsRemove))
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.NeedsRemove))
-	}
-
-	out, err := i.runCommand(scriptAbs, absCurrent, absDesired)
-
-	os.Remove(absCurrent)
-	os.Remove(absDesired)
-
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to run needsupdate script: %+v", err)
-		return false
-	}
-	str := string(out)
-	if str != "" {
-		s := strings.ToLower(strings.TrimSpace(str))
-		observ_utils.CloseSpanWithError(span, nil)
-		return s == "1" || s == "true"
-	} else { // The script opts to return nothing, return false
-		observ_utils.CloseSpanWithError(span, nil)
-		return false
-	}
-}
-
-func (i *ScriptProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	sLog.Infof("~~~ Script Provider ~~~ : deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	deploymentId := uuid.New().String() + ".json"
-	currenRefId := uuid.New().String() + ".json"
+func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, components []model.ComponentSpec, isRemove bool) (map[string]model.ComponentResultSpec, error) {
+	id := uuid.New().String()
+	deploymentId := id + ".json"
+	currenRefId := id + "-ref.json"
+	output := id + "-output.json"
 
 	stagingDeployment := filepath.Join(i.Config.StagingFolder, deploymentId)
 	file, _ := json.MarshalIndent(deployment, "", " ")
 	_ = ioutil.WriteFile(stagingDeployment, file, 0644)
 
 	stagingRef := filepath.Join(i.Config.StagingFolder, currenRefId)
-	file, _ = json.MarshalIndent(currentRef, "", " ")
+	file, _ = json.MarshalIndent(components, "", " ")
 	_ = ioutil.WriteFile(stagingRef, file, 0644)
 
 	absDeployment, _ := filepath.Abs(stagingDeployment)
 	absRef, _ := filepath.Abs(stagingRef)
 
-	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
+	var scriptAbs = ""
+	if isRemove {
+		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
+		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
+			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
+		}
+	} else {
+		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
+		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
+			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
+		}
 	}
+	o, err := i.runCommand(scriptAbs, absDeployment, absRef)
+	sLog.Debugf("  P (Script Target): apply script output: %s", o)
 
-	_, err := i.runCommand(scriptAbs, absDeployment, absRef)
-
-	os.Remove(absDeployment)
-	os.Remove(absRef)
+	defer os.Remove(absDeployment)
+	defer os.Remove(absRef)
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to run remove script: %+v", err)
-		return err
+		sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
+		return nil, err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
 
-func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+	outputStaging := filepath.Join(i.Config.StagingFolder, output)
+
+	data, err := ioutil.ReadFile(outputStaging)
+
+	if err != nil {
+		sLog.Errorf("  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		return nil, err
+	}
+
+	abs_output, _ := filepath.Abs(outputStaging)
+
+	defer os.Remove(abs_output)
+
+	ret := make(map[string]model.ComponentResultSpec)
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		sLog.Errorf("  P (Script Target): failed to parse get script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("~~~ Script Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
 
-	id := uuid.New().String() + ".json"
-
-	staging := filepath.Join(i.Config.StagingFolder, id)
-	file, _ := json.MarshalIndent(deployment, "", " ")
-	_ = ioutil.WriteFile(staging, file, 0644)
-
-	abs, _ := filepath.Abs(staging)
-
-	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
+	ret := step.PrepareResultMap()
+	components := step.GetUpdatedComponents()
+	if len(components) > 0 {
+		retU, err := i.runScriptOnComponents(deployment, components, false)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
+			return nil, err
+		}
+		for k, v := range retU {
+			ret[k] = v
+		}
 	}
-
-	_, err = i.runCommand(scriptAbs, abs)
-
-	os.Remove(abs)
-
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Script Provider ~~~ : failed to run apply script: %+v", err)
-		return err
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		retU, err := i.runScriptOnComponents(deployment, components, true)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Script Target): failed to run remove script: %+v", err)
+			return nil, err
+		}
+		for k, v := range retU {
+			ret[k] = v
+		}
 	}
-
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{

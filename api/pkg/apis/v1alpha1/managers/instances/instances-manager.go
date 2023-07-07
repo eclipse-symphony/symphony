@@ -28,6 +28,7 @@ package instances
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -56,7 +57,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "instances",
 		},
@@ -68,18 +69,19 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "symphony.microsoft.com/v1",
+				"apiVersion": model.SolutionGroup + "/v1",
 				"kind":       "Instance",
 				"metadata": map[string]interface{}{
 					"name": name,
 				},
 				"spec": spec,
 			},
+			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Instance", "metadata": {"name": "$instance()"}}`,
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "$instance()"}}`, model.SolutionGroup),
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "instances",
 		},
@@ -95,7 +97,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"resource": "instances",
 		},
 	}
@@ -105,7 +107,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	}
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
-		rt, err := getInstanceState(t.ID, t.Body)
+		rt, err := getInstanceState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +116,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	return ret, nil
 }
 
-func getInstanceState(id string, body interface{}) (model.InstanceState, error) {
+func getInstanceState(id string, body interface{}, etag string) (model.InstanceState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
@@ -138,7 +140,7 @@ func getInstanceState(id string, body interface{}) (model.InstanceState, error) 
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-
+	rSpec.Generation = etag
 	state := model.InstanceState{
 		Id:     id,
 		Spec:   &rSpec,
@@ -152,16 +154,16 @@ func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.Instan
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"resource": "instances",
 		},
 	}
-	target, err := t.StateProvider.Get(ctx, getRequest)
+	instance, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
 
-	ret, err := getInstanceState(id, target.Body)
+	ret, err := getInstanceState(id, instance.Body, instance.ETag)
 	if err != nil {
 		return model.InstanceState{}, err
 	}

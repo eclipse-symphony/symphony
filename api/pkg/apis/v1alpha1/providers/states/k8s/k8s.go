@@ -28,10 +28,10 @@ package k8s
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"strconv"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -39,7 +39,6 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -79,6 +78,9 @@ func K8sStateProviderConfigFromMap(properties map[string]string) (K8sStateProvid
 	}
 	if v, ok := properties["context"]; ok {
 		ret.Context = v
+	}
+	if ret.ConfigType == "" {
+		ret.ConfigType = "path"
 	}
 	if v, ok := properties["inCluster"]; ok {
 		val := v
@@ -175,6 +177,9 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sStateProvide
 		return ret, err
 	}
 	err = json.Unmarshal(data, &ret)
+	if ret.ConfigType == "" {
+		ret.ConfigType = "path"
+	}
 	return ret, err
 }
 
@@ -248,9 +253,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		if v, ok := dict["spec"]; ok {
 			item.Object["spec"] = v
 
-			jj, _ := json.Marshal(item)
-			fmt.Println(string(jj))
-
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
@@ -316,8 +318,10 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 		return nil, "", err
 	}
 	for _, v := range items.Items {
+		generation := v.GetGeneration()
 		entry := states.StateEntry{
-			ID: v.GetName(),
+			ETag: strconv.FormatInt(generation, 10),
+			ID:   v.GetName(),
 			Body: map[string]interface{}{
 				"spec":   v.Object["spec"],
 				"status": v.Object["status"],
@@ -387,8 +391,10 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		sLog.Errorf("  P (K8s State): failed to get objects: %v", err)
 		return states.StateEntry{}, err
 	}
+	generation := item.GetGeneration()
 	ret := states.StateEntry{
-		ID: request.ID,
+		ID:   request.ID,
+		ETag: strconv.FormatInt(generation, 10),
 		Body: map[string]interface{}{
 			"spec":   item.Object["spec"],
 			"status": item.Object["status"],

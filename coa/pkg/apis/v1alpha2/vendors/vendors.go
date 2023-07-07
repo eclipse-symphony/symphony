@@ -82,8 +82,10 @@ func (v *Vendor) RunLoop(interval time.Duration) error {
 	for true {
 		for _, m := range v.Managers {
 			if c, ok := m.(managers.ISchedulable); ok {
-				c.Poll()     //TODO: report errors
-				c.Reconcil() //TODO: report errors
+				if c.Enabled() {
+					c.Poll()     //TODO: report errors
+					c.Reconcil() //TODO: report errors
+				}
 			}
 		}
 		time.Sleep(interval)

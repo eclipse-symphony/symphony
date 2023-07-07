@@ -20,7 +20,7 @@ func TestGetEmptyDesired(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
 }
@@ -43,6 +43,16 @@ func TestGetOneDesired(t *testing.T) {
 					Properties: map[string]interface{}{
 						model.AppPackage: "com.sec.hiddenmenu",
 					},
+				},
+			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "MyApp",
+				Properties: map[string]interface{}{
+					model.AppPackage: "com.sec.hiddenmenu",
 				},
 			},
 		},
@@ -72,6 +82,16 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 				},
 			},
 		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "MyApp",
+				Properties: map[string]interface{}{
+					model.AppPackage: "doesnt.exist",
+				},
+			},
+		},
 	})
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
@@ -87,19 +107,27 @@ func TestApply(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "MyApp",
+		Properties: map[string]interface{}{
+			model.AppPackage: "com.companyname.beacon",
+			model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]interface{}{
-						model.AppPackage: "com.companyname.beacon",
-						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -113,19 +141,27 @@ func TestRemove(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "MyApp",
+		Properties: map[string]interface{}{
+			model.AppPackage: "com.companyname.beacon",
+			model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "MyApp",
-					Properties: map[string]interface{}{
-						model.AppPackage: "com.companyname.beacon",
-						model.AppImage:   "E:\\projects\\go\\github.com\\torrent-org\\mobile\\Beacon\\Beacon\\bin\\Debug\\net7.0-android\\com.companyname.beacon-Signed.apk",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 

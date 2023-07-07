@@ -90,6 +90,9 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	if v, ok := properties["configType"]; ok {
 		ret.ConfigType = v
 	}
+	if ret.ConfigType == "" {
+		ret.ConfigType = "path"
+	}
 	if v, ok := properties["configData"]; ok {
 		ret.ConfigData = v
 	}
@@ -221,7 +224,7 @@ func (i *K8sTargetProvider) fillServiceMeta(ctx context.Context, scope string, n
 	}
 	return nil
 }
-func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -301,108 +304,6 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, 
 		}
 	}
 	return nil
-}
-
-func (i *K8sTargetProvider) Remove(ctx context.Context, dep model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	log.Infof("  P (K8s Target Provider): deleting artifacts: %s - %s", dep.Instance.Scope, dep.Instance.Name)
-
-	switch i.Config.DeploymentStrategy {
-	case "", SINGLE_POD:
-		serviceName := dep.Instance.Name
-		if v, ok := dep.Instance.Metadata["service.name"]; ok && v != "" {
-			serviceName = v
-		}
-		err := i.removeService(ctx, dep.Instance.Scope, serviceName)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			log.Debugf("failed to remove service: %s", err.Error())
-			return err
-		}
-		err = i.removeDeployment(ctx, dep.Instance.Scope, dep.Instance.Name)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			log.Debugf("failed to remove deployment: %s", err.Error())
-			return err
-		}
-	case SERVICES, SERVICES_NS:
-		scope := dep.Instance.Scope
-		if i.Config.DeploymentStrategy == SERVICES_NS {
-			scope = dep.Instance.Name
-		}
-		slice := dep.GetComponentSlice()
-		for _, component := range slice {
-			serviceName := component.Name
-			if component.Metadata != nil {
-				if v, ok := component.Metadata["service.name"]; ok {
-					serviceName = v
-				}
-			}
-			err := i.removeService(ctx, scope, serviceName)
-			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
-				log.Debugf("failed to remove service: %s", err.Error())
-				return err
-			}
-			err = i.removeDeployment(ctx, scope, component.Name)
-			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
-				log.Debugf("failed to remove deployment: %s", err.Error())
-				return err
-			}
-		}
-	}
-
-	//TODO: Should we remove empty namespaces?
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-func (i *K8sTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
-		"method": "NeedsUpdate",
-	})
-	log.Infof("  P (K8s Target Provider): NeedsUpdate: %d - %d", len(desired), len(current))
-
-	for _, d := range desired {
-		found := false
-		for _, c := range current {
-			if c.Name == d.Name && c.Properties[model.ContainerImage] == d.Properties[model.ContainerImage] {
-				currentEnv := model.ExtractRawEnvFromProperties(c.Properties)
-				desiredEnv := model.ExtractRawEnvFromProperties(d.Properties)
-				if model.EnvMapsEqual(currentEnv, desiredEnv) {
-					found = true
-					break
-				}
-			}
-		}
-		if !found {
-			log.Info("  P (K8s Target Provider): NeedsUpdate: returning true")
-			observ_utils.CloseSpanWithError(span, nil)
-			return true
-		}
-	}
-	observ_utils.CloseSpanWithError(span, nil)
-	log.Info("  P (K8s Target Provider): NeedsUpdate: returning false")
-	return false
-}
-func (i *K8sTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
-		"method": "NeedsRemove",
-	})
-	log.Infof("  P (K8s Target Provider): NeedsRemove: %d - %d", len(desired), len(current))
-
-	for _, d := range desired {
-		for _, c := range current {
-			if c.Name == d.Name && c.Properties[model.ContainerImage] == d.Properties[model.ContainerImage] {
-				return true
-			}
-		}
-	}
-	observ_utils.CloseSpanWithError(span, nil)
-	log.Info("  P (K8s Target Provider): NeedsRemove: returning false")
-	return false
 }
 
 func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) error {
@@ -514,70 +415,137 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 }
 func (*K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
+		RequiredProperties:    []string{model.ContainerImage},
 		OptionalProperties:    []string{},
 		RequiredComponentType: "",
 		RequiredMetadata:      []string{},
 		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+			{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+		},
 	}
 }
-func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec, isDryRun bool) error {
+func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s", dep.Instance.Scope, dep.Instance.Name)
 
+	components := step.GetComponents()
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return nil, err
+	}
+	if isDryRun {
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil, nil
+	}
+
+	ret := step.PrepareResultMap()
+
 	projector, err := createProjector(i.Config.Projector)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
 		log.Debugf("  P (K8s Target Provider): failed to create projector: %s", err.Error())
-		return err
-	}
-
-	components := dep.GetComponentSlice()
-
-	err = i.GetValidationRule(ctx).Validate(components)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
-	}
-	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return ret, err
 	}
 
 	switch i.Config.DeploymentStrategy {
 	case "", SINGLE_POD:
-		err = i.deployComponents(ctx, span, dep.Instance.Scope, dep.Instance.Name, dep.Instance.Metadata, components, projector, dep.Instance.Name)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			log.Debugf("  P (K8s Target Provider): failed to apply components: %s", err.Error())
-			return err
-		}
-	case SERVICES, SERVICES_NS:
-		scope := dep.Instance.Scope
-		if i.Config.DeploymentStrategy == SERVICES_NS {
-			scope = dep.Instance.Name
-		}
-		for _, component := range components {
-			if dep.Instance.Metadata != nil {
-				if v, ok := dep.Instance.Metadata[ENV_NAME]; ok && v != "" {
-					if component.Metadata == nil {
-						component.Metadata = make(map[string]string)
-					}
-					component.Metadata[ENV_NAME] = v
-				}
-			}
-			err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.Name)
+		updated := step.GetUpdatedComponents()
+		if len(updated) > 0 {
+			err = i.deployComponents(ctx, span, dep.Instance.Scope, dep.Instance.Name, dep.Instance.Metadata, components, projector, dep.Instance.Name)
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
 				log.Debugf("  P (K8s Target Provider): failed to apply components: %s", err.Error())
-				return err
+				return ret, err
 			}
+		}
+		deleted := step.GetDeletedComponents()
+		if len(deleted) > 0 {
+			serviceName := dep.Instance.Name
+			if v, ok := dep.Instance.Metadata["service.name"]; ok && v != "" {
+				serviceName = v
+			}
+			err := i.removeService(ctx, dep.Instance.Scope, serviceName)
+			if err != nil {
+				observ_utils.CloseSpanWithError(span, err)
+				log.Debugf("failed to remove service: %s", err.Error())
+				return ret, err
+			}
+			err = i.removeDeployment(ctx, dep.Instance.Scope, dep.Instance.Name)
+			if err != nil {
+				observ_utils.CloseSpanWithError(span, err)
+				log.Debugf("failed to remove deployment: %s", err.Error())
+				return ret, err
+			}
+		}
+	case SERVICES, SERVICES_NS:
+		updated := step.GetUpdatedComponents()
+		if len(updated) > 0 {
+			scope := dep.Instance.Scope
+			if i.Config.DeploymentStrategy == SERVICES_NS {
+				scope = dep.Instance.Name
+			}
+			for _, component := range components {
+				if dep.Instance.Metadata != nil {
+					if v, ok := dep.Instance.Metadata[ENV_NAME]; ok && v != "" {
+						if component.Metadata == nil {
+							component.Metadata = make(map[string]string)
+						}
+						component.Metadata[ENV_NAME] = v
+					}
+				}
+				err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.Name)
+				if err != nil {
+					observ_utils.CloseSpanWithError(span, err)
+					log.Debugf("  P (K8s Target Provider): failed to apply components: %s", err.Error())
+					return ret, err
+				}
+			}
+		}
+		deleted := step.GetDeletedComponents()
+		if len(deleted) > 0 {
+			scope := dep.Instance.Scope
+			if i.Config.DeploymentStrategy == SERVICES_NS {
+				scope = dep.Instance.Name
+			}
+			slice := dep.GetComponentSlice()
+			for _, component := range slice {
+				serviceName := component.Name
+				if component.Metadata != nil {
+					if v, ok := component.Metadata["service.name"]; ok {
+						serviceName = v
+					}
+				}
+				err := i.removeService(ctx, scope, serviceName)
+				if err != nil {
+					ret[component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.DeleteFailed,
+						Message: err.Error(),
+					}
+					observ_utils.CloseSpanWithError(span, err)
+					log.Debugf("failed to remove service: %s", err.Error())
+					return ret, err
+				}
+				err = i.removeDeployment(ctx, scope, component.Name)
+				if err != nil {
+					ret[component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.DeleteFailed,
+						Message: err.Error(),
+					}
+					observ_utils.CloseSpanWithError(span, err)
+					log.Debugf("failed to remove deployment: %s", err.Error())
+					return ret, err
+				}
+			}
+
 		}
 	}
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, error) {
 	components := make([]model.ComponentSpec, len(deployment.Spec.Template.Spec.Containers))

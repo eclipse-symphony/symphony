@@ -31,9 +31,10 @@ type (
 		Metadata      map[string]string `json:"metadata,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
-		Constraints   []ConstraintSpec  `json:"constraints,omitempty"`
+		Constraints   string            `json:"constraints,omitempty"`
 		Topologies    []TopologySpec    `json:"topologies,omitempty"`
 		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
+		Generation    string            `json:"generation,omitempty"`
 	}
 )
 
@@ -63,7 +64,7 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !SlicesEqual(c.Constraints, otherC.Constraints) {
+	if c.Constraints != otherC.Constraints {
 		return false, nil
 	}
 

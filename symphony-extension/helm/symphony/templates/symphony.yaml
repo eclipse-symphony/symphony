@@ -57,6 +57,8 @@ spec:
             properties:
               displayName:
                 type: string
+              generation:
+                type: string
               metadata:
                 additionalProperties:
                   type: string
@@ -270,24 +272,7 @@ spec:
                   description: Defines a desired runtime component
                   properties:
                     constraints:
-                      items:
-                        properties:
-                          key:
-                            type: string
-                          operator:
-                            type: string
-                          qualifier:
-                            type: string
-                          value:
-                            type: string
-                          values:
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - key
-                        type: object
-                      type: array
+                      type: string
                     dependencies:
                       items:
                         type: string
@@ -415,24 +400,7 @@ spec:
                   description: Defines a desired runtime component
                   properties:
                     constraints:
-                      items:
-                        properties:
-                          key:
-                            type: string
-                          operator:
-                            type: string
-                          qualifier:
-                            type: string
-                          value:
-                            type: string
-                          values:
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - key
-                        type: object
-                      type: array
+                      type: string
                     dependencies:
                       items:
                         type: string
@@ -492,28 +460,13 @@ spec:
                   type: object
                 type: array
               constraints:
-                items:
-                  properties:
-                    key:
-                      type: string
-                    operator:
-                      type: string
-                    qualifier:
-                      type: string
-                    value:
-                      type: string
-                    values:
-                      items:
-                        type: string
-                      type: array
-                  required:
-                  - key
-                  type: object
-                type: array
+                type: string
               displayName:
                 type: string
               forceRedeploy:
                 type: boolean
+              generation:
+                type: string
               metadata:
                 additionalProperties:
                   type: string

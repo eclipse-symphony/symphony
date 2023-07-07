@@ -14,7 +14,8 @@
             "name": "targets-manager",
             "type": "managers.symphony.targets",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.state": "k8s-state",
+              "poll.enabled": "true"                           
             },
             "providers": {
               "k8s-state": {

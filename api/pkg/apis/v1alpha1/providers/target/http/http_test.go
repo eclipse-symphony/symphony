@@ -47,17 +47,16 @@ func TestHttpTargetProviderApply(t *testing.T) {
 	provider := HttpTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
+			"http.method": "GET",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "http-component",
-					Properties: map[string]interface{}{
-						"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-						"http.method": "GET",
-					},
-				},
-			},
+			Components: []model.ComponentSpec{component},
 		},
 		Assignments: map[string]string{
 			"target-1": "{http-component}",
@@ -77,7 +76,16 @@ func TestHttpTargetProviderApply(t *testing.T) {
 				},
 			},
 		},
-	}, false)
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -89,19 +97,27 @@ func TestHttpTargetProviderIncorrectApply(t *testing.T) {
 	provider := HttpTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    "",
+			"http.method": "GET",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "http-component",
-					Properties: map[string]interface{}{
-						"http.url":    "",
-						"http.method": "GET",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
 }
 
@@ -113,17 +129,16 @@ func TestHttpTargetProviderGet(t *testing.T) {
 	provider := HttpTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
+			"http.method": "GET",
+		},
+	}
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "http-component",
-					Properties: map[string]interface{}{
-						"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-						"http.method": "GET",
-					},
-				},
-			},
+			Components: []model.ComponentSpec{component},
 		},
 		Assignments: map[string]string{
 			"target-1": "{http-component}",
@@ -142,6 +157,11 @@ func TestHttpTargetProviderGet(t *testing.T) {
 					},
 				},
 			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action:    "update",
+			Component: component,
 		},
 	})
 	assert.Nil(t, err)
@@ -155,17 +175,16 @@ func TestHttpTargetProviderRemove(t *testing.T) {
 	provider := HttpTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
+			"http.method": "GET",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "http-component",
-					Properties: map[string]interface{}{
-						"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-						"http.method": "GET",
-					},
-				},
-			},
+			Components: []model.ComponentSpec{component},
 		},
 		Assignments: map[string]string{
 			"target-1": "{http-component}",
@@ -185,60 +204,17 @@ func TestHttpTargetProviderRemove(t *testing.T) {
 				},
 			},
 		},
-	}, []model.ComponentSpec{})
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
-}
-
-// TestHttpTargetProviderNeedsUpdate tests that HttpTargetProvider.NeedsUpdate returns false when passed a valid deployment spec
-func TestHttpTargetProviderNeedsUpdate(t *testing.T) {
-	current := []model.ComponentSpec{
-		{
-			Name: "http-component",
-			Properties: map[string]interface{}{
-				"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-				"http.method": "GET",
-			},
-		},
-	}
-
-	desired := []model.ComponentSpec{
-		{
-			Name: "http-component",
-			Properties: map[string]interface{}{
-				"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-				"http.method": "GET",
-			},
-		},
-	}
-	provider := HttpTargetProvider{}
-	update := provider.NeedsUpdate(context.Background(), current, desired)
-	require.False(t, update)
-}
-
-// TestHttpTargetProviderNeedsRemove tests that HttpTargetProvider.NeedsRemove returns false when passed a valid deployment spec
-func TestHttpTargetProviderNeedsRemove(t *testing.T) {
-	current := []model.ComponentSpec{
-		{
-			Name: "http-component",
-			Properties: map[string]interface{}{
-				"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-				"http.method": "GET",
-			},
-		},
-	}
-
-	desired := []model.ComponentSpec{
-		{
-			Name: "http-component",
-			Properties: map[string]interface{}{
-				"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
-				"http.method": "GET",
-			},
-		},
-	}
-	provider := HttpTargetProvider{}
-	remove := provider.NeedsRemove(context.Background(), current, desired)
-	require.True(t, remove)
 }
 
 // TestReadProperty tests that ReadProperty returns the correct value

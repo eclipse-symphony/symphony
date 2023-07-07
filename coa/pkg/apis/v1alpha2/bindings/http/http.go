@@ -140,7 +140,7 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			v := reqCtx.UserValue(k)
 			k = "__" + k
 			if v == nil {
-				req.Parameters[k] = ""
+				req.Parameters[k] = "" //TODO: chance to report on missing required parameters
 			} else {
 				req.Parameters[k] = v.(string)
 			}

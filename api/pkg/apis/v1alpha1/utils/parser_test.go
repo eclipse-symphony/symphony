@@ -750,16 +750,36 @@ func TestWindowsPath(t *testing.T) {
 }
 func TestComplexUrl(t *testing.T) {
 	// The parser can't parse this string correctly. The '' around the string stops the parsing and returns the string as it is
-	secretProvider := &secretmock.MockSecretProvider{}
-	err := secretProvider.Init(secretmock.MockSecretProviderConfig{})
+	parser := NewParser("'https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>'")
+	val, err := parser.Eval(EvaluationContext{})
 	assert.Nil(t, err)
-	parser := NewParser("'https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig'=$secret(abc,def)")
-	val, err := parser.Eval(EvaluationContext{
-		SecretProvider: secretProvider,
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=abc>>def", val)
+	assert.Equal(t, "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>", val)
 }
+func TestComplexUrlWithExpression(t *testing.T) {
+	// The parser can't parse this string correctly. The '' around the string stops the parsing and returns the string as it is
+	parser := NewParser("'https://manual-approval.azurewebsites.net:'+(442+1)+'/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>'")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>", val)
+}
+func TestComplexUrlWithFunctionExpression(t *testing.T) {
+	//create mock config provider
+	configProvider := &mock.MockConfigProvider{}
+	err := configProvider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	//create mock secret provider
+	secretProvider := &secretmock.MockSecretProvider{}
+	err = secretProvider.Init(secretmock.MockSecretProviderConfig{})
+	assert.Nil(t, err)
+
+	// The parser can't parse this string correctly. The '' around the string stops the parsing and returns the string as it is
+	parser := NewParser("'https://manual-approval.azurewebsites.net:'+(442+1+$secret(a,b))+'/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>'")
+	val, err := parser.Eval(EvaluationContext{SecretProvider: secretProvider})
+	assert.Nil(t, err)
+	assert.Equal(t, "https://manual-approval.azurewebsites.net:443a>>b/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<sig>", val)
+}
+
 func TestConfigCommaConfig(t *testing.T) {
 	//create mock config provider
 	provider := &mock.MockConfigProvider{}
@@ -1024,167 +1044,179 @@ func TestEvaluateDeployment(t *testing.T) {
 	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
 	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
 }
-
-func TestEvaluateDeploymentWithNestedProperties(t *testing.T) {
-	context := EvaluationContext{
-		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
-					},
-				},
-			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Properties: map[string]interface{}{
-							"nested": map[string]interface{}{
-								"foo": "$param(a)",
-								"array": []interface{}{
-									"$param(a)",
-									"$param(c) + ' ' + $param(a)",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Component: "component-1",
-	}
-	deployment, err := EvaluateDeployment(context)
+func TestEqualNumbers(t *testing.T) {
+	parser := NewParser("$equal(123, 123)")
+	val, err := parser.Eval(EvaluationContext{})
 	assert.Nil(t, err)
-	nested, ok := deployment.Solution.Components[0].Properties["nested"].(map[string]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "new-value", nested["foo"])
-	array, ok := nested["array"].([]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "new-value", array[0])
-	assert.Equal(t, "d new-value", array[1])
+	assert.Equal(t, "true", val)
 }
-func TestEvaluateDeploymentWithSupportedTypedProperties(t *testing.T) {
-	context := EvaluationContext{
-		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
-					},
-				},
-			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Properties: map[string]interface{}{
-							"stringProp": "$param(a)",
-							"array":      []interface{}{"$param(a)", true},
-							"boolProp":   false,
-							"intProp":    1,
-							"floatProp":  1.1,
-							"nullProp":   nil,
-						},
-					},
-				},
-			},
-		},
-		Component: "component-1",
-	}
-	deployment, err := EvaluateDeployment(context)
+func TestEqualNumberString(t *testing.T) {
+	parser := NewParser("$equal(123, '123')")
+	val, err := parser.Eval(EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["stringProp"])
-	arr, ok := deployment.Solution.Components[0].Properties["array"].([]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "new-value", arr[0])
-	assert.Equal(t, true, arr[1])
-	assert.Equal(t, false, deployment.Solution.Components[0].Properties["boolProp"])
-	assert.Equal(t, 1, deployment.Solution.Components[0].Properties["intProp"])
-	assert.Equal(t, 1.1, deployment.Solution.Components[0].Properties["floatProp"])
-	assert.Equal(t, nil, deployment.Solution.Components[0].Properties["nullProp"])
+	assert.Equal(t, "true", val)
 }
-func TestEvaluateDeploymentWithUnsupportedFunctionProperty(t *testing.T) {
-	context := EvaluationContext{
-		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
-					},
-				},
-			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Properties: map[string]interface{}{
-							"foo":         "$param(a)",
-							"bar":         "$param(c) + ' ' + $param(a)",
-							"unssuported": func() {},
-						},
-					},
-				},
-			},
+func TestEqualProperty(t *testing.T) {
+	parser := NewParser("$equal(bar, $property(foo))")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo": "bar",
 		},
-		Component: "component-1",
-	}
-	_, err := EvaluateDeployment(context)
-	assert.NotNil(t, err)
-	assert.Equal(t, "unsupported type func()", err.Error())
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
 }
+func TestEvalProperty(t *testing.T) {
+	parser := NewParser("$property(foo)")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo": "bar",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+}
+func TestEqualPropertyExpression(t *testing.T) {
+	parser := NewParser("$equal(bar+2, $property(foo+1))")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo1": "bar2",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestPropertyAnd(t *testing.T) {
+	parser := NewParser("$and($equal($property(foo), bar), $equal($property(book), title))")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo":  "bar",
+			"book": "title",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestPropertyOr(t *testing.T) {
+	parser := NewParser("$or($equal($property(foo), bar), $equal($property(foo), bar2))")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo": "bar",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestPropertyOrFalse(t *testing.T) {
+	parser := NewParser("$or($equal($property(foo), bar), $equal($property(foo), bar2))")
+	val, err := parser.Eval(EvaluationContext{
+		Properties: map[string]string{
+			"foo": "bar3",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestNot(t *testing.T) {
+	parser := NewParser("$not(true)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestNotNot(t *testing.T) {
+	parser := NewParser("$not($not(true))")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestGt(t *testing.T) {
+	parser := NewParser("$gt(2, 1.0)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestGtEqual(t *testing.T) {
+	parser := NewParser("$gt(2, 2)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestGtNegative(t *testing.T) {
+	parser := NewParser("$gt(2, 3)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestGe(t *testing.T) {
+	parser := NewParser("$ge(2, 1.0)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestGeEqual(t *testing.T) {
+	parser := NewParser("$ge(2, 2)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestGeNegative(t *testing.T) {
+	parser := NewParser("$ge(2, 3)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestLt(t *testing.T) {
+	parser := NewParser("$lt(2, 3.0)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestLtEqual(t *testing.T) {
+	parser := NewParser("$lt(2, 2)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestLtNegative(t *testing.T) {
+	parser := NewParser("$lt(2, 1)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestLe(t *testing.T) {
+	parser := NewParser("$le(2, 3.0)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestLeEqual(t *testing.T) {
+	parser := NewParser("$le(2, 2)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestLeNegative(t *testing.T) {
+	parser := NewParser("$le(2, 1)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestBetween(t *testing.T) {
+	parser := NewParser("$between(2, 1, 3)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestBetweenNegative(t *testing.T) {
+	parser := NewParser("$between(2, 3, 1)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
+}
+func TestLongVersionNumber(t *testing.T) {
 
-func TestEvaluateDeploymentWithUnsupportedPointerProperty(t *testing.T) {
-	val := "new-value"
-	context := EvaluationContext{
-		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
-					},
-				},
-			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Properties: map[string]interface{}{
-							"foo":         "$param(a)",
-							"bar":         "$param(c) + ' ' + $param(a)",
-							"unssuported": &val,
-						},
-					},
-				},
-			},
-		},
-		Component: "component-1",
-	}
-	_, err := EvaluateDeployment(context)
-	assert.NotNil(t, err)
-	assert.Equal(t, "unsupported type *string", err.Error())
+	parser := NewParser("0.2.0-20230627.2-develop")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "0.2.0-20230627.2-develop", val)
 }

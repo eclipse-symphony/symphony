@@ -45,7 +45,8 @@
               "providers.probe": "rtsp-probe",
               "providers.reference": "http-reference",
               "providers.uploader": "azure-uploader",
-              "providers.reporter": "http-reporter"
+              "providers.reporter": "http-reporter",
+              "poll.enabled": "true"
             },
             "providers": {      
               "rtsp-probe": {

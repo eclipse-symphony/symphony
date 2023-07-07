@@ -1,0 +1,16 @@
+{
+  "type": "middleware.http.tracing",
+  "properties": {
+    "pipeline": [
+      {
+        "exporter": {
+          "type": "tracing.exporters.zipkin",
+          "backendUrl": "http://{{ .Values.zipkin.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local:9411/api/v2/spans",
+          "sampler": {
+            "sampleRate": "always"
+          }
+        }
+      }
+    ]
+  }
+}

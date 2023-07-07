@@ -33,19 +33,27 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "redis-test",
+		Type: "container",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "redis:latest",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "redis:latest",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -70,6 +78,17 @@ func TestDockerTargetProviderGet(t *testing.T) {
 				},
 			},
 		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "redis-test",
+				Type: "container",
+				Properties: map[string]interface{}{
+					model.ContainerImage: "redis:latest",
+				},
+			},
+		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
@@ -86,20 +105,28 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	component := provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "redis-test",
+		Type: "container",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "redis:latest",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "redis:latest",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
-	assert.Nil(t, component)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
 }
 
 func TestConformanceSuite(t *testing.T) {

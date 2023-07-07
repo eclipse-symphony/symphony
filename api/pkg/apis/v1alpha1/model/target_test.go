@@ -15,9 +15,7 @@ func TestTargetDeepEquals(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -31,9 +29,7 @@ func TestTargetDeepEquals(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -53,9 +49,7 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -75,9 +69,7 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -91,9 +83,7 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -113,9 +103,7 @@ func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -129,9 +117,7 @@ func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -151,9 +137,7 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -167,9 +151,7 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -189,9 +171,7 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -205,9 +185,7 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -233,9 +211,7 @@ func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -255,9 +231,7 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -271,9 +245,7 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -293,9 +265,7 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -309,47 +279,7 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName1",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
-	}
-	res, err := Target.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestTargetDeepEqualsConstraintsNameNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
-	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey1",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -369,9 +299,7 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -385,9 +313,7 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName1",
 		}},
@@ -407,9 +333,7 @@ func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},
@@ -423,9 +347,7 @@ func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 		Components: []ComponentSpec{{
 			Name: "ComponentName",
 		}},
-		Constraints: []ConstraintSpec{{
-			Key: "ConstraintKey",
-		}},
+		Constraints: "",
 		Topologies: []TopologySpec{{
 			Device: "DeviceName",
 		}},

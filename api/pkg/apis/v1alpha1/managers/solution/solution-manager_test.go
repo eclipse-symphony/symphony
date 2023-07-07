@@ -15,9 +15,14 @@ limitations under the License.
 package solution
 
 import (
+	"context"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -197,120 +202,272 @@ func TestSortByDepedenciesAllSelfReferences(t *testing.T) {
 	_, err := sortByDepedencies(components)
 	assert.NotNil(t, err)
 }
-func TestGetRolesUnique(t *testing.T) {
-	components := []model.ComponentSpec{
-		{Type: "a"},
-		{Type: "b"},
-		{Type: "c"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 3, len(groups))
-	assert.Equal(t, "a", groups[0].Type)
-	assert.Equal(t, "b", groups[1].Type)
-	assert.Equal(t, "c", groups[2].Type)
-	assert.Equal(t, 0, groups[0].Index)
-	assert.Equal(t, 1, groups[1].Index)
-	assert.Equal(t, 2, groups[2].Index)
-}
-func TestGetRolesAllSame(t *testing.T) {
-	components := []model.ComponentSpec{
-		{Type: "a"},
-		{Type: "a"},
-		{Type: "a"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 1, len(groups))
-	assert.Equal(t, "a", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
-}
-func TestGetRolesAllEmpty(t *testing.T) {
-	components := []model.ComponentSpec{{}, {}, {}}
-	groups := collectGroups(components)
-	assert.Equal(t, 1, len(groups))
-	assert.Equal(t, "", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
-}
-func TestGetRolesEmptyNonEmpty(t *testing.T) {
-	components := []model.ComponentSpec{
-		{},
-		{Type: "a"},
-		{Type: "a"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 2, len(groups))
-	assert.Equal(t, "", groups[0].Type)
-	assert.Equal(t, "a", groups[1].Type)
-	assert.Equal(t, 0, groups[0].Index)
-	assert.Equal(t, 1, groups[1].Index)
-}
-func TestGetRolesMixed(t *testing.T) {
-	components := []model.ComponentSpec{
-		{},
-		{Type: "a"},
-		{Type: "b"},
-		{Type: "a"},
-		{},
-		{Type: "b"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 6, len(groups))
-	assert.Equal(t, "", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
-	assert.Equal(t, "a", groups[1].Type)
-	assert.Equal(t, 1, groups[1].Index)
-	assert.Equal(t, "b", groups[2].Type)
-	assert.Equal(t, 2, groups[2].Index)
-	assert.Equal(t, "a", groups[3].Type)
-	assert.Equal(t, 3, groups[3].Index)
-	assert.Equal(t, "", groups[4].Type)
-	assert.Equal(t, 4, groups[4].Index)
-	assert.Equal(t, "b", groups[5].Type)
-	assert.Equal(t, 5, groups[5].Index)
-}
-func TestGetRolesContinuedMixed(t *testing.T) {
-	components := []model.ComponentSpec{
-		{},
-		{Type: "a"},
-		{Type: "a"},
-		{Type: "b"},
-		{},
-		{Type: "b"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 5, len(groups))
-	assert.Equal(t, "", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
-	assert.Equal(t, "a", groups[1].Type)
-	assert.Equal(t, 1, groups[1].Index)
-	assert.Equal(t, "b", groups[2].Type)
-	assert.Equal(t, 3, groups[2].Index)
-	assert.Equal(t, "", groups[3].Type)
-	assert.Equal(t, 4, groups[3].Index)
-	assert.Equal(t, "b", groups[4].Type)
-	assert.Equal(t, 5, groups[4].Index)
-}
-func TestGetRolesSingle(t *testing.T) {
-	components := []model.ComponentSpec{
-		{Type: "a"},
-	}
-	groups := collectGroups(components)
-	assert.Equal(t, 1, len(groups))
-	assert.Equal(t, "a", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
-}
-func TestSortByDepedenciesSingleNoDepedencies(t *testing.T) {
-	components := []model.ComponentSpec{
-		{
-			Name: "com3",
-			Type: "helm",
+func TestMockGet(t *testing.T) {
+	id := uuid.New().String()
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock",
+				},
+				{
+					Name: "b",
+					Type: "mock",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock",
+								Provider: "providers.target.mock",
+								Config: map[string]string{
+									"id": id,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
-	components, err := sortByDepedencies(components)
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	state, components, err := manager.Get(context.Background(), deployment)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(components))
-	assert.Equal(t, "com3", components[0].Name)
-	groups := collectGroups(components)
-	assert.Equal(t, 1, len(groups))
-	assert.Equal(t, "helm", groups[0].Type)
-	assert.Equal(t, 0, groups[0].Index)
+	assert.Equal(t, 0, len(components))
+	assert.Equal(t, 0, len(state.TargetComponent))
+
+	_, err = manager.Reconcile(context.Background(), deployment, false)
+	assert.Nil(t, err)
+
+	state, _, err = manager.Get(context.Background(), deployment)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(state.Components))
+	assert.Equal(t, "a", state.Components[0].Name)
+	assert.Equal(t, "b", state.Components[1].Name)
+	assert.Equal(t, 2, len(state.TargetComponent))
+	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
+	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
+}
+func TestMockGetTwoTargets(t *testing.T) {
+	id := uuid.New().String()
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock",
+				},
+				{
+					Name: "b",
+					Type: "mock",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+			"T2": "{a}{b}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock",
+								Provider: "providers.target.mock",
+								Config: map[string]string{
+									"id": id,
+								},
+							},
+						},
+					},
+				},
+			},
+			"T2": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock",
+								Provider: "providers.target.mock",
+								Config: map[string]string{
+									"id": id,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	state, components, err := manager.Get(context.Background(), deployment)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(components))
+	assert.Equal(t, 0, len(state.TargetComponent))
+
+	_, err = manager.Reconcile(context.Background(), deployment, false)
+	assert.Nil(t, err)
+
+	state, _, err = manager.Get(context.Background(), deployment)
+	assert.Nil(t, err)
+	assert.Equal(t, "a", state.Components[0].Name)
+	assert.Equal(t, "b", state.Components[1].Name)
+	assert.Equal(t, 4, len(state.TargetComponent))
+	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
+	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
+	assert.Equal(t, "mock", state.TargetComponent["a::T2"])
+	assert.Equal(t, "mock", state.TargetComponent["b::T2"])
+}
+func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
+	id := uuid.New().String()
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock1",
+				},
+				{
+					Name: "b",
+					Type: "mock2",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}",
+			"T2": "{b}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock1",
+								Provider: "providers.target.mock",
+								Config: map[string]string{
+									"id": id,
+								},
+							},
+						},
+					},
+				},
+			},
+			"T2": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock2",
+								Provider: "providers.target.mock",
+								Config: map[string]string{
+									"id": id,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	state, components, err := manager.Get(context.Background(), deployment)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(components))
+	assert.Equal(t, 0, len(state.TargetComponent))
+
+	_, err = manager.Reconcile(context.Background(), deployment, false)
+	assert.Nil(t, err)
+
+	state, _, err = manager.Get(context.Background(), deployment)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(state.Components))
+	assert.Equal(t, "a", state.Components[0].Name)
+	assert.Equal(t, "b", state.Components[1].Name)
+	assert.Equal(t, 4, len(state.TargetComponent))
+	assert.Equal(t, "mock1", state.TargetComponent["a::T1"])
+	assert.Equal(t, "mock2", state.TargetComponent["b::T2"])
+}
+func TestMockApply(t *testing.T) {
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock",
+				},
+				{
+					Name: "b",
+					Type: "mock",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock",
+								Provider: "providers.target.mock",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	summary, err := manager.Reconcile(context.Background(), deployment, false)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
 }

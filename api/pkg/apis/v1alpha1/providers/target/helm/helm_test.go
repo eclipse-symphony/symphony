@@ -50,6 +50,13 @@ func TestHelmTargetProviderGet(t *testing.T) {
 				},
 			},
 		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "bluefin-arc-extensions",
+			},
+		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
@@ -108,28 +115,36 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "bluefin-arc-extensions",
-					Type: "helm.v3",
-					Properties: map[string]interface{}{
-						"chart": map[string]string{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"name":    "bluefin-arc-extension",
-							"version": "0.1.1",
-						},
-						"values": map[string]interface{}{
-							"CUSTOM_VISION_KEY": "BBB",
-							"CLUSTER_SECRET":    "test",
-							"CERTIFICATES":      []string{"a", "b"},
-						},
-					},
-				},
+	component := model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+			"values": map[string]interface{}{
+				"CUSTOM_VISION_KEY": "BBB",
+				"CLUSTER_SECRET":    "test",
+				"CERTIFICATES":      []string{"a", "b"},
 			},
 		},
-	}, false)
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -145,23 +160,31 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "akri",
-					Type: "helm.v3",
-					Properties: map[string]interface{}{
-						"chart": map[string]string{
-							"repo":    "https://project-akri.github.io/akri/akri",
-							"name":    "akri",
-							"version": "",
-						},
-					},
-				},
+	component := model.ComponentSpec{
+		Name: "akri",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "https://project-akri.github.io/akri/akri",
+				"name":    "akri",
+				"version": "",
 			},
 		},
-	}, false)
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -176,151 +199,31 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "gatekeeper",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
+				"name": "gatekeeper",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeeper",
-					Type: "helm.v3",
-					Properties: map[string]interface{}{
-						"chart": map[string]string{
-							"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-							"name": "gatekeeper",
-						},
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
-}
-
-func TestHelmTargetProviderNeedsUpdateNil(t *testing.T) {
-	desired := []model.ComponentSpec{
-		{
-			Name: "gatekeeper",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-					"name": "gatekeeper",
-				},
-				"values": map[string]interface{}{
-					"CUSTOM_VISION_KEY": "BBB",
-					"CLUSTER_SECRET":    "test",
-					"CERTIFICATES":      []string{"a", "b"},
-				},
-			},
-		},
-	}
-
-	current := []model.ComponentSpec{
-		{
-			Name: "gatekeeper",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-					"name": "gatekeeper",
-				},
-			},
-		},
-	}
-
-	config := HelmTargetProviderConfig{InCluster: true}
-	provider := HelmTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	res := provider.NeedsUpdate(context.Background(), desired, current)
-	assert.True(t, res)
-}
-
-func TestHelmTargetProviderNeedsUpdateRearrangedValues(t *testing.T) {
-	desired := []model.ComponentSpec{
-		{
-			Name: "gatekeeper",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-					"name": "gatekeeper",
-				},
-				"values": map[string]interface{}{
-					"CUSTOM_VISION_KEY": "BBB",
-					"CLUSTER_SECRET":    "test",
-					"CERTIFICATES":      []string{"a", "b"},
-					"OTHER": map[string]interface{}{
-						"c": "d",
-						"a": "b",
-					},
-				},
-			},
-		},
-	}
-
-	current := []model.ComponentSpec{
-		{
-			Name: "gatekeeper",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo": "https://open-policy-agent.github.io/gatekeeper/charts/gatekeeper-3.10.0-beta.1.tgz",
-					"name": "gatekeeper",
-				},
-				"values": map[string]interface{}{
-					"CLUSTER_SECRET":    "test",
-					"CUSTOM_VISION_KEY": "BBB", // Order is different
-					"CERTIFICATES":      []string{"a", "b"},
-					"OTHER": map[string]interface{}{
-						"a": "b",
-						"c": "d", // Order is different
-					},
-				},
-			},
-		},
-	}
-
-	config := HelmTargetProviderConfig{InCluster: true}
-	provider := HelmTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	res := provider.NeedsUpdate(context.Background(), desired, current)
-	assert.False(t, res)
-}
-
-func TestHelmTargetProviderNeedsUpdateSameComponents(t *testing.T) {
-	desired := []model.ComponentSpec{
-		{
-			Name: "bluefin-arc-extensions",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-					"name":    "bluefin-arc-extension",
-					"version": "0.1.1",
-				},
-			},
-		},
-	}
-	current := []model.ComponentSpec{
-		{
-			Name: "bluefin-arc-extensions",
-			Type: "helm.v3",
-			Properties: map[string]interface{}{
-				"chart": map[string]string{
-					"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-					"name":    "bluefin-arc-extension",
-					"version": "0.1.1",
-				},
-			},
-		},
-	}
-	config := HelmTargetProviderConfig{InCluster: true}
-	provider := HelmTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	res := provider.NeedsUpdate(context.Background(), desired, current)
-	assert.False(t, res)
 }
 
 // TestHelmTargetProviderRemove tests the Remove function of HelmTargetProvider
@@ -334,26 +237,34 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "symphony",
 		},
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "bluefin-arc-extensions",
-					Type: "helm.v3",
-					Properties: map[string]interface{}{
-						"chart": map[string]string{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"name":    "bluefin-arc-extension",
-							"version": "0.1.1",
-						},
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -392,7 +303,7 @@ users:
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 }

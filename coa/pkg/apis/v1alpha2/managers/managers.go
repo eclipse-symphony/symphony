@@ -57,6 +57,7 @@ type IManager interface {
 type ISchedulable interface {
 	Poll() []error
 	Reconcil() []error
+	Enabled() bool
 }
 
 type IEntityManager interface {

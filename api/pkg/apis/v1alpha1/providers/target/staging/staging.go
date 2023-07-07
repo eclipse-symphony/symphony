@@ -127,12 +127,12 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Staging Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	sLog.Info("~~~ Staging Target Provider ~~~ : Init()")
+	sLog.Info("  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : expected StagingTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P (Staging Target): expected StagingTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -148,7 +148,7 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
 					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+					sLog.Errorf("  P (Staging Target): %+v", err)
 					return err
 				}
 			}
@@ -158,31 +158,31 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+					sLog.Errorf("  P (Staging Target): %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
 				observ_utils.CloseSpanWithError(span, err)
-				sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+				sLog.Errorf("  P (Staging Target): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and bytes", v1alpha2.BadConfig)
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+			sLog.Errorf("  P (Staging Target): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Staging Target): %+v", err)
 		return err
 	}
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : %+v", err)
+		sLog.Errorf("  P (Staging Target):  %+v", err)
 		return err
 	}
 
@@ -210,7 +210,7 @@ type localTarget struct {
 
 func (i *StagingTargetProvider) getTarget(ctx context.Context, scope string) (model.TargetSpec, error) {
 	resourceId := schema.GroupVersionResource{
-		Group:    "symphony.microsoft.com",
+		Group:    model.FabricGroup,
 		Version:  "v1",
 		Resource: "targets",
 	}
@@ -225,12 +225,11 @@ func (i *StagingTargetProvider) getTarget(ctx context.Context, scope string) (mo
 	}
 	return target.Spec, nil
 }
-
-func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("~~~ Staging Target Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	scope := deployment.Instance.Scope
 	if scope == "" {
@@ -239,101 +238,29 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	target, err := i.getTarget(ctx, scope)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to get target: %v", err)
+		sLog.Errorf("  P (Staging Target): failed to get target: %v", err)
 		return nil, err
 	}
 
 	observ_utils.CloseSpanWithError(span, nil)
 	return target.Components, nil
 }
-func (i *StagingTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	return !model.SlicesCover(desired, current)
-}
-func (i *StagingTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	return model.SlicesAny(desired, current)
-}
-
-func (i *StagingTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	sLog.Infof("~~~ Staging Target Provider ~~~ : deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	scope := deployment.Instance.Scope
-	if scope == "" {
-		scope = "default"
-	}
-
-	resourceId := schema.GroupVersionResource{
-		Group:    "symphony.microsoft.com",
-		Version:  "v1",
-		Resource: "targets",
-	}
-	item, err := i.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, i.Config.TargetName, metav1.GetOptions{})
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to get unstructed target: %v", err)
-		return err
-	}
-	target := localTarget{}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &target)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to get target: %v", err)
-		return err
-	}
-
-	//TODO: multiple solutions?
-	if target.Spec.Metadata != nil {
-		delete(target.Spec.Metadata, "__solution")
-	}
-
-	if i.Config.SingleSolution {
-		target.Spec.Components = make([]model.ComponentSpec, 0)
-	} else {
-		components := deployment.GetComponentSlice()
-
-		for i := len(target.Spec.Components) - 1; i >= 0; i-- {
-			for _, c := range components {
-				if c.Name == target.Spec.Components[i].Name {
-					target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
-					break
-				}
-			}
-		}
-	}
-
-	j, _ := json.Marshal(target)
-	err = json.Unmarshal(j, &item.Object)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to update unstructed target: %v", err)
-		return err
-	}
-	_, err = i.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to update target: %v", err)
-		return err
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-
-func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("~~~ Staging Target Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
-		return err
+		observ_utils.CloseSpanWithError(span, err)
+		return nil, err
 	}
 	if isDryRun {
-		return nil
+		observ_utils.CloseSpanWithError(span, nil)
+		return nil, nil
 	}
+	ret := step.PrepareResultMap()
 
 	scope := deployment.Instance.Scope
 	if scope == "" {
@@ -341,75 +268,110 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	resourceId := schema.GroupVersionResource{
-		Group:    "symphony.microsoft.com",
+		Group:    model.FabricGroup,
 		Version:  "v1",
 		Resource: "targets",
 	}
 	item, err := i.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, i.Config.TargetName, metav1.GetOptions{})
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to get unstructed target: %v", err)
-		return err
+		sLog.Errorf("  P (Staging Target): failed to get unstructed target: %v", err)
+		return ret, err
 	}
 	target := localTarget{}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &target)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to get target: %v", err)
-		return err
+		sLog.Errorf("  P (Staging Target): failed to get target: %v", err)
+		return ret, err
 	}
 
-	//TODO: multiple solutions?
-	if target.Spec.Metadata == nil {
-		target.Spec.Metadata = make(map[string]string)
-	}
-	target.Spec.Metadata["__solution"] = deployment.SolutionName
-
-	components := deployment.GetComponentSlice()
-
-	if i.Config.SingleSolution {
-		target.Spec.Components = components
-		for i, _ := range target.Spec.Components {
-			if !strings.HasPrefix(target.Spec.Components[i].Type, "staged:") {
-				target.Spec.Components[i].Type = "staged:" + target.Spec.Components[i].Type
-			}
+	components := step.GetUpdatedComponents()
+	if len(components) > 0 {
+		//TODO: multiple solutions?
+		if target.Spec.Metadata == nil {
+			target.Spec.Metadata = make(map[string]string)
 		}
-	} else {
-		for i, component := range components {
-			found := false
-			for j, c := range target.Spec.Components {
-				if c.Name == component.Name {
-					found = true
-					target.Spec.Components[j] = components[i]
-					if !strings.HasPrefix(target.Spec.Components[j].Type, "staged:") {
-						target.Spec.Components[j].Type = "staged:" + target.Spec.Components[j].Type //the stage prefix avoids the component be picked up by the instance role
-					}
-					break
+		target.Spec.Metadata["__solution"] = deployment.SolutionName
+
+		if i.Config.SingleSolution {
+			target.Spec.Components = components
+			for i, _ := range target.Spec.Components {
+				if !strings.HasPrefix(target.Spec.Components[i].Type, "staged:") {
+					target.Spec.Components[i].Type = "staged:" + target.Spec.Components[i].Type
 				}
 			}
-			if !found {
-				target.Spec.Components = append(target.Spec.Components, component)
-				target.Spec.Components[len(target.Spec.Components)-1].Type = "staged:" + component.Type
+		} else {
+			for i, component := range components {
+				found := false
+				for j, c := range target.Spec.Components {
+					if c.Name == component.Name {
+						found = true
+						target.Spec.Components[j] = components[i]
+						if !strings.HasPrefix(target.Spec.Components[j].Type, "staged:") {
+							target.Spec.Components[j].Type = "staged:" + target.Spec.Components[j].Type //the stage prefix avoids the component be picked up by the instance role
+						}
+						break
+					}
+				}
+				if !found {
+					target.Spec.Components = append(target.Spec.Components, component)
+					target.Spec.Components[len(target.Spec.Components)-1].Type = "staged:" + component.Type
+				}
 			}
 		}
+		j, _ := json.Marshal(target)
+		err = json.Unmarshal(j, &item.Object)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Staging Target): failed to update unstructed target: %v", err)
+			return ret, err
+		}
+		_, err = i.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Staging Target): failed to update target: %v", err)
+			return ret, err
+		}
 	}
-	j, _ := json.Marshal(target)
-	err = json.Unmarshal(j, &item.Object)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to update unstructed target: %v", err)
-		return err
-	}
-	_, err = i.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("~~~ Staging Target Provider ~~~ : failed to update target: %v", err)
-		return err
-	}
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		//TODO: multiple solutions?
+		if target.Spec.Metadata != nil {
+			delete(target.Spec.Metadata, "__solution")
+		}
 
+		if i.Config.SingleSolution {
+			target.Spec.Components = make([]model.ComponentSpec, 0)
+		} else {
+			for i := len(target.Spec.Components) - 1; i >= 0; i-- {
+				for _, c := range components {
+					if c.Name == target.Spec.Components[i].Name {
+						target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+
+		j, _ := json.Marshal(target)
+		err = json.Unmarshal(j, &item.Object)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Staging Target): failed to update unstructed target: %v", err)
+			return ret, err
+		}
+		_, err = i.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P (Staging Target): failed to update target: %v", err)
+			return ret, err
+		}
+	}
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
+
 func (*StagingTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
 		RequiredProperties:    []string{},

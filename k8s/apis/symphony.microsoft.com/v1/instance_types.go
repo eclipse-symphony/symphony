@@ -44,7 +44,8 @@ type InstanceSpec struct {
 	Topologies  []TopologySpec    `json:"topologies,omitempty"`
 	Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
 	// Defines the version of a particular resource
-	Version string `json:"version,omitempty"`
+	Version    string `json:"version,omitempty"`
+	Generation string `json:"generation,omitempty"`
 }
 
 // Defines the target the Instance will deploy to

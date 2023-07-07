@@ -28,6 +28,7 @@ import (
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
+	tgtmock "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/script"
@@ -208,6 +209,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.mqtt":
 		mProvider := &mqtt.MQTTTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.mock":
+		mProvider := &tgtmock.MockTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -406,6 +413,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.target.extendedlocation":
 					provider := &extendedlocation.ExtendedLocationTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.target.mock":
+					provider := &tgtmock.MockTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

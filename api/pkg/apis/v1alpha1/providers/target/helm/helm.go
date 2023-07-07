@@ -35,7 +35,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -244,77 +243,8 @@ func toHelmTargetProviderConfig(config providers.IProviderConfig) (HelmTargetPro
 	return ret, err
 }
 
-// NeedsUpdate returns true if the desired state is different from the current state
-func (i *HelmTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, dc := range desired {
-		desiredHelmChart, err := getHelmPropertyFromComponent(dc)
-		if err != nil {
-			sLog.Errorf("  P (Helm Provider): %+v", err)
-			return true
-		}
-		found := false
-		for _, cc := range current {
-			if cc.Name == dc.Name && cc.Type == dc.Type && cc.Type == "helm.v3" {
-				found = true
-				currentHelmChart, err := getHelmPropertyFromComponent(cc)
-				if err != nil {
-					sLog.Errorf("  P (Helm Provider): %+v", err)
-					return true
-				}
-
-				// check if helm chart needs an update
-				if desiredHelmChart.Chart != currentHelmChart.Chart {
-					sLog.Info("  P (Helm Provider): NeedsUpdate: returning true")
-					return true
-				}
-
-				// check if helm values needs an update
-				if isEmpty(desiredHelmChart.Values) && isEmpty(currentHelmChart.Values) {
-					break
-				}
-
-				if !reflect.DeepEqual(desiredHelmChart.Values, currentHelmChart.Values) {
-					sLog.Info("  P (Helm Provider): NeedsUpdate: returning true")
-					return true
-				}
-
-			}
-		}
-
-		if !found {
-			sLog.Info("  P (Helm Provider): NeedsUpdate: returning true")
-			return true
-		}
-	}
-
-	sLog.Info("  P (Helm Provider): NeedsUpdate: returning false")
-	return false
-}
-
-// isEmpty returns true if the map is empty
-func isEmpty(data map[string]interface{}) bool {
-	if data == nil {
-		return true
-	}
-	return len(data) == 0
-}
-
-// NeedsRemove returns true if the desired state is different from the current state
-func (i *HelmTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, dc := range desired {
-		for _, cc := range current {
-			if cc.Name == dc.Name {
-				sLog.Info("  P (Helm Provider): NeedsRemove: returning true")
-				return true
-			}
-		}
-	}
-	sLog.Info("  P (Helm Provider): NeedsUpdate: returning false")
-	return false
-}
-
 // Get returns the list of components for a given deployment
-func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
@@ -333,11 +263,10 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		return nil, err
 	}
 
-	desired := deployment.GetComponentSlice()
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range desired {
+	for _, component := range references {
 		for _, res := range results {
-			if (deployment.Instance.Scope == "" || res.Namespace == deployment.Instance.Scope) && res.Name == component.Name {
+			if (deployment.Instance.Scope == "" || res.Namespace == deployment.Instance.Scope) && res.Name == component.Component.Name {
 				repo := ""
 				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM:") { //we use this special metadata tag to remember the chart URL
 					repo = res.Chart.Metadata.Tags[4:]
@@ -361,33 +290,6 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	return ret, nil
 }
 
-// Remove deletes the artifacts for a given deployment
-func (i *HelmTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan(
-		"Helm Target Provider",
-		ctx,
-		&map[string]string{
-			"method": "Remove",
-		},
-	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
-	sLog.Infof("  P (Helm Target): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
-
-	components := deployment.GetComponentSlice()
-	for _, component := range components {
-		if component.Type == "helm.v3" {
-			_, err = i.UninstallClient.Run(component.Name)
-			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to uninstall Helm chart: %+v", err)
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 // GetValidationRule returns the validation rule for this provider
 func (*HelmTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
@@ -396,6 +298,9 @@ func (*HelmTargetProvider) GetValidationRule(ctx context.Context) model.Validati
 		RequiredComponentType: "",
 		RequiredMetadata:      []string{},
 		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{Name: "chart", IgnoreCase: false, SkipIfMissing: true}, //TODO: deep change detection on interface{}
+		},
 	}
 }
 
@@ -418,7 +323,7 @@ func downloadFile(url string, fileName string) error {
 }
 
 // Apply deploys the helm chart for a given deployment
-func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
@@ -430,52 +335,65 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	defer utils.CloseSpanWithError(span, err)
 	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	components := deployment.GetComponentSlice()
+	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isDryRun {
-		return nil
+		return nil, nil
 	}
 
-	for _, component := range components {
+	ret := step.PrepareResultMap()
 
-		var helmProp *HelmProperty
-		helmProp, err = getHelmPropertyFromComponent(component)
-		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to get Helm properties: %+v", err)
-			return err
-		}
+	for _, component := range step.Components {
+		if component.Action == "update" {
+			var helmProp *HelmProperty
+			helmProp, err = getHelmPropertyFromComponent(component.Component)
+			if err != nil {
+				sLog.Errorf("  P (Helm Target): failed to get Helm properties: %+v", err)
+				return ret, err
+			}
 
-		fileName, err := i.pullChart(&helmProp.Chart)
-		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
-			return err
-		}
-		defer os.Remove(fileName)
+			fileName, err := i.pullChart(&helmProp.Chart)
+			if err != nil {
+				sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
+				return ret, err
+			}
+			defer os.Remove(fileName)
 
-		var chart *chart.Chart
-		chart, err = loader.Load(fileName)
-		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to load chart: %+v", err)
-			return err
-		}
+			var chart *chart.Chart
+			chart, err = loader.Load(fileName)
+			if err != nil {
+				sLog.Errorf("  P (Helm Target): failed to load chart: %+v", err)
+				return ret, err
+			}
 
-		chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
-		i.configureUpsertClients(component.Name, &helmProp.Chart, &deployment)
+			chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
+			i.configureUpsertClients(component.Component.Name, &helmProp.Chart, &deployment)
 
-		if _, err = i.UpgradeClient.Run(component.Name, chart, helmProp.Values); err != nil {
-			if _, err = i.InstallClient.Run(chart, helmProp.Values); err != nil {
-				sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
-				return err
+			if _, err = i.UpgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
+				if _, err = i.InstallClient.Run(chart, helmProp.Values); err != nil {
+					sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
+					return ret, err
+				}
+			}
+		} else {
+			if component.Component.Type == "helm.v3" {
+				_, err := i.UninstallClient.Run(component.Component.Name)
+				if err != nil {
+					ret[component.Component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.DeleteFailed,
+						Message: err.Error(),
+					}
+					sLog.Errorf("  P (Helm Target): failed to uninstall Helm chart: %+v", err)
+					return ret, err
+				}
 			}
 		}
-
 	}
-
-	return nil
+	return ret, nil
 }
 
 func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName string, err error) {

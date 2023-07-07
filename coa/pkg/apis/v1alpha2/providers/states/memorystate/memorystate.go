@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -90,6 +91,13 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
+	tag := "1"
+	if entry.Value.ETag != "" {
+		if v, err := strconv.ParseInt(entry.Value.ETag, 10, 64); err == nil {
+			tag = strconv.FormatInt(v+1, 10)
+		}
+	}
+	entry.Value.ETag = tag
 	s.Data[entry.Value.ID] = entry.Value
 	return entry.Value.ID, nil
 }

@@ -70,3 +70,12 @@ App Selector
 {{- define "symphony.appSelector" -}}
 {{- printf "%s-api" (include "symphony.fullname" .)  }}
 {{- end }}
+
+{{/*
+Zipkin Middleware
+*/}}
+{{- define "symphony.zipkinMiddleware" -}}
+{{- if .Values.observability.tracing.exporter.zipkin }}
+{{ tpl (.Files.Get "files/zipkin-middleware.json") .  }},
+{{- end }}
+{{- end }}

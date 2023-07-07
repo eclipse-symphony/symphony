@@ -1,0 +1,62 @@
+{
+    "api": {
+      "pubsub": {
+        "shared": true,
+        "provider": {
+          "type": "providers.pubsub.memory",
+          "config": {}
+        }
+      },
+      "vendors": [
+        {
+          "type": "vendors.solution",
+          "loopInterval": 15,
+          "route": "solution",
+          "managers": [
+            {
+              "name": "solution-manager",
+              "type": "managers.symphony.solution",
+              "properties": {
+                "providers.state": "mem-state",
+                "providers.config": "mock-config",
+                "providers.secret": "mock-secret"
+              },
+              "providers": {
+                "mem-state": {
+                  "type": "providers.state.memory",
+                  "config": {}
+                },
+                "mock-config": {
+                  "type": "providers.config.mock",
+                  "config": {}
+                },
+                "mock-secret": {
+                  "type": "providers.secret.mock",
+                  "config": {}
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "bindings": [
+      {
+        "type": "bindings.http",
+        "config": {
+          "port": 8082,
+          "pipeline": [
+            {
+              "type": "middleware.http.cors",
+              "properties": {
+                "Access-Control-Allow-Headers": "authorization,Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+                "Access-Control-Allow-Origin": "*"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }

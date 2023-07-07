@@ -33,6 +33,7 @@ import (
 	"net/http"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -91,7 +92,7 @@ func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetPro
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -102,27 +103,8 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil, nil
 }
-func (i *HttpTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	sLog.Infof("  P(HTTP Target): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	// This provider doesn't remove anything
-
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-func (i *HttpTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	// This essentially always return true. This means the HTTP trigger needs to idempotent
-	return !model.SlicesCover(desired, current)
-}
-func (i *HttpTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	// This essentially always return true. This means the HTTP trigger needs to idempotent
-	return model.SlicesAny(desired, current)
-}
-
-func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -134,59 +116,75 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		TargetId:   deployment.ActiveTarget,
 	}
 
-	components := deployment.GetComponentSlice()
-
+	components := step.GetComponents()
 	err := i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
 
-	for _, component := range components {
+	ret := step.PrepareResultMap()
+	for _, component := range step.Components {
+		if component.Action == "update" {
+			body := model.ReadPropertyCompat(component.Component.Properties, "http.body", injections)
+			url := model.ReadPropertyCompat(component.Component.Properties, "http.url", injections)
+			method := model.ReadPropertyCompat(component.Component.Properties, "http.method", injections)
 
-		body := model.ReadPropertyCompat(component.Properties, "http.body", injections)
-		url := model.ReadPropertyCompat(component.Properties, "http.url", injections)
-		method := model.ReadPropertyCompat(component.Properties, "http.method", injections)
+			if url == "" {
+				err := errors.New("component doesn't have a http.url property")
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P(HTTP Target): %v", err)
+				return ret, err
+			}
+			if method == "" {
+				method = "POST"
+			}
+			jsonData := []byte(body)
+			request, err := http.NewRequest(method, url, bytes.NewBuffer(jsonData))
+			if err != nil {
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P(HTTP Target): %v", err)
+				return ret, err
+			}
+			request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
-		if url == "" {
-			err := errors.New("component doesn't have a http.url property")
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P(HTTP Target): %v", err)
-			return err
-		}
-		if method == "" {
-			method = "POST"
-		}
-		jsonData := []byte(body)
-		request, err := http.NewRequest(method, url, bytes.NewBuffer(jsonData))
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P(HTTP Target): %v", err)
-			return err
-		}
-		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
-
-		client := &http.Client{}
-		resp, err := client.Do(request)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P(HTTP Target): %v", err)
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			err = errors.New("HTTP request didn't respond 200 OK")
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P(HTTP Target): %v", err)
-			return err
+			client := &http.Client{}
+			resp, err := client.Do(request)
+			if err != nil {
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P(HTTP Target): %v", err)
+				return ret, err
+			}
+			if resp.StatusCode != http.StatusOK {
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				err = errors.New("HTTP request didn't respond 200 OK")
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P(HTTP Target): %v", err)
+				return ret, err
+			}
 		}
 	}
-
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{

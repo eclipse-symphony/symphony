@@ -65,8 +65,21 @@ func TestAzureResourceTargetProviderGet(t *testing.T) {
 				},
 			},
 		},
-	},
-	)
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "customLocation01",
+				Type: "extended-location",
+				Properties: map[string]interface{}{
+					"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
+					"resourceGroupName": "MyResourceGroup",
+					"resourceName":      "customLocation01",
+					"resourceSyncRule":  "reosurceSyncRule01",
+				},
+			},
+		},
+	})
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(components))
@@ -173,7 +186,7 @@ func TestAzureResourceTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	require.Nil(t, err)
 
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
@@ -215,8 +228,50 @@ func TestAzureResourceTargetProviderInstall(t *testing.T) {
 				},
 			},
 		},
-	},
-	)
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "update",
+				Component: model.ComponentSpec{
+					Name: "ExtendedLocation01",
+					Type: "extended-location",
+					Properties: map[string]interface{}{
+						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
+						"resourceGroupName": "MyResourceGroup",
+						"location":          "West US",
+						"customLocation": map[string]interface{}{
+							"properties": map[string]interface{}{
+								"namespace":          "namespace01",
+								"displayName":        "customLocation01",
+								"hostResourceID":     "/subscriptions/77969078-2897-47b0-9143-917252379303/resourceGroups/MyResourceGroup/providers/Microsoft.Kubernetes/connectedCluster/cluster01",
+								"clusterExtensionID": []string{"/subscriptions/77969078-2897-47b0-9143-917252379303/resourceGroups/MyResourceGroup/providers/Microsoft.Kubernetes/connectedCluster/cluster01/Microsoft.KubernetesConfiguration/clusterExtensions/ClusterMonitor"},
+							},
+							"resourceSyncRule": map[string]interface{}{
+								"name":     "resourceSyncRule01",
+								"location": "West Us",
+								"properties": map[string]interface{}{
+									"priority": 999,
+									"selector": map[string]interface{}{
+										"matchLabels": map[string]string{
+											"key1": "value1",
+										},
+										"matchExpressions": map[string]interface{}{
+											"key":      "key4",
+											"operator": "In",
+											"values": []string{
+												"value4",
+											},
+										},
+									},
+									"targetResourceGroup": "/subscriptions/77969078-2897-47b0-9143-917252379303/resourceGroups/MyResourceGroup",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, false)
 
 	require.Nil(t, err)
 }
@@ -235,7 +290,7 @@ func TestAzureResourceTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	require.Nil(t, err)
 
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
@@ -250,8 +305,23 @@ func TestAzureResourceTargetProviderRemove(t *testing.T) {
 				},
 			},
 		},
-	},
-		nil)
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "customLocation01",
+					Type: "extended-location",
+					Properties: map[string]interface{}{
+						"subscriptionID":    "77969078-2897-47b0-9143-917252379303",
+						"resourceGroupName": "MyResourceGroup",
+						"resourceName":      "customLocation01",
+						"resourceSyncRule":  "reosurceSyncRule01",
+					},
+				},
+			},
+		},
+	}, false)
 
 	require.Nil(t, err)
 }

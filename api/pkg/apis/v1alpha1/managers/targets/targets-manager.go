@@ -28,6 +28,7 @@ package targets
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -59,7 +60,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -71,18 +72,19 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "symphony.microsoft.com/v1",
+				"apiVersion": model.FabricGroup + "/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
 					"name": name,
 				},
 				"spec": spec,
 			},
+			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Target", "metadata": {"name": "$target()"}}`,
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
 		},
@@ -157,7 +159,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.FabricGroup,
 			"resource": "targets",
 		},
 	}
@@ -167,7 +169,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	}
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
-		rt, err := getTargetState(t.ID, t.Body)
+		rt, err := getTargetState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +178,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	return ret, nil
 }
 
-func getTargetState(id string, body interface{}) (model.TargetState, error) {
+func getTargetState(id string, body interface{}, etag string) (model.TargetState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
@@ -200,7 +202,7 @@ func getTargetState(id string, body interface{}) (model.TargetState, error) {
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
+	rSpec.Generation = etag
 	state := model.TargetState{
 		Id:     id,
 		Spec:   &rSpec,
@@ -214,7 +216,7 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.FabricGroup,
 			"resource": "targets",
 		},
 	}
@@ -223,7 +225,7 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 		return model.TargetState{}, err
 	}
 
-	ret, err := getTargetState(id, target.Body)
+	ret, err := getTargetState(id, target.Body, target.ETag)
 	if err != nil {
 		return model.TargetState{}, err
 	}

@@ -65,8 +65,20 @@ func TestExtensionTargetProviderGet(t *testing.T) {
 				},
 			},
 		},
-	},
-	)
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "Bluefin",
+				Type: "arc-extension",
+				Properties: map[string]interface{}{
+					"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+					"resourceGroup":  "MyResourceGroup",
+					"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+				},
+			},
+		},
+	})
 	require.Nil(t, err)
 	require.Equal(t, 1, len(components))
 }
@@ -157,7 +169,7 @@ func TestExtensionTargetProviderInstall(t *testing.T) {
 	err := provider.Init(config)
 	require.Nil(t, err)
 
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
@@ -179,8 +191,30 @@ func TestExtensionTargetProviderInstall(t *testing.T) {
 				},
 			},
 		},
-	},
-	)
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "update",
+				Component: model.ComponentSpec{
+					Name: "Bluefin",
+					Type: "arc-extension",
+					Properties: map[string]interface{}{
+						"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+						"resourceGroup":  "MyResourceGroup",
+						"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+						"arcExtension": map[string]interface{}{
+							"extensionType":                  "azuremonitor-containers",
+							"autoUpgradeMinorVersion":        false,
+							"version":                        "0.1.1",
+							"releaseTrain":                   "dev",
+							"configurationSettings":          map[string]string{},
+							"configurationProtectedSettings": map[string]string{},
+						},
+					},
+				},
+			},
+		},
+	}, false)
 
 	require.Nil(t, err)
 }
@@ -199,7 +233,7 @@ func TestExtensionTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	require.Nil(t, err)
 
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{
 				{
@@ -213,7 +247,22 @@ func TestExtensionTargetProviderRemove(t *testing.T) {
 				},
 			},
 		},
-	}, nil)
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "Bluefin",
+					Type: "arc-extension",
+					Properties: map[string]interface{}{
+						"subscriptionID": "77969078-2897-47b0-9143-917252379303",
+						"resourceGroup":  "MyResourceGroup",
+						"cluster":        "Microsoft.Kubernetes/connectedClusters/my-arc-cluster",
+					},
+				},
+			},
+		},
+	}, false)
 
 	require.Nil(t, err)
 }

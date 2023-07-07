@@ -224,7 +224,7 @@ func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetPro
 	return ret, err
 }
 
-func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -307,131 +307,95 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 		return v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
 	}
 }
-func (i *MQTTTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
-		"method": "NeedsUpdate",
-	})
-	sLog.Infof("  P (MQTT Target Provider): NeedsUpdate")
 
-	data, _ := json.Marshal(TwoComponentSlices{
-		Current: current,
-		Desired: desired,
-	})
-	request := v1alpha2.COARequest{
-		Route:  "needsupdate",
-		Method: "GET",
-		Body:   data,
-		Metadata: map[string]string{
-			"call-context": "TargetProvider-NeedsUpdate",
-		},
-	}
-	data, _ = json.Marshal(request)
-
-	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-		observ_utils.CloseSpanWithError(span, token.Error())
-		return false
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-
-	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
-	select {
-	case resp := <-i.NeedsUpdateChan:
-		if resp.IsOK {
-			return true
-		} else {
-			return false
-		}
-	case <-timeout:
-		return false
-	}
-}
-func (i *MQTTTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
-		"method": "NeedsRemove",
-	})
-	sLog.Infof("  P (MQTT Target): NeedsRemove")
-
-	data, _ := json.Marshal(TwoComponentSlices{
-		Current: current,
-		Desired: desired,
-	})
-	request := v1alpha2.COARequest{
-		Route:  "needsremove",
-		Method: "GET",
-		Body:   data,
-		Metadata: map[string]string{
-			"call-context": "TargetProvider-NeedsRemove",
-		},
-	}
-	data, _ = json.Marshal(request)
-
-	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-		observ_utils.CloseSpanWithError(span, token.Error())
-		return false
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-
-	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
-	select {
-	case resp := <-i.NeedsRemoveChan:
-		if resp.IsOK {
-			return true
-		} else {
-			return false
-		}
-	case <-timeout:
-		return false
-	}
-}
-
-func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components
+	components := step.GetComponents()
+	err := i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
 
+	ret := step.PrepareResultMap()
 	data, _ := json.Marshal(deployment)
-	request := v1alpha2.COARequest{
-		Route:  "instances",
-		Method: "POST",
-		Body:   data,
-		Metadata: map[string]string{
-			"call-context": "TargetProvider-Apply",
-		},
-	}
-	data, _ = json.Marshal(request)
 
-	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-		observ_utils.CloseSpanWithError(span, token.Error())
-		return token.Error()
-	}
+	components = step.GetUpdatedComponents()
+	if len(components) > 0 {
 
-	observ_utils.CloseSpanWithError(span, nil)
-
-	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
-	select {
-	case resp := <-i.ApplyChan:
-		if resp.IsOK {
-			return nil
-		} else {
-			return v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+		request := v1alpha2.COARequest{
+			Route:  "instances",
+			Method: "POST",
+			Body:   data,
+			Metadata: map[string]string{
+				"call-context": "TargetProvider-Apply",
+			},
 		}
-	case <-timeout:
-		return v1alpha2.NewCOAError(nil, "didn't get response to Apply() call over MQTT", v1alpha2.InternalError)
+		data, _ = json.Marshal(request)
+
+		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
+			observ_utils.CloseSpanWithError(span, token.Error())
+			return ret, token.Error()
+		}
+
+		observ_utils.CloseSpanWithError(span, nil)
+
+		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
+		select {
+		case resp := <-i.ApplyChan:
+			if resp.IsOK {
+				return ret, nil
+			} else {
+				return ret, v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			}
+		case <-timeout:
+			return ret, v1alpha2.NewCOAError(nil, "didn't get response to Apply() call over MQTT", v1alpha2.InternalError)
+		}
 	}
+	components = step.GetDeletedComponents()
+	if len(components) > 0 {
+		request := v1alpha2.COARequest{
+			Route:  "instances",
+			Method: "DELETE",
+			Body:   data,
+			Metadata: map[string]string{
+				"call-context": "TargetProvider-Remove",
+			},
+		}
+		data, _ = json.Marshal(request)
+
+		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
+			observ_utils.CloseSpanWithError(span, token.Error())
+			return ret, token.Error()
+		}
+
+		observ_utils.CloseSpanWithError(span, nil)
+
+		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
+		select {
+		case resp := <-i.RemoveChan:
+			if resp.IsOK {
+				return ret, nil
+			} else {
+				return ret, v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			}
+		case <-timeout:
+			return ret, v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
+		}
+	}
+	//TODO: Should we remove empty namespaces?
+	observ_utils.CloseSpanWithError(span, nil)
+	return ret, nil
 }
+
 func (*MQTTTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
 		RequiredProperties:    []string{},

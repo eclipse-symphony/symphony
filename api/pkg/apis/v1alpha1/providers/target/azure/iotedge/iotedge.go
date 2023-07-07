@@ -192,66 +192,7 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
-
-func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
-	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
-		"method": "Apply",
-	})
-	sLog.Info("  P(IoT Edge Target): applying components")
-
-	components := deployment.GetComponentSlice()
-
-	err := i.GetValidationRule(ctx).Validate(components)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
-	}
-	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
-		return nil
-	}
-
-	if len(components) == 0 {
-		observ_utils.CloseSpanWithError(span, nil)
-		return nil
-	}
-	modules := make(map[string]Module)
-	for _, a := range components {
-		module, e := toModule(a, deployment.Instance.Name, deployment.Instance.Metadata[ENV_NAME])
-		if e != nil {
-			observ_utils.CloseSpanWithError(span, e)
-			sLog.Errorf("  P(IoT Edge Target): +%v", e)
-			return e
-		}
-		modules[a.Name] = module
-	}
-
-	edgeAgent, err := i.getIoTEdgeModuleTwin(ctx, "$edgeAgent")
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P(IoT Edge Target): +%v", err)
-		return err
-	}
-
-	edgeHub, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P(IoT Edge Target): +%v", err)
-		return err
-	}
-
-	err = i.deployToIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P(IoT Edge Target): +%v", err)
-		return err
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-
-func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -294,114 +235,88 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	return components, nil
 }
 
-func isSame(a model.ComponentSpec, b model.ComponentSpec) bool {
-	if a.Name != b.Name {
-		return false
-	}
-	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.restartPolicy", true) {
-		return false
-	}
-	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.createOptions", false) {
-		return false
-	}
-	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.version", false) {
-		return false
-	}
-	if !model.CheckPropertyCompat(a.Properties, b.Properties, "container.type", false) {
-		return false
-	}
-	if !model.CheckPropertyCompat(a.Properties, b.Properties, model.ContainerImage, false) {
-		return false
-	}
-	for k, v := range a.Properties {
-		// TODO: Transition from map[string]string to map[string]interface{}
-		// for now we would only do this for string properties
-		if sv, ok := v.(string); ok {
-			if !strings.Contains(sv, "$instance()") {
-				if strings.HasPrefix(k, "desired.") || strings.HasPrefix(k, "env.") {
-					if !model.CheckPropertyCompat(a.Properties, b.Properties, k, false) {
-						return false
-					}
-				}
-			}
-		}
-	}
-	return true
-}
-
-func (i *IoTEdgeTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, d := range desired {
-		found := false
-		for _, c := range current {
-			if isSame(d, c) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return true
-		}
-	}
-	return false
-}
-
-func (i *IoTEdgeTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	for _, d := range desired {
-		for _, c := range current {
-			if isSame(d, c) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (i *IoTEdgeTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
+func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
-		"method": "Remove",
+		"method": "Apply",
 	})
-	sLog.Info("  P(IoT Edge Target): deleting components")
+	sLog.Info("  P(IoT Edge Target): applying components")
 
-	components := deployment.GetComponentSlice()
-
-	if len(components) == 0 {
+	components := step.GetComponents()
+	err := i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
+		return nil, err
+	}
+	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
-	modules := make(map[string]Module)
-	for _, a := range components {
-		module, e := toModule(a, deployment.Instance.Name, deployment.Instance.Metadata[ENV_NAME])
-		if e != nil {
-			observ_utils.CloseSpanWithError(span, nil)
-			return nil
-		}
-		modules[a.Name] = module
-	}
+
+	ret := step.PrepareResultMap()
 
 	edgeAgent, err := i.getIoTEdgeModuleTwin(ctx, "$edgeAgent")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("  P(IoT Edge Target): +%v", err)
-		return err
+		sLog.Errorf("  P(IoT Edge Target): +%v", err)
+		return ret, err
 	}
 
 	edgeHub, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("  P(IoT Edge Target): +%v", err)
-		return err
+		sLog.Errorf("  P(IoT Edge Target): +%v", err)
+		return ret, err
 	}
 
-	err = i.remvoefromIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		sLog.Error("  P(IoT Edge Target): +%v", err)
-		return err
+	//updated
+	modules := make(map[string]Module)
+	for _, a := range components {
+		module, e := toModule(a, deployment.Instance.Name, deployment.Instance.Metadata[ENV_NAME], step.Target)
+		if e != nil {
+			ret[a.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.UpdateFailed,
+				Message: e.Error(),
+			}
+			observ_utils.CloseSpanWithError(span, e)
+			sLog.Errorf("  P(IoT Edge Target): +%v", e)
+			return ret, e
+		}
+		modules[a.Name] = module
+	}
+	if len(modules) > 0 {
+		err = i.deployToIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Errorf("  P(IoT Edge Target): +%v", err)
+			return ret, err
+		}
 	}
 
+	//delete
+	modules = make(map[string]Module)
+	for _, a := range components {
+		module, e := toModule(a, deployment.Instance.Name, deployment.Instance.Metadata[ENV_NAME], step.Target)
+		if e != nil {
+			ret[a.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.DeleteFailed,
+				Message: e.Error(),
+			}
+			observ_utils.CloseSpanWithError(span, err)
+			return ret, err
+		}
+		modules[a.Name] = module
+	}
+	if len(modules) > 0 {
+		err = i.remvoefromIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
+		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
+			sLog.Error("  P(IoT Edge Target): +%v", err)
+			return ret, err
+		}
+	}
 	//TODO: Should we raise events to remove AVA graphs?
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 func (*IoTEdgeTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
@@ -410,6 +325,15 @@ func (*IoTEdgeTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 		RequiredComponentType: "",
 		RequiredMetadata:      []string{},
 		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{Name: "container.restartPolicy", IgnoreCase: false, SkipIfMissing: true},
+			{Name: "container.createOptions", IgnoreCase: false, SkipIfMissing: true},
+			{Name: "container.version", IgnoreCase: false, SkipIfMissing: true},
+			{Name: "container.type", IgnoreCase: false, SkipIfMissing: true},
+			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: true},
+			{Name: "desired.*", IgnoreCase: false, SkipIfMissing: true},
+			{Name: "env.*", IgnoreCase: false, SkipIfMissing: true},
+		},
 	}
 }
 
@@ -551,7 +475,7 @@ func readProperty(properties map[string]interface{}, key string, defaultVal stri
 	}
 	return defaultVal, nil
 }
-func toModule(component model.ComponentSpec, name string, agentName string) (Module, error) {
+func toModule(component model.ComponentSpec, name string, agentName string, targetName string) (Module, error) {
 	policy, err := readProperty(component.Properties, "container.restartPolicy", "always", false)
 	if err != nil {
 		return Module{}, err
@@ -609,7 +533,7 @@ func toModule(component model.ComponentSpec, name string, agentName string) (Mod
 	module.Environments[ENV_SALT] = EnvValue{Value: uuid.New().String()}
 
 	if agentName != "" {
-		module.Environments[ENV_NAME] = EnvValue{Value: "target-runtime-" + agentName}
+		module.Environments[ENV_NAME] = EnvValue{Value: fmt.Sprintf("%s-%s-%s", "target-runtime", targetName, agentName)}
 	}
 	for _, v := range component.Routes {
 		if v.Type == "iothub" {

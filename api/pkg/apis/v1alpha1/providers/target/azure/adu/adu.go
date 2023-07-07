@@ -139,38 +139,7 @@ func toADUTargetProviderConfig(config providers.IProviderConfig) (ADUTargetProvi
 	return ret, nil
 }
 
-func (i *ADUTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
-		"method": "Remove",
-	})
-	sLog.Info("~~~ ADU Update Provider ~~~ : deleting components")
-
-	components := deployment.GetComponentSlice()
-
-	if len(components) == 0 {
-		observ_utils.CloseSpanWithError(span, nil)
-		return nil
-	}
-
-	for _, c := range components {
-		deployment, err := getDeploymentFromComponent(c)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("~~~ ADU Target Provider ~~~ : %+v", err)
-			return err
-		}
-		err = i.deleteDeploymeent(deployment)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, nil)
-			return nil //TODO: are we ignoring errors on purpose here?
-		}
-	}
-
-	observ_utils.CloseSpanWithError(span, nil)
-	return nil
-}
-
-func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -224,47 +193,62 @@ func getDeploymentFromComponent(c model.ComponentSpec) (azureutils.ADUDeployment
 	return deployment, nil
 }
 
-func (i *ADUTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	return !model.SlicesCover(desired, current)
-}
-func (i *ADUTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	return model.SlicesAny(desired, current)
-}
-
-func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error {
+func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Info("~~~ ADU Update Provider ~~~ : applying components")
+	sLog.Info("  P (ADU Update): applying components")
 
-	components := deployment.GetComponentSlice()
-
+	components := step.GetComponents()
 	err := i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, err)
-		return err
+		return nil, err
 	}
 	if isDryRun {
 		observ_utils.CloseSpanWithError(span, nil)
-		return nil
+		return nil, nil
 	}
 
-	for _, c := range components {
-		deployment, err := getDeploymentFromComponent(c)
+	ret := step.PrepareResultMap()
+
+	for _, c := range step.Components {
+		deployment, err := getDeploymentFromComponent(c.Component)
 		if err != nil {
+			ret[c.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.ValidateFailed,
+				Message: err.Error(),
+			}
 			observ_utils.CloseSpanWithError(span, err)
-			return err
+			return ret, err
 		}
-		deployment.GroupId = i.Config.ADUGroup
-		err = i.applyDeployment(deployment)
-		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("~~~ ADU Target Provider ~~~ : %+v", err)
-			return err
+		if c.Action == "update" {
+			deployment.GroupId = i.Config.ADUGroup
+			err = i.applyDeployment(deployment)
+			if err != nil {
+				ret[c.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P (ADU Update): %+v", err)
+				return ret, err
+			}
+		} else {
+			err = i.deleteDeploymeent(deployment)
+			if err != nil {
+				ret[c.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.DeleteFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, nil)
+				return ret, nil //TODO: are we ignoring errors on purpose here?
+			}
 		}
+
 	}
 	observ_utils.CloseSpanWithError(span, nil)
-	return nil
+	return ret, nil
 }
 
 func (i *ADUTargetProvider) getDeployment() (azureutils.ADUDeployment, error) {

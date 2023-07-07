@@ -302,10 +302,15 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 }
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
+	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
+	scope := target.Spec.Scope
+	if scope == "" {
+		scope = "default"
+	}
 	ret := model.DeploymentSpec{}
 	solution := model.SolutionSpec{
-		DisplayName: "target-runtime",
-		Scope:       "default",
+		DisplayName: key,
+		Scope:       scope,
 		Components:  make([]model.ComponentSpec, 0),
 		Metadata:    make(map[string]string, 0),
 	}
@@ -335,10 +340,10 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	targets[target.Id] = t
 
 	instance := model.InstanceSpec{
-		Name:        "target-runtime",
-		DisplayName: "target-runtime-" + target.Id,
-		Scope:       "default",
-		Solution:    "target-runtime",
+		Name:        key,
+		DisplayName: key,
+		Scope:       scope,
+		Solution:    key,
 		Target: model.TargetRefSpec{
 			Name: target.Id,
 		},
@@ -347,7 +352,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	ret.Solution = solution
 	ret.Instance = instance
 	ret.Targets = targets
-	ret.SolutionName = "target-runtime"
+	ret.SolutionName = key
 	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -363,6 +368,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 
 func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{}
+	ret.Generation = instance.Spec.Generation
 	// convert instance
 	sInstance := instance.Spec
 
@@ -410,12 +416,14 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 		ret[key] = ""
 		for _, component := range components {
 			match := true
-			for _, s := range component.Constraints {
-				if !s.Match(target.Properties) {
-					match = false
+			if component.Constraints != "" {
+				parser := NewParser(component.Constraints)
+				val, err := parser.Eval(EvaluationContext{Properties: target.Properties})
+				if err != nil {
+					return ret, err
 				}
+				match = val == "true"
 			}
-
 			if match {
 				ret[key] += "{" + component.Name + "}"
 			}
@@ -424,44 +432,66 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 
 	return ret, nil
 }
-
-func Deploy(baseUrl string, user string, passwrod string, deployment model.DeploymentSpec) (model.SummarySpec, error) {
+func GetSummary(baseUrl string, user string, password string, id string) (model.SummaryResult, error) {
+	result := model.SummaryResult{}
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return result, err
+	}
+	ret, err := callRestAPI(baseUrl, "solution/queue?instance="+id, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	if err != nil {
+		return result, err
+	}
+	if ret != nil {
+		err = json.Unmarshal(ret, &result)
+		if err != nil {
+			return result, err
+		}
+	}
+	return result, nil
+}
+func QueueJob(baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	path := "solution/queue?instance=" + id
+	if isDelete {
+		path += "&delete=true"
+	}
+	if isTarget {
+		path += "&target=true"
+	}
+	_, err = callRestAPI(baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func Reconcile(baseUrl string, user string, password string, deployment model.DeploymentSpec, isDelete bool) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
-	ret, err := callRestAPI(baseUrl, "solution/instances", "POST", payload, "") // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	path := "solution/reconcile"
+	if isDelete {
+		path = "solution/reconcile?delete=true"
+	}
+	token, err := auth(baseUrl, user, password)
 	if err != nil {
 		return summary, err
 	}
-
+	ret, err := callRestAPI(baseUrl, path, "POST", payload, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	if err != nil {
+		return summary, err
+	}
 	if ret != nil {
 		err = json.Unmarshal(ret, &summary)
 		if err != nil {
 			return summary, err
 		}
 	}
-
 	return summary, nil
 }
-
-func Remove(baseUrl string, user string, passwrod string, deployment model.DeploymentSpec) (model.SummarySpec, error) {
-	summary := model.SummarySpec{}
-	payload, _ := json.Marshal(deployment)
-	ret, err := callRestAPI(baseUrl, "solution/instances", "DELETE", payload, "") // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
-	if err != nil {
-		return summary, err
-	}
-
-	if ret != nil {
-		err = json.Unmarshal(ret, &summary)
-		if err != nil {
-			return summary, err
-		}
-	}
-
-	return summary, nil
-}
-
 func auth(baseUrl string, user string, password string) (string, error) {
 	request := authRequest{Username: user, Password: password}
 	requestData, _ := json.Marshal(request)

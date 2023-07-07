@@ -24,7 +24,10 @@ SOFTWARE
 
 package v1alpha2
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Event struct {
 	Metadata map[string]string `json:"metadata"`
@@ -40,4 +43,10 @@ type EventHandler func(topic string, message Event) error
 type JobData struct {
 	Id     string `json:"id"`
 	Action string `json:"action"`
+}
+
+type HeartBeatData struct {
+	JobId  string    `json:"id"`
+	Action string    `json:"action"`
+	Time   time.Time `json:"time"`
 }

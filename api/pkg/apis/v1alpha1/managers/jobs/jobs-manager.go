@@ -27,9 +27,11 @@ package jobs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -65,6 +67,10 @@ func (s *JobsManager) Init(context *contexts.VendorContext, config managers.Mana
 	return nil
 }
 
+func (s *JobsManager) Enabled() bool {
+	return s.Config.Properties["poll.enabled"] == "true"
+}
+
 func (s *JobsManager) Poll() []error {
 	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
@@ -78,7 +84,10 @@ func (s *JobsManager) Poll() []error {
 	if err != nil {
 		return []error{err}
 	}
-	interval := utils.ReadInt32(s.Manager.Config.Properties, "interval", 15)
+	interval := utils.ReadInt32(s.Manager.Config.Properties, "interval", 0)
+	if interval == 0 {
+		return nil
+	}
 	instances, err := utils.GetInstances(baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -147,6 +156,52 @@ func (s *JobsManager) Poll() []error {
 func (s *JobsManager) Reconcil() []error {
 	return nil
 }
+func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.Event) error {
+	var heartbeat v1alpha2.HeartBeatData
+	var jok bool
+	if heartbeat, jok = event.Body.(v1alpha2.HeartBeatData); !jok {
+		return v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
+	}
+	// TODO: the heart beat data should contain a "finished" field so data can be cleared
+	_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
+		Value: states.StateEntry{
+			ID:   "h_" + heartbeat.JobId,
+			Body: heartbeat,
+		},
+	})
+	return err
+}
+
+func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job v1alpha2.JobData) error {
+	key := "h_" + job.Id
+	if objectType == "target" {
+		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
+	}
+	//check if a manager is working on the job
+	entry, err := s.StateProvider.Get(ctx, states.GetRequest{
+		ID: key,
+	})
+	if err != nil {
+		if !v1alpha2.IsNotFound(err) {
+			return err
+		}
+		return nil // no heartbeat
+	}
+	var heartbeat v1alpha2.HeartBeatData
+	jData, _ := json.Marshal(entry.Body)
+	err = json.Unmarshal(jData, &heartbeat)
+	if err != nil {
+		return err
+	}
+	if time.Since(heartbeat.Time) > time.Duration(60)*time.Second { //TODO: make this configurable
+		// heartbeat is too old
+		return nil
+	}
+	if job.Action == "delete" && heartbeat.Action == "update" {
+		return v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
+	}
+	return v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
+}
 
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	if objectType, ok := event.Metadata["objectType"]; ok {
@@ -155,6 +210,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		var jok bool
 		if job, jok = event.Body.(v1alpha2.JobData); !jok {
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
+		}
+
+		err := s.DelayOrSkipJob(ctx, objectType, job)
+		if err != nil {
+			return err
 		}
 
 		baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
@@ -190,16 +250,22 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				// TODO: how to handle status updates?
 				// instance.Status["status"] = "Solution Missing"
 				// instance.Status["status-details"] = fmt.Sprintf("unable to fetch Solution object: %v", err)
-				return err //TODO: solution is gone
+				solution = model.SolutionState{
+					Id: instance.Spec.Solution,
+					Spec: &model.SolutionSpec{
+						Components: make([]model.ComponentSpec, 0),
+					},
+				}
 			}
 
 			//get targets
-			targets, err := utils.GetTargets(baseUrl, user, password)
+			var targets []model.TargetState
+			targets, err = utils.GetTargets(baseUrl, user, password)
 			if err != nil {
 				// TODO: how to handle status updates?
 				// instance.Status["status"] = "No Targets"
 				// instance.Status["status-details"] = fmt.Sprintf("unable to fetch Target objects: %v", err)
-				return err //TODO: targets are gone
+				targets = make([]model.TargetState, 0)
 			}
 
 			//get target candidates
@@ -221,7 +287,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//call api
 			if job.Action == "UPDATE" {
-				_, err := utils.Deploy(baseUrl, user, password, deployment)
+				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
 				if err != nil {
 					// TODO: how to handle status updates?
 					// instance.Status["status"] = "Failed"
@@ -241,7 +307,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Remove(baseUrl, user, password, deployment)
+				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
 				if err != nil {
 					// TODO: how to handle status updates?
 					// instance.Status["status"] = "Remove Failed"
@@ -262,7 +328,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			if job.Action == "UPDATE" {
-				_, err := utils.Deploy(baseUrl, user, password, deployment)
+				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
 				if err != nil {
 					// TODO: how to handle status updates?
 				} else {
@@ -278,7 +344,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Remove(baseUrl, user, password, deployment)
+				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
 				if err != nil {
 					// TODO: how to handle status updates?
 				} else {

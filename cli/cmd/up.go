@@ -39,7 +39,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "0.43.11"
+const SymphonyAPIVersion = "0.44.6"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
 var (

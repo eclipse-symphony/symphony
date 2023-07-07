@@ -59,6 +59,18 @@ az iot hub device-identity connection-string show --device-id s8c-vm --resource-
 ### 3. Register a Linux VM as an IoT Edge device
 You need to prepare a Linux VM or physical device for IoT Edge. In this guide, you'll create a new Linux VM:
 ```bash
+# use ARM deployment to create a VM and install IoT Edge runtime
+az deployment group create \
+--resource-group s8c-demo \
+--template-uri "https://raw.githubusercontent.com/Azure/iotedge-vm-deploy/1.4/edgeDeploy.json" \
+--parameters dnsLabelPrefix='s8c-vm' \
+--parameters adminUsername='hbai' \
+--parameters deviceConnectionString=$(az iot hub device-identity connection-string show --device-id s8c-vm --hub-name s8chub -o tsv) \
+--parameters authenticationType='password' \
+--parameters adminPasswordOrKey="<REPLACE_WITH_PASSWORD>"
+
+# OR, to do this manually
+
 # create vm
 az vm create --resource-group s8c-demo --name s8c-vm --image UbuntuLTS --admin-username hbai --generate-ssh-keys --size Standard_D2s_v5
 

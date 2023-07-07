@@ -21,15 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-type ConstraintSpec struct {
-	Key       string   `json:"key"`
-	Qualifier string   `json:"qualifier,omitempty"`
-	Operator  string   `json:"operator,omitempty"`
-	Value     string   `json:"value,omitempty"`
-	Values    []string `json:"values,omitempty"` //TODO: It seems kubebuilder has difficulties handling recursive defs. This is supposed to be an ConstraintSpec array
-}
-
 type FilterSpec struct {
 	Direction  string            `json:"direction"`
 	Type       string            `json:"type"`
@@ -51,7 +42,7 @@ type ComponentSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Properties   ComponentProperties `json:"properties,omitempty"`
 	Routes       []RouteSpec         `json:"routes,omitempty"`
-	Constraints  []ConstraintSpec    `json:"constraints,omitempty"`
+	Constraints  string              `json:"constraints,omitempty"`
 	Dependencies []string            `json:"dependencies,omitempty"`
 	Skills       []string            `json:"skills,omitempty"`
 }
@@ -78,7 +69,7 @@ type TargetSpec struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 	Properties    map[string]string `json:"properties,omitempty"`
 	Components    []ComponentSpec   `json:"components,omitempty"`
-	Constraints   []ConstraintSpec  `json:"constraints,omitempty"`
+	Constraints   string            `json:"constraints,omitempty"`
 	Topologies    []TopologySpec    `json:"topologies,omitempty"`
 	ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
 	Scope         string            `json:"scope,omitempty"`

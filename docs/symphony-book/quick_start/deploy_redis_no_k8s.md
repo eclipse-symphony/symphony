@@ -1,4 +1,7 @@
 # Symphony Quick Start - Deploying a Redis container with standalone Symphony
+
+_(last edit: 6/26/2023)_
+
 Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
@@ -22,7 +25,7 @@ go build -o symphony-api
 ## Authentication
 Using a web client, send the following request:
 
-* **ADDRESS**: http://localhost:8080/v1alpha2/users/auth
+* **ADDRESS**: http://localhost:8082/v1alpha2/users/auth
 * **METHOD**: POST
 * **BODY**: 
     ```json
@@ -41,7 +44,7 @@ The response body contains an access token, which you need to attach to the subs
 ## Define a target
 Next, you define your current machine as a [Target](../uom/target.md) with a Docker [target provider](../providers/target_provider.md):
 
-* **ADDRESS**: http://localhost:8080/v1alpha2/targets/registry/sample-docker-target
+* **ADDRESS**: http://localhost:8082/v1alpha2/targets/registry/sample-docker-target
 * **METHOD**: POST
 * **BODY**: 
     ```json
@@ -64,7 +67,7 @@ Next, you define your current machine as a [Target](../uom/target.md) with a Doc
 ## Define a solution
 Next, you define a [Solution](../uom/solution.md) with a single Redis container as a component:
 
-* **ADDRESS**: http://localhost:8080/v1alpha2/solutions/sample-redis
+* **ADDRESS**: http://localhost:8082/v1alpha2/solutions/sample-redis
 * **METHOD**: POST
 * **BODY**: 
     ```json
@@ -84,7 +87,7 @@ Next, you define a [Solution](../uom/solution.md) with a single Redis container 
 ## Define an instance
 Now, you define an [Instance](../uom/instance.md), which will trigger the Docker provider to deploy the Redis container to you location machine:
 
-* **ADDRESS**: http://localhost:8080/v1alpha2/instances/redis-server
+* **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: POST
 * **BODY**: 
     ```json
@@ -113,7 +116,7 @@ You should see the container relaunched after a few seconds.
 ## Delete
 To delete the container, send a ```DELETE`` request:
 
-* **ADDRESS**: http://localhost:8080/v1alpha2/instances/redis-server
+* **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: DELETE
 * **BODY**: 
     ```json

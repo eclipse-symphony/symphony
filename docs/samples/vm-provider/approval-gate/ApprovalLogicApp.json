@@ -1,0 +1,304 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "Retrieve_one_approveRec": {
+                        "inputs": {
+                            "code": "var content = workflowContext.actions.Query_items_2.outputs.body['Items'];\r\nreturn content[0].approveState;"
+                        },
+                        "type": "JavaScriptCode"
+                    },
+                    "Switch": {
+                        "cases": {
+                            "approved_case": {
+                                "actions": {
+                                    "Found_Approved": {
+                                        "inputs": {
+                                            "body": true,
+                                            "statusCode": 200
+                                        },
+                                        "kind": "Http",
+                                        "type": "Response"
+                                    }
+                                },
+                                "case": "approved"
+                            },
+                            "rejected_case": {
+                                "actions": {
+                                    "Found_Rejected": {
+                                        "inputs": {
+                                            "body": "OperationId: @{triggerBody()?['id']}, @{triggerBody()?['operation']} @{triggerBody()?['target']} was rejected.",
+                                            "statusCode": 403
+                                        },
+                                        "kind": "Http",
+                                        "type": "Response"
+                                    }
+                                },
+                                "case": "rejected"
+                            },
+                            "requested_case": {
+                                "actions": {
+                                    "Found_Requested": {
+                                        "inputs": {
+                                            "body": false,
+                                            "statusCode": 200
+                                        },
+                                        "kind": "Http",
+                                        "type": "Response"
+                                    }
+                                },
+                                "case": "requested"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Found_Invalid": {
+                                    "inputs": {
+                                        "body": "OperationId: @{triggerBody()?['id']}, @{triggerBody()?['operation']} @{triggerBody()?['target']} has invalid approveState: @{outputs('Retrieve_one_approveRec')}",
+                                        "statusCode": 400
+                                    },
+                                    "kind": "Http",
+                                    "type": "Response"
+                                }
+                            }
+                        },
+                        "expression": "@outputs('Retrieve_one_approveRec')",
+                        "runAfter": {
+                            "Retrieve_one_approveRec": [
+                                "SUCCEEDED"
+                            ]
+                        },
+                        "type": "Switch"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Approved": {
+                            "actions": {
+                                "Allowed": {
+                                    "inputs": {
+                                        "body": true,
+                                        "statusCode": 200
+                                    },
+                                    "kind": "http",
+                                    "runAfter": {
+                                        "Save_approved_state": [
+                                            "SUCCEEDED"
+                                        ]
+                                    },
+                                    "type": "Response"
+                                },
+                                "Prepare_approveRec_for_approved": {
+                                    "inputs": {
+                                        "code": "var content = workflowContext.trigger.outputs.body;\r\nvar result = content;\r\nresult.approveState = 'approved';\r\n\r\nreturn result;"
+                                    },
+                                    "type": "JavaScriptCode"
+                                },
+                                "Save_approved_state": {
+                                    "inputs": {
+                                        "parameters": {
+                                            "containerId": "approvals",
+                                            "databaseId": "Approvals",
+                                            "isUpsert": true,
+                                            "item": "@outputs('Prepare_approveRec_for_approved')"
+                                        },
+                                        "serviceProviderConfiguration": {
+                                            "connectionName": "AzureCosmosDB",
+                                            "operationId": "CreateOrUpdateDocument",
+                                            "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Prepare_approveRec_for_approved": [
+                                            "SUCCEEDED"
+                                        ]
+                                    },
+                                    "type": "ServiceProvider"
+                                }
+                            },
+                            "else": {
+                                "actions": {
+                                    "Disallowed": {
+                                        "inputs": {
+                                            "body": "OperationId: @{triggerBody()?['id']}, @{triggerBody()?['operation']} @{triggerBody()?['target']} is rejected.",
+                                            "statusCode": 403
+                                        },
+                                        "kind": "http",
+                                        "runAfter": {
+                                            "Save_rejected_state": [
+                                                "SUCCEEDED"
+                                            ]
+                                        },
+                                        "type": "Response"
+                                    },
+                                    "Prepare_approveRec_for_rejected": {
+                                        "inputs": {
+                                            "code": "var content = workflowContext.trigger.outputs.body;\r\nvar result = content;\r\nresult.approveState = 'rejected';\r\n\r\nreturn result;"
+                                        },
+                                        "type": "JavaScriptCode"
+                                    },
+                                    "Save_rejected_state": {
+                                        "inputs": {
+                                            "parameters": {
+                                                "containerId": "approvals",
+                                                "databaseId": "Approvals",
+                                                "isUpsert": true,
+                                                "item": "@outputs('Prepare_approveRec_for_rejected')"
+                                            },
+                                            "serviceProviderConfiguration": {
+                                                "connectionName": "AzureCosmosDB",
+                                                "operationId": "CreateOrUpdateDocument",
+                                                "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Prepare_approveRec_for_rejected": [
+                                                "SUCCEEDED"
+                                            ]
+                                        },
+                                        "type": "ServiceProvider"
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@body('Send_approval_email')?['SelectedOption']",
+                                            "Approve"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "runAfter": {
+                                "Send_approval_email": [
+                                    "SUCCEEDED"
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Prepare_approveRec_for_requested": {
+                            "inputs": {
+                                "code": "var content = workflowContext.trigger.outputs.body;\r\nvar result = content;\r\nresult.approveState = 'requested';\r\n\r\nreturn result;"
+                            },
+                            "type": "JavaScriptCode"
+                        },
+                        "Save_requested_state": {
+                            "inputs": {
+                                "parameters": {
+                                    "containerId": "approvals",
+                                    "databaseId": "Approvals",
+                                    "isUpsert": true,
+                                    "item": "@outputs('Prepare_approveRec_for_requested')"
+                                },
+                                "serviceProviderConfiguration": {
+                                    "connectionName": "AzureCosmosDB",
+                                    "operationId": "CreateOrUpdateDocument",
+                                    "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                                }
+                            },
+                            "runAfter": {
+                                "Prepare_approveRec_for_requested": [
+                                    "SUCCEEDED"
+                                ]
+                            },
+                            "type": "ServiceProvider"
+                        },
+                        "Send_approval_email": {
+                            "inputs": {
+                                "body": {
+                                    "Message": {
+                                        "HideHTMLMessage": false,
+                                        "Importance": "Normal",
+                                        "Options": "Approve, Reject",
+                                        "ShowHTMLConfirmationDialog": false,
+                                        "Subject": "Approval Request for VM Operation: @{triggerBody()?['operation']} @{triggerBody()?['target']}, operationId: @{triggerBody()?['id']}",
+                                        "To": "jiadu@microsoft.com"
+                                    },
+                                    "NotificationUrl": "@{listCallbackUrl()}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "referenceName": "office365"
+                                    }
+                                },
+                                "path": "/approvalmail/$subscriptions"
+                            },
+                            "runAfter": {
+                                "Save_requested_state": [
+                                    "SUCCEEDED"
+                                ]
+                            },
+                            "type": "ApiConnectionWebhook"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": [
+                                    "@body('Query_items_2')?['count']",
+                                    0
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Query_items_2": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Query_items_2": {
+                "inputs": {
+                    "parameters": {
+                        "containerId": "approvals",
+                        "databaseId": "Approvals",
+                        "queryText": "SELECT * from c WHERE c.id=\"@{triggerBody()?['id']}\""
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "AzureCosmosDB",
+                        "operationId": "QueryDocuments",
+                        "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                    }
+                },
+                "runAfter": {},
+                "type": "ServiceProvider"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "approveState": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "operation": {
+                                "type": "string"
+                            },
+                            "target": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    },
+    "kind": "Stateful",
+    "parameters": {}
+}

@@ -58,6 +58,7 @@ type EvaluationContext struct {
 	ConfigProvider config.IConfigProvider
 	SecretProvider secret.ISecretProvider
 	DeploymentSpec model.DeploymentSpec
+	Properties     map[string]string
 	Component      string
 }
 
@@ -307,6 +308,15 @@ func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
 				return nil, re
 			}
 		}
+		vl, okl := lv.(float64)
+		vr, okr := rv.(float64)
+		if okl && okr {
+			return fmt.Sprintf("%s.%s", strconv.FormatFloat(vl, 'f', -1, 64), strconv.FormatFloat(vr, 'f', -1, 64)), nil
+		} else if okl {
+			return fmt.Sprintf("%s.%v", strconv.FormatFloat(vl, 'f', -1, 64), rv), nil
+		} else if okr {
+			return fmt.Sprintf("%v.%s", lv, strconv.FormatFloat(vr, 'f', -1, 64)), nil
+		}
 		return fmt.Sprintf("%v.%v", lv, rv), nil
 	case COLON:
 		var lv interface{} = ""
@@ -408,6 +418,12 @@ type FunctionNode struct {
 	Args []Node
 }
 
+func readProperty(properties map[string]string, key string) (string, error) {
+	if v, ok := properties[key]; ok {
+		return v, nil
+	}
+	return "", fmt.Errorf("property %s is not found", key)
+}
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 
 	arguments := deployment.Instance.Arguments
@@ -445,6 +461,172 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return argument, nil
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
+	case "property":
+		if len(n.Args) == 1 {
+			if context.Properties == nil || len(context.Properties) == 0 {
+				return nil, errors.New("a property collection is needed to evaluate $property()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			property, err := readProperty(context.Properties, key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$property() expects 1 argument, fount %d", len(n.Args))
+	case "equal":
+		if len(n.Args) == 2 {
+			v1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			v2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return compareInterfaces(v1, v2), nil
+		}
+		return nil, fmt.Errorf("$equal() expects 2 arguments, fount %d", len(n.Args))
+	case "and":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return andBools(val1, val2)
+		}
+		return nil, fmt.Errorf("$and() expects 2 arguments, fount %d", len(n.Args))
+	case "or":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return orBools(val1, val2)
+		}
+		return nil, fmt.Errorf("$or() expects 2 arguments, fount %d", len(n.Args))
+	case "not":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return notBool(val)
+		}
+		return nil, fmt.Errorf("$not() expects 1 argument, fount %d", len(n.Args))
+	case "gt":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fVal1, ok1 := toNumber(val1); ok1 {
+				if fVal2, ok2 := toNumber((val2)); ok2 {
+					return fVal1 > fVal2, nil
+				}
+				return nil, fmt.Errorf("%v is not a valid number", val2)
+			}
+			return nil, fmt.Errorf("%v is not a valid number", val1)
+		}
+		return nil, fmt.Errorf("$gt() expects 2 arguments, fount %d", len(n.Args))
+	case "ge":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fVal1, ok1 := toNumber(val1); ok1 {
+				if fVal2, ok2 := toNumber((val2)); ok2 {
+					return fVal1 >= fVal2, nil
+				}
+				return nil, fmt.Errorf("%v is not a valid number", val2)
+			}
+			return nil, fmt.Errorf("%v is not a valid number", val1)
+		}
+		return nil, fmt.Errorf("$ge() expects 2 arguments, fount %d", len(n.Args))
+	case "lt":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fVal1, ok1 := toNumber(val1); ok1 {
+				if fVal2, ok2 := toNumber((val2)); ok2 {
+					return fVal1 < fVal2, nil
+				}
+				return nil, fmt.Errorf("%v is not a valid number", val2)
+			}
+			return nil, fmt.Errorf("%v is not a valid number", val1)
+		}
+		return nil, fmt.Errorf("$lt() expects 2 arguments, fount %d", len(n.Args))
+	case "between":
+		if len(n.Args) == 3 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val3, err := n.Args[2].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fVal1, ok1 := toNumber(val1); ok1 {
+				if fVal2, ok2 := toNumber((val2)); ok2 {
+					if fVal3, ok2 := toNumber((val3)); ok2 {
+						return fVal1 >= fVal2 && fVal1 <= fVal3, nil
+					}
+					return nil, fmt.Errorf("%v is not a valid number", val3)
+				}
+				return nil, fmt.Errorf("%v is not a valid number", val2)
+			}
+			return nil, fmt.Errorf("%v is not a valid number", val1)
+		}
+		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
+	case "le":
+		if len(n.Args) == 2 {
+			val1, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			val2, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fVal1, ok1 := toNumber(val1); ok1 {
+				if fVal2, ok2 := toNumber((val2)); ok2 {
+					return fVal1 <= fVal2, nil
+				}
+				return nil, fmt.Errorf("%v is not a valid number", val2)
+			}
+			return nil, fmt.Errorf("%v is not a valid number", val1)
+		}
+		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
 	case "config":
 		if len(n.Args) == 2 {
 			if context.ConfigProvider == nil {
@@ -714,38 +896,77 @@ func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error)
 	}
 	return ret, nil
 }
-
+func compareInterfaces(a, b interface{}) bool {
+	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+}
+func andBools(a, b interface{}) (bool, error) {
+	if aBool, ok := toBool(a); ok {
+		if bBool, ok := toBool(b); ok {
+			return aBool && bBool, nil
+		}
+		return false, fmt.Errorf("%v is not a boolean value", b)
+	}
+	return false, fmt.Errorf("%v is not a boolean value", a)
+}
+func orBools(a, b interface{}) (bool, error) {
+	if aBool, ok := toBool(a); ok {
+		if bBool, ok := toBool(b); ok {
+			return aBool || bBool, nil
+		}
+		return false, fmt.Errorf("%v is not a boolean value", b)
+	}
+	return false, fmt.Errorf("%v is not a boolean value", a)
+}
+func notBool(a interface{}) (bool, error) {
+	if aBool, ok := toBool(a); ok {
+		return !aBool, nil
+	}
+	return false, fmt.Errorf("%v is not a boolean value", a)
+}
+func toBool(val interface{}) (bool, bool) {
+	switch val := val.(type) {
+	case bool:
+		return val, true
+	case string:
+		boolVal, err := strconv.ParseBool(val)
+		if err == nil {
+			return boolVal, true
+		}
+	}
+	return false, false
+}
+func toNumber(val interface{}) (float64, bool) {
+	num, err := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
+	if err == nil {
+		return num, true
+	}
+	return 0, false
+}
 func evalProperties(context EvaluationContext, properties interface{}) (interface{}, error) {
-	switch props := properties.(type) {
+	switch properties.(type) {
 	case map[string]interface{}:
-		for k, v := range props {
+		for k, v := range properties.(map[string]interface{}) {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			props[k] = val
+			properties.(map[string]interface{})[k] = val
 		}
 	case []interface{}:
-		for i, v := range props {
+		for i, v := range properties.([]interface{}) {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			props[i] = val
+			properties.([]interface{})[i] = val
 		}
 	case string:
-		parser := NewParser(props)
+		parser := NewParser(properties.(string))
 		val, err := parser.Eval(context)
 		if err != nil {
 			return nil, err
 		}
 		properties = val
-	case float64:
-	case bool:
-	case nil:
-	case int:
-	default:
-		return nil, fmt.Errorf("unsupported type %T", properties)
 	}
 	return properties, nil
 }

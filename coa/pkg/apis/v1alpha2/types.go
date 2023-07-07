@@ -52,6 +52,12 @@ const (
 	FileAccessError    State = 4000
 	SerializationError State = 5000
 	DeleteRequested    State = 6000
+	UpdateFailed       State = 8001
+	DeleteFailed       State = 8002
+	ValidateFailed     State = 8003
+	Updated            State = 8004
+	Deleted            State = 8005
+	Delayed            State = 9997
 	Untouched          State = 9998
 	NotImplemented     State = 9999
 )

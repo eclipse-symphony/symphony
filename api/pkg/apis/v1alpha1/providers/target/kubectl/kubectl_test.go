@@ -116,24 +116,31 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "gatekeeper",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name:  "gatekeeper",
 			Scope: "gatekeeper-system",
 		},
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeeper",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -145,52 +152,41 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
-		ConfigType: "inline"}
+		ConfigType: "path"}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx-deployment",
-			Scope: "default",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "nginx",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"resource": map[string]interface{}{
-							"apiVersion": "apps/v1",
-							"kind":       "Deployment",
-							"metadata": map[string]interface{}{
-								"name": "nginx",
+	component := model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 3,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginx",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginx",
 							},
-							"spec": map[string]interface{}{
-								"replicas": 3,
-								"selector": map[string]interface{}{
-									"matchLabels": map[string]string{
-										"app": "nginx",
-									},
-								},
-								"template": map[string]interface{}{
-									"metadata": map[string]interface{}{
-										"labels": map[string]string{
-											"app": "nginx",
-										},
-									},
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
-											{
-												"name":  "nginx",
-												"image": "nginx:1.16.1",
-												"ports": []map[string]interface{}{
-													{
-														"containerPort": 80,
-													},
-												},
-											},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.16.1",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
 										},
 									},
 								},
@@ -200,7 +196,25 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 				},
 			},
 		},
-	}, false)
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "nginx-deployment",
+			Scope: "default",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
@@ -217,58 +231,47 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx-deployment-test",
-			Scope: "default",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "nginx",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"resource": map[string]interface{}{
-							"apiVersion": "apiextensions.k8s.io/v1",
-							"kind":       "CustomResourceDefinition",
-							"metadata": map[string]interface{}{
-								"name": "crontabs.stable.example.com",
-							},
-							"spec": map[string]interface{}{
-								"group": "stable.example.com",
-								"scope": "Namespaced",
-								"names": map[string]interface{}{
-									"plural":   "crontabs",
-									"singular": "crontab",
-									"kind":     "CronTab",
-									"shortNames": []string{
-										"ct",
-									},
-								},
-								"versions": []map[string]interface{}{
-									{
-										"name":    "v1",
-										"served":  true,
-										"storage": true,
-										"schema": map[string]interface{}{
-											"openAPIV3Schema": map[string]interface{}{
-												"type": "object",
-												"properties": map[string]interface{}{
-													"spec": map[string]interface{}{
-														"type": "object",
-														"properties": map[string]interface{}{
-															"cronSpec": map[string]interface{}{
-																"type": "string",
-															},
-															"image": map[string]interface{}{
-																"type": "string",
-															},
-															"replicas": map[string]interface{}{
-																"type": "integer",
-															},
-														},
-													},
+	component := model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apiextensions.k8s.io/v1",
+				"kind":       "CustomResourceDefinition",
+				"metadata": map[string]interface{}{
+					"name": "crontabs.stable.example.com",
+				},
+				"spec": map[string]interface{}{
+					"group": "stable.example.com",
+					"scope": "Namespaced",
+					"names": map[string]interface{}{
+						"plural":   "crontabs",
+						"singular": "crontab",
+						"kind":     "CronTab",
+						"shortNames": []string{
+							"ct",
+						},
+					},
+					"versions": []map[string]interface{}{
+						{
+							"name":    "v1",
+							"served":  true,
+							"storage": true,
+							"schema": map[string]interface{}{
+								"openAPIV3Schema": map[string]interface{}{
+									"type": "object",
+									"properties": map[string]interface{}{
+										"spec": map[string]interface{}{
+											"type": "object",
+											"properties": map[string]interface{}{
+												"cronSpec": map[string]interface{}{
+													"type": "string",
+												},
+												"image": map[string]interface{}{
+													"type": "string",
+												},
+												"replicas": map[string]interface{}{
+													"type": "integer",
 												},
 											},
 										},
@@ -280,7 +283,24 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 				},
 			},
 		},
-	}, false)
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "gatekeeper",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -299,23 +319,30 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "policies",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -334,23 +361,30 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "gatekeepr1",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "gatekeeper",
 		},
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "gatekeepr1",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -368,47 +402,37 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "nginx-deployment",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "nginx-deployment",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"resource": map[string]interface{}{
-							"apiVersion": "apps/v1",
-							"kind":       "Deployment",
-							"metadata": map[string]interface{}{
-								"name": "nginx-deployment",
+	component := model.ComponentSpec{
+		Name: "nginx-deployment",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx-deployment",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 3,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginx",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginx",
 							},
-							"spec": map[string]interface{}{
-								"replicas": 3,
-								"selector": map[string]interface{}{
-									"matchLabels": map[string]string{
-										"app": "nginx",
-									},
-								},
-								"template": map[string]interface{}{
-									"metadata": map[string]interface{}{
-										"labels": map[string]string{
-											"app": "nginx",
-										},
-									},
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
-											{
-												"name":  "nginx",
-												"image": "nginx:1.16.1",
-												"ports": []map[string]interface{}{
-													{
-														"containerPort": 80,
-													},
-												},
-											},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.16.1",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
 										},
 									},
 								},
@@ -418,7 +442,24 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 				},
 			},
 		},
-	}, nil)
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "nginx-deployment",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -437,22 +478,30 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "policies",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name: "policies",
 		},
 		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-					},
-				},
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 

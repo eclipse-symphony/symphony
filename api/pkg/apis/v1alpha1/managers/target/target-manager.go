@@ -111,10 +111,13 @@ func (s *TargetManager) Get(ctx context.Context) (model.TargetSpec, error) {
 func (s *TargetManager) Remove(ctx context.Context, target model.TargetSpec) error {
 	return nil
 }
+func (s *TargetManager) Enabled() bool {
+	return s.Config.Properties["poll.enabled"] == "true"
+}
 func (s *TargetManager) Poll() []error {
 	target := s.ReferenceProvider.TargetID()
 
-	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", "symphony.microsoft.com", "devices", "v1", "v1alpha2.ReferenceK8sCRD")
+	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", model.FabricGroup, "devices", "v1", "v1alpha2.ReferenceK8sCRD")
 	if err != nil {
 		return []error{err}
 	}
@@ -195,7 +198,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[targetName+".err"] = errStr
 	}
-	err := s.Reporter.Report(deviceName, "default", "symphony.microsoft.com", "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
+	err := s.Reporter.Report(deviceName, "default", model.FabricGroup, "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
 	if err != nil {
 		log.Debugf("failed to report device status: %s", err.Error())
 		ret = append(ret, err)
@@ -205,7 +208,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[deviceName+".err"] = errStr
 	}
-	err = s.Reporter.Report(targetName, "default", "symphony.microsoft.com", "targets", "v1", report, overwrite)
+	err = s.Reporter.Report(targetName, "default", model.FabricGroup, "targets", "v1", report, overwrite)
 	if err != nil {
 		log.Debugf("failed to report target status: %s", err.Error())
 		ret = append(ret, err)

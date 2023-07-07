@@ -26,7 +26,8 @@
               "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
-              "interval": "#15"
+              "interval": "#15",
+              "poll.enabled": "true"    
             },
             "providers": {
               "mem-state": {

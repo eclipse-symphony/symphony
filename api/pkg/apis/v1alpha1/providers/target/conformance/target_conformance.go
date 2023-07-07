@@ -43,14 +43,28 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 		},
 	}
 
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Component: model.ComponentSpec{
+					Name:       "test-1",
+					Properties: map[string]interface{}{},
+					Metadata:   map[string]string{},
+				},
+			},
+		},
+	}
+
 	rule := p.GetValidationRule(context.Background())
 
 	for _, property := range rule.RequiredProperties {
 		desired[0].Properties[property] = "dummy property"
+		step.Components[0].Component.Properties[property] = "dummy property"
 	}
 
 	for _, metadata := range rule.RequiredMetadata {
 		desired[0].Metadata[metadata] = "dummy metadata"
+		step.Components[0].Component.Metadata[metadata] = "dummy metadata"
 	}
 
 	deployment := model.DeploymentSpec{
@@ -60,7 +74,8 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 		ComponentStartIndex: 0,
 		ComponentEndIndex:   1,
 	}
-	assert.Nil(t, p.Apply(context.Background(), deployment, true))
+	_, err := p.Apply(context.Background(), deployment, step, true)
+	assert.Nil(t, err)
 }
 func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 
@@ -69,6 +84,18 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 			Name:       "test-1",
 			Properties: map[string]interface{}{},
 			Metadata:   map[string]string{},
+		},
+	}
+
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Component: model.ComponentSpec{
+					Name:       "test-1",
+					Properties: map[string]interface{}{},
+					Metadata:   map[string]string{},
+				},
+			},
 		},
 	}
 
@@ -91,7 +118,7 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 			ComponentStartIndex: 0,
 			ComponentEndIndex:   1,
 		}
-		err := p.Apply(context.Background(), deployment, true)
+		_, err := p.Apply(context.Background(), deployment, step, true)
 		assert.NotNil(t, err)
 		coaErr := err.(v1alpha2.COAError)
 		assert.Equal(t, v1alpha2.BadRequest, coaErr.State)

@@ -28,6 +28,7 @@ package solutions
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -56,7 +57,7 @@ func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "solutions",
 		},
@@ -68,7 +69,7 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": "symphony.microsoft.com/v1",
+				"apiVersion": model.SolutionGroup + "/v1",
 				"kind":       "Solution",
 				"metadata": map[string]interface{}{
 					"name": name,
@@ -77,9 +78,9 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": `{"apiVersion":"symphony.microsoft.com/v1", "kind": "Solution", "metadata": {"name": "$solution()"}}`,
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "$solution()"}}`, model.SolutionGroup),
 			"scope":    "",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "solutions",
 		},
@@ -95,7 +96,7 @@ func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState,
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"resource": "solutions",
 		},
 	}
@@ -136,7 +137,7 @@ func (t *SolutionsManager) GetSpec(ctx context.Context, id string) (model.Soluti
 		ID: id,
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    "symphony.microsoft.com",
+			"group":    model.SolutionGroup,
 			"resource": "solutions",
 		},
 	}

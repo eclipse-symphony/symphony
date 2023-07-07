@@ -74,7 +74,7 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{})
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components)) // To make this test work, you need a target with a single component
 }
@@ -91,21 +91,29 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Apply(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "policies",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-					},
-				},
+			Components:  []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
 			},
 		},
-	}, false)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 
@@ -122,21 +130,29 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	err = provider.Remove(context.Background(), model.DeploymentSpec{
+	component := model.ComponentSpec{
+		Name: "policies",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",
-			Components: []model.ComponentSpec{
-				{
-					Name: "policies",
-					Type: "yaml.k8s",
-					Properties: map[string]interface{}{
-						"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
-					},
-				},
+			Components:  []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
 			},
 		},
-	}, nil)
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
 

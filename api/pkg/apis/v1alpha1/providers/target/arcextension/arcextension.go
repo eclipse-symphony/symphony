@@ -140,55 +140,8 @@ func toArcExtensionTargetProviderConfig(config providers.IProviderConfig) (ArcEx
 	return ret, nil
 }
 
-// NeedsUpdate checks if the ARC extension needs an update
-func (i *ArcExtensionTargetProvider) NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	sLog.Infof(" P (Arc Extension Target): NeedsUpdate: %d - %d", len(desired), len(current))
-	extensionProperty := []string{clusterKey, resourceGroupKey, versionKey, subscriptionIDKey}
-	for _, dc := range desired {
-		found := false
-		for _, cc := range current {
-			if cc.Name == dc.Name && cc.Type == "arc-extension" {
-				for _, param := range extensionProperty {
-					if cc.Properties[param] != "" && cc.Properties[param] != dc.Properties[param] {
-						found = true
-						break
-					}
-				}
-			}
-		}
-		if found {
-			sLog.Info(" P (Arc Extension Target): NeedsUpdate: returning true")
-			return true
-		}
-	}
-
-	sLog.Info(" P (Arc Extension Target): NeedsUpdate: returning false")
-	return false
-}
-
-// NeedsRemove checks if the Arc extension component needs to be removed
-func (i *ArcExtensionTargetProvider) NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool {
-	sLog.Infof("  P (Arc Extension Target Provider): NeedsRemove: %d - %d", len(desired), len(current))
-	extensionProperty := []string{clusterKey, versionKey, subscriptionIDKey}
-	for _, dc := range desired {
-		for _, cc := range current {
-			if cc.Name == dc.Name && cc.Type == "arc-extension" {
-				for _, param := range extensionProperty {
-					if cc.Properties[param] == dc.Properties[param] {
-						sLog.Info("  P (Arc Extension Target Provider): NeedsRemove: returning true")
-						return true
-					}
-				}
-			}
-		}
-	}
-
-	sLog.Info("  P (Arc Extension Target Provider): NeedsRemove: returning false")
-	return false
-}
-
 // Get gets the ARC extension details from connected k8s cluster
-func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error) {
+func (i *ArcExtensionTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan(
 		"Arc Extension Target Provider",
 		ctx,
@@ -212,11 +165,10 @@ func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.D
 		return ret, err
 	}
 
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
-		if c.Type == "arc-extension" {
+	for _, c := range references {
+		if c.Component.Type == "arc-extension" {
 			// deployment has ARC extension properties from component
-			deployment, err := getDeploymentFromComponent(c)
+			deployment, err := getDeploymentFromComponent(c.Component)
 			if err != nil {
 				sLog.Errorf(" P (Arc Extension Target):", err)
 				return ret, err
@@ -255,66 +207,8 @@ func (i *ArcExtensionTargetProvider) Get(ctx context.Context, deployment model.D
 	return ret, nil
 }
 
-// Remove deletes the ARC extension from the connected k8s cluster
-func (i *ArcExtensionTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan(
-		"Arc Extension Target Provider",
-		ctx,
-		&map[string]string{
-			"method": "Remove",
-		},
-	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
-	sLog.Infof("  P (Arc Extension Target): deleting components")
-	// opts sets the system assigned managed identity
-	opts := azidentity.ManagedIdentityCredentialOptions{
-		ID: azidentity.ClientID(i.Config.ClientID),
-	}
-
-	// cred has the managed identity credentials
-	cred, err := azidentity.NewManagedIdentityCredential(&opts)
-	if err != nil {
-		sLog.Errorf(" P (Arc Extension Target Managed Identity Credential):", err)
-		return err
-	}
-
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
-		if c.Type == "arc-extension" {
-			// deployment has ARC extension properties from the component
-			deployment, err := getDeploymentFromComponent(c)
-			if err != nil {
-				sLog.Errorf(" P (Arc Extension Target Deletion):", err)
-				return err
-			}
-
-			// clientFactory is a new Aure client
-			clientFactory, err := armkubernetesconfiguration.NewClientFactory(deployment.SubscriptionID, cred, nil)
-			if err != nil {
-				sLog.Errorf(" P (Arc Extension Target Subscription ID):", err)
-				return err
-			}
-
-			clusterDetails := strings.Split(deployment.Cluster, "/")
-			if len(clusterDetails) < 3 {
-				err = errors.New("ArcExtensionTargetProvider cluster details are missing")
-				return err
-			}
-
-			_, err = clientFactory.NewExtensionsClient().BeginDelete(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, &armkubernetesconfiguration.ExtensionsClientBeginDeleteOptions{ForceDelete: nil})
-			if err != nil {
-				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 // Apply installs the ARC extension on the connected k8s cluster
-func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec) error {
+func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(
 		"Arc Extension Target Provider",
 		ctx,
@@ -326,6 +220,17 @@ func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model
 	defer utils.CloseSpanWithError(span, err)
 	sLog.Infof("  P (Arc Extension Target): applying artifacts: applying components")
 
+	components := step.GetComponents()
+	err = i.GetValidationRule(ctx).Validate(components)
+	if err != nil {
+		return nil, err
+	}
+	if isDryRun {
+		return nil, nil
+	}
+
+	ret := step.PrepareResultMap()
+
 	// opts sets the system assigned managed identity
 	opts := azidentity.ManagedIdentityCredentialOptions{
 		ID: azidentity.ClientID(i.Config.ClientID),
@@ -334,46 +239,79 @@ func (i *ArcExtensionTargetProvider) Apply(ctx context.Context, deployment model
 	cred, err := azidentity.NewManagedIdentityCredential(&opts)
 	if err != nil {
 		sLog.Errorf(" P (Arc Extension Target Managed Identity Credential):", err)
-		return err
+		return nil, err
 	}
 
-	components := deployment.GetComponentSlice()
-	for _, c := range components {
-		if c.Type == "arc-extension" {
-			// deployment has the ARC extension properties from component
-			deployment, err := getDeploymentFromComponent(c)
-			if err != nil {
-				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
-				return err
-			}
+	updated := step.GetUpdatedComponents()
+	if len(updated) > 0 {
+		for _, c := range components {
+			if c.Type == "arc-extension" {
+				// deployment has the ARC extension properties from component
+				deployment, err := getDeploymentFromComponent(c)
+				if err != nil {
+					sLog.Errorf(" P (Arc Extension Target Deployment):", err)
+					return ret, err
+				}
 
-			// clientFactory is a new Azure client
-			clientFactory, err := armkubernetesconfiguration.NewClientFactory(deployment.SubscriptionID, cred, nil)
-			if err != nil {
-				sLog.Errorf(" P (Extension Target Subscription ID):", err)
-				return err
-			}
+				// clientFactory is a new Azure client
+				clientFactory, err := armkubernetesconfiguration.NewClientFactory(deployment.SubscriptionID, cred, nil)
+				if err != nil {
+					sLog.Errorf(" P (Extension Target Subscription ID):", err)
+					return ret, err
+				}
 
-			clusterDetails := strings.Split(deployment.Cluster, "/")
-			if len(clusterDetails) < 3 {
-				err = errors.New("ArcExtensionTargetProvider cluster details are missing")
-				return err
-			}
+				clusterDetails := strings.Split(deployment.Cluster, "/")
+				if len(clusterDetails) < 3 {
+					err = errors.New("ArcExtensionTargetProvider cluster details are missing")
+					return ret, err
+				}
 
-			extensionDetails, err := toExtensionProperties(c)
-			if err != nil {
-				return err
-			}
+				extensionDetails, err := toExtensionProperties(c)
+				if err != nil {
+					return ret, err
+				}
 
-			_, err = clientFactory.NewExtensionsClient().BeginCreate(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, extensionDetails, nil)
-			if err != nil {
-				sLog.Errorf(" P (Arc Extension Target Deployment):", err)
-				return err
+				_, err = clientFactory.NewExtensionsClient().BeginCreate(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, extensionDetails, nil)
+				if err != nil {
+					sLog.Errorf(" P (Arc Extension Target Deployment):", err)
+					return ret, err
+				}
 			}
 		}
 	}
+	deleted := step.GetDeletedComponents()
+	if len(deleted) > 0 {
+		for _, c := range components {
+			if c.Type == "arc-extension" {
+				// deployment has ARC extension properties from the component
+				deployment, err := getDeploymentFromComponent(c)
+				if err != nil {
+					sLog.Errorf(" P (Arc Extension Target Deletion):", err)
+					return ret, err
+				}
 
-	return nil
+				// clientFactory is a new Aure client
+				clientFactory, err := armkubernetesconfiguration.NewClientFactory(deployment.SubscriptionID, cred, nil)
+				if err != nil {
+					sLog.Errorf(" P (Arc Extension Target Subscription ID):", err)
+					return ret, err
+				}
+
+				clusterDetails := strings.Split(deployment.Cluster, "/")
+				if len(clusterDetails) < 3 {
+					err = errors.New("ArcExtensionTargetProvider cluster details are missing")
+					return ret, err
+				}
+
+				_, err = clientFactory.NewExtensionsClient().BeginDelete(ctx, deployment.ResourceGroup, clusterDetails[0], clusterDetails[1], clusterDetails[2], deployment.Name, &armkubernetesconfiguration.ExtensionsClientBeginDeleteOptions{ForceDelete: nil})
+				if err != nil {
+					sLog.Errorf(" P (Arc Extension Target Deployment):", err)
+					return ret, err
+				}
+			}
+		}
+	}
+	return ret, nil
 }
 
 // toExtensionProperties sets the arc extension properties
@@ -470,4 +408,21 @@ func getDeploymentFromComponent(component model.ComponentSpec) (ArcExtensionTarg
 	}
 
 	return ret, nil
+}
+
+func (*ArcExtensionTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+	return model.ValidationRule{
+		RequiredProperties:    []string{"arc-extension"},
+		OptionalProperties:    []string{},
+		RequiredComponentType: "",
+		RequiredMetadata:      []string{},
+		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{Name: "arc-extension", IgnoreCase: false, SkipIfMissing: false},
+			{Name: clusterKey, IgnoreCase: false, SkipIfMissing: true},
+			{Name: resourceGroupKey, IgnoreCase: false, SkipIfMissing: true},
+			{Name: versionKey, IgnoreCase: false, SkipIfMissing: true},
+			{Name: subscriptionIDKey, IgnoreCase: false, SkipIfMissing: true}, // TODO: add capability to skip comparision for deletion
+		},
+	}
 }

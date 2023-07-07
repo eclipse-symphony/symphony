@@ -62,6 +62,7 @@ type InstanceSpec struct {
 	Topologies           []TopologySpec    `json:"topologies,omitempty"`
 	Pipelines            []PipelineSpec    `json:"pipelines,omitempty"`
 	OptOutReconciliation bool              `json:"optOutReconciliation,omitempty"`
+	Generation           string            `json:"generation,omitempty"`
 }
 
 type ErrorType struct {

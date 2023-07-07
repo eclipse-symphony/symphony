@@ -19,6 +19,7 @@ import (
 	"strconv"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -189,7 +190,7 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var data []byte
 	var err error
 	if instance != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, "symphony.microsoft.com", "instances", "v1", "", alias)
+		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, model.SolutionGroup, "instances", "v1", "", alias)
 	} else if lookup != "" {
 		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
 	} else {

@@ -29,7 +29,7 @@ type SkillPackageSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Skill       string            `json:"skill"`
 	Properties  map[string]string `json:"properties,omitempty"`
-	Constraints []ConstraintSpec  `json:"constraints,omitempty"`
+	Constraints string            `json:"constraints,omitempty"`
 	Routes      []RouteSpec       `json:"routes,omitempty"`
 }
 

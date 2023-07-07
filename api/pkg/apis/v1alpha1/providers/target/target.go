@@ -34,18 +34,10 @@ import (
 
 type ITargetProvider interface {
 	Init(config providers.IProviderConfig) error
-	// apply components to a target
-	Apply(ctx context.Context, deployment model.DeploymentSpec, isDryRun bool) error
-	// remove components from a target
-	Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error
-	// get current component states from a target. The desired state is passed in as a reference
-	Get(ctx context.Context, deployment model.DeploymentSpec) ([]model.ComponentSpec, error)
-	// the target decides if an update is needed based the the current components and deisred components
-	// when a provider re-construct state, it may be unable to re-construct some of the properties
-	// in such cases, a provider can choose to ignore some property comparisions
-	NeedsUpdate(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
-	// Provider decides if components should be removed
-	NeedsRemove(ctx context.Context, desired []model.ComponentSpec, current []model.ComponentSpec) bool
 	// get validation rules
 	GetValidationRule(ctx context.Context) model.ValidationRule
+	// get current component states from a target. The desired state is passed in as a reference
+	Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error)
+	// apply components to a target
+	Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error)
 }

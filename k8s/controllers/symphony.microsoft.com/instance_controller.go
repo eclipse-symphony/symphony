@@ -27,18 +27,21 @@ package symphonymicrosoftcom
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"gopls-workspace/constants"
-	utils "gopls-workspace/utils"
+	"gopls-workspace/utils"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	provisioningstates "gopls-workspace/utils/models"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,6 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -70,9 +74,9 @@ type InstanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	myFinalizerName := "instance.symphony.microsoft.com/finalizer"
+	myFinalizerName := "instance.solution.symphony/finalizer"
 
-	log := log.FromContext(ctx)
+	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Instance")
 
 	// Get instance
@@ -101,77 +105,53 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 
-		solution, targets, errStatus, errDetails := r.prepareForUpdate(ctx, req, instance)
-
-		if solution != nil && targets != nil && len(targets) > 0 {
-			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
-			if err == nil {
-				summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-				if err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Failed, summary, err)
-				}
-
-				if err := r.Update(ctx, instance); err != nil {
-					return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
-				} else {
-					err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, nil)
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-				}
-
-			} else {
-				if instance.Status.Properties == nil {
-					instance.Status.Properties = make(map[string]string)
-				}
-				instance.Status.Properties["status"] = "Failed to create deployment"
-				instance.Status.Properties["status-details"] = err.Error()
-				r.ensureOperationState(instance, provisioningstates.Failed)
-				instance.Status.ProvisioningStatus.Error.Code = "deploymentCreationFailed"
-				instance.Status.ProvisioningStatus.Error.Message = err.Error()
-				instance.Status.LastModified = metav1.Now()
-				iErr := r.Status().Update(context.Background(), instance)
-				if iErr != nil {
-					return ctrl.Result{}, iErr
-				}
+		summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
+		if err != nil && !v1alpha2.IsNotFound(err) {
+			uErr := r.updateInstanceStatusFromError(instance, err)
+			if uErr != nil {
+				return ctrl.Result{}, uErr
 			}
-
-		} else if errStatus != "" && errDetails != "" {
-			if instance.Status.Properties == nil {
-				instance.Status.Properties = make(map[string]string)
-			}
-			instance.Status.Properties["status"] = errStatus
-			instance.Status.Properties["status-details"] = errDetails
-			r.ensureOperationState(instance, provisioningstates.Reconciling)
-			instance.Status.LastModified = metav1.Now()
-			iErr := r.Status().Update(context.Background(), instance)
-			if iErr != nil {
-				return ctrl.Result{}, iErr
-			}
+			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{}, nil
+		generationMatch := true
+		if v, err := strconv.ParseInt(summary.Generation, 10, 64); err == nil {
+			generationMatch = v == instance.GetGeneration()
+		}
+
+		if generationMatch && time.Since(summary.Time) <= time.Duration(60)*time.Second { //TODO: this is 60 second interval. Make if configurable?
+			err = r.updateInstanceStatus(instance, summary.Summary)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+		} else {
+			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, false, false)
+			if err != nil {
+				uErr := r.updateInstanceStatusFromError(instance, err)
+				if uErr != nil {
+					return ctrl.Result{}, uErr
+				}
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+		}
+
 	} else { // remove
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			//summary := model.SummarySpec{}
-			solution, targets, errP, errDetails := r.prepareForUpdate(ctx, req, instance)
-			if solution != nil && targets != nil && len(targets) > 0 {
-				deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
-				if err == nil {
-					_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-					if err != nil {
-						log.Error(err, "failed to delete components")
-						// Note: we only log errors and allow objects to be removed. Otherwise the instance
-						// object may get stuck, which causes problems during system update/removal. The downside
-						// of this is that external resources may get left behind
-					}
-				} else {
-					log.Error(err, "failed to create deployment")
+			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
+
+			if err != nil {
+				uErr := r.updateInstanceStatusFromError(instance, err)
+				if uErr != nil {
+					return ctrl.Result{}, uErr
 				}
-			} else if errP != "" && errDetails != "" {
-				log.Error(errors.New(errDetails), errP)
+				return ctrl.Result{}, err
 			}
 
+			// NOTE: we assume the message backend provides at-least-once delivery so that the removal event will be eventually handled.
+			// Until the corresponding provider can successfully carry out the removal job, the job event will remain available for the
+			// provider to pick up.
 			controllerutil.RemoveFinalizer(instance, myFinalizerName)
 			if err := r.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
@@ -181,45 +161,74 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	return ctrl.Result{}, nil
 }
-
-func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Request, instance *symphonyv1.Instance) (*symphonyv1.Solution, []symphonyv1.Target, string, string) {
-	// Get solution
-	solution := &symphonyv1.Solution{}
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: req.Namespace}, solution); err != nil {
-		return nil, nil, "Solution Missing", fmt.Sprintf("unable to fetch Solution object: %v", err)
-	}
-
-	// Get targets
-	targets := &symphonyv1.TargetList{}
-	if err := r.List(ctx, targets, client.InNamespace(req.Namespace)); err != nil {
-		return nil, nil, "No Targets", fmt.Sprintf("unable to fetch Target objects: %v", err)
-	}
-
-	// Get target candidates
-	targetCandidates := utils.MatchTargets(*instance, *targets)
-	if len(targetCandidates) == 0 {
-		return nil, nil, "No Matching Targets", "no Targets are selected"
-	}
-
-	return solution, targetCandidates, "", ""
+func (r *InstanceReconciler) ensureOperationState(instance *symphonyv1.Instance, provisioningState string) {
+	instance.Status.ProvisioningStatus.Status = provisioningState
+	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations[constants.AzureOperationKey]
 }
-
-func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance, status string, provisioningStatus string, summary model.SummarySpec, provisioningError error) error {
-	// Start clean and update all the fields in instance.Status.Properties{}
-	instance.Status.Properties = make(map[string]string)
-
-	// if status == failed, summary will be an empty object.
+func (r *InstanceReconciler) updateInstanceStatusFromError(instance *symphonyv1.Instance, err error) error {
+	if instance.Status.Properties == nil {
+		instance.Status.Properties = make(map[string]string)
+	}
+	instance.Status.Properties["status"] = provisioningstates.Failed
+	instance.Status.Properties["deployed"] = "0"
+	instance.Status.Properties["status-details"] = err.Error()
+	r.updateProvisioningStatus(instance, provisioningstates.Failed, err)
+	instance.Status.LastModified = metav1.Now()
+	return r.Status().Update(context.Background(), instance)
+}
+func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance, summary model.SummarySpec) error {
+	if instance.Status.Properties == nil {
+		instance.Status.Properties = make(map[string]string)
+	}
+	targetCount := strconv.Itoa(summary.TargetCount)
+	successCount := strconv.Itoa(summary.SuccessCount)
+	status := provisioningstates.Succeeded
+	if successCount != targetCount {
+		status = provisioningstates.Failed
+	}
 	instance.Status.Properties["status"] = status
-	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
-	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
+	instance.Status.Properties["targets"] = targetCount
+	instance.Status.Properties["deployed"] = successCount
+
 	for k, v := range summary.TargetResults {
 		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 	}
 
-	r.updateProvisioningStatus(instance, provisioningStatus, provisioningError)
-
+	if status == provisioningstates.Failed {
+		r.updateProvisioningStatus(instance, provisioningstates.Failed, fmt.Errorf("deployment failed: %s", summary.SummaryMessage))
+	} else {
+		r.updateProvisioningStatus(instance, provisioningstates.Succeeded, nil)
+	}
 	instance.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), instance)
+}
+
+func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, provisioningError error) {
+	r.ensureOperationState(instance, provisioningStatus)
+	// Start with a clean Error object and update all the fields
+	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+
+	// Fill error details into instance
+	errorObj := &instance.Status.ProvisioningStatus.Error
+	if provisioningError != nil {
+		parsedError, err := utils.ParseAsAPIError(provisioningError)
+		if err != nil {
+			errorObj.Code = "500"
+			errorObj.Message = fmt.Sprintf("Deployment failed. %s", provisioningError.Error())
+			return
+		}
+		errorObj.Code = parsedError.Code
+		errorObj.Message = "Deployment failed."
+		errorObj.Target = "Symphony"
+		errorObj.Details = make([]symphonyv1.TargetError, 0)
+		for k, v := range parsedError.Spec.TargetResults {
+			errorObj.Details = append(errorObj.Details, symphonyv1.TargetError{
+				Code:    v.Status,
+				Message: v.Message,
+				Target:  k,
+			})
+		}
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -255,37 +264,4 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return ret
 			})).
 		Complete(r)
-}
-
-func (r *InstanceReconciler) ensureOperationState(instance *symphonyv1.Instance, provisioningState string) {
-	instance.Status.ProvisioningStatus.Status = provisioningState
-	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations[constants.AzureOperationKey]
-}
-
-func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, provisioningError error) {
-	r.ensureOperationState(instance, provisioningStatus)
-	// Start with a clean Error object and update all the fields
-	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
-
-	// Fill error details into instance
-	errorObj := &instance.Status.ProvisioningStatus.Error
-	if provisioningError != nil {
-		parsedError, err := utils.ParseAsAPIError(provisioningError)
-		if err != nil {
-			errorObj.Code = "500"
-			errorObj.Message = fmt.Sprintf("Deployment failed. %s", provisioningError.Error())
-			return
-		}
-		errorObj.Code = parsedError.Code
-		errorObj.Message = "Deployment failed."
-		errorObj.Target = "Symphony"
-		errorObj.Details = make([]symphonyv1.TargetError, 0)
-		for k, v := range parsedError.Spec.TargetResults {
-			errorObj.Details = append(errorObj.Details, symphonyv1.TargetError{
-				Code:    v.Status,
-				Message: v.Message,
-				Target:  k,
-			})
-		}
-	}
 }

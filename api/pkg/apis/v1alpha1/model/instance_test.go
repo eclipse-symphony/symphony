@@ -15,9 +15,6 @@ func TestInstanceDeepEquals(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -36,9 +33,6 @@ func TestInstanceDeepEquals(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -63,9 +57,6 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -93,9 +84,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -117,9 +105,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -147,9 +132,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -171,9 +153,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -201,9 +180,6 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -225,63 +201,6 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
-		Target: TargetRefSpec{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		},
-	}
-	res, err := Instance.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestInstanceDeepEqualsVersionsNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
-		Target: TargetRefSpec{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		},
-	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName1",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -309,9 +228,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -333,9 +249,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName1",
 		},
@@ -363,9 +276,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -387,9 +297,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -417,9 +324,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -441,9 +345,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -471,9 +372,6 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -495,9 +393,6 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -525,9 +420,6 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -549,9 +441,6 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Versions: []VersionSpec{{
-			Solution: "SolutionName",
-		}},
 		Target: TargetRefSpec{
 			Name: "TargetName",
 		},
@@ -642,29 +531,6 @@ func TestPipelineSpecDeepEqualsParametersNotMatch(t *testing.T) {
 		},
 	}
 	res, err := Pipeline.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestVersionSpecDeepEqualsOneEmpty(t *testing.T) {
-	Version := VersionSpec{
-		Solution: "SolutionName",
-	}
-	res, err := Version.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a VersionSpec type")
-	assert.False(t, res)
-}
-
-func TestVersionSpecDeepEqualsSkillNotMatch(t *testing.T) {
-	Version := VersionSpec{
-		Solution:   "SolutionName",
-		Percentage: 10,
-	}
-	other := VersionSpec{
-		Solution:   "SolutionName",
-		Percentage: 20,
-	}
-	res, err := Version.DeepEquals(other)
 	assert.Nil(t, err)
 	assert.False(t, res)
 }
