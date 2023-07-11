@@ -1,0 +1,7 @@
+apiVersion: symphony.microsoft.com/v1
+kind: Solution
+metadata:
+  annotations: {}
+  name: my-sol
+spec:
+  displayName: My solution

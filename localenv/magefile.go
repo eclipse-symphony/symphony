@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,13 +41,33 @@ func Deploy() error {
 }
 
 // Uninstall all components
-func Destroy() error {
-	return shellcmd.RunAll(
+func Destroy(flags string) error {
+	err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", RELEASE_NAME, NAMESPACE)),
 	)
+	if err != nil {
+		return err
+	}
+
+	// to indicate if we should wait for cleanup to finish
+	shouldWait := true
+	for _, flag := range strings.Split(reWhiteSpace.ReplaceAllString(strings.ToLower(flags), ``), ",") {
+		if flag == "nowait" {
+			shouldWait = false
+		}
+	}
+
+	if shouldWait {
+		// Wait for all pods to go away
+		if err := waitForServiceCleanup(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-// Build all containers
+// Build builds all containers
 func Build() error {
 	err := buildAPI()
 	if err != nil {
@@ -301,4 +322,58 @@ func dumpShellOutput(cmd string) error {
 	}
 
 	return nil
+}
+
+// Wait for cleanup to finish
+func waitForServiceCleanup() error {
+	var startTime = time.Now()
+
+	fmt.Println("Waiting for all pods to go away...")
+
+	loopCount := 0
+
+	for {
+		loopCount++
+		if loopCount == 600 {
+			return fmt.Errorf("Failed to clean up all the resources!")
+		}
+
+		o, err := shellcmd.Command.Output(`kubectl get pods -A --no-headers`)
+		if err != nil {
+			return err
+		}
+
+		pods := strings.Split(strings.TrimSpace(string(o)), "\n")
+		notReady := make([]string, 0)
+
+		for _, pod := range pods {
+			if len(strings.TrimSpace(pod)) > 3 && !strings.Contains(pod, "kube-system") {
+				parts := strings.Split(pod, " ")
+				name := pod
+				if len(parts) >= 2 {
+					name = parts[1]
+				}
+				notReady = append(notReady, name)
+			}
+		}
+
+		if len(notReady) > 0 {
+			// Show pods that aren't ready
+			if loopCount%30 == 0 {
+				fmt.Printf("waiting for pod removal. Try: %d Not ready: %s\n", loopCount, strings.Join(notReady, ", "))
+			}
+
+			// Show complete status every 5 minutes to help debug
+			if loopCount%300 == 0 {
+				ClusterStatus()
+			}
+
+			time.Sleep(time.Second)
+		} else {
+			fmt.Println("All pods are cleaned up: ", time.Since(startTime).String())
+			return nil
+		}
+
+		time.Sleep(time.Second)
+	}
 }
