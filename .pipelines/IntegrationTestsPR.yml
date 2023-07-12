@@ -46,12 +46,12 @@ steps:
       export PATH=$HOME/go/bin:$PATH
 
       # fail on errors
-      set -e      
+      set -xe
      
       # load up minikube
       
       pushd localenv
-      mage SetupIntegrationTests
+      mage test:up
       popd
       
       # run integration tests

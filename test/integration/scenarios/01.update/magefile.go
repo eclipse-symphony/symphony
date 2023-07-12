@@ -56,7 +56,7 @@ func Test() error {
 // Deploy Symphony to the cluster
 func Setup() error {
 	// Deploy symphony
-	return localenvCmd("deploy")
+	return localenvCmd("cluster:deploy")
 }
 
 // Run tests for scenarios/update

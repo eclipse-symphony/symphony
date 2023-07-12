@@ -6,7 +6,7 @@
 From in /localenv run:
 
 ```
-mage SetupIntegrationTests
+mage test:up
 ```
 
 This command will delete minikube if it is running, start a new cluster. Then load up the images.
@@ -36,7 +36,7 @@ Steps to debug a test:
 ```
 # Start the cluster
 cd localenv
-mage SetupIntegrationTests
+mage test:up
 
 # Go to the test folder
 cd ../test/integration/scenarios/basic

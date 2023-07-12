@@ -56,7 +56,7 @@ func Test() error {
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
 	// Deploy symphony
-	err := localenvCmd("deploy")
+	err := localenvCmd("cluster:deploy")
 	if err != nil {
 		return err
 	}

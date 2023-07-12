@@ -8,7 +8,10 @@ To get started using Minikube, run 'mage build minikube:start minikube:load depl
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -31,13 +34,89 @@ const (
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
 
 type Minikube mg.Namespace
+type Build mg.Namespace
+type Pull mg.Namespace
+type Cluster mg.Namespace
+type Test mg.Namespace
 
 /******************** Targets ********************/
 
 // Deploys the symphony ecosystem to your local Minikube cluster.
-func Deploy() error {
+func (Cluster) Deploy() error {
 	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 	return shellcmd.Command(helmUpgrade).Run()
+}
+
+// Up brings the minikube cluster up with symphony deployed
+func Up() error {
+	// Delete if a minikube cluster already exists
+	mk := &Minikube{}
+	_ = mk.Delete()
+
+	c := &Cluster{}
+	if err := c.Up(); err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadFile("header.txt")
+	if err == nil {
+		fmt.Println(string(data))
+	}
+
+	fmt.Println("Press any key to shutdown")
+
+	reader := bufio.NewReader(os.Stdin)
+	_, _, _ = reader.ReadRune()
+
+	fmt.Println("Cleaning up minikube cluster")
+
+	if err := mk.Delete(); err != nil {
+		return err
+	}
+
+	fmt.Println("done")
+
+	return nil
+}
+
+// PullUp pulls the latest images and starts the local environment
+func PullUp() error {
+	mkTask := runBg(recreateMinikube)
+	p := &Pull{}
+
+	if err := p.All(); err != nil {
+		return err
+	}
+
+	if err := runBgResult(mkTask); err != nil {
+		return err
+	}
+
+	if err := Up(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BuildUp builds the latest images and starts the local environment
+func BuildUp() error {
+	mkTask := runBg(recreateMinikube)
+	b := &Build{}
+
+	if err := b.All(); err != nil {
+		return err
+	}
+
+	if err := runBgResult(mkTask); err != nil {
+		return err
+	}
+
+	if err := Up(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Uninstall all components
@@ -68,7 +147,9 @@ func Destroy(flags string) error {
 }
 
 // Build builds all containers
-func Build() error {
+func (Build) All() error {
+	defer logTime(time.Now(), "build:all")
+
 	err := buildAPI()
 	if err != nil {
 		return err
@@ -82,10 +163,18 @@ func Build() error {
 	return nil
 }
 
+// Build api container
+func (Build) Api() error {
+	return buildAPI()
+}
 func buildAPI() error {
 	return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run()
 }
 
+// Build k8s container
+func (Build) K8s() error {
+	return buildK8s()
+}
 func buildK8s() error {
 	return shellcmd.Command("docker-compose -f ../k8s/docker-compose.yaml build").Run()
 }
@@ -154,68 +243,53 @@ func (Minikube) Delete() error {
 	return shellcmd.Command("minikube delete").Run()
 }
 
-// ClusterUp brings the cluster up with all images loaded
-// but does not deploy.
-func ClusterUp() error {
+// Brings the cluster up with all images loaded
+func (Cluster) Load() error {
+	if err := ensureMinikubeUp(); err != nil {
+		return err
+	}
+
+	mk := &Minikube{}
+	if err := mk.Load(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Brings the cluster up and deploys
+func (Cluster) Up() error {
+	defer logTime(time.Now(), "cluster:up")
+
 	// Install minikube
-	mk := &Minikube{}
-	err := mk.Install()
-	if err != nil {
+	c := &Cluster{}
+	if err := c.Load(); err != nil {
 		return err
 	}
 
-	// Start minikube and load containers
-	err = mk.Start()
-	if err != nil {
-		return err
-	}
-
-	err = Build()
-	if err != nil {
-		return err
-	}
-
-	err = mk.Load()
-	if err != nil {
+	if err := c.Deploy(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Up brings the minikube cluster up with symphony deployed
-func Up() error {
-	err := ClusterUp()
-	if err != nil {
-		return err
-	}
-
-	// Deploy the helm chart and wait for all pods to become ready
-	err = Deploy()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// UpClean deletes minikube if it exists and then runs Up
-func UpClean() error {
-	// Delete if a minikube cluster already exists
+// Stop the cluster
+func (Cluster) Down() error {
 	mk := &Minikube{}
-	_ = mk.Delete()
-
-	// Run
-	return Up()
+	return mk.Stop()
 }
 
 // Deploys the symphony ecosystem to minikube and waits for all pods to be ready.
 // This is intended for use with the automated integration tests.
 // Dev workflows can use more optimized commands.
-func SetupIntegrationTests() error {
+func (Test) Up() error {
+	defer logTime(time.Now(), "test:up")
+
 	// Show the state of the cluster for CI scenarios
 	// This should be shown even when an error occurs
-	defer ClusterStatus()
+	c := &Cluster{}
+	defer c.Status()
 
 	// Delete if a minikube cluster already exists
 	mk := &Minikube{}
@@ -223,11 +297,11 @@ func SetupIntegrationTests() error {
 
 	// Build and load images without deploying
 	// tests will run the deployment
-	return ClusterUp()
+	return c.Up()
 }
 
 // Show the state of the cluster for CI scenarios
-func ClusterStatus() {
+func (Cluster) Status() {
 	fmt.Println("*******************[Cluster]**********************")
 	shellcmd.Command("helm list --all").Run()
 	shellcmd.Command("kubectl get pods -A -o wide").Run()
@@ -245,6 +319,66 @@ func ClusterStatus() {
 // Launch the Minikube Kubernetes dashboard.
 func (Minikube) Dashboard() error {
 	return shellcmd.Command("minikube dashboard").Run()
+}
+
+// Pulls all docker images for symphony
+func (Pull) All() error {
+	defer logTime(time.Now(), "pull:all")
+
+	if err := ACRLogin(); err != nil {
+		return err
+	}
+
+	// Pull directly from ACR
+	return shellcmd.RunAll(pull(
+		"symphony-k8s",
+		"symphony-api",
+	)...)
+}
+
+// Pull symphony-k8s
+func (Pull) K8s() error {
+	if err := ACRLogin(); err != nil {
+		return err
+	}
+
+	// Pull directly from ACR
+	return shellcmd.RunAll(pull(
+		"symphony-k8s",
+	)...)
+}
+
+// Pull symphony-api
+func (Pull) Api() error {
+	if err := ACRLogin(); err != nil {
+		return err
+	}
+
+	// Pull directly from ACR
+	return shellcmd.RunAll(pull(
+		"symphony-api",
+	)...)
+}
+
+// Log into the ACR, prompt if az creds are expired
+func ACRLogin() error {
+	for i := 0; i < 3; i++ {
+		err := shellcmd.Command.Run("az acr login --name symphonycr")
+		if err != nil {
+			err := shellcmd.Command.Run("az login --use-device-code")
+			if err != nil {
+				return err
+			}
+
+			if i == 3 {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+
+	return nil
 }
 
 /******************** Helpers ********************/
@@ -327,6 +461,7 @@ func dumpShellOutput(cmd string) error {
 // Wait for cleanup to finish
 func waitForServiceCleanup() error {
 	var startTime = time.Now()
+	c := &Cluster{}
 
 	fmt.Println("Waiting for all pods to go away...")
 
@@ -365,7 +500,7 @@ func waitForServiceCleanup() error {
 
 			// Show complete status every 5 minutes to help debug
 			if loopCount%300 == 0 {
-				ClusterStatus()
+				c.Status()
 			}
 
 			time.Sleep(time.Second)
@@ -376,4 +511,84 @@ func waitForServiceCleanup() error {
 
 		time.Sleep(time.Second)
 	}
+}
+
+// Run a command in the background
+func runBg(f func() error) <-chan error {
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer close(errChan)
+
+		if err := f(); err != nil {
+			errChan <- err
+		}
+	}()
+
+	return errChan
+}
+
+// Wait for an error or the channel to close
+func runBgResult(errChan <-chan error) error {
+	if errChan != nil {
+		err, ok := <-errChan
+		if !ok {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Delete and recreate minikube
+func recreateMinikube() error {
+	defer logTime(time.Now(), "recreate minikube")
+
+	mk := &Minikube{}
+	_ = mk.Delete()
+
+	return ensureMinikubeUp()
+}
+
+// Ensure minikube is running, otherwise install and start it
+func ensureMinikubeUp() error {
+	defer logTime(time.Now(), "start minikube")
+
+	if !minikubeRunning() {
+		mk := &Minikube{}
+		if err := mk.Install(); err != nil {
+			return err
+		}
+
+		if err := mk.Start(); err != nil {
+			return err
+		}
+	}
+
+	if err := ensureMinikubeContext(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// True if minikube is active and running
+func minikubeRunning() bool {
+	b, err := shellcmd.Command.Output(`minikube status -f="{{.Host}}"`)
+	if err != nil {
+		return false
+	}
+
+	return strings.TrimSpace(string(b)) == "Running"
+}
+
+// Set the kubectl context to minikube
+func ensureMinikubeContext() error {
+	return shellcmd.Command(`kubectl config use-context minikube`).Run()
+}
+
+func logTime(start time.Time, name string) {
+	fmt.Printf("[DONE] (%s) '%s'\n", time.Since(start), name)
 }
