@@ -8,14 +8,15 @@ import (
 	"os/user"
 	"path/filepath"
 
+	"github.com/azure/symphony/api/constants"
+	mu "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
+	spf "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
+	svf "github.com/azure/symphony/api/pkg/apis/v1alpha1/vendors"
 	host "github.com/azure/symphony/coa/pkg/apis/v1alpha2/host"
 	mf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	pf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providerfactory"
 	vf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	logger "github.com/azure/symphony/coa/pkg/logger"
-	mu "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
-	spf "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
-	svf "github.com/azure/symphony/api/pkg/apis/v1alpha1/vendors"
 	"github.com/spf13/cobra"
 )
 
@@ -66,6 +67,8 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute(versiong string) {
+	fmt.Println(constants.EulaMessage)
+	fmt.Println()
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)

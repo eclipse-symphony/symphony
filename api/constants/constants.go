@@ -1,8 +1,7 @@
 package constants
 
 const (
-	AzureOperationKey = "management.azure.com/operationId"
-	EulaMessage       = "MICROSOFT SOFTWARE LICENSE TERMS\n" +
+	EulaMessage = "MICROSOFT SOFTWARE LICENSE TERMS\n" +
 		"MICROSOFT Azure Arc-enabled Kubernetes\n" +
 		"This software is licensed to you as part of your or your company's subscription license for Microsoft Azure Services.\n" +
 		"You may only use the software with Microsoft Azure Services and subject to the terms and conditions of the agreement under which you obtained Microsoft Azure Services.\n" +
