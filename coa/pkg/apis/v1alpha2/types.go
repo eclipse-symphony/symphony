@@ -92,6 +92,20 @@ func (s State) String() string {
 		return "File Access Error"
 	case SerializationError:
 		return "Serialization Error"
+	case DeleteRequested:
+		return "Delete Requested"
+	case UpdateFailed:
+		return "Update Failed"
+	case DeleteFailed:
+		return "Delete Failed"
+	case ValidateFailed:
+		return "Validate Failed"
+	case Updated:
+		return "Updated"
+	case Deleted:
+		return "Deleted"
+	case Delayed:
+		return "Delayed"
 	case Untouched:
 		return "Untouched"
 	case NotImplemented:

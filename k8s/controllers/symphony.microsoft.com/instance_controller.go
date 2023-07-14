@@ -86,7 +86,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	r.ensureOperationState(instance, provisioningstates.Reconciling)
 	err := r.Status().Update(ctx, instance)
 	if err != nil {
 		log.Error(err, "unable to update Instance status")
@@ -107,7 +106,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
 		if err != nil && !v1alpha2.IsNotFound(err) {
-			uErr := r.updateInstanceStatusFromError(instance, err)
+			uErr := r.updateInstanceStatusToReconciling(instance, err)
 			if uErr != nil {
 				return ctrl.Result{}, uErr
 			}
@@ -126,14 +125,29 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		} else {
+			// Queue a job every 60s or when the generation is changed
 			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, false, false)
 			if err != nil {
-				uErr := r.updateInstanceStatusFromError(instance, err)
+				uErr := r.updateInstanceStatusToReconciling(instance, err)
 				if uErr != nil {
 					return ctrl.Result{}, uErr
 				}
 				return ctrl.Result{}, err
 			}
+
+			// Update status to Reconciling if there is a change on generation
+			// If users uninstall a component manually without modifying manifest
+			// files, jobs queued every 60s will catch the descrepdency and
+			// re-deploy the uninstalled component. As users' behavior doesn't
+			// trigger generation change, this behavior won't change the status
+			// to reconciling.
+			if !generationMatch {
+				err = r.updateInstanceStatusToReconciling(instance, nil)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		}
 
@@ -142,7 +156,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
 
 			if err != nil {
-				uErr := r.updateInstanceStatusFromError(instance, err)
+				uErr := r.updateInstanceStatusToReconciling(instance, err)
 				if uErr != nil {
 					return ctrl.Result{}, uErr
 				}
@@ -179,14 +193,20 @@ func (r *InstanceReconciler) ensureOperationState(instance *symphonyv1.Instance,
 	instance.Status.ProvisioningStatus.Status = provisioningState
 	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations[constants.AzureOperationKey]
 }
-func (r *InstanceReconciler) updateInstanceStatusFromError(instance *symphonyv1.Instance, err error) error {
+
+// updateInstanceStatusToReconciling updates Instance object to Reconciling (non-terminal) state
+func (r *InstanceReconciler) updateInstanceStatusToReconciling(instance *symphonyv1.Instance, err error) error {
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
-	instance.Status.Properties["status"] = provisioningstates.Failed
-	instance.Status.Properties["deployed"] = "0"
-	instance.Status.Properties["status-details"] = err.Error()
-	r.updateProvisioningStatus(instance, provisioningstates.Failed, err)
+	instance.Status.Properties["status"] = provisioningstates.Reconciling
+	instance.Status.Properties["deployed"] = "pending"
+	instance.Status.Properties["targets"] = "pending"
+	instance.Status.Properties["status-details"] = ""
+	if err != nil {
+		instance.Status.Properties["status-details"] = fmt.Sprintf("Reconciling due to %s", err.Error())
+	}
+	r.updateProvisioningStatusToReconciling(instance, err)
 	instance.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), instance)
 }
@@ -201,48 +221,83 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 		status = provisioningstates.Failed
 	}
 	instance.Status.Properties["status"] = status
-	instance.Status.Properties["targets"] = targetCount
 	instance.Status.Properties["deployed"] = successCount
+	instance.Status.Properties["targets"] = targetCount
+	instance.Status.Properties["status-details"] = summary.SummaryMessage
 
+	// If a component is ever deployed, it will always show in Status.Properties
+	// If a component is not deleted, it will first be reset to Untouched and
+	// then changed to corresponding status later
+	for k, v := range instance.Status.Properties {
+		if utils.IsComponentKey(k) && v != v1alpha2.Deleted.String() {
+			instance.Status.Properties[k] = v1alpha2.Untouched.String()
+		}
+	}
+
+	// Change to corresponding status
 	for k, v := range summary.TargetResults {
 		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
+		for ck, cv := range v.ComponentResults {
+			instance.Status.Properties["targets."+k+"."+ck] = fmt.Sprintf("%s - %s", cv.Status, cv.Message)
+		}
 	}
 
-	if status == provisioningstates.Failed {
-		r.updateProvisioningStatus(instance, provisioningstates.Failed, fmt.Errorf("deployment failed: %s", summary.SummaryMessage))
-	} else {
-		r.updateProvisioningStatus(instance, provisioningstates.Succeeded, nil)
-	}
+	r.updateProvisioningStatus(instance, status, summary)
 	instance.Status.LastModified = metav1.Now()
 	return r.Status().Update(context.Background(), instance)
 }
 
-func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, provisioningError error) {
+func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, summary model.SummarySpec) {
 	r.ensureOperationState(instance, provisioningStatus)
 	// Start with a clean Error object and update all the fields
 	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	// Output field is updated if status is Succeeded
+	instance.Status.ProvisioningStatus.Output = make(map[string]string)
 
-	// Fill error details into instance
-	errorObj := &instance.Status.ProvisioningStatus.Error
-	if provisioningError != nil {
-		parsedError, err := utils.ParseAsAPIError(provisioningError)
-		if err != nil {
-			errorObj.Code = "500"
-			errorObj.Message = fmt.Sprintf("Deployment failed. %s", provisioningError.Error())
-			return
-		}
-		errorObj.Code = parsedError.Code
+	if provisioningStatus == provisioningstates.Failed {
+		errorObj := &instance.Status.ProvisioningStatus.Error
+
+		// Fill error details into error object
+		errorObj.Code = "Symphony: [500]"
 		errorObj.Message = "Deployment failed."
 		errorObj.Target = "Symphony"
 		errorObj.Details = make([]symphonyv1.TargetError, 0)
-		for k, v := range parsedError.Spec.TargetResults {
-			errorObj.Details = append(errorObj.Details, symphonyv1.TargetError{
+		for k, v := range summary.TargetResults {
+			targetObject := symphonyv1.TargetError{
 				Code:    v.Status,
 				Message: v.Message,
 				Target:  k,
-			})
+				Details: make([]symphonyv1.ComponentError, 0),
+			}
+			for ck, cv := range v.ComponentResults {
+				targetObject.Details = append(targetObject.Details, symphonyv1.ComponentError{
+					Code:    cv.Status.String(),
+					Message: cv.Message,
+					Target:  ck,
+				})
+			}
+			errorObj.Details = append(errorObj.Details, targetObject)
+		}
+	} else if provisioningStatus == provisioningstates.Succeeded {
+		outputMap := instance.Status.ProvisioningStatus.Output
+		// Fill component details into output field
+		for k, v := range summary.TargetResults {
+			for ck, cv := range v.ComponentResults {
+				outputMap[fmt.Sprintf("%s.%s", k, ck)] = cv.Status.String()
+			}
 		}
 	}
+}
+
+// updateProvisioningStatusToReconciling updates ProvisioningStatus to Reconciling (non-terminal) state
+func (r *InstanceReconciler) updateProvisioningStatusToReconciling(instance *symphonyv1.Instance, err error) {
+	provisioningStatus := provisioningstates.Reconciling
+	if err != nil {
+		provisioningStatus = fmt.Sprintf("%s: due to %s", provisioningstates.Reconciling, err.Error())
+	}
+	r.ensureOperationState(instance, provisioningStatus)
+	// Start with a clean Error object and update all the fields
+	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
 }
 
 // SetupWithManager sets up the controller with the Manager.

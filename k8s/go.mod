@@ -11,6 +11,7 @@ replace dev.azure.com/msazure/One/_git/symphony.git/packages/mage => ../packages
 require (
 	dev.azure.com/msazure/One/_git/symphony.git/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/azure/symphony/api v0.0.0
+	github.com/azure/symphony/coa v0.0.0
 	github.com/magefile/mage v1.15.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.1.4
@@ -27,7 +28,6 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
-	github.com/azure/symphony/coa v0.0.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect

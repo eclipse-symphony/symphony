@@ -119,7 +119,7 @@ func BuildUp() error {
 	return nil
 }
 
-// Uninstall all components
+// Uninstall all components, e.g. mage destroy all
 func Destroy(flags string) error {
 	err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", RELEASE_NAME, NAMESPACE)),
@@ -257,7 +257,7 @@ func (Cluster) Load() error {
 	return nil
 }
 
-// Brings the cluster up and deploys
+// Brings the cluster up, loads the image and deploys
 func (Cluster) Up() error {
 	defer logTime(time.Now(), "cluster:up")
 

@@ -353,12 +353,20 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {
 				sLog.Errorf("  P (Helm Target): failed to get Helm properties: %+v", err)
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
 				return ret, err
 			}
 
 			fileName, err := i.pullChart(&helmProp.Chart)
 			if err != nil {
 				sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
 				return ret, err
 			}
 			defer os.Remove(fileName)
@@ -367,6 +375,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			chart, err = loader.Load(fileName)
 			if err != nil {
 				sLog.Errorf("  P (Helm Target): failed to load chart: %+v", err)
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
 				return ret, err
 			}
 
@@ -376,8 +388,16 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			if _, err = i.UpgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 				if _, err = i.InstallClient.Run(chart, helmProp.Values); err != nil {
 					sLog.Errorf("  P (Helm Target): failed to apply: %+v", err)
+					ret[component.Component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.UpdateFailed,
+						Message: err.Error(),
+					}
 					return ret, err
 				}
+			}
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "",
 			}
 		} else {
 			if component.Component.Type == "helm.v3" {
@@ -389,6 +409,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					}
 					sLog.Errorf("  P (Helm Target): failed to uninstall Helm chart: %+v", err)
 					return ret, err
+				}
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.Deleted,
+					Message: "",
 				}
 			}
 		}
