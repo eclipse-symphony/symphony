@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,6 +45,34 @@ func TestInitWithEmptyConfig(t *testing.T) {
 	provider := MemoryStateProvider{}
 	err := provider.Init(MemoryStateProviderConfig{})
 	assert.Nil(t, err)
+}
+
+func TestInitWithMap(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.InitWithMap(
+		map[string]string{
+			"name": "name1",
+		},
+	)
+	assert.Nil(t, err)
+}
+
+func TestID(t *testing.T) {
+	provider := MemoryStateProvider{}
+	provider.Init(MemoryStateProviderConfig{
+		Name: "name",
+	})
+
+	assert.Equal(t, "name", provider.ID())
+}
+
+func TestSetContext(t *testing.T) {
+	provider := MemoryStateProvider{}
+	provider.Init(MemoryStateProviderConfig{
+		Name: "name",
+	})
+	provider.SetContext(&contexts.ManagerContext{})
+	assert.NotNil(t, provider.Context)
 }
 
 func TestUpSert(t *testing.T) {

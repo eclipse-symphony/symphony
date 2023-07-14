@@ -16,7 +16,7 @@ RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 ENV GOOS=linux 
 ENV GOARCH=amd64 
 
-RUN CGO_ENABLED=1 mage test
+RUN CGO_ENABLED=1 mage TestWithCoa
 RUN CGO_ENABLED=0 mage build
 
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0

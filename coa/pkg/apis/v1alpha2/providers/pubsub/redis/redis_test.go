@@ -27,6 +27,7 @@ package redis
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
@@ -192,4 +193,30 @@ func TestMultipleSubscriber(t *testing.T) {
 	<-sig2
 	assert.Equal(t, "TEST", msg1)
 	assert.Equal(t, "TEST", msg2)
+}
+
+func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
+
+	configMap := map[string]string{
+		"name":              "test",
+		"host":              "localhost:6379",
+		"password":          "123",
+		"requiresTLS":       "true",
+		"numberOfWorkers":   "1",
+		"queueDepth":        "10",
+		"consumerID":        "test-consumer",
+		"processingTimeout": "10",
+		"redeliverInterval": "10",
+	}
+	config, err := RedisPubSubProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+	assert.Equal(t, "test", config.Name)
+	assert.Equal(t, "localhost:6379", config.Host)
+	assert.Equal(t, "123", config.Password)
+	assert.Equal(t, true, config.RequiresTLS)
+	assert.Equal(t, 1, config.NumberOfWorkers)
+	assert.Equal(t, 10, config.QueueDepth)
+	assert.Equal(t, "test-consumer", config.ConsumerID)
+	assert.Equal(t, time.Duration(10), config.ProcessingTimeout)
+	assert.Equal(t, time.Duration(10), config.RedeliverInterval)
 }

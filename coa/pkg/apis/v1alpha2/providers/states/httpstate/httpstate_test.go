@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +52,52 @@ func TestInitWithConfig(t *testing.T) {
 		Url: "http://localhost:3500/v1.0/state/statestore",
 	})
 	assert.Nil(t, err)
+}
+
+func TestInitWithMap(t *testing.T) {
+	provider := HttpStateProvider{}
+	err := provider.InitWithMap(
+		map[string]string{
+			"url":               "http://localhost:3500/v1.0/state/statestore",
+			"postNameInPath":    "false",
+			"postBodyKeyName":   "key",
+			"postBodyValueName": "value",
+			"postAsArray":       "true",
+		},
+	)
+	assert.Nil(t, err)
+}
+
+func TestInitWithMapWithError(t *testing.T) {
+	provider := HttpStateProvider{}
+	err := provider.InitWithMap(
+		map[string]string{
+			"url":               "http://localhost:3500/v1.0/state/statestore",
+			"postNameInPath":    "false",
+			"postBodyKeyName":   "key",
+			"postBodyValueName": "value",
+			"postAsArray":       "This is causing an Error :)",
+		},
+	)
+	assert.Error(t, err, "invalid bool value in the 'postAsArray' setting of Http state provider")
+}
+
+func TestID(t *testing.T) {
+	provider := HttpStateProvider{}
+	provider.Init(HttpStateProviderConfig{
+		Name: "name",
+	})
+
+	assert.Equal(t, "name", provider.ID())
+}
+
+func TestSetContext(t *testing.T) {
+	provider := HttpStateProvider{}
+	provider.Init(HttpStateProviderConfig{
+		Name: "name",
+	})
+	provider.SetContext(&contexts.ManagerContext{})
+	assert.NotNil(t, provider.Context)
 }
 
 func TestUpSert(t *testing.T) {

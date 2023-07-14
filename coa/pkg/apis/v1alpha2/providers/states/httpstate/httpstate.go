@@ -53,6 +53,12 @@ type HttpStateProviderConfig struct {
 	NotFoundAs204     bool   `json:"notFoundAs204,omitempty"`
 }
 
+type HttpStateProvider struct {
+	Config  HttpStateProviderConfig
+	Data    map[string]interface{}
+	Context *contexts.ManagerContext
+}
+
 func HttpStateProviderConfigFromMap(properties map[string]string) (HttpStateProviderConfig, error) {
 	ret := HttpStateProviderConfig{}
 	if v, ok := properties["name"]; ok {
@@ -102,12 +108,6 @@ func HttpStateProviderConfigFromMap(properties map[string]string) (HttpStateProv
 		return ret, v1alpha2.NewCOAError(nil, "Http sate provider url is not set", v1alpha2.BadConfig)
 	}
 	return ret, nil
-}
-
-type HttpStateProvider struct {
-	Config  HttpStateProviderConfig
-	Data    map[string]interface{}
-	Context *contexts.ManagerContext
 }
 
 func (s *HttpStateProvider) ID() string {

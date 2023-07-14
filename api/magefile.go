@@ -3,6 +3,8 @@
 package main
 
 import (
+	"os"
+
 	//mage:import
 	_ "dev.azure.com/msazure/One/_git/symphony.git/packages/mage"
 	"github.com/princjef/mageutil/shellcmd"
@@ -10,4 +12,27 @@ import (
 
 func Build() error {
 	return shellcmd.Command("go build -o bin/symphony-api -tags=azure").Run()
+}
+
+// Runs both api unit tests as well as coa unit tests.
+func TestWithCoa() error {
+	// Unit tests for api
+	testHelper()
+
+	// Change directory to coa
+	os.Chdir("../coa")
+
+	// Unit tests for coa
+	testHelper()
+	return nil
+}
+
+func testHelper() error {
+	if err := shellcmd.RunAll(
+		"go clean -testcache",
+		"go test -race -timeout 30s -cover ./...",
+	); err != nil {
+		return err
+	}
+	return nil
 }
