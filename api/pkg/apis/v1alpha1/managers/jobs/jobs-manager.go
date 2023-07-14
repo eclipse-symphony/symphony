@@ -247,9 +247,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//get solution
 			solution, err := utils.GetSolution(baseUrl, instance.Spec.Solution, user, password)
 			if err != nil {
-				// TODO: how to handle status updates?
-				// instance.Status["status"] = "Solution Missing"
-				// instance.Status["status-details"] = fmt.Sprintf("unable to fetch Solution object: %v", err)
 				solution = model.SolutionState{
 					Id: instance.Spec.Solution,
 					Spec: &model.SolutionSpec{
@@ -262,40 +259,24 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var targets []model.TargetState
 			targets, err = utils.GetTargets(baseUrl, user, password)
 			if err != nil {
-				// TODO: how to handle status updates?
-				// instance.Status["status"] = "No Targets"
-				// instance.Status["status-details"] = fmt.Sprintf("unable to fetch Target objects: %v", err)
 				targets = make([]model.TargetState, 0)
 			}
 
 			//get target candidates
 			targetCandidates := utils.MatchTargets(instance, targets)
-			if len(targetCandidates) == 0 {
-				// TODO: how to handle status updates?
-				// instance.Status["status"] = "No Matching Targets"
-				// instance.Status["status-details"] = "no Targets are selected"
-				return err //TODO: no match targets
-			}
 
 			//create deployment spec
 			deployment, err := utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
 			if err != nil {
-				// TODO: how to handle status updates?
-				// instance.Status["status"] = "Creation failed"
-				// instance.Status["status-details"] = fmt.Sprintf("failed to generate Symphony deployment: %v", err)
+				return err
 			}
 
 			//call api
 			if job.Action == "UPDATE" {
 				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
 				if err != nil {
-					// TODO: how to handle status updates?
-					// instance.Status["status"] = "Failed"
-					// instance.Status["status-details"] = fmt.Sprintf("failed to deploy: %v", summary)
+					return err
 				} else {
-					// TODO: how to handle status updates?
-					// instance.Status["status"] = "OK"
-					// instance.Status["status-details"] = fmt.Sprintf("deployment summary: %v", summary)
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "i_" + instance.Id,
@@ -309,11 +290,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "DELETE" {
 				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
 				if err != nil {
-					// TODO: how to handle status updates?
-					// instance.Status["status"] = "Remove Failed"
-					// instance.Status["status-details"] = fmt.Sprintf("failed to remove: %v", summary)
+					return err
 				} else {
-					// Instance is gone!
 					return utils.DeleteInstance(baseUrl, deployment.Instance.Name, user, password)
 				}
 			}
@@ -330,7 +308,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "UPDATE" {
 				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
 				if err != nil {
-					// TODO: how to handle status updates?
+					return err
 				} else {
 					// TODO: how to handle status updates?
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
@@ -346,9 +324,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "DELETE" {
 				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
 				if err != nil {
-					// TODO: how to handle status updates?
+					return err
 				} else {
-					// Instance is gone!
 					return utils.DeleteTarget(baseUrl, targetName, user, password)
 				}
 			}

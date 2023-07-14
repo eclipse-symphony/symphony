@@ -34,6 +34,7 @@ type SummarySpec struct {
 	TargetResults  map[string]TargetResultSpec `json:"targets,omitempty"`
 	SummaryMessage string                      `json:"message,omitempty"`
 	Skipped        bool                        `json:"skipped"`
+	IsRemoval      bool                        `json:"isRemoval"`
 }
 type SummaryResult struct {
 	Summary    SummarySpec `json:"summary"`

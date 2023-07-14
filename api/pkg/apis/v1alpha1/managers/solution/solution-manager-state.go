@@ -71,7 +71,7 @@ func PlanForDeployment(deployment model.DeploymentSpec, state model.DeploymentSt
 			}
 		}
 	}
-	return ret, nil
+	return ret.RevisedForDeletion(), nil
 }
 
 func NewDeploymentState(deployment model.DeploymentSpec) (model.DeploymentState, error) {

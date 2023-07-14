@@ -143,7 +143,21 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				}
 				return ctrl.Result{}, err
 			}
-
+			timeout := time.After(5 * time.Minute)
+			ticker := time.Tick(10 * time.Second) //TODO: configurable? adjust based on provider SLA?
+		loop:
+			for {
+				select {
+				case <-timeout:
+					// Timeout exceeded, assume deletion failed and proceed with finalization
+					break loop
+				case <-ticker:
+					summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name))
+					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+						break loop
+					}
+				}
+			}
 			// NOTE: we assume the message backend provides at-least-once delivery so that the removal event will be eventually handled.
 			// Until the corresponding provider can successfully carry out the removal job, the job event will remain available for the
 			// provider to pick up.

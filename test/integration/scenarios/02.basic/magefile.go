@@ -105,7 +105,7 @@ func Verify() error {
 
 // Clean up
 func Cleanup() {
-	localenvCmd("destroy all,nowait")
+	localenvCmd("destroy all")
 }
 
 // Run a mage command from /localenv

@@ -148,3 +148,57 @@ func (p DeploymentPlan) CanAppendToStep(step int, component ComponentSpec) bool 
 	}
 	return canAppend
 }
+func (p DeploymentPlan) RevisedForDeletion() DeploymentPlan {
+	ret := DeploymentPlan{
+		Steps: make([]DeploymentStep, 0),
+	}
+	// create a stack to save deleted steps
+	deletedSteps := make([]DeploymentStep, 0)
+
+	for _, s := range p.Steps {
+		deleted := s.GetDeletedComponents()
+		all := s.GetComponents()
+		if len(deleted) == 0 {
+			ret.Steps = append(ret.Steps, s)
+		} else if len(deleted) == len(all) {
+			// add this step to the deleted steps stack
+			deletedSteps = append(deletedSteps, s)
+		} else {
+			//split the steps into two steps, one with updated only, one with deleted only
+			ret.Steps = append(ret.Steps, makeUpdateStep(s))
+			deletedSteps = append(deletedSteps, makeReversedDeletionStep(s))
+		}
+	}
+	for i := len(deletedSteps) - 1; i >= 0; i-- {
+		ret.Steps = append(ret.Steps, deletedSteps[i])
+	}
+	return ret
+}
+func makeUpdateStep(step DeploymentStep) DeploymentStep {
+	ret := DeploymentStep{
+		Target:     step.Target,
+		Components: make([]ComponentStep, 0),
+		Role:       step.Role,
+		IsFirst:    step.IsFirst,
+	}
+	for _, c := range step.Components {
+		if c.Action == "update" {
+			ret.Components = append(ret.Components, c)
+		}
+	}
+	return ret
+}
+func makeReversedDeletionStep(step DeploymentStep) DeploymentStep {
+	ret := DeploymentStep{
+		Target:     step.Target,
+		Components: make([]ComponentStep, 0),
+		Role:       step.Role,
+		IsFirst:    step.IsFirst,
+	}
+	for i := len(step.Components) - 1; i >= 0; i-- {
+		if step.Components[i].Action == "delete" {
+			ret.Components = append(ret.Components, step.Components[i])
+		}
+	}
+	return ret
+}

@@ -324,6 +324,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if summary.Skipped {
 		summary.SuccessCount = summary.TargetCount
 	}
+	summary.IsRemoval = remove
 	s.saveSummary(ctx, deployment, summary)
 	observ_utils.CloseSpanWithError(span, nil)
 	return summary, nil
