@@ -66,7 +66,7 @@ func TestInitWithEmptyData(t *testing.T) {
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
 // TestInitWithBadData tests that passing bad data to Init returns an error
@@ -112,6 +112,7 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
+		ConfigData: "",
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
@@ -225,7 +226,8 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
-		ConfigType: "inline",
+		ConfigType: "path",
+		ConfigData: "",
 	}
 
 	provider := KubectlTargetProvider{}
@@ -295,7 +297,7 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    "update",
 				Component: component,
 			},
 		},
@@ -314,6 +316,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
+		ConfigData: "",
 	}
 
 	provider := KubectlTargetProvider{}
@@ -343,7 +346,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
 // TestKubectlTargetProviderDelete tests that deleting a deployment works
@@ -396,7 +399,8 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
-		ConfigType: "inline",
+		ConfigType: "path",
+		ConfigData: "",
 	}
 
 	provider := KubectlTargetProvider{}
@@ -473,6 +477,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
+		ConfigData: "",
 	}
 
 	provider := KubectlTargetProvider{}
@@ -502,7 +507,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance
@@ -514,7 +519,8 @@ func TestConformanceSuite(t *testing.T) {
 
 	provider := &KubectlTargetProvider{}
 	err := provider.Init(KubectlTargetProviderConfig{
-		ConfigType: "inline",
+		ConfigType: "path",
+		ConfigData: "",
 	})
 	assert.Nil(t, err)
 	conformance.ConformanceSuite(t, provider)

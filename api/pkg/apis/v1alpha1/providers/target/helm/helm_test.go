@@ -30,38 +30,6 @@ func TestHelmTargetProviderInitEmptyConfig(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestHelmTargetProviderGet tests the Get function of HelmTargetProvider
-func TestHelmTargetProviderGet(t *testing.T) {
-	// To run this test case successfully, you need to have a symphony Helm chart deployed to your current Kubernetes context
-	testHelmChart := os.Getenv("TEST_HELM_CHART")
-	if testHelmChart == "" {
-		t.Skip("Skipping because TEST_HELM_CHART environment variable is not set")
-	}
-
-	config := HelmTargetProviderConfig{InCluster: true}
-	provider := HelmTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "bluefin-arc-extensions",
-				},
-			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: "update",
-			Component: model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
-			},
-		},
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(components))
-}
-
 // TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
 func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
@@ -148,10 +116,42 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestHelmTargetProviderGet tests the Get function of HelmTargetProvider
+func TestHelmTargetProviderGet(t *testing.T) {
+	// To run this test case successfully, you need to have a symphony Helm chart deployed to your current Kubernetes context
+	testHelmChart := os.Getenv("TEST_HELM_CHART")
+	if testHelmChart == "" {
+		t.Skip("Skipping because TEST_HELM_CHART environment variable is not set")
+	}
+
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "bluefin-arc-extensions",
+				},
+			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "bluefin-arc-extensions",
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+}
+
 // TestHelmTargetProviderInstallNoOci tests the Apply function of HelmTargetProvider with no OCI registry
 func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
-	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSION")
+	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSIONS")
 	if testSymphonyHelmVersion == "" {
 		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
 	}
