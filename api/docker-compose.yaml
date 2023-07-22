@@ -4,4 +4,4 @@ services:
     image: symphonycr.azurecr.io/symphony-api
     build: 
       context: ../
-      dockerfile: api/Dockerfile
+      dockerfile: api/Dockerfile.azure

@@ -49,15 +49,34 @@ Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes 
 
 * https://github.com/Azure/symphony
 
-## 2. Build Symphony API container
+## 2. Build and run Symphony binary for local dev/test
+To build Symphony API binary, use ```go build```:
+```bash
+cd api
+go build -o symphony-api
+# to build for Windows
+GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
+# to build for Mac
+GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
+```
+Then, you can launch the API as a local web service using (default port is ```8082```. See ```./symphony-api-no-k8s.json``` settings):
+```bash
+./symphony-api -c ./symphony-api-no-k8s.json
+```
+## 2. Build and run Symphony API container for local dev/test
+To build Symphony API container, use ```docker build```:
+```bash
+# if you build from the api folder
+docker build -t <API image tag> .. -f Dockerfile
+# if you build from the repo root folder
+docker build -t <API image tag> . -f api/Dockerfile
+```
+
 To build multi-platform Symphony API container, use ```docker buildx``` command:
 
 ```bash
 cd api
-go mod vendor    
-docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <API image tag> --push .
-# or to build for single platform
-docker build -t <API image tag> .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <API image tag> --push .. -f Dockerfile
 ```
 > **NOTE:** if you receive an error message saying "multiple platforms featue is not currently not supported...", use ```docker buildx create --use``` to enable multiplatform builds
 
@@ -67,30 +86,24 @@ Some tips:
 * Remove the ```--push``` switch if you want to push the container image later
 * Remove the ```--no-cache``` switch to leverage existing cache, which may speed up builds.
 
-If you just want to build the Symphony API binary, use:
-```bash
-go mod vendor
-go build -o symphony-api
+To run Symphony API as a Docker container, just use ```docker run``` with the ```symphony-api-no-k8s.json``` configuration file:
 ```
-Then, you can launch the API as a local web server using (default port is ```8080```. See ```./symphony-api.json``` settings):
-```bash
-./symphony-api -c ./symphony-api.json
+docker run --rm -it -v /path/to/my-config.json:/configs -e CONFIG=/configs/symphony-api-no-k8s.json <API Image tag>
 ```
-> **NOTE**: To use Kubernetes reference provider outside of a Kubernetes cluster, you need to change the reference's ```inCluster``` setting to ```false``` (see [Reference Provider](../providers/reference_provider.md)).
-
+For example, while under the ```api``` folder, you can launch latest Symphony API container like this:
+```
+docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json possprod.azurecr.io/symphony-api:latest
+```
 
 You can override the default logging level with a ```LOG_LEVEL``` environment variable. For example, to launch Symphony API with ```Info``` log level:
 ```bash
 # running as process
 export LOG_LEVEL=Info
-./symphony-api -c ./symphony-api.json
+./symphony-api -c ./symphony-api-no-k8s.json
+# or, you can directly set the log level switch
+./symphony-api -c ./symphony-api-no-k8s.json -l Info
 # or, running as container in console model
-docker run --rm -it -e LOG_LEVEL=Info possprod.azurecr.io/symphony-api:0.43.1
-```
-
-When running Symphony API as a container, you can use a ```CONFIG``` environment variable to override config file location:
-```
-docker run --rm -it -v /path/to/my-config.json:/configs -e CONFIG=/configs/my-config.json possprod.azurecr.io/symphony-api:0.43.1
+docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json possprod.azurecr.io/symphony-api:latest
 ```
 
 ## 3. Build Symphony K8s binding container
