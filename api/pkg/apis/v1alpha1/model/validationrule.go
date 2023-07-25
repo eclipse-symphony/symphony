@@ -52,6 +52,16 @@ type ValidationRule struct {
 	InstanceIsolation bool `json:"instanceIsolation,omitempty"`
 }
 
+func (v ValidationRule) ValidateInputs(inputs map[string]interface{}) error {
+	// required properties must all present
+	for _, p := range v.RequiredProperties {
+		if ReadPropertyCompat(inputs, p, nil) == "" {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missing", p), v1alpha2.BadRequest)
+		}
+	}
+	return nil
+}
+
 func (v ValidationRule) Validate(components []ComponentSpec) error {
 	for _, c := range components {
 		err := v.validateComponent(c)

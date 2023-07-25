@@ -26,7 +26,9 @@ package symphony
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
@@ -37,23 +39,25 @@ import (
 var msLock sync.Mutex
 
 type SymphonyStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
-	User     string `json:"user"`
-	Password string `json:"password"`
+	BaseUrl      string `json:"baseUrl"`
+	User         string `json:"user"`
+	Password     string `json:"password"`
+	WaitCount    int    `json:"wait.count,omitempty"`
+	WaitInterval int    `json:"wait.interval,omitempty"`
 }
 
 type SymphonyStageProvider struct {
 	Config SymphonyStageProviderConfig
 }
 
-func (s *SymphonyStageProvider) Init(config IProviderConfig) error {
+func (s *SymphonyStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
 	mockConfig, err := toSymphonyStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
-	m.Config = mockConfig
+	s.Config = mockConfig
 	return nil
 }
 func toSymphonyStageProviderConfig(config providers.IProviderConfig) (SymphonyStageProviderConfig, error) {
@@ -94,7 +98,28 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (SymphonyS
 	if err != nil {
 		return ret, err
 	}
+	waitStr, err := utils.GetString(properties, "wait.count")
+	if err != nil {
+		return ret, err
+	}
+	waitCount, err := strconv.Atoi(waitStr)
+	if err != nil {
+		return ret, v1alpha2.NewCOAError(err, "wait.count must be an integer", v1alpha2.BadConfig)
+	}
+	ret.WaitCount = waitCount
+	waitStr, err = utils.GetString(properties, "wait.interval")
+	if err != nil {
+		return ret, err
+	}
+	waitInterval, err := strconv.Atoi(waitStr)
+	if err != nil {
+		return ret, v1alpha2.NewCOAError(err, "wait.interval must be an integer", v1alpha2.BadConfig)
+	}
+	ret.WaitInterval = waitInterval
 	ret.Password = password
+	if waitCount <= 0 {
+		waitCount = 1
+	}
 	return ret, nil
 }
 func (i *SymphonyStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
@@ -110,13 +135,32 @@ func (i *SymphonyStageProvider) Process(ctx context.Context, inputs map[string]i
 	objectName := inputs["objectName"].(string)
 	object := inputs["object"]
 	oData, _ := json.Marshal(object)
+	deployed := false
 	switch objectType {
 	case "instance":
 		err = utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 		if err != nil {
 			return nil, err
 		}
-		utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+		for ic := 0; ic < i.Config.WaitCount; ic++ {
+			summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+			if err != nil {
+				return nil, err
+			}
+			if summary.Summary.SuccessCount == summary.Summary.TargetCount {
+				deployed = true
+				break
+			}
+			time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
+		}
+	}
+	outputs["objectType"] = objectType
+	outputs["objectName"] = objectName
+
+	if deployed {
+		outputs["status"] = "OK"
+	} else {
+		outputs["status"] = "Failed"
 	}
 	return outputs, nil
 }
