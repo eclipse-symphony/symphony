@@ -6,7 +6,7 @@ import (
 	"os"
 
 	//mage:import
-	_ "dev.azure.com/msazure/One/_git/symphony.git/packages/mage"
+	_ "github.com/azure/symphony/packages/mage"
 	"github.com/princjef/mageutil/shellcmd"
 )
 
