@@ -36,7 +36,7 @@ jobs:
     
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-      
+
     - name: API Build
       run: cd api && go build -o symphony-api
 

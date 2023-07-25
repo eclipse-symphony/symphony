@@ -4,7 +4,7 @@ go 1.19
 
 replace github.com/azure/symphony/coa => ../coa
 
-replace dev.azure.com/msazure/One/_git/symphony.git/packages/mage => ../packages/mage
+replace github.com/azure/symphony/packages/mage => ../packages/mage
 
 require (
 	github.com/azure/symphony/coa v0.0.0
@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	dev.azure.com/msazure/One/_git/symphony.git/packages/mage v0.0.0-00010101000000-000000000000
+	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/extendedlocation/armextendedlocation v1.1.0-beta.2
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration v1.1.1
 	github.com/eclipse/paho.mqtt.golang v1.4.2
