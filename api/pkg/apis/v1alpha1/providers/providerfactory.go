@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
@@ -237,6 +238,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.mock":
+		mProvider := &mockstage.MockStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	}
 	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
@@ -434,6 +441,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.secret.mock":
 					provider := &mocksecret.MockSecretProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.stage.mock":
+					provider := &mockstage.MockStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

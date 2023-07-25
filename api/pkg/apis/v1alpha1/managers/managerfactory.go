@@ -14,12 +14,15 @@ limitations under the License.
 package managers
 
 import (
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solutions"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/target"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
@@ -49,6 +52,12 @@ func (c SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMana
 		return &users.UsersManager{}, nil
 	case "managers.symphony.jobs":
 		return &jobs.JobsManager{}, nil
+	case "managers.symphony.campaigns":
+		return &campaigns.CampaignsManager{}, nil
+	case "managers.symphony.activations":
+		return &activations.ActivationsManager{}, nil
+	case "managers.symphony.stage":
+		return &stage.StageManager{}, nil
 	default:
 		return nil, nil //TBD: can't throw errors here as other manages may pick up creation process
 	}

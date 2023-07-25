@@ -1220,3 +1220,66 @@ func TestLongVersionNumber(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "0.2.0-20230627.2-develop", val)
 }
+func TestInputAnd(t *testing.T) {
+	parser := NewParser("$and($equal($input(foo), bar), $equal($input(book), title))")
+	val, err := parser.Eval(EvaluationContext{
+		Inputs: map[string]interface{}{
+			"foo":  "bar",
+			"book": "title",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestInputOr(t *testing.T) {
+	parser := NewParser("$or($equal($input(foo), bar), $equal($input(foo), bar2))")
+	val, err := parser.Eval(EvaluationContext{
+		Inputs: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestStringLiteral(t *testing.T) {
+	parser := NewParser("stage-1")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "stage-1", val)
+}
+func TestIf(t *testing.T) {
+	parser := NewParser("$if(true, stage-1, stage-2)")
+	val, err := parser.Eval(EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "stage-1", val)
+}
+func TestIfLess(t *testing.T) {
+	parser := NewParser("$if($lt($output(foo),10), stage-1, stage-2)")
+	val, err := parser.Eval(EvaluationContext{
+		Outputs: map[string]interface{}{
+			"foo": 5,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "stage-1", val)
+}
+func TestIfLessNegative(t *testing.T) {
+	parser := NewParser("$if($lt($output(foo),10), stage-1, stage-2)")
+	val, err := parser.Eval(EvaluationContext{
+		Outputs: map[string]interface{}{
+			"foo": 11,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "stage-2", val)
+}
+func TestIfLessNegativeEmptyString(t *testing.T) {
+	parser := NewParser("$if($lt($output(foo),5),stage-1, '')")
+	val, err := parser.Eval(EvaluationContext{
+		Outputs: map[string]interface{}{
+			"foo": 11,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "", val)
+}

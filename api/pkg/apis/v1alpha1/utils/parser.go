@@ -59,6 +59,8 @@ type EvaluationContext struct {
 	SecretProvider secret.ISecretProvider
 	DeploymentSpec model.DeploymentSpec
 	Properties     map[string]string
+	Inputs         map[string]interface{}
+	Outputs        map[string]interface{}
 	Component      string
 }
 
@@ -424,6 +426,12 @@ func readProperty(properties map[string]string, key string) (string, error) {
 	}
 	return "", fmt.Errorf("property %s is not found", key)
 }
+func readPropertyInterface(properties map[string]interface{}, key string) (interface{}, error) {
+	if v, ok := properties[key]; ok {
+		return v, nil
+	}
+	return "", fmt.Errorf("property %s is not found", key)
+}
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 
 	arguments := deployment.Instance.Arguments
@@ -477,6 +485,38 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return property, nil
 		}
 		return nil, fmt.Errorf("$property() expects 1 argument, fount %d", len(n.Args))
+	case "input":
+		if len(n.Args) == 1 {
+			if context.Inputs == nil || len(context.Inputs) == 0 {
+				return nil, errors.New("an input collection is needed to evaluate $input()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			property, err := readPropertyInterface(context.Inputs, key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$input() expects 1 argument, fount %d", len(n.Args))
+	case "output":
+		if len(n.Args) == 1 {
+			if context.Outputs == nil || len(context.Outputs) == 0 {
+				return nil, errors.New("an output collection is needed to evaluate $output()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			property, err := readPropertyInterface(context.Outputs, key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$output() expects 1 argument, fount %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -563,6 +603,19 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
 		return nil, fmt.Errorf("$ge() expects 2 arguments, fount %d", len(n.Args))
+	case "if":
+		if len(n.Args) == 3 {
+			cond, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fmt.Sprintf("%v", cond) == "true" {
+				return n.Args[1].Eval(context)
+			} else {
+				return n.Args[2].Eval(context)
+			}
+		}
+		return nil, fmt.Errorf("$if() expects 3 arguments, fount %d", len(n.Args))
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)

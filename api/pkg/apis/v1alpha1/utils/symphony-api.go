@@ -82,7 +82,61 @@ func GetInstances(baseUrl string, user string, password string) ([]model.Instanc
 
 	return ret, nil
 }
+func GetCampaign(baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
+	ret := model.CampaignState{}
+	token, err := auth(baseUrl, user, password)
 
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "campaigns/"+campaign, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
+	ret := model.ActivationState{}
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "activations/registry/"+activation, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func ReportActivationStatus(baseUrl string, name string, user string, password string, activation model.ActivationStatus) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+
+	jData, _ := json.Marshal(activation)
+	_, err = callRestAPI(baseUrl, "activations/"+name, "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func GetInstance(baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(baseUrl, user, password)

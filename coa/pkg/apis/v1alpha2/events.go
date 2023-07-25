@@ -45,6 +45,15 @@ type JobData struct {
 	Action string `json:"action"`
 }
 
+type ActivationData struct {
+	Campaign        string                 `json:"campaign"`
+	Activation      string                 `json:"activation"`
+	Stage           string                 `json:"stage"`
+	Inputs          map[string]interface{} `json:"inputs,omitempty"`
+	PreviousOutputs map[string]interface{} `json:"previousOutputs,omitempty"`
+	Provider        string                 `json:"provider,omitempty"`
+	Config          interface{}            `json:"config,omitempty"`
+}
 type HeartBeatData struct {
 	JobId  string    `json:"id"`
 	Action string    `json:"action"`
