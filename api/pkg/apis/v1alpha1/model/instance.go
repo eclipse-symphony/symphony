@@ -26,34 +26,25 @@ type (
 
 	// InstanceSpec defines the spec property of the InstanceState
 	InstanceSpec struct {
-		Name        string            `json:"name"`
-		DisplayName string            `json:"displayName,omitempty"`
-		Scope       string            `json:"scope,omitempty"`
-		Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string `json:"metadata,omitempty"`
-
-		// Instead of a single solution, users can specify a mixture of multiple solutions with percentage weight. This is for
-		// scenarios like canary deployment and blue-green deployment (used in conjunction with the Campagin object)
-
-		Solution   string                       `json:"solution"`
-		Target     TargetRefSpec                `json:"target,omitempty"`
-		Topologies []TopologySpec               `json:"topologies,omitempty"`
-		Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
-		Arguments  map[string]map[string]string `json:"arguments,omitempty"`
-		Generation string                       `json:"generation,omitempty"`
+		Name        string                       `json:"name"`
+		DisplayName string                       `json:"displayName,omitempty"`
+		Scope       string                       `json:"scope,omitempty"`
+		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata    map[string]string            `json:"metadata,omitempty"`
+		Solution    string                       `json:"solution"`
+		Target      TargetSelector               `json:"target,omitempty"`
+		Topologies  []TopologySpec               `json:"topologies,omitempty"`
+		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
+		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
+		Generation  string                       `json:"generation,omitempty"`
+		// Defines the version of a particular resource
+		Version string `json:"version,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
-	TargetRefSpec struct {
+	TargetSelector struct {
 		Name     string            `json:"name,omitempty"`
 		Selector map[string]string `json:"selector,omitempty"`
-	}
-
-	// TopologySpec defines the desired device topology the instance
-	TopologySpec struct {
-		Device   string            `json:"device,omitempty"`
-		Selector map[string]string `json:"selector,omitempty"`
-		Bindings []BindingSpec     `json:"bindings,omitempty"`
 	}
 
 	// PipelineSpec defines the desired pipeline of the instance
@@ -64,8 +55,8 @@ type (
 	}
 )
 
-func (c TargetRefSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(TargetRefSpec)
+func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetSelector)
 	if !ok {
 		return false, errors.New("parameter is not a TargetRefSpec type")
 	}

@@ -115,7 +115,7 @@ func CreateSymphonyDeploymentFromTarget(target symphonyv1.Target) (symphony.Depl
 		DisplayName: "target-runtime-" + target.ObjectMeta.Name,
 		Scope:       scope,
 		Solution:    "target-runtime",
-		Target: symphony.TargetRefSpec{
+		Target: symphony.TargetSelector{
 			Name: target.ObjectMeta.Name,
 		},
 	}

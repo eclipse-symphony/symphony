@@ -142,7 +142,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				Solution:    solution,
 			}
 			if target != "" {
-				instance.Target = model.TargetRefSpec{
+				instance.Target = model.TargetSelector{
 					Name: target,
 				}
 			} else {
@@ -153,7 +153,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Target = model.TargetRefSpec{
+				instance.Target = model.TargetSelector{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},

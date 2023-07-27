@@ -344,7 +344,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 		DisplayName: key,
 		Scope:       scope,
 		Solution:    key,
-		Target: model.TargetRefSpec{
+		Target: model.TargetSelector{
 			Name: target.Id,
 		},
 	}

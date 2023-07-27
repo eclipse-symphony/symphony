@@ -6,9 +6,12 @@ replace github.com/azure/symphony/api => ../api
 
 replace github.com/azure/symphony/coa => ../coa
 
+replace github.com/azure/symphony/k8s => ../k8s
+
 replace dev.azure.com/msazure/One/_git/symphony.git/packages/mage => ../packages/mage
 
 require (
+	github.com/azure/symphony/k8s v0.0.0-20211006182710-0b9b3b2b0b0a // indirect
 	dev.azure.com/msazure/One/_git/symphony.git/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/azure/symphony/api v0.0.0
 	github.com/azure/symphony/coa v0.0.0

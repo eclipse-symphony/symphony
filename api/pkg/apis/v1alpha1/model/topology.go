@@ -24,31 +24,9 @@ SOFTWARE
 
 package model
 
-import "errors"
-
-type BindingSpec struct {
-	Role     string            `json:"role"`
-	Provider string            `json:"provider"`
-	Config   map[string]string `json:"config,omitempty"`
-}
-
-func (c BindingSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(BindingSpec)
-	if !ok {
-		return false, errors.New("parameter is not a BindingSpec type")
-	}
-
-	if c.Role != otherC.Role {
-		return false, nil
-	}
-
-	if c.Provider != otherC.Provider {
-		return false, nil
-	}
-
-	if !StringMapsEqual(c.Config, otherC.Config, nil) {
-		return false, nil
-	}
-
-	return true, nil
+// TopologySpec defines the desired device topology the instance
+type TopologySpec struct {
+	Device   string            `json:"device,omitempty"`
+	Selector map[string]string `json:"selector,omitempty"`
+	Bindings []BindingSpec     `json:"bindings,omitempty"`
 }

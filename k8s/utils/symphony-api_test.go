@@ -4,6 +4,10 @@ import (
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"testing"
 
+	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
+
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,8 +43,8 @@ func TestSingleWildcardMismatch(t *testing.T) {
 
 func TestDirectTargetMatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Name: "gateway-1",
 			},
 		},
@@ -51,7 +55,7 @@ func TestDirectTargetMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
@@ -59,7 +63,7 @@ func TestDirectTargetMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
@@ -71,8 +75,8 @@ func TestDirectTargetMatch(t *testing.T) {
 }
 func TestDirectTargetMismatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Name: "gateway-1",
 			},
 		},
@@ -83,7 +87,7 @@ func TestDirectTargetMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
@@ -91,7 +95,7 @@ func TestDirectTargetMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-3",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-3",
 				},
 			},
@@ -102,8 +106,8 @@ func TestDirectTargetMismatch(t *testing.T) {
 }
 func TestTargetWildcardMatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Name: "gateway*",
 			},
 		},
@@ -114,7 +118,7 @@ func TestTargetWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
@@ -122,7 +126,7 @@ func TestTargetWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 				},
 			},
@@ -130,7 +134,7 @@ func TestTargetWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "file-server",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "file-server",
 				},
 			},
@@ -141,8 +145,8 @@ func TestTargetWildcardMatch(t *testing.T) {
 }
 func TestTargetSincleWildcardMatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Name: "gateway%1",
 			},
 		},
@@ -153,7 +157,7 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
@@ -161,7 +165,7 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway_1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway_1",
 				},
 			},
@@ -169,7 +173,7 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway1",
 				},
 			},
@@ -180,8 +184,8 @@ func TestTargetSincleWildcardMatch(t *testing.T) {
 }
 func TestTargetSelectorMatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Selector: map[string]string{
 					"OS": "windows",
 				},
@@ -194,7 +198,7 @@ func TestTargetSelectorMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"OS": "windows",
@@ -205,7 +209,7 @@ func TestTargetSelectorMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"OS": "linux",
@@ -216,7 +220,7 @@ func TestTargetSelectorMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 				},
 			},
@@ -228,8 +232,8 @@ func TestTargetSelectorMatch(t *testing.T) {
 }
 func TestTargetSelectorMismatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Selector: map[string]string{
 					"OS": "windows",
 				},
@@ -242,7 +246,7 @@ func TestTargetSelectorMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"OS": "linux",
@@ -253,7 +257,7 @@ func TestTargetSelectorMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"OS": "mac",
@@ -264,7 +268,7 @@ func TestTargetSelectorMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-3",
 				},
 			},
@@ -275,8 +279,8 @@ func TestTargetSelectorMismatch(t *testing.T) {
 }
 func TestTargetSelectorWildcardMatch(t *testing.T) {
 	instance := symphonyv1.Instance{
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Selector: map[string]string{
 					"tag": "floor-*",
 				},
@@ -289,7 +293,7 @@ func TestTargetSelectorWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-1",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-1",
 					Properties: map[string]string{
 						"tag": "floor-23",
@@ -300,7 +304,7 @@ func TestTargetSelectorWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-2",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-2",
 					Properties: map[string]string{
 						"tag": "floor-34",
@@ -311,7 +315,7 @@ func TestTargetSelectorWildcardMatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gateway-3",
 				},
-				Spec: symphonyv1.TargetSpec{
+				Spec: k8smodel.TargetSpec{
 					DisplayName: "gateway-3",
 					Properties: map[string]string{
 						"tag": "floor-88",
@@ -329,8 +333,8 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-instance",
 		},
-		Spec: symphonyv1.InstanceSpec{
-			Target: symphonyv1.TargetSelector{
+		Spec: apimodel.InstanceSpec{
+			Target: apimodel.TargetSelector{
 				Selector: map[string]string{
 					"tag": "floor-*",
 				},
@@ -342,12 +346,12 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "gateway-1",
 			},
-			Spec: symphonyv1.TargetSpec{
+			Spec: k8smodel.TargetSpec{
 				DisplayName: "gateway-1",
 				Properties: map[string]string{
 					"tag": "floor-23",
 				},
-				Components: []symphonyv1.ComponentSpec{
+				Components: []k8smodel.ComponentSpec{
 					{
 						Properties: runtime.RawExtension{
 							Raw: []byte(`{"targetKey": "targetValue", "nested": {"targetKey2": "targetValue2"}}`),
@@ -362,8 +366,8 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-solution",
 		},
-		Spec: symphonyv1.SolutionSpec{
-			Components: []symphonyv1.ComponentSpec{
+		Spec: k8smodel.SolutionSpec{
+			Components: []k8smodel.ComponentSpec{
 				{
 					Properties: runtime.RawExtension{
 						Raw: []byte(`{"key": "value", "nested": {"key": "value"}}`),

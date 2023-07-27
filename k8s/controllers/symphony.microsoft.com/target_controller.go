@@ -31,6 +31,8 @@ import (
 	"strconv"
 	"time"
 
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/utils"
@@ -256,7 +258,7 @@ func (r *TargetReconciler) ensureOperationState(target *symphonyv1.Target, provi
 func (r *TargetReconciler) updateProvisioningStatus(target *symphonyv1.Target, provisioningStatus string, summary model.SummarySpec) {
 	r.ensureOperationState(target, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	target.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 	// Output field is updated if status is Succeeded
 	target.Status.ProvisioningStatus.Output = make(map[string]string)
 
@@ -267,16 +269,16 @@ func (r *TargetReconciler) updateProvisioningStatus(target *symphonyv1.Target, p
 		errorObj.Code = "Symphony: [500]"
 		errorObj.Message = "Deployment failed."
 		errorObj.Target = "Symphony"
-		errorObj.Details = make([]symphonyv1.TargetError, 0)
+		errorObj.Details = make([]apimodel.TargetError, 0)
 		for k, v := range summary.TargetResults {
-			targetObject := symphonyv1.TargetError{
+			targetObject := apimodel.TargetError{
 				Code:    v.Status,
 				Message: v.Message,
 				Target:  k,
-				Details: make([]symphonyv1.ComponentError, 0),
+				Details: make([]apimodel.ComponentError, 0),
 			}
 			for ck, cv := range v.ComponentResults {
-				targetObject.Details = append(targetObject.Details, symphonyv1.ComponentError{
+				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
 					Code:    cv.Status.String(),
 					Message: cv.Message,
 					Target:  ck,
@@ -303,5 +305,5 @@ func (r *TargetReconciler) updateProvisioningStatusToReconciling(target *symphon
 	}
 	r.ensureOperationState(target, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	target.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	target.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 }

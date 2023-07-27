@@ -35,6 +35,8 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/utils"
 
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	provisioningstates "gopls-workspace/utils/models"
@@ -250,7 +252,7 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, summary model.SummarySpec) {
 	r.ensureOperationState(instance, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	instance.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 	// Output field is updated if status is Succeeded
 	instance.Status.ProvisioningStatus.Output = make(map[string]string)
 
@@ -261,16 +263,16 @@ func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Insta
 		errorObj.Code = "Symphony: [500]"
 		errorObj.Message = "Deployment failed."
 		errorObj.Target = "Symphony"
-		errorObj.Details = make([]symphonyv1.TargetError, 0)
+		errorObj.Details = make([]apimodel.TargetError, 0)
 		for k, v := range summary.TargetResults {
-			targetObject := symphonyv1.TargetError{
+			targetObject := apimodel.TargetError{
 				Code:    v.Status,
 				Message: v.Message,
 				Target:  k,
-				Details: make([]symphonyv1.ComponentError, 0),
+				Details: make([]apimodel.ComponentError, 0),
 			}
 			for ck, cv := range v.ComponentResults {
-				targetObject.Details = append(targetObject.Details, symphonyv1.ComponentError{
+				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
 					Code:    cv.Status.String(),
 					Message: cv.Message,
 					Target:  ck,
@@ -297,7 +299,7 @@ func (r *InstanceReconciler) updateProvisioningStatusToReconciling(instance *sym
 	}
 	r.ensureOperationState(instance, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	instance.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 }
 
 // SetupWithManager sets up the controller with the Manager.
