@@ -58,7 +58,7 @@ type (
 func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(TargetSelector)
 	if !ok {
-		return false, errors.New("parameter is not a TargetRefSpec type")
+		return false, errors.New("parameter is not a TargetSelector type")
 	}
 
 	if c.Name != otherC.Name {

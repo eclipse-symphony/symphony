@@ -17,20 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// CampaignSpec defines the desired state of Campaign
-type CampaignSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Campaign. Edit campaign_types.go to remove/update
-	Name string `json:"name,omitempty"`
-}
 
 // CampaignStatus defines the observed state of Campaign
 type CampaignStatus struct {
@@ -46,8 +35,8 @@ type Campaign struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CampaignSpec   `json:"spec,omitempty"`
-	Status CampaignStatus `json:"status,omitempty"`
+	Spec   apimodel.CampaignSpec `json:"spec,omitempty"`
+	Status CampaignStatus        `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -59,6 +48,6 @@ type CampaignList struct {
 	Items           []Campaign `json:"items"`
 }
 
-// func init() {
-// 	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
-// }
+func init() {
+	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
+}

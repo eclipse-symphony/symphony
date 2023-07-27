@@ -376,7 +376,7 @@ func TestMatchTargetsWithTargetName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
 		Id: "someId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
@@ -402,7 +402,7 @@ func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
 		Id: "someId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
@@ -419,7 +419,7 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
 		Id: "someId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 				Selector: map[string]string{
 					"OS": "windows",
@@ -452,7 +452,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
 		Id: "someId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 				Selector: map[string]string{
 					"OS": "windows",
@@ -474,7 +474,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	res = MatchTargets(model.InstanceState{
 		Id: "someId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 				Selector: map[string]string{
 					"OS": "windows",
@@ -553,7 +553,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			DisplayName: "target-runtime-someTargetName",
 			Scope:       "default",
 			Solution:    "target-runtime-someTargetName",
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
@@ -595,7 +595,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	res, err := CreateSymphonyDeployment(model.InstanceState{
 		Id: "someOtherId",
 		Spec: &model.InstanceSpec{
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 				Selector: map[string]string{
 					"OS": "windows",
@@ -685,7 +685,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			DisplayName: "",
 			Scope:       "default",
 			Solution:    "",
-			Target: model.TargetRefSpec{
+			Target: model.TargetSelector{
 				Name: "someTargetName",
 				Selector: map[string]string{
 					"OS": "windows",

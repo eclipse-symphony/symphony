@@ -12,7 +12,7 @@
 | ```Scope``` | ```string``` | Deployment scope (such as Kubernetes namespace) |
 | ```Solution``` | ```string``` | Solution name |
 | ```Stage``` | ```string``` | Deployment stage |
-| ```Target``` | ```TargetRefSpec``` | Targets (see [Target selection](#target-selection)) |
+| ```Target``` | ```TargetSelector``` | Targets (see [Target selection](#target-selection)) |
 | ```Topologies``` | ```[]TopologySpec``` | Device topologies (see [Device topology](#device-topology)) |
 
 ## Target Selection

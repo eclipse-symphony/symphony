@@ -21,3 +21,11 @@ type SkillSpec struct {
 	Bindings    []BindingSpec     `json:"bindings,omitempty"`
 	Edges       []EdgeSpec        `json:"edges"`
 }
+
+type SkillPackageSpec struct {
+	DisplayName string            `json:"displayName,omitempty"`
+	Skill       string            `json:"skill"`
+	Properties  map[string]string `json:"properties,omitempty"`
+	Constraints string            `json:"constraints,omitempty"`
+	Routes      []RouteSpec       `json:"routes,omitempty"`
+}

@@ -7,7 +7,7 @@ import json
 from waitress import serve
 
 @dataclass
-class TargetRefSpec:
+class TargetSelector:
     name: str = ""
     selector: Dict[str, str] = None
 
@@ -39,7 +39,7 @@ class InstanceSpec:
     name: str = ""
     parameters: Dict[str, str] = None
     solution: str = ""
-    target: TargetRefSpec = None
+    target: TargetSelector = None
     topologies: List[TopologySpec] = None
     pipelines: List[PipelineSpec] = None
     scope: str = ""    

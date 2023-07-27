@@ -17,32 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-type BindingSpec struct {
-	Role       string            `json:"role"`
-	Type       string            `json:"type"`
-	Parameters map[string]string `json:"parameters,omitempty"`
-}
-
-type RouteSpec struct {
-	Route    string            `json:"route"`
-	Type     string            `json:"type"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Filters  []FilterSpec      `json:"filters,omitempty"`
-}
-
-// ModelSpec defines the desired state of Model
-type ModelSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	DisplayName string            `json:"displayName,omitempty"`
-	Properties  map[string]string `json:"properties,omitempty"`
-	Constraints string            `json:"constraints,omitempty"`
-	Bindings    []BindingSpec     `json:"bindings,omitempty"`
-	Routes      []RouteSpec       `json:"routes,omitempty"`
-}
 
 // ModelStatus defines the observed state of Model
 type ModelStatus struct {
@@ -57,8 +34,8 @@ type Model struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ModelSpec   `json:"spec,omitempty"`
-	Status ModelStatus `json:"status,omitempty"`
+	Spec   apimodel.ModelSpec `json:"spec,omitempty"`
+	Status ModelStatus        `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -69,6 +46,6 @@ type ModelList struct {
 	Items           []Model `json:"items"`
 }
 
-// func init() {
-// 	SchemeBuilder.Register(&Model{}, &ModelList{})
-// }
+func init() {
+	SchemeBuilder.Register(&Model{}, &ModelList{})
+}
