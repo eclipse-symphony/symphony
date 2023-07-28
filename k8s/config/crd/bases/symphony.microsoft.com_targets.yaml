@@ -59,12 +59,9 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
-                        description: Defines the incoming and outgoing routes of the
-                          component
                         properties:
                           filters:
                             items:
-                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -123,11 +120,11 @@ spec:
                 type: string
               topologies:
                 items:
-                  description: Defines the device topology for a target or instance
+                  description: TopologySpec defines the desired device topology the
+                    instance
                   properties:
                     bindings:
                       items:
-                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:

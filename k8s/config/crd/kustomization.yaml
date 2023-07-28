@@ -2,15 +2,15 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/solution.symphony_solutions.yaml
-- bases/solution.symphony_instances.yaml
-- bases/fabric.symphony_targets.yaml
-- bases/fabric.symphony_devices.yaml
-- bases/ai.symphony_models.yaml
-- bases/ai.symphony_skills.yaml
-- bases/ai.symphony_skillpackages.yaml
-- bases/config.symphony_projectconfigs.yaml
-- bases/solution.symphony_campaigns.yaml
+# - bases/solution.symphony_solutions.yaml
+# - bases/solution.symphony_instances.yaml
+# - bases/fabric.symphony_targets.yaml
+# - bases/fabric.symphony_devices.yaml
+# - bases/ai.symphony_skills.yaml
+# - bases/ai.symphony_skillpackages.yaml
+# - bases/config.symphony_projectconfigs.yaml
+# - bases/solution.symphony_campaigns.yaml
+# - bases/ai.symphony_models.yaml
 - bases/symphony.microsoft.com_solutions.yaml
 - bases/symphony.microsoft.com_instances.yaml
 - bases/symphony.microsoft.com_targets.yaml
@@ -18,20 +18,20 @@ resources:
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-- patches/webhook_in_projectconfigs.yaml
-- patches/webhook_in_campaigns.yaml
-- patches/webhook_in_solutions.yaml
-- patches/webhook_in_instances.yaml
-- patches/webhook_in_targets.yaml
+#- patches/webhook_in_projectconfigs.yaml
+#- patches/webhook_in_campaigns.yaml
+#- patches/webhook_in_solutions.yaml
+#- patches/webhook_in_instances.yaml
+#- patches/webhook_in_targets.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
-- patches/cainjection_in_projectconfigs.yaml
-- patches/cainjection_in_campaigns.yaml
-- patches/cainjection_in_solutions.yaml
-- patches/cainjection_in_instances.yaml
-- patches/cainjection_in_targets.yaml
+#- patches/cainjection_in_projectconfigs.yaml
+#- patches/cainjection_in_campaigns.yaml
+#- patches/cainjection_in_solutions.yaml
+#- patches/cainjection_in_instances.yaml
+#- patches/cainjection_in_targets.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.
@@ -46,18 +46,18 @@ patches:
 - path: patches/cainjection_in_symphony.microsoft.com_solutions.yaml
 - path: patches/cainjection_in_symphony.microsoft.com_instances.yaml
 - path: patches/cainjection_in_symphony.microsoft.com_instances.yaml
-- path: patches/webhook_in_solutions.yaml
-- path: patches/webhook_in_instances.yaml
-- path: patches/webhook_in_targets.yaml
-- path: patches/webhook_in_devices.yaml
-- path: patches/webhook_in_models.yaml
-- path: patches/webhook_in_skills.yaml
-- path: patches/webhook_in_skillpackages.yaml
-- path: patches/cainjection_in_solutions.yaml
-- path: patches/cainjection_in_instances.yaml
-- path: patches/cainjection_in_targets.yaml
-- path: patches/cainjection_in_devices.yaml
-- path: patches/cainjection_in_models.yaml
-- path: patches/cainjection_in_skills.yaml
-- path: patches/cainjection_in_skillpackages.yaml
-- path: patches/cainjection_in_projectconfigs.yaml
+# - path: patches/webhook_in_solutions.yaml
+# - path: patches/webhook_in_instances.yaml
+# - path: patches/webhook_in_targets.yaml
+# - path: patches/webhook_in_devices.yaml
+# - path: patches/webhook_in_models.yaml
+# - path: patches/webhook_in_skills.yaml
+# - path: patches/webhook_in_skillpackages.yaml
+# - path: patches/cainjection_in_solutions.yaml
+# - path: patches/cainjection_in_instances.yaml
+# - path: patches/cainjection_in_targets.yaml
+# - path: patches/cainjection_in_devices.yaml
+# - path: patches/cainjection_in_models.yaml
+# - path: patches/cainjection_in_skills.yaml
+# - path: patches/cainjection_in_skillpackages.yaml
+# - path: patches/cainjection_in_projectconfigs.yaml

@@ -43,8 +43,14 @@ spec:
           metadata:
             type: object
           spec:
-            description: Defines the desired state of Instance
+            description: InstanceSpec defines the spec property of the InstanceState
             properties:
+              arguments:
+                additionalProperties:
+                  additionalProperties:
+                    type: string
+                  type: object
+                type: object
               displayName:
                 type: string
               generation:
@@ -53,13 +59,15 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              name:
+                type: string
               parameters:
                 additionalProperties:
                   type: string
                 type: object
               pipelines:
                 items:
-                  description: Defines an AI pipeline reference
+                  description: PipelineSpec defines the desired pipeline of the instance
                   properties:
                     name:
                       type: string
@@ -79,7 +87,8 @@ spec:
               solution:
                 type: string
               target:
-                description: Defines the target the Instance will deploy to
+                description: TargertRefSpec defines the target the instance will deploy
+                  to
                 properties:
                   name:
                     type: string
@@ -90,11 +99,11 @@ spec:
                 type: object
               topologies:
                 items:
-                  description: Defines the device topology for a target or instance
+                  description: TopologySpec defines the desired device topology the
+                    instance
                   properties:
                     bindings:
                       items:
-                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -120,19 +129,8 @@ spec:
               version:
                 description: Defines the version of a particular resource
                 type: string
-              versions:
-                items:
-                  properties:
-                    percentage:
-                      type: integer
-                    solution:
-                      type: string
-                  required:
-                  - percentage
-                  - solution
-                  type: object
-                type: array
             required:
+            - name
             - solution
             type: object
           status:

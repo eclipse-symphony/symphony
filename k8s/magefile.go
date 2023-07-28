@@ -15,7 +15,6 @@ import (
 
 const (
 	EnvTestK8sVersion = "1.23"
-	ImageRepository   = "symphony.azurecr.io/symphony-k8s"
 )
 
 var (
@@ -36,13 +35,35 @@ var (
 	))
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[2] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[2] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition manifest.
 func Manifests() error {
 	mg.Deps(ensureControllerGen)
-	return shellcmd.RunAll(
-		shellcmd.Command("rm -rf config/crd/bases"),
-		controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./... output:crd:artifacts:config=config/crd/bases"),
-	)
+	return conditionalRun(
+		func() error {
+			return shellcmd.RunAll(
+				shellcmd.Command("rm -rf config/crd/bases-azure"),
+				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./... output:crd:artifacts:config=config/crd/bases-azure"),
+			)
+		},
+		func() error {
+			return shellcmd.RunAll(
+				shellcmd.Command("rm -rf config/crd/bases"),
+				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./... output:crd:artifacts:config=config/crd/bases"),
+			)
+		})
 }
 
 // Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -66,6 +87,11 @@ func OperatorTest() error {
 // Build manager binary.
 func Build() error {
 	return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager main.go").Run()
+}
+
+// Build manager binary.
+func BuildAzure() error {
+	return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -tags=azure -a -o bin/manager main.go").Run()
 }
 
 // Run a controller from your host.

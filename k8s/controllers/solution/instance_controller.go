@@ -27,14 +27,10 @@ package solution
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
-	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	symphonyv1 "gopls-workspace/apis/solution/v1"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	reconcilers "github.com/azure/symphony/k8s/reconcilers"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,7 +44,8 @@ import (
 // InstanceReconciler reconciles a Instance object
 type InstanceReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme     *runtime.Scheme
+	Reconciler *reconcilers.InstanceReconciler
 }
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -65,158 +62,13 @@ type InstanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// myFinalizerName := "instance.solution.symphony/finalizer"
-
-	// log := log.FromContext(ctx)
-	// log.Info("Reconcile Instance")
-
-	// // Get instance
-	// instance := &solutionv1.Instance{}
-	// if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-	// 	log.Error(err, "unable to fetch Instance object")
-	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
-	// }
-
-	// if instance.Status.Properties == nil {
-	// 	instance.Status.Properties = make(map[string]string)
-	// }
-
-	// ensureOperationState(instance, provisioningstates.Reconciling)
-
-	// if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-	// 	if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-	// 		controllerutil.AddFinalizer(instance, myFinalizerName)
-	// 		if err := r.Update(ctx, instance); err != nil {
-	// 			return ctrl.Result{}, err
-	// 		}
-	// 	}
-
-	// 	solution, targets, err, errDetails := r.prepareForUpdate(ctx, req, instance)
-
-	// 	if solution != nil && targets != nil && len(targets) > 0 {
-	// 		deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
-	// 		if err == nil {
-	// 			summary, err := api_utils.Deploy("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-	// 			if err != nil {
-	// 				return ctrl.Result{}, r.updateInstanceStatus(instance, "Failed", provisioningstates.Failed, summary, err)
-	// 			}
-
-	// 			if err := r.Update(ctx, instance); err != nil {
-	// 				return ctrl.Result{}, r.updateInstanceStatus(instance, "State Failed", provisioningstates.Failed, summary, err)
-	// 			} else {
-	// 				err = r.updateInstanceStatus(instance, "OK", provisioningstates.Succeeded, summary, err)
-	// 				if err != nil {
-	// 					return ctrl.Result{}, err
-	// 				}
-	// 			}
-
-	// 		} else {
-	// 			if instance.Status.Properties == nil {
-	// 				instance.Status.Properties = make(map[string]string)
-	// 			}
-	// 			instance.Status.Properties["status"] = "Failed to create deployment"
-	// 			instance.Status.Properties["status-details"] = err.Error()
-	// 			ensureOperationState(instance, provisioningstates.Failed)
-	// 			instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
-	// 			instance.Status.ProvisioningStatus.Error.Message = err.Error()
-	// 			instance.Status.LastModified = metav1.Now()
-	// 			iErr := r.Status().Update(context.Background(), instance)
-	// 			if iErr != nil {
-	// 				return ctrl.Result{}, iErr
-	// 			}
-	// 		}
-
-	// 	} else if err != "" && errDetails != "" {
-	// 		if instance.Status.Properties == nil {
-	// 			instance.Status.Properties = make(map[string]string)
-	// 		}
-	// 		instance.Status.Properties["status"] = err
-	// 		instance.Status.Properties["status-details"] = errDetails
-	// 		ensureOperationState(instance, provisioningstates.Reconciling)
-	// 		instance.Status.LastModified = metav1.Now()
-	// 		iErr := r.Status().Update(context.Background(), instance)
-	// 		if iErr != nil {
-	// 			return ctrl.Result{}, iErr
-	// 		}
-	// 	}
-
-	// 	return ctrl.Result{RequeueAfter: 180 * time.Second}, nil
-	// } else { // remove
-	// 	if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-	// 		//summary := model.SummarySpec{}
-	// 		solution, targets, errP, errDetails := r.prepareForUpdate(ctx, req, instance)
-	// 		if solution != nil && targets != nil && len(targets) > 0 {
-	// 			deployment, err := utils.CreateSymphonyDeployment(*instance, *solution, targets)
-	// 			if err == nil {
-	// 				_, err = api_utils.Remove("http://symphony-service:8080/v1alpha2/", "admin", "", deployment)
-	// 				if err != nil {
-	// 					log.Error(err, "failed to delete components")
-	// 					// Note: we only log errors and allow objects to be removed. Otherwise the instance
-	// 					// object may get stuck, which causes problems during system update/removal. The downside
-	// 					// of this is that external resources may get left behind
-	// 				}
-	// 			} else {
-	// 				log.Error(err, "failed to create deployment")
-	// 			}
-	// 		} else if errP != "" && errDetails != "" {
-	// 			log.Error(errors.New(errDetails), errP)
-	// 		}
-
-	// 		controllerutil.RemoveFinalizer(instance, myFinalizerName)
-	// 		if err := r.Update(ctx, instance); err != nil {
-	// 			return ctrl.Result{}, err
-	// 		}
-	// 	}
-	// }
-
-	return ctrl.Result{}, nil
-}
-
-func (r *InstanceReconciler) prepareForUpdate(ctx context.Context, req ctrl.Request, instance *solutionv1.Instance) (*solutionv1.Solution, []fabricv1.Target, string, string) {
-	var solution *solutionv1.Solution
-
-	// Get solution
-	solution = &solutionv1.Solution{}
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: req.Namespace}, solution); err != nil {
-		return nil, nil, "Solution Missing", fmt.Sprintf("unable to fetch Solution object: %v", err)
+	if r.Reconciler == nil {
+		r.Reconciler = &reconcilers.InstanceReconciler{
+			Client: r.Client,
+			Scheme: r.Scheme,
+		}
 	}
-
-	// Get targets
-	targets := &fabricv1.TargetList{}
-	if err := r.List(ctx, targets, client.InNamespace(req.Namespace)); err != nil {
-		return nil, nil, "No Targets", fmt.Sprintf("unable to fetch Target objects: %v", err)
-	}
-
-	// Get target candidates
-	var targetCandidates []fabricv1.Target
-
-	// targetCandidates = utils.MatchTargets(*instance, *targets)
-	if len(targetCandidates) == 0 {
-		return nil, nil, "No Matching Targets", "no Targets are selected"
-	}
-
-	return solution, targetCandidates, "", ""
-}
-
-func (r *InstanceReconciler) updateInstanceStatus(instance *solutionv1.Instance, status string, provisioningStatus string, summary model.SummarySpec, provisioningError error) error {
-	if instance.Status.Properties == nil {
-		instance.Status.Properties = make(map[string]string)
-	}
-
-	ensureOperationState(instance, provisioningStatus)
-	instance.Status.Properties["status"] = status
-	instance.Status.Properties["targets"] = strconv.Itoa(summary.TargetCount)
-	instance.Status.Properties["deployed"] = strconv.Itoa(summary.SuccessCount)
-	if provisioningError != nil {
-		instance.Status.ProvisioningStatus.Error.Code = "deploymentFailed"
-		instance.Status.ProvisioningStatus.Error.Message = provisioningError.Error()
-	}
-
-	for k, v := range summary.TargetResults {
-		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
-	}
-	instance.Status.LastModified = metav1.Now()
-	return r.Status().Update(context.Background(), instance)
+	return r.Reconciler.Reconcile(ctx, req)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -224,13 +76,13 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	generationChange := predicate.GenerationChangedPredicate{}
 	annotationChange := predicate.AnnotationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&solutionv1.Instance{}).
+		For(&symphonyv1.Instance{}).
 		WithEventFilter(predicate.Or(generationChange, annotationChange)).
-		Watches(&source.Kind{Type: &solutionv1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
+		Watches(&source.Kind{Type: &symphonyv1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []ctrl.Request {
 				ret := make([]ctrl.Request, 0)
-				solObj := obj.(*solutionv1.Solution)
-				var instances solutionv1.InstanceList
+				solObj := obj.(*symphonyv1.Solution)
+				var instances symphonyv1.InstanceList
 				options := []client.ListOption{
 					client.InNamespace(solObj.Namespace),
 					client.MatchingFields{"spec.solution": solObj.Name},
@@ -252,9 +104,4 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return ret
 			})).
 		Complete(r)
-}
-
-func ensureOperationState(instance *solutionv1.Instance, provisioningState string) {
-	instance.Status.ProvisioningStatus.Status = provisioningState
-	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations["management.azure.com/operationId"]
 }

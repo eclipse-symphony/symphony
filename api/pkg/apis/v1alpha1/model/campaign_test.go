@@ -10,10 +10,10 @@ func TestCampaignMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
 		Name: "name",
 	}
-	targetSelector := TargetSelector{
+	campaign2 := CampaignSpec{
 		Name: "name",
 	}
-	equal, err := campaign1.DeepEquals(targetSelector)
+	equal, err := campaign1.DeepEquals(campaign2)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
@@ -31,10 +31,10 @@ func TestCampaignRoleNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
 		Name: "name",
 	}
-	targetSelector := TargetSelector{
+	campaign2 := CampaignSpec{
 		Name: "name1",
 	}
-	equal, err := campaign1.DeepEquals(targetSelector)
+	equal, err := campaign1.DeepEquals(campaign2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }

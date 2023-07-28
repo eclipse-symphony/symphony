@@ -33,7 +33,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: Defines the desired state of Solution
             properties:
               components:
                 items:
@@ -55,12 +54,9 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
-                        description: Defines the incoming and outgoing routes of the
-                          component
                         properties:
                           filters:
                             items:
-                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -105,6 +101,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              scope:
+                type: string
               version:
                 description: Defines the version of a particular resource
                 type: string

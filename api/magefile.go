@@ -11,6 +11,9 @@ import (
 )
 
 func Build() error {
+	return shellcmd.Command("go build -o bin/symphony-api").Run()
+}
+func BuildAzure() error {
 	return shellcmd.Command("go build -o bin/symphony-api -tags=azure").Run()
 }
 

@@ -23,12 +23,13 @@ import (
 )
 
 const (
-	RELEASE_NAME       = "ecosystem"
-	LOCAL_HOST_URL     = "http://localhost"
-	CONTAINER_REGISTRY = "symphonycr.azurecr.io"
-	NAMESPACE          = "default"
-	DOCKER_TAG         = "latest"
-	CHART_PATH         = "../symphony-extension/helm/symphony"
+	RELEASE_NAME             = "ecosystem"
+	LOCAL_HOST_URL           = "http://localhost"
+	AZURE_CONTAINER_REGISTRY = "symphonycr.azurecr.io"
+	OSS_CONTAINER_REGISTRY   = "possprod.azurecr.io"
+	NAMESPACE                = "default"
+	DOCKER_TAG               = "latest"
+	CHART_PATH               = "../symphony-extension/helm/symphony"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -41,10 +42,30 @@ type Test mg.Namespace
 
 /******************** Targets ********************/
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[2] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[2] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
-	return shellcmd.Command(helmUpgrade).Run()
+	return conditionalRun(
+		func() error { //azure
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.azure.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			return shellcmd.Command(helmUpgrade).Run()
+		},
+		func() error { //oss
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			return shellcmd.Command(helmUpgrade).Run()
+		})
 }
 
 // Up brings the minikube cluster up with symphony deployed
@@ -168,7 +189,13 @@ func (Build) Api() error {
 	return buildAPI()
 }
 func buildAPI() error {
-	return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run()
+	return conditionalRun(
+		func() error {
+			return shellcmd.Command("docker-compose -f ../api/docker-compose.azure.yaml build").Run() //azure
+		},
+		func() error {
+			return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run() //oss
+		})
 }
 
 // Build k8s container
@@ -176,7 +203,13 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
-	return shellcmd.Command("docker-compose -f ../k8s/docker-compose.yaml build").Run()
+	return conditionalRun(
+		func() error {
+			return shellcmd.Command("docker-compose -f ../k8s/docker-compose.azure.yaml build").Run() //azure
+		},
+		func() error {
+			return shellcmd.Command("docker-compose -f ../k8s/docker-compose.yaml build").Run() //oss
+		})
 }
 
 /******************** Minikube ********************/
@@ -363,7 +396,13 @@ func (Pull) Api() error {
 // Log into the ACR, prompt if az creds are expired
 func ACRLogin() error {
 	for i := 0; i < 3; i++ {
-		err := shellcmd.Command.Run("az acr login --name symphonycr")
+		err := conditionalRun(
+			func() error {
+				return shellcmd.Command.Run("az acr login --name symphonycr") //azure
+			},
+			func() error {
+				return shellcmd.Command.Run("az acr login --name possprod") //oss
+			})
 		if err != nil {
 			err := shellcmd.Command.Run("az login --use-device-code")
 			if err != nil {
@@ -421,7 +460,7 @@ func load(names ...string) []shellcmd.Command {
 	for i, name := range names {
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"minikube image load %s/%s",
-			CONTAINER_REGISTRY,
+			conditionalString(AZURE_CONTAINER_REGISTRY, OSS_CONTAINER_REGISTRY),
 			name,
 		))
 	}
@@ -435,7 +474,7 @@ func pull(names ...string) []shellcmd.Command {
 	for i, name := range names {
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"docker pull %s/%s",
-			CONTAINER_REGISTRY,
+			conditionalString(AZURE_CONTAINER_REGISTRY, OSS_CONTAINER_REGISTRY),
 			name,
 		))
 	}

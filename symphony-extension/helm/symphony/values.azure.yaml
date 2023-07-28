@@ -1,10 +1,10 @@
 fullnameOverride: symphony
 symphonyImage:
-  repository: possprod.azurecr.io/symphony-k8s
+  repository: symphonycr.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
   tag: "latest"
 paiImage:
-  repository: possprod.azurecr.io/symphony-api
+  repository: symphonycr.azurecr.io/symphony-api
   pullPolicy: IfNotPresent
   tag: "latest"
 CUSTOM_VISION_KEY: "AAAA"
