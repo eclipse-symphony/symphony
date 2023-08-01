@@ -20,7 +20,11 @@ import (
 	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
+
+// +k8s:deepcopy-gen=false
+type ComponentProperties = runtime.RawExtension
 
 // TargetStatus defines the observed state of Target
 type TargetStatus struct {

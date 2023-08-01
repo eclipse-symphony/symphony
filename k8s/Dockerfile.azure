@@ -16,7 +16,7 @@ WORKDIR /k8s
 # Test
 RUN CGO_ENABLED=1 mage generate operatorTest
 # Build
-RUN CGO_ENABLED=0 mage buildAzure
+RUN CGO_ENABLED=0 mage build azure
 
 FROM mcr.microsoft.com/mirror/docker/library/alpine:3.16 AS manager
 WORKDIR /

@@ -25,6 +25,19 @@ var (
 	}
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Entry point for running the tests, including setup, verify and cleanup
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
@@ -56,7 +69,7 @@ func Test() error {
 // Deploy Symphony to the cluster
 func Setup() error {
 	// Deploy symphony
-	return localenvCmd("cluster:deploy")
+	return localenvCmd("cluster:deploy", conditionalString("azure", ""))
 }
 
 // Run tests for scenarios/update
@@ -65,7 +78,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-
+	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
 	for _, verify := range testVerify {
 		err := shellcmd.Command(fmt.Sprintf("go test -v -timeout %s %s", TEST_TIMEOUT, verify)).Run()
 		if err != nil {
@@ -75,16 +88,28 @@ func Verify() error {
 
 	return nil
 }
+func Azure() error {
+	return nil
+}
 
 // Clean up Symphony release and temporary test files
 func Cleanup() {
-	_ = shellcmd.Command("rm -rf ./manifestForTestingOnly").Run()
-	localenvCmd("destroy all")
+	conditionalRun(
+		func() error {
+			_ = shellcmd.Command("rm -rf ./manifestForTestingOnly/azure").Run()
+			return nil
+		},
+		func() error {
+			_ = shellcmd.Command("rm -rf ./manifestForTestingOnly/oss").Run()
+			return nil
+		})
+
+	localenvCmd("destroy all", conditionalString("azure", ""))
 }
 
 // Run a mage command from /localenv
-func localenvCmd(mageCmd string) error {
-	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s", mageCmd))
+func localenvCmd(mageCmd string, flavor string) error {
+	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s %s", mageCmd, flavor))
 }
 
 // Run a command with | or other things that do not work in shellcmd

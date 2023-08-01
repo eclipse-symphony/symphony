@@ -43,13 +43,13 @@ type Test mg.Namespace
 /******************** Targets ********************/
 
 func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if len(os.Args) > 2 && os.Args[2] == "azure" {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
 		return azureFunc()
 	}
 	return ossFunc()
 }
 func conditionalString(azureStr string, ossStr string) string {
-	if len(os.Args) > 2 && os.Args[2] == "azure" {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
 		return azureStr
 	}
 	return ossStr
@@ -59,11 +59,11 @@ func conditionalString(azureStr string, ossStr string) string {
 func (Cluster) Deploy() error {
 	return conditionalRun(
 		func() error { //azure
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.azure.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../symphony-extension/helm/symphony/values.azure.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		},
 		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../symphony-extension/helm/symphony/values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		})
 }
@@ -196,6 +196,10 @@ func buildAPI() error {
 		func() error {
 			return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run() //oss
 		})
+}
+
+func Azure() error {
+	return nil
 }
 
 // Build k8s container

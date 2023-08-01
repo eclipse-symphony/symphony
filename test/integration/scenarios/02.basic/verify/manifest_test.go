@@ -3,6 +3,7 @@ package verify
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,12 +16,25 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Verify target has correct status
 func TestBasic_TargetStatus(t *testing.T) {
 	// Verify targets
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "symphony.microsoft.com",
+		Group:   conditionalString("symphony.microsoft.com", "fabric.symphony"),
 		Version: "v1",
 		Kind:    "Target",
 	})
@@ -33,7 +47,7 @@ func TestBasic_TargetStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "fabric.symphony"),
 			Version:  "v1",
 			Resource: "targets",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -64,7 +78,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "solution.symphony"),
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})

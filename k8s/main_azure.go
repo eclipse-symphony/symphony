@@ -1,4 +1,5 @@
 //go:build azure
+// +build azure
 
 /*
 Copyright 2022.
@@ -32,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	configv1 "gopls-workspace/apis/config/v1"
 	symphonymicrosoftcomv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
 	"gopls-workspace/constants"
 

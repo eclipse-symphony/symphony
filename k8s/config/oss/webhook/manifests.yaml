@@ -11,12 +11,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-symphony-microsoft-com-v1-instance
+      path: /mutate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -31,12 +31,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-symphony-microsoft-com-v1-solution
+      path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -51,12 +51,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-symphony-microsoft-com-v1-target
+      path: /mutate-fabric-symphony-v1-target
   failurePolicy: Fail
   name: mtarget.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - fabric.symphony
     apiVersions:
     - v1
     operations:
@@ -78,12 +78,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-symphony-microsoft-com-v1-instance
+      path: /validate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - symphony-microsoft-com
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -98,12 +98,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-symphony-microsoft-com-v1-solution
+      path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -118,12 +118,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-symphony-microsoft-com-v1-target
+      path: /validate-fabric-symphony-v1-target
   failurePolicy: Fail
   name: vtarget.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - fabric.symphony
     apiVersions:
     - v1
     operations:
