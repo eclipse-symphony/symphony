@@ -105,7 +105,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-
+	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
 	for _, verify := range testVerify {
 		err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
 		if err != nil {

@@ -89,7 +89,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-
+	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
 	for _, testFile := range testPackage {
 		fullPath, err := filepath.Abs(testFile)
 		if err != nil {
