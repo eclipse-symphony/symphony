@@ -58,6 +58,8 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
+//+kubebuilder:webhook:path=/mutate-fabric-symphony-v1-target,mutating=true,failurePolicy=fail,sideEffects=None,groups=fabric.symphony,resources=targets,verbs=create;update,versions=v1,name=mtarget.kb.io,admissionReviewVersions=v1
+
 var _ webhook.Defaulter = &Target{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -74,6 +76,8 @@ func (r *Target) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
+
+//+kubebuilder:webhook:path=/validate-fabric-symphony-v1-target,mutating=false,failurePolicy=fail,sideEffects=None,groups=fabric.symphony,resources=targets,verbs=create;update,versions=v1,name=vtarget.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Target{}
 

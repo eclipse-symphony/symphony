@@ -83,7 +83,7 @@ webhooks:
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - symphony.microsoft.com
+    - symphony-microsoft-com
     apiVersions:
     - v1
     operations:

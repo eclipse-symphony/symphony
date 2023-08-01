@@ -214,7 +214,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - instances
   verbs:
@@ -226,13 +226,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - instances/status
   verbs:
@@ -240,7 +240,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - solutions
   verbs:
@@ -252,13 +252,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - solutions/finalizers
   verbs:
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - solution.symphony
   resources:
   - solutions/status
   verbs:
@@ -266,7 +266,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - fabric.symphony
   resources:
   - targets
   verbs:
@@ -278,13 +278,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - symphony.microsoft.com
+  - fabric.symphony
   resources:
   - targets/finalizers
   verbs:
   - update
 - apiGroups:
-  - symphony.microsoft.com
+  - fabric.symphony
   resources:
   - targets/status
   verbs:

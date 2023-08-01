@@ -291,8 +291,8 @@ kind: Kustomization
 resources:
 - ../rbac
 - ../manager
-- ../webhook
 - ../crd
+- ../webhook
 - ../../common/certmanager
 patches:
 - path: manager_auth_proxy_patch.yaml
