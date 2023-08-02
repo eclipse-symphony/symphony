@@ -5,7 +5,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
-  name: campaigns.solution.symphony
+  name: instances.symphony.microsoft.com
 spec:
   conversion:
     strategy: Webhook
@@ -17,150 +17,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: solution.symphony
-  names:
-    kind: Campaign
-    listKind: CampaignList
-    plural: campaigns
-    singular: campaign
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Campaign is the Schema for the campaigns API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            properties:
-              name:
-                type: string
-            type: object
-          status:
-            description: CampaignStatus defines the observed state of Campaign
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
-      . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
-  name: devices.fabric.symphony
-spec:
-  conversion:
-    strategy: Webhook
-    webhook:
-      clientConfig:
-        service:
-          name: '{{ include "symphony.fullname" . }}-webhook-service'
-          namespace: '{{ .Release.Namespace }}'
-          path: /convert
-      conversionReviewVersions:
-      - v1
-  group: fabric.symphony
-  names:
-    kind: Device
-    listKind: DeviceList
-    plural: devices
-    singular: device
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Device is the Schema for the devices API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: DeviceSpec defines the spec properties of the DeviceState
-            properties:
-              bindings:
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    provider:
-                      type: string
-                    role:
-                      type: string
-                  required:
-                  - provider
-                  - role
-                  type: object
-                type: array
-              displayName:
-                type: string
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            type: object
-          status:
-            description: DeviceStatus defines the observed state of Device
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                description: Device properties
-                type: object
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
-      . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
-  name: instances.solution.symphony
-spec:
-  conversion:
-    strategy: Webhook
-    webhook:
-      clientConfig:
-        service:
-          name: '{{ include "symphony.fullname" . }}-webhook-service'
-          namespace: '{{ .Release.Namespace }}'
-          path: /convert
-      conversionReviewVersions:
-      - v1
-  group: solution.symphony
+  group: symphony.microsoft.com
   names:
     kind: Instance
     listKind: InstanceList
@@ -181,7 +38,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Instance is the Schema for the instances API
+        description: Defines an Instance resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -287,7 +144,7 @@ spec:
             - solution
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance
+            description: Defines the observed state of Instance
             properties:
               lastModified:
                 format: date-time
@@ -295,8 +152,6 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
@@ -370,7 +225,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
-  name: models.ai.symphony
+  name: solutions.symphony.microsoft.com
 spec:
   conversion:
     strategy: Webhook
@@ -382,399 +237,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: ai.symphony
-  names:
-    kind: Model
-    listKind: ModelList
-    plural: models
-    singular: model
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Model is the Schema for the models API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            properties:
-              bindings:
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    provider:
-                      type: string
-                    role:
-                      type: string
-                  required:
-                  - provider
-                  - role
-                  type: object
-                type: array
-              constraints:
-                type: string
-              displayName:
-                type: string
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            type: object
-          status:
-            description: ModelStatus defines the observed state of Model
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
-                type: object
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
-      . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
-  name: skillpackages.ai.symphony
-spec:
-  conversion:
-    strategy: Webhook
-    webhook:
-      clientConfig:
-        service:
-          name: '{{ include "symphony.fullname" . }}-webhook-service'
-          namespace: '{{ .Release.Namespace }}'
-          path: /convert
-      conversionReviewVersions:
-      - v1
-  group: ai.symphony
-  names:
-    kind: SkillPackage
-    listKind: SkillPackageList
-    plural: skillpackages
-    singular: skillpackage
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: SkillPackage is the Schema for the skillpackages API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            properties:
-              constraints:
-                type: string
-              displayName:
-                type: string
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-              routes:
-                items:
-                  properties:
-                    filters:
-                      items:
-                        properties:
-                          direction:
-                            type: string
-                          parameters:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          type:
-                            type: string
-                        required:
-                        - direction
-                        - type
-                        type: object
-                      type: array
-                    properties:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    route:
-                      type: string
-                    type:
-                      type: string
-                  required:
-                  - route
-                  - type
-                  type: object
-                type: array
-              skill:
-                type: string
-            required:
-            - skill
-            type: object
-          status:
-            description: SkillPackageStatus defines the observed state of SkillPackage
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
-      . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
-  name: skills.ai.symphony
-spec:
-  conversion:
-    strategy: Webhook
-    webhook:
-      clientConfig:
-        service:
-          name: '{{ include "symphony.fullname" . }}-webhook-service'
-          namespace: '{{ .Release.Namespace }}'
-          path: /convert
-      conversionReviewVersions:
-      - v1
-  group: ai.symphony
-  names:
-    kind: Skill
-    listKind: SkillList
-    plural: skills
-    singular: skill
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Skill is the Schema for the skills API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            properties:
-              bindings:
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    provider:
-                      type: string
-                    role:
-                      type: string
-                  required:
-                  - provider
-                  - role
-                  type: object
-                type: array
-              displayName:
-                type: string
-              edges:
-                items:
-                  properties:
-                    source:
-                      properties:
-                        node:
-                          type: string
-                        route:
-                          type: string
-                      required:
-                      - node
-                      - route
-                      type: object
-                    target:
-                      properties:
-                        node:
-                          type: string
-                        route:
-                          type: string
-                      required:
-                      - node
-                      - route
-                      type: object
-                  required:
-                  - source
-                  - target
-                  type: object
-                type: array
-              nodes:
-                items:
-                  properties:
-                    configurations:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    id:
-                      type: string
-                    inputs:
-                      items:
-                        properties:
-                          filters:
-                            items:
-                              properties:
-                                direction:
-                                  type: string
-                                parameters:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                                type:
-                                  type: string
-                              required:
-                              - direction
-                              - type
-                              type: object
-                            type: array
-                          properties:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          route:
-                            type: string
-                          type:
-                            type: string
-                        required:
-                        - route
-                        - type
-                        type: object
-                      type: array
-                    model:
-                      type: string
-                    name:
-                      type: string
-                    outputs:
-                      items:
-                        properties:
-                          filters:
-                            items:
-                              properties:
-                                direction:
-                                  type: string
-                                parameters:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                                type:
-                                  type: string
-                              required:
-                              - direction
-                              - type
-                              type: object
-                            type: array
-                          properties:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          route:
-                            type: string
-                          type:
-                            type: string
-                        required:
-                        - route
-                        - type
-                        type: object
-                      type: array
-                    type:
-                      type: string
-                  required:
-                  - id
-                  - name
-                  - type
-                  type: object
-                type: array
-              parameters:
-                additionalProperties:
-                  type: string
-                type: object
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            required:
-            - edges
-            - nodes
-            type: object
-          status:
-            description: SkillStatus defines the observed state of Skill
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                description: INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster
-                type: object
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
-      . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
-  name: solutions.solution.symphony
-spec:
-  conversion:
-    strategy: Webhook
-    webhook:
-      clientConfig:
-        service:
-          name: '{{ include "symphony.fullname" . }}-webhook-service'
-          namespace: '{{ .Release.Namespace }}'
-          path: /convert
-      conversionReviewVersions:
-      - v1
-  group: solution.symphony
+  group: symphony.microsoft.com
   names:
     kind: Solution
     listKind: SolutionList
@@ -785,7 +248,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Solution is the Schema for the solutions API
+        description: Defines a Solution resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -875,13 +338,11 @@ spec:
                 type: string
             type: object
           status:
-            description: SolutionStatus defines the observed state of Solution
+            description: Defines the observed state of Solution
             properties:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
             type: object
         type: object
@@ -897,7 +358,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
-  name: targets.fabric.symphony
+  name: targets.symphony.microsoft.com
 spec:
   conversion:
     strategy: Webhook
@@ -909,7 +370,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: fabric.symphony
+  group: symphony.microsoft.com
   names:
     kind: Target
     listKind: TargetList
@@ -924,7 +385,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: Defines a Target resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -958,7 +419,6 @@ spec:
                     name:
                       type: string
                     properties:
-                      type: object
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
@@ -1055,7 +515,7 @@ spec:
                 type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
+            description: Defines the observed state of Target
             properties:
               lastModified:
                 format: date-time
@@ -1063,8 +523,6 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
@@ -1390,7 +848,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - instances
   verbs:
@@ -1402,13 +860,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - instances/status
   verbs:
@@ -1416,7 +874,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - solutions
   verbs:
@@ -1428,13 +886,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - solutions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solution.symphony
+  - symphony.microsoft.com
   resources:
   - solutions/status
   verbs:
@@ -1442,7 +900,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - fabric.symphony
+  - symphony.microsoft.com
   resources:
   - targets
   verbs:
@@ -1454,13 +912,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - fabric.symphony
+  - symphony.microsoft.com
   resources:
   - targets/finalizers
   verbs:
   - update
 - apiGroups:
-  - fabric.symphony
+  - symphony.microsoft.com
   resources:
   - targets/status
   verbs:
@@ -1728,32 +1186,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-fabric-symphony-v1-target
-  failurePolicy: Fail
-  name: mtarget.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - targets
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solution-symphony-v1-instance
+      path: /mutate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -1768,12 +1206,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solution-symphony-v1-solution
+      path: /mutate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -1781,6 +1219,26 @@ webhooks:
     - UPDATE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-symphony-microsoft-com-v1-target
+  failurePolicy: Fail
+  name: mtarget.kb.io
+  rules:
+  - apiGroups:
+    - symphony.microsoft.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -1797,32 +1255,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-fabric-symphony-v1-target
-  failurePolicy: Fail
-  name: vtarget.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - targets
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /validate-solution-symphony-v1-instance
+      path: /validate-symphony-microsoft-com-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony-microsoft-com
     apiVersions:
     - v1
     operations:
@@ -1837,12 +1275,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solution-symphony-v1-solution
+      path: /validate-symphony-microsoft-com-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
   rules:
   - apiGroups:
-    - solution.symphony
+    - symphony.microsoft.com
     apiVersions:
     - v1
     operations:
@@ -1850,4 +1288,24 @@ webhooks:
     - UPDATE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-symphony-microsoft-com-v1-target
+  failurePolicy: Fail
+  name: vtarget.kb.io
+  rules:
+  - apiGroups:
+    - symphony.microsoft.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targets
   sideEffects: None

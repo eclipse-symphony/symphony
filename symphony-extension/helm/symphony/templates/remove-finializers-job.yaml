@@ -18,7 +18,11 @@ spec:
         - /bin/bash
         - -c
         - |-
-          {{- .Files.Get "files/remove-finalizers.sh" | nindent 12 }}
+          {{- if eq .Values.flavor "azure" }}
+          {{- .Files.Get "files/azure/remove-finalizers.sh" | nindent 12 }}
+          {{- else }}          
+          {{- .Files.Get "files/oss/remove-finalizers.sh" | nindent 12 }}
+          {{- end }}
       restartPolicy: Never
       serviceAccountName: {{ include "symphony.fullname" . }}-hook-sa
   backoffLimit: 3
