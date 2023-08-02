@@ -17,19 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// DeviceSpec defines the desired state of Device
-type DeviceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	DisplayName string            `json:"displayName,omitempty"`
-	Properties  map[string]string `json:"properties,omitempty"`
-	Bindings    []BindingSpec     `json:"bindings,omitempty"`
-}
 
 // DeviceStatus defines the observed state of Device
 type DeviceStatus struct {
@@ -44,8 +34,8 @@ type Device struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DeviceSpec   `json:"spec,omitempty"`
-	Status DeviceStatus `json:"status,omitempty"`
+	Spec   apimodel.DeviceSpec `json:"spec,omitempty"`
+	Status DeviceStatus        `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -56,6 +46,6 @@ type DeviceList struct {
 	Items           []Device `json:"items"`
 }
 
-// func init() {
-// 	SchemeBuilder.Register(&Device{}, &DeviceList{})
-// }
+func init() {
+	SchemeBuilder.Register(&Device{}, &DeviceList{})
+}

@@ -15,7 +15,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -33,7 +33,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -57,7 +57,7 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -84,7 +84,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -105,7 +105,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -132,7 +132,7 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -153,7 +153,7 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -180,7 +180,7 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -201,7 +201,7 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -228,7 +228,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -249,7 +249,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName1",
 		},
 		Topologies: []TopologySpec{{
@@ -276,7 +276,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -297,7 +297,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -324,7 +324,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -345,7 +345,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -372,7 +372,7 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -393,7 +393,7 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -420,7 +420,7 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -441,7 +441,7 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			"foo": "bar",
 		},
 		Solution: "SolutionName",
-		Target: TargetRefSpec{
+		Target: TargetSelector{
 			Name: "TargetName",
 		},
 		Topologies: []TopologySpec{{
@@ -459,23 +459,23 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestTargetRefSpecDeepEqualsOneEmpty(t *testing.T) {
-	Target := TargetRefSpec{
+func TestTargetSelectorDeepEqualsOneEmpty(t *testing.T) {
+	Target := TargetSelector{
 		Name: "TargetName",
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetRefSpec type")
+	assert.Errorf(t, err, "parameter is not a TargetSelector type")
 	assert.False(t, res)
 }
 
-func TestTargetRefSpecDeepEqualsSelectorNotMatch(t *testing.T) {
-	Target := TargetRefSpec{
+func TestTargetSelectorDeepEqualsSelectorNotMatch(t *testing.T) {
+	Target := TargetSelector{
 		Name: "TargetName",
 		Selector: map[string]string{
 			"foo": "bar",
 		},
 	}
-	other := TargetRefSpec{
+	other := TargetSelector{
 		Name: "TargetName",
 		Selector: map[string]string{
 			"foo1": "bar1",

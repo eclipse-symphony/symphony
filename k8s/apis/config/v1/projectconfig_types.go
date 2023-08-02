@@ -52,6 +52,6 @@ type ValidationStruct struct {
 	Field string `json:"field"`
 }
 
-// func init() {
-// 	SchemeBuilder.Register(&ProjectConfig{})
-// }
+func init() {
+	SchemeBuilder.Register(&ProjectConfig{})
+}

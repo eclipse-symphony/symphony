@@ -22,9 +22,9 @@ const (
 var (
 	// Manifests to deploy
 	testManifests = []string{
-		"manifest/target.yaml",
-		"manifest/instance.yaml",
-		"manifest/solution.yaml",
+		"manifest/%s/target.yaml",
+		"manifest/%s/instance.yaml",
+		"manifest/%s/solution.yaml",
 	}
 
 	// Tests to run
@@ -32,6 +32,19 @@ var (
 		"./verify/...",
 	}
 )
+
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
 
 // Entry point for running the tests
 func Test() error {
@@ -56,7 +69,7 @@ func Test() error {
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
 	// Deploy symphony
-	err := localenvCmd("cluster:deploy")
+	err := localenvCmd("cluster:deploy", conditionalString("azure", ""))
 	if err != nil {
 		return err
 	}
@@ -72,7 +85,7 @@ func Setup() error {
 	time.Sleep(time.Second * 10)
 	// Deploy the manifests
 	for _, manifest := range testManifests {
-		fullPath, err := filepath.Abs(manifest)
+		fullPath, err := filepath.Abs(fmt.Sprintf(manifest, conditionalString("azure", "oss")))
 		if err != nil {
 			return err
 		}
@@ -92,7 +105,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-
+	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
 	for _, verify := range testVerify {
 		err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
 		if err != nil {
@@ -102,15 +115,18 @@ func Verify() error {
 
 	return nil
 }
+func Azure() error {
+	return nil
+}
 
 // Clean up
 func Cleanup() {
-	localenvCmd("destroy all")
+	localenvCmd("destroy all", conditionalString("azure", ""))
 }
 
 // Run a mage command from /localenv
-func localenvCmd(mageCmd string) error {
-	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s", mageCmd))
+func localenvCmd(mageCmd string, flavor string) error {
+	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s %s", mageCmd, flavor))
 }
 
 // Run a command with | or other things that do not work in shellcmd

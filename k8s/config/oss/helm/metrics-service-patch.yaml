@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  name: controller-manager-metrics-service
+  namespace: system
+spec:
+  selector:
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'

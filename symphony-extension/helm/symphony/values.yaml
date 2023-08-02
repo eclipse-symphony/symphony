@@ -1,10 +1,10 @@
 fullnameOverride: symphony
 symphonyImage:
-  repository: symphonycr.azurecr.io/symphony-k8s
+  repository: possprod.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
   tag: "latest"
 paiImage:
-  repository: symphonycr.azurecr.io/symphony-api
+  repository: possprod.azurecr.io/symphony-api
   pullPolicy: IfNotPresent
   tag: "latest"
 CUSTOM_VISION_KEY: "AAAA"
@@ -21,3 +21,4 @@ zipkin:
   fullnameOverride: symphony-zipkin
 cert-manager:
   fullnameOverride: symphony-cert-manager
+flavor: oss

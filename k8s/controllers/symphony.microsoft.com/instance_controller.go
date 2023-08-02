@@ -32,16 +32,13 @@ import (
 	"time"
 
 	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
+
 	"gopls-workspace/constants"
 	"gopls-workspace/utils"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	provisioningstates "gopls-workspace/utils/models"
-
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	provisioningstates "github.com/azure/symphony/k8s/utils/models"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,6 +49,12 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -74,19 +77,19 @@ type InstanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	myFinalizerName := "instance.solution.symphony/finalizer"
+	myFinalizerName := "instance.symphony.microsoft.com/finalizer"
 
 	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Instance")
 
 	// Get instance
 	instance := &symphonyv1.Instance{}
-	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		log.Error(err, "unable to fetch Instance object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	err := r.Status().Update(ctx, instance)
+	err := r.Client.Status().Update(ctx, instance)
 	if err != nil {
 		log.Error(err, "unable to update Instance status")
 		return ctrl.Result{}, err
@@ -99,7 +102,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(instance, myFinalizerName) {
 			controllerutil.AddFinalizer(instance, myFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
+			if err := r.Client.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -150,8 +153,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		}
-
-	} else { // remove
+	} else { // delete
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
 			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
 
@@ -181,14 +183,14 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			// Until the corresponding provider can successfully carry out the removal job, the job event will remain available for the
 			// provider to pick up.
 			controllerutil.RemoveFinalizer(instance, myFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
+			if err := r.Client.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	}
-
 	return ctrl.Result{}, nil
 }
+
 func (r *InstanceReconciler) ensureOperationState(instance *symphonyv1.Instance, provisioningState string) {
 	instance.Status.ProvisioningStatus.Status = provisioningState
 	instance.Status.ProvisioningStatus.OperationID = instance.ObjectMeta.Annotations[constants.AzureOperationKey]
@@ -208,7 +210,7 @@ func (r *InstanceReconciler) updateInstanceStatusToReconciling(instance *symphon
 	}
 	r.updateProvisioningStatusToReconciling(instance, err)
 	instance.Status.LastModified = metav1.Now()
-	return r.Status().Update(context.Background(), instance)
+	return r.Client.Status().Update(context.Background(), instance)
 }
 func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance, summary model.SummarySpec) error {
 	if instance.Status.Properties == nil {
@@ -244,13 +246,13 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 
 	r.updateProvisioningStatus(instance, status, summary)
 	instance.Status.LastModified = metav1.Now()
-	return r.Status().Update(context.Background(), instance)
+	return r.Client.Status().Update(context.Background(), instance)
 }
 
 func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Instance, provisioningStatus string, summary model.SummarySpec) {
 	r.ensureOperationState(instance, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	instance.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 	// Output field is updated if status is Succeeded
 	instance.Status.ProvisioningStatus.Output = make(map[string]string)
 
@@ -261,16 +263,16 @@ func (r *InstanceReconciler) updateProvisioningStatus(instance *symphonyv1.Insta
 		errorObj.Code = "Symphony: [500]"
 		errorObj.Message = "Deployment failed."
 		errorObj.Target = "Symphony"
-		errorObj.Details = make([]symphonyv1.TargetError, 0)
+		errorObj.Details = make([]apimodel.TargetError, 0)
 		for k, v := range summary.TargetResults {
-			targetObject := symphonyv1.TargetError{
+			targetObject := apimodel.TargetError{
 				Code:    v.Status,
 				Message: v.Message,
 				Target:  k,
-				Details: make([]symphonyv1.ComponentError, 0),
+				Details: make([]apimodel.ComponentError, 0),
 			}
 			for ck, cv := range v.ComponentResults {
-				targetObject.Details = append(targetObject.Details, symphonyv1.ComponentError{
+				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
 					Code:    cv.Status.String(),
 					Message: cv.Message,
 					Target:  ck,
@@ -297,7 +299,7 @@ func (r *InstanceReconciler) updateProvisioningStatusToReconciling(instance *sym
 	}
 	r.ensureOperationState(instance, provisioningStatus)
 	// Start with a clean Error object and update all the fields
-	instance.Status.ProvisioningStatus.Error = symphonyv1.ErrorType{}
+	instance.Status.ProvisioningStatus.Error = apimodel.ErrorType{}
 }
 
 // SetupWithManager sets up the controller with the Manager.

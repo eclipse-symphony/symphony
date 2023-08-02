@@ -1,0 +1,227 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: targets.symphony.microsoft.com
+spec:
+  group: symphony.microsoft.com
+  names:
+    kind: Target
+    listKind: TargetList
+    plural: targets
+    singular: target
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.properties.status
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Defines a Target resource
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Defines the desired state of Target
+            properties:
+              components:
+                items:
+                  description: Defines a desired runtime component
+                  properties:
+                    constraints:
+                      type: string
+                    dependencies:
+                      items:
+                        type: string
+                      type: array
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    properties:
+                      x-kubernetes-preserve-unknown-fields: true
+                    routes:
+                      items:
+                        properties:
+                          filters:
+                            items:
+                              properties:
+                                direction:
+                                  type: string
+                                parameters:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                type:
+                                  type: string
+                              required:
+                              - direction
+                              - type
+                              type: object
+                            type: array
+                          properties:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          route:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - route
+                        - type
+                        type: object
+                      type: array
+                    skills:
+                      items:
+                        type: string
+                      type: array
+                    type:
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+              constraints:
+                type: string
+              displayName:
+                type: string
+              forceRedeploy:
+                type: boolean
+              generation:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              scope:
+                type: string
+              topologies:
+                items:
+                  description: TopologySpec defines the desired device topology the
+                    instance
+                  properties:
+                    bindings:
+                      items:
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          provider:
+                            type: string
+                          role:
+                            type: string
+                        required:
+                        - provider
+                        - role
+                        type: object
+                      type: array
+                    device:
+                      type: string
+                    selector:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                type: array
+              version:
+                description: Defines the version of a particular resource
+                type: string
+            type: object
+          status:
+            description: Defines the observed state of Target
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

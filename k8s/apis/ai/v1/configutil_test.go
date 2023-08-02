@@ -7,6 +7,7 @@ import (
 
 	configutils "gopls-workspace/configutils"
 
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,7 +55,7 @@ func TestApplyModelValidationPoliciesSingleItem(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "123",
 					},
@@ -89,7 +90,7 @@ func TestApplyModelValidationPoliciesSingleItemUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "123",
 					},
@@ -124,7 +125,7 @@ func TestApplyModelValidationPoliciesSingleItemConflict(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "123",
 					},
@@ -136,7 +137,7 @@ func TestApplyModelValidationPoliciesSingleItemConflict(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "quake2",
 		},
-		Spec: ModelSpec{
+		Spec: apimodel.ModelSpec{
 			Properties: map[string]string{
 				"model.project": "123",
 			},
@@ -169,7 +170,7 @@ func TestApplyModelValidationPoliciesUpdateDuplicate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "123",
 					},
@@ -179,7 +180,7 @@ func TestApplyModelValidationPoliciesUpdateDuplicate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake2",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "345",
 					},
@@ -191,7 +192,7 @@ func TestApplyModelValidationPoliciesUpdateDuplicate(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "quake",
 		},
-		Spec: ModelSpec{
+		Spec: apimodel.ModelSpec{
 			Properties: map[string]string{
 				"model.project": "345",
 			},
@@ -224,7 +225,7 @@ func TestApplyModelValidationPoliciesUpdateNoConflict(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "123",
 					},
@@ -234,7 +235,7 @@ func TestApplyModelValidationPoliciesUpdateNoConflict(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake2",
 				},
-				Spec: ModelSpec{
+				Spec: apimodel.ModelSpec{
 					Properties: map[string]string{
 						"model.project": "345",
 					},
@@ -246,7 +247,7 @@ func TestApplyModelValidationPoliciesUpdateNoConflict(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "quake",
 		},
-		Spec: ModelSpec{
+		Spec: apimodel.ModelSpec{
 			Properties: map[string]string{
 				"model.project": "347",
 			},

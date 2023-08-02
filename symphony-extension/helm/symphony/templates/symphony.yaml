@@ -53,8 +53,14 @@ spec:
           metadata:
             type: object
           spec:
-            description: Defines the desired state of Instance
+            description: InstanceSpec defines the spec property of the InstanceState
             properties:
+              arguments:
+                additionalProperties:
+                  additionalProperties:
+                    type: string
+                  type: object
+                type: object
               displayName:
                 type: string
               generation:
@@ -63,13 +69,15 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              name:
+                type: string
               parameters:
                 additionalProperties:
                   type: string
                 type: object
               pipelines:
                 items:
-                  description: Defines an AI pipeline reference
+                  description: PipelineSpec defines the desired pipeline of the instance
                   properties:
                     name:
                       type: string
@@ -89,7 +97,8 @@ spec:
               solution:
                 type: string
               target:
-                description: Defines the target the Instance will deploy to
+                description: TargertRefSpec defines the target the instance will deploy
+                  to
                 properties:
                   name:
                     type: string
@@ -100,11 +109,11 @@ spec:
                 type: object
               topologies:
                 items:
-                  description: Defines the device topology for a target or instance
+                  description: TopologySpec defines the desired device topology the
+                    instance
                   properties:
                     bindings:
                       items:
-                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:
@@ -130,19 +139,8 @@ spec:
               version:
                 description: Defines the version of a particular resource
                 type: string
-              versions:
-                items:
-                  properties:
-                    percentage:
-                      type: integer
-                    solution:
-                      type: string
-                  required:
-                  - percentage
-                  - solution
-                  type: object
-                type: array
             required:
+            - name
             - solution
             type: object
           status:
@@ -265,7 +263,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: Defines the desired state of Solution
             properties:
               components:
                 items:
@@ -287,12 +284,9 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
-                        description: Defines the incoming and outgoing routes of the
-                          component
                         properties:
                           filters:
                             items:
-                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -337,6 +331,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              scope:
+                type: string
               version:
                 description: Defines the version of a particular resource
                 type: string
@@ -359,10 +355,21 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
   name: targets.symphony.microsoft.com
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: symphony.microsoft.com
   names:
     kind: Target
@@ -415,12 +422,9 @@ spec:
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
-                        description: Defines the incoming and outgoing routes of the
-                          component
                         properties:
                           filters:
                             items:
-                              description: Defines a filter for a route
                               properties:
                                 direction:
                                   type: string
@@ -479,11 +483,11 @@ spec:
                 type: string
               topologies:
                 items:
-                  description: Defines the device topology for a target or instance
+                  description: TopologySpec defines the desired device topology the
+                    instance
                   properties:
                     bindings:
                       items:
-                        description: Defines a component binding for a provider
                         properties:
                           config:
                             additionalProperties:

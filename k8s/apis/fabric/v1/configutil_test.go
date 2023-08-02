@@ -6,6 +6,8 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	configutils "gopls-workspace/configutils"
 
+	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,10 +55,10 @@ func TestApplyValidationPoliciesSingleItem(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -97,10 +99,10 @@ func TestApplyValidationPoliciesNoDuplicated(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -116,10 +118,10 @@ func TestApplyValidationPoliciesNoDuplicated(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake2",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -160,10 +162,10 @@ func TestApplyValidationPoliciesDuplicated(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -179,10 +181,10 @@ func TestApplyValidationPoliciesDuplicated(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake2",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -223,10 +225,10 @@ func TestApplyValidationPoliciesNoConflict(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{
@@ -242,10 +244,10 @@ func TestApplyValidationPoliciesNoConflict(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quake2",
 				},
-				Spec: TargetSpec{
-					Topologies: []TopologySpec{
+				Spec: k8smodel.TargetSpec{
+					Topologies: []apimodel.TopologySpec{
 						{
-							Bindings: []BindingSpec{
+							Bindings: []apimodel.BindingSpec{
 								{
 									Provider: "providers.target.azure.iotedge",
 									Config: map[string]string{

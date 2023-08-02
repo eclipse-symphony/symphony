@@ -17,45 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
-
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-type FilterSpec struct {
-	Direction  string            `json:"direction"`
-	Type       string            `json:"type"`
-	Parameters map[string]string `json:"parameters,omitempty"`
-}
-type RouteSpec struct {
-	Route      string            `json:"route"`
-	Type       string            `json:"type"`
-	Properties map[string]string `json:"properties,omitempty"`
-	Filters    []FilterSpec      `json:"filters,omitempty"`
-}
-
-type ComponentSpec struct {
-	Name     string            `json:"name"`
-	Type     string            `json:"type,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	// +k8s:deepcopy-gen=false
-	Properties   runtime.RawExtension `json:"properties,omitempty"`
-	Routes       []RouteSpec          `json:"routes,omitempty"`
-	Constraints  string               `json:"constraints,omitempty"`
-	Dependencies []string             `json:"dependencies,omitempty"`
-	Skills       []string             `json:"skills,omitempty"`
-}
-
-// SolutionSpec defines the desired state of Solution
-type SolutionSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
-	DisplayName string            `json:"displayName,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Components  []ComponentSpec   `json:"components,omitempty"`
-}
 
 // SolutionStatus defines the observed state of Solution
 type SolutionStatus struct {
@@ -70,8 +34,8 @@ type Solution struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SolutionSpec   `json:"spec,omitempty"`
-	Status SolutionStatus `json:"status,omitempty"`
+	Spec   k8smodel.SolutionSpec `json:"spec,omitempty"`
+	Status SolutionStatus        `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -82,6 +46,6 @@ type SolutionList struct {
 	Items           []Solution `json:"items"`
 }
 
-// func init() {
-// 	SchemeBuilder.Register(&Solution{}, &SolutionList{})
-// }
+func init() {
+	SchemeBuilder.Register(&Solution{}, &SolutionList{})
+}

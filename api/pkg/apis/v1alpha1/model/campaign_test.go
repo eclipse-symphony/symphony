@@ -10,10 +10,10 @@ func TestCampaignMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
 		Name: "name",
 	}
-	targetRef := TargetRefSpec{
+	campaign2 := CampaignSpec{
 		Name: "name",
 	}
-	equal, err := campaign1.DeepEquals(targetRef)
+	equal, err := campaign1.DeepEquals(campaign2)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
@@ -23,7 +23,7 @@ func TestCampaignMatchOneEmpty(t *testing.T) {
 		Name: "name",
 	}
 	res, err := campaign1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetRefSpec type")
+	assert.Errorf(t, err, "parameter is not a CampaignSpec type")
 	assert.False(t, res)
 }
 
@@ -31,10 +31,10 @@ func TestCampaignRoleNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
 		Name: "name",
 	}
-	targetRef := TargetRefSpec{
+	campaign2 := CampaignSpec{
 		Name: "name1",
 	}
-	equal, err := campaign1.DeepEquals(targetRef)
+	equal, err := campaign1.DeepEquals(campaign2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }

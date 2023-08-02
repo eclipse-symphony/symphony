@@ -1,0 +1,7 @@
+version: "3.4"
+services:
+  api:
+    image: symphonycr.azurecr.io/symphony-api
+    build: 
+      context: ../
+      dockerfile: api/Dockerfile.azure
