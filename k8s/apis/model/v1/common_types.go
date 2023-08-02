@@ -6,6 +6,7 @@ import (
 )
 
 // Defines a desired runtime component
+// +kubebuilder:object:generate=true
 type ComponentSpec struct {
 	Name     string            `json:"name"`
 	Type     string            `json:"type"`
@@ -20,6 +21,7 @@ type ComponentSpec struct {
 }
 
 // Defines the desired state of Target
+// +kubebuilder:object:generate=true
 type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
 	Metadata      map[string]string    `json:"metadata,omitempty"`
@@ -34,6 +36,7 @@ type TargetSpec struct {
 	Generation string `json:"generation,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Scope       string            `json:"scope,omitempty"`
@@ -41,4 +44,35 @@ type SolutionSpec struct {
 	Components  []ComponentSpec   `json:"components,omitempty"`
 	// Defines the version of a particular resource
 	Version string `json:"version,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type StageSpec struct {
+	Name     string `json:"name,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Config        runtime.RawExtension `json:"config,omitempty"`
+	StageSelector string               `json:"stageSelector,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ActivationSpec struct {
+	Campaign string `json:"campaign,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Stage    string `json:"stage,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type CampaignSpec struct {
+	Name        string               `json:"name,omitempty"`
+	FirstStage  string               `json:"firstStage,omitempty"`
+	Stages      map[string]StageSpec `json:"stages,omitempty"`
+	SelfDriving bool                 `json:"selfDriving,omitempty"`
 }

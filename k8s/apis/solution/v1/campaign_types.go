@@ -17,7 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,15 +28,13 @@ type CampaignStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 
 // Campaign is the Schema for the campaigns API
 type Campaign struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   apimodel.CampaignSpec `json:"spec,omitempty"`
-	Status CampaignStatus        `json:"status,omitempty"`
+	Spec k8smodel.CampaignSpec `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true
