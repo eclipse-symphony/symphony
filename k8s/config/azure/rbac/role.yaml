@@ -136,7 +136,33 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solution.symphony
+  - workflow.symphony
+  resources:
+  - activations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workflow.symphony
   resources:
   - campaigns
   verbs:
@@ -148,13 +174,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solution.symphony
+  - workflow.symphony
   resources:
   - campaigns/finalizers
   verbs:
   - update
 - apiGroups:
-  - solution.symphony
+  - workflow.symphony
   resources:
   - campaigns/status
   verbs:

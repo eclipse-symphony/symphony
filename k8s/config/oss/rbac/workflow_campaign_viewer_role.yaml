@@ -12,7 +12,7 @@ metadata:
   name: campaign-viewer-role
 rules:
 - apiGroups:
-  - solution.symphony
+  - workflow.symphony
   resources:
   - campaigns
   verbs:
@@ -20,8 +20,22 @@ rules:
   - list
   - watch
 - apiGroups:
-  - solution.symphony
+  - workflow.symphony
   resources:
   - campaigns/status
+  verbs:
+  - get
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations/status
   verbs:
   - get

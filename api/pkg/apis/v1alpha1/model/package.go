@@ -3,7 +3,8 @@
 package model
 
 const (
-	FabricGroup   = "fabric.symphony"
-	SolutionGroup = "solution.symphony"
-	WorkflowGroup = "workflow.symphony"
+	FabricGroup     = "fabric.symphony"
+	SolutionGroup   = "solution.symphony"
+	WorkflowGroup   = "workflow.symphony"
+	FederationGroup = "federation.symphony"
 )

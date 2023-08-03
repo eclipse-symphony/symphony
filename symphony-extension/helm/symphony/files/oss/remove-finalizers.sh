@@ -7,6 +7,7 @@ TIMEOUT=60
 SOLUTION_GROUP=solution.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
+WORKFLOW_GROUP=workflow.symphony
 
 patchResource() {
   local resource_type="$1"
@@ -50,8 +51,9 @@ function remove_finalizers {
 }
 echo "Removing finalizers from Symphony resources"
 
+remove_finalizers "activations.$WORKFLOW_GROUP"
+remove_finalizers "campaigns.$WORKFLOW_GROUP"
 remove_finalizers "instances.$SOLUTION_GROUP"
-remove_finalizers "campaigns.$SOLUTION_GROUP"
 remove_finalizers "solutions.$SOLUTION_GROUP"
 remove_finalizers "targets.$FABRIC_GROUP"
 remove_finalizers "devices.$FABRIC_GROUP"

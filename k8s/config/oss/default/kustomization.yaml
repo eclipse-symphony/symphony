@@ -107,7 +107,17 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: campaigns.solution.symphony
+      name: campaigns.workflow.symphony
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 0
+  - select:
+      kind: CustomResourceDefinition
+      group: apiextensions.k8s.io
+      version: v1
+      name: activations.workflow.symphony
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
@@ -214,7 +224,17 @@ replacements:
       kind: CustomResourceDefinition
       group: apiextensions.k8s.io
       version: v1
-      name: campaigns.solution.symphony
+      name: campaigns.workflow.symphony
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 1
+  - select:
+      kind: CustomResourceDefinition
+      group: apiextensions.k8s.io
+      version: v1
+      name: activations.workflow.symphony
     fieldPaths:
     - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:

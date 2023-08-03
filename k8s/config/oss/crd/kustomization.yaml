@@ -7,7 +7,8 @@ resources:
 - bases/ai.symphony_skills.yaml
 - bases/ai.symphony_skillpackages.yaml
 # - bases/config.symphony_projectconfigs.yaml
-- bases/solution.symphony_campaigns.yaml
+- bases/workflow.symphony_campaigns.yaml
+- bases/workflow.symphony_activations.yaml
 - bases/ai.symphony_models.yaml
 - bases/fabric.symphony_targets.yaml
 - bases/fabric.symphony_devices.yaml
@@ -41,7 +42,8 @@ patches:
 - path: patches/cainjection_in_devices.yaml
 - path: patches/cainjection_in_solutions.yaml
 - path: patches/cainjection_in_instances.yaml
-- path: patches/cainjection_in_solution_campaigns.yaml
+- path: patches/cainjection_in_workflow_campaigns.yaml
+- path: patches/cainjection_in_workflow_activations.yaml
 - path: patches/cainjection_in_models.yaml
 - path: patches/cainjection_in_skills.yaml
 - path: patches/cainjection_in_skillpackages.yaml
@@ -50,7 +52,8 @@ patches:
 - path: patches/webhook_in_devices.yaml
 - path: patches/webhook_in_solutions.yaml
 - path: patches/webhook_in_instances.yaml
-- path: patches/webhook_in_solution_campaigns.yaml
+- path: patches/webhook_in_workflow_campaigns.yaml
+- path: patches/webhook_in_workflow_activations.yaml
 - path: patches/webhook_in_models.yaml
 - path: patches/webhook_in_skills.yaml
 - path: patches/webhook_in_skillpackages.yaml

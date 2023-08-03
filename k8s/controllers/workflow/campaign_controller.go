@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package solution
+package workflow
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	workflowv1 "gopls-workspace/apis/workflow/v1"
 )
 
 // CampaignReconciler reconciles a Campaign object
@@ -33,9 +33,9 @@ type CampaignReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=solution.symphony,resources=campaigns,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solution.symphony,resources=campaigns/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solution.symphony,resources=campaigns/finalizers,verbs=update
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigns,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigns/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigns/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -57,6 +57,6 @@ func (r *CampaignReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 // SetupWithManager sets up the controller with the Manager.
 func (r *CampaignReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&solutionv1.Campaign{}).
+		For(&workflowv1.Campaign{}).
 		Complete(r)
 }
