@@ -124,6 +124,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Campaign")
 		os.Exit(1)
 	}
+	if err = (&workflowcontrollers.ActivationReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Activation")
+		os.Exit(1)
+	}
 	if err = (&solutioncontrollers.InstanceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -188,13 +195,6 @@ func main() {
 	}
 	if err = (&aiv1.Skill{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
-		os.Exit(1)
-	}
-	if err = (&workflowcontrollers.CampaignReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Campaign")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

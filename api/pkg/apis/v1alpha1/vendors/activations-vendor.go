@@ -195,6 +195,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Campaign:   activation.Campaign,
 				Activation: id,
 				Stage:      "",
+				Inputs:     activation.Inputs,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

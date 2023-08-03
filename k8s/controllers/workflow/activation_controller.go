@@ -18,13 +18,18 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
+
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ActivationReconciler reconciles a Campaign object
@@ -47,16 +52,60 @@ type ActivationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	myFinalizerName := "activation.workflow.symphony/finalizer"
 
-	// TODO(user): your logic here
+	log := ctrllog.FromContext(ctx)
+	log.Info("Reconcile Activation")
+
+	//get Activation
+	activation := &workflowv1.Activation{}
+	if err := r.Get(ctx, req.NamespacedName, activation); err != nil {
+		log.Error(err, "unable to fetch Activation")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(activation, myFinalizerName) {
+			controllerutil.AddFinalizer(activation, myFinalizerName)
+			if err := r.Update(ctx, activation); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
+			Campaign:   activation.Spec.Campaign,
+			Activation: activation.Name,
+			Stage:      "",
+			Inputs:     convertRawExtensionToMap(&activation.Spec.Inputs),
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(activation, myFinalizerName) {
+			controllerutil.RemoveFinalizer(activation, myFinalizerName)
+			if err := r.Update(ctx, activation); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func convertRawExtensionToMap(raw *runtime.RawExtension) map[string]interface{} {
+	if raw == nil {
+		return nil
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal(raw.Raw, &data); err != nil {
+		return nil
+	}
+	return data
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ActivationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&workflowv1.Campaign{}).
+		For(&workflowv1.Activation{}).
 		Complete(r)
 }

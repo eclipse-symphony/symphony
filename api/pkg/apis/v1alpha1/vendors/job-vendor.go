@@ -27,6 +27,7 @@ package vendors
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -103,7 +104,7 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 	return []v1alpha2.Endpoint{
 		{
-			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Methods: []string{fasthttp.MethodPost},
 			Route:   route,
 			Version: o.Version,
 			Handler: o.onHello,
@@ -114,22 +115,18 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Job Vendor", request.Context, nil)
 	switch request.Method {
-	case fasthttp.MethodGet:
-		message := "Last 20 trace entries:"
-		if len(c.myMessages) > 0 {
-			for _, m := range c.myMessages {
-				message = message + "\r\n" + m
-			}
-		}
-		resp := v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        []byte(message),
-			ContentType: "application/text",
-		}
-		return observ_utils.CloseSpanWithCOAResponse(span, resp)
 	case fasthttp.MethodPost:
-		c.Vendor.Context.Publish("trace", v1alpha2.Event{
-			Body: string(request.Body),
+		var activationData v1alpha2.ActivationData
+		err := json.Unmarshal(request.Body, &activationData)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\":\"400 - bad request\"}"),
+				ContentType: "application/json",
+			})
+		}
+		c.Vendor.Context.Publish("activation", v1alpha2.Event{
+			Body: activationData,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

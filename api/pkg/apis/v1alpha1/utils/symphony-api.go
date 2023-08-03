@@ -33,6 +33,7 @@ import (
 	"net/http"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 )
 
 const (
@@ -101,6 +102,21 @@ func GetCampaign(baseUrl string, campaign string, user string, password string) 
 	}
 
 	return ret, nil
+}
+func PublishActivationEvent(baseUrl string, user string, password string, event v1alpha2.ActivationData) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+
+	jData, _ := json.Marshal(event)
+	_, err = callRestAPI(baseUrl, "jobs", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
 	ret := model.ActivationState{}

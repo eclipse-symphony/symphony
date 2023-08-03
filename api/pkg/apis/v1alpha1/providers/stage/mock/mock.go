@@ -87,6 +87,7 @@ func (i *MockStageProvider) Process(ctx context.Context, inputs map[string]inter
 			outputs["foo"] = val + 1
 		}
 	}
+	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
 	return outputs, nil
 }
 func (*MockStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
