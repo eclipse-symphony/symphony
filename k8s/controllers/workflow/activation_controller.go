@@ -19,6 +19,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,7 +29,6 @@ import (
 
 	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -52,8 +52,6 @@ type ActivationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	myFinalizerName := "activation.workflow.symphony/finalizer"
-
 	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Activation")
 
@@ -65,25 +63,15 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(activation, myFinalizerName) {
-			controllerutil.AddFinalizer(activation, myFinalizerName)
-			if err := r.Update(ctx, activation); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-		err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
-			Campaign:   activation.Spec.Campaign,
-			Activation: activation.Name,
-			Stage:      "",
-			Inputs:     convertRawExtensionToMap(&activation.Spec.Inputs),
-		})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		if controllerutil.ContainsFinalizer(activation, myFinalizerName) {
-			controllerutil.RemoveFinalizer(activation, myFinalizerName)
-			if err := r.Update(ctx, activation); err != nil {
+		if !activation.Status.IsActive && activation.Status.ActivationGeneration != strconv.FormatInt(activation.Generation, 10) {
+			err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
+				Campaign:             activation.Spec.Campaign,
+				Activation:           activation.Name,
+				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
+				Stage:                "",
+				Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
+			})
+			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}

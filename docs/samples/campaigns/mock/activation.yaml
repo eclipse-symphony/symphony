@@ -7,4 +7,4 @@ spec:
   name: "mock-activation"
   stage: ""
   inputs:
-    foo: 1
+    foo: 0

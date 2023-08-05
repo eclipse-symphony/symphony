@@ -66,7 +66,8 @@ type ActivationSpec struct {
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+	Inputs     runtime.RawExtension `json:"inputs,omitempty"`
+	Generation string               `json:"generation,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

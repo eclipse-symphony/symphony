@@ -109,7 +109,6 @@ func PublishActivationEvent(baseUrl string, user string, password string, event 
 	if err != nil {
 		return err
 	}
-
 	jData, _ := json.Marshal(event)
 	_, err = callRestAPI(baseUrl, "jobs", "POST", jData, token)
 	if err != nil {
@@ -146,7 +145,7 @@ func ReportActivationStatus(baseUrl string, name string, user string, password s
 	}
 
 	jData, _ := json.Marshal(activation)
-	_, err = callRestAPI(baseUrl, "activations/"+name, "POST", jData, token)
+	_, err = callRestAPI(baseUrl, "activations/status/"+name, "POST", jData, token)
 	if err != nil {
 		return err
 	}

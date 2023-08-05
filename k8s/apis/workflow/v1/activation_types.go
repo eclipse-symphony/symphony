@@ -31,23 +31,27 @@ type ActivationStatus struct {
 	Inputs runtime.RawExtension `json:"inputs,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Outputs      runtime.RawExtension `json:"outputs,omitempty"`
-	Status       v1alpha2.State       `json:"status,omitempty"`
-	ErrorMessage string               `json:"errorMessage,omitempty"`
+	Outputs              runtime.RawExtension `json:"outputs,omitempty"`
+	Status               v1alpha2.State       `json:"status,omitempty"`
+	ErrorMessage         string               `json:"errorMessage,omitempty"`
+	IsActive             bool                 `json:"isActive,omitempty"`
+	ActivationGeneration string               `json:"activationGeneration,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
-// Campaign is the Schema for the activation API
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Next Stage",type=string,JSONPath=`.status.nextStage`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
+// Activation is the Schema for the activations API
 type Activation struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec k8smodel.ActivationSpec `json:"spec,omitempty"`
+	Spec   k8smodel.ActivationSpec `json:"spec,omitempty"`
+	Status ActivationStatus        `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // CampaignList contains a list of Activation
 type ActivationList struct {
 	metav1.TypeMeta `json:",inline"`

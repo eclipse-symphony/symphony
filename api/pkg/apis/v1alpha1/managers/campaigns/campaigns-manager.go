@@ -96,7 +96,7 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": model.WorkflowGroup,
+				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Campaign",
 				"metadata": map[string]interface{}{
 					"name": name,
@@ -105,7 +105,7 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s", "kind": "Campaign", "metadata": {"name": "$campaign()"}}`, model.WorkflowGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "$campaign()"}}`, model.WorkflowGroup),
 			"scope":    "",
 			"group":    model.WorkflowGroup,
 			"version":  "v1",

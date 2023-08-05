@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -36,6 +37,8 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
+
+var lock sync.Mutex
 
 type ActivationsManager struct {
 	managers.Manager
@@ -66,14 +69,14 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 		return model.ActivationState{}, err
 	}
 
-	ret, err := getActivationState(name, entry.Body)
+	ret, err := getActivationState(name, entry.Body, entry.ETag)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
 	return ret, nil
 }
 
-func getActivationState(id string, body interface{}) (model.ActivationState, error) {
+func getActivationState(id string, body interface{}, etag string) (model.ActivationState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 
@@ -83,6 +86,7 @@ func getActivationState(id string, body interface{}) (model.ActivationState, err
 	if err != nil {
 		return model.ActivationState{}, err
 	}
+	rSpec.Generation = etag
 	state := model.ActivationState{
 		Id:   id,
 		Spec: &rSpec,
@@ -95,16 +99,17 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
-				"apiVersion": model.WorkflowGroup,
+				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Activation",
 				"metadata": map[string]interface{}{
 					"name": name,
 				},
 				"spec": spec,
 			},
+			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s", "kind": "Campaign", "metadata": {"name": "$activation()"}}`, model.WorkflowGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "$activation()"}}`, model.WorkflowGroup),
 			"scope":    "",
 			"group":    model.WorkflowGroup,
 			"version":  "v1",
@@ -144,7 +149,7 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	}
 	ret := make([]model.ActivationState, 0)
 	for _, t := range solutions {
-		rt, err := getActivationState(t.ID, t.Body)
+		rt, err := getActivationState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -153,6 +158,8 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	return ret, nil
 }
 func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, current model.ActivationStatus) error {
+	lock.Lock()
+	defer lock.Unlock()
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -167,7 +174,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	dict := entry.Body.(map[string]interface{})
 	delete(dict, "spec")
-	dict["status"] = current.Status
+	dict["status"] = current
 	entry.Body = dict
 	upsertRequest := states.UpsertRequest{
 		Value: entry,

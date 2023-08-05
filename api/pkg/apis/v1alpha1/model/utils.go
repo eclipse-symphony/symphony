@@ -30,9 +30,10 @@ type (
 	}
 
 	ValueInjections struct {
-		InstanceId string
-		SolutionId string
-		TargetId   string
+		InstanceId   string
+		SolutionId   string
+		TargetId     string
+		ActivationId string
 	}
 )
 
@@ -306,6 +307,7 @@ func ResolveString(value string, injections *ValueInjections) string {
 		value = strings.ReplaceAll(value, "$instance()", injections.InstanceId)
 		value = strings.ReplaceAll(value, "$solution()", injections.SolutionId)
 		value = strings.ReplaceAll(value, "$target()", injections.TargetId)
+		value = strings.ReplaceAll(value, "$activation()", injections.ActivationId)
 	}
 
 	return value

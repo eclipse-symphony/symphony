@@ -69,19 +69,22 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 }
 
 type ActivationStatus struct {
-	Stage        string                 `json:"stage"`
-	NextStage    string                 `json:"nextStage,omitempty"`
-	Inputs       map[string]interface{} `json:"inputs,omitempty"`
-	Outputs      map[string]interface{} `json:"outputs,omitempty"`
-	Status       v1alpha2.State         `json:"status,omitempty"`
-	ErrorMessage string                 `json:"errorMessage,omitempty"`
+	Stage                string                 `json:"stage"`
+	NextStage            string                 `json:"nextStage,omitempty"`
+	Inputs               map[string]interface{} `json:"inputs,omitempty"`
+	Outputs              map[string]interface{} `json:"outputs,omitempty"`
+	Status               v1alpha2.State         `json:"status,omitempty"`
+	ErrorMessage         string                 `json:"errorMessage,omitempty"`
+	IsActive             bool                   `json:"isActive,omitempty"`
+	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
 }
 
 type ActivationSpec struct {
-	Campaign string                 `json:"campaign,omitempty"`
-	Name     string                 `json:"name,omitempty"`
-	Stage    string                 `json:"stage,omitempty"`
-	Inputs   map[string]interface{} `json:"inputs,omitempty"`
+	Campaign   string                 `json:"campaign,omitempty"`
+	Name       string                 `json:"name,omitempty"`
+	Stage      string                 `json:"stage,omitempty"`
+	Inputs     map[string]interface{} `json:"inputs,omitempty"`
+	Generation string                 `json:"generation,omitempty"`
 }
 
 func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {

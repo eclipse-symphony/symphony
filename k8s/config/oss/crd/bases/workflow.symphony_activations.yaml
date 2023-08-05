@@ -15,10 +15,17 @@ spec:
     singular: activation
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.nextStage
+      name: Next Stage
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
-        description: Campaign is the Schema for the activation API
+        description: Activation is the Schema for the activations API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,6 +43,8 @@ spec:
             properties:
               campaign:
                 type: string
+              generation:
+                type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
               name:
@@ -43,6 +52,30 @@ spec:
               stage:
                 type: string
             type: object
+          status:
+            properties:
+              activationGeneration:
+                type: string
+              errorMessage:
+                type: string
+              inputs:
+                x-kubernetes-preserve-unknown-fields: true
+              isActive:
+                type: boolean
+              nextStage:
+                type: string
+              outputs:
+                x-kubernetes-preserve-unknown-fields: true
+              stage:
+                type: string
+              status:
+                description: State represents a response state
+                type: integer
+            required:
+            - stage
+            type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

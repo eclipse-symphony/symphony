@@ -215,9 +215,10 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	if err != nil {
 		// TODO: check if not-found error
 		template := model.ReadProperty(entry.Metadata, "template", &model.ValueInjections{
-			TargetId:   entry.Value.ID,
-			SolutionId: entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
-			InstanceId: entry.Value.ID,
+			TargetId:     entry.Value.ID,
+			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
+			InstanceId:   entry.Value.ID,
+			ActivationId: entry.Value.ID,
 		})
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
@@ -247,7 +248,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
+			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
 			return "", err
 		}
 		if v, ok := dict["spec"]; ok {
@@ -272,14 +273,10 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				},
 			}
 			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(schema.GroupVersionResource{
-				Group:    group,
-				Version:  version,
-				Resource: resource,
-			}).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
-				sLog.Errorf("  P (K8s State): failed to get object: %v", err)
+				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
 				return "", err
 			}
 		}

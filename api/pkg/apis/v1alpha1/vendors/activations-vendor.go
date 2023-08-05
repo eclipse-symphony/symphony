@@ -189,13 +189,20 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-
+		entry, err := c.ActivationsManager.GetSpec(ctx, id)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
 		c.Context.Publish("activation", v1alpha2.Event{
 			Body: v1alpha2.ActivationData{
-				Campaign:   activation.Campaign,
-				Activation: id,
-				Stage:      "",
-				Inputs:     activation.Inputs,
+				Campaign:             activation.Campaign,
+				ActivationGeneration: entry.Spec.Generation,
+				Activation:           id,
+				Stage:                "",
+				Inputs:               activation.Inputs,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
