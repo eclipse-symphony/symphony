@@ -7,4 +7,5 @@ const (
 	SolutionGroup   = "solution.symphony"
 	WorkflowGroup   = "workflow.symphony"
 	FederationGroup = "federation.symphony"
+	AIGroup         = "ai.symphony"
 )

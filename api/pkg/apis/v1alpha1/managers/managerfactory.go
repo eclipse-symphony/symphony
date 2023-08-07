@@ -16,6 +16,7 @@ package managers
 import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
@@ -54,6 +55,8 @@ func (c SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMana
 		return &jobs.JobsManager{}, nil
 	case "managers.symphony.campaigns":
 		return &campaigns.CampaignsManager{}, nil
+	case "managers.symphony.catalogs":
+		return &catalogs.CatalogsManager{}, nil
 	case "managers.symphony.activations":
 		return &activations.ActivationsManager{}, nil
 	case "managers.symphony.stage":

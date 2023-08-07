@@ -112,6 +112,9 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	for _, v := range s.Data {
 		vE, ok := v.(states.StateEntry)
 		if ok {
+			if request.Filter != "" {
+
+			}
 			entities = append(entities, vE)
 		} else {
 			err := v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)

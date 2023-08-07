@@ -7,4 +7,5 @@ const (
 	SolutionGroup   = FabricGroup
 	WorkflowGroup   = FabricGroup
 	FederationGroup = FabricGroup
+	AIGroup         = FabricGroup
 )

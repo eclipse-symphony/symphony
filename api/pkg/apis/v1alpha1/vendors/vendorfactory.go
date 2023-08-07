@@ -38,6 +38,8 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &SolutionsVendor{}, nil
 	case "vendors.campaigns":
 		return &CampaignsVendor{}, nil
+	case "vendors.catalogs":
+		return &CatalogsVendor{}, nil
 	case "vendors.activations":
 		return &ActivationsVendor{}, nil
 	case "vendors.users":

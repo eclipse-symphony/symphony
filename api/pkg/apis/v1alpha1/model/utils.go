@@ -34,6 +34,8 @@ type (
 		SolutionId   string
 		TargetId     string
 		ActivationId string
+		CatalogId    string
+		CampaignId   string
 	}
 )
 
@@ -308,6 +310,8 @@ func ResolveString(value string, injections *ValueInjections) string {
 		value = strings.ReplaceAll(value, "$solution()", injections.SolutionId)
 		value = strings.ReplaceAll(value, "$target()", injections.TargetId)
 		value = strings.ReplaceAll(value, "$activation()", injections.ActivationId)
+		value = strings.ReplaceAll(value, "$catalog()", injections.CatalogId)
+		value = strings.ReplaceAll(value, "$campaign()", injections.CampaignId)
 	}
 
 	return value
