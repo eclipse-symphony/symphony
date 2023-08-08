@@ -34,6 +34,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 )
@@ -82,7 +83,21 @@ func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, pr
 	m.Context.Logger.Debugf(" M (%s): initalize manager type '%s'", config.Name, config.Type)
 	return err
 }
-
+func GetStackProvider(config ManagerConfig, providers map[string]providers.IProvider) (stack.IStackProvider, error) {
+	stackProviderName, ok := config.Properties[v1alpha2.ProvidersState]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "stack provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[stackProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "stack provider is not supplied", v1alpha2.MissingConfig)
+	}
+	stackProvider, ok := provider.(stack.IStackProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a stack provider", v1alpha2.BadConfig)
+	}
+	return stackProvider, nil
+}
 func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]
 	if !ok {

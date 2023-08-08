@@ -35,6 +35,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs"
 	autogen "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
 	localfile "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	routing "github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -64,10 +65,10 @@ type HttpBinding struct {
 }
 
 // Launch fasthttp server
-func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endpoint) error {
+func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endpoint, pubsubProvider pubsub.IPubSubProvider) error {
 	handler := h.useRouter(endpoints)
 
-	pipeline, err := BuildPipeline(config)
+	pipeline, err := BuildPipeline(config, pubsubProvider)
 	if err != nil {
 		return err
 	}

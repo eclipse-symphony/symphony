@@ -32,6 +32,7 @@ import (
 
 	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
@@ -42,13 +43,17 @@ type Pipeline struct {
 	Handlers []Middleware
 }
 
-func BuildPipeline(config HttpBindingConfig) (Pipeline, error) {
+func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvider) (Pipeline, error) {
 	ret := Pipeline{Handlers: make([]Middleware, 0)}
 	for _, c := range config.Pipeline {
 		switch c.Type {
 		case "middleware.http.cors":
 			cors := CORS{Properties: c.Properties}
 			ret.Handlers = append(ret.Handlers, cors.CORS)
+		case "middleware.http.trail":
+			trail := Trail{}
+			trail.SetPubSubProvider(pubsubProvider)
+			ret.Handlers = append(ret.Handlers, trail.Trail)
 		case "middleware.http.telemetry":
 			enableAppInsight := os.Getenv("ENABLE_APP_INSIGHT")
 			c.Properties["enabled"] = enableAppInsight == "true"

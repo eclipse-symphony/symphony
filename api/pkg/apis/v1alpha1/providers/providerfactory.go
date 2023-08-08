@@ -48,6 +48,7 @@ import (
 	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
 	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
 	mocksecret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
+	memorystack "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack/memory"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
@@ -254,6 +255,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.symphony":
 		mProvider := &symphonystage.SymphonyStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stack.memory":
+		mProvider := &memorystack.MemoryStackProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -481,6 +488,12 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
+				case "providers.stack.memory":
+					provider := &memorystack.MemoryStackProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
 				}
 
 			}

@@ -171,7 +171,7 @@ func (h *APIHost) Launch(config HostConfig,
 					if wait {
 						wg.Add(1)
 					}
-					binding, err := h.launchHTTP(b.Config, endpoints)
+					binding, err := h.launchHTTP(b.Config, endpoints, h.SharedPubSubProvider.(pubsub.IPubSubProvider))
 					if err != nil {
 						return err
 					}
@@ -197,7 +197,7 @@ func (h *APIHost) Launch(config HostConfig,
 	}
 }
 
-func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint) (bindings.IBinding, error) {
+func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint, pubsubProvider pubsub.IPubSubProvider) (bindings.IBinding, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint) 
 		return nil, err
 	}
 	binding := http.HttpBinding{}
-	return binding, binding.Launch(httpConfig, endpoints)
+	return binding, binding.Launch(httpConfig, endpoints, pubsubProvider)
 }
 func (h *APIHost) launchMQTT(config interface{}, endpoints []v1alpha2.Endpoint) (bindings.IBinding, error) {
 	data, err := json.Marshal(config)
