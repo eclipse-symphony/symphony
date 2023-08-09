@@ -77,5 +77,39 @@ docker rm -f redis-server
 
 **George:** Right, Symphony is an orchestrator. It doesn't aim to replace any of the technologies. It's focus is to create a consistent workflow on top of different technologies. For example, with Symphony, you use the same workflow regardless if you are deploying containers, installing application packages, or even applying OS images.
 
+**Anna**: Awesome!
 
+|||
+|----|----|
+|![danny](../images/danny-small.png)|But wait, we can't run in production as a single process, though...
+|![george](../images/george-small.png)| Right. The standalone mode is for local dev/test only. For a production deployment, you probably want to deploy Symphony onto a Kubernetes cluster. Symphony runs natively on Kubernetes by extending the Kubernete's API server. You can install Symphony to popular Kubernetes distributions using Helm.|
+## Exercise 3: Deploy Symphony to Kubernetes
+**George:** Like I've mentioned, you can install Symphony using Helm. Or, **maestro** allows you to install Symphony to your current Kubernetes context by:
+```
+maestro up
+```
+**George:** And Symphony will be configured on your Kurbernetes cluster!
+
+**George:** Once Symphony is installed, you can see it installs a few custom resource types, or [CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/), including the resource types we've talked about - like **Solution**, **Target** and **Instance**. If you do:
+```bash
+kubectl get crds | grep symphony
+```
+**George:** You can see a list of Symphony resource types like:
+```bash
+activations.workflow.symphony 
+campaigns.workflow.symphony
+devices.fabric.symphony
+instances.solution.symphony
+models.ai.symphony
+skillpackages.ai.symphony
+skills.ai.symphony
+solutions.solution.symphony
+targets.fabric.symphony
+```
+**George:** There are certainly a lot more than the basic deployments we've done! But we can go through these later...
+
+**George:** Meanwhile, let me just deploy another sample, which runs [Prometheus](https://prometheus.io/). Again, I'll just use the **maestro** tool:
+```bash
+maestro samples run hello-k8s
+``` 
 

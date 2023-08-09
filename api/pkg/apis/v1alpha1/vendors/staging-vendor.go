@@ -35,7 +35,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+var gLog = logger.NewLogger("coa.runtime")
 
 type StagingVendor struct {
 	vendors.Vendor
@@ -69,7 +69,7 @@ func (f *StagingVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
-func (f *FederationVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResponse {
+func (f *StagingVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
