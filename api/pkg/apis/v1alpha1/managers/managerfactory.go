@@ -17,6 +17,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
@@ -61,6 +62,8 @@ func (c SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMana
 		return &activations.ActivationsManager{}, nil
 	case "managers.symphony.stage":
 		return &stage.StageManager{}, nil
+	case "managers.symphony.configs":
+		return &configs.ConfigsManager{}, nil
 	default:
 		return nil, nil //TBD: can't throw errors here as other manages may pick up creation process
 	}

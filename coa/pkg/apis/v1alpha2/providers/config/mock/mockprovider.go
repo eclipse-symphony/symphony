@@ -90,3 +90,18 @@ func toMockConfigProviderConfig(config providers.IProviderConfig) (MockConfigPro
 func (m *MockConfigProvider) Get(object string, field string) (string, error) {
 	return object + "::" + field, nil
 }
+func (m *MockConfigProvider) GetObject(object string) (map[string]string, error) {
+	return map[string]string{object: object}, nil
+}
+func (m *MockConfigProvider) Set(object string, field string, value string) error {
+	return nil
+}
+func (m *MockConfigProvider) SetObject(object string, value map[string]string) error {
+	return nil
+}
+func (m *MockConfigProvider) Delete(object string, field string) error {
+	return nil
+}
+func (m *MockConfigProvider) DeleteObject(object string) error {
+	return nil
+}

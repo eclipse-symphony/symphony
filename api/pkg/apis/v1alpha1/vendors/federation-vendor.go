@@ -69,6 +69,13 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name?"},
 		},
 		{
+			Methods:    []string{fasthttp.MethodPost, fasthttp.MethodGet},
+			Route:      route + "/registry",
+			Version:    f.Version,
+			Handler:    f.onRegistry,
+			Parameters: []string{"name?"},
+		},
+		{
 			Methods:    []string{fasthttp.MethodGet},
 			Route:      route + "/graph",
 			Version:    f.Version,
@@ -82,6 +89,14 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler: f.onTrail,
 		},
 	}
+}
+func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	return resp
 }
 func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	resp := v1alpha2.COAResponse{

@@ -1,0 +1,6 @@
+apiVersion: federation.symphony/v1
+kind: Site
+metadata:
+  name: site1
+spec:
+  name: site1

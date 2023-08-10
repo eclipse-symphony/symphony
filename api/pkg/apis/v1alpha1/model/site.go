@@ -22,18 +22,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-package config
+package model
 
-import (
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-)
+import "errors"
 
-type IConfigProvider interface {
-	Init(config providers.IProviderConfig) error
-	Get(object string, field string) (string, error)
-	GetObject(object string) (map[string]string, error)
-	Set(object string, field string, value string) error
-	SetObject(object string, value map[string]string) error
-	Delete(object string, field string) error
-	DeleteObject(object string) error
+type SiteState struct {
+	Id     string      `json:"id"`
+	Spec   *SiteSpec   `json:"spec,omitempty"`
+	Status *SiteStatus `json:"status,omitempty"`
+}
+type SiteStatus struct {
+	IsOnline bool `json:"isOnline,omitempty"`
+}
+type SiteSpec struct {
+	Name      string `json:"name,omitempty"`
+	PublicKey string `json:"secretHash,omitempty"`
+}
+
+func (s SiteSpec) DeepEquals(other IDeepEquals) (bool, error) {
+	otherS, ok := other.(SiteSpec)
+	if !ok {
+		return false, errors.New("parameter is not a SiteSpec type")
+	}
+
+	if s.Name != otherS.Name {
+		return false, nil
+	}
+
+	if s.PublicKey != otherS.PublicKey {
+		return false, nil
+	}
+
+	return true, nil
 }
