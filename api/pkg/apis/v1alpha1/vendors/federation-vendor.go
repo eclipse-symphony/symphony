@@ -28,10 +28,12 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/staging"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -52,6 +54,7 @@ type FederationVendor struct {
 	SitesManager    *sites.SitesManager
 	CatalogsManager *catalogs.CatalogsManager
 	StagingManager  *staging.StagingManager
+	SyncManager     *sync.SyncManager
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -76,6 +79,9 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		if c, ok := m.(*catalogs.CatalogsManager); ok {
 			f.CatalogsManager = c
 		}
+		if c, ok := m.(*sync.SyncManager); ok {
+			f.SyncManager = c
+		}
 	}
 	if f.StagingManager == nil {
 		return v1alpha2.NewCOAError(nil, "staging manager is not supplied", v1alpha2.MissingConfig)
@@ -92,12 +98,13 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			return err
 		}
 		for _, site := range sites {
+			jData, _ := json.Marshal(site)
+			fmt.Printf("SITE INFO: %s", string(jData))
 			event.Metadata["site"] = site.Spec.Name
 			f.StagingManager.HandleCatalogEvent(context.Background(), event) //TODO: how to handle errors in this case?
 		}
 		return nil
 	})
-
 	return nil
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -107,7 +114,7 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 	return []v1alpha2.Endpoint{
 		{
-			Methods:    []string{fasthttp.MethodPost, fasthttp.MethodDelete},
+			Methods:    []string{fasthttp.MethodPost, fasthttp.MethodGet},
 			Route:      route + "/sync",
 			Version:    f.Version,
 			Handler:    f.onSync,

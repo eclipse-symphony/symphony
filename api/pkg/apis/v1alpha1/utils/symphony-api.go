@@ -117,6 +117,26 @@ func PublishActivationEvent(baseUrl string, user string, password string, event 
 
 	return nil
 }
+func GetABatchForSite(baseUrl string, site string, user string, password string) ([]model.CatalogSpec, error) {
+	ret := make([]model.CatalogSpec, 0)
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "federation/sync/"+site, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
 func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
 	ret := model.ActivationState{}
 	token, err := auth(baseUrl, user, password)

@@ -26,7 +26,9 @@
 package vendors
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -69,6 +71,22 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.CatalogsManager == nil {
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
+	e.Vendor.Context.Subscribe("catalog-sync", func(topic string, event v1alpha2.Event) error {
+		if job, ok := event.Body.(v1alpha2.JobData); ok {
+			if catalog, ok := job.Body.(model.CatalogSpec); ok {
+				name := fmt.Sprintf("%s-%s", catalog.SiteId, catalog.Name)
+				catalog.Name = name
+				if catalog.ParentName != "" {
+					catalog.ParentName = fmt.Sprintf("%s-%s", catalog.SiteId, catalog.ParentName)
+				}
+				err := e.CatalogsManager.UpsertSpec(context.Background(), name, catalog)
+				if err != nil {
+					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
+				}
+			}
+		}
+		return nil
+	})
 	return nil
 }
 func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -149,7 +167,12 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCatalogs-POST", pCtx, nil)
 		id := request.Parameters["__name"]
-
+		if id == "" {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.BadRequest,
+				Body:  []byte("missing catalog name"),
+			})
+		}
 		var campaign model.CatalogSpec
 
 		err := json.Unmarshal(request.Body, &campaign)

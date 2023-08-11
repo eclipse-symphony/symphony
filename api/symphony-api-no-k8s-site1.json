@@ -1,5 +1,5 @@
 {
-  "siteId": "hq",
+  "siteId": "site1",
   "api": {
     "pubsub": {
       "shared": true,
@@ -17,7 +17,7 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {      
-              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "baseUrl": "http://localhost:8083/v1alpha2/",
               "user": "admin",
               "password": ""        
             },
@@ -79,7 +79,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "baseUrl": "http://localhost:8083/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -254,13 +254,13 @@
               "http-reference": {
                 "type": "providers.reference.http",
                 "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
+                  "url": "http://localhost:8083/v1alpha2/"
                 }
               },
               "http-reporter": {
                 "type": "providers.reporter.http",
                 "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
+                  "url": "http://localhost:8083/v1alpha2/"
                 }
               }
             }
@@ -269,6 +269,8 @@
       },
       {
         "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
         "managers": [
           {
             "name": "sites-manager",
@@ -288,7 +290,7 @@
             "type": "managers.symphony.catalogs",
             "properties": {
               "providers.state": "memeory",
-              "singleton": "true"              
+              "singleton": "true"                         
             },
             "providers": {
               "memeory": {
@@ -309,6 +311,16 @@
                 "config": {}
               }
             }
+          }, {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "sync.enabled": "true"
+            }
           }
         ]
       },
@@ -321,7 +333,7 @@
             "type": "managers.symphony.catalogs",
             "properties": {
               "providers.state": "memeory",
-              "singleton": "true"
+              "singleton": "true"              
             },
             "providers": {
               "memeory": {
@@ -338,7 +350,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8082,
+        "port": 8083,
         "pipeline": [
           {
             "type": "middleware.http.cors",

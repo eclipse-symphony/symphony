@@ -1,4 +1,5 @@
 {
+  "siteId": "symphony-proxy",
   "api": {
     "vendors": [
       {

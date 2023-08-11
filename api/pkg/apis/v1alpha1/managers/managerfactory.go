@@ -22,9 +22,12 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/staging"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/target"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
@@ -32,39 +35,57 @@ import (
 )
 
 type SymphonyManagerFactory struct {
+	SingletonsCache map[string]cm.IManager
 }
 
-func (c SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IManager, error) {
+func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IManager, error) {
+	if c.SingletonsCache == nil {
+		c.SingletonsCache = make(map[string]cm.IManager)
+	}
+	if config.Properties["singleton"] == "true" {
+		if c.SingletonsCache[config.Type] != nil {
+			return c.SingletonsCache[config.Type], nil
+		}
+	}
+	var manager cm.IManager
 	switch config.Type {
 	case "managers.symphony.solution":
-		return &solution.SolutionManager{}, nil
+		manager = &solution.SolutionManager{}
 	case "managers.symphony.reference":
-		return &reference.ReferenceManager{}, nil
+		manager = &reference.ReferenceManager{}
 	case "managers.symphony.target":
-		return &target.TargetManager{}, nil
+		manager = &target.TargetManager{}
 	case "managers.symphony.targets":
-		return &targets.TargetsManager{}, nil
+		manager = &targets.TargetsManager{}
 	case "managers.symphony.devices":
-		return &devices.DevicesManager{}, nil
+		manager = &devices.DevicesManager{}
 	case "managers.symphony.solutions":
-		return &solutions.SolutionsManager{}, nil
+		manager = &solutions.SolutionsManager{}
 	case "managers.symphony.instances":
-		return &instances.InstancesManager{}, nil
+		manager = &instances.InstancesManager{}
 	case "managers.symphony.users":
-		return &users.UsersManager{}, nil
+		manager = &users.UsersManager{}
 	case "managers.symphony.jobs":
-		return &jobs.JobsManager{}, nil
+		manager = &jobs.JobsManager{}
 	case "managers.symphony.campaigns":
-		return &campaigns.CampaignsManager{}, nil
+		manager = &campaigns.CampaignsManager{}
 	case "managers.symphony.catalogs":
-		return &catalogs.CatalogsManager{}, nil
+		manager = &catalogs.CatalogsManager{}
 	case "managers.symphony.activations":
-		return &activations.ActivationsManager{}, nil
+		manager = &activations.ActivationsManager{}
 	case "managers.symphony.stage":
-		return &stage.StageManager{}, nil
+		manager = &stage.StageManager{}
 	case "managers.symphony.configs":
-		return &configs.ConfigsManager{}, nil
-	default:
-		return nil, nil //TBD: can't throw errors here as other manages may pick up creation process
+		manager = &configs.ConfigsManager{}
+	case "managers.symphony.sites":
+		manager = &sites.SitesManager{}
+	case "managers.symphony.staging":
+		manager = &staging.StagingManager{}
+	case "managers.symphony.sync":
+		manager = &sync.SyncManager{}
 	}
+	if manager != nil && config.Properties["singleton"] == "true" {
+		c.SingletonsCache[config.Type] = manager
+	}
+	return manager, nil
 }

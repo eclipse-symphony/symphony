@@ -73,6 +73,9 @@ func (s *StagingManager) HandleCatalogEvent(ctx context.Context, event v1alpha2.
 }
 func (s *StagingManager) GetABatchForSite(site string) ([]v1alpha2.JobData, error) {
 	//TODO: this should return a group of jobs as optimization
+	if s.StackProvider.Size(site) == 0 {
+		return nil, nil
+	}
 	stackElement, err := s.StackProvider.Pop(site)
 	if err != nil {
 		return nil, err

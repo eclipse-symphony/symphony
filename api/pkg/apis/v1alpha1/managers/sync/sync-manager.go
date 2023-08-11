@@ -24,15 +24,18 @@ SOFTWARE
 package sync
 
 import (
+	"os"
+
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack"
 )
 
 type SyncManager struct {
 	managers.Manager
-	StackProvider stack.IStackProvider
+	SiteId string
 }
 
 func (s *SyncManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -40,11 +43,9 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	if err != nil {
 		return err
 	}
-	stackProvider, err := managers.GetStackProvider(config, providers)
-	if err == nil {
-		s.StackProvider = stackProvider
-	} else {
-		return err
+	s.SiteId = os.Getenv("SYMPHONY_SITE_ID")
+	if s.SiteId == "" {
+		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
 	}
 	return nil
 }
@@ -52,6 +53,37 @@ func (s *SyncManager) Enabled() bool {
 	return s.Config.Properties["sync.enabled"] == "true"
 }
 func (s *SyncManager) Poll() []error {
+	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
+	if err != nil {
+		return []error{err}
+	}
+	user, err := utils.GetString(s.Manager.Config.Properties, "user")
+	if err != nil {
+		return []error{err}
+	}
+	password, err := utils.GetString(s.Manager.Config.Properties, "password")
+	if err != nil {
+		return []error{err}
+	}
+	batch, err := utils.GetABatchForSite(baseUrl, s.SiteId, user, password)
+	if err != nil {
+		return []error{err}
+	}
+	for _, catalog := range batch {
+		s.Context.Publish("catalog-sync", v1alpha2.Event{
+			Metadata: map[string]string{
+				"objectType": catalog.Type,
+			},
+			Body: v1alpha2.JobData{
+				Id:     catalog.Name,
+				Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+				Body:   catalog,
+			},
+		})
+	}
+	if err != nil {
+		return []error{err}
+	}
 	return nil
 }
 func (s *SyncManager) Reconcil() []error {

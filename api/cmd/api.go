@@ -55,7 +55,7 @@ var RootCmd = &cobra.Command{
 		err = starHost.Launch(config, []vf.IVendorFactory{
 			svf.SymphonyVendorFactory{},
 		}, []mf.IManagerFactroy{
-			mu.SymphonyManagerFactory{},
+			&mu.SymphonyManagerFactory{},
 		}, []pf.IProviderFactory{
 			spf.SymphonyProviderFactory{},
 		}, true)

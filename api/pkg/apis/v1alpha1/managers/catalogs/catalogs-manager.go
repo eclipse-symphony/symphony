@@ -44,6 +44,10 @@ type CatalogsManager struct {
 }
 
 func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(context, config, providers)
+	if err != nil {
+		return err
+	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
@@ -131,6 +135,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 		Body: v1alpha2.JobData{
 			Id:     spec.Name,
 			Action: "UPDATE",
+			Body:   spec,
 		},
 	})
 	return nil
