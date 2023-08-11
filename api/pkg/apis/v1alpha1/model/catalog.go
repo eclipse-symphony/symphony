@@ -35,25 +35,30 @@ type CatalogState struct {
 	Status *CatalogStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type ObjectRef struct {
-	SiteId  string `json:"siteId"`
-	Id      string `json:"id"`
-	Group   string `json:"group"`
-	Version string `json:"version"`
-	Kind    string `json:"kind"`
-	Scope   string `json:"scope"`
+	SiteId     string            `json:"siteId"`
+	Name       string            `json:"name"`
+	Group      string            `json:"group"`
+	Version    string            `json:"version"`
+	Kind       string            `json:"kind"`
+	Scope      string            `json:"scope"`
+	Address    string            `json:"address,omitempty"`
+	Status     map[string]string `json:"status,omitempty"`
+	Generation string            `json:"generation,omitempty"`
 }
 type CatalogSpec struct {
-	Id         string                 `json:"id"`
+	SiteId     string                 `json:"siteId"`
 	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
-	ParentId   string                 `json:"parentId,omitempty"`
+	ParentName string                 `json:"parentName,omitempty"`
 	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
 	Generation string                 `json:"generation,omitempty"`
 }
 
 type CatalogStatus struct {
-	Properties map[string]interface{} `json:"properties"`
+	Properties map[string]string `json:"properties"`
 }
 
 func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -62,7 +67,7 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a CatalogSpec type")
 	}
 
-	if c.Id != otherC.Id {
+	if c.SiteId != otherC.SiteId {
 		return false, nil
 	}
 
@@ -70,7 +75,7 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if c.ParentId != otherC.ParentId {
+	if c.ParentName != otherC.ParentName {
 		return false, nil
 	}
 

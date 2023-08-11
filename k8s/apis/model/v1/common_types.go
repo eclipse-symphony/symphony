@@ -77,3 +77,16 @@ type CampaignSpec struct {
 	Stages      map[string]StageSpec `json:"stages,omitempty"`
 	SelfDriving bool                 `json:"selfDriving,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
+type CatalogSpec struct {
+	SiteId string `json:"siteId"`
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Properties runtime.RawExtension `json:"properties"`
+	ParentName string               `json:"parentName,omitempty"`
+	ObjectRef  model.ObjectRef      `json:"objectRef,omitempty"`
+	Generation string               `json:"generation,omitempty"`
+}

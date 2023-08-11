@@ -15,6 +15,7 @@ package model
 
 import "errors"
 
+// +kubebuilder:object:generate=true
 type RouteSpec struct {
 	Route      string            `json:"route"`
 	Type       string            `json:"type"`

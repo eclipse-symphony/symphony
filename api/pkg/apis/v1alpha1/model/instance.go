@@ -25,6 +25,7 @@ type (
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
+	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
 		Name        string                       `json:"name"`
 		DisplayName string                       `json:"displayName,omitempty"`
@@ -42,12 +43,14 @@ type (
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
+	// +kubebuilder:object:generate=true
 	TargetSelector struct {
 		Name     string            `json:"name,omitempty"`
 		Selector map[string]string `json:"selector,omitempty"`
 	}
 
 	// PipelineSpec defines the desired pipeline of the instance
+	// +kubebuilder:object:generate=true
 	PipelineSpec struct {
 		Name       string            `json:"name"`
 		Skill      string            `json:"skill"`

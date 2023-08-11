@@ -13,6 +13,7 @@ limitations under the License.
 
 package model
 
+// +kubebuilder:object:generate=true
 type ModelSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Properties  map[string]string `json:"properties,omitempty"`

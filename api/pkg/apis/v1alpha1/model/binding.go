@@ -26,6 +26,7 @@ package model
 
 import "errors"
 
+// +kubebuilder:object:generate=true
 type BindingSpec struct {
 	Role     string            `json:"role"`
 	Provider string            `json:"provider"`

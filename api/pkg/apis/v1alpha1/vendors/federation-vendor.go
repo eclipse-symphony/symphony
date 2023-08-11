@@ -26,8 +26,18 @@
 package vendors
 
 import (
+	"context"
+	"encoding/json"
+
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/staging"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
@@ -39,6 +49,9 @@ var fLog = logger.NewLogger("coa.runtime")
 
 type FederationVendor struct {
 	vendors.Vendor
+	SitesManager    *sites.SitesManager
+	CatalogsManager *catalogs.CatalogsManager
+	StagingManager  *staging.StagingManager
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -53,6 +66,38 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if err != nil {
 		return err
 	}
+	for _, m := range f.Managers {
+		if c, ok := m.(*sites.SitesManager); ok {
+			f.SitesManager = c
+		}
+		if c, ok := m.(*staging.StagingManager); ok {
+			f.StagingManager = c
+		}
+		if c, ok := m.(*catalogs.CatalogsManager); ok {
+			f.CatalogsManager = c
+		}
+	}
+	if f.StagingManager == nil {
+		return v1alpha2.NewCOAError(nil, "staging manager is not supplied", v1alpha2.MissingConfig)
+	}
+	if f.SitesManager == nil {
+		return v1alpha2.NewCOAError(nil, "sites manager is not supplied", v1alpha2.MissingConfig)
+	}
+	if f.CatalogsManager == nil {
+		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
+	}
+	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
+		sites, err := f.SitesManager.ListSpec(context.Background())
+		if err != nil {
+			return err
+		}
+		for _, site := range sites {
+			event.Metadata["site"] = site.Spec.Name
+			f.StagingManager.HandleCatalogEvent(context.Background(), event) //TODO: how to handle errors in this case?
+		}
+		return nil
+	})
+
 	return nil
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -66,7 +111,7 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route + "/sync",
 			Version:    f.Version,
 			Handler:    f.onSync,
-			Parameters: []string{"name?"},
+			Parameters: []string{"site?"},
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost, fasthttp.MethodGet},
@@ -91,19 +136,130 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 }
 func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+		"method": "onRegistry",
+	})
+	tLog.Info("V (Federation): onRegistry")
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onRegistry-GET", pCtx, nil)
+		id := request.Parameters["__name"]
+		var err error
+		var state interface{}
+		isArray := false
+		if id == "" {
+			state, err = f.SitesManager.ListSpec(ctx)
+			isArray = true
+		} else {
+			state, err = f.SitesManager.GetSpec(ctx, id)
+		}
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        jData,
+			ContentType: "application/json",
+		})
+		if request.Parameters["doc-type"] == "yaml" {
+			resp.ContentType = "application/text"
+		}
+		return resp
+	case fasthttp.MethodPost:
+		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
+		id := request.Parameters["__name"]
+
+		var site model.SiteSpec
+		err := json.Unmarshal(request.Body, &site)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		//TODO: generate site key pair as needed
+		err = f.SitesManager.UpsertSpec(ctx, id, site)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+		})
+	case fasthttp.MethodDelete:
+		ctx, span := observability.StartSpan("onRegistry-DELETE", pCtx, nil)
+		id := request.Parameters["__name"]
+		err := f.SitesManager.DeleteSpec(ctx, id)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+		})
+	}
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 		ContentType: "application/json",
 	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	span.End()
 	return resp
 }
 func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+		"method": "onSync",
+	})
+	tLog.Info("V (Federation): onSync")
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onSync-GET", pCtx, nil)
+		id := request.Parameters["__site"]
+		batch, err := f.StagingManager.GetABatchForSite(id)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		catalogs := make([]model.CatalogSpec, 0)
+		for _, c := range batch {
+			catalog, err := f.CatalogsManager.GetSpec(ctx, c.Id)
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+			catalogs = append(catalogs, *catalog.Spec)
+		}
+		jData, _ := utils.FormatObject(catalogs, true, request.Parameters["path"], request.Parameters["doc-type"])
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        jData,
+			ContentType: "application/json",
+		})
+		if request.Parameters["doc-type"] == "yaml" {
+			resp.ContentType = "application/text"
+		}
+		return resp
+	}
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 		ContentType: "application/json",
 	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	span.End()
 	return resp
 }
 func (f *FederationVendor) onGraph(request v1alpha2.COARequest) v1alpha2.COAResponse {

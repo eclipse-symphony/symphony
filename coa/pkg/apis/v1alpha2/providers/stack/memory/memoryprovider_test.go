@@ -34,10 +34,10 @@ func TestPush(t *testing.T) {
 	stack := MemoryStackProvider{}
 	err := stack.Init(MemoryStackProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("a")
-	stack.Push("b")
-	stack.Push("c")
-	element, err := stack.Peek()
+	stack.Push("stack1", "a")
+	stack.Push("stack1", "b")
+	stack.Push("stack1", "c")
+	element, err := stack.Peek("stack1")
 	assert.Nil(t, err)
 	assert.Equal(t, "c", element)
 }
@@ -45,13 +45,13 @@ func TestPop(t *testing.T) {
 	stack := MemoryStackProvider{}
 	err := stack.Init(MemoryStackProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("a")
-	stack.Push("b")
-	stack.Push("c")
-	element, err := stack.Pop()
+	stack.Push("stack1", "a")
+	stack.Push("stack1", "b")
+	stack.Push("stack1", "c")
+	element, err := stack.Pop("stack1")
 	assert.Nil(t, err)
 	assert.Equal(t, "c", element)
-	element, err = stack.Peek()
+	element, err = stack.Peek("stack1")
 	assert.Nil(t, err)
 	assert.Equal(t, "b", element)
 }
@@ -59,7 +59,7 @@ func TestPopEmpty(t *testing.T) {
 	stack := MemoryStackProvider{}
 	err := stack.Init(MemoryStackProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Pop()
+	element, err := stack.Pop("stack1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
@@ -67,7 +67,7 @@ func TestPeekEmepty(t *testing.T) {
 	stack := MemoryStackProvider{}
 	err := stack.Init(MemoryStackProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Peek()
+	element, err := stack.Peek("stack1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
@@ -75,8 +75,8 @@ func TestSize(t *testing.T) {
 	stack := MemoryStackProvider{}
 	err := stack.Init(MemoryStackProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("a")
-	stack.Push("b")
-	stack.Push("c")
-	assert.Equal(t, 3, stack.Size())
+	stack.Push("stack1", "a")
+	stack.Push("stack1", "b")
+	stack.Push("stack1", "c")
+	assert.Equal(t, 3, stack.Size("stack1"))
 }

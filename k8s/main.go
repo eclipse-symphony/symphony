@@ -36,12 +36,14 @@ import (
 	aiv1 "gopls-workspace/apis/ai/v1"
 	configv1 "gopls-workspace/apis/config/v1"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
+	federationv1 "gopls-workspace/apis/federation/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"
 
 	aicontrollers "gopls-workspace/controllers/ai"
 	fabriccontrollers "gopls-workspace/controllers/fabric"
+	federationcontrollers "gopls-workspace/controllers/federation"
 	solutioncontrollers "gopls-workspace/controllers/solution"
 	workflowcontrollers "gopls-workspace/controllers/workflow"
 	//+kubebuilder:scaffold:imports
@@ -59,6 +61,7 @@ func init() {
 	utilruntime.Must(aiv1.AddToScheme(scheme))
 	utilruntime.Must(configv1.AddToScheme(scheme))
 	utilruntime.Must(workflowv1.AddToScheme(scheme))
+	utilruntime.Must(federationv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -171,6 +174,20 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SkillPackage")
+		os.Exit(1)
+	}
+	if err = (&federationcontrollers.SiteReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Site")
+		os.Exit(1)
+	}
+	if err = (&federationcontrollers.CatalogReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
 		os.Exit(1)
 	}
 	if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {

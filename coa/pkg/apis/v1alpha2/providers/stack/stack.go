@@ -26,8 +26,8 @@
 package stack
 
 type IStackProvider interface {
-	Push(element interface{}) error
-	Pop() (interface{}, error)
-	Peek() (interface{}, error)
-	Size() int
+	Push(stack string, element interface{}) error
+	Pop(stack string) (interface{}, error)
+	Peek(stack string) (interface{}, error)
+	Size(stack string) int
 }

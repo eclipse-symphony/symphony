@@ -84,7 +84,7 @@ func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, pr
 	return err
 }
 func GetStackProvider(config ManagerConfig, providers map[string]providers.IProvider) (stack.IStackProvider, error) {
-	stackProviderName, ok := config.Properties[v1alpha2.ProvidersState]
+	stackProviderName, ok := config.Properties[v1alpha2.ProviderStack]
 	if !ok {
 		return nil, v1alpha2.NewCOAError(nil, "stack provider is not configured", v1alpha2.MissingConfig)
 	}

@@ -52,7 +52,7 @@ func MemoryStackProviderConfigFromMap(properties map[string]string) (MemoryStack
 
 type MemoryStackProvider struct {
 	Config  MemoryStackProviderConfig
-	Data    []interface{}
+	Data    map[string][]interface{}
 	Context *contexts.ManagerContext
 }
 
@@ -91,38 +91,50 @@ func (s *MemoryStackProvider) Init(config providers.IProviderConfig) error {
 		return errors.New("expected MemoryStackProviderConfig")
 	}
 	s.Config = stateConfig
-	s.Data = make([]interface{}, 0)
+	s.Data = make(map[string][]interface{})
 	return nil
 }
 
-func (s *MemoryStackProvider) Push(data interface{}) error {
+func (s *MemoryStackProvider) Push(stack string, data interface{}) error {
 	mLock.Lock()
 	defer mLock.Unlock()
-	s.Data = append(s.Data, data)
+	if _, ok := s.Data[stack]; !ok {
+		s.Data[stack] = make([]interface{}, 0)
+	}
+	s.Data[stack] = append(s.Data[stack], data)
 	return nil
 }
-func (s *MemoryStackProvider) Pop() (interface{}, error) {
+func (s *MemoryStackProvider) Pop(stack string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if len(s.Data) == 0 {
+	if _, ok := s.Data[stack]; !ok {
+		return nil, errors.New("stack not found")
+	}
+	if len(s.Data[stack]) == 0 {
 		return nil, errors.New("stack is empty")
 	}
-	ret := s.Data[len(s.Data)-1]
-	s.Data = s.Data[:len(s.Data)-1]
+	ret := s.Data[stack][len(s.Data[stack])-1]
+	s.Data[stack] = s.Data[stack][:len(s.Data[stack])-1]
 	return ret, nil
 }
 
-func (s *MemoryStackProvider) Peek() (interface{}, error) {
+func (s *MemoryStackProvider) Peek(stack string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if len(s.Data) == 0 {
+	if _, ok := s.Data[stack]; !ok {
+		return nil, errors.New("stack not found")
+	}
+	if len(s.Data[stack]) == 0 {
 		return nil, errors.New("stack is empty")
 	}
-	return s.Data[len(s.Data)-1], nil
+	return s.Data[stack][len(s.Data[stack])-1], nil
 }
 
-func (s *MemoryStackProvider) Size() int {
+func (s *MemoryStackProvider) Size(stack string) int {
 	mLock.Lock()
 	defer mLock.Unlock()
-	return len(s.Data)
+	if _, ok := s.Data[stack]; !ok {
+		return 0
+	}
+	return len(s.Data[stack])
 }

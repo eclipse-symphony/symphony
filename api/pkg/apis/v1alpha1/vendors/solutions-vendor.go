@@ -93,7 +93,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Solutions Vendor", request.Context, &map[string]string{
 		"method": "onSolutions",
 	})
-	tLog.Info("~ Solutions Manager ~ : onSolutions")
+	tLog.Info("V (Solutions): onSolutions")
 
 	switch request.Method {
 	case fasthttp.MethodGet:

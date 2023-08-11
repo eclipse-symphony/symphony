@@ -15,6 +15,7 @@ package model
 
 import "errors"
 
+// +kubebuilder:object:generate=true
 type FilterSpec struct {
 	Direction  string            `json:"direction"`
 	Type       string            `json:"type"`

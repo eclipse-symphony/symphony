@@ -40,6 +40,14 @@ func (e COAError) Error() string {
 	}
 }
 
+func FromError(err error) COAError {
+	return COAError{
+		InnerError: err,
+		Message:    err.Error(),
+		State:      InternalError,
+	}
+}
+
 func NewCOAError(err error, msg string, state State) COAError {
 	return COAError{
 		InnerError: err,

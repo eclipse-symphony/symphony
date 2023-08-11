@@ -31,6 +31,7 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -123,10 +124,20 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 	if err != nil {
 		return err
 	}
+	m.Context.Publish("catalog", v1alpha2.Event{
+		Metadata: map[string]string{
+			"objectType": spec.Type,
+		},
+		Body: v1alpha2.JobData{
+			Id:     spec.Name,
+			Action: "UPDATE",
+		},
+	})
 	return nil
 }
 
 func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
+	//TODO: publish DELETE event
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{

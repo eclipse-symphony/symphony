@@ -13,6 +13,7 @@ limitations under the License.
 
 package model
 
+// +kubebuilder:object:generate=true
 type SkillSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Parameters  map[string]string `json:"parameters,omitempty"`
@@ -22,6 +23,7 @@ type SkillSpec struct {
 	Edges       []EdgeSpec        `json:"edges"`
 }
 
+// +kubebuilder:object:generate=true
 type SkillPackageSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Skill       string            `json:"skill"`

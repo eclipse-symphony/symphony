@@ -13,6 +13,7 @@ limitations under the License.
 
 package model
 
+// +kubebuilder:object:generate=true
 type NodeSpec struct {
 	Id             string            `json:"id"`
 	NodeType       string            `json:"type"`

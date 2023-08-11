@@ -21,8 +21,8 @@ type (
 		Id   string      `json:"id"`
 		Spec *DeviceSpec `json:"spec,omitempty"`
 	}
-
 	// DeviceSpec defines the spec properties of the DeviceState
+	// +kubebuilder:object:generate=true
 	DeviceSpec struct {
 		DisplayName string            `json:"displayName,omitempty"`
 		Properties  map[string]string `json:"properties,omitempty"`

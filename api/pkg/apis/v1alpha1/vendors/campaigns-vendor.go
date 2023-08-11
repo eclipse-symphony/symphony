@@ -93,7 +93,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Campaigns Vendor", request.Context, &map[string]string{
 		"method": "onCampaigns",
 	})
-	cLog.Info("V (Campaigns Vendor): onCampaigns")
+	cLog.Info("V (Campaigns): onCampaigns")
 
 	switch request.Method {
 	case fasthttp.MethodGet:
