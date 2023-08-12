@@ -1254,30 +1254,36 @@ func TestIf(t *testing.T) {
 	assert.Equal(t, "stage-1", val)
 }
 func TestIfLess(t *testing.T) {
-	parser := NewParser("$if($lt($output(foo),10), stage-1, stage-2)")
+	parser := NewParser("$if($lt($output(foo,bar),10), stage-1, stage-2)")
 	val, err := parser.Eval(EvaluationContext{
-		Outputs: map[string]interface{}{
-			"foo": 5,
+		Outputs: map[string]map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": 5,
+			},
 		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "stage-1", val)
 }
 func TestIfLessNegative(t *testing.T) {
-	parser := NewParser("$if($lt($output(foo),10), stage-1, stage-2)")
+	parser := NewParser("$if($lt($output(foo,bar),10), stage-1, stage-2)")
 	val, err := parser.Eval(EvaluationContext{
-		Outputs: map[string]interface{}{
-			"foo": 11,
+		Outputs: map[string]map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": 11,
+			},
 		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "stage-2", val)
 }
 func TestIfLessNegativeEmptyString(t *testing.T) {
-	parser := NewParser("$if($lt($output(foo),5),stage-1, '')")
+	parser := NewParser("$if($lt($output(foo, bar),5),stage-1, '')")
 	val, err := parser.Eval(EvaluationContext{
-		Outputs: map[string]interface{}{
-			"foo": 11,
+		Outputs: map[string]map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": 11,
+			},
 		},
 	})
 	assert.Nil(t, err)

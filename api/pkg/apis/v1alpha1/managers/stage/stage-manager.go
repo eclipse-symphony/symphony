@@ -70,6 +70,22 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	}
 	var activationData *v1alpha2.ActivationData
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
+		// stage definition inputs override activation inputs
+		inputs := triggerData.Inputs
+		if currentStage.Inputs != nil {
+			for k, v := range currentStage.Inputs {
+				parser := utils.NewParser(v.(string)) //TODO: handle other types
+				val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+				if err != nil {
+					status.Status = v1alpha2.InternalError
+					status.ErrorMessage = err.Error()
+					status.IsActive = false
+					return status, activationData
+				}
+				inputs[k] = val
+			}
+		}
+
 		factory := symproviders.SymphonyProviderFactory{}
 		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
 		if err != nil {
@@ -77,14 +93,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			return status, activationData
-		}
-
-		// stage definition inputs override activation inputs
-		inputs := triggerData.Inputs
-		if currentStage.Inputs != nil {
-			for k, v := range currentStage.Inputs {
-				inputs[k] = v
-			}
 		}
 
 		outputs, err := provider.(stage.IStageProvider).Process(ctx, inputs)
@@ -96,9 +104,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 		status.Status = v1alpha2.OK
 		status.Outputs = outputs
+		if triggerData.Outputs == nil {
+			triggerData.Outputs = make(map[string]map[string]interface{})
+		}
+		triggerData.Outputs[triggerData.Stage] = outputs
 		if campaign.SelfDriving {
 			parser := utils.NewParser(currentStage.StageSelector)
-			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: outputs})
+			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
@@ -114,6 +126,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						ActivationGeneration: triggerData.ActivationGeneration,
 						Stage:                val,
 						Inputs:               outputs,
+						Outputs:              triggerData.Outputs,
 						Provider:             nextStage.Provider,
 						Config:               nextStage.Config,
 					}

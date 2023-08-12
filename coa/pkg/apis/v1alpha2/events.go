@@ -46,14 +46,14 @@ type JobData struct {
 	Body   interface{} `json:"body,omitempty"`
 }
 type ActivationData struct {
-	Campaign             string                 `json:"campaign"`
-	Activation           string                 `json:"activation"`
-	ActivationGeneration string                 `json:"activationGeneration"`
-	Stage                string                 `json:"stage"`
-	Inputs               map[string]interface{} `json:"inputs,omitempty"`
-	PreviousOutputs      map[string]interface{} `json:"previousOutputs,omitempty"`
-	Provider             string                 `json:"provider,omitempty"`
-	Config               interface{}            `json:"config,omitempty"`
+	Campaign             string                            `json:"campaign"`
+	Activation           string                            `json:"activation"`
+	ActivationGeneration string                            `json:"activationGeneration"`
+	Stage                string                            `json:"stage"`
+	Inputs               map[string]interface{}            `json:"inputs,omitempty"`
+	Outputs              map[string]map[string]interface{} `json:"outputs,omitempty"`
+	Provider             string                            `json:"provider,omitempty"`
+	Config               interface{}                       `json:"config,omitempty"`
 }
 type HeartBeatData struct {
 	JobId  string    `json:"id"`

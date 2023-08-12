@@ -60,7 +60,7 @@ type EvaluationContext struct {
 	DeploymentSpec model.DeploymentSpec
 	Properties     map[string]string
 	Inputs         map[string]interface{}
-	Outputs        map[string]interface{}
+	Outputs        map[string]map[string]interface{}
 	Component      string
 }
 
@@ -502,21 +502,28 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("$input() expects 1 argument, fount %d", len(n.Args))
 	case "output":
-		if len(n.Args) == 1 {
+		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
 				return nil, errors.New("an output collection is needed to evaluate $output()")
 			}
-			key, err := n.Args[0].Eval(context)
+			step, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			property, err := readPropertyInterface(context.Outputs, key.(string))
+			key, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := context.Outputs[step.(string)]; !ok {
+				return nil, fmt.Errorf("step %s is not found in output collection", step.(string))
+			}
+			property, err := readPropertyInterface(context.Outputs[step.(string)], key.(string))
 			if err != nil {
 				return nil, err
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$output() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$output() expects 2 argument, fount %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
