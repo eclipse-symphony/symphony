@@ -128,25 +128,36 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			status.Status = v1alpha2.BadRequest
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
-			return s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			sLog.Errorf("V (Stage): failed to deserialize activation data: %v", err)
+			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			if err != nil {
+				sLog.Errorf("V (Stage): failed to report error status: %v (%v)", status.ErrorMessage, err)
+			}
 		}
 		campaign, err := s.CampaignsManager.GetSpec(context.Background(), triggerData.Campaign)
 		if err != nil {
 			status.Status = v1alpha2.BadRequest
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
-			return s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			sLog.Errorf("V (Stage): failed to get campaign spec: %v", err)
+			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			if err != nil {
+				sLog.Errorf("V (Stage): failed to report error status: %v (%v)", status.ErrorMessage, err)
+			}
 		}
 		status.Stage = triggerData.Stage
 		status.ActivationGeneration = triggerData.ActivationGeneration
+		status.ErrorMessage = ""
 		status.Status = v1alpha2.Accepted
 		err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
 		if err != nil {
+			sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
 			return err
 		}
 		status, activation := s.StageManager.HandleTriggerEvent(context.Background(), *campaign.Spec, triggerData)
 		err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
 		if err != nil {
+			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 			return err
 		}
 		if activation != nil && status.Status != v1alpha2.Done {

@@ -72,17 +72,24 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
 		// stage definition inputs override activation inputs
 		inputs := triggerData.Inputs
+		if inputs == nil {
+			inputs = make(map[string]interface{})
+		}
 		if currentStage.Inputs != nil {
 			for k, v := range currentStage.Inputs {
-				parser := utils.NewParser(v.(string)) //TODO: handle other types
-				val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
-				if err != nil {
-					status.Status = v1alpha2.InternalError
-					status.ErrorMessage = err.Error()
-					status.IsActive = false
-					return status, activationData
+				if _, ok := v.(string); !ok {
+					inputs[k] = v
+				} else {
+					parser := utils.NewParser(v.(string)) //TODO: handle other types
+					val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+					if err != nil {
+						status.Status = v1alpha2.InternalError
+						status.ErrorMessage = err.Error()
+						status.IsActive = false
+						return status, activationData
+					}
+					inputs[k] = val
 				}
-				inputs[k] = val
 			}
 		}
 

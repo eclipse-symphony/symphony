@@ -83,6 +83,25 @@ func GetInstances(baseUrl string, user string, password string) ([]model.Instanc
 
 	return ret, nil
 }
+func GetSites(baseUrl string, user string, password string) ([]model.SiteState, error) {
+	ret := make([]model.SiteState, 0)
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "federation/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
 func GetCampaign(baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
 	ret := model.CampaignState{}
 	token, err := auth(baseUrl, user, password)

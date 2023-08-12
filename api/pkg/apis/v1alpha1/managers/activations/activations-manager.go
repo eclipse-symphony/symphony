@@ -79,17 +79,24 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 func getActivationState(id string, body interface{}, etag string) (model.ActivationState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
-
+	status := dict["status"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.ActivationSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
+	j, _ = json.Marshal(status)
+	var rStatus model.ActivationStatus
+	err = json.Unmarshal(j, &rStatus)
+	if err != nil {
+		return model.ActivationState{}, err
+	}
 	rSpec.Generation = etag
 	state := model.ActivationState{
-		Id:   id,
-		Spec: &rSpec,
+		Id:     id,
+		Spec:   &rSpec,
+		Status: &rStatus,
 	}
 	return state, nil
 }

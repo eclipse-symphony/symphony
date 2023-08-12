@@ -27,12 +27,8 @@ package stage
 
 import (
 	"context"
-
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 type IStageProvider interface {
 	Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error)
-	// get validation rules
-	GetValidationRule(ctx context.Context) model.ValidationRule
 }

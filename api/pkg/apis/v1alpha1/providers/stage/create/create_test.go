@@ -21,17 +21,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
-package symphony
+package create
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDeployInstance(t *testing.T) {
-	provider := SymphonyStageProvider{}
-	err := provider.Init(SymphonyStageProviderConfig{
+	testDeploy := os.Getenv("TEST_DEPLOY_INSTANCE")
+	if testDeploy != "yes" {
+		t.Skip("Skipping becasue TEST_DEPLOY_INSTANCE is missing or not set to 'yes'")
+	}
+	provider := CreateStageProvider{}
+	err := provider.Init(CreateStageProviderConfig{
 		BaseUrl:      "http://localhost:8082/v1alpha2/",
 		User:         "admin",
 		Password:     "",

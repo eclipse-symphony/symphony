@@ -30,7 +30,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -89,14 +88,4 @@ func (i *MockStageProvider) Process(ctx context.Context, inputs map[string]inter
 	}
 	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
 	return outputs, nil
-}
-func (*MockStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
-	return model.ValidationRule{
-		RequiredProperties:        []string{},
-		OptionalProperties:        []string{},
-		RequiredComponentType:     "",
-		RequiredMetadata:          []string{},
-		OptionalMetadata:          []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{},
-	}
 }

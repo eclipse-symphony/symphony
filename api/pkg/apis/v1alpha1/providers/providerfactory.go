@@ -17,9 +17,10 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
+	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
 	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
-	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/symphony"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
@@ -253,8 +254,14 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "providers.stage.symphony":
-		mProvider := &symphonystage.SymphonyStageProvider{}
+	case "providers.stage.create":
+		mProvider := &symphonystage.CreateStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.list":
+		mProvider := &liststage.ListStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -481,13 +488,19 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
-				case "providers.stage.symphony":
-					provider := &symphonystage.SymphonyStageProvider{}
+				case "providers.stage.create":
+					provider := &symphonystage.CreateStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
 					}
 					return provider, nil
+				case "providers.stage.list":
+					provider := &liststage.ListStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
 				case "providers.stack.memory":
 					provider := &memorystack.MemoryStackProvider{}
 					err := provider.InitWithMap(binding.Config)

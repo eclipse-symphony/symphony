@@ -164,12 +164,6 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
-
-	err := i.GetValidationRule(ctx).ValidateInputs(inputs)
-	if err != nil {
-		return nil, err
-	}
-
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {

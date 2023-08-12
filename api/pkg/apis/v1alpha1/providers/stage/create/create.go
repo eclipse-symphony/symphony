@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
-package symphony
+package create
 
 import (
 	"context"
@@ -30,7 +30,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -38,7 +37,7 @@ import (
 
 var msLock sync.Mutex
 
-type SymphonyStageProviderConfig struct {
+type CreateStageProviderConfig struct {
 	BaseUrl      string `json:"baseUrl"`
 	User         string `json:"user"`
 	Password     string `json:"password"`
@@ -46,11 +45,11 @@ type SymphonyStageProviderConfig struct {
 	WaitInterval int    `json:"wait.interval,omitempty"`
 }
 
-type SymphonyStageProvider struct {
-	Config SymphonyStageProviderConfig
+type CreateStageProvider struct {
+	Config CreateStageProviderConfig
 }
 
-func (s *SymphonyStageProvider) Init(config providers.IProviderConfig) error {
+func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
 	mockConfig, err := toSymphonyStageProviderConfig(config)
@@ -60,8 +59,8 @@ func (s *SymphonyStageProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
-func toSymphonyStageProviderConfig(config providers.IProviderConfig) (SymphonyStageProviderConfig, error) {
-	ret := SymphonyStageProviderConfig{}
+func toSymphonyStageProviderConfig(config providers.IProviderConfig) (CreateStageProviderConfig, error) {
+	ret := CreateStageProviderConfig{}
 	data, err := json.Marshal(config)
 	if err != nil {
 		return ret, err
@@ -69,15 +68,15 @@ func toSymphonyStageProviderConfig(config providers.IProviderConfig) (SymphonySt
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *SymphonyStageProvider) InitWithMap(properties map[string]string) error {
+func (i *CreateStageProvider) InitWithMap(properties map[string]string) error {
 	config, err := SymphonyStageProviderConfigFromMap(properties)
 	if err != nil {
 		return err
 	}
 	return i.Init(config)
 }
-func SymphonyStageProviderConfigFromMap(properties map[string]string) (SymphonyStageProviderConfig, error) {
-	ret := SymphonyStageProviderConfig{}
+func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateStageProviderConfig, error) {
+	ret := CreateStageProviderConfig{}
 	baseUrl, err := utils.GetString(properties, "baseUrl")
 	if err != nil {
 		return ret, err
@@ -122,11 +121,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (SymphonyS
 	}
 	return ret, nil
 }
-func (i *SymphonyStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
-	err := i.GetValidationRule(ctx).ValidateInputs(inputs)
-	if err != nil {
-		return nil, err
-	}
+func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -138,7 +133,7 @@ func (i *SymphonyStageProvider) Process(ctx context.Context, inputs map[string]i
 	deployed := false
 	switch objectType {
 	case "instance":
-		err = utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
+		err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 		if err != nil {
 			return nil, err
 		}
@@ -163,15 +158,4 @@ func (i *SymphonyStageProvider) Process(ctx context.Context, inputs map[string]i
 		outputs["status"] = "Failed"
 	}
 	return outputs, nil
-}
-
-func (*SymphonyStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
-	return model.ValidationRule{
-		RequiredProperties:        []string{"objectType", "objectName", "object"},
-		OptionalProperties:        []string{""},
-		RequiredComponentType:     "",
-		RequiredMetadata:          []string{},
-		OptionalMetadata:          []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{},
-	}
 }
