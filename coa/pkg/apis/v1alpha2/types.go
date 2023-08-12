@@ -57,6 +57,7 @@ const (
 	ValidateFailed     State = 8003
 	Updated            State = 8004
 	Deleted            State = 8005
+	Done               State = 9996
 	Delayed            State = 9997
 	Untouched          State = 9998
 	NotImplemented     State = 9999

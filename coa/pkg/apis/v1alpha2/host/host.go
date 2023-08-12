@@ -27,6 +27,7 @@ package host
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -45,6 +46,7 @@ import (
 var log = logger.NewLogger("coa.runtime")
 
 type HostConfig struct {
+	SiteId   string          `json:"siteId"`
 	API      APIConfig       `json:"api"`
 	Bindings []BindingConfig `json:"bindings"`
 }
@@ -79,6 +81,10 @@ func (h *APIHost) Launch(config HostConfig,
 	h.Vendors = make([]VendorSpec, 0)
 	h.Bindings = make([]bindings.IBinding, 0)
 	log.Info("--- launching COA host ---")
+	if config.SiteId == "" {
+		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
+	}
+	os.Setenv("SYMPHONY_SITE_ID", config.SiteId)
 	for _, v := range config.API.Vendors {
 		created := false
 		for _, factory := range vendorFactories {

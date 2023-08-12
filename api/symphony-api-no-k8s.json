@@ -16,12 +16,37 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {      
-              "baseUrl": "http://localhost:8082/v1alpha2/",
-              "user": "admin",
-              "password": ""        
+            "properties": {         
             },
             "providers": {            
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
             }
           }
         ]
@@ -34,7 +59,8 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.state": "k8s-state",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
@@ -53,7 +79,8 @@
             "name": "campaigns-manager",
             "type": "managers.symphony.campaigns",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.state": "k8s-state",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {

@@ -41,10 +41,10 @@ func (e Event) MarshalBinary() (data []byte, err error) {
 type EventHandler func(topic string, message Event) error
 
 type JobData struct {
-	Id     string `json:"id"`
-	Action string `json:"action"`
+	Id     string      `json:"id"`
+	Action string      `json:"action"`
+	Body   interface{} `json:"body,omitempty"`
 }
-
 type ActivationData struct {
 	Campaign             string                 `json:"campaign"`
 	Activation           string                 `json:"activation"`

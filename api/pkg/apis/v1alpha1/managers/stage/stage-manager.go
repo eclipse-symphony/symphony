@@ -59,21 +59,7 @@ func (s *StageManager) Poll() []error {
 func (s *StageManager) Reconcil() []error {
 	return nil
 }
-func (s *StageManager) HandleTriggerEvent(ctx context.Context, event v1alpha2.Event) (*v1alpha2.ActivationData, error) {
-	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
-	if err != nil {
-		return nil, err
-	}
-	user, err := utils.GetString(s.Manager.Config.Properties, "user")
-	if err != nil {
-		return nil, err
-	}
-	password, err := utils.GetString(s.Manager.Config.Properties, "password")
-	if err != nil {
-		return nil, err
-	}
-	triggerData := v1alpha2.ActivationData{}
-
+func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
 	status := model.ActivationStatus{
 		Stage:        "",
 		NextStage:    "",
@@ -82,36 +68,15 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, event v1alpha2.Ev
 		ErrorMessage: "",
 		IsActive:     true,
 	}
-
-	var aok bool
-	if triggerData, aok = event.Body.(v1alpha2.ActivationData); !aok {
-		err = v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
-		status.Status = v1alpha2.BadRequest
-		status.ErrorMessage = err.Error()
-		status.IsActive = false
-		err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-		return nil, err
-	}
-
-	campaign, err := utils.GetCampaign(baseUrl, triggerData.Campaign, user, password)
-	if err != nil {
-		status.Status = v1alpha2.InternalError
-		status.ErrorMessage = err.Error()
-		status.IsActive = false
-		err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-		return nil, err
-	}
-	status.Stage = triggerData.Stage
-	status.ActivationGeneration = triggerData.ActivationGeneration
-	if currentStage, ok := campaign.Spec.Stages[triggerData.Stage]; ok {
+	var activationData *v1alpha2.ActivationData
+	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
 		factory := symproviders.SymphonyProviderFactory{}
 		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
 		if err != nil {
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
-			err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-			return nil, err
+			return status, activationData
 		}
 
 		// stage definition inputs override activation inputs
@@ -127,24 +92,21 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, event v1alpha2.Ev
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
-			err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-			return nil, err
+			return status, activationData
 		}
 		status.Status = v1alpha2.OK
 		status.Outputs = outputs
-		var activationData *v1alpha2.ActivationData
-		if campaign.Spec.SelfDriving {
+		if campaign.SelfDriving {
 			parser := utils.NewParser(currentStage.StageSelector)
 			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: outputs})
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
-				err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-				return nil, err
+				return status, activationData
 			}
 			if val != "" {
-				if nextStage, ok := campaign.Spec.Stages[val]; ok {
+				if nextStage, ok := campaign.Stages[val]; ok {
 					status.NextStage = val
 					activationData = &v1alpha2.ActivationData{
 						Campaign:             triggerData.Campaign,
@@ -160,65 +122,36 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, event v1alpha2.Ev
 					status.Status = v1alpha2.BadRequest
 					status.ErrorMessage = err.Error()
 					status.IsActive = false
-					err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-					return nil, err
+					return status, activationData
 				}
 			}
 			status.NextStage = val
 			if val == "" {
 				status.IsActive = false
+				status.Status = v1alpha2.Done
 			}
-			err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
+			return status, activationData
 		} else {
 			status.NextStage = ""
 			status.IsActive = false
-			err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
+			return status, activationData
 		}
-		return activationData, err
 	}
-	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
+	err := v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
 	status.Status = v1alpha2.InternalError
 	status.ErrorMessage = err.Error()
-	err = utils.ReportActivationStatus(baseUrl, triggerData.Activation, user, password, status)
-	return nil, err
+	return status, activationData
 }
 
-func (s *StageManager) HandleActivationEvent(ctx context.Context, event v1alpha2.Event) (*v1alpha2.ActivationData, error) {
-	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
-	if err != nil {
-		return nil, err
-	}
-	user, err := utils.GetString(s.Manager.Config.Properties, "user")
-	if err != nil {
-		return nil, err
-	}
-	password, err := utils.GetString(s.Manager.Config.Properties, "password")
-	if err != nil {
-		return nil, err
-	}
-	var actData v1alpha2.ActivationData
-	var aok bool
-	if actData, aok = event.Body.(v1alpha2.ActivationData); !aok {
-		return nil, v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
-	}
-
-	campaign, err := utils.GetCampaign(baseUrl, actData.Campaign, user, password)
-	if err != nil {
-		return nil, err
-	}
-	activation, err := utils.GetActivation(baseUrl, actData.Activation, user, password)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return nil, err
-	}
+func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alpha2.ActivationData, campaign model.CampaignSpec, activation model.ActivationState) (*v1alpha2.ActivationData, error) {
 	stage := actData.Stage
-	if _, ok := campaign.Spec.Stages[stage]; !ok {
-		stage = campaign.Spec.FirstStage
+	if _, ok := campaign.Stages[stage]; !ok {
+		stage = campaign.FirstStage
 	}
 	if stage == "" {
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
-	if stageSpec, ok := campaign.Spec.Stages[stage]; ok {
+	if stageSpec, ok := campaign.Stages[stage]; ok {
 		if activation.Status != nil && activation.Status.Stage != "" && activation.Status.NextStage != stage {
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
 		}
