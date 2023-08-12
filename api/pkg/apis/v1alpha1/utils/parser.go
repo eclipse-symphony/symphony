@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -754,7 +755,12 @@ func (p *Parser) Eval(context EvaluationContext) (string, error) {
 			if r != nil {
 				return "", r
 			}
-			ret = fmt.Sprintf("%v%v", ret, v)
+			if _, ok := v.([]string); ok {
+				jData, _ := json.Marshal(v)
+				ret = fmt.Sprintf("%v%v", ret, string(jData))
+			} else {
+				ret = fmt.Sprintf("%v%v", ret, v)
+			}
 		} else {
 			return ret, nil
 		}

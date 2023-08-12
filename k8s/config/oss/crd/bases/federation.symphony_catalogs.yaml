@@ -75,10 +75,13 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               siteId:
                 type: string
+              type:
+                type: string
             required:
             - name
             - properties
             - siteId
+            - type
             type: object
           status:
             properties:

@@ -45,6 +45,10 @@ spec:
                   properties:
                     config:
                       x-kubernetes-preserve-unknown-fields: true
+                    contexts:
+                      items:
+                        type: string
+                      type: array
                     inputs:
                       x-kubernetes-preserve-unknown-fields: true
                     name:

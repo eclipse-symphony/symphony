@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -1288,4 +1289,19 @@ func TestIfLessNegativeEmptyString(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "", val)
+}
+func TestOutputArray(t *testing.T) {
+	parser := NewParser("$output(foo, bar)")
+	val, err := parser.Eval(EvaluationContext{
+		Outputs: map[string]map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": []string{"a", "b", "c"},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "[\"a\",\"b\",\"c\"]", val)
+	var tk []string
+	err = json.Unmarshal([]byte(val), &tk)
+	assert.Nil(t, err)
 }
