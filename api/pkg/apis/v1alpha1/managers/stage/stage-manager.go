@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -78,11 +79,40 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	}
 	var activationData *v1alpha2.ActivationData
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
-		// stage definition inputs override activation inputs
+		sites := make([]string, 0)
+		if currentStage.Contexts != "" {
+			parser := utils.NewParser(currentStage.Contexts)
+
+			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+			if err != nil {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = err.Error()
+				status.IsActive = false
+				return status, activationData
+			}
+			if _, ok := val.([]string); ok {
+				sites = val.([]string)
+			} else if _, ok := val.([]interface{}); ok {
+				for _, v := range val.([]interface{}) {
+					sites = append(sites, v.(string))
+				}
+			} else if _, ok := val.(string); ok {
+				sites = append(sites, val.(string))
+			} else {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
+				status.IsActive = false
+				return status, activationData
+			}
+		} else {
+			sites = append(sites, os.Getenv("SYMPHONY_SITE_ID"))
+		}
+
 		inputs := triggerData.Inputs
 		if inputs == nil {
 			inputs = make(map[string]interface{})
 		}
+
 		if currentStage.Inputs != nil {
 			for k, v := range currentStage.Inputs {
 				if _, ok := v.(string); !ok {
@@ -100,30 +130,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 		}
-		sites := make([]string, 0)
-		if currentStage.Contexts != "" {
-			parser := utils.NewParser(currentStage.Contexts)
-			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
-			if err != nil {
-				status.Status = v1alpha2.InternalError
-				status.ErrorMessage = err.Error()
-				status.IsActive = false
-				return status, activationData
-			}
-			if _, ok := val.([]string); ok {
-				sites = val.([]string)
-			} else if _, ok := val.(string); ok {
-				sites = append(sites, val.(string))
-			} else {
-				status.Status = v1alpha2.InternalError
-				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
-				status.IsActive = false
-				return status, activationData
-			}
-		} else {
-			sites = append(sites, os.Getenv("SYMPHONY_SITE_ID"))
-		}
-
 		// inject default inputs
 		inputs["__campaign"] = triggerData.Campaign
 		inputs["__activation"] = triggerData.Activation
@@ -147,7 +153,15 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				defer wg.Done()
 				inputCopy := make(map[string]interface{})
 				for k, v := range inputs {
-					inputCopy[k] = v
+					if _, ok := v.(string); ok {
+						sv := v.(string)
+						sv = strings.ReplaceAll(sv, "__site", site)
+						sv = strings.ReplaceAll(sv, "__campaign", triggerData.Campaign)
+						sv = strings.ReplaceAll(sv, "__activation", triggerData.Activation)
+						inputCopy[k] = sv
+					} else {
+						inputCopy[k] = v
+					}
 				}
 				inputCopy["__site"] = site
 				outputs, err := provider.(stage.IStageProvider).Process(ctx, inputCopy)

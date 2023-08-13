@@ -1294,10 +1294,22 @@ func TestOutputArray(t *testing.T) {
 	val, err := parser.Eval(EvaluationContext{
 		Outputs: map[string]map[string]interface{}{
 			"foo": map[string]interface{}{
-				"bar": []string{"a", "b", "c"},
+				"bar": []interface{}{"a", "b", "c"},
 			},
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, []string{"a", "b", "c"}, val)
+	assert.Equal(t, []interface{}{"a", "b", "c"}, val)
+}
+func TestLeadingUnderScore(t *testing.T) {
+	parser := NewParser("a __b")
+	val, err := parser.Eval(EvaluationContext{
+		Outputs: map[string]map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": []interface{}{"a", "b", "c"},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "a__b", val)
 }

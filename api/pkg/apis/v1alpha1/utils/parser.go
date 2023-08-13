@@ -762,6 +762,13 @@ func (p *Parser) Eval(context EvaluationContext) (interface{}, error) {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
 				}
+			} else if _, ok := v.([]interface{}); ok {
+				if ret == nil {
+					ret = v
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
 			} else {
 				if ret == nil {
 					ret = fmt.Sprintf("%v", v)
