@@ -164,7 +164,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					}
 				}
 				inputCopy["__site"] = site
-				outputs, err := provider.(stage.IStageProvider).Process(ctx, inputCopy)
+				outputs, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
 				results <- TaskResult{
 					Outputs: outputs,
 					Error:   err,

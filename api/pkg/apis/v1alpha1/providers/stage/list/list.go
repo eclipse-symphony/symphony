@@ -30,6 +30,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -96,7 +97,7 @@ func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProv
 	ret.Password = password
 	return ret, nil
 }
-func (i *ListStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v

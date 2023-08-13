@@ -21,41 +21,40 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
-package mock
+package remote
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
-var msLock sync.Mutex
+var rmtLock sync.Mutex
 
-type MockStageProviderConfig struct {
-	ID string `json:"id"`
+type RemoteStageProviderConfig struct {
 }
-type MockStageProvider struct {
-	Config MockStageProviderConfig
+type RemoteStageProvider struct {
+	Config RemoteStageProviderConfig
 }
 
-func (m *MockStageProvider) Init(config providers.IProviderConfig) error {
-	msLock.Lock()
-	defer msLock.Unlock()
+func (m *RemoteStageProvider) Init(config providers.IProviderConfig) error {
+	rmtLock.Lock()
+	defer rmtLock.Unlock()
 
-	mockConfig, err := toMockStageProviderConfig(config)
+	mockConfig, err := toRemoteStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	m.Config = mockConfig
 	return nil
 }
-func toMockStageProviderConfig(config providers.IProviderConfig) (MockStageProviderConfig, error) {
-	ret := MockStageProviderConfig{}
+func toRemoteStageProviderConfig(config providers.IProviderConfig) (RemoteStageProviderConfig, error) {
+	ret := RemoteStageProviderConfig{}
 	data, err := json.Marshal(config)
 	if err != nil {
 		return ret, err
@@ -63,30 +62,29 @@ func toMockStageProviderConfig(config providers.IProviderConfig) (MockStageProvi
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *MockStageProvider) InitWithMap(properties map[string]string) error {
+func (i *RemoteStageProvider) InitWithMap(properties map[string]string) error {
 	config, err := MockStageProviderConfigFromMap(properties)
 	if err != nil {
 		return err
 	}
 	return i.Init(config)
 }
-func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProviderConfig, error) {
-	ret := MockStageProviderConfig{}
-	ret.ID = properties["id"]
+func MockStageProviderConfigFromMap(properties map[string]string) (RemoteStageProviderConfig, error) {
+	ret := RemoteStageProviderConfig{}
 	return ret, nil
 }
-func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
-	fmt.Printf("MOCK STAGE PROVIDER IS BUSY PROCESSING: %v\n", inputs)
+func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
+	fmt.Printf("REMOTE STAGE PROVIDER IS BUSY PROCESSING: %v\n", inputs)
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
 	}
-	if v, ok := inputs["foo"]; ok {
-		val, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
-		if err == nil {
-			outputs["foo"] = val + 1
-		}
+
+	err := mgrContext.Publish("remote", v1alpha2.Event{})
+	if err != nil {
+		return nil, err
 	}
-	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
+
+	fmt.Printf("REMOTE STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
 	return outputs, nil
 }

@@ -105,6 +105,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		}
 		return nil
 	})
+	f.Vendor.Context.Subscribe("remote", func(topic string, event v1alpha2.Event) error {
+		fmt.Println("_______________________________________________________OK____________________________________________________________")
+		return nil
+	})
 	return nil
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {

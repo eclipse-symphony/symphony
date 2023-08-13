@@ -21,6 +21,7 @@ import (
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
 	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
+	remotestage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
@@ -266,6 +267,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.remote":
+		mProvider := &remotestage.RemoteStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.stack.memory":
 		mProvider := &memorystack.MemoryStackProvider{}
 		err = mProvider.Init(config)
@@ -481,6 +488,12 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
+				case "providers.stage.remote":
+					provider := &remotestage.RemoteStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
 				case "providers.stage.http":
 					provider := &httpstage.HttpStageProvider{}
 					err := provider.InitWithMap(binding.Config)
