@@ -28,6 +28,8 @@ package stage
 import (
 	"context"
 	"fmt"
+	"os"
+	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	symproviders "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
@@ -41,6 +43,12 @@ import (
 
 type StageManager struct {
 	managers.Manager
+}
+
+type TaskResult struct {
+	Outputs map[string]interface{}
+	Site    string
+	Error   error
 }
 
 func (s *StageManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -80,7 +88,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				if _, ok := v.(string); !ok {
 					inputs[k] = v
 				} else {
-					parser := utils.NewParser(v.(string)) //TODO: handle other types
+					parser := utils.NewParser(v.(string))
 					val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
 					if err != nil {
 						status.Status = v1alpha2.InternalError
@@ -92,6 +100,33 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 		}
+		sites := make([]string, 0)
+		if currentStage.Contexts != "" {
+			parser := utils.NewParser(currentStage.Contexts)
+			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+			if err != nil {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = err.Error()
+				status.IsActive = false
+				return status, activationData
+			}
+			if _, ok := val.([]string); ok {
+				sites = val.([]string)
+			} else if _, ok := val.(string); ok {
+				sites = append(sites, val.(string))
+			} else {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
+				status.IsActive = false
+				return status, activationData
+			}
+		} else {
+			sites = append(sites, os.Getenv("SYMPHONY_SITE_ID"))
+		}
+
+		// inject default inputs
+		inputs["__campaign"] = triggerData.Campaign
+		inputs["__activation"] = triggerData.Activation
 
 		factory := symproviders.SymphonyProviderFactory{}
 		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
@@ -102,15 +137,48 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			return status, activationData
 		}
 
-		outputs, err := provider.(stage.IStageProvider).Process(ctx, inputs)
-		if err != nil {
-			status.Status = v1alpha2.InternalError
-			status.ErrorMessage = err.Error()
-			status.IsActive = false
-			return status, activationData
+		numTasks := len(sites)
+		waitGroup := sync.WaitGroup{}
+		results := make(chan TaskResult, numTasks)
+
+		for _, site := range sites {
+			waitGroup.Add(1)
+			go func(wg *sync.WaitGroup, site string, results chan<- TaskResult) {
+				defer wg.Done()
+				inputCopy := make(map[string]interface{})
+				for k, v := range inputs {
+					inputCopy[k] = v
+				}
+				inputCopy["__site"] = site
+				outputs, err := provider.(stage.IStageProvider).Process(ctx, inputCopy)
+				results <- TaskResult{
+					Outputs: outputs,
+					Error:   err,
+					Site:    site,
+				}
+			}(&waitGroup, site, results)
 		}
-		status.Status = v1alpha2.OK
-		status.Outputs = outputs
+
+		waitGroup.Wait()
+		close(results)
+
+		outputs := make(map[string]interface{})
+		for result := range results {
+			if result.Error != nil {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, result.Error.Error())
+				status.IsActive = false
+				return status, activationData
+			}
+			for k, v := range result.Outputs {
+				if result.Site == os.Getenv("SYMPHONY_SITE_ID") {
+					outputs[k] = v
+				} else {
+					outputs[fmt.Sprintf("%s.%s", result.Site, k)] = v
+				}
+			}
+		}
+
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
 		}
@@ -124,14 +192,18 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.IsActive = false
 				return status, activationData
 			}
-			if val != "" {
-				if nextStage, ok := campaign.Stages[val]; ok {
-					status.NextStage = val
+			sVal := ""
+			if val != nil {
+				sVal = val.(string)
+			}
+			if sVal != "" {
+				if nextStage, ok := campaign.Stages[sVal]; ok {
+					status.NextStage = sVal
 					activationData = &v1alpha2.ActivationData{
 						Campaign:             triggerData.Campaign,
 						Activation:           triggerData.Activation,
 						ActivationGeneration: triggerData.ActivationGeneration,
-						Stage:                val,
+						Stage:                sVal,
 						Inputs:               outputs,
 						Outputs:              triggerData.Outputs,
 						Provider:             nextStage.Provider,
@@ -140,12 +212,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				} else {
 					err = v1alpha2.NewCOAError(nil, status.ErrorMessage, v1alpha2.BadRequest)
 					status.Status = v1alpha2.BadRequest
-					status.ErrorMessage = err.Error()
+					status.ErrorMessage = fmt.Sprintf("stage %s is not found", sVal)
 					status.IsActive = false
 					return status, activationData
 				}
 			}
-			status.NextStage = val
+			status.NextStage = sVal
 			if val == "" {
 				status.IsActive = false
 				status.Status = v1alpha2.Done

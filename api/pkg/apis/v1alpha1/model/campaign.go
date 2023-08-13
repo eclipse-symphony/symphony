@@ -45,7 +45,8 @@ type ActivationState struct {
 
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
-	Contexts      []string               `json:"contexts,omitempty"`
+	Type          string                 `json:"type"`
+	Contexts      string                 `json:"contexts,omitempty"`
 	Provider      string                 `json:"provider,omitempty"`
 	Config        interface{}            `json:"config,omitempty"`
 	StageSelector string                 `json:"stageSelector,omitempty"`

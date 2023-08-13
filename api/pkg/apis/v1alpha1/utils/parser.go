@@ -746,8 +746,8 @@ func NewParser(text string) *Parser {
 	return p
 }
 
-func (p *Parser) Eval(context EvaluationContext) (string, error) {
-	ret := ""
+func (p *Parser) Eval(context EvaluationContext) (interface{}, error) {
+	var ret interface{}
 	for {
 		n := p.expr(false)
 		if _, ok := n.(*NullNode); !ok {
@@ -756,10 +756,18 @@ func (p *Parser) Eval(context EvaluationContext) (string, error) {
 				return "", r
 			}
 			if _, ok := v.([]string); ok {
-				jData, _ := json.Marshal(v)
-				ret = fmt.Sprintf("%v%v", ret, string(jData))
+				if ret == nil {
+					ret = v
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
 			} else {
-				ret = fmt.Sprintf("%v%v", ret, v)
+				if ret == nil {
+					ret = fmt.Sprintf("%v", v)
+				} else {
+					ret = fmt.Sprintf("%v%v", ret, v)
+				}
 			}
 		} else {
 			return ret, nil

@@ -48,9 +48,10 @@ type SolutionSpec struct {
 
 // +kubebuilder:object:generate=true
 type StageSpec struct {
-	Name     string   `json:"name,omitempty"`
-	Contexts []string `json:"contexts,omitempty"`
-	Provider string   `json:"provider,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Type     string `json:"type"`
+	Contexts string `json:"contexts,omitempty"`
+	Provider string `json:"provider,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Config        runtime.RawExtension `json:"config,omitempty"`
