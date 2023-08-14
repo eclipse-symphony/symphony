@@ -21,8 +21,10 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/models"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/skills"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
@@ -83,6 +85,10 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &staging.StagingManager{}
 	case "managers.symphony.sync":
 		manager = &sync.SyncManager{}
+	case "managers.symphony.models":
+		manager = &models.ModelsManager{}
+	case "managers.symphony.skills":
+		manager = &skills.SkillsManager{}
 	}
 	if manager != nil && config.Properties["singleton"] == "true" {
 		c.SingletonsCache[config.Type] = manager

@@ -179,6 +179,46 @@
         ]
       },
       {
+        "type": "vendors.models",
+        "loopInterval": 15,
+        "route": "models",
+        "managers": [
+          {
+            "name": "models-manager",
+            "type": "managers.symphony.models",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.skills",
+        "loopInterval": 15,
+        "route": "skills",
+        "managers": [
+          {
+            "name": "skills-manager",
+            "type": "managers.symphony.skills",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.users",
         "route": "users",
         "properties": {

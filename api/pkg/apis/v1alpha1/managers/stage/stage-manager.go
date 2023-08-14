@@ -232,12 +232,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			status.NextStage = sVal
-			if val == "" {
+			if sVal == "" {
 				status.IsActive = false
 				status.Status = v1alpha2.Done
 			}
 			return status, activationData
 		} else {
+			status.Status = v1alpha2.Done
 			status.NextStage = ""
 			status.IsActive = false
 			return status, activationData

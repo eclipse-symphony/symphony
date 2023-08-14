@@ -52,6 +52,10 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &FederationVendor{}, nil
 	case "vendors.staging":
 		return &StagingVendor{}, nil
+	case "vendors.models":
+		return &ModelsVendor{}, nil
+	case "vendors.skills":
+		return &SkillsVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}

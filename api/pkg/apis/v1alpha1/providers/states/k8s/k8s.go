@@ -221,6 +221,9 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			ActivationId: entry.Value.ID,
 			CampaignId:   entry.Value.ID,
 			CatalogId:    entry.Value.ID,
+			DeviceId:     entry.Value.ID,
+			ModelId:      entry.Value.ID,
+			SkillId:      entry.Value.ID,
 		})
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)

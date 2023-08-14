@@ -36,6 +36,9 @@ type (
 		ActivationId string
 		CatalogId    string
 		CampaignId   string
+		DeviceId     string
+		SkillId      string
+		ModelId      string
 	}
 )
 
@@ -312,6 +315,9 @@ func ResolveString(value string, injections *ValueInjections) string {
 		value = strings.ReplaceAll(value, "$activation()", injections.ActivationId)
 		value = strings.ReplaceAll(value, "$catalog()", injections.CatalogId)
 		value = strings.ReplaceAll(value, "$campaign()", injections.CampaignId)
+		value = strings.ReplaceAll(value, "$device()", injections.DeviceId)
+		value = strings.ReplaceAll(value, "$model()", injections.ModelId)
+		value = strings.ReplaceAll(value, "$skill()", injections.SkillId)
 	}
 
 	return value
