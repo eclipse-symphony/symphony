@@ -60,3 +60,8 @@ type HeartBeatData struct {
 	Action string    `json:"action"`
 	Time   time.Time `json:"time"`
 }
+
+type InputOutputData struct {
+	Inputs  map[string]interface{}            `json:"inputs,omitempty"`
+	Outputs map[string]map[string]interface{} `json:"outputs,omitempty"`
+}

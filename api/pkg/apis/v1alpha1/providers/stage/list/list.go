@@ -97,7 +97,7 @@ func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProv
 	ret.Password = password
 	return ret, nil
 }
-func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -113,7 +113,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	case "instance":
 		instances, err := utils.GetInstances(i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if namesOnly {
 			names := make([]string, 0)
@@ -127,7 +127,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	case "sites":
 		sites, err := utils.GetSites(i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if namesOnly {
 			names := make([]string, 0)
@@ -141,5 +141,5 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	outputs["objectType"] = objectType
 	outputs["status"] = "OK"
-	return outputs, nil
+	return outputs, false, nil
 }

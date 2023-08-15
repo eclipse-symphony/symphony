@@ -19,12 +19,52 @@
             "properties": {      
               "baseUrl": "http://localhost:8083/v1alpha2/",
               "user": "admin",
-              "password": ""        
+              "password": "",
+              "providers.state": "k8s-state"            
             },
-            "providers": {            
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",

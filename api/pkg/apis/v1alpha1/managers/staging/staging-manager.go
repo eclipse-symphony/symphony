@@ -63,7 +63,7 @@ func (s *StagingManager) Reconcil() []error {
 	return nil
 }
 
-func (s *StagingManager) HandleCatalogEvent(ctx context.Context, event v1alpha2.Event) error {
+func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	var job v1alpha2.JobData
 	var jok bool
 	if job, jok = event.Body.(v1alpha2.JobData); !jok {

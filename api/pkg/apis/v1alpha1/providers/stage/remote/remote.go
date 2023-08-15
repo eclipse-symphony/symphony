@@ -39,7 +39,8 @@ var rmtLock sync.Mutex
 type RemoteStageProviderConfig struct {
 }
 type RemoteStageProvider struct {
-	Config RemoteStageProviderConfig
+	Config        RemoteStageProviderConfig
+	OutputContext map[string]map[string]interface{}
 }
 
 func (m *RemoteStageProvider) Init(config providers.IProviderConfig) error {
@@ -73,18 +74,36 @@ func MockStageProviderConfigFromMap(properties map[string]string) (RemoteStagePr
 	ret := RemoteStageProviderConfig{}
 	return ret, nil
 }
-func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
-	fmt.Printf("REMOTE STAGE PROVIDER IS BUSY PROCESSING: %v\n", inputs)
+func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]interface{}) {
+	i.OutputContext = outputs
+}
+func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
-	for k, v := range inputs {
-		outputs[k] = v
+
+	v, ok := inputs["__site"]
+
+	if !ok {
+		return nil, false, fmt.Errorf("no site found in inputs")
 	}
 
-	err := mgrContext.Publish("remote", v1alpha2.Event{})
+	err := mgrContext.Publish("remote", v1alpha2.Event{
+		Metadata: map[string]string{
+			"site":       v.(string),
+			"objectType": "task",
+			"origin":     mgrContext.Site,
+		},
+		Body: v1alpha2.JobData{
+			Id:     "",
+			Action: "RUN",
+			Body: v1alpha2.InputOutputData{
+				Inputs:  inputs,
+				Outputs: i.OutputContext,
+			},
+		},
+	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	fmt.Printf("REMOTE STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
-	return outputs, nil
+	return outputs, true, nil
 }

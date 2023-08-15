@@ -44,23 +44,32 @@ const (
 	MethodNotAllowed State = 405
 	Conflict         State = 409
 	// InternalError = HTTP 500
-	InternalError      State = 500
-	BadConfig          State = 1000
-	MissingConfig      State = 1001
-	InvalidArgument    State = 2000
-	APIRedirect        State = 3030
-	FileAccessError    State = 4000
+	InternalError State = 500
+	// Config errors
+	BadConfig     State = 1000
+	MissingConfig State = 1001
+	// API invocation errors
+	InvalidArgument State = 2000
+	APIRedirect     State = 3030
+	// IO errors
+	FileAccessError State = 4000
+	// Serialization errors
 	SerializationError State = 5000
-	DeleteRequested    State = 6000
-	UpdateFailed       State = 8001
-	DeleteFailed       State = 8002
-	ValidateFailed     State = 8003
-	Updated            State = 8004
-	Deleted            State = 8005
-	Done               State = 9996
-	Delayed            State = 9997
-	Untouched          State = 9998
-	NotImplemented     State = 9999
+	// Async requets
+	DeleteRequested State = 6000
+	// Operation results
+	UpdateFailed   State = 8001
+	DeleteFailed   State = 8002
+	ValidateFailed State = 8003
+	Updated        State = 8004
+	Deleted        State = 8005
+	// Workflow status
+	Running        State = 9994
+	Paused         State = 9995
+	Done           State = 9996
+	Delayed        State = 9997
+	Untouched      State = 9998
+	NotImplemented State = 9999
 )
 
 func (s State) String() string {

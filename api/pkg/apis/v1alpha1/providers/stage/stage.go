@@ -32,5 +32,6 @@ import (
 )
 
 type IStageProvider interface {
-	Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error)
+	// Return values: map[string]interface{} - outputs, bool - should the activation be paused (wait for a remote event), error
+	Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error)
 }

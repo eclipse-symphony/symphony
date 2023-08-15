@@ -102,6 +102,39 @@ func GetSites(baseUrl string, user string, password string) ([]model.SiteState, 
 
 	return ret, nil
 }
+func SyncActivationStatus(baseUrl string, user string, password string, status model.ActivationStatus) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+	jData, _ := json.Marshal(status)
+	_, err = callRestAPI(baseUrl, "federation/sync", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogState, error) {
+	ret := make([]model.CatalogState, 0)
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "catalogs/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
 func GetCampaign(baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
 	ret := model.CampaignState{}
 	token, err := auth(baseUrl, user, password)
@@ -136,8 +169,8 @@ func PublishActivationEvent(baseUrl string, user string, password string, event 
 
 	return nil
 }
-func GetABatchForSite(baseUrl string, site string, user string, password string) ([]model.CatalogSpec, error) {
-	ret := make([]model.CatalogSpec, 0)
+func GetABatchForSite(baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
+	ret := model.SyncPackage{}
 	token, err := auth(baseUrl, user, password)
 
 	if err != nil {

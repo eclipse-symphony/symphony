@@ -163,11 +163,11 @@ func readIntArray(s string) ([]int, error) {
 	}
 	return codes, nil
 }
-func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	for key, input := range inputs {
 		if strings.HasPrefix(key, "header.") {
@@ -176,7 +176,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 		if key == "body" {
 			jData, err := json.Marshal(input)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
 			req.ContentLength = int64(len(jData))
@@ -185,7 +185,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 
 	resp, err := webClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer resp.Body.Close()
 	outputs := make(map[string]interface{})
@@ -196,7 +196,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	outputs["body"] = string(data) //TODO: probably not so good to assume string
 	outputs["status"] = resp.StatusCode
@@ -212,7 +212,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 			}
 		}
 		if !okToWait {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
+			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 		counter := 0
 		failed := false
@@ -225,11 +225,11 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 				}
 			}
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			waitResp, err := webClient.Do(waitReq)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			defer waitResp.Body.Close()
 			if len(i.Config.WaitFailedCodes) > 0 {
@@ -278,19 +278,19 @@ func (i *HttpStageProvider) Process(ctx context.Context, inputs map[string]inter
 			}
 		}
 		if failed {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
+			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 
 	} else if len(i.Config.SuccessCodes) > 0 {
 		for _, code := range i.Config.SuccessCodes {
 			if code == resp.StatusCode {
-				return outputs, nil
+				return outputs, false, nil
 			}
 		}
-		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
+		return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 	}
 
-	return outputs, nil
+	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{

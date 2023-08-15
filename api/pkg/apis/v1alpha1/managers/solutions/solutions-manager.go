@@ -43,6 +43,10 @@ type SolutionsManager struct {
 }
 
 func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(context, config, providers)
+	if err != nil {
+		return err
+	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider

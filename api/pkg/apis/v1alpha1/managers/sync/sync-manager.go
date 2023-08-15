@@ -24,8 +24,6 @@ SOFTWARE
 package sync
 
 import (
-	"os"
-
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -43,7 +41,7 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	if err != nil {
 		return err
 	}
-	s.SiteId = os.Getenv("SYMPHONY_SITE_ID")
+	s.SiteId = s.Context.Site
 	if s.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
 	}
@@ -69,17 +67,29 @@ func (s *SyncManager) Poll() []error {
 	if err != nil {
 		return []error{err}
 	}
-	for _, catalog := range batch {
-		s.Context.Publish("catalog-sync", v1alpha2.Event{
-			Metadata: map[string]string{
-				"objectType": catalog.Type,
-			},
-			Body: v1alpha2.JobData{
-				Id:     catalog.Name,
-				Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
-				Body:   catalog,
-			},
-		})
+	if batch.Catalogs != nil {
+		for _, catalog := range batch.Catalogs {
+			s.Context.Publish("catalog-sync", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": catalog.Type,
+				},
+				Body: v1alpha2.JobData{
+					Id:     catalog.Name,
+					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+					Body:   catalog,
+				},
+			})
+		}
+	}
+	if batch.Jobs != nil {
+		for _, job := range batch.Jobs {
+			s.Context.Publish("remote-job", v1alpha2.Event{
+				Metadata: map[string]string{
+					"origin": batch.Origin,
+				},
+				Body: job,
+			})
+		}
 	}
 	if err != nil {
 		return []error{err}

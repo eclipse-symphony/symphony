@@ -27,7 +27,6 @@ package host
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -84,8 +83,8 @@ func (h *APIHost) Launch(config HostConfig,
 	if config.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
 	}
-	os.Setenv("SYMPHONY_SITE_ID", config.SiteId)
 	for _, v := range config.API.Vendors {
+		v.Site = config.SiteId
 		created := false
 		for _, factory := range vendorFactories {
 			vendor, err := factory.CreateVendor(v)

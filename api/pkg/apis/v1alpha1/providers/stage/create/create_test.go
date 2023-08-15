@@ -44,7 +44,7 @@ func TestDeployInstance(t *testing.T) {
 		WaitInterval: 5,
 	})
 	assert.Nil(t, err)
-	outputs, err := provider.Process(nil, map[string]interface{}{
+	outputs, _, err := provider.Process(nil, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "redis-server",
 		"object": map[string]interface{}{

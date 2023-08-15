@@ -75,7 +75,7 @@ func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProv
 	ret.ID = properties["id"]
 	return ret, nil
 }
-func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	fmt.Printf("MOCK STAGE PROVIDER IS BUSY PROCESSING: %v\n", inputs)
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
@@ -88,5 +88,5 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	}
 	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
-	return outputs, nil
+	return outputs, false, nil
 }

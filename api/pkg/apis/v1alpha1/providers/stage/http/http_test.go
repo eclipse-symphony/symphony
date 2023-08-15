@@ -38,7 +38,7 @@ func TestPingBing(t *testing.T) {
 		Url:    "https://www.bing.com",
 	})
 	assert.Nil(t, err)
-	outputs, err := provider.Process(context.Background(), nil)
+	outputs, _, err := provider.Process(context.Background(), nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
@@ -55,7 +55,7 @@ func TestCallLogicApp(t *testing.T) {
 		Url:    "<put your Logic App activation URL here>",
 	})
 	assert.Nil(t, err)
-	outputs, err := provider.Process(context.Background(), map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), map[string]interface{}{
 		"body": map[string]interface{}{ // this is a sample request body
 			"solution": "solution1",
 			"instance": "instance1",
@@ -103,7 +103,7 @@ func TestGitHubAction(t *testing.T) {
 		WaitCount:        10,
 	})
 	assert.Nil(t, err)
-	outputs, err := provider.Process(context.Background(), map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), map[string]interface{}{
 		"header.Authorization": "Bearer <GitHub token with repo scope and workflow scope>",
 		"header.Content-Type":  "application/json",
 		"body": map[string]interface{}{ // this is a sample request body

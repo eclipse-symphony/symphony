@@ -63,7 +63,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !activation.Status.IsActive && activation.Status.ActivationGeneration != strconv.FormatInt(activation.Generation, 10) {
+		if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.ActivationGeneration != strconv.FormatInt(activation.Generation, 10) {
 			err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,

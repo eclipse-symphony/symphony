@@ -33,6 +33,7 @@ import (
 type VendorContext struct {
 	Logger         logger.Logger
 	PubsubProvider pubsub.IPubSubProvider
+	Site           string
 }
 
 func (v *VendorContext) Init(p pubsub.IPubSubProvider) error {

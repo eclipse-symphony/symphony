@@ -27,11 +27,14 @@ package vendors
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -148,7 +151,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		status.Stage = triggerData.Stage
 		status.ActivationGeneration = triggerData.ActivationGeneration
 		status.ErrorMessage = ""
-		status.Status = v1alpha2.Accepted
+		status.Status = v1alpha2.Running
 		err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
 		if err != nil {
 			sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
@@ -165,6 +168,73 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				Body: *activation,
 			})
 		}
+		return nil
+	})
+	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
+		status := event.Body.(model.ActivationStatus)
+		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
+			campaign, err := s.CampaignsManager.GetSpec(context.Background(), status.Outputs["__campaign"].(string))
+			if err != nil {
+				return err
+			}
+			if campaign.Spec.SelfDriving {
+				activation, err := s.StageManager.ResumeStage(status, *campaign.Spec)
+				if err != nil {
+					status.Status = v1alpha2.InternalError
+					status.IsActive = false
+					status.ErrorMessage = fmt.Sprintf("failed to resume stage: %v", err)
+				}
+				if activation != nil {
+					s.Vendor.Context.Publish("trigger", v1alpha2.Event{
+						Body: *activation,
+					})
+				}
+			}
+		}
+		//TODO: later site overrides reports from earlier sites
+		err = s.ActivationsManager.ReportStatus(context.Background(), status.Outputs["__activation"].(string), status)
+		if err != nil {
+			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
+			return err
+		}
+		return nil
+	})
+	s.Vendor.Context.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
+		job := event.Body.(v1alpha2.JobData)
+		jData, _ := json.Marshal(job.Body)
+		var dataPackage v1alpha2.InputOutputData
+		err := json.Unmarshal(jData, &dataPackage)
+		if err != nil {
+			return err
+		}
+
+		triggerData := v1alpha2.ActivationData{
+			Activation:           dataPackage.Inputs["__activation"].(string),
+			ActivationGeneration: dataPackage.Inputs["__activationGeneration"].(string),
+			Campaign:             dataPackage.Inputs["__campaign"].(string),
+			Stage:                dataPackage.Inputs["__stage"].(string),
+			Inputs:               dataPackage.Inputs,
+			Outputs:              dataPackage.Outputs,
+		}
+
+		triggerData.Inputs["__origin"] = event.Metadata["origin"]
+
+		switch dataPackage.Inputs["operation"] {
+		case "wait":
+			triggerData.Provider = "providers.stage.wait"
+			fmt.Printf("VENDOR PROPERTIES: %v", s.Vendor.Config.Properties)
+			config, err := wait.WaitStageProviderConfigFromVendorMap(s.Vendor.Config.Properties)
+			if err != nil {
+				return err
+			}
+			triggerData.Config = config
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("operation %v is not supported", dataPackage.Inputs["operation"]), v1alpha2.BadRequest)
+		}
+		status := s.StageManager.HandleDirectTriggerEvent(context.Background(), triggerData)
+		s.Vendor.Context.Publish("report", v1alpha2.Event{
+			Body: status,
+		})
 		return nil
 	})
 	return nil

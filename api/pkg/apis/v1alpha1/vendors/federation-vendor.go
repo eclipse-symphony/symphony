@@ -98,16 +98,28 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			return err
 		}
 		for _, site := range sites {
-			jData, _ := json.Marshal(site)
-			fmt.Printf("SITE INFO: %s", string(jData))
 			event.Metadata["site"] = site.Spec.Name
-			f.StagingManager.HandleCatalogEvent(context.Background(), event) //TODO: how to handle errors in this case?
+			f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
 		}
 		return nil
 	})
 	f.Vendor.Context.Subscribe("remote", func(topic string, event v1alpha2.Event) error {
-		fmt.Println("_______________________________________________________OK____________________________________________________________")
+		_, ok := event.Metadata["site"]
+		if !ok {
+			return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
+		}
+		f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
 		return nil
+	})
+	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
+		fmt.Println("===============================================REPORT====================================================")
+		if status, ok := event.Body.(model.ActivationStatus); ok {
+			err := utils.SyncActivationStatus("http://localhost:8082/v1alpha2/", "admin", "", status)
+			if err != nil {
+				return err
+			}
+		}
+		return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
 	})
 	return nil
 }
@@ -232,10 +244,36 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	tLog.Info("V (Federation): onSync")
 	switch request.Method {
+	case fasthttp.MethodPost:
+		var status model.ActivationStatus
+		err := json.Unmarshal(request.Body, &status)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.BadRequest,
+				Body:  []byte(err.Error()),
+			})
+		}
+		err = f.Vendor.Context.Publish("job-report", v1alpha2.Event{
+			Body: status,
+		})
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+		})
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSync-GET", pCtx, nil)
 		id := request.Parameters["__site"]
 		batch, err := f.StagingManager.GetABatchForSite(id)
+
+		pack := model.SyncPackage{
+			Origin: f.Context.Site,
+		}
+
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -243,17 +281,24 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 		catalogs := make([]model.CatalogSpec, 0)
+		jobs := make([]v1alpha2.JobData, 0)
 		for _, c := range batch {
-			catalog, err := f.CatalogsManager.GetSpec(ctx, c.Id)
-			if err != nil {
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
+			if c.Action == "RUN" { //TODO: I don't really like this
+				jobs = append(jobs, c)
+			} else {
+				catalog, err := f.CatalogsManager.GetSpec(ctx, c.Id)
+				if err != nil {
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State: v1alpha2.InternalError,
+						Body:  []byte(err.Error()),
+					})
+				}
+				catalogs = append(catalogs, *catalog.Spec)
 			}
-			catalogs = append(catalogs, *catalog.Spec)
 		}
-		jData, _ := utils.FormatObject(catalogs, true, request.Parameters["path"], request.Parameters["doc-type"])
+		pack.Catalogs = catalogs
+		pack.Jobs = jobs
+		jData, _ := utils.FormatObject(pack, true, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        jData,

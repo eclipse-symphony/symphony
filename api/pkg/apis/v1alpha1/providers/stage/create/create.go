@@ -121,7 +121,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 	}
 	return ret, nil
 }
-func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -135,12 +135,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]int
 	case "instance":
 		err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		for ic := 0; ic < i.Config.WaitCount; ic++ {
 			summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			if summary.Summary.SuccessCount == summary.Summary.TargetCount {
 				deployed = true
@@ -157,5 +157,5 @@ func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]int
 	} else {
 		outputs["status"] = "Failed"
 	}
-	return outputs, nil
+	return outputs, false, nil
 }

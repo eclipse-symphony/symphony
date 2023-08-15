@@ -16,9 +16,14 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {         
+            "properties": {   
+              "providers.state": "k8s-state"        
             },
-            "providers": {            
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
             }
           },
           {
