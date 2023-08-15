@@ -147,6 +147,8 @@ spec:
                   properties:
                     config:
                       x-kubernetes-preserve-unknown-fields: true
+                    contexts:
+                      type: string
                     inputs:
                       x-kubernetes-preserve-unknown-fields: true
                     name:
@@ -155,6 +157,10 @@ spec:
                       type: string
                     stageSelector:
                       type: string
+                    type:
+                      type: string
+                  required:
+                  - type
                   type: object
                 type: object
             type: object
@@ -249,10 +255,13 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               siteId:
                 type: string
+              type:
+                type: string
             required:
             - name
             - properties
             - siteId
+            - type
             type: object
           status:
             properties:
