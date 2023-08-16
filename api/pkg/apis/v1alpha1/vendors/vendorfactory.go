@@ -56,6 +56,8 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &ModelsVendor{}, nil
 	case "vendors.skills":
 		return &SkillsVendor{}, nil
+	case "vendors.settings":
+		return &SettingsVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}

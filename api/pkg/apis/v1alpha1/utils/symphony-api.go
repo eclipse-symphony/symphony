@@ -34,6 +34,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 const (
@@ -124,6 +125,25 @@ func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogS
 	}
 
 	response, err := callRestAPI(baseUrl, "catalogs/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func GetCatalog(baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
+	ret := model.CatalogState{}
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "catalogs/registry/"+catalog, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -245,6 +265,20 @@ func GetInstance(baseUrl string, instance string, user string, password string) 
 	return ret, nil
 }
 
+func UpsertCatalog(baseUrl string, catalog string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CreateInstance(baseUrl string, instance string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
@@ -252,6 +286,19 @@ func CreateInstance(baseUrl string, instance string, user string, password strin
 	}
 
 	_, err = callRestAPI(baseUrl, "instances/"+instance, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func DeleteCatalog(baseUrl string, catalog string, user string, password string) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -559,7 +606,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(EvaluationContext{Properties: target.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Properties})
 				if err != nil {
 					return ret, err
 				}

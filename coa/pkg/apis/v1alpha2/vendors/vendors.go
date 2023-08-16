@@ -36,6 +36,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type VendorConfig struct {
@@ -52,6 +53,11 @@ type IVendor interface {
 	Init(config VendorConfig, managers []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error
 	GetEndpoints() []v1alpha2.Endpoint
 	GetInfo() VendorInfo
+	SetEvaluationContext(context *utils.EvaluationContext)
+}
+
+type IEvaluationContextVendor interface {
+	GetEvaluationContext() *utils.EvaluationContext
 }
 
 type IVendorFactory interface {
@@ -72,6 +78,9 @@ type Vendor struct {
 	Config   VendorConfig
 }
 
+func (v *Vendor) SetEvaluationContext(context *utils.EvaluationContext) {
+	v.Context.EvaluationContext = context
+}
 func (v *Vendor) RunLoop(interval time.Duration) error {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)

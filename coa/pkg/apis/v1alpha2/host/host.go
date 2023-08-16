@@ -38,6 +38,7 @@ import (
 	pf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providerfactory"
 	pv "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -153,6 +154,18 @@ func (h *APIHost) Launch(config HostConfig,
 		}
 	}
 	if len(h.Vendors) > 0 {
+		var evaluationContext *utils.EvaluationContext
+		for _, v := range h.Vendors {
+			if _, ok := v.Vendor.(vendors.IEvaluationContextVendor); ok {
+				evaluationContext = v.Vendor.(vendors.IEvaluationContextVendor).GetEvaluationContext()
+			}
+		}
+
+		if evaluationContext != nil {
+			for _, v := range h.Vendors {
+				v.Vendor.SetEvaluationContext(evaluationContext)
+			}
+		}
 		var wg sync.WaitGroup
 		for _, v := range h.Vendors {
 			if v.LoopInterval > 0 {

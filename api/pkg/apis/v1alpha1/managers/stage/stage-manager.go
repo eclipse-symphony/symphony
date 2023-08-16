@@ -131,7 +131,10 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 				if currentStage, ok := cam.Stages[stage]; ok {
 					parser := utils.NewParser(currentStage.StageSelector)
 
-					val, err := parser.Eval(utils.EvaluationContext{Inputs: status.Inputs, Outputs: outputs})
+					eCtx := s.VendorContext.EvaluationContext.Clone()
+					eCtx.Inputs = status.Inputs
+					eCtx.Outputs = outputs
+					val, err := parser.Eval(eCtx)
 					if err != nil {
 						return nil, err
 					}
@@ -217,7 +220,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 }
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
 	status := model.ActivationStatus{
-		Stage:        "",
+		Stage:        triggerData.Stage,
 		NextStage:    "",
 		Outputs:      nil,
 		Status:       v1alpha2.Untouched,
@@ -230,7 +233,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		if currentStage.Contexts != "" {
 			parser := utils.NewParser(currentStage.Contexts)
 
-			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+			eCtx := s.VendorContext.EvaluationContext.Clone()
+			eCtx.Inputs = triggerData.Inputs
+			eCtx.Outputs = triggerData.Outputs
+			val, err := parser.Eval(eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
@@ -262,21 +268,26 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		if currentStage.Inputs != nil {
 			for k, v := range currentStage.Inputs {
-				if _, ok := v.(string); !ok {
-					inputs[k] = v
-				} else {
-					parser := utils.NewParser(v.(string))
-					val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
-					if err != nil {
-						status.Status = v1alpha2.InternalError
-						status.ErrorMessage = err.Error()
-						status.IsActive = false
-						return status, activationData
-					}
-					inputs[k] = val
-				}
+				inputs[k] = v
 			}
 		}
+		for k, v := range inputs {
+			if _, ok := v.(string); ok {
+				parser := utils.NewParser(v.(string))
+				eCtx := s.VendorContext.EvaluationContext.Clone()
+				eCtx.Inputs = triggerData.Inputs
+				eCtx.Outputs = triggerData.Outputs
+				val, err := parser.Eval(eCtx)
+				if err != nil {
+					status.Status = v1alpha2.InternalError
+					status.ErrorMessage = err.Error()
+					status.IsActive = false
+					return status, activationData
+				}
+				inputs[k] = val
+			}
+		}
+
 		// inject default inputs
 		inputs["__campaign"] = triggerData.Campaign
 		inputs["__activation"] = triggerData.Activation
@@ -379,7 +390,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 
 			parser := utils.NewParser(currentStage.StageSelector)
-			val, err := parser.Eval(utils.EvaluationContext{Inputs: triggerData.Inputs, Outputs: triggerData.Outputs})
+			eCtx := s.VendorContext.EvaluationContext.Clone()
+			eCtx.Inputs = triggerData.Inputs
+			eCtx.Outputs = triggerData.Outputs
+			val, err := parser.Eval(eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()

@@ -30,6 +30,10 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 )
 
 func UnmarshalDuration(duration string) (time.Duration, error) {
@@ -56,4 +60,23 @@ func ParseProperty(val string) string {
 		return os.Getenv(val[5:])
 	}
 	return val
+}
+
+type EvaluationContext struct {
+	ConfigProvider config.IExtConfigProvider
+	SecretProvider secret.ISecretProvider
+	DeploymentSpec model.DeploymentSpec
+	Properties     map[string]string
+	Inputs         map[string]interface{}
+	Outputs        map[string]map[string]interface{}
+	Component      string
+}
+
+func (e *EvaluationContext) Clone() EvaluationContext {
+	// The Clone() method shares references to the same ConfigProvider and SecretProvider
+	// Other fields are not shared and need to be filled in by the caller
+	return EvaluationContext{
+		ConfigProvider: e.ConfigProvider,
+		SecretProvider: e.SecretProvider,
+	}
 }

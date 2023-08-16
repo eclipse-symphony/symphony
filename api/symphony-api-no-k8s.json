@@ -10,6 +10,28 @@
     },
     "vendors": [
       {
+        "type": "vendors.settings",
+        "managers": [
+          {
+            "name": "config-manager",
+            "type": "managers.symphony.configs",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "catalog": {
+                "type": "providers.config.catalog",
+                "config": {
+                  "baseUrl": "http://localhost:8082/v1alpha2/",
+                  "user": "admin",
+                  "password": ""
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.stage",
         "route": "stage",
         "managers": [

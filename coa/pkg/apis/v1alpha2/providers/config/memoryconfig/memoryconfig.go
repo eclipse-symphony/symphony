@@ -26,6 +26,7 @@ package memory
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -91,7 +92,7 @@ func toMemoryConfigProviderConfig(config providers.IProviderConfig) (MemoryConfi
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MemoryConfigProvider) Get(object string, field string) (string, error) {
+func (m *MemoryConfigProvider) Read(object string, field string) (string, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return "", v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -100,7 +101,7 @@ func (m *MemoryConfigProvider) Get(object string, field string) (string, error) 
 	}
 	return m.ConfigData[object][field], nil
 }
-func (m *MemoryConfigProvider) GetObject(object string) (map[string]string, error) {
+func (m *MemoryConfigProvider) ReadObject(object string) (map[string]string, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -122,17 +123,17 @@ func (m *MemoryConfigProvider) SetObject(object string, value map[string]string)
 	}
 	return nil
 }
-func (m *MemoryConfigProvider) Delete(object string, field string) error {
+func (m *MemoryConfigProvider) Remove(object string, field string) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		return v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
 	if _, ok := m.ConfigData[object][field]; !ok {
-		return v1alpha2.NewCOAError(nil, "field not found", v1alpha2.NotFound)
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
 	}
 	delete(m.ConfigData[object], field)
 	return nil
 }
-func (m *MemoryConfigProvider) DeleteObject(object string) error {
+func (m *MemoryConfigProvider) RemoveObject(object string) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		return v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}

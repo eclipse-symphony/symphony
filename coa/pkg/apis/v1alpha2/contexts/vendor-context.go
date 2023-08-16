@@ -27,13 +27,15 @@ package contexts
 import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	logger "github.com/azure/symphony/coa/pkg/logger"
 )
 
 type VendorContext struct {
-	Logger         logger.Logger
-	PubsubProvider pubsub.IPubSubProvider
-	Site           string
+	Logger            logger.Logger
+	PubsubProvider    pubsub.IPubSubProvider
+	Site              string
+	EvaluationContext *utils.EvaluationContext
 }
 
 func (v *VendorContext) Init(p pubsub.IPubSubProvider) error {

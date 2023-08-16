@@ -37,7 +37,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
 	tgt "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -47,6 +47,7 @@ import (
 	config "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	secret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
 
@@ -62,7 +63,7 @@ type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
 	StateProvider   states.IStateProvider
-	ConfigProvider  config.IConfigProvider
+	ConfigProvider  config.IExtConfigProvider
 	SecretProvoider secret.ISecretProvider
 }
 
@@ -91,7 +92,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		return err
 	}
 
-	configProvider, err := managers.GetConfigProvider(config, providers)
+	configProvider, err := managers.GetExtConfigProvider(config, providers)
 	if err == nil {
 		s.ConfigProvider = configProvider
 	} else {
@@ -199,7 +200,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	var err error
-	deployment, err = utils.EvaluateDeployment(utils.EvaluationContext{
+	deployment, err = api_utils.EvaluateDeployment(utils.EvaluationContext{
 		ConfigProvider: s.ConfigProvider,
 		SecretProvider: s.SecretProvoider,
 		DeploymentSpec: deployment,
@@ -251,7 +252,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	col := utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
+	col := api_utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 	dep := deployment
 	dep.Instance.Metadata = col
 	someStepsRan := false

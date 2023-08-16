@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
@@ -90,6 +91,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 			return mProvider, nil
 		}
 	case "providers.state.k8s":
+		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.config.k8scatalog":
 		mProvider := &k8sstate.K8sStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
@@ -229,6 +236,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.config.mock":
 		mProvider := &mockconfig.MockConfigProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.config.catalog":
+		mProvider := &catalogconfig.CatalogConfigProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -418,6 +431,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
+				case "providers.config.k8scatalog":
+					provider := &k8sstate.K8sStateProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
 				case "providers.state.http":
 					provider := &httpstate.HttpStateProvider{}
 					err := provider.InitWithMap(binding.Config)
@@ -483,6 +503,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.config.mock":
 					provider := &mockconfig.MockConfigProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.config.catalog":
+					provider := &catalogconfig.CatalogConfigProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

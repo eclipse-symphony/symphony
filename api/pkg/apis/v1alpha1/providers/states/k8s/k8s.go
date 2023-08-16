@@ -28,6 +28,7 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 
@@ -404,4 +405,177 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	}
 	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
+}
+
+// Implmeement the IConfigProvider interface
+func (s *K8sStateProvider) Read(object string, field string) (string, error) {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			if v, ok := properties[field]; ok {
+				return v.(string), nil
+			} else {
+				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration catalog '%s'", field, object), v1alpha2.NotFound)
+			}
+		} else {
+			return "", v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return "", v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+
+func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			ret := map[string]string{}
+			for k, v := range properties {
+				ret[k] = v.(string)
+			}
+			return ret, nil
+		} else {
+			return nil, v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return nil, v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+
+func (s *K8sStateProvider) Set(object string, field string, value string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			properties[field] = value
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) SetObject(object string, values map[string]string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			for k, v := range values {
+				properties[k] = v
+			}
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) Remove(object string, field string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			delete(properties, field)
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) RemoveObject(object string) error {
+	return s.Delete(context.Background(), states.DeleteRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"scope":    "",
+			"group":    model.FederationGroup,
+			"version":  "v1",
+			"resource": "catalogs",
+		},
+	})
 }

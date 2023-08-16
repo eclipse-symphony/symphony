@@ -43,7 +43,7 @@ func TestGet(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	manager.Set("obj", "field", "obj::field")
-	val, err := manager.Get("obj", "field")
+	val, err := manager.Get("obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val)
 }
@@ -59,7 +59,7 @@ func TestWithOverlay(t *testing.T) {
 	assert.Nil(t, err)
 	manager.Set("obj", "field", "obj::field")
 	manager.Set("obj-overlay", "field", "overlay::field")
-	val, err := manager.Get("obj", "field")
+	val, err := manager.Get("obj", "field", []string{"obj-overlay"})
 	assert.Nil(t, err)
 	assert.Equal(t, "overlay::field", val)
 }
@@ -80,9 +80,29 @@ func TestOverlayWithMultipleProviders(t *testing.T) {
 	assert.Nil(t, err)
 	provider1.Set("obj", "field", "obj::field")
 	provider2.Set("obj-overlay", "field", "overlay::field")
-	val, err := manager.Get("obj", "field")
+	val, err := manager.Get("obj", "field", []string{"obj-overlay"})
 	assert.Nil(t, err)
 	assert.Equal(t, "overlay::field", val)
+}
+func TestOverlayMissWithMultipleProviders(t *testing.T) {
+	provider1 := memory.MemoryConfigProvider{}
+	err := provider1.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	provider2 := memory.MemoryConfigProvider{}
+	err = provider2.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	manager := ConfigsManager{
+		ConfigProviders: map[string]config.IConfigProvider{
+			"memory1": &provider1,
+			"memory2": &provider2,
+		},
+		Precedence: []string{"memory2", "memory1"},
+	}
+	assert.Nil(t, err)
+	provider1.Set("obj", "field", "obj::field")
+	val, err := manager.Get("obj", "field", []string{"obj-overlay"})
+	assert.Nil(t, err)
+	assert.Equal(t, "obj::field", val)
 }
 func TestOverlayWithMultipleProvidersReversedPrecedence(t *testing.T) {
 	provider1 := memory.MemoryConfigProvider{}
@@ -101,7 +121,7 @@ func TestOverlayWithMultipleProvidersReversedPrecedence(t *testing.T) {
 	assert.Nil(t, err)
 	provider1.Set("obj", "field", "obj::field")
 	provider2.Set("obj-overlay", "field", "overlay::field")
-	val, err := manager.Get("obj", "field")
+	val, err := manager.Get("obj", "field", []string{"obj-overlay"})
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val)
 }
@@ -115,7 +135,28 @@ func TestGetObject(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	manager.Set("obj", "field", "obj::field")
-	val, err := manager.GetObject("obj")
+	val, err := manager.GetObject("obj", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val["field"])
+}
+func TestMultipleProvidersSameKey(t *testing.T) {
+	provider1 := memory.MemoryConfigProvider{}
+	err := provider1.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	provider2 := memory.MemoryConfigProvider{}
+	err = provider2.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	manager := ConfigsManager{
+		ConfigProviders: map[string]config.IConfigProvider{
+			"memory1": &provider1,
+			"memory2": &provider2,
+		},
+		Precedence: []string{"memory2", "memory1"},
+	}
+	assert.Nil(t, err)
+	provider1.Set("obj", "field", "obj::field1")
+	provider2.Set("obj", "field", "obj::field2")
+	val, err := manager.Get("obj", "field", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, "obj::field2", val)
 }

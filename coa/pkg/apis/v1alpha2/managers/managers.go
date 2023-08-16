@@ -128,6 +128,21 @@ func GetConfigProvider(con ManagerConfig, providers map[string]providers.IProvid
 	}
 	return configProvider, nil
 }
+func GetExtConfigProvider(con ManagerConfig, providers map[string]providers.IProvider) (config.IExtConfigProvider, error) {
+	configProviderName, ok := con.Properties[v1alpha2.ProvidersConfig]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[configProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not supplied", v1alpha2.MissingConfig)
+	}
+	configProvider, ok := provider.(config.IExtConfigProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a config provider", v1alpha2.BadConfig)
+	}
+	return configProvider, nil
+}
 func GetSecretProvider(con ManagerConfig, providers map[string]providers.IProvider) (secret.ISecretProvider, error) {
 	configProviderName, ok := con.Properties[v1alpha2.ProvidersSecret]
 	if !ok {

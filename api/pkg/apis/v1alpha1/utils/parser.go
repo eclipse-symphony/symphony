@@ -9,8 +9,7 @@ import (
 	"text/scanner"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type Token int
@@ -55,25 +54,15 @@ var opNames = map[Token]string{
 	AMPHERSAND: "&",
 }
 
-type EvaluationContext struct {
-	ConfigProvider config.IConfigProvider
-	SecretProvider secret.ISecretProvider
-	DeploymentSpec model.DeploymentSpec
-	Properties     map[string]string
-	Inputs         map[string]interface{}
-	Outputs        map[string]map[string]interface{}
-	Component      string
-}
-
 type Node interface {
-	Eval(context EvaluationContext) (interface{}, error)
+	Eval(context utils.EvaluationContext) (interface{}, error)
 }
 
 type NumberNode struct {
 	Value float64
 }
 
-func (n *NumberNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *NumberNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -93,14 +82,14 @@ func removeQuotes(s string) string {
 	return s
 }
 
-func (n *IdentifierNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *IdentifierNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return removeQuotes(n.Value), nil
 }
 
 type NullNode struct {
 }
 
-func (n *NullNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *NullNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return "", nil
 }
 
@@ -109,7 +98,7 @@ type UnaryNode struct {
 	Expr Node
 }
 
-func (n *UnaryNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *UnaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
 		if n.Expr != nil {
@@ -150,7 +139,7 @@ type BinaryNode struct {
 	Right Node
 }
 
-func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
 		var lv interface{} = ""
@@ -452,7 +441,7 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
 }
 
-func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Name {
 	case "param":
 		if len(n.Args) == 1 {
@@ -689,7 +678,7 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
 	case "config":
-		if len(n.Args) == 2 {
+		if len(n.Args) >= 2 {
 			if context.ConfigProvider == nil {
 				return nil, errors.New("a config provider is needed to evaluate $config()")
 			}
@@ -701,7 +690,19 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			return context.ConfigProvider.Get(obj.(string), field.(string))
+
+			var overlays []string
+			if len(n.Args) > 2 {
+				for i := 2; i < len(n.Args); i++ {
+					overlay, err := n.Args[i].Eval(context)
+					if err != nil {
+						return nil, err
+					}
+					overlays = append(overlays, overlay.(string))
+				}
+			}
+
+			return context.ConfigProvider.Get(obj.(string), field.(string), overlays)
 		}
 		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
 	case "secret":
@@ -746,7 +747,7 @@ func NewParser(text string) *Parser {
 	return p
 }
 
-func (p *Parser) Eval(context EvaluationContext) (interface{}, error) {
+func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	var ret interface{}
 	for {
 		n := p.expr(false)
@@ -961,7 +962,7 @@ func (p *Parser) function() Node {
 	return &FunctionNode{name, args}
 }
 
-func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error) {
+func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	ret := context.DeploymentSpec
 	for ic, c := range context.DeploymentSpec.Solution.Components {
 		val, err := evalProperties(context, c.Properties)
@@ -1023,7 +1024,7 @@ func toNumber(val interface{}) (float64, bool) {
 	}
 	return 0, false
 }
-func evalProperties(context EvaluationContext, properties interface{}) (interface{}, error) {
+func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch properties.(type) {
 	case map[string]interface{}:
 		for k, v := range properties.(map[string]interface{}) {

@@ -34,7 +34,10 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type ConfigsManager struct {
 	managers.Manager
@@ -43,6 +46,7 @@ type ConfigsManager struct {
 }
 
 func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	log.Debug(" M (Config): Init")
 	s.ConfigProviders = make(map[string]config.IConfigProvider)
 	for key, provider := range providers {
 		if cProvider, ok := provider.(config.IConfigProvider); ok {
@@ -53,32 +57,35 @@ func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 		s.Precedence = strings.Split(val, ",")
 	}
 	if len(s.ConfigProviders) == 0 {
+		log.Error(" M (Config): No config providers found")
 		return v1alpha2.NewCOAError(nil, "No config providers found", v1alpha2.BadConfig)
 	}
-	if len(s.ConfigProviders) > 0 && len(s.Precedence) < len(s.ConfigProviders) {
+	if len(s.ConfigProviders) > 0 && len(s.Precedence) < len(s.ConfigProviders) && len(s.ConfigProviders) > 1 {
+		log.Error(" M (Config): Not enough precedence values")
 		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
 	for _, key := range s.Precedence {
 		if _, ok := s.ConfigProviders[key]; !ok {
+			log.Error(" M (Config): Invalid precedence value: %s", key)
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid precedence value: %s", key), v1alpha2.BadConfig)
 		}
 	}
 	return nil
 }
-func (s *ConfigsManager) Get(object string, field string) (string, error) {
+func (s *ConfigsManager) Get(object string, field string, overlays []string) (string, error) {
 	if strings.Index(object, ":") > 0 {
 		parts := strings.Split(object, ":")
 		if len(parts) != 2 {
 			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
-			return s.getWithOverlay(provider, parts[1], field)
+			return s.getWithOverlay(provider, parts[1], field, overlays)
 		}
 		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			if value, err := s.getWithOverlay(provider, object, field); err == nil {
+			if value, err := s.getWithOverlay(provider, object, field, overlays); err == nil {
 				return value, nil
 			} else {
 				return "", err
@@ -87,35 +94,38 @@ func (s *ConfigsManager) Get(object string, field string) (string, error) {
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if value, err := s.getWithOverlay(provider, object, field); err == nil {
+			if value, err := s.getWithOverlay(provider, object, field, overlays); err == nil {
 				return value, nil
 			}
 		}
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object or key: %s, %s", object, field), v1alpha2.BadRequest)
 }
-func (s *ConfigsManager) getWithOverlay(provider config.IConfigProvider, object string, field string) (string, error) {
-	overlayObjectKey := object + "-overlay"
-	if overlayObject, err := provider.Get(overlayObjectKey, field); err == nil {
-		return overlayObject, nil
+func (s *ConfigsManager) getWithOverlay(provider config.IConfigProvider, object string, field string, overlays []string) (string, error) {
+	if len(overlays) > 0 {
+		for _, overlay := range overlays {
+			if overlayObject, err := provider.Read(overlay, field); err == nil {
+				return overlayObject, nil
+			}
+		}
 	}
-	return provider.Get(object, field)
+	return provider.Read(object, field)
 }
 
-func (s *ConfigsManager) GetObject(object string) (map[string]string, error) {
+func (s *ConfigsManager) GetObject(object string, overlays []string) (map[string]string, error) {
 	if strings.Index(object, ":") > 0 {
 		parts := strings.Split(object, ":")
 		if len(parts) != 2 {
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
-			return s.getObjectWithOverlay(provider, parts[1])
+			return s.getObjectWithOverlay(provider, parts[1], overlays)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			if value, err := s.getObjectWithOverlay(provider, object); err == nil {
+			if value, err := s.getObjectWithOverlay(provider, object, overlays); err == nil {
 				return value, nil
 			} else {
 				return nil, err
@@ -124,19 +134,22 @@ func (s *ConfigsManager) GetObject(object string) (map[string]string, error) {
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if value, err := s.getObjectWithOverlay(provider, object); err == nil {
+			if value, err := s.getObjectWithOverlay(provider, object, overlays); err == nil {
 				return value, nil
 			}
 		}
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object: %s", object), v1alpha2.BadRequest)
 }
-func (s *ConfigsManager) getObjectWithOverlay(provider config.IConfigProvider, object string) (map[string]string, error) {
-	overlayObjectKey := object + "-overlay"
-	if overlayObject, err := provider.GetObject(overlayObjectKey); err == nil {
-		return overlayObject, nil
+func (s *ConfigsManager) getObjectWithOverlay(provider config.IConfigProvider, object string, overlays []string) (map[string]string, error) {
+	if len(overlays) > 0 {
+		for _, overlay := range overlays {
+			if overlayObject, err := provider.ReadObject(overlay); err == nil {
+				return overlayObject, nil
+			}
+		}
 	}
-	return provider.GetObject(object)
+	return provider.ReadObject(object)
 }
 func (s *ConfigsManager) Set(object string, field string, value string) error {
 	if strings.Index(object, ":") > 0 {
@@ -195,18 +208,18 @@ func (s *ConfigsManager) Delete(object string, field string) error {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
-			return provider.Delete(parts[1], field)
+			return provider.Remove(parts[1], field)
 		}
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			return provider.Delete(object, field)
+			return provider.Remove(object, field)
 		}
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if err := provider.Delete(object, field); err == nil {
+			if err := provider.Remove(object, field); err == nil {
 				return nil
 			}
 		}
@@ -220,18 +233,18 @@ func (s *ConfigsManager) DeleteObject(object string) error {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
-			return provider.DeleteObject(parts[1])
+			return provider.RemoveObject(parts[1])
 		}
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			return provider.DeleteObject(object)
+			return provider.RemoveObject(object)
 		}
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if err := provider.DeleteObject(object); err == nil {
+			if err := provider.RemoveObject(object); err == nil {
 				return nil
 			}
 		}
