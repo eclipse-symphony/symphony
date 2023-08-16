@@ -59,7 +59,7 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
+          "wait.baseUrl": "http://localhost:8083/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",

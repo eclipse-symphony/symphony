@@ -199,11 +199,15 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.IsActive = false
 		return status
 	}
+	if _, ok := provider.(*remote.RemoteStageProvider); ok {
+		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
+	}
 	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
 	if err != nil {
 		status.Status = v1alpha2.InternalError
 		status.ErrorMessage = err.Error()
 		status.IsActive = false
+		status.Outputs = outputs //TODO: this is not good. It assumes a process carries over inputs to outputs, and outputs are always returned even if there are errors. Downstream, some code relies on properties like __activation and __campaign in output collection.
 		return status
 	}
 	status.Outputs = outputs

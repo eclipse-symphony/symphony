@@ -133,6 +133,10 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	objectType := inputs["objectType"].(string)
 	objects := inputs["names"].([]interface{})
+	prefixedNames := make([]string, len(objects))
+	for i, object := range objects {
+		prefixedNames[i] = fmt.Sprintf("%v-%v", inputs["__origin"], object)
+	}
 	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
@@ -143,8 +147,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return nil, false, err
 			}
 			for _, instance := range instances {
-				for _, object := range objects {
-					if instance.Spec.Name == object.(string) {
+				for _, object := range prefixedNames {
+					if instance.Spec.Name == object {
 						foundCount++
 					}
 				}
@@ -155,8 +159,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return nil, false, err
 			}
 			for _, site := range sites {
-				for _, object := range objects {
-					if site.Spec.Name == object.(string) {
+				for _, object := range prefixedNames {
+					if site.Spec.Name == object {
 						foundCount++
 					}
 				}
@@ -167,8 +171,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return nil, false, err
 			}
 			for _, catalog := range catalogs {
-				for _, object := range objects {
-					if catalog.Spec.Name == object.(string) {
+				for _, object := range prefixedNames {
+					if catalog.Spec.Name == object {
 						foundCount++
 					}
 				}

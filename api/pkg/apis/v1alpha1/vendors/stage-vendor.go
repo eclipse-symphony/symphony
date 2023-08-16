@@ -34,6 +34,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -191,6 +192,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				}
 			}
 		}
+
+		jData, _ := json.Marshal(status.Outputs)
+		fmt.Printf("job-report: %v\n", string(jData))
+
 		//TODO: later site overrides reports from earlier sites
 		err = s.ActivationsManager.ReportStatus(context.Background(), status.Outputs["__activation"].(string), status)
 		if err != nil {
@@ -222,8 +227,14 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		switch dataPackage.Inputs["operation"] {
 		case "wait":
 			triggerData.Provider = "providers.stage.wait"
-			fmt.Printf("VENDOR PROPERTIES: %v", s.Vendor.Config.Properties)
 			config, err := wait.WaitStageProviderConfigFromVendorMap(s.Vendor.Config.Properties)
+			if err != nil {
+				return err
+			}
+			triggerData.Config = config
+		case "materialize":
+			triggerData.Provider = "providers.stage.materialize"
+			config, err := materialize.MaterializeStageProviderConfigFromVendorMap(s.Vendor.Config.Properties)
 			if err != nil {
 				return err
 			}

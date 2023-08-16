@@ -28,7 +28,6 @@ package vendors
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
@@ -112,7 +111,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		return nil
 	})
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
-		fmt.Println("===============================================REPORT====================================================")
 		if status, ok := event.Body.(model.ActivationStatus); ok {
 			err := utils.SyncActivationStatus("http://localhost:8082/v1alpha2/", "admin", "", status)
 			if err != nil {

@@ -20,6 +20,7 @@ import (
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
+	materialize "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
 	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	remotestage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
 	waitstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
@@ -280,6 +281,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.materialize":
+		mProvider := &materialize.MaterializeStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.stack.memory":
 		mProvider := &memorystack.MemoryStackProvider{}
 		err = mProvider.Init(config)
@@ -523,6 +530,12 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					}
 				case "providers.stage.wait":
 					provider := &waitstage.WaitStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+				case "providers.stage.materialize":
+					provider := &materialize.MaterializeStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
