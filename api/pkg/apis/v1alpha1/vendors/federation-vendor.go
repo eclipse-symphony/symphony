@@ -33,6 +33,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/staging"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sync"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/trails"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -54,6 +55,7 @@ type FederationVendor struct {
 	CatalogsManager *catalogs.CatalogsManager
 	StagingManager  *staging.StagingManager
 	SyncManager     *sync.SyncManager
+	TrailsManager   *trails.TrailsManager
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -80,6 +82,9 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		}
 		if c, ok := m.(*sync.SyncManager); ok {
 			f.SyncManager = c
+		}
+		if c, ok := m.(*trails.TrailsManager); ok {
+			f.TrailsManager = c
 		}
 	}
 	if f.StagingManager == nil {
@@ -118,6 +123,14 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			}
 		}
 		return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
+	})
+	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
+		if f.TrailsManager != nil {
+			if trails, ok := event.Body.([]model.Trail); ok {
+				return f.TrailsManager.Append(context.Background(), trails)
+			}
+		}
+		return nil
 	})
 	return nil
 }

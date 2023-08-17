@@ -18,6 +18,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	mockledger "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/ledger/mock"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
@@ -146,6 +147,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.uploader.azure.blob":
 		mProvider := &blob.AzureBlobUploader{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.ledger.mock":
+		mProvider := &mockledger.MockLedgerProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -426,6 +433,13 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					return provider, nil
 				case "providers.state.k8s":
 					provider := &k8sstate.K8sStateProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					return provider, nil
+				case "providers.ledger.mock":
+					provider := &mockledger.MockLedgerProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

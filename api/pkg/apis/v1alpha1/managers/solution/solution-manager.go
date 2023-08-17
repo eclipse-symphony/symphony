@@ -290,6 +290,28 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// an error condition can't be resolved quickly.
 		var stepError error
 		var componentResults map[string]model.ComponentResultSpec
+
+		for _, component := range step.Components {
+			for k, v := range component.Component.Properties {
+				if strV, ok := v.(string); ok {
+					parser := api_utils.NewParser(strV)
+					eCtx := s.VendorContext.EvaluationContext.Clone()
+					eCtx.DeploymentSpec = deployment
+					eCtx.Component = component.Component.Name
+					val, err := parser.Eval(eCtx)
+					if err == nil {
+						component.Component.Properties[k] = val
+					} else {
+						log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
+						summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
+						s.saveSummary(ctx, deployment, summary)
+						observ_utils.CloseSpanWithError(span, err)
+						return summary, err
+					}
+				}
+			}
+		}
+
 		for i := 0; i < retryCount; i++ {
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(iCtx, dep, step, false)
 			if stepError == nil {

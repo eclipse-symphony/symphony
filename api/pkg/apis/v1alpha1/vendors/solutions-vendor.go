@@ -163,6 +163,19 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				Body:  []byte(err.Error()),
 			})
 		}
+		// TODO: this is a PoC of publishing trails when an object is updated
+		c.Vendor.Context.Publish("trail", v1alpha2.Event{
+			Body: []model.Trail{
+				{
+					Origin:  c.Vendor.Context.Site,
+					Catalog: solution.Metadata["catalog"],
+					Type:    "solutions.solution.symphony/v1",
+					Properties: map[string]interface{}{
+						"spec": solution,
+					},
+				},
+			},
+		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})

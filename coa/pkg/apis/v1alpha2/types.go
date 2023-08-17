@@ -137,4 +137,5 @@ const (
 	ProvidersUploader      = "providers.uploader"
 	ProvidersReporter      = "providers.reporter"
 	ProviderStack          = "providers.stack"
+	ProviderLedger         = "providers.ledger"
 )

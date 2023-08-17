@@ -26,6 +26,7 @@
 package managers
 
 import (
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/ledger"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -112,6 +113,21 @@ func GetStateProvider(config ManagerConfig, providers map[string]providers.IProv
 		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a state provider", v1alpha2.BadConfig)
 	}
 	return stateProvider, nil
+}
+func GetLedgerProvider(config ManagerConfig, providers map[string]providers.IProvider) (ledger.ILedgerProvider, error) {
+	ledgerProviderName, ok := config.Properties[v1alpha2.ProviderLedger]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "ledger provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[ledgerProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "ledger provider is not supplied", v1alpha2.MissingConfig)
+	}
+	ledgerProvider, ok := provider.(ledger.ILedgerProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a ledger provider", v1alpha2.BadConfig)
+	}
+	return ledgerProvider, nil
 }
 func GetConfigProvider(con ManagerConfig, providers map[string]providers.IProvider) (config.IConfigProvider, error) {
 	configProviderName, ok := con.Properties[v1alpha2.ProvidersConfig]

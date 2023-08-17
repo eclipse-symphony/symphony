@@ -365,6 +365,16 @@
         "type": "vendors.federation",
         "managers": [
           {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {

@@ -32,6 +32,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/target"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/trails"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
 	cm "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 )
@@ -89,6 +90,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &models.ModelsManager{}
 	case "managers.symphony.skills":
 		manager = &skills.SkillsManager{}
+	case "managers.symphony.trails":
+		manager = &trails.TrailsManager{}
 	}
 	if manager != nil && config.Properties["singleton"] == "true" {
 		c.SingletonsCache[config.Type] = manager

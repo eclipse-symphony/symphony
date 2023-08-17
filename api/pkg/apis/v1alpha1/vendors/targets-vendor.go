@@ -132,7 +132,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onRegistry",
 	})
-	tLog.Info(" M (Targets) : onRegistry")
+	tLog.Info("V (Targets) : onRegistry")
 
 	switch request.Method {
 	case fasthttp.MethodGet:
