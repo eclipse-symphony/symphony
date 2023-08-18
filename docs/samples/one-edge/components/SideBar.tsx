@@ -39,11 +39,7 @@ function SideBar() {
             <button className='sidebar_toggle' onClick={()=> toggleSidebar()}>
                 <MdOutlineKeyboardArrowLeft />
             </button>
-            <aside className='sidebar' data-collapse={isSidebarCollapse}>
-                <div className='sidebar_top'>
-                    <Image src='/next.svg' width={80} height={80} className='sidebar_logo' alt='sidebar logo'/>
-                    <p className='sidebar_logo_name'>Symphony</p>
-                </div>                
+            <aside className='sidebar' data-collapse={isSidebarCollapse}>                           
                 <ul className='sidebar_list'>
                     {sidebarItems.map(({name, href, icon: Icon}) => (
                         <li className='sidebar_item' key={name}>

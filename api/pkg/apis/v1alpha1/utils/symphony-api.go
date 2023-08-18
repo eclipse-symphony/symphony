@@ -46,8 +46,10 @@ type authRequest struct {
 	Password string `json:"password"`
 }
 type authResponse struct {
-	AccessToken string `json:"accessToken"`
-	TokenType   string `json:"tokenType"`
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
 }
 
 // SummarySpecError represents an error that includes a SummarySpec in its message

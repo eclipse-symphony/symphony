@@ -1,35 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BsList, BsX, BsYoutube, BsPinterest} from 'react-icons/bs';
+import { signOut, signIn, useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import { FaGithub, FaEnvelope} from 'react-icons/fa';
 
 const styles={
-    navLink: 'ml-10 uppercase border-b border-white hover:border-[#F6B519] text-xl'
+    navLink: 'ml-10 uppercase border-b border-transparent hover:border-[#F6B519] text-sm items-center'
 }
 
 function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-    return (
+    const { data: session } = useSession({
+        required: true,
+        onUnauthenticated() {
+            //redirect('/api/auth/signin?callbackUrl=/some-page');
+        }
+    });    
+    return (        
         <header>
             <nav className='w-full h-24 hadow-xl bg-black'>
                 {/* View Menu */}
                 <div className='flex items-center justify-between h-full px-4 w-full'>
                     <Link href='/'>
-                        <Image src='https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg' alt='One Edge Logo' width={135} height={55} className='cursor-pointer'/>
+                        <Image src='/logo.jpg' alt='One Edge Logo' width={65} height={65} className='cursor-pointer'/>
                     </Link>
+                    <span className='text-white text-lg font-bold'>One Edge Universe Portal</span>
                     <div className='text-white hidden sm:flex'>
-                        <ul className='hidden sm:flex'>
+                        <ul className='hidden sm:flex items-center'>
                             <li className={styles.navLink}>
-                                <Link href='/about'>About</Link>
+                                <Link href='http://github.com/azure/symphony'>
+                                    <span className="flex items-center gap-1">
+                                        <FaGithub />
+                                        <span>Symphony</span>
+                                    </span>
+                                </Link>
                             </li>
                             <li className={styles.navLink}>
-                                <Link href='/contact'>Contact</Link>
+                                <Link href='mailto:hbai@microsoft.com'>
+                                    <span className="flex items-center gap-1">
+                                        <FaEnvelope />
+                                        <span>Contact</span>
+                                    </span>                                
+                                </Link>
                             </li>
                             <li className='flex items-center space-x-5 text-[#F6B519] ml-10'>
-                                <h3 className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300'>Sign In</h3>
+                                { session?.user?.username ? (
+                                    <>
+                                        <h1>{session.user.username}</h1>
+                                        <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signOut()}>Sign Out</button>                                    
+                                    </>
+                                ) : (
+                                    <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signIn()}>Sign In</button>
+                                )}                                
                             </li>
                         </ul>
                     </div>

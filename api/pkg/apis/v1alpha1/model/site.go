@@ -35,8 +35,9 @@ type SiteStatus struct {
 	IsOnline bool `json:"isOnline,omitempty"`
 }
 type SiteSpec struct {
-	Name      string `json:"name,omitempty"`
-	PublicKey string `json:"secretHash,omitempty"`
+	Name       string            `json:"name,omitempty"`
+	PublicKey  string            `json:"secretHash,omitempty"`
+	Properties map[string]string `json:"properties,omitempty"`
 }
 
 func (s SiteSpec) DeepEquals(other IDeepEquals) (bool, error) {

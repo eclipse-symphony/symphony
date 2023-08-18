@@ -28,6 +28,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
@@ -111,7 +112,7 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 			Body:  []byte(err.Error()),
 		})
 	}
-	_, b := c.UsersManager.CheckUser(ctx, authRequest.UserName, authRequest.Password)
+	roles, b := c.UsersManager.CheckUser(ctx, authRequest.UserName, authRequest.Password)
 	if !b {
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.Unauthorized,
@@ -137,9 +138,10 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, _ := token.SignedString(mySigningKey)
 
+	rolesJSON, _ := json.Marshal(roles)
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
-		Body:        []byte(`{"accessToken":"` + ss + `", "tokenType": "Bearer"}`),
+		Body:        []byte(fmt.Sprintf(`{"accessToken":"%s", "tokenType": "Bearer", "username": "%s", "roles": %s}`, ss, authRequest.UserName, rolesJSON)),
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
