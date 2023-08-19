@@ -4,31 +4,61 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MdDashboard } from 'react-icons/md';
 import { AiOutlineHome } from 'react-icons/ai';
-import { BsPeople } from 'react-icons/bs';
 import { FiMail } from 'react-icons/fi';
 import { MdOutlineKeyboardArrowLeft } from 'react-icons/md';
 import { useState } from 'react';
-
+import { HiOfficeBuilding} from 'react-icons/hi';
+import {GrCatalog} from 'react-icons/gr';
 function SideBar() {
     const sidebarItems = [
         {
+            name: "Home",
+            href: "/coming-soon",
+            icon: AiOutlineHome,
+        },
+        {
             name: "Sites",
             href: "/sites",
-            icon: AiOutlineHome,
+            icon: HiOfficeBuilding,
         },
         {
             name: "Catalogs",
             href: "/catalogs",
-            icon: BsPeople,
+            icon: GrCatalog,
+        },
+        {
+            name: "Solutions",
+            href: "/coming-soon",
+            icon: FiMail,
+        },
+        {
+            name: "Instances",
+            href: "/coming-soon",
+            icon: FiMail,
         },
         {
             name: "Targets",
-            href: "/targets",
+            href: "/coming-soon",
+            icon: FiMail,
+        },
+        {
+            name: "AI Models",
+            href: "/coming-soon",
+            icon: FiMail,
+        },
+        {
+            name: "AI Skills",
+            href: "/coming-soon",
+            icon: FiMail,
+        },
+        {
+            name: "AI Skill Packages",
+            href: "/coming-soon",
             icon: FiMail,
         },
         {
             name: "Dashboard",
-            href: "/dashboard",
+            href: "/coming-soon",
             icon: MdDashboard,
         }
     ];

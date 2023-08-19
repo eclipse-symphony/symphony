@@ -75,7 +75,9 @@ body {
   transform: translateX(50%);
   font-size: 1.1rem;
 }
-
+.main_content{
+  width: 100%;
+}
 [data-collapse=true] {
   width: 5.3rem;
 } 
@@ -87,8 +89,20 @@ body {
 
 .sitelist{
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
-  padding: 1rem;
-  overflow-y: auto;  
+  padding: 1rem;   
+  width: 100%; 
+}
+.cards_view {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 1rem;    
+  overflow-y: auto;
+  width:100%;
+}
+.cards_row {
+  flex-wrap: wrap;
+  margin-top: 1rem;      
+  width:100%;
 }

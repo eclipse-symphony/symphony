@@ -7,7 +7,7 @@ function SiteList(props: SiteListProps) {
     const { sites } = props;
     return (
         <div className='sitelist'>
-        {sites.map((site: any) =>  <SiteCard site={site} />)};
+        {sites.map((site: any) =>  <SiteCard site={site} />)}
         </div>
     );
 }

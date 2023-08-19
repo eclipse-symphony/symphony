@@ -27,7 +27,7 @@ const getSites = async () => {
 async function SitesPage() {
   const sites = await getSites();  
   return (
-    <div>
+    <div className='cards_view'>
       <SiteList sites={sites}/>      
     </div>
   );

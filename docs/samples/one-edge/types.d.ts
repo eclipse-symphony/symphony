@@ -10,5 +10,27 @@ export interface Catalog {
     origin: string;
     type: string;
     name: string;
-    spec: any;
+    properties: Record<string, any>;
+}
+
+export interface GroupInfo {
+    catalogs: Catalog[];
+    title: string;
+    type: string;
+}
+
+export interface ComponentSpec {
+    name: string;
+    type: string;
+    properties: Record<string, any>;
+}
+
+export interface SolutionSpec {
+    displayName: string;
+    components: ComponentSpec[];
+}
+
+export interface Solution {
+    id: string;
+    spec: SolutionSpec;
 }

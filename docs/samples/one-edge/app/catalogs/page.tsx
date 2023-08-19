@@ -1,7 +1,7 @@
 import React from 'react'
 import { getServerSession } from 'next-auth';
 import { options } from '../api/auth/[...nextauth]/options';
-import CatalogList from '@/components/CatalogList';
+import CatalogLists from '@/components/CatalogLists';
 const getCatalogs = async (type: string) => {
   const session = await getServerSession(options);  
   console.log(session?.user?.accessToken);
@@ -20,25 +20,32 @@ const getCatalogs = async (type: string) => {
       id: catalog.id,
       name: catalog.spec.name,
       type: catalog.spec.type,
-      spec: catalog.spec.properties['spec'],
+      properties: catalog.spec.properties,
     }
   });
   return catalogs;
 }
 async function CatalogsPage() {
-  const [solutionCatalogs, instanceCatalogs] = await Promise.all([getCatalogs('solution'), getCatalogs('instance')]);
+  const [solutionCatalogs, instanceCatalogs, configCatalogs] = await Promise.all([getCatalogs('solution'), getCatalogs('instance'), getCatalogs('config')]);
   return (
-    <div>
-      <h1>ABC</h1>
-      <h1>Solution Templates</h1>
-      <hr/>
-      <h1>BBB</h1>       
-      <CatalogList catalogs={solutionCatalogs} key="solutions"/>      
-      <h1>CCC</h1>       
-      <h1>Instance Templates</h1>
-      <hr/>
-      <CatalogList catalogs={instanceCatalogs} key="instances"/>     
-      <h1>DEF</h1>       
+    <div className='cards_view'>
+      <CatalogLists groups={[
+        {
+          catalogs: solutionCatalogs,
+          title: 'Solution Templates',
+          type: 'solution'
+        },
+        {
+          catalogs: instanceCatalogs,
+          title: 'Instance Templates',
+          type: 'instance'
+        },
+        {
+          catalogs: configCatalogs,
+          title: 'Standard Configurations',
+          type: 'config'
+        }            
+      ]}/>
     </div>
   );
 }
