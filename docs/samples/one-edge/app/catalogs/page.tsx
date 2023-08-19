@@ -5,7 +5,8 @@ import CatalogLists from '@/components/CatalogLists';
 const getCatalogs = async (type: string) => {
   const session = await getServerSession(options);  
   console.log(session?.user?.accessToken);
-  const res = await fetch('http://localhost:8082/v1alpha2/catalogs/registry', {
+  const symphonyApi = process.env.SYMPHONY_API;
+  const res = await fetch( `${symphonyApi}catalogs/registry`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${session?.user?.accessToken}`,

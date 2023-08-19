@@ -1,5 +1,5 @@
 {
-  "siteId": "symphony-hq",
+  "siteId": "hq",
   "api": {
     "pubsub": {
       "shared": true,
@@ -16,12 +16,46 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {      
-              "baseUrl": "http://symphony-service:8082/v1alpha2/",
-              "user": "admin",
-              "password": ""        
+            "properties": {   
+              "providers.state": "k8s-state"        
             },
-            "providers": {            
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
             }
           }
         ]
@@ -38,8 +72,10 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.memory",
-                "config": {}
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -57,8 +93,10 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.memory",
-                "config": {}
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -191,8 +229,10 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.memory",
-                "config": {}
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -211,8 +251,10 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.memory",
-                "config": {}
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -301,6 +343,87 @@
               },
               "k8s-reporter": {
                 "type": "providers.reporter.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.federation",
+        "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sites-manager",
+            "type": "managers.symphony.sites",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "providers.stack": "memeory"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.stack.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogs",
+        "route": "catalogs",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
                 "config": {
                   "inCluster": true
                 }

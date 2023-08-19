@@ -5,7 +5,8 @@ import SiteList from '@/components/SiteList';
 const getSites = async () => {
   const session = await getServerSession(options);  
   console.log(session?.user?.accessToken);
-  const res = await fetch('http://localhost:8082/v1alpha2/federation/registry', {
+  const symphonyApi = process.env.SYMPHONY_API;
+  const res = await fetch( `${symphonyApi}federation/registry`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${session?.user?.accessToken}`,

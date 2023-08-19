@@ -12,7 +12,7 @@ interface CatalogCardProps {
 function CatalogCard(props: CatalogCardProps) {
     const { catalog } = props;
     return (
-        <Card className="max-w-[400px]">
+        <Card>
             <CardHeader className="flex gap-3">
                 {catalog.type === 'config' && (
                     <FcSettings className="text-[#F6B519] text-3xl"/>

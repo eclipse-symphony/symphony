@@ -36,6 +36,10 @@ spec:
             properties:
               name:
                 type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
               secretHash:
                 type: string
             type: object

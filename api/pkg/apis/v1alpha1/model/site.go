@@ -34,6 +34,8 @@ type SiteState struct {
 type SiteStatus struct {
 	IsOnline bool `json:"isOnline,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 type SiteSpec struct {
 	Name       string            `json:"name,omitempty"`
 	PublicKey  string            `json:"secretHash,omitempty"`

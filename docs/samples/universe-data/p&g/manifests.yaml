@@ -1,0 +1,160 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-app-config
+spec:  
+  siteId: hq
+  type: config
+  name: site-app-config
+  properties:
+    foo: bar
+    port: 8080
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-app-config
+spec:  
+  siteId: hq
+  type: config
+  name: line-app-config
+  properties:
+    cat: leory
+    dog: snoopy
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-app
+spec:  
+  siteId: hq
+  type: solution
+  name: site-app
+  properties:
+    spec: 
+      displayName: site-app
+      components:
+      - name: influxdb
+        type: container
+        properties:
+          container.image: "influxdb:latest"
+      - name: grafana
+        type: container
+        properties:
+          container.image: "grafana/grafana:latest"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-app
+spec:  
+  siteId: hq
+  type: solution
+  name: line-app
+  properties:
+    spec: 
+      components:
+      - name: e4k-high-availability-broker
+        properties:
+          chart:
+            repo: symphonycr.azurecr.io/az-e4k-broker
+            version: 0.1.0
+        type: helm.v3
+      - name: bluefin-instance
+        properties:
+          resource:
+            apiVersion: bluefin.az-bluefin.com/v1
+            kind: Instance
+            metadata:
+              name: bf-instance
+              namespace: default
+            spec:
+              displayName: Test Instance
+              otelCollectorAddress: otel-collector.alice-springs.svc.cluster.local:4317
+        type: yaml.k8s
+      - name: test-pipeline
+        properties:
+          resource:
+            apiVersion: bluefin.az-bluefin.com/v1
+            kind: Pipeline
+            metadata:
+              name: bf-pipeline
+              namespace: default
+            spec:
+              displayName: bf-pipeline
+              enabled: true
+              input:
+                description: Read from topic Thermostat 3
+                displayName: E4K
+                format:
+                  type: json
+                mqttConnectionInfo:
+                  broker: tcp://azedge-dmqtt-frontend:1883
+                  password: password
+                  username: client1
+                next:
+                - node-22f2
+                topics:
+                - name: alice-springs/data/opc-ua-connector/opc-ua-connector/thermostat-sample-3
+                type: input/mqtt@v1
+                viewOptions:
+                  position:
+                    x: 0
+                    "y": 80
+              partitionCount: 6
+              stages:
+                node-22f2:
+                  displayName: No-op
+                  next:
+                  - output
+                  query: .
+                  type: processor/transform@v1
+                  viewOptions:
+                    position:
+                      x: 0
+                      "y": 208
+                output:
+                  broker: tcp://azedge-dmqtt-frontend:1883
+                  description: Publish to topic demo-output-topic
+                  displayName: E4K
+                  format:
+                    type: json
+                  password: password
+                  timeout: 45ms
+                  topic: alice-springs/data/demo-output
+                  type: output/mqtt@v1
+                  username: client1
+                  viewOptions:
+                    position:
+                      x: 0
+                      "y": 336
+        type: yaml.k8s
+      displayName: My solution
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: smart-fridge
+spec:  
+  siteId: hq
+  type: solution
+  name: smart-fridge
+  properties:
+    spec: 
+      displayName: smart-fridge
+      components:
+      - name: backend
+        type: helm.v3
+        properties:
+          chart:
+            repo: symphonycr.azurecr.io/backend
+            version: 0.21.5
+      - name: frontend
+        type: uwp
+        properties:
+          app.image: "HomeHub.Package_1.0.7.0_x64_Debug.appxbundle"
+          app.version: "1.0.7.0"
+      - name: messaging
+        type: container
+        properties:
+          container.image: "mqtt:latest"

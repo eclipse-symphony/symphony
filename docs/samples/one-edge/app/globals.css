@@ -93,12 +93,12 @@ body {
   gap: 1rem;
   padding: 1rem;   
   width: 100%; 
+  flex-wrap: wrap;
 }
 .cards_view {
   display: flex;
   flex-wrap: wrap;
   margin-top: 1rem;    
-  overflow-y: auto;
   width:100%;
 }
 .cards_row {

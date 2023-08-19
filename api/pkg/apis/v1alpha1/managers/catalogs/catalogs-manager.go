@@ -158,7 +158,7 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
-			"group":    model.FabricGroup,
+			"group":    model.FederationGroup,
 			"resource": "catalogs",
 		},
 	}
