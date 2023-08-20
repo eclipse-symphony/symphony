@@ -33,7 +33,6 @@ import (
 
 type SyncManager struct {
 	managers.Manager
-	SiteId string
 }
 
 func (s *SyncManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -41,8 +40,7 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	if err != nil {
 		return err
 	}
-	s.SiteId = s.Context.Site
-	if s.SiteId == "" {
+	if s.Context.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
 	}
 	return nil
@@ -51,19 +49,14 @@ func (s *SyncManager) Enabled() bool {
 	return s.Config.Properties["sync.enabled"] == "true"
 }
 func (s *SyncManager) Poll() []error {
-	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
-	if err != nil {
-		return []error{err}
+	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
+		return nil
 	}
-	user, err := utils.GetString(s.Manager.Config.Properties, "user")
-	if err != nil {
-		return []error{err}
-	}
-	password, err := utils.GetString(s.Manager.Config.Properties, "password")
-	if err != nil {
-		return []error{err}
-	}
-	batch, err := utils.GetABatchForSite(baseUrl, s.SiteId, user, password)
+	batch, err := utils.GetABatchForSite(
+		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
+		s.VendorContext.SiteInfo.SiteId,
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password)
 	if err != nil {
 		return []error{err}
 	}

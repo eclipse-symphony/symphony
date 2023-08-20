@@ -258,7 +258,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				return status, activationData
 			}
 		} else {
-			sites = append(sites, s.VendorContext.Site)
+			sites = append(sites, s.VendorContext.SiteInfo.SiteId)
 		}
 
 		inputs := triggerData.Inputs
@@ -353,7 +353,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				return status, activationData
 			}
 			for k, v := range result.Outputs {
-				if result.Site == s.Context.Site {
+				if result.Site == s.Context.SiteInfo.SiteId {
 					outputs[k] = v
 				} else {
 					outputs[fmt.Sprintf("%s.%s", result.Site, k)] = v

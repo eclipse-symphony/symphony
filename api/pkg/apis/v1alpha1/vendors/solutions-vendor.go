@@ -167,7 +167,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
 			Body: []model.Trail{
 				{
-					Origin:  c.Vendor.Context.Site,
+					Origin:  c.Vendor.Context.SiteInfo.SiteId,
 					Catalog: solution.Metadata["catalog"],
 					Type:    "solutions.solution.symphony/v1",
 					Properties: map[string]interface{}{

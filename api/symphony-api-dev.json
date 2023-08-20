@@ -1,5 +1,7 @@
 {
-  "siteId": "symphony-dev",
+  "siteInfo": {
+    "siteId": "symphony-dev"
+  },
   "api": {
     "vendors": [
       {

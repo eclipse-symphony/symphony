@@ -132,7 +132,11 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		}
 		return nil
 	})
-	return nil
+	//now register the current site
+	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
+		Name:       f.Context.SiteInfo.SiteId,
+		Properties: f.Context.SiteInfo.Properties,
+	})
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	route := "federation"
@@ -155,6 +159,13 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name?"},
 		},
 		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/status",
+			Version:    f.Version,
+			Handler:    f.onStatus,
+			Parameters: []string{"name"},
+		},
+		{
 			Methods:    []string{fasthttp.MethodGet},
 			Route:      route + "/graph",
 			Version:    f.Version,
@@ -169,6 +180,25 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
+func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	_, span := observability.StartSpan("Federation Vendor", request.Context, nil)
+
+	var state model.SiteState
+	json.Unmarshal(request.Body, &state)
+
+	err := c.SitesManager.ReportState(request.Context, state)
+
+	if err != nil {
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.InternalError,
+			Body:  []byte(err.Error()),
+		})
+	}
+	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+		State: v1alpha2.OK,
+	})
+}
+
 func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onRegistry",
@@ -282,7 +312,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		batch, err := f.StagingManager.GetABatchForSite(id)
 
 		pack := model.SyncPackage{
-			Origin: f.Context.Site,
+			Origin: f.Context.SiteInfo.SiteId,
 		}
 
 		if err != nil {

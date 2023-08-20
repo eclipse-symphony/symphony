@@ -1,5 +1,22 @@
 {
-  "siteId": "site1",
+  "siteInfo": {
+    "siteId": "new-york",
+    "properties": {
+      "name": "New York",
+      "address": "11 Times Square",
+      "city": "New York",
+      "state": "NY",
+      "zip": "10036",
+      "country": "USA",
+      "phone": "212-123-4567",
+      "version": "0.45.1"
+    },
+    "parentSite": {
+      "baseUrl": "http://localhost:8082/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    }
+  },
   "api": {
     "pubsub": {
       "shared": true,
@@ -17,7 +34,7 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {      
-              "baseUrl": "http://localhost:8083/v1alpha2/",
+              "baseUrl": "http://localhost:8084/v1alpha2/",
               "user": "admin",
               "password": "",
               "providers.state": "k8s-state"            
@@ -59,7 +76,7 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://localhost:8083/v1alpha2/",
+          "wait.baseUrl": "http://localhost:8084/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",
@@ -119,7 +136,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://localhost:8083/v1alpha2/",
+              "baseUrl": "http://localhost:8084/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -334,13 +351,13 @@
               "http-reference": {
                 "type": "providers.reference.http",
                 "config": {
-                  "url": "http://localhost:8083/v1alpha2/"
+                  "url": "http://localhost:8084/v1alpha2/"
                 }
               },
               "http-reporter": {
                 "type": "providers.reporter.http",
                 "config": {
-                  "url": "http://localhost:8083/v1alpha2/"
+                  "url": "http://localhost:8084/v1alpha2/"
                 }
               }
             }
@@ -430,7 +447,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8083,
+        "port": 8084,
         "pipeline": [
           {
             "type": "middleware.http.cors",

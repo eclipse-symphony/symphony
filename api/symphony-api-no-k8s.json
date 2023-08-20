@@ -1,5 +1,17 @@
 {
-  "siteId": "hq",
+  "siteInfo": {
+    "siteId": "muchen",
+    "properties": {
+      "name": "München",
+      "address": "Walter-Gropius-Straße 5",
+      "city": "München",
+      "state": "",
+      "zip": "80807",
+      "country": "Deutschland",
+      "phone": "+49 89 31 76 0",
+      "version": "0.45.1"
+    }
+  },
   "api": {
     "pubsub": {
       "shared": true,

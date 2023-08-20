@@ -1,5 +1,7 @@
 {
-  "siteId": "symphony-test",
+  "siteInfo": {
+    "siteId": "symphony-test"
+  },
     "api": {
       "pubsub": {
         "shared": true,

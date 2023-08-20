@@ -98,6 +98,19 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 		}
 	}
 	entry.Value.ETag = tag
+
+	// This hack is to simulate k8s upsert behavior
+	if _, ok := entry.Value.Body.(map[string]interface{}); ok {
+		mapRef := entry.Value.Body.(map[string]interface{})
+		if mapRef["status"] != nil && mapRef["spec"] == nil {
+			dataRef := s.Data[entry.Value.ID]
+			if dataRef != nil {
+				mapRef["spec"] = dataRef.(states.StateEntry).Body.(map[string]interface{})["spec"]
+			}
+			entry.Value.Body = mapRef
+		}
+	}
+
 	s.Data[entry.Value.ID] = entry.Value
 	return entry.Value.ID, nil
 }

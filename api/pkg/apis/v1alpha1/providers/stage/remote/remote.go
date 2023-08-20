@@ -90,7 +90,7 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		Metadata: map[string]string{
 			"site":       v.(string),
 			"objectType": "task",
-			"origin":     mgrContext.Site,
+			"origin":     mgrContext.SiteInfo.SiteId,
 		},
 		Body: v1alpha2.JobData{
 			Id:     "",

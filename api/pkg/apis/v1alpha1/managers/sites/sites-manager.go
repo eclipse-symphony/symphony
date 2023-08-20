@@ -29,8 +29,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -43,6 +46,10 @@ type SitesManager struct {
 }
 
 func (s *SitesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(context, config, providers)
+	if err != nil {
+		return err
+	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
@@ -89,6 +96,62 @@ func getSiteState(id string, body interface{}) (model.SiteState, error) {
 		Spec: &rSpec,
 	}
 	return state, nil
+}
+
+func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState) error {
+	getRequest := states.GetRequest{
+		ID: current.Id,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "sites",
+		},
+	}
+
+	entry, err := t.StateProvider.Get(ctx, getRequest)
+	if err != nil {
+		if !v1alpha2.IsNotFound(err) {
+			return err
+		}
+		err = t.UpsertSpec(ctx, current.Id, *current.Spec)
+		if err != nil {
+			return err
+		}
+		entry, err = t.StateProvider.Get(ctx, getRequest)
+		if err != nil {
+			return err
+		}
+	}
+
+	// This copy is necessary becasue otherwise you could be modifying data in memory stage provider
+	jTransfer, _ := json.Marshal(entry.Body)
+	var dict map[string]interface{}
+	json.Unmarshal(jTransfer, &dict)
+
+	delete(dict, "spec")
+	status := dict["status"]
+
+	j, _ := json.Marshal(status)
+	var rStatus model.SiteStatus
+	err = json.Unmarshal(j, &rStatus)
+	if err != nil {
+		return err
+	}
+	rStatus.LastReported = time.Now().UTC()
+	dict["status"] = rStatus
+
+	entry.Body = dict
+
+	updateRequest := states.UpsertRequest{
+		Value:    entry,
+		Metadata: current.Metadata,
+	}
+
+	_, err = t.StateProvider.Upsert(ctx, updateRequest)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.SiteSpec) error {
@@ -152,4 +215,26 @@ func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) 
 		ret = append(ret, rt)
 	}
 	return ret, nil
+}
+func (s *SitesManager) Enabled() bool {
+	return s.VendorContext.SiteInfo.ParentSite.BaseUrl != ""
+}
+func (s *SitesManager) Poll() []error {
+	thisSite, err := s.GetSpec(context.Background(), s.VendorContext.SiteInfo.SiteId)
+	if err != nil {
+		//TOOD: only ignore not found, and log the error
+		return nil
+	}
+	jData, _ := json.Marshal(thisSite)
+	utils.UpdateSite(
+		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
+		s.VendorContext.SiteInfo.SiteId,
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password,
+		jData,
+	)
+	return nil
+}
+func (s *SitesManager) Reconcil() []error {
+	return nil
 }

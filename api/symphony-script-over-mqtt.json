@@ -1,5 +1,7 @@
 {
-  "siteId": "symphony-hq",
+  "siteInfo": {
+    "siteId": "hq"
+  },
   "api": {
     "vendors": [
       {

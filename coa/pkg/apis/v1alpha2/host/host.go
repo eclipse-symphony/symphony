@@ -46,9 +46,9 @@ import (
 var log = logger.NewLogger("coa.runtime")
 
 type HostConfig struct {
-	SiteId   string          `json:"siteId"`
-	API      APIConfig       `json:"api"`
-	Bindings []BindingConfig `json:"bindings"`
+	SiteInfo v1alpha2.SiteInfo `json:"siteInfo"`
+	API      APIConfig         `json:"api"`
+	Bindings []BindingConfig   `json:"bindings"`
 }
 type PubSubConfig struct {
 	Shared   bool              `json:"shared"`
@@ -81,11 +81,11 @@ func (h *APIHost) Launch(config HostConfig,
 	h.Vendors = make([]VendorSpec, 0)
 	h.Bindings = make([]bindings.IBinding, 0)
 	log.Info("--- launching COA host ---")
-	if config.SiteId == "" {
+	if config.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
 	}
 	for _, v := range config.API.Vendors {
-		v.Site = config.SiteId
+		v.SiteInfo = config.SiteInfo
 		created := false
 		for _, factory := range vendorFactories {
 			vendor, err := factory.CreateVendor(v)

@@ -33,7 +33,7 @@ import (
 type ManagerContext struct {
 	Logger         logger.Logger
 	PubsubProvider pubsub.IPubSubProvider
-	Site           string
+	SiteInfo       v1alpha2.SiteInfo
 }
 
 func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error {
@@ -48,7 +48,7 @@ func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error 
 		v.PubsubProvider = c.PubsubProvider
 	}
 	if c != nil {
-		v.Site = c.Site
+		v.SiteInfo = c.SiteInfo
 	}
 	return nil
 }

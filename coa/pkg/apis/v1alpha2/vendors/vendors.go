@@ -45,7 +45,7 @@ type VendorConfig struct {
 	Managers     []managers.ManagerConfig `json:"managers"`
 	Properties   map[string]string        `json:"properties,omitempty"`
 	LoopInterval int                      `json:"loopInterval,omitempty"`
-	Site         string                   `json:"site,omitempty"`
+	SiteInfo     v1alpha2.SiteInfo        `json:"siteInfo"`
 }
 
 type IVendor interface {
@@ -105,7 +105,7 @@ func (v *Vendor) RunLoop(interval time.Duration) error {
 
 func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	v.Context = &contexts.VendorContext{}
-	v.Context.Site = config.Site
+	v.Context.SiteInfo = config.SiteInfo
 	err := v.Context.Init(pubsubProvider)
 	if err != nil {
 		return err

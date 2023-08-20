@@ -18,7 +18,9 @@ export const options: NextAuthOptions = {
                 },             
             },
             async authorize(credentials) {
-                const res = await fetch("http://localhost:8082/v1alpha2/users/auth", {
+                const symphonyApi = process.env.SYMPHONY_API;
+  
+                const res = await fetch(`${symphonyApi}users/auth`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"

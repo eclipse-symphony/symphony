@@ -7,8 +7,17 @@ import { AiOutlineHome } from 'react-icons/ai';
 import { FiMail } from 'react-icons/fi';
 import { MdOutlineKeyboardArrowLeft } from 'react-icons/md';
 import { useState } from 'react';
-import { HiOfficeBuilding} from 'react-icons/hi';
-import {GrCatalog} from 'react-icons/gr';
+import { GrCatalog } from 'react-icons/gr';
+import { TbBuildingCommunity } from 'react-icons/tb';
+import { HiOutlineTemplate } from 'react-icons/hi';
+import { IoLogoAppleAr }   from 'react-icons/io5';
+import { FiServer } from 'react-icons/fi';
+import { GoWorkflow } from 'react-icons/go';
+import { PiBrainLight } from 'react-icons/pi';
+import { PiGraph } from 'react-icons/pi';
+import { FiPackage } from 'react-icons/fi';
+import { PiPathBold } from 'react-icons/pi';
+import { HiOutlineCamera } from 'react-icons/hi';
 function SideBar() {
     const sidebarItems = [
         {
@@ -19,7 +28,7 @@ function SideBar() {
         {
             name: "Sites",
             href: "/sites",
-            icon: HiOfficeBuilding,
+            icon: TbBuildingCommunity,
         },
         {
             name: "Catalogs",
@@ -29,37 +38,52 @@ function SideBar() {
         {
             name: "Solutions",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: HiOutlineTemplate,
         },
         {
             name: "Instances",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: IoLogoAppleAr,
         },
         {
             name: "Targets",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: FiServer,
+        },
+        {
+            name: "Devices",
+            href: "/coming-soon",
+            icon: HiOutlineCamera,
+        },
+        {
+            name: "Campaigns",
+            href: "/coming-soon",
+            icon: GoWorkflow,
         },
         {
             name: "AI Models",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: PiBrainLight,
         },
         {
             name: "AI Skills",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: PiGraph,
         },
         {
             name: "AI Skill Packages",
             href: "/coming-soon",
-            icon: FiMail,
+            icon: FiPackage,
         },
         {
             name: "Dashboard",
             href: "/coming-soon",
             icon: MdDashboard,
+        },
+        {
+            name: "Trails",
+            href: "/coming-soon",
+            icon: PiPathBold,
         }
     ];
     const [isSidebarCollapse, setSidebarCollapse] = useState(false);

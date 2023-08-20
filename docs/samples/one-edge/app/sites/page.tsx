@@ -17,9 +17,14 @@ const getSites = async () => {
   const sites = data.map((site: any) => {
     return {
       id: site.id,
-      name: site.spec.name,
-      phone: site.spec.properties['phone'],
-      description: site.spec.properties['description'],
+      phone: site.spec.properties?.phone ?? '',
+      address: site.spec.properties?.address ?? '',
+      city: site.spec.properties?.city ?? '',
+      state: site.spec.properties?.state ?? '',
+      zip: site.spec.properties?.zip ?? '',
+      country: site.spec.properties?.country ?? '',
+      version: site.spec.properties?.version ?? '',
+      name: site.spec.properties?.name ?? (site.spec.properties?.id ?? ''),
     }
   });
   return sites;

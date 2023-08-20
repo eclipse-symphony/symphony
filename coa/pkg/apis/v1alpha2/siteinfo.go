@@ -22,38 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-package contexts
+package v1alpha2
 
-import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	logger "github.com/azure/symphony/coa/pkg/logger"
-)
-
-type VendorContext struct {
-	Logger            logger.Logger
-	PubsubProvider    pubsub.IPubSubProvider
-	SiteInfo          v1alpha2.SiteInfo
-	EvaluationContext *utils.EvaluationContext
+type SiteInfo struct {
+	SiteId     string            `json:"siteId"`
+	Properties map[string]string `json:"properties,omitempty"`
+	ParentSite SiteConnection    `json:"parentSite,omitempty"`
 }
-
-func (v *VendorContext) Init(p pubsub.IPubSubProvider) error {
-	v.Logger = logger.NewLogger("coa.runtime")
-	v.PubsubProvider = p
-	return nil
-}
-
-func (v *VendorContext) Publish(feed string, event v1alpha2.Event) error {
-	if v.PubsubProvider != nil {
-		return v.PubsubProvider.Publish(feed, event)
-	}
-	return nil
-}
-
-func (v *VendorContext) Subscribe(feed string, handler v1alpha2.EventHandler) error {
-	if v.PubsubProvider != nil {
-		return v.PubsubProvider.Subscribe(feed, handler)
-	}
-	return nil
+type SiteConnection struct {
+	BaseUrl  string `json:"baseUrl"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
