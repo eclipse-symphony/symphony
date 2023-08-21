@@ -18,6 +18,7 @@ package federation
 
 import (
 	"context"
+	"encoding/json"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
+
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // CatalogReconciler reconciles a Site object
@@ -49,7 +52,18 @@ type CatalogReconciler struct {
 func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	catalog := &federationv1.Catalog{}
+	if err := r.Client.Get(ctx, req.NamespacedName, catalog); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
+		jData, _ := json.Marshal(catalog.Spec)
+		err := api_utils.CatalogHook("http://symphony-service:8080/v1alpha2/", "admin", "", jData)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }

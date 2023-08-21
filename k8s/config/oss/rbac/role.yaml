@@ -317,3 +317,55 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs/status
+  verbs:
+  - get
+  - patch
+  - update

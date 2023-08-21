@@ -25,6 +25,8 @@ const getSites = async () => {
       country: site.spec.properties?.country ?? '',
       version: site.spec.properties?.version ?? '',
       name: site.spec.properties?.name ?? (site.spec.properties?.id ?? ''),
+      self: site.spec.isSelf ?? false,
+      lastReported: site.status?.lastReported ? new Date(site.status.lastReported) : null,
     }
   });
   return sites;
@@ -33,9 +35,9 @@ const getSites = async () => {
 async function SitesPage() {
   const sites = await getSites();  
   return (
-    <div className='cards_view'>
-      <SiteList sites={sites}/>      
-    </div>
+        <div className='cards_view'>
+          <SiteList sites={sites}/>      
+        </div>
   );
 }
 

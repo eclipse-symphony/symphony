@@ -18,6 +18,7 @@ import { PiGraph } from 'react-icons/pi';
 import { FiPackage } from 'react-icons/fi';
 import { PiPathBold } from 'react-icons/pi';
 import { HiOutlineCamera } from 'react-icons/hi';
+import { GoCopilot } from 'react-icons/go';
 function SideBar() {
     const sidebarItems = [
         {
@@ -57,7 +58,7 @@ function SideBar() {
         },
         {
             name: "Campaigns",
-            href: "/coming-soon",
+            href: "/campaigns",
             icon: GoWorkflow,
         },
         {
@@ -84,6 +85,11 @@ function SideBar() {
             name: "Trails",
             href: "/coming-soon",
             icon: PiPathBold,
+        },
+        {
+            name: "Copilot",
+            href: "/coming-soon",
+            icon: GoCopilot,
         }
     ];
     const [isSidebarCollapse, setSidebarCollapse] = useState(false);

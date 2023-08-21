@@ -84,6 +84,7 @@ func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteStat
 func getSiteState(id string, body interface{}) (model.SiteState, error) {
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
+	status := dict["status"]
 
 	j, _ := json.Marshal(spec)
 	var rSpec model.SiteSpec
@@ -91,14 +92,30 @@ func getSiteState(id string, body interface{}) (model.SiteState, error) {
 	if err != nil {
 		return model.SiteState{}, err
 	}
+
+	var rStatus model.SiteStatus
+
+	if status != nil {
+		j, _ = json.Marshal(status)
+		err = json.Unmarshal(j, &rStatus)
+		if err != nil {
+			return model.SiteState{}, err
+		}
+	}
 	state := model.SiteState{
-		Id:   id,
-		Spec: &rSpec,
+		Id:     id,
+		Spec:   &rSpec,
+		Status: &rStatus,
 	}
 	return state, nil
 }
 
 func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState) error {
+	current.Metadata = map[string]string{
+		"version":  "v1",
+		"group":    model.FederationGroup,
+		"resource": "sites",
+	}
 	getRequest := states.GetRequest{
 		ID: current.Id,
 		Metadata: map[string]string{
@@ -137,7 +154,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	if err != nil {
 		return err
 	}
-	rStatus.LastReported = time.Now().UTC()
+	rStatus.LastReported = time.Now().UTC().Format(time.RFC3339)
 	dict["status"] = rStatus
 
 	entry.Body = dict
@@ -225,6 +242,7 @@ func (s *SitesManager) Poll() []error {
 		//TOOD: only ignore not found, and log the error
 		return nil
 	}
+	thisSite.Spec.IsSelf = false
 	jData, _ := json.Marshal(thisSite)
 	utils.UpdateSite(
 		s.VendorContext.SiteInfo.ParentSite.BaseUrl,

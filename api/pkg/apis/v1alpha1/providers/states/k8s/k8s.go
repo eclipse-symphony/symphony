@@ -40,6 +40,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -225,6 +226,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			DeviceId:     entry.Value.ID,
 			ModelId:      entry.Value.ID,
 			SkillId:      entry.Value.ID,
+			SiteId:       entry.Value.ID,
 		})
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
@@ -390,9 +392,14 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, request.ID, metav1.GetOptions{})
 	if err != nil {
+		coaError := v1alpha2.NewCOAError(err, "failed to get object", v1alpha2.InternalError)
+		//check if not found
+		if k8s_errors.IsNotFound(err) {
+			coaError.State = v1alpha2.NotFound
+		}
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P (K8s State): failed to get objects: %v", err)
-		return states.StateEntry{}, err
+		sLog.Errorf("  P (K8s State): failed to get objects: %v", coaError)
+		return states.StateEntry{}, coaError
 	}
 	generation := item.GetGeneration()
 	ret := states.StateEntry{

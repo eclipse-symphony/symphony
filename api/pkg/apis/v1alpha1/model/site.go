@@ -26,7 +26,6 @@ package model
 
 import (
 	"errors"
-	"time"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 )
@@ -45,16 +44,19 @@ type InstanceStatus struct {
 	State  v1alpha2.State `json:"state,omitempty"`
 	Reason string         `json:"reason,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 type SiteStatus struct {
 	IsOnline         bool                      `json:"isOnline,omitempty"`
 	TargetStatuses   map[string]TargetStatus   `json:"targetStatuses,omitempty"`
 	InstanceStatuses map[string]InstanceStatus `json:"instanceStatuses,omitempty"`
-	LastReported     time.Time                 `json:"lastReported,omitempty"`
+	LastReported     string                    `json:"lastReported,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
 type SiteSpec struct {
 	Name       string            `json:"name,omitempty"`
+	IsSelf     bool              `json:"isSelf,omitempty"`
 	PublicKey  string            `json:"secretHash,omitempty"`
 	Properties map[string]string `json:"properties,omitempty"`
 }

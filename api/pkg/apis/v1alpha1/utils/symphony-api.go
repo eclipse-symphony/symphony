@@ -654,6 +654,19 @@ func GetSummary(baseUrl string, user string, password string, id string) (model.
 	}
 	return result, nil
 }
+func CatalogHook(baseUrl string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	path := "federation/k8shook?objectType=catalog"
+	_, err = callRestAPI(baseUrl, path, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func QueueJob(baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {

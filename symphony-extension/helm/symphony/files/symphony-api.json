@@ -1,5 +1,16 @@
 {
-  "siteId": "hq",
+  "siteInfo": {
+    "siteId": "hq",
+    "properties": {
+      "address": "1 Microsoft Way",
+      "city": "Redmond",
+      "state": "WA",
+      "zip": "98052",
+      "country": "USA",
+      "phone": "425-882-8080",
+      "version": "0.45.1"
+    }
+  },
   "api": {
     "pubsub": {
       "shared": true,

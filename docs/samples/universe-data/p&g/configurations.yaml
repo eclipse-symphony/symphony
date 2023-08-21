@@ -1,0 +1,61 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: influx-db-config
+spec:  
+  siteId: hq
+  type: config
+  name: influx-db-config
+  properties:
+    host: localhost
+    port: 8086
+    username: myusername
+    password: mypassword
+    database: mydatabase
+    retentionPolicy: myretentionpolicy
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: grafana-config
+spec:  
+  siteId: hq
+  type: config
+  name: grafana-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: e4k-config
+spec:  
+  siteId: hq
+  type: config
+  name: e4k-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: bluefin-config
+spec:  
+  siteId: hq
+  type: config
+  name: bluefin-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true

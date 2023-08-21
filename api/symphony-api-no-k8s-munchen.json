@@ -1,14 +1,14 @@
 {
   "siteInfo": {
-    "siteId": "new-york",
+    "siteId": "munchen",
     "properties": {
-      "name": "New York",
-      "address": "11 Times Square",
-      "city": "New York",
-      "state": "NY",
-      "zip": "10036",
-      "country": "USA",
-      "phone": "212-123-4567",
+      "name": "München",
+      "address": "Walter-Gropius-Straße 5",
+      "city": "München",
+      "state": "",
+      "zip": "80807",
+      "country": "Deutschland",
+      "phone": "+49 89 31 76 0",
       "version": "0.45.1"
     },
     "parentSite": {
@@ -39,7 +39,7 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://localhost:8084/v1alpha2/",
+                  "baseUrl": "http://localhost:8082/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }
@@ -55,11 +55,11 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {      
-              "baseUrl": "http://localhost:8084/v1alpha2/",
+            "properties": {   
+              "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
-              "providers.state": "k8s-state"            
+              "providers.state": "k8s-state"        
             },
             "providers": {
               "k8s-state": {
@@ -98,7 +98,7 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://localhost:8084/v1alpha2/",
+          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",
@@ -113,7 +113,8 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.state": "k8s-state",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
@@ -132,7 +133,8 @@
             "name": "campaigns-manager",
             "type": "managers.symphony.campaigns",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.state": "k8s-state",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
@@ -158,7 +160,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://localhost:8084/v1alpha2/",
+              "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -373,13 +375,13 @@
               "http-reference": {
                 "type": "providers.reference.http",
                 "config": {
-                  "url": "http://localhost:8084/v1alpha2/"
+                  "url": "http://localhost:8082/v1alpha2/"
                 }
               },
               "http-reporter": {
                 "type": "providers.reporter.http",
                 "config": {
-                  "url": "http://localhost:8084/v1alpha2/"
+                  "url": "http://localhost:8082/v1alpha2/"
                 }
               }
             }
@@ -391,6 +393,16 @@
         "route": "federation",
         "loopInterval": 15,
         "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
           {
             "name": "sites-manager",
             "type": "managers.symphony.sites",
@@ -409,7 +421,7 @@
             "type": "managers.symphony.catalogs",
             "properties": {
               "providers.state": "memeory",
-              "singleton": "true"                         
+              "singleton": "true"              
             },
             "providers": {
               "memeory": {
@@ -430,7 +442,8 @@
                 "config": {}
               }
             }
-          }, {
+          },
+          {
             "name": "sync-manager",
             "type": "managers.symphony.sync",
             "properties": {
@@ -452,7 +465,7 @@
             "type": "managers.symphony.catalogs",
             "properties": {
               "providers.state": "memeory",
-              "singleton": "true"              
+              "singleton": "true"
             },
             "providers": {
               "memeory": {
@@ -469,7 +482,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8084,
+        "port": 8082,
         "pipeline": [
           {
             "type": "middleware.http.cors",

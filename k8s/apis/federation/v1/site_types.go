@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Site is the Schema for the sites API
 type Site struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -32,8 +32,7 @@ type Site struct {
 	Status apimodel.SiteStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // SiteList contains a list of Site
 type SiteList struct {
 	metav1.TypeMeta `json:",inline"`

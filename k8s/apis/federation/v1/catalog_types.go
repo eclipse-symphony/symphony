@@ -25,8 +25,8 @@ type CatalogStatus struct {
 	Properties map[string]string `json:"properties"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // Catalog is the Schema for the catalogs API
 type Catalog struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -36,8 +36,7 @@ type Catalog struct {
 	Status CatalogStatus        `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
+// +kubebuilder:object:root=true
 // CatalogList contains a list of Catalog
 type CatalogList struct {
 	metav1.TypeMeta `json:",inline"`

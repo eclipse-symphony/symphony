@@ -102,8 +102,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			return err
 		}
 		for _, site := range sites {
-			event.Metadata["site"] = site.Spec.Name
-			f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
+			if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
+				event.Metadata["site"] = site.Spec.Name
+				f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
+			}
 		}
 		return nil
 	})
@@ -136,6 +138,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
 		Name:       f.Context.SiteInfo.SiteId,
 		Properties: f.Context.SiteInfo.Properties,
+		IsSelf:     true,
 	})
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
@@ -177,6 +180,12 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:   route + "/trail",
 			Version: f.Version,
 			Handler: f.onTrail,
+		},
+		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/k8shook",
+			Version: f.Version,
+			Handler: f.onK8sHook,
 		},
 	}
 }
@@ -373,5 +382,53 @@ func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResp
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 		ContentType: "application/json",
 	}
+	return resp
+}
+func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+		"method": "onK8sHook",
+	})
+	tLog.Info("V (Federation): onK8sHook")
+	switch request.Method {
+	case fasthttp.MethodPost:
+		objectType := request.Parameters["objectType"]
+		if objectType == "catalog" {
+			var catalog model.CatalogSpec
+			err := json.Unmarshal(request.Body, &catalog)
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.BadRequest,
+					Body:  []byte(err.Error()),
+				})
+			}
+			err = f.Vendor.Context.Publish("catalog", v1alpha2.Event{
+				Metadata: map[string]string{
+					"objectType": catalog.Type,
+				},
+				Body: v1alpha2.JobData{
+					Id:     catalog.Name,
+					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+					Body:   catalog,
+				},
+			})
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.OK,
+			})
+		}
+	}
+
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	span.End()
 	return resp
 }

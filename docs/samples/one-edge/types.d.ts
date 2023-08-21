@@ -1,10 +1,39 @@
 export interface Site {
     id: string;
     name: string;
-    description: string;
+    address: string,
     phone: string;
+    city: string,
+    sate: string,
+    zip: string,
+    country: string,
+    version: string,
+    self: boolean,
+    lastReported: Date,
 }
 
+export interface CampaignState {
+    id: string;
+    spec: CampaignSpec;
+    status: CampainStatus;
+}
+
+export interface CampainStatus {
+
+}
+
+export interface StageSpec {
+    name: string;    
+    stageSelector: string;
+    provider: string;
+    inputs: Record<string, any>;
+    config: Record<string, any>;
+}
+export interface CampaignSpec {
+    id: string;
+    firstStage: string;
+    stages: Record<string, StageSpec>;
+}
 export interface Catalog {
     id: string;
     origin: string;

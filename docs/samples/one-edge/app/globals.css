@@ -42,6 +42,11 @@ body {
   display: flex;
   padding-bottom: 0.2rem;
 }
+.sitecard_icon {
+  display: flex;
+  font-size: xx-large;
+  padding-bottom: 0.2rem;
+}
 .sidebar_name {
   margin-left: 0.5rem;
 }
@@ -105,4 +110,14 @@ body {
   flex-wrap: wrap;
   margin-top: 1rem;      
   width:100%;
+}
+.view_container{
+  transform: translateY(-45px);
+}
+.top_navbar {
+  width: 100%;  
+  justify-content: start;
+}
+.table-cell-no-wrap {
+  white-space: nowrap;
 }

@@ -34,6 +34,8 @@ spec:
             type: object
           spec:
             properties:
+              isSelf:
+                type: boolean
               name:
                 type: string
               properties:
@@ -45,9 +47,33 @@ spec:
             type: object
           status:
             properties:
+              instanceStatuses:
+                additionalProperties:
+                  properties:
+                    reason:
+                      type: string
+                    state:
+                      description: State represents a response state
+                      type: integer
+                  type: object
+                type: object
               isOnline:
                 type: boolean
+              lastReported:
+                type: string
+              targetStatuses:
+                additionalProperties:
+                  properties:
+                    reason:
+                      type: string
+                    state:
+                      description: State represents a response state
+                      type: integer
+                  type: object
+                type: object
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

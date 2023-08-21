@@ -1,0 +1,43 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: disco
+spec:  
+  firstStage: list
+  stages:
+    list:
+      type: WTF
+      name: list
+      provider: providers.stage.list
+      stageSelector: wait
+      config:
+        baseUrl: http://localhost:8080/v1alha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: sites
+        namesOnly: true
+    wait:
+      type: WTF
+      name: wait
+      provider: providers.stage.remote
+      stageSelector: materialize
+      contexts: "$output(list,items)"
+      inputs:
+        operation: wait
+        objectType: catalogs
+        name:
+        - site-app
+        - site-instance
+    materialize:
+      type: WTF
+      name: materialize
+      provider: providers.stage.remote
+      stageSelector: ""
+      contexts: "$output(list,items)"
+      inputs:
+        operation: materialize
+        names:
+        - site-app
+        - site-instance
+  selfDriving: true

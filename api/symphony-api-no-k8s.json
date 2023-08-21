@@ -1,14 +1,14 @@
 {
   "siteInfo": {
-    "siteId": "muchen",
+    "siteId": "laptop",
     "properties": {
-      "name": "München",
-      "address": "Walter-Gropius-Straße 5",
-      "city": "München",
-      "state": "",
-      "zip": "80807",
-      "country": "Deutschland",
-      "phone": "+49 89 31 76 0",
+      "name": "My Laptop",
+      "address": "1 Main Street",
+      "city": "Carnation",
+      "state": "WA",
+      "zip": "98014",
+      "country": "USA",
+      "phone": "425-555-1212",
       "version": "0.45.1"
     }
   },
@@ -51,6 +51,9 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
+              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "user": "admin",
+              "password": "",
               "providers.state": "k8s-state"        
             },
             "providers": {
@@ -88,7 +91,14 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",
@@ -375,6 +385,8 @@
       },
       {
         "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
         "managers": [
           {
             "name": "trails-manager",
@@ -424,6 +436,17 @@
                 "type": "providers.stack.memory",
                 "config": {}
               }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "baseUrl": "http://localhost:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "sync.enabled": "true"
             }
           }
         ]
