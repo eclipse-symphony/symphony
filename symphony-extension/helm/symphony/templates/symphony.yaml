@@ -212,6 +212,10 @@ spec:
             properties:
               generation:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               name:
                 type: string
               objectRef:
@@ -230,10 +234,6 @@ spec:
                     type: string
                   siteId:
                     type: string
-                  status:
-                    additionalProperties:
-                      type: string
-                    type: object
                   version:
                     type: string
                 required:
@@ -254,6 +254,7 @@ spec:
               type:
                 type: string
             required:
+            - metadata
             - name
             - properties
             - siteId

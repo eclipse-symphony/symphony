@@ -37,21 +37,21 @@ type CatalogState struct {
 
 // +kubebuilder:object:generate=true
 type ObjectRef struct {
-	SiteId     string            `json:"siteId"`
-	Name       string            `json:"name"`
-	Group      string            `json:"group"`
-	Version    string            `json:"version"`
-	Kind       string            `json:"kind"`
-	Scope      string            `json:"scope"`
-	Address    string            `json:"address,omitempty"`
-	Status     map[string]string `json:"status,omitempty"`
-	Generation string            `json:"generation,omitempty"`
+	SiteId     string `json:"siteId"`
+	Name       string `json:"name"`
+	Group      string `json:"group"`
+	Version    string `json:"version"`
+	Kind       string `json:"kind"`
+	Scope      string `json:"scope"`
+	Address    string `json:"address,omitempty"`
+	Generation string `json:"generation,omitempty"`
 }
 type CatalogSpec struct {
 	SiteId     string                 `json:"siteId"`
 	Name       string                 `json:"name"`
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
+	Metadata   map[string]string      `json:"metadata"`
 	ParentName string                 `json:"parentName,omitempty"`
 	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
 	Generation string                 `json:"generation,omitempty"`

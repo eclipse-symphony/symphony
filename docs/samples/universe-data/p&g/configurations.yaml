@@ -71,3 +71,17 @@ spec:
   properties:
     model: gpt
     version: "4.5"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: ai-config-override
+spec:  
+  siteId: hq
+  type: config
+  name: ai-config
+  metadata:
+    override: ai-config
+  properties:
+    model: LLaMA
+    version: "4.5"
