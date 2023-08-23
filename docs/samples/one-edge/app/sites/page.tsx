@@ -1,7 +1,7 @@
 import React from 'react'
 import { getServerSession } from 'next-auth';
 import { options } from '../api/auth/[...nextauth]/options';
-import SiteList from '@/components/SiteList';
+import MultiView from '@/components/MultiView';
 const getSites = async () => {
   const session = await getServerSession(options);  
   console.log(session?.user?.accessToken);
@@ -10,7 +10,7 @@ const getSites = async () => {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${session?.user?.accessToken}`,
-    }
+    }    
   });
   const data = await res.json();
   //map each element and do some transformation
@@ -34,9 +34,16 @@ const getSites = async () => {
 
 async function SitesPage() {
   const sites = await getSites();  
+  const params = {
+    type: 'sites',
+    menuItems: [],
+    views: ['cards', 'table', 'map'],
+    items: sites,
+    refItems: [],
+  }
   return (
-        <div className='cards_view'>
-          <SiteList sites={sites}/>      
+        <div>
+          <MultiView params={params} />
         </div>
   );
 }

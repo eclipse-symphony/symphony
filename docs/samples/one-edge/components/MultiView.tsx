@@ -9,6 +9,7 @@ import { PiTable } from 'react-icons/pi';
 import { PiMapTrifold } from 'react-icons/pi';
 import { useState } from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
+import SiteCardList from "./sites/SiteCardList";
 interface MenuInfo {
     name: string;
     href: string;    
@@ -77,6 +78,7 @@ function MultiView(props: MultiViewProps) {
                                     <span>{view}</span>
                                     </div>}>
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
+                            {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                         </Tab>
                     ))}
                 </Tabs>

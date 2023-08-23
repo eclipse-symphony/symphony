@@ -45,8 +45,8 @@ spec:
       - name: inference
         type: container
         properties:
-          container.image: "ubuntu:latest"
-          env.AI_MODEL: "$config(ai-config,gpt)-$config(ai-config,version)"
+          container.image: "redis:latest"
+          env.AI_MODEL: "$config(ai-config,model)"
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog

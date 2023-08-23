@@ -47,7 +47,6 @@ import (
 	config "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	secret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
 
@@ -200,12 +199,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	var err error
-	deployment, err = api_utils.EvaluateDeployment(utils.EvaluationContext{
-		ConfigProvider: s.ConfigProvider,
-		SecretProvider: s.SecretProvoider,
-		DeploymentSpec: deployment,
-		Component:      "",
-	})
+	context := s.VendorContext.EvaluationContext.Clone()
+	context.DeploymentSpec = deployment
+	context.Component = ""
+	deployment, err = api_utils.EvaluateDeployment(*context)
+
 	if err != nil {
 		summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
@@ -291,26 +289,26 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		var stepError error
 		var componentResults map[string]model.ComponentResultSpec
 
-		for _, component := range step.Components {
-			for k, v := range component.Component.Properties {
-				if strV, ok := v.(string); ok {
-					parser := api_utils.NewParser(strV)
-					eCtx := s.VendorContext.EvaluationContext.Clone()
-					eCtx.DeploymentSpec = deployment
-					eCtx.Component = component.Component.Name
-					val, err := parser.Eval(*eCtx)
-					if err == nil {
-						component.Component.Properties[k] = val
-					} else {
-						log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
-						summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
-						s.saveSummary(ctx, deployment, summary)
-						observ_utils.CloseSpanWithError(span, err)
-						return summary, err
-					}
-				}
-			}
-		}
+		// for _, component := range step.Components {
+		// 	for k, v := range component.Component.Properties {
+		// 		if strV, ok := v.(string); ok {
+		// 			parser := api_utils.NewParser(strV)
+		// 			eCtx := s.VendorContext.EvaluationContext.Clone()
+		// 			eCtx.DeploymentSpec = deployment
+		// 			eCtx.Component = component.Component.Name
+		// 			val, err := parser.Eval(*eCtx)
+		// 			if err == nil {
+		// 				component.Component.Properties[k] = val
+		// 			} else {
+		// 				log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
+		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
+		// 				s.saveSummary(ctx, deployment, summary)
+		// 				observ_utils.CloseSpanWithError(span, err)
+		// 				return summary, err
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		for i := 0; i < retryCount; i++ {
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(iCtx, dep, step, false)
