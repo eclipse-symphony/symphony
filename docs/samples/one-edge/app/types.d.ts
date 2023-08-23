@@ -28,6 +28,7 @@ export interface StageSpec {
     provider: string;
     inputs: Record<string, any>;
     config: Record<string, any>;
+    contexts: string;
 }
 export interface CampaignSpec {
     id: string;
@@ -62,4 +63,30 @@ export interface SolutionSpec {
 export interface Solution {
     id: string;
     spec: SolutionSpec;
+}
+
+export interface ActivationSpec {
+    campaign: string;
+    name: string;
+    stage: string;
+    inputs: Record<string, any>;
+    generation: string;
+}
+
+export interface ActivationStatus {
+    stage: string;
+    nextStage: string;
+    inputs: Record<string, any>;
+    outputs: Record<string, any>;
+    status: number;
+    errorMessage: string;
+    isActive: boolean;
+    activationGeneration: string;
+}
+
+export interface ActivationState {
+    id: string;
+    metadata: Record<string, string>;
+    spec: ActivationSpec;
+    status: ActivationStatus;
 }

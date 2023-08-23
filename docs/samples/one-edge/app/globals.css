@@ -57,7 +57,6 @@ body {
 .layout {
   display:flex;
   height: 100vh;  
-  gap: 2rem;
 }
 .sidebar_wrapper{
   position: relative;

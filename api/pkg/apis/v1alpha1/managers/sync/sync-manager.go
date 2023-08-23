@@ -60,6 +60,7 @@ func (s *SyncManager) Poll() []error {
 	if err != nil {
 		return []error{err}
 	}
+
 	if batch.Catalogs != nil {
 		for _, catalog := range batch.Catalogs {
 			s.Context.Publish("catalog-sync", v1alpha2.Event{

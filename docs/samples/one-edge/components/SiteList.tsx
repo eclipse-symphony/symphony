@@ -1,6 +1,6 @@
 'use client';
 
-import { Site } from '../types';
+import { Site } from '../app/types';
 import SiteCard from './SiteCard';
 import {Tabs, Tab} from "@nextui-org/react";
 import { PiCards } from 'react-icons/pi';

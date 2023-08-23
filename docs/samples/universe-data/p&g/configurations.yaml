@@ -59,3 +59,15 @@ spec:
     username: myusername
     password: mypassword
     ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: ai-config
+spec:  
+  siteId: hq
+  type: config
+  name: ai-config
+  properties:
+    model: gpt
+    version: "4.5"

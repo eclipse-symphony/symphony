@@ -208,7 +208,6 @@ func GetABatchForSite(baseUrl string, site string, user string, password string)
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {

@@ -72,10 +72,13 @@ type EvaluationContext struct {
 	Component      string
 }
 
-func (e *EvaluationContext) Clone() EvaluationContext {
+func (e *EvaluationContext) Clone() *EvaluationContext {
 	// The Clone() method shares references to the same ConfigProvider and SecretProvider
 	// Other fields are not shared and need to be filled in by the caller
-	return EvaluationContext{
+	if e == nil {
+		return nil
+	}
+	return &EvaluationContext{
 		ConfigProvider: e.ConfigProvider,
 		SecretProvider: e.SecretProvider,
 	}

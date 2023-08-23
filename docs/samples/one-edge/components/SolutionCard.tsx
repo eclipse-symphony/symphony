@@ -1,4 +1,4 @@
-import { Solution } from '../types';
+import { Solution } from '../app/types';
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} from "@nextui-org/react";
 import {FaDocker} from 'react-icons/fa';
 import {SiHelm} from 'react-icons/si';

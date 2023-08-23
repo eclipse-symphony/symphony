@@ -33,7 +33,7 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://localhost:8080/v1alpha2/",
+                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }

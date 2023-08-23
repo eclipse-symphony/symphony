@@ -1,7 +1,7 @@
 'use client';
 
 import {Card, CardHeader, CardBody, CardFooter, Divider, Link, Image} from '@nextui-org/react';
-import { Catalog } from '../types';
+import { Catalog } from '../app/types';
 import PropertyTable from './PropertyTable';
 import SolutionCard from './SolutionCard';
 import { FcSettings, FcTemplate } from 'react-icons/fc';

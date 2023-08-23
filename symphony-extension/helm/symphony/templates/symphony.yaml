@@ -157,10 +157,6 @@ spec:
                       type: string
                     stageSelector:
                       type: string
-                    type:
-                      type: string
-                  required:
-                  - type
                   type: object
                 type: object
             type: object

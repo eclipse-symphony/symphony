@@ -118,9 +118,14 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		return nil
 	})
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
+		fLog.Debugf("V (Federation): received report event: %v", event)
 		if status, ok := event.Body.(model.ActivationStatus); ok {
-			err := utils.SyncActivationStatus("http://localhost:8082/v1alpha2/", "admin", "", status)
+			err := utils.SyncActivationStatus(
+				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
+				f.Vendor.Context.SiteInfo.ParentSite.Username,
+				f.Vendor.Context.SiteInfo.ParentSite.Password, status)
 			if err != nil {
+				fLog.Errorf("V (Federation): error while syncing activation status: %v", err)
 				return err
 			}
 		}
@@ -298,6 +303,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		var status model.ActivationStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
+			tLog.Errorf("V (Federation): failed to unmarshal activation status: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
@@ -307,11 +313,13 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 			Body: status,
 		})
 		if err != nil {
+			tLog.Errorf("V (Federation): failed to publish job report: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
 		}
+		tLog.Debugf("V (Federation): published job report: %v", status)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})

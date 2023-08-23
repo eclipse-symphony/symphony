@@ -117,6 +117,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return nil
 	})
 	s.Vendor.Context.Subscribe("trigger", func(topic string, event v1alpha2.Event) error {
+		log.Info("V (Stage): handling trigger event")
 		status := model.ActivationStatus{
 			Stage:        "",
 			NextStage:    "",
@@ -164,7 +165,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 			return err
 		}
-		if activation != nil && status.Status != v1alpha2.Done {
+		if activation != nil && status.Status != v1alpha2.Done && status.Status != v1alpha2.Paused {
 			s.Vendor.Context.Publish("trigger", v1alpha2.Event{
 				Body: *activation,
 			})
@@ -172,10 +173,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return nil
 	})
 	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
+		sLog.Debugf("V (Stage): handling job report event: %v", event)
 		status := event.Body.(model.ActivationStatus)
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaign, err := s.CampaignsManager.GetSpec(context.Background(), status.Outputs["__campaign"].(string))
 			if err != nil {
+				sLog.Errorf("V (Stage): failed to get campaign spec '%s': %v", status.Outputs["__campaign"].(string), err)
 				return err
 			}
 			if campaign.Spec.SelfDriving {
@@ -184,6 +187,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 					status.Status = v1alpha2.InternalError
 					status.IsActive = false
 					status.ErrorMessage = fmt.Sprintf("failed to resume stage: %v", err)
+					sLog.Errorf("V (Stage): failed to resume stage: %v", err)
 				}
 				if activation != nil {
 					s.Vendor.Context.Publish("trigger", v1alpha2.Event{
@@ -192,9 +196,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				}
 			}
 		}
-
-		jData, _ := json.Marshal(status.Outputs)
-		fmt.Printf("job-report: %v\n", string(jData))
 
 		//TODO: later site overrides reports from earlier sites
 		err = s.ActivationsManager.ReportStatus(context.Background(), status.Outputs["__activation"].(string), status)
@@ -243,6 +244,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("operation %v is not supported", dataPackage.Inputs["operation"]), v1alpha2.BadRequest)
 		}
 		status := s.StageManager.HandleDirectTriggerEvent(context.Background(), triggerData)
+		sLog.Debugf("V (Stage): reporting status: %v", status)
 		s.Vendor.Context.Publish("report", v1alpha2.Event{
 			Body: status,
 		})

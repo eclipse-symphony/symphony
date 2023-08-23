@@ -1,4 +1,4 @@
-import { Catalog } from '../types';
+import { Catalog } from '../app/types';
 import CatalogCard from './CatalogCard';
 interface CalalogListProps {
     catalogs: Catalog[];

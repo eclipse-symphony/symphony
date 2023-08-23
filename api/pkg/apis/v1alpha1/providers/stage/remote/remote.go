@@ -26,15 +26,18 @@ package remote
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 var rmtLock sync.Mutex
+var log = logger.NewLogger("coa.runtime")
 
 type RemoteStageProviderConfig struct {
 }
@@ -78,12 +81,20 @@ func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]in
 	i.OutputContext = outputs
 }
 func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("Remote Process Provider", context.Background(), &map[string]string{
+		"method": "Process",
+	})
+	log.Info("  P (Remote Processor): Process")
+
 	outputs := make(map[string]interface{})
 
 	v, ok := inputs["__site"]
 
 	if !ok {
-		return nil, false, fmt.Errorf("no site found in inputs")
+		err := v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
+		log.Errorf("  P (Remote Processor): %v", err)
+		observ_utils.CloseSpanWithError(span, err)
+		return nil, false, err
 	}
 
 	err := mgrContext.Publish("remote", v1alpha2.Event{
@@ -102,6 +113,8 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		},
 	})
 	if err != nil {
+		log.Errorf("  P (Remote Processor): publish failed - %v", err)
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, false, err
 	}
 

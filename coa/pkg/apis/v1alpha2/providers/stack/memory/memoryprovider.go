@@ -113,8 +113,10 @@ func (s *MemoryStackProvider) Pop(stack string) (interface{}, error) {
 	if len(s.Data[stack]) == 0 {
 		return nil, errors.New("stack is empty")
 	}
-	ret := s.Data[stack][len(s.Data[stack])-1]
-	s.Data[stack] = s.Data[stack][:len(s.Data[stack])-1]
+	// ret := s.Data[stack][len(s.Data[stack])-1]
+	// s.Data[stack] = s.Data[stack][:len(s.Data[stack])-1]
+	ret := s.Data[stack][0]
+	s.Data[stack] = s.Data[stack][1:]
 	return ret, nil
 }
 
@@ -127,7 +129,8 @@ func (s *MemoryStackProvider) Peek(stack string) (interface{}, error) {
 	if len(s.Data[stack]) == 0 {
 		return nil, errors.New("stack is empty")
 	}
-	return s.Data[stack][len(s.Data[stack])-1], nil
+	//return s.Data[stack][len(s.Data[stack])-1], nil
+	return s.Data[stack][0], nil
 }
 
 func (s *MemoryStackProvider) Size(stack string) int {

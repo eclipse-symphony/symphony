@@ -2,7 +2,7 @@
 
 import {Card, CardHeader, CardBody, CardFooter, Divider, Link, Image} from '@nextui-org/react';
 import {Chip} from "@nextui-org/react";
-import { Site } from '../types';
+import { Site } from '../app/types';
 import {CheckIcon} from "./CheckIcon";
 import { TbBuildingCommunity } from 'react-icons/tb';
 interface SiteCardProps {

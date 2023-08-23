@@ -157,12 +157,14 @@ func (h *APIHost) Launch(config HostConfig,
 		var evaluationContext *utils.EvaluationContext
 		for _, v := range h.Vendors {
 			if _, ok := v.Vendor.(vendors.IEvaluationContextVendor); ok {
+				log.Info("--- evaluation context established ---")
 				evaluationContext = v.Vendor.(vendors.IEvaluationContextVendor).GetEvaluationContext()
 			}
 		}
 
 		if evaluationContext != nil {
 			for _, v := range h.Vendors {
+				log.Infof("--- evaluation context is sent to vendor: %s ---", v.Vendor.GetInfo().Name)
 				v.Vendor.SetEvaluationContext(evaluationContext)
 			}
 		}

@@ -6,32 +6,29 @@ spec:
   firstStage: list
   stages:
     list:
-      type: WTF
       name: list
       provider: providers.stage.list
-      stageSelector: wait
+      stageSelector: wait-sync
       config:
-        baseUrl: http://localhost:8080/v1alha2/
+        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
       inputs:
         objectType: sites
         namesOnly: true
-    wait:
-      type: WTF
-      name: wait
+    wait-sync:
+      name: wait-sync
       provider: providers.stage.remote
-      stageSelector: materialize
+      stageSelector: deploy
       contexts: "$output(list,items)"
       inputs:
         operation: wait
         objectType: catalogs
-        name:
+        names:
         - site-app
         - site-instance
-    materialize:
-      type: WTF
-      name: materialize
+    deploy:
+      name: deploy
       provider: providers.stage.remote
       stageSelector: ""
       contexts: "$output(list,items)"

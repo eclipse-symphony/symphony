@@ -39,9 +39,14 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type StageManager struct {
 	managers.Manager
@@ -95,17 +100,17 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 		return nil, err
 	}
 	if p, ok := entry.Body.(PendingTask); ok {
-		//find site in p.Sites
-		found := false
-		for _, s := range p.Sites {
-			if s == site {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("site %s is not found in pending task", site)
-		}
+		// //find site in p.Sites
+		// found := false
+		// for _, s := range p.Sites {
+		// 	if s == site {
+		// 		found = true
+		// 		break
+		// 	}
+		// }
+		// if !found {
+		// 	return nil, fmt.Errorf("site %s is not found in pending task", site)
+		// }
 		//remove site from p.Sites
 		newSites := make([]string, 0)
 		for _, s := range p.Sites {
@@ -134,7 +139,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.Inputs = status.Inputs
 					eCtx.Outputs = outputs
-					val, err := parser.Eval(eCtx)
+					val, err := parser.Eval(*eCtx)
 					if err != nil {
 						return nil, err
 					}
@@ -219,6 +224,11 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	return status
 }
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
+	_, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
+		"method": "HandleTriggerEvent",
+	})
+	log.Info(" M (Stage): HandleTriggerEvent")
+
 	status := model.ActivationStatus{
 		Stage:        triggerData.Stage,
 		NextStage:    "",
@@ -236,11 +246,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(eCtx)
+			val, err := parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
+				log.Errorf(" M (Stage): failed to evaluate context: %v", err)
+				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			if _, ok := val.([]string); ok {
@@ -255,6 +267,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
 				status.IsActive = false
+				log.Errorf(" M (Stage): invalid context: %v", currentStage.Contexts)
+				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 		} else {
@@ -277,11 +291,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				eCtx := s.VendorContext.EvaluationContext.Clone()
 				eCtx.Inputs = triggerData.Inputs
 				eCtx.Outputs = triggerData.Outputs
-				val, err := parser.Eval(eCtx)
+				val, err := parser.Eval(*eCtx)
 				if err != nil {
 					status.Status = v1alpha2.InternalError
 					status.ErrorMessage = err.Error()
 					status.IsActive = false
+					log.Errorf(" M (Stage): failed to evaluate input: %v", err)
+					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 				inputs[k] = val
@@ -300,6 +316,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
+			log.Errorf(" M (Stage): failed to create provider: %v", err)
+			observ_utils.CloseSpanWithError(span, err)
 			return status, activationData
 		}
 
@@ -350,6 +368,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, result.Error.Error())
 				status.IsActive = false
+				log.Errorf(" M (Stage): failed to process stage outputs: %v", result.Error)
+				observ_utils.CloseSpanWithError(span, result.Error)
 				return status, activationData
 			}
 			for k, v := range result.Outputs {
@@ -366,7 +386,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 		triggerData.Outputs[triggerData.Stage] = outputs
 		if campaign.SelfDriving {
-
 			if pauseRequested {
 				pendingTask := PendingTask{
 					Sites:         sites,
@@ -382,6 +401,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.Status = v1alpha2.InternalError
 					status.ErrorMessage = err.Error()
 					status.IsActive = false
+					log.Errorf(" M (Stage): failed to save pending task: %v", err)
+					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 				status.Status = v1alpha2.Paused
@@ -393,11 +414,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(eCtx)
+			val, err := parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
+				log.Errorf(" M (Stage): failed to evaluate stage selector: %v", err)
+				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			sVal := ""
@@ -422,6 +445,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.Status = v1alpha2.BadRequest
 					status.ErrorMessage = fmt.Sprintf("stage %s is not found", sVal)
 					status.IsActive = false
+					log.Errorf(" M (Stage): failed to find next stage: %v", err)
+					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 			}
@@ -438,17 +463,24 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.Status = v1alpha2.Running
 				}
 			}
+			log.Infof(" M (Stage): stage %s is done", triggerData.Stage)
+			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		} else {
 			status.Status = v1alpha2.Done
 			status.NextStage = ""
 			status.IsActive = false
+			log.Infof(" M (Stage): stage %s is done (no next stage)", triggerData.Stage)
+			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		}
 	}
 	err := v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
 	status.Status = v1alpha2.InternalError
 	status.ErrorMessage = err.Error()
+	status.IsActive = false
+	log.Errorf(" M (Stage): failed to find stage: %v", err)
+	observ_utils.CloseSpanWithError(span, err)
 	return status, activationData
 }
 

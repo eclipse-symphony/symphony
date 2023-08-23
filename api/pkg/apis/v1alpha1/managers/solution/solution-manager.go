@@ -298,7 +298,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.DeploymentSpec = deployment
 					eCtx.Component = component.Component.Name
-					val, err := parser.Eval(eCtx)
+					val, err := parser.Eval(*eCtx)
 					if err == nil {
 						component.Component.Properties[k] = val
 					} else {

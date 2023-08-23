@@ -28,13 +28,18 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var log = logger.NewLogger("coa.runtime")
 
 type ListStageProviderConfig struct {
 	BaseUrl  string `json:"baseUrl"`
@@ -98,6 +103,11 @@ func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProv
 	return ret, nil
 }
 func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("List Process Provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	log.Info("  P (List Processor): processing inputs")
+
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -113,6 +123,8 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	case "instance":
 		instances, err := utils.GetInstances(i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
+			log.Errorf("  P (List Processor): failed to get instances: %v", err)
+			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		if namesOnly {
@@ -127,19 +139,28 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	case "sites":
 		sites, err := utils.GetSites(i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
+			log.Errorf("  P (List Processor): failed to get sites: %v", err)
+			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
+		}
+		filteredSites := make([]model.SiteState, 0)
+		for _, site := range sites {
+			if site.Spec.Name != mgrContext.SiteInfo.SiteId { //TODO: this should filter to keep just the direct children?
+				filteredSites = append(filteredSites, site)
+			}
 		}
 		if namesOnly {
 			names := make([]string, 0)
-			for _, site := range sites {
+			for _, site := range filteredSites {
 				names = append(names, site.Spec.Name)
 			}
 			outputs["items"] = names
 		} else {
-			outputs["items"] = sites
+			outputs["items"] = filteredSites
 		}
 	}
 	outputs["objectType"] = objectType
 	outputs["status"] = "OK"
+	observ_utils.CloseSpanWithError(span, nil)
 	return outputs, false, nil
 }

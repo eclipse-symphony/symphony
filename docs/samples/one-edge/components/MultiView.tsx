@@ -18,6 +18,7 @@ interface MultiViewProps {
     menuItems: MenuInfo[];
     views: string[];
     items: any[];
+    refItems?: any[];
 }
 
 function MultiView(props: MultiViewProps) {
@@ -75,7 +76,7 @@ function MultiView(props: MultiViewProps) {
                                     {view === 'map' && <PiMapTrifold />}
                                     <span>{view}</span>
                                     </div>}>
-                            {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} />}
+                            {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
                         </Tab>
                     ))}
                 </Tabs>
