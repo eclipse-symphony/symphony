@@ -1,7 +1,8 @@
 import React from 'react'
 import { getServerSession } from 'next-auth';
 import { options } from '../api/auth/[...nextauth]/options';
-import CatalogLists from '@/components/CatalogLists';
+import CatalogLists from '@/components/catalogs/CatalogLists';
+import {CatalogState} from '../types';
 const getCatalogs = async (type: string) => {
   const session = await getServerSession(options);  
   console.log(session?.user?.accessToken);
@@ -15,15 +16,7 @@ const getCatalogs = async (type: string) => {
   const data = await res.json();
   //map each element and do some transformation
   const catalogs = data
-  .filter((catalog: any) => catalog.spec.type === type)
-  .map((catalog: any) => {
-    return {
-      id: catalog.id,
-      name: catalog.spec.name,
-      type: catalog.spec.type,
-      properties: catalog.spec.properties,
-    }
-  });
+  .filter((catalog: CatalogState) => catalog.spec.type === type);
   return catalogs;
 }
 async function CatalogsPage() {

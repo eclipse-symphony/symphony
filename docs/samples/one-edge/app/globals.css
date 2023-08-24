@@ -112,6 +112,7 @@ body {
 }
 .view_container{
   transform: translateY(-45px);
+  height: 100vh;
 }
 .top_navbar {
   width: 100%;  
@@ -119,4 +120,8 @@ body {
 }
 .table-cell-no-wrap {
   white-space: nowrap;
+}
+.remote_row {
+  background-color: lightblue;
+  color: darkgray;
 }

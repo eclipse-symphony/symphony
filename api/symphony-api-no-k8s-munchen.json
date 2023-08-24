@@ -9,7 +9,9 @@
       "zip": "80807",
       "country": "Deutschland",
       "phone": "+49 89 31 76 0",
-      "version": "0.45.1"
+      "version": "0.45.1",
+      "lat": "48.17786",
+      "lng": "11.59385"
     },
     "parentSite": {
       "baseUrl": "http://localhost:8080/v1alpha2/",

@@ -87,7 +87,7 @@ type CatalogSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties runtime.RawExtension `json:"properties"`
-	Metadata   map[string]string    `json:"metadata"`
+	Metadata   map[string]string    `json:"metadata,omitempty"`
 	ParentName string               `json:"parentName,omitempty"`
 	ObjectRef  model.ObjectRef      `json:"objectRef,omitempty"`
 	Generation string               `json:"generation,omitempty"`

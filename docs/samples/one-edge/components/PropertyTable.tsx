@@ -2,9 +2,30 @@ import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} f
 
 interface PropertyTableProps {
     properties: Record<string, string>;
+    refProperties?: Record<string, string>;
 }
 function SiteList(props: PropertyTableProps) {
-    const { properties } = props;
+    const { properties, refProperties } = props;
+    
+    //create a new map with elements from properties, pluase a local boolean flag to true
+    const combinedProperties: any = {};
+    Object.keys(properties).forEach((key: string) => {
+        combinedProperties[key] = {
+            property: properties[key],
+            local: true
+        };
+    });
+
+    if (refProperties) {
+        Object.keys(refProperties).forEach((key: string) => {
+            if (!combinedProperties[key]) {
+                combinedProperties[key] = {
+                    property: refProperties[key],
+                    local: false
+                };
+            }
+        });
+    }
     return (
         <Table removeWrapper>
             <TableHeader>
@@ -12,12 +33,12 @@ function SiteList(props: PropertyTableProps) {
                 <TableColumn>VALUE</TableColumn>                
             </TableHeader>
             <TableBody>
-                {Object.keys(properties).slice(0, 5).map((key: string) => (
-                    <TableRow key={key}>
+                {Object.keys(combinedProperties).slice(0, 5).map((key: string) => (
+                    <TableRow key={key} className={combinedProperties[key].local? '': 'remote_row'}>
                         <TableCell>{key}</TableCell>
-                        <TableCell>{typeof properties[key] === 'string' ? properties[key] : '[object]'}</TableCell>
+                        <TableCell>{typeof combinedProperties[key].property === 'string' ? combinedProperties[key].property : '[object]'}</TableCell>
                     </TableRow>
-                ))}                            
+                ))}                         
             </TableBody>
         </Table>
     );

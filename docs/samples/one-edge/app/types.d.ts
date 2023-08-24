@@ -61,12 +61,37 @@ export interface CampaignSpec {
     stages: Record<string, StageSpec>;
 }
 
-export interface Catalog {
-    id: string;
-    origin: string;
-    type: string;
+export interface ObjectRef {
+	siteId: string;
     name: string;
+    group: string;
+    version: string;
+    kind: string;
+    scope: string;
+    address: string;
+    generation: string;
+    metadata: Record<string, string>;
+}
+
+export interface CatalogSpec {
+    siteId: string;
+    name: string;
+    type: string;
     properties: Record<string, any>;
+    metadata: Record<string, string>;
+    parentName: string;
+    objectRef: ObjectRef;
+    generation: string;
+}
+
+export interface CatalogStatus{
+    properties: Record<string, string>;
+}
+
+export interface CatalogState {
+    id: string;
+    spec: CatalogSpec;
+    status: CatalogStatus;
 }
 
 export interface GroupInfo {

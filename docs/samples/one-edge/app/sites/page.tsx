@@ -27,6 +27,8 @@ const getSites = async () => {
       name: site.spec.properties?.name ?? (site.spec.properties?.id ?? ''),
       self: site.spec.isSelf ?? false,
       lastReported: site.status?.lastReported ? new Date(site.status.lastReported) : null,
+      lat: site.spec.properties?.lat ? parseFloat(site.spec.properties.lat)  : 0,
+      lng: site.spec.properties?.lng ? parseFloat(site.spec.properties.lng)  : 0,
     }
   });
   return sites;

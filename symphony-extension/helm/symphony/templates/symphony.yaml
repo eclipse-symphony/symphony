@@ -228,6 +228,10 @@ spec:
                     type: string
                   kind:
                     type: string
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    type: object
                   name:
                     type: string
                   scope:
@@ -254,7 +258,6 @@ spec:
               type:
                 type: string
             required:
-            - metadata
             - name
             - properties
             - siteId

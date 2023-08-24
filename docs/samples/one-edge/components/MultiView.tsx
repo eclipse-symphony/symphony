@@ -10,6 +10,7 @@ import { PiMapTrifold } from 'react-icons/pi';
 import { useState } from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
 import SiteCardList from "./sites/SiteCardList";
+import SiteMap from "./sites/SiteMap";
 interface MenuInfo {
     name: string;
     href: string;    
@@ -79,6 +80,7 @@ function MultiView(props: MultiViewProps) {
                                     </div>}>
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
+                            {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                         </Tab>
                     ))}
                 </Tabs>

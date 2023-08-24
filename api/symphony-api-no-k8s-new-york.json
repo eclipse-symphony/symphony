@@ -9,7 +9,9 @@
       "zip": "10036",
       "country": "USA",
       "phone": "212-123-4567",
-      "version": "0.45.1"
+      "version": "0.45.1",
+      "lat": "40.75688",
+      "lng": "-73.98076"
     },
     "parentSite": {
       "baseUrl": "http://localhost:8080/v1alpha2/",
