@@ -2,14 +2,16 @@ import React from 'react'
 import { getServerSession } from 'next-auth';
 import { options } from '../api/auth/[...nextauth]/options';
 import MultiView from '@/components/MultiView';
+import { User } from '../types';
+
 const getSites = async () => {
   const session = await getServerSession(options);  
-  console.log(session?.user?.accessToken);
   const symphonyApi = process.env.SYMPHONY_API;
+  const userObj: User | undefined = session?.user?? undefined;
   const res = await fetch( `${symphonyApi}federation/registry`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${session?.user?.accessToken}`,
+      'Authorization': `Bearer ${userObj?.accessToken}`,
     }    
   });
   const data = await res.json();
@@ -44,9 +46,9 @@ async function SitesPage() {
     refItems: [],
   }
   return (
-        <div>
-          <MultiView params={params} />
-        </div>
+    <div>
+      <MultiView params={params} />
+    </div>
   );
 }
 

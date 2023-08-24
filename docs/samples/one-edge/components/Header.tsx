@@ -7,7 +7,7 @@ import { BsList, BsX, BsYoutube, BsPinterest} from 'react-icons/bs';
 import { signOut, signIn, useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { FaGithub, FaEnvelope} from 'react-icons/fa';
-
+import { User } from '../app/types';
 const styles={
     navLink: 'ml-10 uppercase border-b border-transparent hover:border-[#F6B519] text-sm items-center'
 }
@@ -21,6 +21,8 @@ function Header() {
             //redirect('/api/auth/signin?callbackUrl=/some-page');
         }
     });    
+    const userObj: User | undefined = session?.user?? undefined;
+  
     return (        
         <header>
             <nav className='w-full h-24 hadow-xl bg-black'>
@@ -49,9 +51,9 @@ function Header() {
                                 </Link>
                             </li>
                             <li className='flex items-center space-x-5 text-[#F6B519] ml-10'>
-                                { session?.user?.username ? (
+                                { userObj?.username ? (
                                     <>
-                                        <h1>{session.user.username}</h1>
+                                        <h1>{userObj.username}</h1>
                                         <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signOut()}>Sign Out</button>                                    
                                     </>
                                 ) : (

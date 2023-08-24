@@ -1,8 +1,7 @@
 'use client';
 
 import { Site } from '../../app/types';
-import SiteCard from './SiteCard';
-import {useState, useCallback} from 'react';
+import {useState} from 'react';
 import {GoogleMap, InfoWindowF, MarkerF, useJsApiLoader} from '@react-google-maps/api';
 interface SiteMapProps {
     sites: Site[];
@@ -15,7 +14,7 @@ function SiteMap(props: SiteMapProps) {
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
     });
     const [map, setMap] = useState(null);
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState<Site | null>(null);
     const [center, setCenter] = useState({lat: 0, lng: 0});
     const [zoom, setZoom] = useState(2);
     const containerStyle = {
@@ -54,7 +53,7 @@ function SiteMap(props: SiteMapProps) {
                 // onUnmount={onUnmount}
                 // onClick={onMapClick}
             >
-                {sites.map((site: any) => (
+                {sites.map((site: Site) => (
                     <MarkerF
                         key={site.id}
                         position={{lat: site.lat, lng: site.lng}}
@@ -71,7 +70,7 @@ function SiteMap(props: SiteMapProps) {
                             <p>{selected.address}</p>
                         </div>
                     </InfoWindowF>
-                )} */}
+                )}
             </GoogleMap>
             </div>;
 }

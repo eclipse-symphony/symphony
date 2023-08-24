@@ -99,3 +99,38 @@ spec:
     override: ai-config-site
   properties:
     flavor: mobile
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined
+spec:  
+  siteId: hq
+  type: config
+  name: combined  
+  properties:
+    foo: far
+    ai: "<ai-config>"
+    inluxdb: "<influx-db-config>"
+    e4k: "<e4k-config>"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: external
+spec:  
+  siteId: hq
+  type: config
+  name: external  
+  properties:
+    foo: far
+  objectRef:
+    name: GitHub
+    address: https://github.com/some/url
+    group: dummy
+    kind: dummy
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar

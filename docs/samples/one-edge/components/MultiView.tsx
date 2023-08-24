@@ -15,7 +15,8 @@ interface MenuInfo {
     name: string;
     href: string;    
 }
-interface MultiViewProps {
+
+interface Params {
     type: string;
     menuItems: MenuInfo[];
     views: string[];
@@ -23,10 +24,16 @@ interface MultiViewProps {
     refItems?: any[];
 }
 
+interface MultiViewProps {
+    params: Params;
+}
+
 function MultiView(props: MultiViewProps) {
     const { params } = props;
     const [selected, setSelected] = useState("");
-
+    function handleSelectionChange(key: any) {
+        setSelected(key.toString());
+      }
     return (
         <div>
             <Navbar isBordered className="top_navbar">
@@ -52,8 +59,8 @@ function MultiView(props: MultiViewProps) {
                     </Dropdown>
                 </NavbarContent>    
                 <NavbarContent justify="start">
-                    <Tabs aria-label="Options" color="primary" variant="bordered" onSelectionChange={setSelected}>
-                        {params.views.map((view: ViewInfo) => (
+                    <Tabs aria-label="Options" color="primary" variant="bordered" onSelectionChange={handleSelectionChange}>
+                        {params.views.map((view: string) => (
                             <Tab key={view}
                                 title={
                                     <div className="flex items-center space-x-2">
@@ -69,7 +76,7 @@ function MultiView(props: MultiViewProps) {
             </Navbar>
             <div className='view_container'>
                 <Tabs isDisabled aria-label="Options" selectedKey={`c${selected}`}>
-                    {params.views.map((view: ViewInfo) => (
+                    {params.views.map((view: string) => (
                         <Tab key={`c${view}`}
                             title={
                                 <div className="flex items-center space-x-2">

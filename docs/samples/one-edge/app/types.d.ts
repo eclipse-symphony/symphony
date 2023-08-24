@@ -28,12 +28,14 @@ export interface Site {
     address: string,
     phone: string;
     city: string,
-    sate: string,
+    state: string,
     zip: string,
     country: string,
     version: string,
     self: boolean,
     lastReported: Date,
+    lat: number,
+    lng: number,
 }
 
 export interface CampaignState {
@@ -140,4 +142,12 @@ export interface ActivationState {
     metadata: Record<string, string>;
     spec: ActivationSpec;
     status: ActivationStatus;
+}
+
+export interface User {
+    accessToken?: string;
+    name?: string | null | undefined;
+    email?: string | nulll | undefined;
+    image?: string | null | undefined;
+    username?: string;
 }

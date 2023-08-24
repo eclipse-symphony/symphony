@@ -1,5 +1,5 @@
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} from "@nextui-org/react";
-
+import { FcSettings } from 'react-icons/fc';
 interface PropertyTableProps {
     properties: Record<string, string>;
     refProperties?: Record<string, string>;
@@ -36,7 +36,10 @@ function SiteList(props: PropertyTableProps) {
                 {Object.keys(combinedProperties).slice(0, 5).map((key: string) => (
                     <TableRow key={key} className={combinedProperties[key].local? '': 'remote_row'}>
                         <TableCell>{key}</TableCell>
-                        <TableCell>{typeof combinedProperties[key].property === 'string' ? combinedProperties[key].property : '[object]'}</TableCell>
+                        <TableCell>{typeof combinedProperties[key].property === 'string' ? 
+                        (combinedProperties[key].property.startsWith('<') ? <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}>
+                            <FcSettings />{combinedProperties[key].property.substring(1, combinedProperties[key].property.length-1)}
+                        </div>: combinedProperties[key].property) : '[object]'}</TableCell>
                     </TableRow>
                 ))}                         
             </TableBody>

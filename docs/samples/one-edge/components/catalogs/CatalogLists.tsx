@@ -1,6 +1,6 @@
 'use client';
 
-import { Catalog, GroupInfo } from '../app/types';
+import { CatalogState, GroupInfo } from '../../app/types';
 import CatalogList from './CatalogList';
 import {Accordion, AccordionItem} from "@nextui-org/react";
 

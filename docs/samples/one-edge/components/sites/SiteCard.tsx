@@ -40,7 +40,7 @@ function SiteCard(props: SiteCardProps) {
             </CardBody>
             <Divider/>
             <CardFooter className="justify-between">
-                <Chip startContent={<CheckIcon size={18} />} color="primary" variant="light">{`Version: ${site.version}`}</Chip>
+                <Chip startContent={<CheckIcon size={18} height={18} width={18} />} color="primary" variant="light">{`Version: ${site.version}`}</Chip>
                 {cardClassName === 'bg-success-50' && (
                     <Chip color="success">Online</Chip>
                 )}

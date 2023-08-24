@@ -5,6 +5,7 @@ import { CatalogState } from '../../app/types';
 import PropertyTable from '../PropertyTable';
 import SolutionCard from '../SolutionCard';
 import { FcSettings, FcTemplate } from 'react-icons/fc';
+import { FaGithub } from 'react-icons/fa';
 
 interface CatalogCardProps {
     catalog: CatalogState;
@@ -28,11 +29,15 @@ function CatalogCard(props: CatalogCardProps) {
             </CardHeader>
             <Divider/>
             <CardBody>
-                {catalog.spec.type === 'config' && (
+                {(catalog.spec.type === 'config' && !catalog.spec.objectRef.name) && (
                     <PropertyTable properties={catalog.spec.properties} refProperties={refCatalog?.spec.properties} />
+                )}
+                {(catalog.spec.type === 'config' && catalog.spec.objectRef.name) && (
+                    <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}><FaGithub />{catalog.spec.objectRef.address}</div>                    
                 )}
                 {catalog.spec.type === 'solution' && (
                     <SolutionCard solution={{
+                        id: catalog.spec.name,
                         spec: catalog.spec.properties['spec']
                     }} />
                 )}
@@ -42,7 +47,7 @@ function CatalogCard(props: CatalogCardProps) {
             
             <CardFooter>
                 <span className='text-sm'>
-                    <div>{`overrides: ${catalog.spec.metadata['override']}`}</div>                </span>
+                    <div>{`overrides: ${catalog.spec.metadata['override']}`}</div></span>
             </CardFooter>
             )}
         </Card>
