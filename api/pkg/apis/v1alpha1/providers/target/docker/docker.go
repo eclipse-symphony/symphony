@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -143,6 +144,24 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 				volumeData, _ := json.Marshal(info.Mounts)
 				component.Properties["container.volumeMounts"] = string(volumeData)
 			}
+			// get environment varibles that are passed in by the reference
+			env := info.Config.Env
+			if len(env) > 0 {
+				for _, e := range env {
+					pair := strings.Split(e, "=")
+					if len(pair) == 2 {
+						for _, s := range references {
+							if s.Component.Name == component.Name {
+								for k, _ := range s.Component.Properties {
+									if k == "env."+pair[0] {
+										component.Properties[k] = pair[1]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			ret = append(ret, component)
 		}
 	}
@@ -198,10 +217,10 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				return ret, err
 			}
 
-			isNew := true
-			containerInfo, err := cli.ContainerInspect(ctx, component.Component.Name)
-			if err == nil {
-				isNew = false
+			alreadyRunning := true
+			_, err := cli.ContainerInspect(ctx, component.Component.Name)
+			if err != nil { //TODO: check if the error is ErrNotFound
+				alreadyRunning = false
 			}
 
 			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
@@ -215,7 +234,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// defer reader.Close()
 			// io.Copy(os.Stdout, reader)
 
-			if !isNew && containerInfo.Image != image {
+			if alreadyRunning {
 				err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
@@ -234,84 +253,60 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
-				isNew = true
 			}
 
-			if isNew {
-				containerConfig := container.Config{
-					Image: image,
+			// prepare environment variables
+			env := make([]string, 0)
+			for k, v := range component.Component.Properties {
+				if strings.HasPrefix(k, "env.") {
+					env = append(env, strings.TrimPrefix(k, "env.")+"="+v.(string))
 				}
-				var hostConfig *container.HostConfig
-				if resources != "" {
-					var resourceSpec container.Resources
-					err := json.Unmarshal([]byte(resources), &resourceSpec)
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
-						return ret, err
-					}
-					hostConfig = &container.HostConfig{
-						Resources: resourceSpec,
-					}
-				}
-				container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			}
+
+			containerConfig := container.Config{
+				Image: image,
+				Env:   env,
+			}
+			var hostConfig *container.HostConfig
+			if resources != "" {
+				var resourceSpec container.Resources
+				err := json.Unmarshal([]byte(resources), &resourceSpec)
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
 					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
 					return ret, err
 				}
+				hostConfig = &container.HostConfig{
+					Resources: resourceSpec,
+				}
+			}
+			container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			if err != nil {
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+				return ret, err
+			}
 
-				if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
-					ret[component.Component.Name] = model.ComponentResultSpec{
-						Status:  v1alpha2.UpdateFailed,
-						Message: err.Error(),
-					}
-					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
-					return ret, err
-				}
+			if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.Updated,
-					Message: "",
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
 				}
-			} else {
-				if resources != "" {
-					var resourceObj container.Resources
-					err = json.Unmarshal([]byte(resources), &resourceObj)
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to unmarshal container resources spec: %+v", err)
-						return ret, err
-					}
-					_, err = cli.ContainerUpdate(context.Background(), component.Component.Name, container.UpdateConfig{
-						Resources: resourceObj,
-					})
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to update container resources: %+v", err)
-						return ret, err
-					}
-				}
-				ret[component.Component.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.Updated,
-					Message: "",
-				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
+				return ret, err
+			}
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "",
 			}
 		} else {
 			err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
