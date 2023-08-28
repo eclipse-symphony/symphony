@@ -9,6 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/lab": "^5.0.0-alpha.141",
+    "@mui/material": "^5.14.6",
     "@nextui-org/react": "^2.0.22",
     "@react-google-maps/api": "^2.19.2",
     "@types/node": "20.5.0",

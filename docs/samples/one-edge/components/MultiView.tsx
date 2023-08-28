@@ -11,6 +11,9 @@ import { useState } from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
 import SiteCardList from "./sites/SiteCardList";
 import SiteMap from "./sites/SiteMap";
+import AssetList from "./assets/AssetList";
+import GraphTable from "./graph/GraphTable";
+
 interface MenuInfo {
     name: string;
     href: string;    
@@ -88,6 +91,8 @@ function MultiView(props: MultiViewProps) {
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
+                            {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}
+                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} />}
                         </Tab>
                     ))}
                 </Tabs>

@@ -2,11 +2,11 @@ fullnameOverride: symphony
 symphonyImage:
   repository: possprod.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "0.45.2"
 paiImage:
   repository: possprod.azurecr.io/symphony-api
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "0.45.2"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: true
 global:

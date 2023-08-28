@@ -125,3 +125,9 @@ body {
   background-color: lightblue;
   color: darkgray;
 }
+.treenode {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}

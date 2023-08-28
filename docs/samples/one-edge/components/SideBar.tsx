@@ -28,6 +28,11 @@ function SideBar() {
         },
         {
             name: "Sites",
+            href: "/assets?graph=site",
+            icon: TbBuildingCommunity,
+        },
+        {
+            name: "Symphony Control Planes",
             href: "/sites",
             icon: TbBuildingCommunity,
         },
