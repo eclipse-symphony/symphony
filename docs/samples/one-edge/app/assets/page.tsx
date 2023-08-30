@@ -26,7 +26,7 @@ async function AssetsPage() {
         ],
         views: ['cards', 'table'],
         items: catalogs,
-        refItems: null,
+        refItems: [],
     }
     return (
         <div>

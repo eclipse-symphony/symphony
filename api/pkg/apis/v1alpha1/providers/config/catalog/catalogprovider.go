@@ -96,6 +96,19 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	ret.Password = password
 	return ret, nil
 }
+func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (string, error) {
+	catalog, err := utils.GetCatalog(m.Config.BaseUrl, override, m.Config.User, m.Config.Password)
+	if err != nil {
+		return "", err
+	}
+	if v, ok := catalog.Spec.Properties[field]; ok {
+		return v.(string), nil
+	}
+	if v, ok := catalog.Spec.Properties["override"]; ok {
+		return m.unwindOverrides(v.(string), field)
+	}
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
+}
 func (m *CatalogConfigProvider) Read(object string, field string) (string, error) {
 	catalog, err := utils.GetCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -104,6 +117,16 @@ func (m *CatalogConfigProvider) Read(object string, field string) (string, error
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		return v.(string), nil
 	}
+
+	if v, ok := catalog.Spec.Properties["override"]; ok {
+		overrid, err := m.unwindOverrides(v.(string), field)
+		if err != nil {
+			return "", err
+		} else {
+			return overrid, nil
+		}
+	}
+
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) ReadObject(object string) (map[string]string, error) {

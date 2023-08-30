@@ -737,7 +737,7 @@ type Parser struct {
 }
 
 func NewParser(text string) *Parser {
-	var s scanner.Scanner
+	var s scanner.Scanner // TODO: this is mostly used to scan go code, we should use a custom scanner
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &Parser{

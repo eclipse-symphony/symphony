@@ -82,7 +82,7 @@ type (
 		UpgradeClient   *action.Upgrade
 		UninstallClient *action.Uninstall
 	}
-	// HelmProperty is the property for the Helm provider
+	// HelmProperty is the property for the Helm chart
 	HelmProperty struct {
 		Chart  HelmChartProperty      `json:"chart"`
 		Values map[string]interface{} `json:"values,omitempty"`

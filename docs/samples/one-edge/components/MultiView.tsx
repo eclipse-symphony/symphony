@@ -92,7 +92,7 @@ function MultiView(props: MultiViewProps) {
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                             {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}
-                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} />}
+                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} columns={[]} />}
                         </Tab>
                     ))}
                 </Tabs>

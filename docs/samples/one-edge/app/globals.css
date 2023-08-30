@@ -131,3 +131,11 @@ body {
   gap: 0.5rem;
   white-space: nowrap;
 }
+.graph_container{
+  height: 100vh;
+  width: 100%;
+  display: flex;
+}
+.tree_container {
+  margin-top: 45px;
+}
