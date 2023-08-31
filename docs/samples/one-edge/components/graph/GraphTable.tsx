@@ -9,11 +9,12 @@ import { FaDatabase } from 'react-icons/fa';
 import { MdHub } from 'react-icons/md';
 import { FaSitemap } from 'react-icons/fa';
 import React, { useState, useEffect, useRef } from 'react';
-import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} from "@nextui-org/react";
+import {Table, TableHeader, TableColumn, TableBody} from "@nextui-org/react";
+import TableContainer from '@mui/material/TableContainer';
 
 interface GraphTableProps {
     catalogs: CatalogState[];
-    columns: any[];
+    columns: any[] | undefined;
 }
 
 function BuildForest(catalogs: CatalogState[]) {
@@ -50,13 +51,8 @@ function BuildTreeNodeLabel(catalog: CatalogState) {
 
 function GraphTable(props: GraphTableProps) {
     const [visibleNodes, setVisibleNodes] = useState<string[]>([]);
-    const { catalogs } = props;
+    const { catalogs, columns } = props;
     const treeViewRef = useRef<typeof TreeView>(null);
-    const columns = [
-        { field: 'name', headerName: 'A', width: 200 },
-        { field: 'name', headerName: 'B', width: 200 },
-        { field: 'name', headerName: 'C', width: 200 },
-    ]    
     
     const updateVisibleNodes = () => {
         const visibleNodes: string[] = [];
@@ -85,12 +81,11 @@ function GraphTable(props: GraphTableProps) {
             const catalog = catalogs.find((catalog: CatalogState) => "tree-" + catalog.spec.name === nodeId);
             if (catalog) {        
                 const row = document.createElement('tr');
-                const cell1 = document.createElement('td');
-                const cell2 = document.createElement('td');
-                cell1.innerText = catalog.spec.properties.name;
-                cell2.innerText = catalog.spec.properties.description;
-                row.appendChild(cell1);
-                row.appendChild(cell2);
+                columns?.forEach((column: any) => {
+                    const cell = document.createElement('td');
+                    cell.innerText = catalog.spec.properties.name;
+                    row.appendChild(cell);
+                });
                 tableBody?.appendChild(row);
             }
         });
@@ -127,14 +122,19 @@ function GraphTable(props: GraphTableProps) {
                 {treeNodes}
             </TreeView>   
             </div> 
-            <Table removeWrapper id="tree-table">
-                <TableHeader>
-                    <TableColumn>PROPERTY</TableColumn>
-                    <TableColumn>VALUE</TableColumn>
-                </TableHeader>
-                <TableBody>
-                </TableBody>
-            </Table>
+            <TableContainer>
+                <Table stickyHeader aria-label="sticky table" removeWrapper id="tree-table">
+                    <TableHeader>
+                        {columns?.map((column) => (
+                            <TableColumn key={column.id}>
+                                {column.spec.name}
+                            </TableColumn>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                    </TableBody>
+                </Table>
+            </TableContainer>
         </div>    
     );
 }

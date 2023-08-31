@@ -19,12 +19,18 @@ interface MenuInfo {
     href: string;    
 }
 
+interface ColumnSet {
+    name: string;
+    data: any[];
+}
+
 interface Params {
     type: string;
     menuItems: MenuInfo[];
     views: string[];
     items: any[];
     refItems?: any[];
+    columns: ColumnSet[];
 }
 
 interface MultiViewProps {
@@ -34,9 +40,13 @@ interface MultiViewProps {
 function MultiView(props: MultiViewProps) {
     const { params } = props;
     const [selected, setSelected] = useState("");
+    const [selectedColumn, setSelectedColumn] = useState("");
     function handleSelectionChange(key: any) {
         setSelected(key.toString());
-      }
+    }
+    function handleColumnSelectionChange(key: any) {
+        setSelectedColumn(key.toString());
+    }
     return (
         <div>
             <Navbar isBordered className="top_navbar">
@@ -76,6 +86,24 @@ function MultiView(props: MultiViewProps) {
                         ))}                    
                     </Tabs>
                 </NavbarContent>
+                {selected === 'table' && params.columns && params.columns.length > 0 && (
+                    <NavbarContent justify="start" id="columnSets">
+                        <Tabs aria-label="Options" color="primary" variant="bordered" onSelectionChange={handleColumnSelectionChange}>
+                            {params.columns.map((column: ColumnSet) => (
+                                <Tab key={column.name}
+                                    title={
+                                        <div className="flex items-center space-x-2">
+                                            {column.name === 'configs' && <PiCards />}  
+                                            {column.name === 'solutions' && <PiTable />}
+                                            {column.name === 'instances' && <PiMapTrifold />}
+                                            {column.name === 'targets' && <PiMapTrifold />}
+                                            <span>{column.name}</span>
+                                            </div>}
+                                        />  
+                            ))}                    
+                        </Tabs>
+                    </NavbarContent>
+                )}
             </Navbar>
             <div className='view_container'>
                 <Tabs isDisabled aria-label="Options" selectedKey={`c${selected}`}>
@@ -92,7 +120,7 @@ function MultiView(props: MultiViewProps) {
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                             {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}
-                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} columns={[]} />}
+                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} columns = {params.columns.find((column: ColumnSet) => column.name === selectedColumn)?.data} />}
                         </Tab>
                     ))}
                 </Tabs>

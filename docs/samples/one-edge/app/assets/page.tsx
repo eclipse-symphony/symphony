@@ -19,7 +19,8 @@ const getCatalogs = async (type: string) => {
     return catalogs;
   }
 async function AssetsPage() {
-    const catalogs = await getCatalogs('asset');  
+    const [catalogs, configs] =  await Promise.all([getCatalogs('asset'), getCatalogs('config')]);
+
     const params = {
         type: 'assets',
         menuItems: [           
@@ -27,6 +28,16 @@ async function AssetsPage() {
         views: ['cards', 'table'],
         items: catalogs,
         refItems: [],
+        columns: [{
+          name: 'configs',
+          data: configs
+        }, {
+          name: 'solutions'
+        }, {
+          name: 'instances'
+        }, {
+          name: 'targets'
+        }],
     }
     return (
         <div>
