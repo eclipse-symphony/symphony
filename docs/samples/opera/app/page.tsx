@@ -25,7 +25,7 @@ SOFTWARE
 import React from 'react'
 
 function Home() {
-  return <div className="text-7xl text-green-500">One Edge PoC</div>;
+  return <div className="text-7xl text-green-500">Opera House</div>;
 }
 
 export default Home;

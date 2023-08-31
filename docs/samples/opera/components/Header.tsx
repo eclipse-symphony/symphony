@@ -31,7 +31,7 @@ function Header() {
                     <Link href='/'>
                         <Image src='/logo.jpg' alt='One Edge Logo' width={65} height={65} className='cursor-pointer'/>
                     </Link>
-                    <span className='text-white text-lg font-bold'>One Edge Universe Portal</span>
+                    <span className='text-white text-lg font-bold'>Opera</span>
                     <div className='text-white hidden sm:flex'>
                         <ul className='hidden sm:flex items-center'>
                             <li className={styles.navLink}>
