@@ -149,10 +149,17 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			state, err = e.CatalogsManager.GetSpec(ctx, id)
 		}
 		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
+			if !v1alpha2.IsNotFound(err) {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			} else {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.NotFound,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

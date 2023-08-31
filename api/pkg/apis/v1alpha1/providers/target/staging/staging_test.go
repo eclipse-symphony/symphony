@@ -11,82 +11,59 @@ import (
 )
 
 func TestStagingTargetProviderConfigFromMapNil(t *testing.T) {
-	_, err := KubectlTargetProviderConfigFromMap(nil)
+	_, err := StagingProviderConfigFromMap(nil)
 	assert.NotNil(t, err)
 }
 func TestStagingTargetProviderConfigFromMapEmpty(t *testing.T) {
-	_, err := KubectlTargetProviderConfigFromMap(map[string]string{})
-	assert.NotNil(t, err)
-}
-func TestInitWithBadConfigType(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "Bad",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithEmptyFile(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "path",
-	}
-	provider := StagingTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured TODO: Why Staging provider is checking kubeconfig?
-}
-func TestInitWithBadFile(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "path",
-		ConfigData: "/doesnt/exist/config.yaml",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithEmptyData(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "bytes",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithBadData(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "bytes",
-		ConfigData: "bad data",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
+	_, err := StagingProviderConfigFromMap(map[string]string{})
 	assert.NotNil(t, err)
 }
 
 func TestStagingTargetProviderGet(t *testing.T) {
-	testStaging := os.Getenv("TEST_STAGING")
-	if testStaging == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "policies",
+				Type: "yaml.k8s",
+				Properties: map[string]interface{}{
+					"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+				},
+			},
+		},
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components)) // To make this test work, you need a target with a single component
 }
 func TestKubectlTargetProviderApply(t *testing.T) {
-	testRedis := os.Getenv("TEST_STAGING")
-	if testRedis == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -99,6 +76,9 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",
@@ -118,14 +98,16 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 }
 
 func TestKubectlTargetProviderRemove(t *testing.T) {
-	testRedis := os.Getenv("TEST_STAGING")
-	if testRedis == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -138,6 +120,9 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",

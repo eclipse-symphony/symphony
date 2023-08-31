@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -52,20 +53,21 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
+// We shouldn't use specific error types
 // SummarySpecError represents an error that includes a SummarySpec in its message
 // field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
+// type SummarySpecError struct {
+// 	Code    string `json:"code"`
+// 	Message string `json:"message"`
+// }
 
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
+// func (e *SummarySpecError) Error() string {
+// 	return fmt.Sprintf(
+// 		"failed to invoke Symphony API: [%s] - %s",
+// 		e.Code,
+// 		e.Message,
+// 	)
+// }
 
 func GetInstances(baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
@@ -137,6 +139,16 @@ func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogS
 	}
 
 	return ret, nil
+}
+func getSymphonySettingsFromEnvironmnet() (string, string, string) {
+	baseUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	user := os.Getenv("SYMPHONY_API_USER")
+	password := os.Getenv("SYMPHONY_API_PASSWORD")
+	return baseUrl, user, password
+}
+func GetCatalogWithEnv(catalog string) (model.CatalogState, error) {
+	baseUrl, user, password := getSymphonySettingsFromEnvironmnet()
+	return GetCatalog(baseUrl, catalog, user, password)
 }
 func GetCatalog(baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
@@ -265,7 +277,10 @@ func GetInstance(baseUrl string, instance string, user string, password string) 
 
 	return ret, nil
 }
-
+func UpsertCatalogWithEnv(catalog string, payload []byte) error {
+	baseUrl, user, password := getSymphonySettingsFromEnvironmnet()
+	return UpsertCatalog(baseUrl, catalog, user, password, payload)
+}
 func UpsertCatalog(baseUrl string, catalog string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
@@ -760,14 +775,13 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
-		}
-		object := &SummarySpecError{
-			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
-			Message: string(bodyBytes),
-		}
-		return nil, object
+		// TODO: Can we remove the following? It doesn't seem right.
+		// I'm afraid some downstream logic is expecting this behavior, though.
+		// if resp.StatusCode == 404 { // API service is already gone
+		// 	return nil, nil
+		// }
+
+		return nil, v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
 	}
 
 	return bodyBytes, nil

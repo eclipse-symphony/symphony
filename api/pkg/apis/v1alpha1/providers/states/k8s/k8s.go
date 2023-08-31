@@ -398,7 +398,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 			coaError.State = v1alpha2.NotFound
 		}
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P (K8s State): failed to get objects: %v", coaError)
+		sLog.Errorf("  P (K8s State %v", coaError.Error())
 		return states.StateEntry{}, coaError
 	}
 	generation := item.GetGeneration()
