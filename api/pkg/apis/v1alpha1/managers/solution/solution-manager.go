@@ -267,7 +267,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(step.Role, deployment.Targets[step.Target], override)
+		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
 			summary.SummaryMessage = "failed to create provider:" + err.Error()
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
@@ -421,7 +421,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(step.Role, deployment.Targets[step.Target], override)
+		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
@@ -430,7 +430,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		components, err := (provider.(tgt.ITargetProvider)).Get(iCtx, deployment, step.Components)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			log.Errorf(" M (Solution): failed to create provider: %+v", err)
+			log.Errorf(" M (Solution): failed to get: %+v", err)
 			return ret, nil, err
 		}
 		for _, c := range components {

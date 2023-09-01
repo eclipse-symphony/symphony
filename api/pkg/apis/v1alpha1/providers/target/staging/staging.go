@@ -109,10 +109,17 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	if scope == "" {
 		scope = "default"
 	}
-
-	catalog, err := utils.GetCatalogWithEnv(deployment.Instance.Name + "-" + i.Config.TargetName)
+	catalog, err := utils.GetCatalog(
+		i.Context.SiteInfo.CurrentSite.BaseUrl,
+		deployment.Instance.Name+"-"+i.Config.TargetName,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password)
 
 	if err != nil {
+		if v1alpha2.IsNotFound(err) {
+			sLog.Infof("  P (Staging Target): no staged artifact found")
+			return nil, nil
+		}
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 		return nil, err
 	}
@@ -167,7 +174,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	var catalog model.CatalogState
 
-	catalog, err = utils.GetCatalogWithEnv(deployment.Instance.Name + "-" + i.Config.TargetName)
+	catalog, err = utils.GetCatalog(
+		i.Context.SiteInfo.CurrentSite.BaseUrl,
+		deployment.Instance.Name+"-"+i.Config.TargetName,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 		return ret, err
@@ -176,9 +187,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.Spec == nil {
 		catalog.Id = deployment.Instance.Name + "-" + i.Config.TargetName
 		catalog.Spec = &model.CatalogSpec{
-			SiteId: "dummy",
+			SiteId: i.Context.SiteInfo.SiteId,
 			Type:   "staged",
-			Name:   "dummy",
+			Name:   catalog.Id,
 		}
 	}
 	if catalog.Spec.Properties == nil {
@@ -250,7 +261,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog.Spec.Properties["components"] = existing
 	catalog.Spec.Properties["removed-components"] = deleted
 	jData, _ := json.Marshal(catalog.Spec)
-	err = utils.UpsertCatalogWithEnv(deployment.Instance.Name+"-"+i.Config.TargetName, jData)
+	err = utils.UpsertCatalog(
+		i.Context.SiteInfo.CurrentSite.BaseUrl,
+		deployment.Instance.Name+"-"+i.Config.TargetName,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password, jData)
 	if err != nil {
 		sLog.Errorf("  P (Staging Target): failed to upsert staged artifact: %v", err)
 	}

@@ -1,6 +1,11 @@
 {
   "siteInfo": {
-    "siteId": "hq"
+    "siteId": "hq",
+    "currentSite": {
+      "baseUrl": "http://localhost:8098/v1alpha2/",
+      "username": "",
+      "password": ""
+    }
   },
   "api": {
     "vendors": [

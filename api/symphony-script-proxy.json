@@ -1,6 +1,11 @@
 {
   "siteInfo": {
-    "siteId": "symphony-proxy"
+    "siteId": "symphony-proxy",
+    "currentSite": {
+      "baseUrl": "http://localhost:8098/v1alpha2/",
+      "username": "",
+      "password": ""
+    }
   },
   "api": {
     "vendors": [

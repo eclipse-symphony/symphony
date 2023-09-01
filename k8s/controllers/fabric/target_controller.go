@@ -83,12 +83,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	err := r.Status().Update(ctx, target)
-	if err != nil {
-		log.Error(err, "unable to update Target status")
-		return ctrl.Result{}, err
-	}
-
 	if target.Status.Properties == nil {
 		target.Status.Properties = make(map[string]string)
 	}
@@ -170,6 +164,9 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				case <-ticker:
 					summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name))
 					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+						break loop
+					}
+					if err != nil && !v1alpha2.IsNotFound(err) {
 						break loop
 					}
 				}

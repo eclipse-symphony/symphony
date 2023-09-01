@@ -25,9 +25,10 @@ SOFTWARE
 package v1alpha2
 
 type SiteInfo struct {
-	SiteId     string            `json:"siteId"`
-	Properties map[string]string `json:"properties,omitempty"`
-	ParentSite SiteConnection    `json:"parentSite,omitempty"`
+	SiteId      string            `json:"siteId"`
+	Properties  map[string]string `json:"properties,omitempty"`
+	ParentSite  SiteConnection    `json:"parentSite,omitempty"`
+	CurrentSite SiteConnection    `json:"currentSite"`
 }
 type SiteConnection struct {
 	BaseUrl  string `json:"baseUrl"`

@@ -30,6 +30,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -37,7 +38,8 @@ type MockTargetProviderConfig struct {
 	ID string `json:"id"`
 }
 type MockTargetProvider struct {
-	Config MockTargetProviderConfig
+	Config  MockTargetProviderConfig
+	Context *contexts.ManagerContext
 }
 
 var cache map[string][]model.ComponentSpec

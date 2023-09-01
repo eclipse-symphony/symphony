@@ -33,6 +33,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -49,7 +50,8 @@ type DockerTargetProviderConfig struct {
 }
 
 type DockerTargetProvider struct {
-	Config DockerTargetProviderConfig
+	Config  DockerTargetProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func DockerTargetProviderConfigFromMap(properties map[string]string) (DockerTargetProviderConfig, error) {

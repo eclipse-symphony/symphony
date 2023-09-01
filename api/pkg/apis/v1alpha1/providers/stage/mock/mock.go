@@ -40,7 +40,8 @@ type MockStageProviderConfig struct {
 	ID string `json:"id"`
 }
 type MockStageProvider struct {
-	Config MockStageProviderConfig
+	Config  MockStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (m *MockStageProvider) Init(config providers.IProviderConfig) error {

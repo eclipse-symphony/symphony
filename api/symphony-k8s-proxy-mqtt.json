@@ -1,6 +1,11 @@
 {
   "siteInfo": {
-    "siteId": "hq"
+    "siteId": "hq",
+    "currentSite": {
+      "baseUrl": "",
+      "username": "",
+      "password": ""
+    }
   },
   "api": {
     "vendors": [

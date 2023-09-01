@@ -31,7 +31,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -139,16 +138,6 @@ func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogS
 	}
 
 	return ret, nil
-}
-func getSymphonySettingsFromEnvironmnet() (string, string, string) {
-	baseUrl := os.Getenv("SYMPHONY_API_BASE_URL")
-	user := os.Getenv("SYMPHONY_API_USER")
-	password := os.Getenv("SYMPHONY_API_PASSWORD")
-	return baseUrl, user, password
-}
-func GetCatalogWithEnv(catalog string) (model.CatalogState, error) {
-	baseUrl, user, password := getSymphonySettingsFromEnvironmnet()
-	return GetCatalog(baseUrl, catalog, user, password)
 }
 func GetCatalog(baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
@@ -276,10 +265,6 @@ func GetInstance(baseUrl string, instance string, user string, password string) 
 	}
 
 	return ret, nil
-}
-func UpsertCatalogWithEnv(catalog string, payload []byte) error {
-	baseUrl, user, password := getSymphonySettingsFromEnvironmnet()
-	return UpsertCatalog(baseUrl, catalog, user, password, payload)
 }
 func UpsertCatalog(baseUrl string, catalog string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)

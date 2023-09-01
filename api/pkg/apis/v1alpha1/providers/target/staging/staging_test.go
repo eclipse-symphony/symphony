@@ -7,6 +7,8 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +35,15 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceSpec{
@@ -68,6 +79,15 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	component := model.ComponentSpec{
 		Name: "policies",
 		Type: "yaml.k8s",
@@ -111,6 +131,15 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
 		Name: "policies",

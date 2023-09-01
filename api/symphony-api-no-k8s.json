@@ -10,6 +10,11 @@
       "country": "USA",
       "phone": "425-555-1212",
       "version": "0.45.1"
+    },
+    "currentSite": {
+      "baseUrl": "http://localhost:8082/v1alpha2/",
+      "username": "admin",
+      "password": ""
     }
   },
   "api": {

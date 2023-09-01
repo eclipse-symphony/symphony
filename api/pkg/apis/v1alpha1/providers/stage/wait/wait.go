@@ -54,7 +54,8 @@ type WaitStageProviderConfig struct {
 }
 
 type WaitStageProvider struct {
-	Config WaitStageProviderConfig
+	Config  WaitStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {

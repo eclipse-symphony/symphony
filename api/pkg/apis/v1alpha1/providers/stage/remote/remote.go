@@ -43,6 +43,7 @@ type RemoteStageProviderConfig struct {
 }
 type RemoteStageProvider struct {
 	Config        RemoteStageProviderConfig
+	Context       *contexts.ManagerContext
 	OutputContext map[string]map[string]interface{}
 }
 

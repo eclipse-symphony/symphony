@@ -35,6 +35,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -65,6 +66,7 @@ type ProxyResponse struct {
 }
 type MQTTTargetProvider struct {
 	Config          MQTTTargetProviderConfig
+	Context         *contexts.ManagerContext
 	MQTTClient      gmqtt.Client
 	GetChan         chan ProxyResponse
 	RemoveChan      chan ProxyResponse

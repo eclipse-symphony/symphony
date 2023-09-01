@@ -17,6 +17,11 @@
       "baseUrl": "http://localhost:8080/v1alpha2/",
       "username": "admin",
       "password": ""
+    },
+    "currentSite": {
+      "baseUrl": "http://localhost:8083/v1alpha2/",
+      "username": "admin",
+      "password": ""
     }
   },
   "api": {

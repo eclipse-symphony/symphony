@@ -48,7 +48,8 @@ type ListStageProviderConfig struct {
 }
 
 type ListStageProvider struct {
-	Config ListStageProviderConfig
+	Config  ListStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (s *ListStageProvider) Init(config providers.IProviderConfig) error {

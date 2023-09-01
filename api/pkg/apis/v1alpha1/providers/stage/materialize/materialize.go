@@ -45,7 +45,8 @@ type MaterializeStageProviderConfig struct {
 }
 
 type MaterializeStageProvider struct {
-	Config MaterializeStageProviderConfig
+	Config  MaterializeStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (s *MaterializeStageProvider) Init(config providers.IProviderConfig) error {

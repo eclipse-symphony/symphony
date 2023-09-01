@@ -57,7 +57,8 @@ type HttpStageProviderConfig struct {
 	WaitJsonPath     string `json:"wait.jsonpath,omitempty"`
 }
 type HttpStageProvider struct {
-	Config HttpStageProviderConfig
+	Config  HttpStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (m *HttpStageProvider) Init(config providers.IProviderConfig) error {

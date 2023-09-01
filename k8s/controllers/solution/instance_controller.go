@@ -88,12 +88,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	err := r.Client.Status().Update(ctx, instance)
-	if err != nil {
-		log.Error(err, "unable to update Instance status")
-		return ctrl.Result{}, err
-	}
-
 	if instance.Status.Properties == nil {
 		instance.Status.Properties = make(map[string]string)
 	}
@@ -174,6 +168,9 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				case <-ticker:
 					summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
 					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+						break loop
+					}
+					if err != nil && v1alpha2.IsNotFound(err) {
 						break loop
 					}
 				}

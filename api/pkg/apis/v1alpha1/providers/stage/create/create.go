@@ -32,6 +32,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -46,7 +47,8 @@ type CreateStageProviderConfig struct {
 }
 
 type CreateStageProvider struct {
-	Config CreateStageProviderConfig
+	Config  CreateStageProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {

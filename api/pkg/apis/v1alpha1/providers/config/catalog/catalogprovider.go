@@ -30,6 +30,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -42,7 +43,8 @@ type CatalogConfigProviderConfig struct {
 }
 
 type CatalogConfigProvider struct {
-	Config CatalogConfigProviderConfig
+	Config  CatalogConfigProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
