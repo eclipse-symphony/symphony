@@ -1,7 +1,6 @@
 use std::{process::Command, collections::HashMap};
 use serde_json::json;
 use serde::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize)]
 struct Token {
     #[serde(rename = "accessToken")]
@@ -12,7 +11,6 @@ struct Token {
     user_name: String,
     roles: Option<Vec<String>>
 }
-
 #[derive(Serialize, Deserialize)]
 struct ComponentSpec {
     name: String,
@@ -20,7 +18,6 @@ struct ComponentSpec {
     #[serde(rename = "type")]
     component_type: String,
 }
-
 #[derive(Serialize, Deserialize)]
 struct ObjectRef {
     #[serde(rename = "siteId")]
@@ -31,14 +28,12 @@ struct ObjectRef {
     kind: String,
     scope: String,
 }
-
 #[derive(Serialize, Deserialize)]
 struct StagedProperties {
     components: Option<Vec<ComponentSpec>>,
     #[serde(rename = "removed-components")]
     removed_components: Option<Vec<ComponentSpec>>,
 }
-
 #[derive(Serialize, Deserialize)]
 struct CatalogSpec {
     #[serde(rename = "siteId")]
@@ -51,12 +46,10 @@ struct CatalogSpec {
     object_ref: Option<ObjectRef>,
     generation: String,
 }
-
 #[derive(Serialize, Deserialize)]
 struct CatalogStatus {
     properties: Option<HashMap<String, String>>,
 }
-
 #[derive(Serialize, Deserialize)]
 struct CatalogState {
     id: String,
@@ -77,11 +70,7 @@ fn main()  {
             .spawn()
             .expect("failed to execute command");
         }
-    }
-    // let _child = Command::new("ls")
-    // .arg("-a")
-    // .spawn()
-    // .expect("failed to execute command");    
+    }    
 }
 fn getCatalogs(token: &str) -> Vec<CatalogState> {
     let req = attohttpc::get("http://localhost:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
