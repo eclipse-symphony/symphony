@@ -148,7 +148,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else { // delete
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
+			err := api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
 
 			if err != nil {
 				uErr := r.updateInstanceStatusToReconciling(instance, err)

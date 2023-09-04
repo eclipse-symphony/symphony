@@ -57,23 +57,54 @@ struct CatalogState {
     status: Option<CatalogStatus>,
 }
 fn main()  {
-    let token = auth();
-    let catalogs = getCatalogs(&token);
-    for catalog in catalogs {
-        for component in catalog.spec.properties.components.unwrap() {
-            let _cmd = Command::new("docker")
-            .arg("run")
-            .arg("-d")
-            .arg("--name")
-            .arg(component.name)
-            .arg(component.properties.unwrap().get("container.image").unwrap())
-            .spawn()
-            .expect("failed to execute command");
+    println!("SYMPHONY PICCOLO 0.0.1");
+    loop {
+        println!("reconciling...");
+        let token = auth();
+        if token != "" {
+            print!("get desired state >>> ");
+            let catalogs = getCatalogs(&token);
+            for catalog in catalogs {
+                for component in catalog.spec.properties.components.unwrap() {
+                    print!("reconcil {} >>> ", component.name);
+                    //check if container is running
+                    let output = Command::new("docker")
+                    .arg("ps")
+                    .arg(format!("--filter=name={}", component.name))   
+                    .arg("--format")
+                    .arg("{{.Names}}")
+                    .output();
+
+                    if output.is_ok() && output.unwrap().stdout.len() > 0 {
+                        println!("skipped");
+                        continue;
+                    }
+                    
+                    let mut cmd = Command::new("docker")
+                    .arg("run")
+                    .arg("-d")
+                    .arg("--name")
+                    .arg(component.name)
+                    .arg(component.properties.unwrap().get("container.image").unwrap())
+                    .spawn()
+                    .expect("failed to execute command");
+
+                    let status = cmd.wait().expect("failed to wait on child");
+
+                    if status.success() {
+                        println!("done");
+                    } else {
+                        println!("failed");
+                    }
+                }
+            }
         }
-    }    
+        std::thread::sleep(std::time::Duration::from_secs(15));
+    }
+        
 }
 fn getCatalogs(token: &str) -> Vec<CatalogState> {
-    let req = attohttpc::get("http://localhost:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
+    let req = attohttpc::get("http://52.188.128.127:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
     if req.is_err() {
         return vec![];
     }
@@ -93,7 +124,7 @@ fn auth() -> String {
         "username": "admin",
         "password": ""
     });
-    let req = attohttpc::post("http://localhost:8080/v1alpha2/users/auth").json(&body);
+    let req = attohttpc::post("http://52.188.128.127:8080/v1alpha2/users/auth").json(&body);
     if req.is_err() {
         return "".to_string();
     }

@@ -144,7 +144,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	} else { // remove
 		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
-			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, true, true)
+			err := api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, true, true)
 
 			if err != nil {
 				uErr := r.updateTargetStatusToReconciling(target, err)
