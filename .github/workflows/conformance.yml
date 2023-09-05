@@ -28,14 +28,8 @@ jobs:
         source $HOME/.bashrc
           
     - name: Install make
-      run: sudo apt-get update && sudo apt-get install -y build-essential
+      run: sudo apt-get update && sudo apt-get install -y build-essential            
         
-    - name: COA Vendor
-      run: cd coa && go mod vendor
-      
-    - name: API Vendor
-      run: cd api && go mod vendor
-      
     - id: target-adb-app
       run: cd api/pkg/apis/v1alpha1/providers/target/adb && go test -v -run /Level=App
       continue-on-error: true      

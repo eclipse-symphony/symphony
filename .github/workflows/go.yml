@@ -30,10 +30,7 @@ jobs:
           
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
-        
-    - name: COA Vendor
-      run: cd coa && go mod vendor
-    
+          
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
