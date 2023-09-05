@@ -23,11 +23,11 @@
 
 */
 
-package stack
+package queue
 
-type IStackProvider interface {
-	Push(stack string, element interface{}) error
-	Pop(stack string) (interface{}, error)
+type IQueueProvider interface {
+	Enqueue(stack string, element interface{}) error
+	Dequeue(stack string) (interface{}, error)
 	Peek(stack string) (interface{}, error)
 	Size(stack string) int
 }

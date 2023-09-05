@@ -31,7 +31,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 )
@@ -65,7 +64,7 @@ func ParseProperty(val string) string {
 type EvaluationContext struct {
 	ConfigProvider config.IExtConfigProvider
 	SecretProvider secret.ISecretProvider
-	DeploymentSpec model.DeploymentSpec
+	DeploymentSpec interface{}
 	Properties     map[string]string
 	Inputs         map[string]interface{}
 	Outputs        map[string]map[string]interface{}

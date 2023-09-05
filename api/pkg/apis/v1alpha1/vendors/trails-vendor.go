@@ -29,7 +29,6 @@ import (
 	"encoding/json"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/trails"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -95,7 +94,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var trails []model.Trail
+		var trails []v1alpha2.Trail
 		err := json.Unmarshal(request.Body, &trails)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

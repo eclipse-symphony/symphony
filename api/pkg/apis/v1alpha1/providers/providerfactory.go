@@ -18,7 +18,6 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
-	mockledger "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/ledger/mock"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
@@ -47,15 +46,16 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	mockconfig "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	mockledger "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	mempubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	memoryqueue "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
 	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
 	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
 	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
 	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
 	mocksecret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
-	memorystack "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack/memory"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
@@ -308,8 +308,8 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "providers.stack.memory":
-		mProvider := &memorystack.MemoryStackProvider{}
+	case "providers.queue.memory":
+		mProvider := &memoryqueue.MemoryQueueProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -622,8 +622,8 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
-				case "providers.stack.memory":
-					provider := &memorystack.MemoryStackProvider{}
+				case "providers.queue.memory":
+					provider := &memoryqueue.MemoryQueueProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

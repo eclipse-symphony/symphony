@@ -26,16 +26,16 @@
 package managers
 
 import (
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/ledger"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 )
@@ -84,20 +84,20 @@ func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, pr
 	m.Context.Logger.Debugf(" M (%s): initalize manager type '%s'", config.Name, config.Type)
 	return err
 }
-func GetStackProvider(config ManagerConfig, providers map[string]providers.IProvider) (stack.IStackProvider, error) {
-	stackProviderName, ok := config.Properties[v1alpha2.ProviderStack]
+func GetQueueProvider(config ManagerConfig, providers map[string]providers.IProvider) (queue.IQueueProvider, error) {
+	queueProviderName, ok := config.Properties[v1alpha2.ProviderQueue]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "stack provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "queue provider is not configured", v1alpha2.MissingConfig)
 	}
-	provider, ok := providers[stackProviderName]
+	provider, ok := providers[queueProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "stack provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "queue provider is not supplied", v1alpha2.MissingConfig)
 	}
-	stackProvider, ok := provider.(stack.IStackProvider)
+	queueProvider, ok := provider.(queue.IQueueProvider)
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a stack provider", v1alpha2.BadConfig)
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a queue provider", v1alpha2.BadConfig)
 	}
-	return stackProvider, nil
+	return queueProvider, nil
 }
 func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]

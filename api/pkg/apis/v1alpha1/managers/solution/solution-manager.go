@@ -199,10 +199,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	var err error
-	context := s.VendorContext.EvaluationContext.Clone()
-	context.DeploymentSpec = deployment
-	context.Component = ""
-	deployment, err = api_utils.EvaluateDeployment(*context)
+	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
+		context := s.VendorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = deployment
+		context.Component = ""
+		deployment, err = api_utils.EvaluateDeployment(*context)
+	}
 
 	if err != nil {
 		summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()

@@ -133,7 +133,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	})
 	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
 		if f.TrailsManager != nil {
-			if trails, ok := event.Body.([]model.Trail); ok {
+			if trails, ok := event.Body.([]v1alpha2.Trail); ok {
 				return f.TrailsManager.Append(context.Background(), trails)
 			}
 		}

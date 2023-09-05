@@ -452,11 +452,14 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			argument, err := readArgument(context.DeploymentSpec, context.Component, key.(string))
-			if err != nil {
-				return nil, err
+			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+				argument, err := readArgument(deploymentSpec, context.Component, key.(string))
+				if err != nil {
+					return nil, err
+				}
+				return argument, nil
 			}
-			return argument, nil
+			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
 	case "property":
@@ -723,7 +726,10 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
-			return context.DeploymentSpec.Instance.Name, nil
+			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+				return deploymentSpec.Instance.Name, nil
+			}
+			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
 	}
@@ -963,20 +969,21 @@ func (p *Parser) function() Node {
 }
 
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
-	ret := context.DeploymentSpec
-	for ic, c := range context.DeploymentSpec.Solution.Components {
-		val, err := evalProperties(context, c.Properties)
-		if err != nil {
-			return ret, err
+	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+		for ic, c := range deploymentSpec.Solution.Components {
+			val, err := evalProperties(context, c.Properties)
+			if err != nil {
+				return deploymentSpec, err
+			}
+			props, ok := val.(map[string]interface{})
+			if !ok {
+				return deploymentSpec, fmt.Errorf("properties must be a map")
+			}
+			deploymentSpec.Solution.Components[ic].Properties = props
 		}
-		props, ok := val.(map[string]interface{})
-		if !ok {
-			return ret, fmt.Errorf("properties must be a map")
-		}
-		ret.Solution.Components[ic].Properties = props
-
+		return deploymentSpec, nil
 	}
-	return ret, nil
+	return model.DeploymentSpec{}, errors.New("deployment spec is not found")
 }
 func compareInterfaces(a, b interface{}) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)

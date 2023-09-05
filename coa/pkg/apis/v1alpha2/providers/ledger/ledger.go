@@ -28,9 +28,9 @@ package ledger
 import (
 	"context"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type ILedgerProvider interface {
-	Append(ctx context.Context, entries []model.Trail) error
+	Append(ctx context.Context, entries []v1alpha2.Trail) error
 }

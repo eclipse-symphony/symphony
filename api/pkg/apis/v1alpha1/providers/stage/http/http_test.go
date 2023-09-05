@@ -70,6 +70,10 @@ func TestCallLogicApp(t *testing.T) {
 	assert.NotNil(t, outputs["body"])
 }
 func TestGitHubAction(t *testing.T) {
+	testGitHubAction := os.Getenv("GET_GITHUB_ACTION")
+	if testGitHubAction != "yes" {
+		t.Skip("Skipping becasue GET_GITHUB_ACTION is missing or not set to 'yes'")
+	}
 	// sample GitHub Action
 	// name: Manual workflow
 	// on:

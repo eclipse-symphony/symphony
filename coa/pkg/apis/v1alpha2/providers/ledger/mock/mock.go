@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
@@ -40,7 +40,7 @@ type MockLedgerProviderConfig struct {
 type MockLedgerProvider struct {
 	Config     MockLedgerProviderConfig
 	Context    *contexts.ManagerContext
-	LedgerData []model.Trail
+	LedgerData []v1alpha2.Trail
 	Lock       *sync.Mutex
 }
 
@@ -84,7 +84,7 @@ func MockLedgerProviderConfigFromMap(properties map[string]string) (MockLedgerPr
 	ret.Name = properties["name"]
 	return ret, nil
 }
-func (i *MockLedgerProvider) Append(ctx context.Context, trails []model.Trail) error {
+func (i *MockLedgerProvider) Append(ctx context.Context, trails []v1alpha2.Trail) error {
 	i.Lock.Lock()
 	defer i.Lock.Unlock()
 

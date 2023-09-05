@@ -136,6 +136,6 @@ const (
 	ProvidersProbe         = "providers.probe"
 	ProvidersUploader      = "providers.uploader"
 	ProvidersReporter      = "providers.reporter"
-	ProviderStack          = "providers.stack"
+	ProviderQueue          = "providers.queue"
 	ProviderLedger         = "providers.ledger"
 )

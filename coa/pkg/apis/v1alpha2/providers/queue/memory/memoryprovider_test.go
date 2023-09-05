@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-package memorystack
+package memoryqueue
 
 import (
 	"testing"
@@ -31,52 +31,52 @@ import (
 )
 
 func TestPush(t *testing.T) {
-	stack := MemoryStackProvider{}
-	err := stack.Init(MemoryStackProviderConfig{})
+	stack := MemoryQueueProvider{}
+	err := stack.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("stack1", "a")
-	stack.Push("stack1", "b")
-	stack.Push("stack1", "c")
-	element, err := stack.Peek("stack1")
+	stack.Enqueue("queue1", "a")
+	stack.Enqueue("queue1", "b")
+	stack.Enqueue("queue1", "c")
+	element, err := stack.Peek("queue1")
 	assert.Nil(t, err)
-	assert.Equal(t, "c", element)
+	assert.Equal(t, "a", element)
 }
 func TestPop(t *testing.T) {
-	stack := MemoryStackProvider{}
-	err := stack.Init(MemoryStackProviderConfig{})
+	stack := MemoryQueueProvider{}
+	err := stack.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("stack1", "a")
-	stack.Push("stack1", "b")
-	stack.Push("stack1", "c")
-	element, err := stack.Pop("stack1")
+	stack.Enqueue("queue1", "a")
+	stack.Enqueue("queue1", "b")
+	stack.Enqueue("queue1", "c")
+	element, err := stack.Dequeue("queue1")
 	assert.Nil(t, err)
-	assert.Equal(t, "c", element)
-	element, err = stack.Peek("stack1")
+	assert.Equal(t, "a", element)
+	element, err = stack.Peek("queue1")
 	assert.Nil(t, err)
 	assert.Equal(t, "b", element)
 }
 func TestPopEmpty(t *testing.T) {
-	stack := MemoryStackProvider{}
-	err := stack.Init(MemoryStackProviderConfig{})
+	stack := MemoryQueueProvider{}
+	err := stack.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Pop("stack1")
+	element, err := stack.Dequeue("queue1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
 func TestPeekEmepty(t *testing.T) {
-	stack := MemoryStackProvider{}
-	err := stack.Init(MemoryStackProviderConfig{})
+	stack := MemoryQueueProvider{}
+	err := stack.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Peek("stack1")
+	element, err := stack.Peek("queue1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
 func TestSize(t *testing.T) {
-	stack := MemoryStackProvider{}
-	err := stack.Init(MemoryStackProviderConfig{})
+	stack := MemoryQueueProvider{}
+	err := stack.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	stack.Push("stack1", "a")
-	stack.Push("stack1", "b")
-	stack.Push("stack1", "c")
-	assert.Equal(t, 3, stack.Size("stack1"))
+	stack.Enqueue("queue1", "a")
+	stack.Enqueue("queue1", "b")
+	stack.Enqueue("queue1", "c")
+	assert.Equal(t, 3, stack.Size("queue1"))
 }

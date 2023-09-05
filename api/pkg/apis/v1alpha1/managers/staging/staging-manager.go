@@ -32,12 +32,12 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/stack"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
 )
 
 type StagingManager struct {
 	managers.Manager
-	StackProvider stack.IStackProvider
+	QueueProvider queue.IQueueProvider
 }
 
 func (s *StagingManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -45,9 +45,9 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	if err != nil {
 		return err
 	}
-	stackProvider, err := managers.GetStackProvider(config, providers)
+	queueProvider, err := managers.GetQueueProvider(config, providers)
 	if err == nil {
-		s.StackProvider = stackProvider
+		s.QueueProvider = queueProvider
 	} else {
 		return err
 	}
@@ -69,14 +69,14 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 	if job, jok = event.Body.(v1alpha2.JobData); !jok {
 		return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 	}
-	return s.StackProvider.Push(event.Metadata["site"], job)
+	return s.QueueProvider.Enqueue(event.Metadata["site"], job)
 }
 func (s *StagingManager) GetABatchForSite(site string) ([]v1alpha2.JobData, error) {
 	//TODO: this should return a group of jobs as optimization
-	if s.StackProvider.Size(site) == 0 {
+	if s.QueueProvider.Size(site) == 0 {
 		return nil, nil
 	}
-	stackElement, err := s.StackProvider.Pop(site)
+	stackElement, err := s.QueueProvider.Dequeue(site)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *StagingManager) GetABatchForSite(site string) ([]v1alpha2.JobData, erro
 			job,
 		}, nil
 	} else {
-		s.StackProvider.Push(site, stackElement)
+		s.QueueProvider.Enqueue(site, stackElement)
 	}
 	return nil, nil
 }

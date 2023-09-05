@@ -165,7 +165,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		// TODO: this is a PoC of publishing trails when an object is updated
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
-			Body: []model.Trail{
+			Body: []v1alpha2.Trail{
 				{
 					Origin:  c.Vendor.Context.SiteInfo.SiteId,
 					Catalog: solution.Metadata["catalog"],

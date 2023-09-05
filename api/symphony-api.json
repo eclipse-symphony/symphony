@@ -439,11 +439,11 @@
             "name": "staging-manager",
             "type": "managers.symphony.staging",
             "properties": {
-              "providers.stack": "memeory"              
+              "providers.queue": "memeory"              
             },
             "providers": {
               "memeory": {
-                "type": "providers.stack.memory",
+                "type": "providers.queue.memory",
                 "config": {}
               }
             }

@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-package memorystack
+package memoryqueue
 
 import (
 	"encoding/json"
@@ -38,43 +38,43 @@ import (
 var mLog = logger.NewLogger("coa.runtime")
 var mLock sync.Mutex
 
-type MemoryStackProviderConfig struct {
+type MemoryQueueProviderConfig struct {
 	Name string `json:"name"`
 }
 
-func MemoryStackProviderConfigFromMap(properties map[string]string) (MemoryStackProviderConfig, error) {
-	ret := MemoryStackProviderConfig{}
+func MemoryQueueProviderConfigFromMap(properties map[string]string) (MemoryQueueProviderConfig, error) {
+	ret := MemoryQueueProviderConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = utils.ParseProperty(v)
 	}
 	return ret, nil
 }
 
-type MemoryStackProvider struct {
-	Config  MemoryStackProviderConfig
+type MemoryQueueProvider struct {
+	Config  MemoryQueueProviderConfig
 	Data    map[string][]interface{}
 	Context *contexts.ManagerContext
 }
 
-func (s *MemoryStackProvider) ID() string {
+func (s *MemoryQueueProvider) ID() string {
 	return s.Config.Name
 }
 
-func (s *MemoryStackProvider) SetContext(ctx *contexts.ManagerContext) error {
+func (s *MemoryQueueProvider) SetContext(ctx *contexts.ManagerContext) error {
 	s.Context = ctx
 	return nil
 }
 
-func (i *MemoryStackProvider) InitWithMap(properties map[string]string) error {
-	config, err := MemoryStackProviderConfigFromMap(properties)
+func (i *MemoryQueueProvider) InitWithMap(properties map[string]string) error {
+	config, err := MemoryQueueProviderConfigFromMap(properties)
 	if err != nil {
 		return err
 	}
 	return i.Init(config)
 }
 
-func toMemoryStackProviderConfig(config providers.IProviderConfig) (MemoryStackProviderConfig, error) {
-	ret := MemoryStackProviderConfig{}
+func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueProviderConfig, error) {
+	ret := MemoryQueueProviderConfig{}
 	data, err := json.Marshal(config)
 	if err != nil {
 		return ret, err
@@ -84,9 +84,9 @@ func toMemoryStackProviderConfig(config providers.IProviderConfig) (MemoryStackP
 	return ret, err
 }
 
-func (s *MemoryStackProvider) Init(config providers.IProviderConfig) error {
+func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	// parameter checks
-	stateConfig, err := toMemoryStackProviderConfig(config)
+	stateConfig, err := toMemoryQueueProviderConfig(config)
 	if err != nil {
 		return errors.New("expected MemoryStackProviderConfig")
 	}
@@ -95,7 +95,7 @@ func (s *MemoryStackProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (s *MemoryStackProvider) Push(stack string, data interface{}) error {
+func (s *MemoryQueueProvider) Enqueue(stack string, data interface{}) error {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[stack]; !ok {
@@ -104,7 +104,7 @@ func (s *MemoryStackProvider) Push(stack string, data interface{}) error {
 	s.Data[stack] = append(s.Data[stack], data)
 	return nil
 }
-func (s *MemoryStackProvider) Pop(stack string) (interface{}, error) {
+func (s *MemoryQueueProvider) Dequeue(stack string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[stack]; !ok {
@@ -120,7 +120,7 @@ func (s *MemoryStackProvider) Pop(stack string) (interface{}, error) {
 	return ret, nil
 }
 
-func (s *MemoryStackProvider) Peek(stack string) (interface{}, error) {
+func (s *MemoryQueueProvider) Peek(stack string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[stack]; !ok {
@@ -133,7 +133,7 @@ func (s *MemoryStackProvider) Peek(stack string) (interface{}, error) {
 	return s.Data[stack][0], nil
 }
 
-func (s *MemoryStackProvider) Size(stack string) int {
+func (s *MemoryQueueProvider) Size(stack string) int {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[stack]; !ok {

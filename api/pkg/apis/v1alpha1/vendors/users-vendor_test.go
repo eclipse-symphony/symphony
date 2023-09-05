@@ -63,7 +63,7 @@ func initVendor(t *testing.T) UsersVendor {
 			},
 		},
 	}, []managers.IManagerFactroy{
-		sym_mgr.SymphonyManagerFactory{},
+		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
 		"users-manager": map[string]providers.IProvider{
 			"mem-state": &p,

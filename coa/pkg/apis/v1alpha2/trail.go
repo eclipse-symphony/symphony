@@ -21,25 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
+package v1alpha2
 
-package mock
-
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
-
-func TestInit(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
-	assert.Nil(t, err)
-}
-func TestGet(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
-	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, "obj::field", val)
+type Trail struct {
+	Origin     string                 `json:"origin"`
+	Catalog    string                 `json:"catalog"`
+	Type       string                 `json:"type"`
+	Properties map[string]interface{} `json:"properties"`
 }

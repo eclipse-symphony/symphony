@@ -22,24 +22,47 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-package mock
+package contexts
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	logger "github.com/azure/symphony/coa/pkg/logger"
 )
 
-func TestInit(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
-	assert.Nil(t, err)
+type ManagerContext struct {
+	Logger         logger.Logger
+	PubsubProvider pubsub.IPubSubProvider
+	SiteInfo       v1alpha2.SiteInfo
 }
-func TestGet(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
-	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, "obj::field", val)
+
+func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error {
+	if c != nil {
+		v.Logger = c.Logger
+	} else {
+		v.Logger = logger.NewLogger("coa.runtime")
+	}
+	if c == nil {
+		v.PubsubProvider = p
+	} else {
+		v.PubsubProvider = c.PubsubProvider
+	}
+	if c != nil {
+		v.SiteInfo = c.SiteInfo
+	}
+	return nil
+}
+
+func (v *ManagerContext) Publish(feed string, event v1alpha2.Event) error {
+	if v.PubsubProvider != nil {
+		return v.PubsubProvider.Publish(feed, event)
+	}
+	return nil
+}
+
+func (v *ManagerContext) Subscribe(feed string, handler v1alpha2.EventHandler) error {
+	if v.PubsubProvider != nil {
+		return v.PubsubProvider.Subscribe(feed, handler)
+	}
+	return nil
 }

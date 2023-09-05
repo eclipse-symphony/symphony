@@ -82,6 +82,10 @@ func TestInitWithBadData(t *testing.T) {
 
 // TestReadYamlFromUrl tests that reading yaml from a url works
 func TestReadYamlFromUrl(t *testing.T) {
+	testReadYaml := os.Getenv("TEST_READ_YAML")
+	if testReadYaml == "" {
+		t.Skip("Skipping because TEST_READ_YAML environment variable is not set")
+	}
 	msgChan, errChan := readYaml("https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml")
 	totalSize := 0
 	for {

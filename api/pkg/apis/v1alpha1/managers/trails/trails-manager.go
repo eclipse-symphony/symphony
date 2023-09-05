@@ -28,12 +28,11 @@ package trails
 import (
 	"context"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/ledger"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
 )
 
 type TrailsManager struct {
@@ -55,7 +54,7 @@ func (s *TrailsManager) Init(context *contexts.VendorContext, config managers.Ma
 	return nil
 }
 
-func (s *TrailsManager) Append(ctx context.Context, trails []model.Trail) error {
+func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) error {
 	errMessage := ""
 	for _, p := range s.LedgerProviders {
 		err := p.Append(ctx, trails)
