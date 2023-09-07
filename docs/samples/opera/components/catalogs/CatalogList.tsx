@@ -13,7 +13,7 @@ function CatalogList(props: CalalogListProps) {
     return (
         <div className='sitelist'>
             {catalogs.map((catalog: CatalogState) =>  
-            <CatalogCard catalog={catalog} refCatalog={catalog.spec.metadata?.['override']? references[catalog.spec.metadata['override']]: null}/>)}
+            <CatalogCard catalog={catalog} refCatalog={catalog.spec.parentName? references[catalog.spec.parentName]: null}/>)}
         </div>
     );
 }

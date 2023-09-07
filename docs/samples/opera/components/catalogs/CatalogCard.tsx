@@ -43,11 +43,11 @@ function CatalogCard(props: CatalogCardProps) {
                 )}
             </CardBody>
             <Divider/>
-            {catalog.spec.metadata?.['override'] && (
+            {catalog.spec.parentName != "" && catalog.spec.parentName != undefined && (
             
             <CardFooter>
                 <span className='text-sm'>
-                    <div>{`overrides: ${catalog.spec.metadata['override']}`}</div></span>
+                    <div>{`overrides: ${catalog.spec.parentName}`}</div></span>
             </CardFooter>
             )}
         </Card>
