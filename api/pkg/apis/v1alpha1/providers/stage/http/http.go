@@ -66,9 +66,11 @@ type HttpStageProvider struct {
 func (m *HttpStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
+	sLog.Debug("  P (Http Stage): initialize")
 
 	mockConfig, err := toHttpStageProviderConfig(config)
 	if err != nil {
+		sLog.Errorf("  P (Http Stage): expected HttpStageProviderConfig: %+v", err)
 		return err
 	}
 	m.Config = mockConfig
