@@ -39,10 +39,12 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/logger"
 	"github.com/oliveagle/jsonpath"
 )
 
 var msLock sync.Mutex
+var sLog = logger.NewLogger("coa.runtime")
 
 type HttpStageProviderConfig struct {
 	Url              string `json:"url"`
@@ -166,6 +168,8 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	sLog.Info("  P (Http Stage): Process")
+
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
@@ -219,7 +223,9 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		counter := 0
 		failed := false
 		succeeded := false
+		sLog.Debug("  P (Http Stage): WaitCount: %v", i.Config.WaitCount)
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
+			sLog.Info("  P (Http Stage): Start wait iteration %v", counter)
 			waitReq, err := http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
 				if strings.HasPrefix(key, "header.") {
@@ -281,6 +287,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			if !failed && !succeeded {
 				counter++
 				if i.Config.WaitInterval > 0 {
+					sLog.Debug("  P (Http Stage): Sleep for wait interval")
 					time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 				}
 			} else {
@@ -288,6 +295,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 		if failed {
+			sLog.Errorf("  P (Http Stage): Failed to process request: %v", resp.StatusCode)
 			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 
@@ -297,9 +305,11 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return outputs, false, nil
 			}
 		}
+		sLog.Errorf("  P (Http Stage): Failed to process request: %v", resp.StatusCode)
 		return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 	}
 
+	sLog.Info("  P (Http Stage): Process request completed with: %v", resp.StatusCode)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
