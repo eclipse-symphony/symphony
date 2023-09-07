@@ -42,6 +42,7 @@ async function CampaignsPage() {
         views: ['cards', 'table'],
         items: campaigns,
         refItems: activations,
+        columns: []
     }
     return (
         <div>

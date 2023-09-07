@@ -31,16 +31,21 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type CatalogsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	GraphProvider graph.IGraphProvider
 }
 
 func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -53,6 +58,11 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	for _, provider := range providers {
+		if cProvider, ok := provider.(graph.IGraphProvider); ok {
+			s.GraphProvider = cProvider
+		}
 	}
 	return nil
 }
@@ -175,4 +185,53 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 		ret = append(ret, rt)
 	}
 	return ret, nil
+}
+func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context) error {
+	if !g.GraphProvider.IsPure() {
+		catalogs, err := g.ListSpec(ctx)
+		if err != nil {
+			return err
+		}
+		data := make([]v1alpha2.INode, 0)
+		for _, catalog := range catalogs {
+			data = append(data, catalog)
+		}
+		err = g.GraphProvider.SetData(data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+	log.Debug(" M (Graph): GetChains")
+	err := g.setProviderDataIfNecessary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret, err := g.GraphProvider.GetChains(ctx, graph.ListRequest{Filter: filter})
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string][]v1alpha2.INode)
+	for key, set := range ret.Sets {
+		res[key] = set.Nodes
+	}
+	return res, nil
+}
+func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+	log.Debug(" M (Graph): GetTrees")
+	err := g.setProviderDataIfNecessary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret, err := g.GraphProvider.GetTrees(ctx, graph.ListRequest{Filter: filter})
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string][]v1alpha2.INode)
+	for key, set := range ret.Sets {
+		res[key] = set.Nodes
+	}
+	return res, nil
 }

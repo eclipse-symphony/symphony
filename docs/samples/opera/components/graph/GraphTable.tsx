@@ -17,13 +17,17 @@ interface GraphTableProps {
     columns: any[] | undefined;
 }
 
-function BuildForest(catalogs: CatalogState[]) {
+function BuildForest(catalogs: Record<string, CatalogState[]>) {
     const forest: any = [];
-    catalogs.forEach((catalog: CatalogState) => {
-        if (catalog.spec.parentName==="" || catalog.spec.parentName===undefined) {
-            forest.push(BuildTree(catalogs, catalog));
-        }
-    });
+    console.log(catalogs);
+    for (const [_, cats] of Object.entries(catalogs)) {
+        cats.forEach((catalog: CatalogState) => {
+            if (catalog.spec.parentName==="" || catalog.spec.parentName===undefined) {
+                forest.push(BuildTree(cats, catalog));
+            }
+        });    
+    }
+
     return forest;
 }
 function BuildTree(catalogs: CatalogState[], catalog: CatalogState) {
@@ -64,13 +68,27 @@ function GraphTable(props: GraphTableProps) {
         setVisibleNodes(visibleNodes);
     }
 
+    const mergedCatalogs = [];
+   
+    const mergedColumns = [];
+    if (columns) {
+        for (const [_, cols] of Object.entries(columns)) {
+            mergedColumns.push(cols);
+        }
+    }
+    for (const [_, cats] of Object.entries(catalogs)) {
+        mergedCatalogs.push(...cats);
+    }
+
     useEffect(() => {
         const observer = new MutationObserver(() => {
           updateVisibleNodes();
         });
         const treeview = document.querySelector('#tree');
-        observer.observe(treeview, { childList: true, subtree: true });
-      }, []);
+        if (treeview) {
+            observer.observe(treeview, { childList: true, subtree: true });
+        }
+      }, [mergedCatalogs, mergedColumns]);
 
     useEffect(() => {
         const tableBody = document.querySelector('#tree-table tbody');
@@ -78,41 +96,32 @@ function GraphTable(props: GraphTableProps) {
             tableBody?.removeChild(node);
         });
         visibleNodes.forEach((nodeId: string) => {
-            const catalog = catalogs.find((catalog: CatalogState) => "tree-" + catalog.spec.name === nodeId);
+            const catalog = mergedCatalogs.find((catalog: CatalogState) => "tree-" + catalog.spec.name === nodeId);
             if (catalog) {        
                 const row = document.createElement('tr');
-                columns?.forEach((column: any) => {
+                mergedColumns?.forEach((column: any) => {
                     const cell = document.createElement('td');
-                    cell.innerText = catalog.spec.properties.name;
+                    cell.innerText = "...";
+                    column.forEach((col: any) => {
+                        if (col.spec.metadata?.asset == catalog.spec.name) {
+                            cell.innerText = col.spec.name;                            
+                        }                        
+                    });
                     row.appendChild(cell);
                 });
                 tableBody?.appendChild(row);
             }
         });
-      }, [visibleNodes, catalogs]);
+      }, [visibleNodes, mergedCatalogs, mergedColumns]);
     useEffect(() => {
         updateVisibleNodes();
-    }, []);
-    const findNodeById = (node: any, id: string): any => {
-        if (node.type === TreeItem && node.props.nodeId === id) {
-          return node;
-        }
-        if (node.props && node.props.children) {
-          for (let i = 0; i < node.props.children.length; i++) {
-            const child = node.props.children[i];
-            const result = findNodeById(child, id);
-            if (result) {
-              return result;
-            }
-          }
-        }
-        return null;
-      };
+    }, []);    
     const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => {
        updateVisibleNodes();
     };
 
     const treeNodes = BuildForest(catalogs);
+    if (mergedColumns?.length) {
     return (
         <div className='graph_container'>
             <div className='tree_container'>
@@ -123,19 +132,25 @@ function GraphTable(props: GraphTableProps) {
             </TreeView>   
             </div> 
             <TableContainer>
-                <Table stickyHeader aria-label="sticky table" removeWrapper id="tree-table">
+                <Table aria-label="sticky table" removeWrapper id="tree-table">
                     <TableHeader>
-                        {columns?.map((column) => (
-                            <TableColumn key={column.id}>
-                                {column.spec.name}
-                            </TableColumn>
-                        ))}
+                        {Array.isArray(mergedColumns) ? (
+                            mergedColumns.map((column) => (                                
+                                <TableColumn>
+                                    {column[0].spec.name}
+                                </TableColumn>
+                            ))                            
+                        ):(
+                            <TableColumn>ABC</TableColumn>
+                        )}
                     </TableHeader>
                     <TableBody>
                     </TableBody>
                 </Table>
             </TableContainer>
-        </div>    
-    );
+        </div>);
+    } else {
+        return null;
+    }
 }
 export default GraphTable;

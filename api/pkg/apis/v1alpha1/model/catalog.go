@@ -90,3 +90,53 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	return true, nil
 }
+
+// INode interface
+func (s CatalogState) GetId() string {
+	return s.Id
+}
+func (s CatalogState) GetParent() string {
+	if s.Spec != nil {
+		return s.Spec.ParentName
+	}
+	return ""
+}
+func (s CatalogState) GetType() string {
+	if s.Spec != nil {
+		return s.Spec.Type
+	}
+	return ""
+}
+func (s CatalogState) GetProperties() map[string]interface{} {
+	if s.Spec != nil {
+		return s.Spec.Properties
+	}
+	return nil
+}
+
+// IEdge interface
+func (s CatalogState) GetFrom() string {
+	if s.Spec != nil {
+		if s.Spec.Type == "edge" {
+			if s.Spec.Metadata != nil {
+				if from, ok := s.Spec.Metadata["from"]; ok {
+					return from
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func (s CatalogState) GetTo() string {
+	if s.Spec != nil {
+		if s.Spec.Type == "edge" {
+			if s.Spec.Metadata != nil {
+				if to, ok := s.Spec.Metadata["to"]; ok {
+					return to
+				}
+			}
+		}
+	}
+	return ""
+}

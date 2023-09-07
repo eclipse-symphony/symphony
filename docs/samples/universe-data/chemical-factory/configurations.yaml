@@ -68,6 +68,8 @@ spec:
   siteId: hq
   type: config
   name: ai-config
+  metadata:
+    asset: hq
   properties:
     model: gpt
     version: "4.5"
@@ -81,8 +83,9 @@ spec:
   siteId: hq
   type: config
   name: ai-config-site
+  parentName: ai-config
   metadata:
-    override: ai-config
+    asset: hq-doe-site
   properties:
     model: LLaMA
     version: "3.3"
@@ -96,7 +99,8 @@ spec:
   type: config
   name: ai-config-line
   metadata:
-    override: ai-config-site
+    asset: line-1
+  parentName: ai-config-site
   properties:
     flavor: mobile
 ---

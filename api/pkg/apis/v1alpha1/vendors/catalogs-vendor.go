@@ -103,23 +103,61 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name?"},
 		},
 		{
-			Methods:    []string{fasthttp.MethodGet},
-			Route:      route + "/graph",
-			Version:    e.Version,
-			Handler:    e.onCatalogsGraph,
-			Parameters: []string{"name?"},
+			Methods: []string{fasthttp.MethodGet},
+			Route:   route + "/graph",
+			Version: e.Version,
+			Handler: e.onCatalogsGraph,
 		},
 	}
 }
 func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
+	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
 		"method": "onCatalogsGraph",
 	})
 	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
 	switch request.Method {
 	case fasthttp.MethodGet:
-		// ctx, span := observability.StartSpan("onCatalogsGraph-GET", pCtx, nil)
-		// id := request.Parameters["__name"]
+		ctx, span := observability.StartSpan("onCatalogsGraph-GET", rCtx, nil)
+		template := request.Parameters["template"]
+		switch template {
+		case "config-chains":
+			chains, err := e.CatalogsManager.GetChains(ctx, "config")
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+			jData, _ := utils.FormatObject(chains, true, "", "")
+			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.OK,
+				Body:        jData,
+				ContentType: "application/json",
+			})
+			return resp
+		case "asset-trees":
+			trees, err := e.CatalogsManager.GetTrees(ctx, "asset")
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+			jData, _ := utils.FormatObject(trees, true, "", "")
+			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.OK,
+				Body:        jData,
+				ContentType: "application/json",
+			})
+			return resp
+		default:
+			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\": \"400 - unknown template\"}"),
+				ContentType: "application/json",
+			})
+			return resp
+		}
 	}
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,

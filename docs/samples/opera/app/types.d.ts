@@ -150,4 +150,6 @@ export interface User {
     email?: string | nulll | undefined;
     image?: string | null | undefined;
     username?: string;
+    tokenType: string;
+    roles?: string[] | undefined;
 }

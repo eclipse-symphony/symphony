@@ -18,6 +18,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	memorygraph "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
@@ -310,6 +311,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.queue.memory":
 		mProvider := &memoryqueue.MemoryQueueProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.graph.memory":
+		mProvider := &memorygraph.MemoryGraphProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -624,6 +631,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.queue.memory":
 					provider := &memoryqueue.MemoryQueueProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.graph.memory":
+					provider := &memorygraph.MemoryGraphProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

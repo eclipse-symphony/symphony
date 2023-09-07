@@ -44,6 +44,7 @@ async function SitesPage() {
     views: ['cards', 'table', 'map'],
     items: sites,
     refItems: [],
+    columns: []
   }
   return (
     <div>

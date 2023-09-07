@@ -466,6 +466,10 @@
               "memeory": {
                 "type": "providers.state.memory",
                 "config": {}
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
               }
             }
           }

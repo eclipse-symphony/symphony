@@ -21,7 +21,7 @@ interface MenuInfo {
 
 interface ColumnSet {
     name: string;
-    data: any[];
+    data?: any[] | undefined;
 }
 
 interface Params {

@@ -467,6 +467,10 @@
                 "config": {
                   "inCluster": true
                 }
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
               }
             }
           }

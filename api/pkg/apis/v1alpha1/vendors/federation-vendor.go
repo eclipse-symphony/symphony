@@ -174,13 +174,6 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name"},
 		},
 		{
-			Methods:    []string{fasthttp.MethodGet},
-			Route:      route + "/graph",
-			Version:    f.Version,
-			Handler:    f.onGraph,
-			Parameters: []string{"name?"},
-		},
-		{
 			Methods: []string{fasthttp.MethodPost},
 			Route:   route + "/trail",
 			Version: f.Version,
@@ -374,14 +367,6 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	span.End()
-	return resp
-}
-func (f *FederationVendor) onGraph(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	resp := v1alpha2.COAResponse{
-		State:       v1alpha2.MethodNotAllowed,
-		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
-		ContentType: "application/json",
-	}
 	return resp
 }
 func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResponse {
