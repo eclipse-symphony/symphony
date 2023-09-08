@@ -221,7 +221,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 		counter := 0
 		failed := false
-		succceeded := false
+		succeeded := false
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 			waitReq, err := http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
@@ -248,32 +248,40 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			if len(i.Config.WaitSuccessCodes) > 0 {
 				for _, code := range i.Config.WaitSuccessCodes {
 					if code == waitResp.StatusCode {
-						succceeded = true
+						succeeded = true
 						break
 					}
 				}
 			}
-			if succceeded && i.Config.WaitJsonPath != "" {
+			if succeeded && i.Config.WaitJsonPath != "" {
 				data, err := ioutil.ReadAll(waitResp.Body)
 				if err != nil {
-					succceeded = false
+					succeeded = false
 				} else {
 					var obj interface{}
 					err = json.Unmarshal(data, &obj)
 					if err != nil {
-						succceeded = false
+						succeeded = false
 					} else {
-						params, err := jsonpath.JsonPathLookup(obj, i.Config.WaitJsonPath)
-						if err != nil {
-							succceeded = false
+						result, err := jsonpath.JsonPathLookup(obj, i.Config.WaitJsonPath)
+						if err != nil || result == nil {
+							succeeded = false
 						} else {
-							coll := params.(map[string]interface{})
-							succceeded = len(coll) > 0
+							switch result.(type) {
+							case []interface{}:
+								coll := result.([]interface{})
+								succeeded = len(coll) > 0
+							case map[string]interface{}:
+								coll := result.(map[string]interface{})
+								succeeded = len(coll) > 0
+							default:
+								succeeded = true
+							}
 						}
 					}
 				}
 			}
-			if !failed && !succceeded {
+			if !failed && !succeeded {
 				counter++
 				if i.Config.WaitInterval > 0 {
 					time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
