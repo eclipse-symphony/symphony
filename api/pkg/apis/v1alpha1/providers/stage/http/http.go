@@ -175,6 +175,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
 		return nil, false, err
 	}
 	for key, input := range inputs {
@@ -184,6 +185,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if key == "body" {
 			jData, err := json.Marshal(input)
 			if err != nil {
+				sLog.Errorf("  P (Http Stage): failed to encode json request body: %v", err)
 				return nil, false, err
 			}
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
@@ -193,6 +195,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	resp, err := webClient.Do(req)
 	if err != nil {
+		sLog.Errorf("  P (Http Stage): request failed: %v", err)
 		return nil, false, err
 	}
 	defer resp.Body.Close()
@@ -204,6 +207,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to read request response: %v", err)
 		return nil, false, err
 	}
 	outputs["body"] = string(data) //TODO: probably not so good to assume string
@@ -235,10 +239,12 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 			if err != nil {
+				sLog.Errorf("  P (Http Stage): failed to create wait request: %v", err)
 				return nil, false, err
 			}
 			waitResp, err := webClient.Do(waitReq)
 			if err != nil {
+				sLog.Errorf("  P (Http Stage): wait request failed: %v", err)
 				return nil, false, err
 			}
 			defer waitResp.Body.Close()
@@ -289,7 +295,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			if !failed && !succeeded {
 				counter++
 				if i.Config.WaitInterval > 0 {
-					sLog.Debug("  P (Http Stage): Sleep for wait interval")
+					sLog.Debug("  P (Http Stage): sleep for wait interval")
 					time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 				}
 			} else {
@@ -297,7 +303,6 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 		if failed {
-			sLog.Errorf("  P (Http Stage): Failed to process request: %v", resp.StatusCode)
 			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 
@@ -307,11 +312,11 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return outputs, false, nil
 			}
 		}
-		sLog.Errorf("  P (Http Stage): Failed to process request: %v", resp.StatusCode)
+		sLog.Errorf("  P (Http Stage): failed to process request: %v", resp.StatusCode)
 		return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 	}
 
-	sLog.Info("  P (Http Stage): Process request completed with: %v", resp.StatusCode)
+	sLog.Info("  P (Http Stage): process request completed with: %v", resp.StatusCode)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
