@@ -170,7 +170,7 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	sLog.Info("  P (Http Stage): Process")
+	sLog.Info("  P (Http Stage): start process request")
 
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
@@ -229,9 +229,9 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		counter := 0
 		failed := false
 		succeeded := false
-		sLog.Debug("  P (Http Stage): WaitCount: %v", i.Config.WaitCount)
+		sLog.Debugf("  P (Http Stage): WaitCount: %d", i.Config.WaitCount)
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
-			sLog.Info("  P (Http Stage): Start wait iteration %v", counter)
+			sLog.Infof("  P (Http Stage): start wait iteration %d", counter)
 			waitReq, err := http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
 				if strings.HasPrefix(key, "header.") {
@@ -312,11 +312,11 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return outputs, false, nil
 			}
 		}
-		sLog.Errorf("  P (Http Stage): failed to process request: %v", resp.StatusCode)
+		sLog.Errorf("  P (Http Stage): failed to process request: %d", resp.StatusCode)
 		return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 	}
 
-	sLog.Info("  P (Http Stage): process request completed with: %v", resp.StatusCode)
+	sLog.Infof("  P (Http Stage): process request completed with: %d", resp.StatusCode)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
