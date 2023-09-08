@@ -1,3 +1,6 @@
+//go:build azure
+// +build azure
+
 /*
 
 	MIT License
@@ -24,13 +27,14 @@
 
 */
 
-package reporter
+package constants
 
-import (
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+const (
+	AzureOperationKey = "management.azure.com/operationId"
+	EulaMessage       = "MICROSOFT SOFTWARE LICENSE TERMS\n" +
+		"MICROSOFT Azure Arc-enabled Kubernetes\n" +
+		"This software is licensed to you as part of your or your company's subscription license for Microsoft Azure Services.\n" +
+		"You may only use the software with Microsoft Azure Services and subject to the terms and conditions of the agreement under which you obtained Microsoft Azure Services.\n" +
+		"If you do not have an active subscription license for Microsoft Azure Services, you may not use the software.\n" +
+		"Microsoft Azure Legal Information: https://azure.microsoft.com/en-us/support/legal/"
 )
-
-type IReporter interface {
-	Init(config providers.IProviderConfig) error
-	Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrite bool) error
-}

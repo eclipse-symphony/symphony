@@ -113,10 +113,38 @@ spec:
   type: config
   name: combined  
   properties:
-    foo: far
+    foo: bar
     ai: "<ai-config>"
-    inluxdb: "<influx-db-config>"
+    ai-model: "<ai-config>.model"
+    com: "<combined-1>.foo"
+    loop: "<combined-1>.loop"
+    less: "<123"
+    influxdb: "<influx-db-config>"
     e4k: "<e4k-config>"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined-1
+spec:  
+  siteId: hq
+  type: config
+  name: combined-1  
+  properties:
+    foo: <combined-2>.foo
+    loop: <combined-2>.loop
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined-2
+spec:  
+  siteId: hq
+  type: config
+  name: combined-2  
+  properties:
+    foo: bar2   
+    loop: <combined>.loop
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
