@@ -71,6 +71,7 @@ type EvaluationContext struct {
 	Inputs         map[string]interface{}
 	Outputs        map[string]map[string]interface{}
 	Component      string
+	Value          interface{}
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {

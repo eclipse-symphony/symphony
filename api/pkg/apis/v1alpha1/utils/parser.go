@@ -642,6 +642,24 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 		}
 		return nil, fmt.Errorf("$if() expects 3 arguments, fount %d", len(n.Args))
+	case "in":
+		if len(n.Args) >= 2 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			for i := 1; i < len(n.Args); i++ {
+				v, err := n.Args[i].Eval(context)
+				if err != nil {
+					return nil, err
+				}
+				if fmt.Sprintf("%v", val) == fmt.Sprintf("%v", v) {
+					return true, nil
+				}
+			}
+			return false, nil
+		}
+		return nil, fmt.Errorf("$in() expects at least 2 arguments, fount %d", len(n.Args))
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -758,6 +776,8 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
+	case "val":
+		return context.Value, nil
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -782,7 +802,10 @@ func NewParser(text string) *Parser {
 func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	var ret interface{}
 	for {
-		n := p.expr(false)
+		n, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
 		if _, ok := n.(*NullNode); !ok {
 			v, r := n.Eval(context)
 			if r != nil {
@@ -873,125 +896,215 @@ func (p *Parser) scan() Token {
 	return IDENT
 }
 
-func (p *Parser) match(t Token) {
+func (p *Parser) match(t Token) error {
 	if p.token == t {
 		p.next()
 	} else {
-		panic(fmt.Sprintf("expected %T, got %s", t, p.text))
-	}
-}
-
-func (p *Parser) primary() Node {
-	switch p.token {
-	case NUMBER:
-		v, _ := strconv.ParseFloat(p.text, 64)
-		p.next()
-		return &NumberNode{v}
-	case DOLLAR:
-		return p.function()
-	case OPAREN:
-		p.next()
-		expr := p.expr(false)
-		p.match(CPAREN)
-		return expr
-	case OBRACKET:
-		p.next()
-		bexpr := p.expr(false)
-		p.match(CBRACKET)
-		return &UnaryNode{OBRACKET, bexpr}
-	case OCURLY:
-		p.next()
-		cexpr := p.expr(false)
-		p.match(CCURLY)
-		return &UnaryNode{OCURLY, cexpr}
-	case PLUS:
-		p.next()
-		return &UnaryNode{PLUS, p.primary()}
-	case MINUS:
-		p.next()
-		return &UnaryNode{MINUS, p.primary()}
-	case IDENT:
-		v := p.text
-		p.next()
-		return &IdentifierNode{v}
+		return fmt.Errorf("expected %T, got %s", t, p.text)
 	}
 	return nil
 }
 
-func (p *Parser) factor() Node {
-	node := p.primary()
+func (p *Parser) primary() (Node, error) {
+	switch p.token {
+	case NUMBER:
+		v, _ := strconv.ParseFloat(p.text, 64)
+		p.next()
+		return &NumberNode{v}, nil
+	case DOLLAR:
+		return p.function()
+	case OPAREN:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		expr := node
+		if err := p.match(CPAREN); err != nil {
+			return nil, err
+		}
+		return expr, nil
+	case OBRACKET:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		bexpr := node
+		if err := p.match(CBRACKET); err != nil {
+			return nil, err
+		}
+		return &UnaryNode{OBRACKET, bexpr}, nil
+	case OCURLY:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		cexpr := node
+		if err := p.match(CCURLY); err != nil {
+			return nil, err
+		}
+		return &UnaryNode{OCURLY, cexpr}, nil
+	case PLUS:
+		p.next()
+		node, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryNode{PLUS, node}, nil
+	case MINUS:
+		p.next()
+		node, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryNode{MINUS, node}, nil
+	case IDENT:
+		v := p.text
+		p.next()
+		return &IdentifierNode{v}, nil
+	}
+	return nil, nil
+}
+
+func (p *Parser) factor() (Node, error) {
+	node, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
 	for {
 		switch p.token {
 		case MULT:
 			p.next()
-			node = &BinaryNode{MULT, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{MULT, node, n}
 		case DIV:
 			p.next()
-			node = &BinaryNode{DIV, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{DIV, node, n}
 		case SLASH:
 			p.next()
-			node = &BinaryNode{SLASH, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{SLASH, node, n}
 		case PERIOD:
 			p.next()
-			node = &BinaryNode{PERIOD, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{PERIOD, node, n}
 		case COLON:
 			p.next()
-			node = &BinaryNode{COLON, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{COLON, node, n}
 		case QUESTION:
 			p.next()
-			node = &BinaryNode{QUESTION, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{QUESTION, node, n}
 		case EQUAL:
 			p.next()
-			node = &BinaryNode{EQUAL, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{EQUAL, node, n}
 		case AMPHERSAND:
 			p.next()
-			node = &BinaryNode{AMPHERSAND, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{AMPHERSAND, node, n}
 		default:
-			return node
+			return node, nil
 		}
 	}
 }
 
-func (p *Parser) expr(inFunc bool) Node {
-	node := p.factor()
-	if node == nil {
-		return &NullNode{}
+func (p *Parser) expr(inFunc bool) (Node, error) {
+	node, err := p.factor()
+	if node == nil || err != nil {
+		return &NullNode{}, err
 	}
 	for {
 		switch p.token {
 		case PLUS:
 			p.next()
-			node = &BinaryNode{PLUS, node, p.factor()}
+			f, err := p.factor()
+			if err != nil {
+				return &NullNode{}, err
+			}
+			node = &BinaryNode{PLUS, node, f}
 		case MINUS:
 			p.next()
-			node = &BinaryNode{MINUS, node, p.factor()}
+			f, err := p.factor()
+			if err != nil {
+				return &NullNode{}, err
+			}
+			node = &BinaryNode{MINUS, node, f}
 		case COMMA:
 			if !inFunc {
 				p.next()
-				node = &BinaryNode{COMMA, node, p.factor()}
+				f, err := p.factor()
+				if err != nil {
+					return &NullNode{}, err
+				}
+				node = &BinaryNode{COMMA, node, f}
 			} else {
-				return node
+				return node, nil
 			}
 		default:
-			return node
+			return node, nil
 		}
 	}
 }
 
-func (p *Parser) function() Node {
-	p.match(DOLLAR)
+func (p *Parser) function() (Node, error) {
+	err := p.match(DOLLAR)
+	if err != nil {
+		return nil, err
+	}
 	name := p.text
-	p.match(IDENT)
-	p.match(OPAREN)
+	err = p.match(IDENT)
+	if err != nil {
+		return nil, err
+	}
+	err = p.match(OPAREN)
+	if err != nil {
+		return nil, err
+	}
 	args := []Node{}
 	for p.token != CPAREN {
-		args = append(args, p.expr(true))
+		node, err := p.expr(true)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, node)
 		if p.token == COMMA {
 			p.next()
 		}
 	}
-	p.match(CPAREN)
-	return &FunctionNode{name, args}
+	err = p.match(CPAREN)
+	if err != nil {
+		return nil, err
+	}
+	return &FunctionNode{name, args}, nil
 }
 
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
