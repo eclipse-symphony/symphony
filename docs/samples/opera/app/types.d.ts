@@ -153,3 +153,13 @@ export interface User {
     tokenType: string;
     roles?: string[] | undefined;
 }
+
+export interface Rule {
+    type? : string;
+    required?: boolean;
+    pattern?: string;
+    expression?: string;
+}
+export interface Schema {
+    rules: Record<string, Rule>;
+}
