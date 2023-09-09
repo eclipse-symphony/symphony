@@ -109,7 +109,59 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Version: e.Version,
 			Handler: e.onCatalogsGraph,
 		},
+		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/check",
+			Version: e.Version,
+			Handler: e.onCheck,
+		},
 	}
+}
+func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
+		"method": "onCheck",
+	})
+	lLog.Info("V (Catalogs Vendor): onCheck")
+	switch request.Method {
+	case fasthttp.MethodPost:
+		var campaign model.CatalogSpec
+
+		err := json.Unmarshal(request.Body, &campaign)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		res, err := e.CatalogsManager.ValidateSpec(rCtx, campaign)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		if !res.Valid {
+			jData, _ := utils.FormatObject(res.Errors, true, "", "")
+			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        jData,
+				ContentType: "application/json",
+			})
+			return resp
+		}
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+		})
+		return resp
+	}
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	span.End()
+	return resp
 }
 func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{

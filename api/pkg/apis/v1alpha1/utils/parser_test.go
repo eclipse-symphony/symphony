@@ -116,7 +116,7 @@ func TestAddAdd(t *testing.T) {
 }
 func TestAddAddAdd(t *testing.T) {
 	parser := NewParser("+++")
-	node := parser.expr(false)
+	node, _ := parser.expr(false)
 	val, err := node.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
 	assert.Equal(t, "", val)
@@ -1007,7 +1007,7 @@ func TestEvaulateParamMissing(t *testing.T) {
 }
 func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 	parser := NewParser("$param(a)+$param(c)")
-	node := parser.expr(false)
+	node, _ := parser.expr(false)
 	val, err := node.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceSpec{
@@ -1339,4 +1339,20 @@ func TestLeadingUnderScore(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a__b", val)
+}
+func TestEvaulateValueRange(t *testing.T) {
+	parser := NewParser("$and($gt($val(),5), $lt($val(),10))")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: 6,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+func TestEvaulateValueRangeOutside(t *testing.T) {
+	parser := NewParser("$and($gt($val(),5), $lt($val(),10))")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: 16,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "false", val)
 }

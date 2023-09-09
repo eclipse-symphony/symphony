@@ -33,6 +33,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -113,8 +114,34 @@ func getCatalogState(id string, body interface{}, etag string) (model.CatalogSta
 	}
 	return state, nil
 }
-
+func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSpec) (utils.SchemaResult, error) {
+	if schemaName, ok := spec.Metadata["schema"]; ok {
+		schema, err := m.GetSpec(ctx, schemaName)
+		if err != nil {
+			return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
+		}
+		if s, ok := schema.Spec.Properties["spec"]; ok {
+			var schemaObj utils.Schema
+			jData, _ := json.Marshal(s)
+			err = json.Unmarshal(jData, &schemaObj)
+			if err != nil {
+				return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+			}
+			return schemaObj.CheckProperties(spec.Properties, nil)
+		} else {
+			return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
+		}
+	}
+	return utils.SchemaResult{Valid: true}, nil
+}
 func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec model.CatalogSpec) error {
+	result, err := m.ValidateSpec(ctx, spec)
+	if err != nil {
+		return err
+	}
+	if !result.Valid {
+		return v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
+	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -135,7 +162,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 			"resource": "catalogs",
 		},
 	}
-	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
 	}
