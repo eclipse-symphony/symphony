@@ -139,3 +139,37 @@ body {
 .tree_container {
   margin-top: 45px;
 }
+.field_row {
+  display:flex;
+  width: 100%;
+  gap: 1rem;
+}
+.field_name {
+  width: 20%;
+}
+.field_value {
+  width: 70%;
+}
+.field_space{
+  width: 10%;
+
+}
+.field_button {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  background-color: red;
+  color: white;
+  text-align: center;
+  font-weight: bolder;
+  font-size:small;
+  font-family: Arial, Helvetica, sans-serif;  
+}
+.clickable {
+  cursor: pointer;
+}
+.field_error {
+  color: red;
+  font-size: small;
+}
