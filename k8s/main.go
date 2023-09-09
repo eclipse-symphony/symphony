@@ -225,6 +225,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
 		os.Exit(1)
 	}
+	if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
