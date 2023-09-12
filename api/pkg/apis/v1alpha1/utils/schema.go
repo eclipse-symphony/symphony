@@ -27,6 +27,7 @@
 package utils
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -105,7 +106,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 				}
 				if !match {
 					ret.Valid = false
-					ret.Errors[k] = RuleResult{Valid: false, Error: "property does not match pattern"}
+					ret.Errors[k] = RuleResult{Valid: false, Error: fmt.Sprintf("property does not match pattern: %s", v.Pattern)}
 				}
 			}
 		}
@@ -124,7 +125,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 				}
 				if res != "true" && res != true {
 					ret.Valid = false
-					ret.Errors[k] = RuleResult{Valid: false, Error: "property does not match expression"}
+					ret.Errors[k] = RuleResult{Valid: false, Error: fmt.Sprintf("property does not match expression: %s", v.Expression)}
 				}
 			}
 		}
