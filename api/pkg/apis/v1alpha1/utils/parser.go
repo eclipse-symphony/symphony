@@ -1171,25 +1171,38 @@ func toNumber(val interface{}) (float64, bool) {
 	return 0, false
 }
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
-	switch properties.(type) {
+	switch p := properties.(type) {
 	case map[string]interface{}:
-		for k, v := range properties.(map[string]interface{}) {
+		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			properties.(map[string]interface{})[k] = val
+			p[k] = val
 		}
 	case []interface{}:
-		for i, v := range properties.([]interface{}) {
+		for i, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			properties.([]interface{})[i] = val
+			p[i] = val
 		}
 	case string:
-		parser := NewParser(properties.(string))
+		var js interface{}
+		err := json.Unmarshal([]byte(p), &js)
+		if err == nil {
+			modified, err := enumerateProperties(js, context)
+			if err != nil {
+				return nil, err
+			}
+			jsBytes, err := json.Marshal(modified)
+			if err != nil {
+				return nil, err
+			}
+			return string(jsBytes), nil
+		}
+		parser := NewParser(p)
 		val, err := parser.Eval(context)
 		if err != nil {
 			return nil, err
@@ -1197,4 +1210,35 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		properties = val
 	}
 	return properties, nil
+}
+
+func enumerateProperties(js interface{}, context utils.EvaluationContext) (interface{}, error) {
+	switch v := js.(type) {
+	case map[string]interface{}:
+		for key, val := range v {
+			if strVal, ok := val.(string); ok {
+				parser := NewParser(strVal)
+				val, err := parser.Eval(context)
+				if err != nil {
+					return nil, err
+				}
+				v[key] = val
+			} else {
+				nestedProps, err := enumerateProperties(val, context)
+				if err != nil {
+					return nil, err
+				}
+				v[key] = nestedProps
+			}
+		}
+	case []interface{}:
+		for i, val := range v {
+			nestedProps, err := enumerateProperties(val, context)
+			if err != nil {
+				return nil, err
+			}
+			v[i] = nestedProps
+		}
+	}
+	return js, nil
 }
