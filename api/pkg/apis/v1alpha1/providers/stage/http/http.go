@@ -175,6 +175,11 @@ func readIntArray(s string) ([]int, error) {
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	sLog.Info("  P (Http Stage): start process request")
 
+	if inputs["__site"] != nil && inputs["__site"] != "laptop" {
+		path := fmt.Sprint(inputs["__site"])
+		i.Config.Url = i.Config.Url + path
+	}
+
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
@@ -285,11 +290,20 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 							case []interface{}:
 								coll := result.([]interface{})
 								succeeded = len(coll) > 0
+								if succeeded {
+									outputs["waitbody"] = strconv.Itoa(int(coll[0].(float64)))
+								}
 							case map[string]interface{}:
 								coll := result.(map[string]interface{})
 								succeeded = len(coll) > 0
+							case float64:
+								succeeded = true
+								outputs["waitbody"] = strconv.Itoa(int(result.(float64)))
 							default:
 								succeeded = true
+								if succeeded {
+									outputs["waitbody"] = fmt.Sprint(result)
+								}
 							}
 						}
 					}
