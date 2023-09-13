@@ -595,7 +595,8 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	}
 
 	servicePorts := make([]apiv1.ServicePort, 0)
-	if v, ok := metadata["service.ports"]; ok {
+
+	if v, ok := metadata["service.ports"]; ok && v != "" {
 		e := json.Unmarshal([]byte(v), &servicePorts)
 		if e != nil {
 			return nil, e
@@ -603,16 +604,20 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	} else {
 		return nil, nil
 	}
+
+	serviceName := utils.ReadString(metadata, "service.name", name)
+	serviceType := utils.ReadString(metadata, "service.type", "ClusterIP")
+
 	service := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      utils.ReadString(metadata, "service.name", name),
+			Name:      serviceName,
 			Namespace: scope,
 			Labels: map[string]string{
 				"app": name,
 			},
 		},
 		Spec: apiv1.ServiceSpec{
-			Type:  apiv1.ServiceType(utils.ReadString(metadata, "service.type", "ClusterIP")),
+			Type:  apiv1.ServiceType(serviceType),
 			Ports: servicePorts,
 			Selector: map[string]string{
 				"app": name,
@@ -706,17 +711,15 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 			// Transitioning from map[string]string to map[string]interface{}
 			// for now we'll assume that all relevant values are strings till we
 			// refactor the code to handle the new format
-			if sv, ok := v.(string); !ok {
-				tv := utils.ProjectValue(sv, instanceName)
-				if strings.HasPrefix(k, "env.") {
-					if container.Env == nil {
-						container.Env = make([]apiv1.EnvVar, 0)
-					}
-					container.Env = append(container.Env, apiv1.EnvVar{
-						Name:  k[4:],
-						Value: tv,
-					})
+			sv := fmt.Sprintf("%v", v)
+			if strings.HasPrefix(k, "env.") {
+				if container.Env == nil {
+					container.Env = make([]apiv1.EnvVar, 0)
 				}
+				container.Env = append(container.Env, apiv1.EnvVar{
+					Name:  k[4:],
+					Value: sv,
+				})
 			}
 		}
 		agentName := metadata[ENV_NAME]
