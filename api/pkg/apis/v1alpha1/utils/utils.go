@@ -121,6 +121,8 @@ func CollectStringMap(col map[string]string, prefix string) map[string]string {
 	}
 	return ret
 }
+
+// TODO: we should get rid of this
 func ParseValue(v string) (interface{}, error) { //TODO: make this a generic utiliy
 	if v == "$true" {
 		return true, nil

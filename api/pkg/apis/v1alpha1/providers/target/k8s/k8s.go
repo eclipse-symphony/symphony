@@ -661,6 +661,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 			},
 		},
 	}
+
 	for _, c := range components {
 		ports := make([]apiv1.ContainerPort, 0)
 		if v, ok := c.Properties["container.ports"].(string); ok && v != "" {
@@ -742,7 +743,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		deployment.Spec.Template.Spec.ImagePullSecrets = secrets
 	}
-	if v, ok := metadata["deployment.volumes"]; ok && v != "" {
+	if v, ok := metadata["pod.volumes"]; ok && v != "" {
 		volumes := make([]apiv1.Volume, 0)
 		e := json.Unmarshal([]byte(v), &volumes)
 		if e != nil {
