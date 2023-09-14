@@ -176,7 +176,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	sLog.Info("  P (Http Stage): start process request")
 	sLog.Infof("  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
-	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), i.Config.Url, nil)
+	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
 		return nil, false, err
