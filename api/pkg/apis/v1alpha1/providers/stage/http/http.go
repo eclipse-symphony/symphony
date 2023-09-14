@@ -174,16 +174,9 @@ func readIntArray(s string) ([]int, error) {
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	sLog.Info("  P (Http Stage): start process request")
-
-	sUrl := i.Config.Url
-	if v, ok := inputs["url"]; ok {
-		sUrl = fmt.Sprintf("%v", v)
-	}
-
-	sLog.Debugf("  P (Http Stage): Url: %v", sUrl)
-	sLog.Debugf("  P (Http Stage): Method: %v", i.Config.Method)
+	sLog.Infof("  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
-	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), sUrl, nil)
+	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), i.Config.Url, nil)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
 		return nil, false, err
