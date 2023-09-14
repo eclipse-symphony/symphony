@@ -175,13 +175,15 @@ func readIntArray(s string) ([]int, error) {
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	sLog.Info("  P (Http Stage): start process request")
 
-	if inputs["__site"] != nil && inputs["__site"] != "laptop" {
-		path := fmt.Sprint(inputs["__site"])
-		i.Config.Url = i.Config.Url + path
+	sUrl := i.Config.Url
+	if v, ok := inputs["url"]; ok {
+		sUrl = fmt.Sprintf("%v", v)
 	}
 
+	sLog.Debugf("  P (Http Stage): Url: %v", sUrl)
+	sLog.Debugf("  P (Http Stage): Method: %v", i.Config.Method)
 	webClient := &http.Client{}
-	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
+	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), sUrl, nil)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
 		return nil, false, err
@@ -272,40 +274,41 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 					}
 				}
 			}
-			if succeeded && i.Config.WaitJsonPath != "" {
+			if succeeded {
 				data, err := ioutil.ReadAll(waitResp.Body)
 				if err != nil {
+					sLog.Errorf("  P (Http Stage): failed to read wait request response: %v", err)
 					succeeded = false
 				} else {
-					var obj interface{}
-					err = json.Unmarshal(data, &obj)
-					if err != nil {
-						succeeded = false
-					} else {
-						result, err := jsonpath.JsonPathLookup(obj, i.Config.WaitJsonPath)
-						if err != nil || result == nil {
+					if i.Config.WaitJsonPath != "" {
+						var obj interface{}
+						err = json.Unmarshal(data, &obj)
+						if err != nil {
+							sLog.Errorf("  P (Http Stage): wait response could not be decoded to json: %v", err)
 							succeeded = false
 						} else {
-							switch result.(type) {
-							case []interface{}:
-								coll := result.([]interface{})
-								succeeded = len(coll) > 0
-								if succeeded {
-									outputs["waitbody"] = strconv.Itoa(int(coll[0].(float64)))
-								}
-							case map[string]interface{}:
-								coll := result.(map[string]interface{})
-								succeeded = len(coll) > 0
-							case float64:
-								succeeded = true
-								outputs["waitbody"] = strconv.Itoa(int(result.(float64)))
-							default:
-								succeeded = true
-								if succeeded {
-									outputs["waitbody"] = fmt.Sprint(result)
+							result, err := jsonpath.JsonPathLookup(obj, i.Config.WaitJsonPath)
+							if err != nil || result == nil {
+								succeeded = false
+							} else {
+								switch result.(type) {
+								case []interface{}:
+									coll := result.([]interface{})
+									succeeded = len(coll) > 0
+								case map[string]interface{}:
+									coll := result.(map[string]interface{})
+									succeeded = len(coll) > 0
+								default:
+									succeeded = true
 								}
 							}
+							if succeeded {
+								outputs["waitjsonpathresult"] = result
+							}
 						}
+					}
+					if succeeded {
+						outputs["waitbody"] = string(data) //TODO: probably not so good to assume string
 					}
 				}
 			}
