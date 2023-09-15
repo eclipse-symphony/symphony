@@ -296,12 +296,12 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								}
 							}
 							if succeeded {
-								outputs["waitjsonpathresult"] = result
+								outputs["waitJsonPathResult"] = result
 							}
 						}
 					}
 					if succeeded {
-						outputs["waitbody"] = string(data) //TODO: probably not so good to assume string
+						outputs["waitBody"] = string(data) //TODO: probably not so good to assume string
 					}
 				}
 			}
