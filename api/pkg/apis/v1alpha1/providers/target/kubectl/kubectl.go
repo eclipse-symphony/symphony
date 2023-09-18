@@ -494,6 +494,11 @@ func (*KubectlTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 		RequiredComponentType: "",
 		RequiredMetadata:      []string{},
 		OptionalMetadata:      []string{},
+		ChangeDetectionProperties: []model.PropertyDesc{
+			{
+				Name: "*", //react to all property changes
+			},
+		},
 	}
 }
 
