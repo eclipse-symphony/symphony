@@ -58,6 +58,31 @@ func TestValidate(t *testing.T) {
 	assert.Nil(t, equal)
 }
 
+func TestIsChangedWildcard(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		ChangeDetectionProperties: []PropertyDesc{
+			{
+				Name: "*",
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Properties: map[string]interface{}{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Properties: map[string]interface{}{
+			"a": "c",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.True(t, changed)
+}
 func TestValidateNil(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
