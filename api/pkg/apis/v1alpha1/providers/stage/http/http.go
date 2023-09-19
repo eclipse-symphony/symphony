@@ -174,6 +174,28 @@ func readIntArray(s string) ([]int, error) {
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	sLog.Info("  P (Http Stage): start process request")
+
+	// Check all config fields for override in inputs
+	var configMap map[string]interface{}
+	configJson, _ := json.Marshal(i.Config)
+	json.Unmarshal(configJson, &configMap)
+	for key := range configMap {
+		val, found := inputs[key]
+		if found {
+			configMap[key] = val
+		}
+	}
+	configJson, err := json.Marshal(configMap)
+	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
+		return nil, false, err
+	}
+	err = json.Unmarshal(configJson, &i.Config)
+	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
+		return nil, false, err
+	}
+
 	sLog.Infof("  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
 	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
