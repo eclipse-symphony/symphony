@@ -1,5 +1,31 @@
 //go:build mage
 
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package main
 
 import (
@@ -7,7 +33,7 @@ import (
 	"os"
 
 	//mage:import
-	_ "dev.azure.com/msazure/One/_git/symphony.git/packages/mage"
+	_ "github.com/azure/symphony/packages/mage"
 	"github.com/magefile/mage/mg"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
@@ -15,7 +41,6 @@ import (
 
 const (
 	EnvTestK8sVersion = "1.23"
-	ImageRepository   = "symphony.azurecr.io/symphony-k8s"
 )
 
 var (
@@ -36,19 +61,41 @@ var (
 	))
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition manifest.
 func Manifests() error {
 	mg.Deps(ensureControllerGen)
-	return shellcmd.RunAll(
-		shellcmd.Command("rm -rf config/crd/bases"),
-		controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./... output:crd:artifacts:config=config/crd/bases"),
-	)
+	return conditionalRun(
+		func() error {
+			return shellcmd.RunAll(
+				shellcmd.Command("rm -rf config/azure/crd/bases"),
+				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/symphony.microsoft.com/v1 output:crd:artifacts:config=config/azure/crd/bases output:webhook:artifacts:config=config/azure/webhook"),
+			)
+		},
+		func() error {
+			return shellcmd.RunAll(
+				shellcmd.Command("rm -rf config/oss/crd/bases"),
+				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/ai/v1 paths=./apis/fabric/v1 paths=./apis/solution/v1 paths=./apis/workflow/v1 paths=./apis/federation/v1 output:crd:artifacts:config=config/oss/crd/bases output:webhook:artifacts:config=config/oss/webhook"),
+			)
+		})
 }
 
 // Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 func Generate() error {
 	mg.Deps(ensureControllerGen)
-	return controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./...").Run()
+	return controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./... paths=../api/pkg/apis/v1alpha1/model").Run()
 }
 
 // Run tests.
@@ -63,9 +110,20 @@ func OperatorTest() error {
 	return shellcmd.Command("go test ./... -race -v -coverprofile cover.out").Run()
 }
 
+func Azure() error {
+	//this is a hack to get around the fact that mage doesn't support passing args to targets
+	return nil
+}
+
 // Build manager binary.
 func Build() error {
-	return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager main.go").Run()
+	return conditionalRun(
+		func() error {
+			return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager -tags=azure").Run()
+		},
+		func() error {
+			return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager").Run()
+		})
 }
 
 // Run a controller from your host.
@@ -73,22 +131,38 @@ func Run() error {
 	return shellcmd.Command("go run ./main.go").Run()
 }
 
-// Generate helm template.
 func HelmTemplate() error {
-	mg.Deps(ensureKustomize, Manifests)
-	return kustomize.Command("build config/helm -o ../symphony-extension/helm/symphony/templates/symphony.yaml").Run()
+	return conditionalRun(
+		func() error {
+			return kustomize.Command("build config/azure/helm -o ../symphony-extension/helm/symphony/templates/symphony.yaml").Run()
+		},
+		func() error {
+			return kustomize.Command("build config/oss/helm -o ../symphony-extension/helm/symphony/templates/symphony.yaml").Run()
+		})
 }
 
 // Install CRDs into the K8s cluster specified in ~/.kube/config.
 func InstallCRDs() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return shellcmd.Command("kubectl apply -f config/crd").Run()
+	return conditionalRun(
+		func() error {
+			return shellcmd.Command("kubectl apply -f config/azure/crd").Run()
+		},
+		func() error {
+			return shellcmd.Command("kubectl apply -f config/oss/crd").Run()
+		})
 }
 
 // Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 func UninstallCRDs() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return shellcmd.Command("kubectl delete --ignore-not-found -f config/crd/bases").Run()
+	return conditionalRun(
+		func() error {
+			return shellcmd.Command("kubectl delete --ignore-not-found -f config/azure/crd/bases").Run()
+		},
+		func() error {
+			return shellcmd.Command("kubectl delete --ignore-not-found -f config/oss/crd/bases").Run()
+		})
 }
 
 func ensureControllerGen() error {

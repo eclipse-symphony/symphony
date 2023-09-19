@@ -1,4 +1,7 @@
 {
+  "siteInfo": {
+    "siteId": "symphony-agent",
+  },
   "api": {
     "vendors": [
       {

@@ -1,0 +1,89 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: csad
+spec:  
+  components:
+  - name: service-a-config
+    type: yaml.k8s
+    properties:
+      resource:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: service-a-config
+        data:
+          appSettings.json: |
+            {
+              "line-a-config": "$config('line-a-config','line-a-1')",
+              "site-config": "site1",
+              "l3-config": "l3-1",
+              "global-config": "global1"
+            }
+  - name: service-a
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3001\",\"port\": 3001,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"
+      pod.volumes: "[{\"name\":\"service-a-config\",\"configMap\":{\"name\":\"service-a-config\"}}]"
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+      container.volumeMounts: "[{\"name\":\"service-a-config\",\"mountPath\":\"/app/config\"}]"
+      env.line-a-1: "$config('line-a-config','line-a-1')"
+      env.site1: "$config('site-config','site1')"
+      env.l3-config: "$config('l3-config','l3-1')"
+      env.global1: "$config('global-config','global1')"
+      env.APP_TITLE: "CSAD A"
+    dependencies:
+    - service-a-config
+  - name: service-b-config
+    type: yaml.k8s
+    properties:
+      resource:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: service-b-config
+        data:
+          appSettings.json: |
+            {
+              "line-a-config": "$config('line-a-config','line-a-1')",
+              "site-config": "site1",
+              "l3-config": "l3-1",
+              "global-config": "global1",
+              "foo": "bar"
+            }           
+  - name: service-b
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3002\",\"port\": 3002,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"
+      pod.volumes: "[{\"name\":\"service-b-config\",\"configMap\":{\"name\":\"service-b-config\"}}]"
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+      container.volumeMounts: "[{\"name\":\"service-b-config\",\"mountPath\":\"/app/config\"}]"
+      env.line-a-1: "$config('line-a-config','line-a-1')"
+      env.site1: "$config('site-config','site1')"
+      env.l3-config: "$config('l3-config','l3-1')"
+      env.global1: "$config('global-config','global1')"
+      env.APP_TITLE: "CSAD B"
+    dependencies:
+    - service-b-config
+  - name: service-c
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3003\",\"port\": 3003,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+      env.line-a-1: "$config('line-a-config','line-a-1')"
+      env.site1: "$config('site-config','site1')"
+      env.l3-config: "$config('l3-config','l3-1')"
+      env.global1: "$config('global-config','global1')"
+      env.APP_TITLE: "CSAD C"

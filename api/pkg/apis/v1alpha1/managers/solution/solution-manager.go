@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -37,7 +38,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
 	tgt "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -62,7 +63,7 @@ type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
 	StateProvider   states.IStateProvider
-	ConfigProvider  config.IConfigProvider
+	ConfigProvider  config.IExtConfigProvider
 	SecretProvoider secret.ISecretProvider
 }
 
@@ -91,7 +92,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		return err
 	}
 
-	configProvider, err := managers.GetConfigProvider(config, providers)
+	configProvider, err := managers.GetExtConfigProvider(config, providers)
 	if err == nil {
 		s.ConfigProvider = configProvider
 	} else {
@@ -199,12 +200,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	var err error
-	deployment, err = utils.EvaluateDeployment(utils.EvaluationContext{
-		ConfigProvider: s.ConfigProvider,
-		SecretProvider: s.SecretProvoider,
-		DeploymentSpec: deployment,
-		Component:      "",
-	})
+	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
+		context := s.VendorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = deployment
+		context.Component = ""
+		deployment, err = api_utils.EvaluateDeployment(*context)
+	}
+
 	if err != nil {
 		summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
@@ -251,7 +253,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	col := utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
+	col := api_utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 	dep := deployment
 	dep.Instance.Metadata = col
 	someStepsRan := false
@@ -268,7 +270,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(step.Role, deployment.Targets[step.Target], override)
+		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
 			summary.SummaryMessage = "failed to create provider:" + err.Error()
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
@@ -289,6 +291,28 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// an error condition can't be resolved quickly.
 		var stepError error
 		var componentResults map[string]model.ComponentResultSpec
+
+		// for _, component := range step.Components {
+		// 	for k, v := range component.Component.Properties {
+		// 		if strV, ok := v.(string); ok {
+		// 			parser := api_utils.NewParser(strV)
+		// 			eCtx := s.VendorContext.EvaluationContext.Clone()
+		// 			eCtx.DeploymentSpec = deployment
+		// 			eCtx.Component = component.Component.Name
+		// 			val, err := parser.Eval(*eCtx)
+		// 			if err == nil {
+		// 				component.Component.Properties[k] = val
+		// 			} else {
+		// 				log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
+		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
+		// 				s.saveSummary(ctx, deployment, summary)
+		// 				observ_utils.CloseSpanWithError(span, err)
+		// 				return summary, err
+		// 			}
+		// 		}
+		// 	}
+		// }
+
 		for i := 0; i < retryCount; i++ {
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(iCtx, dep, step, false)
 			if stepError == nil {
@@ -400,7 +424,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(step.Role, deployment.Targets[step.Target], override)
+		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
@@ -409,7 +433,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		components, err := (provider.(tgt.ITargetProvider)).Get(iCtx, deployment, step.Components)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			log.Errorf(" M (Solution): failed to create provider: %+v", err)
+			log.Errorf(" M (Solution): failed to get: %+v", err)
 			return ret, nil, err
 		}
 		for _, c := range components {

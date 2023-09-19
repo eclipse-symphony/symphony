@@ -1,0 +1,96 @@
+bases:
+- "../default"
+patches:
+- path: "./manager-patch.yaml"
+- path: "./namepsace-patch.yaml"
+- path: "./certificate-patch.yaml"
+- path: "./webhook-service-patch.yaml"
+- path: "./metrics-service-patch.yaml"
+kind: Kustomization
+namespace: "{{ .Release.Namespace }}"
+namePrefix: '{{ include "symphony.fullname" . }}-'
+replacements:
+- source:
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      group: admissionregistration.k8s.io
+      version: v1
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 0
+  - select:
+      kind: CustomResourceDefinition
+      group: apiextensions.k8s.io
+      version: v1
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 0
+- source:
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+    fieldPath: metadata.name
+  targets:
+  - select:
+      group: admissionregistration.k8s.io
+      version: v1
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 1
+  - select:
+      kind: CustomResourceDefinition
+      group: apiextensions.k8s.io
+      version: v1
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: '/'
+      index: 1
+- source:
+    kind: Service
+    name: webhook-service
+    version: v1
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: serving-cert 
+      group: cert-manager.io
+      namespace: system
+      version: v1
+    fieldPaths:
+    - spec.dnsNames.0
+    - spec.dnsNames.1
+    options:
+      delimiter: '.'
+      index: 1
+- source:
+    kind: Service
+    name: webhook-service
+    version: v1
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: Certificate
+      name: serving-cert 
+      group: cert-manager.io
+      namespace: system
+      version: v1
+    fieldPaths:
+    - spec.dnsNames.0
+    - spec.dnsNames.1
+    options:
+      delimiter: '.'
+      index: 0

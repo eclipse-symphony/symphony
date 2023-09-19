@@ -1,8 +1,35 @@
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package verify
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,12 +42,25 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Verify target has correct status
 func TestBasic_TargetStatus(t *testing.T) {
 	// Verify targets
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "symphony.microsoft.com",
+		Group:   conditionalString("symphony.microsoft.com", "fabric.symphony"),
 		Version: "v1",
 		Kind:    "Target",
 	})
@@ -33,7 +73,7 @@ func TestBasic_TargetStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "fabric.symphony"),
 			Version:  "v1",
 			Resource: "targets",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -64,7 +104,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "solution.symphony"),
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})

@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -33,6 +34,8 @@ import (
 	"net/http"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 const (
@@ -44,24 +47,27 @@ type authRequest struct {
 	Password string `json:"password"`
 }
 type authResponse struct {
-	AccessToken string `json:"accessToken"`
-	TokenType   string `json:"tokenType"`
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
 }
 
+// We shouldn't use specific error types
 // SummarySpecError represents an error that includes a SummarySpec in its message
 // field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
+// type SummarySpecError struct {
+// 	Code    string `json:"code"`
+// 	Message string `json:"message"`
+// }
 
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
+// func (e *SummarySpecError) Error() string {
+// 	return fmt.Sprintf(
+// 		"failed to invoke Symphony API: [%s] - %s",
+// 		e.Code,
+// 		e.Message,
+// 	)
+// }
 
 func GetInstances(baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
@@ -82,7 +88,165 @@ func GetInstances(baseUrl string, user string, password string) ([]model.Instanc
 
 	return ret, nil
 }
+func GetSites(baseUrl string, user string, password string) ([]model.SiteState, error) {
+	ret := make([]model.SiteState, 0)
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
 
+	response, err := callRestAPI(baseUrl, "federation/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func SyncActivationStatus(baseUrl string, user string, password string, status model.ActivationStatus) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+	jData, _ := json.Marshal(status)
+	_, err = callRestAPI(baseUrl, "federation/sync", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogState, error) {
+	ret := make([]model.CatalogState, 0)
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "catalogs/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func GetCatalog(baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
+	ret := model.CatalogState{}
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "catalogs/registry/"+catalog, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func GetCampaign(baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
+	ret := model.CampaignState{}
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "campaigns/"+campaign, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func PublishActivationEvent(baseUrl string, user string, password string, event v1alpha2.ActivationData) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+	jData, _ := json.Marshal(event)
+	_, err = callRestAPI(baseUrl, "jobs", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func GetABatchForSite(baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
+	ret := model.SyncPackage{}
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "federation/sync/"+site, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
+	ret := model.ActivationState{}
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(baseUrl, "activations/registry/"+activation, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+func ReportActivationStatus(baseUrl string, name string, user string, password string, activation model.ActivationStatus) error {
+	token, err := auth(baseUrl, user, password)
+
+	if err != nil {
+		return err
+	}
+
+	jData, _ := json.Marshal(activation)
+	_, err = callRestAPI(baseUrl, "activations/status/"+name, "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func GetInstance(baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(baseUrl, user, password)
@@ -103,6 +267,19 @@ func GetInstance(baseUrl string, instance string, user string, password string) 
 
 	return ret, nil
 }
+func UpsertCatalog(baseUrl string, catalog string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func CreateInstance(baseUrl string, instance string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
@@ -111,6 +288,19 @@ func CreateInstance(baseUrl string, instance string, user string, password strin
 	}
 
 	_, err = callRestAPI(baseUrl, "instances/"+instance, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func DeleteCatalog(baseUrl string, catalog string, user string, password string) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -254,6 +444,20 @@ func GetTargets(baseUrl string, user string, password string) ([]model.TargetSta
 	return ret, nil
 }
 
+func UpdateSite(baseUrl string, site string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "federation/status/"+site, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CreateTarget(baseUrl string, target string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
@@ -344,7 +548,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 		DisplayName: key,
 		Scope:       scope,
 		Solution:    key,
-		Target: model.TargetRefSpec{
+		Target: model.TargetSelector{
 			Name: target.Id,
 		},
 	}
@@ -418,7 +622,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(EvaluationContext{Properties: target.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Properties})
 				if err != nil {
 					return ret, err
 				}
@@ -450,6 +654,19 @@ func GetSummary(baseUrl string, user string, password string, id string) (model.
 	}
 	return result, nil
 }
+func CatalogHook(baseUrl string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	path := "federation/k8shook?objectType=catalog"
+	_, err = callRestAPI(baseUrl, path, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func QueueJob(baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
@@ -544,14 +761,13 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
-		}
-		object := &SummarySpecError{
-			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
-			Message: string(bodyBytes),
-		}
-		return nil, object
+		// TODO: Can we remove the following? It doesn't seem right.
+		// I'm afraid some downstream logic is expecting this behavior, though.
+		// if resp.StatusCode == 404 { // API service is already gone
+		// 	return nil, nil
+		// }
+
+		return nil, v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
 	}
 
 	return bodyBytes, nil

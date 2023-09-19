@@ -6,6 +6,6 @@ metadata:
   labels:
     app: symphony-api
 rules:
-- apiGroups: ["symphony.microsoft.com", "solution.symphony", "ai.symphony", "fabric.symphony", "apps", ""] # "" indicates the core API group
-  resources: ["targets", "skills", "models", "skillpackages", "devices", "instances", "solutions", "deployments", "services", "devices/status", "instances/status", "targets/status"]
+- apiGroups: ["symphony.microsoft.com", "solution.symphony", "ai.symphony", "fabric.symphony", "workflow.symphony", "federation.symphony", "apps", ""] # "" indicates the core API group
+  resources: ["targets", "skills", "models", "skillpackages", "devices", "instances", "solutions", "deployments", "services", "devices/status", "instances/status", "targets/status", "sites", "catalogs", "sites/status", "catalogs/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

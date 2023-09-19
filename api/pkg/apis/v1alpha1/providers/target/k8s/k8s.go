@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -594,7 +595,8 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	}
 
 	servicePorts := make([]apiv1.ServicePort, 0)
-	if v, ok := metadata["service.ports"]; ok {
+
+	if v, ok := metadata["service.ports"]; ok && v != "" {
 		e := json.Unmarshal([]byte(v), &servicePorts)
 		if e != nil {
 			return nil, e
@@ -602,16 +604,20 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	} else {
 		return nil, nil
 	}
+
+	serviceName := utils.ReadString(metadata, "service.name", name)
+	serviceType := utils.ReadString(metadata, "service.type", "ClusterIP")
+
 	service := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      utils.ReadString(metadata, "service.name", name),
+			Name:      serviceName,
 			Namespace: scope,
 			Labels: map[string]string{
 				"app": name,
 			},
 		},
 		Spec: apiv1.ServiceSpec{
-			Type:  apiv1.ServiceType(utils.ReadString(metadata, "service.type", "ClusterIP")),
+			Type:  apiv1.ServiceType(serviceType),
 			Ports: servicePorts,
 			Selector: map[string]string{
 				"app": name,
@@ -655,6 +661,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 			},
 		},
 	}
+
 	for _, c := range components {
 		ports := make([]apiv1.ContainerPort, 0)
 		if v, ok := c.Properties["container.ports"].(string); ok && v != "" {
@@ -705,17 +712,15 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 			// Transitioning from map[string]string to map[string]interface{}
 			// for now we'll assume that all relevant values are strings till we
 			// refactor the code to handle the new format
-			if sv, ok := v.(string); !ok {
-				tv := utils.ProjectValue(sv, instanceName)
-				if strings.HasPrefix(k, "env.") {
-					if container.Env == nil {
-						container.Env = make([]apiv1.EnvVar, 0)
-					}
-					container.Env = append(container.Env, apiv1.EnvVar{
-						Name:  k[4:],
-						Value: tv,
-					})
+			sv := fmt.Sprintf("%v", v)
+			if strings.HasPrefix(k, "env.") {
+				if container.Env == nil {
+					container.Env = make([]apiv1.EnvVar, 0)
 				}
+				container.Env = append(container.Env, apiv1.EnvVar{
+					Name:  k[4:],
+					Value: sv,
+				})
 			}
 		}
 		agentName := metadata[ENV_NAME]
@@ -738,7 +743,7 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 		}
 		deployment.Spec.Template.Spec.ImagePullSecrets = secrets
 	}
-	if v, ok := metadata["deployment.volumes"]; ok && v != "" {
+	if v, ok := metadata["pod.volumes"]; ok && v != "" {
 		volumes := make([]apiv1.Volume, 0)
 		e := json.Unmarshal([]byte(v), &volumes)
 		if e != nil {

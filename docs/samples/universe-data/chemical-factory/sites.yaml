@@ -1,0 +1,237 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq
+spec:  
+  siteId: hq
+  type: asset
+  name: hq
+  properties:
+    name: HQ
+    address: 1 Microsoft Way
+    city: Redmond
+    state: WA
+    zip: "98052"
+    country: USA
+    phone: "425-882-8080"
+    version: "0.45.1"
+    lat: "43.67961"
+    lng: "-122.12826"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: tokyo
+spec:  
+  siteId: tokyo
+  type: asset
+  name: tokyo
+  properties:
+    name: "東京"
+    address: "東京都港区港南 2-16-3"
+    city: "品川グランドセントラルタワー"
+    state: ""
+    zip: "108-0075"
+    country: "日本"
+    phone: "03-4332-5300"
+    version: "0.45.1"
+    lat: "35.62674"
+    lng: "139.74043"  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: new-york
+spec:  
+  siteId: new-york
+  type: asset
+  name: new-york
+  properties:
+    name: "New York"
+    address: "11 Times Square"
+    city: "New York"
+    state: "NY"
+    zip: "10036"
+    country: "USA"
+    phone: "212-123-4567"
+    version: "0.45.1"
+    lat: "40.75688"
+    lng: "-73.98076"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: munchen
+spec:  
+  siteId: munchen
+  type: asset
+  name: munchen
+  properties:
+    name: "München"
+    address: "Walter-Gropius-Straße 5"
+    city: "München"
+    state: ""
+    zip: "80807"
+    country: "Deutschland"
+    phone: "+49 89 31 76 0"
+    version: "0.45.1"
+    lat: "48.17786"
+    lng: "11.59385"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-adr
+spec:  
+  siteId: hq
+  type: asset
+  name: hq-adr
+  properties:
+    name: "HQ Azure Device Registry"    
+  parentName: hq
+  objectRef:      
+    name: adr
+    address: https://github.com/some/url
+    group: microsoft
+    kind: adr
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-arc-1
+spec:  
+  siteId: hq
+  type: asset
+  name: hq-arc-1
+  properties:
+    name: "HQ Azure Arc Cluster 1"
+  parentName: hq
+  objectRef:      
+    name: arc-1
+    address: https://github.com/some/url
+    group: microsoft
+    kind: arc
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-arc-2
+spec:  
+  siteId: hq
+  type: asset
+  name: hq-arc-2
+  properties:
+    name: "HQ Azure Arc Cluster 2"
+  parentName: hq
+  objectRef:      
+    name: arc-2
+    address: https://github.com/some/url
+    group: microsoft
+    kind: arc
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-doe-site
+spec:  
+  siteId: hq
+  type: asset
+  name: hq-doe-site
+  properties:
+    name: "HQ DOE Site"
+  parentName: hq
+  objectRef:      
+    name: adr
+    address: https://github.com/some/url
+    group: microsoft
+    kind: site
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-iot-hub
+spec:  
+  siteId: hq
+  type: asset
+  name: hq-iot-hub
+  properties:
+    name: "HQ IoT Hub Tenant"
+  parentName: hq
+  objectRef:      
+    name: adr
+    address: https://github.com/some/url
+    group: microsoft
+    kind: iot-hub
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: area-1
+spec:  
+  siteId: hq
+  type: asset
+  name: area-1
+  properties:
+    name: "Area 1"
+  parentName: hq-doe-site
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: area-2
+spec:  
+  siteId: hq
+  type: asset
+  name: area-2
+  properties:
+    name: "Area 2"
+  parentName: hq-doe-site
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-1
+spec:  
+  siteId: hq
+  type: asset
+  name: line-1
+  properties:
+    name: "Production Line 1"
+  parentName: area-1
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-2
+spec:  
+  siteId: hq
+  type: asset
+  name: line-2
+  properties:
+    name: "Production Line 2"
+  parentName: area-1

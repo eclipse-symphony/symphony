@@ -1,25 +1,27 @@
 /*
-MIT License
 
-Copyright (c) Microsoft Corporation.
+	MIT License
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
 */
 
 package v1alpha2
@@ -44,22 +46,32 @@ const (
 	MethodNotAllowed State = 405
 	Conflict         State = 409
 	// InternalError = HTTP 500
-	InternalError      State = 500
-	BadConfig          State = 1000
-	MissingConfig      State = 1001
-	InvalidArgument    State = 2000
-	APIRedirect        State = 3030
-	FileAccessError    State = 4000
+	InternalError State = 500
+	// Config errors
+	BadConfig     State = 1000
+	MissingConfig State = 1001
+	// API invocation errors
+	InvalidArgument State = 2000
+	APIRedirect     State = 3030
+	// IO errors
+	FileAccessError State = 4000
+	// Serialization errors
 	SerializationError State = 5000
-	DeleteRequested    State = 6000
-	UpdateFailed       State = 8001
-	DeleteFailed       State = 8002
-	ValidateFailed     State = 8003
-	Updated            State = 8004
-	Deleted            State = 8005
-	Delayed            State = 9997
-	Untouched          State = 9998
-	NotImplemented     State = 9999
+	// Async requets
+	DeleteRequested State = 6000
+	// Operation results
+	UpdateFailed   State = 8001
+	DeleteFailed   State = 8002
+	ValidateFailed State = 8003
+	Updated        State = 8004
+	Deleted        State = 8005
+	// Workflow status
+	Running        State = 9994
+	Paused         State = 9995
+	Done           State = 9996
+	Delayed        State = 9997
+	Untouched      State = 9998
+	NotImplemented State = 9999
 )
 
 func (s State) String() string {
@@ -126,4 +138,6 @@ const (
 	ProvidersProbe         = "providers.probe"
 	ProvidersUploader      = "providers.uploader"
 	ProvidersReporter      = "providers.reporter"
+	ProviderQueue          = "providers.queue"
+	ProviderLedger         = "providers.ledger"
 )

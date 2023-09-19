@@ -1,0 +1,168 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: influx-db-config
+spec:  
+  siteId: hq
+  type: config
+  name: influx-db-config
+  properties:
+    host: localhost
+    port: 8086
+    username: myusername
+    password: mypassword
+    database: mydatabase
+    retentionPolicy: myretentionpolicy
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: grafana-config
+spec:  
+  siteId: hq
+  type: config
+  name: grafana-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: e4k-config
+spec:  
+  siteId: hq
+  type: config
+  name: e4k-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: bluefin-config
+spec:  
+  siteId: hq
+  type: config
+  name: bluefin-config
+  properties:
+    host: localhost
+    port: 3000
+    username: myusername
+    password: mypassword
+    ssl: true
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: ai-config
+spec:  
+  siteId: hq
+  type: config
+  name: ai-config
+  metadata:
+    asset: hq
+  properties:
+    model: gpt
+    version: "4.5"
+    flavor: cloud
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: ai-config-site
+spec:  
+  siteId: hq
+  type: config
+  name: ai-config-site
+  parentName: ai-config
+  metadata:
+    asset: hq-doe-site
+  properties:
+    model: LLaMA
+    version: "3.3"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: ai-config-line
+spec:  
+  siteId: hq
+  type: config
+  name: ai-config-line
+  metadata:
+    asset: line-1
+  parentName: ai-config-site
+  properties:
+    flavor: mobile
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined
+spec:  
+  siteId: hq
+  type: config
+  name: combined  
+  properties:
+    foo: bar
+    ai: "<ai-config>"
+    ai-model: "<ai-config>.model"
+    com: "<combined-1>.foo"
+    loop: "<combined-1>.loop"
+    less: "<123"
+    influxdb: "<influx-db-config>"
+    e4k: "<e4k-config>"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined-1
+spec:  
+  siteId: hq
+  type: config
+  name: combined-1  
+  properties:
+    foo: <combined-2>.foo
+    loop: <combined-2>.loop
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: combined-2
+spec:  
+  siteId: hq
+  type: config
+  name: combined-2  
+  properties:
+    foo: bar2   
+    loop: <combined>.loop
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: external
+spec:  
+  siteId: hq
+  type: config
+  name: external  
+  properties:
+    foo: far
+  objectRef:
+    name: GitHub
+    address: https://github.com/some/url
+    group: dummy
+    kind: dummy
+    siteId: dummy
+    version: dummy
+    scope: dummy
+    metadata:
+      foo: bar

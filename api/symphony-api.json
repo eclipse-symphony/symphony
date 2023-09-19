@@ -1,4 +1,23 @@
 {
+  "siteInfo": {
+    "siteId": "hq",
+    "properties": {
+      "address": "1 Microsoft Way",
+      "city": "Redmond",
+      "state": "WA",
+      "zip": "98052",
+      "country": "USA",
+      "phone": "425-882-8080",
+      "version": "0.45.1",
+      "lat": "43.67961",
+      "lng": "-122.12826"
+    },
+    "currentSite": {
+      "baseUrl": "http://symphony-service:8080/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    }
+  },
   "api": {
     "pubsub": {
       "shared": true,
@@ -8,6 +27,121 @@
       }
     },
     "vendors": [
+      {
+        "type": "vendors.settings",
+        "managers": [
+          {
+            "name": "config-manager",
+            "type": "managers.symphony.configs",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "catalog": {
+                "type": "providers.config.catalog",
+                "config": {
+                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
+                  "user": "admin",
+                  "password": ""
+                }
+              }
+            }
+          }
+        ]        
+      },
+      {
+        "type": "vendors.stage",
+        "route": "stage",
+        "managers": [
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": {   
+              "providers.state": "k8s-state"        
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.activations",
+        "route": "activations",
+        "managers": [
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigns",
+        "route": "campaigns",
+        "managers": [
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
       {
         "type": "vendors.echo",
         "route": "greetings",
@@ -123,6 +257,50 @@
         ]
       },
       {
+        "type": "vendors.models",
+        "loopInterval": 15,
+        "route": "models",
+        "managers": [
+          {
+            "name": "models-manager",
+            "type": "managers.symphony.models",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.skills",
+        "loopInterval": 15,
+        "route": "skills",
+        "managers": [
+          {
+            "name": "skills-manager",
+            "type": "managers.symphony.skills",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.users",
         "route": "users",
         "properties": {
@@ -208,6 +386,91 @@
                 "config": {
                   "inCluster": true
                 }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.federation",
+        "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sites-manager",
+            "type": "managers.symphony.sites",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "providers.queue": "memeory"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.queue.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogs",
+        "route": "catalogs",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
               }
             }
           }

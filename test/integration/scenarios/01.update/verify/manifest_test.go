@@ -1,3 +1,29 @@
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package verify
 
 import (
@@ -41,26 +67,39 @@ type (
 	}
 )
 
-const (
+var (
 	// manifestTemplateFolder includes manifest templates with empty components to deploy
 	manifestTemplateFolder = "../manifestTemplates"
 	// testManifestsFolder includes temporary manifest files for each test run. set in .gitignore
 	testManifestsFolder = "../manifestForTestingOnly"
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 var (
 	// Manifest templates
 	manifestTemplates = map[string]string{
-		"target":   fmt.Sprintf("%s/target.yaml", manifestTemplateFolder),
-		"instance": fmt.Sprintf("%s/instance.yaml", manifestTemplateFolder),
-		"solution": fmt.Sprintf("%s/solution.yaml", manifestTemplateFolder),
+		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
+		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
+		"solution": fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
 	}
 
 	// Manifests to deploy
 	testManifests = map[string]string{
-		"target":   fmt.Sprintf("%s/target.yaml", testManifestsFolder),
-		"instance": fmt.Sprintf("%s/instance.yaml", testManifestsFolder),
-		"solution": fmt.Sprintf("%s/solution.yaml", testManifestsFolder),
+		"target":   fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, conditionalString("azure", "oss")),
+		"instance": fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, conditionalString("azure", "oss")),
+		"solution": fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, conditionalString("azure", "oss")),
 	}
 
 	testCases = []TestCase{
@@ -107,7 +146,9 @@ func TestScenario_Update(t *testing.T) {
 		fmt.Printf("[Test case]: %s\n", test.Name)
 
 		// Construct the manifests
-		err := testhelpers.BuildManifestFile(manifestTemplateFolder, testManifestsFolder, test.Target, test.ComponentsToAdd)
+		err := testhelpers.BuildManifestFile(
+			fmt.Sprintf("%s/%s", manifestTemplateFolder, conditionalString("azure", "oss")),
+			fmt.Sprintf("%s/%s", testManifestsFolder, conditionalString("azure", "oss")), test.Target, test.ComponentsToAdd)
 		require.NoError(t, err)
 
 		// Deploy the manifests
@@ -135,7 +176,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 	// Verify targets
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "symphony.microsoft.com",
+		Group:   conditionalString("symphony.microsoft.com", "fabric.symphony"),
 		Version: "v1",
 		Kind:    "Target",
 	})
@@ -148,7 +189,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "fabric.symphony"),
 			Version:  "v1",
 			Resource: "targets",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -179,7 +220,7 @@ func verifyInstanceStatus(t *testing.T, test TestCase) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "symphony.microsoft.com",
+			Group:    conditionalString("symphony.microsoft.com", "solution.symphony"),
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})

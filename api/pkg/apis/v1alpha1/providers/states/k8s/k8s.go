@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -28,6 +29,7 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 
@@ -39,6 +41,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -215,9 +218,16 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	if err != nil {
 		// TODO: check if not-found error
 		template := model.ReadProperty(entry.Metadata, "template", &model.ValueInjections{
-			TargetId:   entry.Value.ID,
-			SolutionId: entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
-			InstanceId: entry.Value.ID,
+			TargetId:     entry.Value.ID,
+			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
+			InstanceId:   entry.Value.ID,
+			ActivationId: entry.Value.ID,
+			CampaignId:   entry.Value.ID,
+			CatalogId:    entry.Value.ID,
+			DeviceId:     entry.Value.ID,
+			ModelId:      entry.Value.ID,
+			SkillId:      entry.Value.ID,
+			SiteId:       entry.Value.ID,
 		})
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
@@ -247,7 +257,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
 			observ_utils.CloseSpanWithError(span, err)
-			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
+			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
 			return "", err
 		}
 		if v, ok := dict["spec"]; ok {
@@ -272,14 +282,10 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				},
 			}
 			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(schema.GroupVersionResource{
-				Group:    group,
-				Version:  version,
-				Resource: resource,
-			}).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
-				sLog.Errorf("  P (K8s State): failed to get object: %v", err)
+				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
 				return "", err
 			}
 		}
@@ -387,9 +393,14 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, request.ID, metav1.GetOptions{})
 	if err != nil {
+		coaError := v1alpha2.NewCOAError(err, "failed to get object", v1alpha2.InternalError)
+		//check if not found
+		if k8s_errors.IsNotFound(err) {
+			coaError.State = v1alpha2.NotFound
+		}
 		observ_utils.CloseSpanWithError(span, err)
-		sLog.Errorf("  P (K8s State): failed to get objects: %v", err)
-		return states.StateEntry{}, err
+		sLog.Errorf("  P (K8s State %v", coaError.Error())
+		return states.StateEntry{}, coaError
 	}
 	generation := item.GetGeneration()
 	ret := states.StateEntry{
@@ -402,4 +413,177 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	}
 	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
+}
+
+// Implmeement the IConfigProvider interface
+func (s *K8sStateProvider) Read(object string, field string) (string, error) {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			if v, ok := properties[field]; ok {
+				return v.(string), nil
+			} else {
+				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration catalog '%s'", field, object), v1alpha2.NotFound)
+			}
+		} else {
+			return "", v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return "", v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+
+func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			ret := map[string]string{}
+			for k, v := range properties {
+				ret[k] = v.(string)
+			}
+			return ret, nil
+		} else {
+			return nil, v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return nil, v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+
+func (s *K8sStateProvider) Set(object string, field string, value string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			properties[field] = value
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) SetObject(object string, values map[string]string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			for k, v := range values {
+				properties[k] = v
+			}
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) Remove(object string, field string) error {
+	obj, err := s.Get(context.Background(), states.GetRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "catalogs",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
+		spec := v.(map[string]interface{})
+		if v, ok := spec["properties"]; ok {
+			properties := v.(map[string]interface{})
+			delete(properties, field)
+			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+				Value: obj,
+				Metadata: map[string]string{
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"scope":    "",
+					"group":    model.FederationGroup,
+					"version":  "v1",
+					"resource": "catalogs",
+				},
+			})
+			return err
+		} else {
+			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
+		}
+	}
+	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
+}
+func (s *K8sStateProvider) RemoveObject(object string) error {
+	return s.Delete(context.Background(), states.DeleteRequest{
+		ID: object,
+		Metadata: map[string]string{
+			"scope":    "",
+			"group":    model.FederationGroup,
+			"version":  "v1",
+			"resource": "catalogs",
+		},
+	})
 }

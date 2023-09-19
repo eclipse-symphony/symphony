@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -30,7 +31,9 @@ import (
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
@@ -82,7 +85,21 @@ func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, pr
 	m.Context.Logger.Debugf(" M (%s): initalize manager type '%s'", config.Name, config.Type)
 	return err
 }
-
+func GetQueueProvider(config ManagerConfig, providers map[string]providers.IProvider) (queue.IQueueProvider, error) {
+	queueProviderName, ok := config.Properties[v1alpha2.ProviderQueue]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "queue provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[queueProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "queue provider is not supplied", v1alpha2.MissingConfig)
+	}
+	queueProvider, ok := provider.(queue.IQueueProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a queue provider", v1alpha2.BadConfig)
+	}
+	return queueProvider, nil
+}
 func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]
 	if !ok {
@@ -98,6 +115,21 @@ func GetStateProvider(config ManagerConfig, providers map[string]providers.IProv
 	}
 	return stateProvider, nil
 }
+func GetLedgerProvider(config ManagerConfig, providers map[string]providers.IProvider) (ledger.ILedgerProvider, error) {
+	ledgerProviderName, ok := config.Properties[v1alpha2.ProviderLedger]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "ledger provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[ledgerProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "ledger provider is not supplied", v1alpha2.MissingConfig)
+	}
+	ledgerProvider, ok := provider.(ledger.ILedgerProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a ledger provider", v1alpha2.BadConfig)
+	}
+	return ledgerProvider, nil
+}
 func GetConfigProvider(con ManagerConfig, providers map[string]providers.IProvider) (config.IConfigProvider, error) {
 	configProviderName, ok := con.Properties[v1alpha2.ProvidersConfig]
 	if !ok {
@@ -108,6 +140,21 @@ func GetConfigProvider(con ManagerConfig, providers map[string]providers.IProvid
 		return nil, v1alpha2.NewCOAError(nil, "config provider is not supplied", v1alpha2.MissingConfig)
 	}
 	configProvider, ok := provider.(config.IConfigProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a config provider", v1alpha2.BadConfig)
+	}
+	return configProvider, nil
+}
+func GetExtConfigProvider(con ManagerConfig, providers map[string]providers.IProvider) (config.IExtConfigProvider, error) {
+	configProviderName, ok := con.Properties[v1alpha2.ProvidersConfig]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[configProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "config provider is not supplied", v1alpha2.MissingConfig)
+	}
+	configProvider, ok := provider.(config.IExtConfigProvider)
 	if !ok {
 		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a config provider", v1alpha2.BadConfig)
 	}

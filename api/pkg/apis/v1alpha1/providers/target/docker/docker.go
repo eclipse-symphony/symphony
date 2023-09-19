@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -29,9 +30,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -48,7 +51,8 @@ type DockerTargetProviderConfig struct {
 }
 
 type DockerTargetProvider struct {
-	Config DockerTargetProviderConfig
+	Config  DockerTargetProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func DockerTargetProviderConfigFromMap(properties map[string]string) (DockerTargetProviderConfig, error) {
@@ -143,6 +147,24 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 				volumeData, _ := json.Marshal(info.Mounts)
 				component.Properties["container.volumeMounts"] = string(volumeData)
 			}
+			// get environment varibles that are passed in by the reference
+			env := info.Config.Env
+			if len(env) > 0 {
+				for _, e := range env {
+					pair := strings.Split(e, "=")
+					if len(pair) == 2 {
+						for _, s := range references {
+							if s.Component.Name == component.Name {
+								for k, _ := range s.Component.Properties {
+									if k == "env."+pair[0] {
+										component.Properties[k] = pair[1]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			ret = append(ret, component)
 		}
 	}
@@ -198,10 +220,10 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				return ret, err
 			}
 
-			isNew := true
-			containerInfo, err := cli.ContainerInspect(ctx, component.Component.Name)
-			if err == nil {
-				isNew = false
+			alreadyRunning := true
+			_, err := cli.ContainerInspect(ctx, component.Component.Name)
+			if err != nil { //TODO: check if the error is ErrNotFound
+				alreadyRunning = false
 			}
 
 			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
@@ -215,7 +237,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// defer reader.Close()
 			// io.Copy(os.Stdout, reader)
 
-			if !isNew && containerInfo.Image != image {
+			if alreadyRunning {
 				err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
@@ -234,84 +256,60 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
-				isNew = true
 			}
 
-			if isNew {
-				containerConfig := container.Config{
-					Image: image,
+			// prepare environment variables
+			env := make([]string, 0)
+			for k, v := range component.Component.Properties {
+				if strings.HasPrefix(k, "env.") {
+					env = append(env, strings.TrimPrefix(k, "env.")+"="+v.(string))
 				}
-				var hostConfig *container.HostConfig
-				if resources != "" {
-					var resourceSpec container.Resources
-					err := json.Unmarshal([]byte(resources), &resourceSpec)
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
-						return ret, err
-					}
-					hostConfig = &container.HostConfig{
-						Resources: resourceSpec,
-					}
-				}
-				container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			}
+
+			containerConfig := container.Config{
+				Image: image,
+				Env:   env,
+			}
+			var hostConfig *container.HostConfig
+			if resources != "" {
+				var resourceSpec container.Resources
+				err := json.Unmarshal([]byte(resources), &resourceSpec)
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
 					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
 					return ret, err
 				}
+				hostConfig = &container.HostConfig{
+					Resources: resourceSpec,
+				}
+			}
+			container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			if err != nil {
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
+				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+				return ret, err
+			}
 
-				if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
-					ret[component.Component.Name] = model.ComponentResultSpec{
-						Status:  v1alpha2.UpdateFailed,
-						Message: err.Error(),
-					}
-					observ_utils.CloseSpanWithError(span, err)
-					sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
-					return ret, err
-				}
+			if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.Updated,
-					Message: "",
+					Status:  v1alpha2.UpdateFailed,
+					Message: err.Error(),
 				}
-			} else {
-				if resources != "" {
-					var resourceObj container.Resources
-					err = json.Unmarshal([]byte(resources), &resourceObj)
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to unmarshal container resources spec: %+v", err)
-						return ret, err
-					}
-					_, err = cli.ContainerUpdate(context.Background(), component.Component.Name, container.UpdateConfig{
-						Resources: resourceObj,
-					})
-					if err != nil {
-						ret[component.Component.Name] = model.ComponentResultSpec{
-							Status:  v1alpha2.UpdateFailed,
-							Message: err.Error(),
-						}
-						observ_utils.CloseSpanWithError(span, err)
-						sLog.Errorf("  P (Docker Target): failed to update container resources: %+v", err)
-						return ret, err
-					}
-				}
-				ret[component.Component.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.Updated,
-					Message: "",
-				}
+				observ_utils.CloseSpanWithError(span, err)
+				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
+				return ret, err
+			}
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "",
 			}
 		} else {
 			err = cli.ContainerStop(context.Background(), component.Component.Name, nil)

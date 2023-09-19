@@ -1,0 +1,115 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq
+spec:  
+  siteId: hq
+  type: asset
+  name: hq
+  properties:
+    name: HQ
+    address: 1 Microsoft Way
+    city: Redmond
+    state: WA
+    zip: "98052"
+    country: USA
+    phone: "425-882-8080"
+    version: "0.45.1"
+    lat: "43.67961"
+    lng: "-122.12826"
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: infrastructure
+spec:  
+  siteId: hq
+  type: asset
+  name: infrastructure
+  properties:
+    name: "Infrastructure"    
+  parentName: hq
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: l3
+spec:  
+  siteId: hq
+  type: asset
+  name: l3
+  properties:
+    name: "Level 3"    
+  parentName: infrastructure
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: l4
+spec:  
+  siteId: hq
+  type: asset
+  name: l4
+  properties:
+    name: "Level 4"    
+  parentName: infrastructure
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: use-cases
+spec:  
+  siteId: hq
+  type: asset
+  name: use-cases
+  properties:
+    name: "Use Cases"    
+  parentName: hq
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: csad
+spec:  
+  siteId: hq
+  type: asset
+  name: csad
+  properties:
+    name: "CSAD"    
+  parentName: use-cases
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site
+spec:  
+  siteId: hq
+  type: asset
+  name: site
+  properties:
+    name: "Site"    
+  parentName: csad
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-a
+spec:  
+  siteId: hq
+  type: asset
+  name: line-a
+  properties:
+    name: "Line A"    
+  parentName: site
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-b
+spec:  
+  siteId: hq
+  type: asset
+  name: line-b
+  properties:
+    name: "Line B"    
+  parentName: site

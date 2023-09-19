@@ -1,25 +1,26 @@
 /*
-   MIT License
 
-   Copyright (c) Microsoft Corporation.
+	MIT License
 
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
 
 */
 
@@ -27,6 +28,7 @@ package vendors
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -103,7 +105,7 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 	return []v1alpha2.Endpoint{
 		{
-			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Methods: []string{fasthttp.MethodPost},
 			Route:   route,
 			Version: o.Version,
 			Handler: o.onHello,
@@ -114,22 +116,18 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Job Vendor", request.Context, nil)
 	switch request.Method {
-	case fasthttp.MethodGet:
-		message := "Last 20 trace entries:"
-		if len(c.myMessages) > 0 {
-			for _, m := range c.myMessages {
-				message = message + "\r\n" + m
-			}
-		}
-		resp := v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        []byte(message),
-			ContentType: "application/text",
-		}
-		return observ_utils.CloseSpanWithCOAResponse(span, resp)
 	case fasthttp.MethodPost:
-		c.Vendor.Context.Publish("trace", v1alpha2.Event{
-			Body: string(request.Body),
+		var activationData v1alpha2.ActivationData
+		err := json.Unmarshal(request.Body, &activationData)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\":\"400 - bad request\"}"),
+				ContentType: "application/json",
+			})
+		}
+		c.Vendor.Context.Publish("activation", v1alpha2.Event{
+			Body: activationData,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

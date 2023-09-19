@@ -203,5 +203,10 @@ func CIVerify() error {
 
 // Build docker image with docker-compose.
 func DockerBuild() error {
-	return shellcmd.Command("docker-compose build").Run()
+	return shellcmd.Command("docker-compose -f docker-compose.yaml build").Run()
+}
+
+// Build docker image with docker-compose.
+func DockerBuildAzure() error {
+	return shellcmd.Command("docker-compose -f docker-compose.azure.yaml build").Run()
 }

@@ -1,14 +1,27 @@
 /*
-Copyright 2022 The COA Authors
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
 */
 
 package providers
@@ -17,6 +30,15 @@ import (
 	"fmt"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	memorygraph "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
+	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
+	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
+	materialize "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
+	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
+	remotestage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
+	waitstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
@@ -35,10 +57,13 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	mockconfig "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	mockledger "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	mempubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	memoryqueue "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
 	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
 	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
@@ -82,6 +107,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 			return mProvider, nil
 		}
 	case "providers.state.k8s":
+		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.config.k8scatalog":
 		mProvider := &k8sstate.K8sStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
@@ -131,6 +162,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.uploader.azure.blob":
 		mProvider := &blob.AzureBlobUploader{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.ledger.mock":
+		mProvider := &mockledger.MockLedgerProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -225,6 +262,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.config.catalog":
+		mProvider := &catalogconfig.CatalogConfigProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.secret.mock":
 		mProvider := &mocksecret.MockSecretProvider{}
 		err = mProvider.Init(config)
@@ -237,10 +280,65 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.mock":
+		mProvider := &mockstage.MockStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.http":
+		mProvider := &httpstage.HttpStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.create":
+		mProvider := &symphonystage.CreateStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.list":
+		mProvider := &liststage.ListStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.remote":
+		mProvider := &remotestage.RemoteStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.wait":
+		mProvider := &waitstage.WaitStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.materialize":
+		mProvider := &materialize.MaterializeStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.queue.memory":
+		mProvider := &memoryqueue.MemoryQueueProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.graph.memory":
+		mProvider := &memorygraph.MemoryGraphProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	}
 	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
-func CreateProviderForTargetRole(role string, target model.TargetSpec, override cp.IProvider) (cp.IProvider, error) {
+
+func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, target model.TargetSpec, override cp.IProvider) (cp.IProvider, error) {
 	for _, topology := range target.Topologies {
 		for _, binding := range topology.Bindings {
 			testRole := role
@@ -255,6 +353,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.azure.adu":
 					provider := &adu.ADUTargetProvider{}
@@ -262,6 +361,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.k8s":
 					provider := &k8s.K8sTargetProvider{}
@@ -269,6 +369,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.arcextension":
 					provider := &arcextension.ArcExtensionTargetProvider{}
@@ -276,6 +377,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.docker":
 					provider := &docker.DockerTargetProvider{}
@@ -283,6 +385,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.kubectl":
 					provider := &kubectl.KubectlTargetProvider{}
@@ -290,6 +393,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.staging":
 					provider := &staging.StagingTargetProvider{}
@@ -297,6 +401,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.script":
 					provider := &script.ScriptProvider{}
@@ -304,6 +409,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.http":
 					provider := &targethttp.HttpTargetProvider{}
@@ -311,6 +417,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.win10.sideload":
 					provider := &sideload.Win10SideLoadProvider{}
@@ -318,6 +425,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.adb":
 					provider := &adb.AdbProvider{}
@@ -325,6 +433,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.proxy":
 					if override == nil {
@@ -333,6 +442,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						if err != nil {
 							return nil, err
 						}
+						provider.Context = context
 						return provider, nil
 					} else {
 						return override, nil
@@ -344,6 +454,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						if err != nil {
 							return nil, err
 						}
+						provider.Context = context
 						return provider, nil
 					} else {
 						return override, nil
@@ -354,6 +465,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.state.k8s":
 					provider := &k8sstate.K8sStateProvider{}
@@ -362,12 +474,29 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 						return nil, err
 					}
 					return provider, nil
+				case "providers.ledger.mock":
+					provider := &mockledger.MockLedgerProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.config.k8scatalog":
+					provider := &k8sstate.K8sStateProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
 				case "providers.state.http":
 					provider := &httpstate.HttpStateProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.reference.k8s":
 					provider := &k8sref.K8sReferenceProvider{}
@@ -375,6 +504,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.reference.customvision":
 					provider := &cvref.CustomVisionReferenceProvider{}
@@ -382,6 +512,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.reference.http":
 					provider := &httpref.HTTPReferenceProvider{}
@@ -389,6 +520,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.reporter.k8s":
 					provider := &k8sreporter.K8sReporter{}
@@ -396,6 +528,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.reporter.http":
 					provider := &httpreporter.HTTPReporter{}
@@ -403,6 +536,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.helm":
 					provider := &helm.HelmTargetProvider{}
@@ -410,6 +544,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.extendedlocation":
 					provider := &extendedlocation.ExtendedLocationTargetProvider{}
@@ -417,6 +552,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.target.mock":
 					provider := &tgtmock.MockTargetProvider{}
@@ -424,6 +560,7 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.config.mock":
 					provider := &mockconfig.MockConfigProvider{}
@@ -431,6 +568,15 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
+					return provider, nil
+				case "providers.config.catalog":
+					provider := &catalogconfig.CatalogConfigProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
 					return provider, nil
 				case "providers.secret.mock":
 					provider := &mocksecret.MockSecretProvider{}
@@ -438,8 +584,82 @@ func CreateProviderForTargetRole(role string, target model.TargetSpec, override 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.mock":
+					provider := &mockstage.MockStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.remote":
+					provider := &remotestage.RemoteStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.http":
+					provider := &httpstage.HttpStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.create":
+					provider := &symphonystage.CreateStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.list":
+					provider := &liststage.ListStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.wait":
+					provider := &waitstage.WaitStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.materialize":
+					provider := &materialize.MaterializeStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.queue.memory":
+					provider := &memoryqueue.MemoryQueueProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.graph.memory":
+					provider := &memorygraph.MemoryGraphProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
 					return provider, nil
 				}
+
 			}
 		}
 	}
