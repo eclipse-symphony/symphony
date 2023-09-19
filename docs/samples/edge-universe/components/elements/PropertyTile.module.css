@@ -1,9 +1,0 @@
-.current {
-    width: 25%;
-    transition: width 0.5s;
-}
-  
-.history {
-    width: 100%;
-    transition: width 0.5s;
-}

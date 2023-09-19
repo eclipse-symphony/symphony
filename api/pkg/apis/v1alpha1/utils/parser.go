@@ -1,6 +1,33 @@
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,8 +35,7 @@ import (
 	"text/scanner"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type Token int
@@ -54,23 +80,15 @@ var opNames = map[Token]string{
 	AMPHERSAND: "&",
 }
 
-type EvaluationContext struct {
-	ConfigProvider config.IConfigProvider
-	SecretProvider secret.ISecretProvider
-	DeploymentSpec model.DeploymentSpec
-	Properties     map[string]string
-	Component      string
-}
-
 type Node interface {
-	Eval(context EvaluationContext) (interface{}, error)
+	Eval(context utils.EvaluationContext) (interface{}, error)
 }
 
 type NumberNode struct {
 	Value float64
 }
 
-func (n *NumberNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *NumberNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return n.Value, nil
 }
 
@@ -90,14 +108,14 @@ func removeQuotes(s string) string {
 	return s
 }
 
-func (n *IdentifierNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *IdentifierNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return removeQuotes(n.Value), nil
 }
 
 type NullNode struct {
 }
 
-func (n *NullNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *NullNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return "", nil
 }
 
@@ -106,7 +124,7 @@ type UnaryNode struct {
 	Expr Node
 }
 
-func (n *UnaryNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *UnaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
 		if n.Expr != nil {
@@ -147,7 +165,7 @@ type BinaryNode struct {
 	Right Node
 }
 
-func (n *BinaryNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Op {
 	case PLUS:
 		var lv interface{} = ""
@@ -424,6 +442,12 @@ func readProperty(properties map[string]string, key string) (string, error) {
 	}
 	return "", fmt.Errorf("property %s is not found", key)
 }
+func readPropertyInterface(properties map[string]interface{}, key string) (interface{}, error) {
+	if v, ok := properties[key]; ok {
+		return v, nil
+	}
+	return "", fmt.Errorf("property %s is not found", key)
+}
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 
 	arguments := deployment.Instance.Arguments
@@ -443,7 +467,7 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
 }
 
-func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
+func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Name {
 	case "param":
 		if len(n.Args) == 1 {
@@ -454,11 +478,14 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			argument, err := readArgument(context.DeploymentSpec, context.Component, key.(string))
-			if err != nil {
-				return nil, err
+			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+				argument, err := readArgument(deploymentSpec, context.Component, key.(string))
+				if err != nil {
+					return nil, err
+				}
+				return argument, nil
 			}
-			return argument, nil
+			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
 	case "property":
@@ -477,6 +504,45 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return property, nil
 		}
 		return nil, fmt.Errorf("$property() expects 1 argument, fount %d", len(n.Args))
+	case "input":
+		if len(n.Args) == 1 {
+			if context.Inputs == nil || len(context.Inputs) == 0 {
+				return nil, errors.New("an input collection is needed to evaluate $input()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			property, err := readPropertyInterface(context.Inputs, key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$input() expects 1 argument, fount %d", len(n.Args))
+	case "output":
+		if len(n.Args) == 2 {
+			if context.Outputs == nil || len(context.Outputs) == 0 {
+				return nil, errors.New("an output collection is needed to evaluate $output()")
+			}
+			step, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			key, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := context.Outputs[step.(string)]; !ok {
+				return nil, fmt.Errorf("step %s is not found in output collection", step.(string))
+			}
+			property, err := readPropertyInterface(context.Outputs[step.(string)], key.(string))
+			if err != nil {
+				return nil, err
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$output() expects 2 argument, fount %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -563,6 +629,37 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
 		return nil, fmt.Errorf("$ge() expects 2 arguments, fount %d", len(n.Args))
+	case "if":
+		if len(n.Args) == 3 {
+			cond, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if fmt.Sprintf("%v", cond) == "true" {
+				return n.Args[1].Eval(context)
+			} else {
+				return n.Args[2].Eval(context)
+			}
+		}
+		return nil, fmt.Errorf("$if() expects 3 arguments, fount %d", len(n.Args))
+	case "in":
+		if len(n.Args) >= 2 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			for i := 1; i < len(n.Args); i++ {
+				v, err := n.Args[i].Eval(context)
+				if err != nil {
+					return nil, err
+				}
+				if fmt.Sprintf("%v", val) == fmt.Sprintf("%v", v) {
+					return true, nil
+				}
+			}
+			return false, nil
+		}
+		return nil, fmt.Errorf("$in() expects at least 2 arguments, fount %d", len(n.Args))
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -628,7 +725,7 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
 	case "config":
-		if len(n.Args) == 2 {
+		if len(n.Args) >= 2 {
 			if context.ConfigProvider == nil {
 				return nil, errors.New("a config provider is needed to evaluate $config()")
 			}
@@ -640,7 +737,19 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			return context.ConfigProvider.Get(obj.(string), field.(string))
+
+			var overlays []string
+			if len(n.Args) > 2 {
+				for i := 2; i < len(n.Args); i++ {
+					overlay, err := n.Args[i].Eval(context)
+					if err != nil {
+						return nil, err
+					}
+					overlays = append(overlays, overlay.(string))
+				}
+			}
+
+			return context.ConfigProvider.Get(obj.(string), field.(string), overlays)
 		}
 		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
 	case "secret":
@@ -661,9 +770,14 @@ func (n *FunctionNode) Eval(context EvaluationContext) (interface{}, error) {
 		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
-			return context.DeploymentSpec.Instance.Name, nil
+			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+				return deploymentSpec.Instance.Name, nil
+			}
+			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
+	case "val":
+		return context.Value, nil
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -675,7 +789,7 @@ type Parser struct {
 }
 
 func NewParser(text string) *Parser {
-	var s scanner.Scanner
+	var s scanner.Scanner // TODO: this is mostly used to scan go code, we should use a custom scanner
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &Parser{
@@ -685,16 +799,39 @@ func NewParser(text string) *Parser {
 	return p
 }
 
-func (p *Parser) Eval(context EvaluationContext) (string, error) {
-	ret := ""
+func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
+	var ret interface{}
 	for {
-		n := p.expr(false)
+		n, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
 		if _, ok := n.(*NullNode); !ok {
 			v, r := n.Eval(context)
 			if r != nil {
 				return "", r
 			}
-			ret = fmt.Sprintf("%v%v", ret, v)
+			if _, ok := v.([]string); ok {
+				if ret == nil {
+					ret = v
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
+			} else if _, ok := v.([]interface{}); ok {
+				if ret == nil {
+					ret = v
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
+			} else {
+				if ret == nil {
+					ret = fmt.Sprintf("%v", v)
+				} else {
+					ret = fmt.Sprintf("%v%v", ret, v)
+				}
+			}
 		} else {
 			return ret, nil
 		}
@@ -759,142 +896,233 @@ func (p *Parser) scan() Token {
 	return IDENT
 }
 
-func (p *Parser) match(t Token) {
+func (p *Parser) match(t Token) error {
 	if p.token == t {
 		p.next()
 	} else {
-		panic(fmt.Sprintf("expected %T, got %s", t, p.text))
-	}
-}
-
-func (p *Parser) primary() Node {
-	switch p.token {
-	case NUMBER:
-		v, _ := strconv.ParseFloat(p.text, 64)
-		p.next()
-		return &NumberNode{v}
-	case DOLLAR:
-		return p.function()
-	case OPAREN:
-		p.next()
-		expr := p.expr(false)
-		p.match(CPAREN)
-		return expr
-	case OBRACKET:
-		p.next()
-		bexpr := p.expr(false)
-		p.match(CBRACKET)
-		return &UnaryNode{OBRACKET, bexpr}
-	case OCURLY:
-		p.next()
-		cexpr := p.expr(false)
-		p.match(CCURLY)
-		return &UnaryNode{OCURLY, cexpr}
-	case PLUS:
-		p.next()
-		return &UnaryNode{PLUS, p.primary()}
-	case MINUS:
-		p.next()
-		return &UnaryNode{MINUS, p.primary()}
-	case IDENT:
-		v := p.text
-		p.next()
-		return &IdentifierNode{v}
+		return fmt.Errorf("expected %T, got %s", t, p.text)
 	}
 	return nil
 }
 
-func (p *Parser) factor() Node {
-	node := p.primary()
+func (p *Parser) primary() (Node, error) {
+	switch p.token {
+	case NUMBER:
+		v, _ := strconv.ParseFloat(p.text, 64)
+		p.next()
+		return &NumberNode{v}, nil
+	case DOLLAR:
+		return p.function()
+	case OPAREN:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		expr := node
+		if err := p.match(CPAREN); err != nil {
+			return nil, err
+		}
+		return expr, nil
+	case OBRACKET:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		bexpr := node
+		if err := p.match(CBRACKET); err != nil {
+			return nil, err
+		}
+		return &UnaryNode{OBRACKET, bexpr}, nil
+	case OCURLY:
+		p.next()
+		node, err := p.expr(false)
+		if err != nil {
+			return nil, err
+		}
+		cexpr := node
+		if err := p.match(CCURLY); err != nil {
+			return nil, err
+		}
+		return &UnaryNode{OCURLY, cexpr}, nil
+	case PLUS:
+		p.next()
+		node, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryNode{PLUS, node}, nil
+	case MINUS:
+		p.next()
+		node, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryNode{MINUS, node}, nil
+	case IDENT:
+		v := p.text
+		p.next()
+		return &IdentifierNode{v}, nil
+	}
+	return nil, nil
+}
+
+func (p *Parser) factor() (Node, error) {
+	node, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
 	for {
 		switch p.token {
 		case MULT:
 			p.next()
-			node = &BinaryNode{MULT, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{MULT, node, n}
 		case DIV:
 			p.next()
-			node = &BinaryNode{DIV, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{DIV, node, n}
 		case SLASH:
 			p.next()
-			node = &BinaryNode{SLASH, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{SLASH, node, n}
 		case PERIOD:
 			p.next()
-			node = &BinaryNode{PERIOD, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{PERIOD, node, n}
 		case COLON:
 			p.next()
-			node = &BinaryNode{COLON, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{COLON, node, n}
 		case QUESTION:
 			p.next()
-			node = &BinaryNode{QUESTION, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{QUESTION, node, n}
 		case EQUAL:
 			p.next()
-			node = &BinaryNode{EQUAL, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{EQUAL, node, n}
 		case AMPHERSAND:
 			p.next()
-			node = &BinaryNode{AMPHERSAND, node, p.primary()}
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{AMPHERSAND, node, n}
 		default:
-			return node
+			return node, nil
 		}
 	}
 }
 
-func (p *Parser) expr(inFunc bool) Node {
-	node := p.factor()
-	if node == nil {
-		return &NullNode{}
+func (p *Parser) expr(inFunc bool) (Node, error) {
+	node, err := p.factor()
+	if node == nil || err != nil {
+		return &NullNode{}, err
 	}
 	for {
 		switch p.token {
 		case PLUS:
 			p.next()
-			node = &BinaryNode{PLUS, node, p.factor()}
+			f, err := p.factor()
+			if err != nil {
+				return &NullNode{}, err
+			}
+			node = &BinaryNode{PLUS, node, f}
 		case MINUS:
 			p.next()
-			node = &BinaryNode{MINUS, node, p.factor()}
+			f, err := p.factor()
+			if err != nil {
+				return &NullNode{}, err
+			}
+			node = &BinaryNode{MINUS, node, f}
 		case COMMA:
 			if !inFunc {
 				p.next()
-				node = &BinaryNode{COMMA, node, p.factor()}
+				f, err := p.factor()
+				if err != nil {
+					return &NullNode{}, err
+				}
+				node = &BinaryNode{COMMA, node, f}
 			} else {
-				return node
+				return node, nil
 			}
 		default:
-			return node
+			return node, nil
 		}
 	}
 }
 
-func (p *Parser) function() Node {
-	p.match(DOLLAR)
+func (p *Parser) function() (Node, error) {
+	err := p.match(DOLLAR)
+	if err != nil {
+		return nil, err
+	}
 	name := p.text
-	p.match(IDENT)
-	p.match(OPAREN)
+	err = p.match(IDENT)
+	if err != nil {
+		return nil, err
+	}
+	err = p.match(OPAREN)
+	if err != nil {
+		return nil, err
+	}
 	args := []Node{}
 	for p.token != CPAREN {
-		args = append(args, p.expr(true))
+		node, err := p.expr(true)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, node)
 		if p.token == COMMA {
 			p.next()
 		}
 	}
-	p.match(CPAREN)
-	return &FunctionNode{name, args}
+	err = p.match(CPAREN)
+	if err != nil {
+		return nil, err
+	}
+	return &FunctionNode{name, args}, nil
 }
 
-func EvaluateDeployment(context EvaluationContext) (model.DeploymentSpec, error) {
-	ret := context.DeploymentSpec
-	for ic, c := range context.DeploymentSpec.Solution.Components {
-		val, err := evalProperties(context, c.Properties)
-		if err != nil {
-			return ret, err
+func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
+	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+		for ic, c := range deploymentSpec.Solution.Components {
+			val, err := evalProperties(context, c.Properties)
+			if err != nil {
+				return deploymentSpec, err
+			}
+			props, ok := val.(map[string]interface{})
+			if !ok {
+				return deploymentSpec, fmt.Errorf("properties must be a map")
+			}
+			deploymentSpec.Solution.Components[ic].Properties = props
 		}
-		props, ok := val.(map[string]interface{})
-		if !ok {
-			return ret, fmt.Errorf("properties must be a map")
-		}
-		ret.Solution.Components[ic].Properties = props
-
+		return deploymentSpec, nil
 	}
-	return ret, nil
+	return model.DeploymentSpec{}, errors.New("deployment spec is not found")
 }
 func compareInterfaces(a, b interface{}) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
@@ -942,26 +1170,39 @@ func toNumber(val interface{}) (float64, bool) {
 	}
 	return 0, false
 }
-func evalProperties(context EvaluationContext, properties interface{}) (interface{}, error) {
-	switch properties.(type) {
+func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
+	switch p := properties.(type) {
 	case map[string]interface{}:
-		for k, v := range properties.(map[string]interface{}) {
+		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			properties.(map[string]interface{})[k] = val
+			p[k] = val
 		}
 	case []interface{}:
-		for i, v := range properties.([]interface{}) {
+		for i, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
 				return nil, err
 			}
-			properties.([]interface{})[i] = val
+			p[i] = val
 		}
 	case string:
-		parser := NewParser(properties.(string))
+		var js interface{}
+		err := json.Unmarshal([]byte(p), &js)
+		if err == nil {
+			modified, err := enumerateProperties(js, context)
+			if err != nil {
+				return nil, err
+			}
+			jsBytes, err := json.Marshal(modified)
+			if err != nil {
+				return nil, err
+			}
+			return string(jsBytes), nil
+		}
+		parser := NewParser(p)
 		val, err := parser.Eval(context)
 		if err != nil {
 			return nil, err
@@ -969,4 +1210,35 @@ func evalProperties(context EvaluationContext, properties interface{}) (interfac
 		properties = val
 	}
 	return properties, nil
+}
+
+func enumerateProperties(js interface{}, context utils.EvaluationContext) (interface{}, error) {
+	switch v := js.(type) {
+	case map[string]interface{}:
+		for key, val := range v {
+			if strVal, ok := val.(string); ok {
+				parser := NewParser(strVal)
+				val, err := parser.Eval(context)
+				if err != nil {
+					return nil, err
+				}
+				v[key] = val
+			} else {
+				nestedProps, err := enumerateProperties(val, context)
+				if err != nil {
+					return nil, err
+				}
+				v[key] = nestedProps
+			}
+		}
+	case []interface{}:
+		for i, val := range v {
+			nestedProps, err := enumerateProperties(val, context)
+			if err != nil {
+				return nil, err
+			}
+			v[i] = nestedProps
+		}
+	}
+	return js, nil
 }

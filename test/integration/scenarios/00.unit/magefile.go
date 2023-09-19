@@ -1,5 +1,31 @@
 //go:build mage
 
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package main
 
 import (
@@ -25,6 +51,19 @@ var (
 	}
 )
 
+func conditionalRun(azureFunc func() error, ossFunc func() error) error {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureFunc()
+	}
+	return ossFunc()
+}
+func conditionalString(azureStr string, ossStr string) string {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
+		return azureStr
+	}
+	return ossStr
+}
+
 // Entry point for running the tests
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
@@ -48,7 +87,7 @@ func Test() error {
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
 	// Deploy symphony
-	err := localenvCmd("cluster:deploy")
+	err := localenvCmd("cluster:deploy", conditionalString("azure", ""))
 	if err != nil {
 		return err
 	}
@@ -76,7 +115,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-
+	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
 	for _, testFile := range testPackage {
 		fullPath, err := filepath.Abs(testFile)
 		if err != nil {
@@ -91,16 +130,19 @@ func Verify() error {
 
 	return nil
 }
+func Azure() error {
+	return nil
+}
 
 // Clean up
 func Cleanup() {
 	shellExec(fmt.Sprintf("kubectl delete deployment nginx -n default"))
-	localenvCmd("destroy all")
+	localenvCmd("destroy all", conditionalString("azure", ""))
 }
 
 // Run a mage command from /localenv
-func localenvCmd(mageCmd string) error {
-	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s", mageCmd))
+func localenvCmd(mageCmd string, flavor string) error {
+	return shellExec(fmt.Sprintf("cd ../../../../localenv && mage %s %s", mageCmd, flavor))
 }
 
 // Run a command with | or other things that do not work in shellcmd

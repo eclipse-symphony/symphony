@@ -1,14 +1,27 @@
 /*
-Copyright 2022 The COA Authors
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
 */
 
 package model
@@ -25,38 +38,32 @@ type (
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
+	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
-		Name        string            `json:"name"`
-		DisplayName string            `json:"displayName,omitempty"`
-		Scope       string            `json:"scope,omitempty"`
-		Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string `json:"metadata,omitempty"`
-
-		// Instead of a single solution, users can specify a mixture of multiple solutions with percentage weight. This is for
-		// scenarios like canary deployment and blue-green deployment (used in conjunction with the Campagin object)
-
-		Solution   string                       `json:"solution"`
-		Target     TargetRefSpec                `json:"target,omitempty"`
-		Topologies []TopologySpec               `json:"topologies,omitempty"`
-		Pipelines  []PipelineSpec               `json:"pipelines,omitempty"`
-		Arguments  map[string]map[string]string `json:"arguments,omitempty"`
-		Generation string                       `json:"generation,omitempty"`
+		Name        string                       `json:"name"`
+		DisplayName string                       `json:"displayName,omitempty"`
+		Scope       string                       `json:"scope,omitempty"`
+		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata    map[string]string            `json:"metadata,omitempty"`
+		Solution    string                       `json:"solution"`
+		Target      TargetSelector               `json:"target,omitempty"`
+		Topologies  []TopologySpec               `json:"topologies,omitempty"`
+		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
+		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
+		Generation  string                       `json:"generation,omitempty"`
+		// Defines the version of a particular resource
+		Version string `json:"version,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
-	TargetRefSpec struct {
+	// +kubebuilder:object:generate=true
+	TargetSelector struct {
 		Name     string            `json:"name,omitempty"`
 		Selector map[string]string `json:"selector,omitempty"`
 	}
 
-	// TopologySpec defines the desired device topology the instance
-	TopologySpec struct {
-		Device   string            `json:"device,omitempty"`
-		Selector map[string]string `json:"selector,omitempty"`
-		Bindings []BindingSpec     `json:"bindings,omitempty"`
-	}
-
 	// PipelineSpec defines the desired pipeline of the instance
+	// +kubebuilder:object:generate=true
 	PipelineSpec struct {
 		Name       string            `json:"name"`
 		Skill      string            `json:"skill"`
@@ -64,10 +71,10 @@ type (
 	}
 )
 
-func (c TargetRefSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(TargetRefSpec)
+func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetSelector)
 	if !ok {
-		return false, errors.New("parameter is not a TargetRefSpec type")
+		return false, errors.New("parameter is not a TargetSelector type")
 	}
 
 	if c.Name != otherC.Name {

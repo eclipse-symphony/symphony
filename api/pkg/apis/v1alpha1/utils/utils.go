@@ -1,3 +1,29 @@
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package utils
 
 import (
@@ -95,6 +121,8 @@ func CollectStringMap(col map[string]string, prefix string) map[string]string {
 	}
 	return ret
 }
+
+// TODO: we should get rid of this
 func ParseValue(v string) (interface{}, error) { //TODO: make this a generic utiliy
 	if v == "$true" {
 		return true, nil
@@ -117,6 +145,7 @@ func ParseValue(v string) (interface{}, error) { //TODO: make this a generic uti
 	return v, nil
 }
 
+// TODO: This should not be used anymore
 func ProjectValue(val string, name string) string {
 	if strings.Contains(val, "$instance()") {
 		val = strings.ReplaceAll(val, "$instance()", name)

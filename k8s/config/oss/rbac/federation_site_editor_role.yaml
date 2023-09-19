@@ -1,0 +1,49 @@
+# permissions for end users to edit sites.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: site-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: symphony-k8s
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+  name: site-editor-role
+rules:
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites/status
+  verbs:
+  - get
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs/status
+  verbs:
+  - get

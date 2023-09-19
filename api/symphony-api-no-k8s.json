@@ -1,4 +1,22 @@
 {
+  "siteInfo": {
+    "siteId": "laptop",
+    "properties": {
+      "name": "My Laptop",
+      "address": "1 Main Street",
+      "city": "Carnation",
+      "state": "WA",
+      "zip": "98014",
+      "country": "USA",
+      "phone": "425-555-1212",
+      "version": "0.45.1"
+    },
+    "currentSite": {
+      "baseUrl": "http://localhost:8082/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    }
+  },
   "api": {
     "pubsub": {
       "shared": true,
@@ -8,6 +26,125 @@
       }
     },
     "vendors": [
+      {
+        "type": "vendors.settings",
+        "managers": [
+          {
+            "name": "config-manager",
+            "type": "managers.symphony.configs",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "catalog": {
+                "type": "providers.config.catalog",
+                "config": {
+                  "baseUrl": "http://localhost:8082/v1alpha2/",
+                  "user": "admin",
+                  "password": ""
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.stage",
+        "route": "stage",
+        "managers": [
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": {   
+              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "providers.state": "k8s-state"        
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
+      },
+      {
+        "type": "vendors.activations",
+        "route": "activations",
+        "managers": [
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigns",
+        "route": "campaigns",
+        "managers": [
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
       {
         "type": "vendors.echo",
         "route": "greetings",
@@ -125,6 +262,46 @@
         ]
       },
       {
+        "type": "vendors.models",
+        "loopInterval": 15,
+        "route": "models",
+        "managers": [
+          {
+            "name": "models-manager",
+            "type": "managers.symphony.models",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.skills",
+        "loopInterval": 15,
+        "route": "skills",
+        "managers": [
+          {
+            "name": "skills-manager",
+            "type": "managers.symphony.skills",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.users",
         "loopInterval": 15,
         "route": "users",
@@ -206,6 +383,98 @@
                 "config": {
                   "url": "http://localhost:8082/v1alpha2/"
                 }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
+        "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sites-manager",
+            "type": "managers.symphony.sites",
+            "properties": {
+              "providers.state": "memeory"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "memeory",
+              "singleton": "true"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "providers.queue": "memeory"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.queue.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "baseUrl": "http://localhost:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "sync.enabled": "true"
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogs",
+        "route": "catalogs",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "memeory",
+              "singleton": "true"
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
               }
             }
           }

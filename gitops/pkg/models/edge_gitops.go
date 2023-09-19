@@ -25,10 +25,10 @@ type DeploymentScheme struct {
 }
 
 type GitOpsStage struct {
-	Name       string                         `json:"name,omitempty"`
-	Template   GitOpsEdgeTemplateProperties   `json:"template,omitempty"`
-	Parameters GitOpsEdgeParametersProperties `json:"parameters,omitempty"`
-	TargetRef  model.TargetRefSpec            `json:"targetRef,omitempty"`
+	Name           string                         `json:"name,omitempty"`
+	Template       GitOpsEdgeTemplateProperties   `json:"template,omitempty"`
+	Parameters     GitOpsEdgeParametersProperties `json:"parameters,omitempty"`
+	TargetSelector model.TargetSelector           `json:"targetSelector,omitempty"`
 }
 
 type GitOpsEdgeTemplateProperties struct {

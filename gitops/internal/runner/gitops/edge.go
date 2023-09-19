@@ -250,7 +250,7 @@ func buildInstance(gitops *models.EdgeGitOpsResource, gitOpsEdgeTemplates map[st
 		Scope:    gitops.Properties.DeploymentScheme.Scope,
 		Name:     stage.Name,
 		Solution: gitOpsEdgeTemplates[stage.Name].Name,
-		Target:   stage.TargetRef,
+		Target:   stage.TargetSelector,
 	}
 
 	dependencies := make([]string, 0)

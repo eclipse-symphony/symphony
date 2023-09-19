@@ -1,25 +1,27 @@
 /*
-MIT License
 
-Copyright (c) Microsoft Corporation.
+	MIT License
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+	Copyright (c) Microsoft Corporation.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
 */
 
 package host
@@ -38,6 +40,7 @@ import (
 	pf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providerfactory"
 	pv "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -45,8 +48,9 @@ import (
 var log = logger.NewLogger("coa.runtime")
 
 type HostConfig struct {
-	API      APIConfig       `json:"api"`
-	Bindings []BindingConfig `json:"bindings"`
+	SiteInfo v1alpha2.SiteInfo `json:"siteInfo"`
+	API      APIConfig         `json:"api"`
+	Bindings []BindingConfig   `json:"bindings"`
 }
 type PubSubConfig struct {
 	Shared   bool              `json:"shared"`
@@ -79,7 +83,11 @@ func (h *APIHost) Launch(config HostConfig,
 	h.Vendors = make([]VendorSpec, 0)
 	h.Bindings = make([]bindings.IBinding, 0)
 	log.Info("--- launching COA host ---")
+	if config.SiteInfo.SiteId == "" {
+		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
+	}
 	for _, v := range config.API.Vendors {
+		v.SiteInfo = config.SiteInfo
 		created := false
 		for _, factory := range vendorFactories {
 			vendor, err := factory.CreateVendor(v)
@@ -148,6 +156,20 @@ func (h *APIHost) Launch(config HostConfig,
 		}
 	}
 	if len(h.Vendors) > 0 {
+		var evaluationContext *utils.EvaluationContext
+		for _, v := range h.Vendors {
+			if _, ok := v.Vendor.(vendors.IEvaluationContextVendor); ok {
+				log.Info("--- evaluation context established ---")
+				evaluationContext = v.Vendor.(vendors.IEvaluationContextVendor).GetEvaluationContext()
+			}
+		}
+
+		if evaluationContext != nil {
+			for _, v := range h.Vendors {
+				log.Infof("--- evaluation context is sent to vendor: %s ---", v.Vendor.GetInfo().Name)
+				v.Vendor.SetEvaluationContext(evaluationContext)
+			}
+		}
 		var wg sync.WaitGroup
 		for _, v := range h.Vendors {
 			if v.LoopInterval > 0 {
@@ -171,7 +193,7 @@ func (h *APIHost) Launch(config HostConfig,
 					if wait {
 						wg.Add(1)
 					}
-					binding, err := h.launchHTTP(b.Config, endpoints)
+					binding, err := h.launchHTTP(b.Config, endpoints, h.SharedPubSubProvider.(pubsub.IPubSubProvider))
 					if err != nil {
 						return err
 					}
@@ -197,7 +219,7 @@ func (h *APIHost) Launch(config HostConfig,
 	}
 }
 
-func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint) (bindings.IBinding, error) {
+func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint, pubsubProvider pubsub.IPubSubProvider) (bindings.IBinding, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -208,7 +230,7 @@ func (h *APIHost) launchHTTP(config interface{}, endpoints []v1alpha2.Endpoint) 
 		return nil, err
 	}
 	binding := http.HttpBinding{}
-	return binding, binding.Launch(httpConfig, endpoints)
+	return binding, binding.Launch(httpConfig, endpoints, pubsubProvider)
 }
 func (h *APIHost) launchMQTT(config interface{}, endpoints []v1alpha2.Endpoint) (bindings.IBinding, error) {
 	data, err := json.Marshal(config)

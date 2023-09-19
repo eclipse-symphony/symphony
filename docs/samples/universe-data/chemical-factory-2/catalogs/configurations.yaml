@@ -1,0 +1,105 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: global-config
+spec:  
+  siteId: hq
+  type: config
+  name: global-config
+  metadata:
+    asset: hq
+  properties:
+    global1: global-value1
+    global2: global-value2
+    global3: global-value3
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: l3-config
+spec:  
+  siteId: hq
+  type: config
+  name: l3-config
+  metadata:
+    asset: l3
+  properties:
+    l3-1: l3-value1
+    l3-2: l3-value2
+    l3-3: l3-value3
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: l4-config
+spec:  
+  siteId: hq
+  type: config
+  name: l4-config
+  metadata:
+    asset: l4
+  properties:
+    l4-1: l4-value1
+    l4-2: l4-value2
+    l4-3: l4-value3
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: csad-config
+spec:  
+  siteId: hq
+  type: config
+  name: csad-config
+  parentName: global-config
+  metadata:
+    asset: use-case
+  properties:
+    l3: <l3-config>
+    l4: <l4-config>
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-config
+spec:  
+  siteId: hq
+  type: config
+  name: site-config
+  metadata:
+    asset: site
+  parentName: csad-config
+  properties:
+    site1: site-value1
+    site2: site-value2
+    site3: site-value3
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-a-config
+spec:  
+  siteId: hq
+  type: config
+  name: line-a-config
+  metadata:
+    asset: line-a
+  parentName: site-config
+  properties:
+    line-a-1: line-a-value1
+    line-a-2: line-a-value2
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-b-config
+spec:  
+  siteId: hq
+  type: config
+  name: line-b-config
+  metadata:
+    asset: line-b
+  parentName: site-config
+  properties:
+    line-a-1: line-b-value1
+    line-a-2: line-b-value2

@@ -1,3 +1,29 @@
+/*
+
+	MIT License
+
+	Copyright (c) Microsoft Corporation.
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE
+
+*/
+
 package staging
 
 import (
@@ -7,90 +33,87 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStagingTargetProviderConfigFromMapNil(t *testing.T) {
-	_, err := KubectlTargetProviderConfigFromMap(nil)
+	_, err := StagingProviderConfigFromMap(nil)
 	assert.NotNil(t, err)
 }
 func TestStagingTargetProviderConfigFromMapEmpty(t *testing.T) {
-	_, err := KubectlTargetProviderConfigFromMap(map[string]string{})
-	assert.NotNil(t, err)
-}
-func TestInitWithBadConfigType(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "Bad",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithEmptyFile(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "path",
-	}
-	provider := StagingTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured TODO: Why Staging provider is checking kubeconfig?
-}
-func TestInitWithBadFile(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "path",
-		ConfigData: "/doesnt/exist/config.yaml",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithEmptyData(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "bytes",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-	assert.NotNil(t, err)
-}
-func TestInitWithBadData(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		ConfigType: "bytes",
-		ConfigData: "bad data",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
+	_, err := StagingProviderConfigFromMap(map[string]string{})
 	assert.NotNil(t, err)
 }
 
 func TestStagingTargetProviderGet(t *testing.T) {
-	testStaging := os.Getenv("TEST_STAGING")
-	if testStaging == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "policies",
+				Type: "yaml.k8s",
+				Properties: map[string]interface{}{
+					"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+				},
+			},
+		},
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components)) // To make this test work, you need a target with a single component
 }
 func TestKubectlTargetProviderApply(t *testing.T) {
-	testRedis := os.Getenv("TEST_STAGING")
-	if testRedis == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	component := model.ComponentSpec{
 		Name: "policies",
 		Type: "yaml.k8s",
@@ -99,6 +122,9 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",
@@ -118,17 +144,28 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 }
 
 func TestKubectlTargetProviderRemove(t *testing.T) {
-	testRedis := os.Getenv("TEST_STAGING")
-	if testRedis == "" {
-		t.Skip("Skipping because TEST_STAGING enviornment variable is not set")
+	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
+	// os.Setenv("SYMPHONY_API_USER", "admin")
+	// os.Setenv("SYMPHONY_API_PASSWORD", "")
+	symphonyUrl := os.Getenv("SYMPHONY_API_BASE_URL")
+	if symphonyUrl == "" {
+		t.Skip("Skipping because SYMPHONY_API_BASE_URL enviornment variable is not set")
 	}
 	config := StagingTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		TargetName: "target-3f3a2c67-227f-4d2b-92cf-55c7abfa47de",
+		Name:       "tiny",
+		TargetName: "tiny-edge",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  os.Getenv("SYMPHONY_API_BASE_URL"),
+				Username: os.Getenv("SYMPHONY_API_USER"),
+				Password: os.Getenv("SYMPHONY_API_PASSWORD"),
+			},
+		},
+	}
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
 		Name: "policies",
@@ -138,6 +175,9 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
 		Solution: model.SolutionSpec{
 			DisplayName: "policies",
 			Scope:       "",

@@ -1,8 +1,8 @@
 # Symphony Quick Start - Deploying a Redis container with standalone Symphony
 
-_(last edit: 6/26/2023)_
+_(last edit: 9/18/2023)_
 
-Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
+This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -13,8 +13,7 @@ git clone https://github.com/azure/symphony
 ```
 ### 2. Build the Symphony API binary
 ```bash
-cd symphony-api
-go mod vendor
+cd api
 go build -o symphony-api
 ```
 ### 3. Launch the Symphony API in standalone mode
@@ -130,4 +129,4 @@ To delete the container, send a ```DELETE`` request:
     ```
 If you run ```docker ps``` again, you should see the container has been terminated.
 
-> **NOTE**: The standalone Symphony API uses a in-memory state store by default. If you shut down the ```symphony-api``` process, all states will be lost.
+> **NOTE**: The standalone Symphony API uses a in-memory state store by default. If you shut down the ```symphony-api``` process, all states will be purged.

@@ -1,0 +1,41 @@
+# permissions for end users to view sites.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: site-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: symphony-k8s
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+  name: site-viewer-role
+rules:
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - sites/status
+  verbs:
+  - get
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogs/status
+  verbs:
+  - get
