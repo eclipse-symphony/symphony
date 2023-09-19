@@ -349,7 +349,7 @@ func jsonPathQuery(obj interface{}, jsonPath string) (bool, string) {
 	jpLookup := jsonpath.New("lookup")
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {
-		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JaonPath expression to be wrapped in {}
+		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JsonPath expression to be wrapped in {}
 	}
 	err := jpLookup.Parse(jPath)
 	if err != nil {
@@ -364,7 +364,7 @@ func jsonPathQuery(obj interface{}, jsonPath string) (bool, string) {
 	} else if len(result) == 0 {
 		succeeded = false
 	} else {
-		succeeded = true //something is selecte, isn't this enough for a success?
+		succeeded = true //we consider it success as long as something is selected
 	}
 	return succeeded, result
 }

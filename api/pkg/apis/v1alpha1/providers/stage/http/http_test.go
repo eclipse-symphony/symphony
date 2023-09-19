@@ -147,6 +147,7 @@ func TestJsonPathBasic(t *testing.T) {
 	assert.True(t, success)
 	assert.Equal(t, "queued", result)
 }
+
 func TestJsonPathObjectInArray(t *testing.T) {
 	jData := `
 	[{
