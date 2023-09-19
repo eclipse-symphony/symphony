@@ -1,5 +1,5 @@
 # Symphony Quick Start - Deploying a simulated temperature sensor Solution to an Azure IoT Edge device
-Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane on your Kubernetes cluster and deploying a new Symphony solution instance to an Azure IoT Edge device.
+This quick start walks you through the steps of deploying a new Symphony solution instance to an Azure IoT Edge device.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -21,24 +21,10 @@ maestro samples remove hello-iot-edge
 
 ### 0. Prerequisites
 
-* [Helm 3](https://helm.sh/)
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) is configured with the Kubernetes cluster you want to use as the default context
 * [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/)
 
-### 1. Deploy Symphony using Helm
-
-The easiest way to install Symphony is to use Helm:
-```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.41.2
-```
-
-Or, if you already have the ```symphony-k8s``` repository cloned:
-```bash
-cd symphony-k8s/helm
-helm install symphony ./symphony
-```
-
-### 2. Create an IoT Edge device
+### 1. Create an IoT Edge device
 These steps create a new resource group, a new IoT Hub, and a new IoT Edge device. You can also choose to use an existing IoT Edge device.
 ```bash
 # install Azure IoT extension if needed
@@ -56,7 +42,7 @@ az iot hub device-identity create --device-id s8c-vm --hub-name s8chub --edge-en
 # get IoT Edge device connection string
 az iot hub device-identity connection-string show --device-id s8c-vm --resource-group s8c-demo --hub-name s8chub
 ```
-### 3. Register a Linux VM as an IoT Edge device
+### 2. Register a Linux VM as an IoT Edge device
 You need to prepare a Linux VM or physical device for IoT Edge. In this guide, you'll create a new Linux VM:
 ```bash
 # use ARM deployment to create a VM and install IoT Edge runtime
@@ -93,10 +79,10 @@ sudo apt-get update; \
 # update iotedge setting
 sudo iotedge config mp --connection-string '<IoT Edge device connection string>'
 ```
-### 4. Register the IoT Edge device as a Symphony Target
+### 3. Register the IoT Edge device as a Symphony Target
 Create a new YAML file that describes a Symphony Target:
 
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/iot-edge/simulated-temperature-sensor/target.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/iot-edge/simulated-temperature-sensor/target.yaml```:
 
 ```yaml
 apiVersion: fabric.symphony/v1
@@ -118,10 +104,10 @@ spec:
         deviceName: "<Device Name>"
 ```
 
-### 5. Create the Symphony Solution
+### 4. Create the Symphony Solution
 The following YAMl file describes a Symphony Solution with a single component, which is based on the ```mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0``` container.
 
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml```:
 
 ```yaml
 apiVersion: solution.symphony/v1
@@ -144,9 +130,9 @@ spec:
         definition: "FROM /messages/modules/simulated-temperature-sensor/* INTO $upstream"
 ```
 
-### 6. Create the Symphony Solution Instance
+### 5. Create the Symphony Solution Instance
 A Symphony Solution Instance maps a Symphony Solution to one or multiple Targets. The following artifacts maps the ```sample-simulated-temperature-sensor``` soltuion to the ```sample-iot-edge-target``` target above:
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml```:
 ```yaml
 apiVersion: solution.symphony/v1
 kind: Instance
@@ -162,7 +148,7 @@ You can also create additional instances. Symphony does the following for each o
 1) It generates IoT Edge module with a ```<instance id>-``` prefix.
 2) It rewrites all IoT Edge route definitions in the solution so that messages are routed to the right instance module.
 
-## 7. Create all objects
+## 6. Create all objects
 ```bash
 kubectl create -f target.yaml
 kubectl create -f solution.yaml
@@ -170,7 +156,7 @@ kubectl create -f instance-1.yaml
 kubectl create -f instance-2.yaml # if you've defined additional instances
 ```
 
-## 8. Verification
+## 7. Verification
 Examine all Symphony objects have created:
 ```bash
 kubectl get targets
@@ -180,28 +166,10 @@ kubectl get instances
 On IoT Hub page, verify all IoT Edge modules are up and running (screen shot shows only one instance):
 ![IoT Edge](../images/iot-edge.png)
 
-## 9. Clean up Symphony objects
+## 8. Clean up Symphony objects
 To delete all Symphony objects:
 ```bash
 kubectl delete instance my-instance-1
 kubectl delete solution simulated-temperature-sensor
 kubectl delete target voe-target
-```
-## 10. To remove Symphony control plane (optional)
-```bash
-helm delete symphony
-```
-
-## Appendix
-
-If you need to install the Helm chart from a private ACR like ```symphonyk8s.azurecr.io```, you need to log in first:
-```bash
-# login as necessary. Note once the repo is turned public no authentication is needed
-export HELM_EXPERIMENTAL_OCI=1
-USER_NAME="00000000-0000-0000-0000-000000000000"
-PASSWORD=$(az acr login --name symphonyk8s --expose-token --output tsv --query accessToken)
-helm registry login symphonyk8s.azurecr.io   --username $USER_NAME --password $PASSWORD
-
-# install using Helm chart
-helm install symphony oci://symphonyk8s.azurecr.io/helm/symphony --version 0.1.22
 ```

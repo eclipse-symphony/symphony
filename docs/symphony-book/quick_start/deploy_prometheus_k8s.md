@@ -1,8 +1,8 @@
 # Symphony Quick Start - Deploying a Prometheus server to a Kubernetes cluster
 
-_(last edit: 6/26/2023)_
+_(last edit: 9/18/2023)_
 
-Ready to jump into actions right away? This quick start walks you through the steps of setting up a new Symphony control plane on your Kubernetes cluster and deploying a new Symphony solution instance to the cluster.
+This quick start walks you through the steps of deploying a new Symphony solution instance to the cluster.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -23,29 +23,18 @@ To clean up, use:
 maestro samples remove hello-k8s
 ```
 
-## OPTION 2: Using Helm and Kubectl
+## OPTION 2: Using Kubectl
+
+Once you have Symphony installed on your Kubernetes cluster (see instruction of using Helm [here](./quick_start_helm.md)), you can use standard Kubernetes tools like ```kubectl``` to interact with Symphony.
 
 ### 0. Prerequisites
 
-* [Helm 3](https://helm.sh/)
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) is configured with the Kubernetes cluster you want to use as the default context
 
-### 1. Deploy Symphony using Helm
+### 1. Register the current cluster as a Symphony Target
+Create a new YAML file that describes a Symphony Target. This target definition registers the current Kubernetes cluster itself as a deployment target (note the ```inCluster=true``` property, for more information on Kubernetes provider, please see [here](../providers/k8s_provider.md)).
 
-The easiest way to install Symphony is to use Helm:
-```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
-```
-
-Or, if you already have the ```symphony``` repository cloned:
-```bash
-cd k8s/helm
-helm install symphony ./symphony
-```
-### 2. Register the current cluster as a Symphony Target
-Create a new YAML file that describes a Symphony Target. This target definition registers the current Kubernetes cluster itself as a deployment target (note the ```inCluster=true``` property, for more information on Kubernetes provider, please see [here](../providers/k8s_provider.md).
-
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/k8s/hello-world/target.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/k8s/hello-world/target.yaml```:
 
 ```yaml
 apiVersion: fabric.symphony/v1
@@ -63,10 +52,10 @@ spec:
 ```
 > **NOTE**: The above sample doesn't deploy a **Symphony Agent**, which is optional.
 
-### 3. Create the Symphony Solution
+### 2. Create the Symphony Solution
 The following YAMl file describes a Symphony Solution with a single Redis server component.
 
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/k8s/hello-world/solution.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/k8s/hello-world/solution.yaml```:
 
 ```yaml
 apiVersion: solution.symphony/v1
@@ -88,9 +77,10 @@ spec:
       container.image: "prom/prometheus"
 ```
 > **NOTE**: This solution uses the default deployment strategy, which is to deploy all component containers in the solution into a same pod. See [here](../providers/k8s_provider.md) for details on other possible deployment strategies.
-### 4. Create the Symphony Solution Instance
+
+### 3. Create the Symphony Solution Instance
 A Symphony Solution Instance maps a Symphony Solution to one or multiple Targets. The following artifacts maps the ```sample-prometheus-server``` soltuion to the ```sample-k8s-target ``` target above:
-> **NOTE**: You can get a sample of this file under ```symphony-docs/samples/k8s/hello-world/instance.yaml```:
+> **NOTE**: You can get a sample of this file under ```docs/samples/k8s/hello-world/instance.yaml```:
 ```yaml
 apiVersion: solution.symphony/v1
 kind: Instance
@@ -102,13 +92,13 @@ spec:
   target: 
     name: sample-k8s-target  
 ```
-## 5. Create all objects
+## 4. Create all objects
 ```bash
 kubectl create -f target.yaml
 kubectl create -f solution.yaml
 kubectl create -f instance.yaml
 ```
-## 6. Verification
+## 5. Verification
 Examine all Symphony objects have created:
 ```bash
 kubectl get targets
@@ -126,7 +116,7 @@ kubectl get all -n sample-k8s-scope
 ```
 You should observe that a ```sample-prometheus-instance``` pod and a ```sample-prometheus-instance``` service have been created. You can get the public IP of the Prometheus service and use a browser to navigate to the Prometheus portal (port 9090).
 
-## 7. Clean up Symphony objects
+## 6. Clean up Symphony objects
 
 To delete all Symphony objects:
 ```bash
@@ -134,22 +124,4 @@ kubectl delete instance sample-prometheus-instance
 kubectl delete solution sample-prometheus-server
 kubectl delete target sample-k8s-target  
 kubectl delete ns sample-k8s-scope #Symphony doesn't remove namespaces
-```
-## 8. To remove Symphony control plane (optional)
-```bash
-helm delete symphony
-```
-
-## Appendix
-
-If you need to install the Helm chart from a private ACR like ```symphonyk8s.azurecr.io```, you need to log in first:
-```bash
-# login as necessary. Note once the repo is turned public no authentication is needed
-export HELM_EXPERIMENTAL_OCI=1
-USER_NAME="00000000-0000-0000-0000-000000000000"
-PASSWORD=$(az acr login --name symphonyk8s --expose-token --output tsv --query accessToken)
-helm registry login symphonyk8s.azurecr.io   --username $USER_NAME --password $PASSWORD
-
-# install using Helm chart
-helm install symphony oci://symphonyk8s.azurecr.io/helm/symphony --version 0.40.8
 ```
