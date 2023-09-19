@@ -12,6 +12,7 @@ Symphony operates within an orchestration layer, strategically positioned atop p
 ## Object Model
 
 ### Fundational objects
+
 * Solution
 * Instance
 * Target
