@@ -43,7 +43,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"github.com/oliveagle/jsonpath"
+	"k8s.io/client-go/util/jsonpath"
 )
 
 var msLock sync.Mutex
@@ -302,24 +302,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 							sLog.Errorf("  P (Http Stage): wait response could not be decoded to json: %v", err)
 							succeeded = false
 						} else {
-							result, err := jsonpath.JsonPathLookup(obj, i.Config.WaitJsonPath)
-							if err != nil || result == nil {
-								succeeded = false
-							} else {
-								switch result.(type) {
-								case []interface{}:
-									coll := result.([]interface{})
-									succeeded = len(coll) > 0
-								case map[string]interface{}:
-									coll := result.(map[string]interface{})
-									succeeded = len(coll) > 0
-								default:
-									succeeded = true
-								}
-							}
-							if succeeded {
-								outputs["waitJsonPathResult"] = result
-							}
+							succeeded, outputs["waitJsonPathResult"] = jsonPathQuery(obj, i.Config.WaitJsonPath)
 						}
 					}
 					if succeeded {
@@ -353,6 +336,37 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	sLog.Infof("  P (Http Stage): process request completed with: %d", resp.StatusCode)
 	return outputs, false, nil
+}
+func jsonPathQuery(obj interface{}, jsonPath string) (bool, string) {
+	var succeeded bool
+	var arr []interface{}
+	switch t := obj.(type) {
+	case []interface{}:
+		arr = t
+	default:
+		arr = append(arr, obj)
+	}
+	jpLookup := jsonpath.New("lookup")
+	jPath := jsonPath
+	if !strings.HasPrefix(jPath, "{") {
+		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JsonPath expression to be wrapped in {}
+	}
+	err := jpLookup.Parse(jPath)
+	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to parse JsonPath '%s' : %v", jPath, err)
+	}
+	var buf bytes.Buffer
+	err = jpLookup.Execute(&buf, arr)
+	result := buf.String()
+	if err != nil {
+		sLog.Errorf("  P (Http Stage): failed to parse JsonPath '%s' : %v", jPath, err)
+		succeeded = false
+	} else if len(result) == 0 {
+		succeeded = false
+	} else {
+		succeeded = true //we consider it success as long as something is selected
+	}
+	return succeeded, result
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
