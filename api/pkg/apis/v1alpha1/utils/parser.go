@@ -777,7 +777,21 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
 	case "val":
-		return context.Value, nil
+		if len(n.Args) == 0 {
+			return context.Value, nil
+		}
+		if len(n.Args) == 1 {
+			obj, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			result, err := JsonPathQuery(context.Value, obj.(string))
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		}
+		return nil, fmt.Errorf("$val() expects 0 or 1argument, fount %d", len(n.Args))
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -1094,6 +1108,9 @@ func (p *Parser) function() (Node, error) {
 		node, err := p.expr(true)
 		if err != nil {
 			return nil, err
+		}
+		if _, ok := node.(*NullNode); ok {
+			return nil, fmt.Errorf("invalid argument")
 		}
 		args = append(args, node)
 		if p.token == COMMA {
