@@ -1407,7 +1407,7 @@ func TestValWithJsonPathArrayBoolean(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "baz1", val)
+	assert.Equal(t, "true", val)
 }
 
 func TestMessedUpQuote(t *testing.T) {
