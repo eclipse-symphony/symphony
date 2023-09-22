@@ -186,11 +186,17 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
+		lv_f, okl := lv.(float64)
+		rv_f, okr := rv.(float64)
 		if okl && okr {
-			v := vl + vr
+			v := lv_f + rv_f
 			return v, nil
+		} else if okl {
+			lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+			return fmt.Sprintf("%v%v", lv_str, rv), nil
+		} else if okr {
+			rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+			return fmt.Sprintf("%v%v", lv, rv_str), nil
 		} else {
 			return fmt.Sprintf("%v%v", lv, rv), nil
 		}
