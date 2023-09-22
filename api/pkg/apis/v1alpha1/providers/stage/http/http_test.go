@@ -28,7 +28,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
 
@@ -127,100 +126,56 @@ func TestGitHubAction(t *testing.T) {
 	assert.Equal(t, 204, outputs["status"])
 	assert.Equal(t, "", outputs["body"])
 }
-
-func TestJsonPathBasic(t *testing.T) {
-	jData := `
-	{
-		"id": 30433642,
-		"name": "Build",
-		"head_branch": "main",
-		"run_number": 562,
-		"event": "push",
-		"display_title": "Update README.md",
-		"status": "queued",
-		"conclusion": null,
-		"workflow_id": 159038
-	}`
-	var obj interface{}
-	json.Unmarshal([]byte(jData), &obj)
-	success, result := jsonPathQuery(obj, "$[?(@.status=='queued')].status")
-	assert.True(t, success)
-	assert.Equal(t, "queued", result)
+func TestFakeAPIWithJsonPath(t *testing.T) {
+	// This is what's returned from the jsonplacehoder URL:
+	// {
+	// 	"userId": 1,
+	// 	"id": 1,
+	// 	"title": "delectus aut autem",
+	// 	"completed": false
+	// }
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method:             "GET",
+		Url:                "https://www.bing.com",
+		WaitStartCodes:     []int{200},
+		WaitUrl:            "https://jsonplaceholder.typicode.com/todos/1",
+		WaitCount:          1,
+		WaitInterval:       1,
+		WaitExpression:     "$[?(@.title==\"delectus aut autem\")].id",
+		WaitExpressionType: "jsonpath",
+		WaitSuccessCodes:   []int{200},
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, 200, outputs["status"])
+	assert.Equal(t, "1", outputs["waitResult"])
 }
-
-func TestJsonPathObjectInArray(t *testing.T) {
-	jData := `
-	[{
-		"id": 30433642,
-		"name": "Build",
-		"head_branch": "main",
-		"run_number": 562,
-		"event": "push",
-		"display_title": "Update README.md",
-		"status": "queued",
-		"conclusion": null,
-		"workflow_id": 159038
-	}]`
-	var obj interface{}
-	json.Unmarshal([]byte(jData), &obj)
-	success, result := jsonPathQuery(obj, "$[?(@.status=='queued')].status")
-	assert.True(t, success)
-	assert.Equal(t, "queued", result)
-}
-func TestJsonPathQueryInBracket(t *testing.T) {
-	jData := `
-	[{
-		"id": 30433642,
-		"name": "Build",
-		"head_branch": "main",
-		"run_number": 562,
-		"event": "push",
-		"display_title": "Update README.md",
-		"status": "queued",
-		"conclusion": null,
-		"workflow_id": 159038
-	}]`
-	var obj interface{}
-	json.Unmarshal([]byte(jData), &obj)
-	success, result := jsonPathQuery(obj, "{$[?(@.status=='queued')].status}")
-	assert.True(t, success)
-	assert.Equal(t, "queued", result)
-}
-func TestJsonPathInvalidJsonPath(t *testing.T) {
-	jData := `
-	[{
-		"id": 30433642,
-		"name": "Build",
-		"head_branch": "main",
-		"run_number": 562,
-		"event": "push",
-		"display_title": "Update README.md",
-		"status": "queued",
-		"conclusion": null,
-		"workflow_id": 159038
-	}]`
-	var obj interface{}
-	json.Unmarshal([]byte(jData), &obj)
-	success, result := jsonPathQuery(obj, "{$[?(@.status=='queued')].status")
-	assert.False(t, success)
-	assert.Equal(t, "", result)
-}
-func TestJsonPathBadJsonPath(t *testing.T) {
-	jData := `
-	[{
-		"id": 30433642,
-		"name": "Build",
-		"head_branch": "main",
-		"run_number": 562,
-		"event": "push",
-		"display_title": "Update README.md",
-		"status": "queued",
-		"conclusion": null,
-		"workflow_id": 159038
-	}]`
-	var obj interface{}
-	json.Unmarshal([]byte(jData), &obj)
-	success, result := jsonPathQuery(obj, "sdgsgsdg")
-	assert.False(t, success)
-	assert.Equal(t, "", result)
+func TestFakeAPIWithSymphonyExpression(t *testing.T) {
+	// This is what's returned from the jsonplacehoder URL:
+	// {
+	// 	"userId": 1,
+	// 	"id": 1,
+	// 	"title": "delectus aut autem",
+	// 	"completed": false
+	// }
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method:           "GET",
+		Url:              "https://www.bing.com",
+		WaitStartCodes:   []int{200},
+		WaitUrl:          "https://jsonplaceholder.typicode.com/todos/1",
+		WaitCount:        1,
+		WaitInterval:     1,
+		WaitExpression:   "$equal($val('$.title'), 'delectus aut autem')",
+		WaitSuccessCodes: []int{200},
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, 200, outputs["status"])
+	assert.Equal(t, "true", outputs["waitResult"])
 }
