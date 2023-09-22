@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -147,7 +148,12 @@ func GetCatalog(baseUrl string, catalog string, user string, password string) (m
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "catalogs/registry/"+catalog, "GET", nil, token)
+	catalogName := catalog
+	if strings.HasPrefix(catalogName, "<") && strings.HasSuffix(catalogName, ">") {
+		catalogName = catalogName[1 : len(catalogName)-1]
+	}
+
+	response, err := callRestAPI(baseUrl, "catalogs/registry/"+catalogName, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}

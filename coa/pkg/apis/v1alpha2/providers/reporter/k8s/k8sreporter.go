@@ -92,9 +92,8 @@ func (m *K8sReporter) ID() string {
 	return m.Config.Name
 }
 
-func (a *K8sReporter) SetContext(context *contexts.ManagerContext) error {
+func (a *K8sReporter) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *K8sReporter) Init(config providers.IProviderConfig) error {

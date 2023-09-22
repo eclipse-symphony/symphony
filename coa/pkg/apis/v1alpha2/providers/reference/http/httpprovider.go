@@ -85,9 +85,8 @@ func (m *HTTPReferenceProvider) Reconfigure(config providers.IProviderConfig) er
 	return nil
 }
 
-func (a *HTTPReferenceProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *HTTPReferenceProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *HTTPReferenceProvider) Init(config providers.IProviderConfig) error {

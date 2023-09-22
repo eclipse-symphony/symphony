@@ -27,6 +27,7 @@
 package vendors
 
 import (
+	"encoding/json"
 	"strings"
 
 	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
@@ -115,9 +116,10 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 					Body:  []byte(err.Error()),
 				})
 			}
+			data, _ := json.Marshal(val)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.OK,
-				Body:        []byte(val),
+				Body:        data,
 				ContentType: "text/plain",
 			})
 		} else {

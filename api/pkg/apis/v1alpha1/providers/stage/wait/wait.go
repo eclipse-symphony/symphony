@@ -71,6 +71,9 @@ func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
+func (s *WaitStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 func toWaitStageProviderConfig(config providers.IProviderConfig) (WaitStageProviderConfig, error) {
 	ret := WaitStageProviderConfig{}
 	data, err := json.Marshal(config)

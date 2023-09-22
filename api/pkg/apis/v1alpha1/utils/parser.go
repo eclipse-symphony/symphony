@@ -755,7 +755,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "secret":
 		if len(n.Args) == 2 {
 			if context.SecretProvider == nil {
-				return nil, errors.New("a secret provider is needed to evaluate $config()")
+				return nil, errors.New("a secret provider is needed to evaluate $secret()")
 			}
 			obj, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -778,6 +778,19 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
 	case "val":
 		return context.Value, nil
+	case "json":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			jData, err := json.Marshal(val)
+			if err != nil {
+				return nil, err
+			}
+			return string(jData), nil
+		}
+		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -811,16 +824,23 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			if r != nil {
 				return "", r
 			}
-			if _, ok := v.([]string); ok {
+			if vt, ok := v.([]string); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
 				}
-			} else if _, ok := v.([]interface{}); ok {
+			} else if vt, ok := v.([]interface{}); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
+			} else if vt, ok := v.(map[string]interface{}); ok {
+				if ret == nil {
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
@@ -1110,7 +1130,24 @@ func (p *Parser) function() (Node, error) {
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
 		for ic, c := range deploymentSpec.Solution.Components {
-			val, err := evalProperties(context, c.Properties)
+
+			val, err := evalProperties(context, c.Metadata)
+			if err != nil {
+				return deploymentSpec, err
+			}
+			if val != nil {
+				metadata, ok := val.(map[string]string)
+				if !ok {
+					return deploymentSpec, fmt.Errorf("metadata must be a map")
+				}
+				stringMap := make(map[string]string)
+				for k, v := range metadata {
+					stringMap[k] = fmt.Sprintf("%v", v)
+				}
+				deploymentSpec.Solution.Components[ic].Metadata = stringMap
+			}
+
+			val, err = evalProperties(context, c.Properties)
 			if err != nil {
 				return deploymentSpec, err
 			}
@@ -1172,6 +1209,14 @@ func toNumber(val interface{}) (float64, bool) {
 }
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch p := properties.(type) {
+	case map[string]string:
+		for k, v := range p {
+			val, err := evalProperties(context, v)
+			if err != nil {
+				return nil, err
+			}
+			p[k] = FormatAsString(val)
+		}
 	case map[string]interface{}:
 		for k, v := range p {
 			val, err := evalProperties(context, v)

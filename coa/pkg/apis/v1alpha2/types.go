@@ -26,7 +26,9 @@
 
 package v1alpha2
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // State represents a response state
 type State uint16

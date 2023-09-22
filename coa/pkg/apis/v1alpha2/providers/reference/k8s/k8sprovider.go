@@ -104,9 +104,8 @@ func (m *K8sReferenceProvider) Reconfigure(config providers.IProviderConfig) err
 	return nil
 }
 
-func (a *K8sReferenceProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *K8sReferenceProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *K8sReferenceProvider) Init(config providers.IProviderConfig) error {

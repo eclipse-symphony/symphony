@@ -72,9 +72,8 @@ func (m *HTTPReporter) ID() string {
 	return m.Config.Name
 }
 
-func (a *HTTPReporter) SetContext(context *contexts.ManagerContext) error {
+func (a *HTTPReporter) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *HTTPReporter) Init(config providers.IProviderConfig) error {

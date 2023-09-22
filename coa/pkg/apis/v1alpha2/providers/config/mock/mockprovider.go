@@ -64,9 +64,8 @@ func (m *MockConfigProvider) ID() string {
 	return m.Config.Name
 }
 
-func (a *MockConfigProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *MockConfigProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *MockConfigProvider) Init(config providers.IProviderConfig) error {
@@ -89,16 +88,16 @@ func toMockConfigProviderConfig(config providers.IProviderConfig) (MockConfigPro
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MockConfigProvider) Get(object string, field string, overrides []string) (string, error) {
+func (m *MockConfigProvider) Get(object string, field string, overrides []string) (interface{}, error) {
 	return object + "::" + field, nil
 }
-func (m *MockConfigProvider) GetObject(object string, overrides []string) (map[string]string, error) {
-	return map[string]string{object: object}, nil
+func (m *MockConfigProvider) GetObject(object string, overrides []string) (map[string]interface{}, error) {
+	return map[string]interface{}{object: object}, nil
 }
 func (m *MockConfigProvider) Set(object string, field string, value string) error {
 	return nil
 }
-func (m *MockConfigProvider) SetObject(object string, value map[string]string) error {
+func (m *MockConfigProvider) SetObject(object string, value map[string]interface{}) error {
 	return nil
 }
 func (m *MockConfigProvider) Delete(object string, field string) error {
@@ -107,9 +106,9 @@ func (m *MockConfigProvider) Delete(object string, field string) error {
 func (m *MockConfigProvider) DeleteObject(object string) error {
 	return nil
 }
-func (m *MockConfigProvider) Read(object string, field string) (string, error) {
+func (m *MockConfigProvider) Read(object string, field string) (interface{}, error) {
 	return object + "::" + field, nil
 }
-func (m *MockConfigProvider) ReadObject(object string) (map[string]string, error) {
-	return map[string]string{object: object}, nil
+func (m *MockConfigProvider) ReadObject(object string) (map[string]interface{}, error) {
+	return map[string]interface{}{object: object}, nil
 }

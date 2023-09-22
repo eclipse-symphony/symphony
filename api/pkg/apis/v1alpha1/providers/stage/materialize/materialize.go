@@ -62,6 +62,9 @@ func (s *MaterializeStageProvider) Init(config providers.IProviderConfig) error 
 	s.Config = mockConfig
 	return nil
 }
+func (s *MaterializeStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 func toMaterializeStageProviderConfig(config providers.IProviderConfig) (MaterializeStageProviderConfig, error) {
 	ret := MaterializeStageProviderConfig{}
 	data, err := json.Marshal(config)

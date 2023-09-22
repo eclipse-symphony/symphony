@@ -139,6 +139,10 @@ func (i *HelmTargetProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *HelmTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 // Init initializes the HelmTargetProvider
 func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(

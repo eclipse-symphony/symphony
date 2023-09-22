@@ -46,7 +46,7 @@ type IStateProvider interface {
 	Delete(context.Context, DeleteRequest) error
 	Get(context.Context, GetRequest) (StateEntry, error)
 	List(context.Context, ListRequest) ([]StateEntry, string, error)
-	SetContext(context *contexts.ManagerContext) error
+	SetContext(context *contexts.ManagerContext)
 }
 type GetOption struct {
 	Consistency string `json:"consistency"` //eventual or strong

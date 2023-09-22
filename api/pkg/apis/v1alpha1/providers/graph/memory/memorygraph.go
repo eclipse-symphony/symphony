@@ -53,6 +53,10 @@ func (g *MemoryGraphProvider) Init(config providers.IProviderConfig) error {
 	g.Config = mockConfig
 	return nil
 }
+func (s *MemoryGraphProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func toMemoryGraphProviderConfig(config providers.IProviderConfig) (MemoryGraphProviderConfig, error) {
 	ret := MemoryGraphProviderConfig{}
 	data, err := json.Marshal(config)

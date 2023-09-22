@@ -61,6 +61,9 @@ func (m *RemoteStageProvider) Init(config providers.IProviderConfig) error {
 	m.Config = mockConfig
 	return nil
 }
+func (s *RemoteStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 func toRemoteStageProviderConfig(config providers.IProviderConfig) (RemoteStageProviderConfig, error) {
 	ret := RemoteStageProviderConfig{}
 	data, err := json.Marshal(config)
