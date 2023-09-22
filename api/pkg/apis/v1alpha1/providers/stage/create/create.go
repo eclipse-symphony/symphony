@@ -64,6 +64,9 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
+func (s *CreateStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 func toSymphonyStageProviderConfig(config providers.IProviderConfig) (CreateStageProviderConfig, error) {
 	ret := CreateStageProviderConfig{}
 	data, err := json.Marshal(config)

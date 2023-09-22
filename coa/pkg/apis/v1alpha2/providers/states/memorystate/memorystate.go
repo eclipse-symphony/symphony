@@ -67,9 +67,8 @@ func (s *MemoryStateProvider) ID() string {
 	return s.Config.Name
 }
 
-func (s *MemoryStateProvider) SetContext(ctx *contexts.ManagerContext) error {
+func (s *MemoryStateProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
-	return nil
 }
 
 func (i *MemoryStateProvider) InitWithMap(properties map[string]string) error {

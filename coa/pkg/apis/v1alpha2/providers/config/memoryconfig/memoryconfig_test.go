@@ -57,10 +57,10 @@ func TestGetObject(t *testing.T) {
 	provider := MemoryConfigProvider{}
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
-	provider.SetObject("obj", map[string]string{"field": "obj::field"})
+	provider.SetObject("obj", map[string]interface{}{"field": "obj::field"})
 	val, err := provider.ReadObject("obj")
 	assert.Nil(t, err)
-	assert.Equal(t, map[string]string{"field": "obj::field"}, val)
+	assert.Equal(t, map[string]interface{}{"field": "obj::field"}, val)
 }
 func TestDelete(t *testing.T) {
 	provider := MemoryConfigProvider{}
@@ -76,7 +76,7 @@ func TestDeleteObject(t *testing.T) {
 	provider := MemoryConfigProvider{}
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
-	provider.SetObject("obj", map[string]string{"field": "obj::field"})
+	provider.SetObject("obj", map[string]interface{}{"field": "obj::field"})
 	err = provider.RemoveObject("obj")
 	assert.Nil(t, err)
 	_, err = provider.ReadObject("obj")

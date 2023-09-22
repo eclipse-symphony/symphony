@@ -62,9 +62,8 @@ func (s *MemoryQueueProvider) ID() string {
 	return s.Config.Name
 }
 
-func (s *MemoryQueueProvider) SetContext(ctx *contexts.ManagerContext) error {
+func (s *MemoryQueueProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
-	return nil
 }
 
 func (i *MemoryQueueProvider) InitWithMap(properties map[string]string) error {

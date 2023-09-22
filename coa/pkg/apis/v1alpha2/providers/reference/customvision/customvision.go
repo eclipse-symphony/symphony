@@ -124,9 +124,8 @@ func (m *CustomVisionReferenceProvider) ReferenceType() string {
 	return "v1alpha2.CustomVision"
 }
 
-func (a *CustomVisionReferenceProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *CustomVisionReferenceProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *CustomVisionReferenceProvider) Init(config providers.IProviderConfig) error {

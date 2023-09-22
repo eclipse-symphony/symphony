@@ -65,6 +65,9 @@ func (s *ListStageProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
+func (s *ListStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 func toListStageProviderConfig(config providers.IProviderConfig) (ListStageProviderConfig, error) {
 	ret := ListStageProviderConfig{}
 	data, err := json.Marshal(config)

@@ -37,7 +37,7 @@ type IReferenceProvider interface {
 	Init(config providers.IProviderConfig) error
 	Get(id string, namespace string, group string, kind string, version string, ref string) (interface{}, error)
 	List(labelSelector string, fieldSelector string, namespace string, group string, kind string, version string, ref string) (interface{}, error)
-	SetContext(context *contexts.ManagerContext) error
+	SetContext(context *contexts.ManagerContext)
 	ReferenceType() string
 	Reconfigure(config providers.IProviderConfig) error
 }

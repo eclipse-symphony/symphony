@@ -44,6 +44,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
 	extendedlocation "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extendedlocation"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
@@ -256,6 +257,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.target.configmap":
+		mProvider := &configmap.ConfigMapTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.config.mock":
 		mProvider := &mockconfig.MockConfigProvider{}
 		err = mProvider.Init(config)
@@ -459,6 +466,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					} else {
 						return override, nil
 					}
+				case "providers.target.configmap":
+					provider := &configmap.ConfigMapTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
 				case "providers.state.memory":
 					provider := &memorystate.MemoryStateProvider{}
 					err := provider.InitWithMap(binding.Config)

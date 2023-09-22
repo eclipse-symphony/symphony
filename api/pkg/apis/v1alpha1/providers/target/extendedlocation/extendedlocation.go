@@ -97,6 +97,9 @@ func (i *ExtendedLocationTargetProvider) InitWithMap(properties map[string]strin
 
 	return i.Init(config)
 }
+func (s *ExtendedLocationTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 
 // Init initializes the config for extended location provider
 func (i *ExtendedLocationTargetProvider) Init(config providers.IProviderConfig) error {
