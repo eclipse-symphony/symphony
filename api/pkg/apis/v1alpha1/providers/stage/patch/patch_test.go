@@ -54,7 +54,7 @@ func TestPatchSolution(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(context.Background(), map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
 		"objectName":  "sample-redis",
 		"patchSource": "test-config",

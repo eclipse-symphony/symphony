@@ -109,7 +109,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 			parts = strings.Split(overrides, ",")
 		}
 		if field != "" {
-			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts)
+			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts, nil)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -123,7 +123,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 				ContentType: "text/plain",
 			})
 		} else {
-			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts)
+			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts, nil)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,

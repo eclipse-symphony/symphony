@@ -130,7 +130,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 	}
 	return ret, nil
 }
-func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v

@@ -64,6 +64,7 @@ const (
 	RUNON
 	AMPHERSAND
 	SLASH
+	TILDE
 )
 
 var opNames = map[Token]string{
@@ -78,6 +79,7 @@ var opNames = map[Token]string{
 	QUESTION:   "?",
 	EQUAL:      "=",
 	AMPHERSAND: "&",
+	TILDE:      "~",
 }
 
 type Node interface {
@@ -408,6 +410,24 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 			}
 		}
 		return fmt.Sprintf("%v&%v", lv, rv), nil
+	case TILDE:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v~%v", lv, rv), nil
 	case RUNON:
 		var lv interface{} = ""
 		var le error
@@ -487,7 +507,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
-		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$params() expects 1 argument, found %d", len(n.Args))
 	case "property":
 		if len(n.Args) == 1 {
 			if context.Properties == nil || len(context.Properties) == 0 {
@@ -503,7 +523,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$property() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$property() expects 1 argument, found %d", len(n.Args))
 	case "input":
 		if len(n.Args) == 1 {
 			if context.Inputs == nil || len(context.Inputs) == 0 {
@@ -519,7 +539,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$input() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$input() expects 1 argument, found %d", len(n.Args))
 	case "output":
 		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
@@ -542,7 +562,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$output() expects 2 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$output() expects 2 argument, found %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -555,7 +575,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return compareInterfaces(v1, v2), nil
 		}
-		return nil, fmt.Errorf("$equal() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$equal() expects 2 arguments, found %d", len(n.Args))
 	case "and":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -568,7 +588,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return andBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$and() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$and() expects 2 arguments, found %d", len(n.Args))
 	case "or":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -581,7 +601,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return orBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$or() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$or() expects 2 arguments, found %d", len(n.Args))
 	case "not":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -590,7 +610,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return notBool(val)
 		}
-		return nil, fmt.Errorf("$not() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$not() expects 1 argument, found %d", len(n.Args))
 	case "gt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -609,7 +629,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$gt() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$gt() expects 2 arguments, found %d", len(n.Args))
 	case "ge":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -628,7 +648,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$ge() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$ge() expects 2 arguments, found %d", len(n.Args))
 	case "if":
 		if len(n.Args) == 3 {
 			cond, err := n.Args[0].Eval(context)
@@ -641,7 +661,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				return n.Args[2].Eval(context)
 			}
 		}
-		return nil, fmt.Errorf("$if() expects 3 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$if() expects 3 arguments, found %d", len(n.Args))
 	case "in":
 		if len(n.Args) >= 2 {
 			val, err := n.Args[0].Eval(context)
@@ -659,7 +679,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return false, nil
 		}
-		return nil, fmt.Errorf("$in() expects at least 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$in() expects at least 2 arguments, found %d", len(n.Args))
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -678,7 +698,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$lt() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$lt() expects 2 arguments, found %d", len(n.Args))
 	case "between":
 		if len(n.Args) == 3 {
 			val1, err := n.Args[0].Eval(context)
@@ -704,7 +724,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
 	case "le":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -723,7 +743,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
 	case "config":
 		if len(n.Args) >= 2 {
 			if context.ConfigProvider == nil {
@@ -749,9 +769,9 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(obj.(string), field.(string), overlays)
+			return context.ConfigProvider.Get(obj.(string), field.(string), overlays, context)
 		}
-		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$config() expects 2 arguments, found %d", len(n.Args))
 	case "secret":
 		if len(n.Args) == 2 {
 			if context.SecretProvider == nil {
@@ -767,7 +787,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return context.SecretProvider.Get(obj.(string), field.(string))
 		}
-		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$secret() expects 2 arguments, found %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
@@ -775,9 +795,36 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
-		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
-	case "val":
-		return context.Value, nil
+		return nil, fmt.Errorf("$instance() expects 0 arguments, found %d", len(n.Args))
+	case "val", "context":
+		if len(n.Args) == 0 {
+			return context.Value, nil
+		}
+		if len(n.Args) == 1 {
+			obj, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			path := obj.(string)
+			if strings.HasPrefix(path, "$") || strings.HasPrefix(path, "{$") {
+				result, err := JsonPathQuery(context.Value, obj.(string))
+				if err != nil {
+					return nil, err
+				}
+				return result, nil
+			} else {
+				if mobj, ok := context.Value.(map[string]interface{}); ok {
+					if v, ok := mobj[path]; ok {
+						return v, nil
+					} else {
+						return nil, fmt.Errorf("key %s is not found in context value", path)
+					}
+				} else {
+					return nil, fmt.Errorf("context value '%v' is not a map", context.Value)
+				}
+			}
+		}
+		return nil, fmt.Errorf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args))
 	case "json":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -791,6 +838,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return string(jData), nil
 		}
 		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
+
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -909,6 +957,8 @@ func (p *Parser) scan() Token {
 		return EQUAL
 	case '&':
 		return AMPHERSAND
+	case '~':
+		return TILDE
 	}
 	if _, err := strconv.ParseFloat(p.text, 64); err == nil {
 		return NUMBER
@@ -1044,6 +1094,13 @@ func (p *Parser) factor() (Node, error) {
 				return nil, err
 			}
 			node = &BinaryNode{EQUAL, node, n}
+		case TILDE:
+			p.next()
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{TILDE, node, n}
 		case AMPHERSAND:
 			p.next()
 			n, err := p.primary()
@@ -1114,6 +1171,9 @@ func (p *Parser) function() (Node, error) {
 		node, err := p.expr(true)
 		if err != nil {
 			return nil, err
+		}
+		if _, ok := node.(*NullNode); ok {
+			return nil, fmt.Errorf("invalid argument")
 		}
 		args = append(args, node)
 		if p.token == COMMA {
