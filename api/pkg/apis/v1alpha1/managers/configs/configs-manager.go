@@ -77,7 +77,7 @@ func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 	}
 	return nil
 }
-func (s *ConfigsManager) Get(object string, field string, overlays []string) (interface{}, error) {
+func (s *ConfigsManager) Get(object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
 	if strings.Index(object, ":") > 0 {
 		parts := strings.Split(object, ":")
 		if len(parts) != 2 {
@@ -85,13 +85,13 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string) (in
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			if field == "" {
-				configObj, err := s.getObjectWithOverlay(provider, parts[1], overlays)
+				configObj, err := s.getObjectWithOverlay(provider, parts[1], overlays, localContext)
 				if err != nil {
 					return "", err
 				}
 				return configObj, nil
 			} else {
-				return s.getWithOverlay(provider, parts[1], field, overlays)
+				return s.getWithOverlay(provider, parts[1], field, overlays, localContext)
 			}
 		}
 		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
@@ -99,13 +99,13 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string) (in
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
 			if field == "" {
-				configObj, err := s.getObjectWithOverlay(provider, object, overlays)
+				configObj, err := s.getObjectWithOverlay(provider, object, overlays, localContext)
 				if err != nil {
 					return "", err
 				}
 				return configObj, nil
 			} else {
-				if value, err := s.getWithOverlay(provider, object, field, overlays); err == nil {
+				if value, err := s.getWithOverlay(provider, object, field, overlays, localContext); err == nil {
 					return value, nil
 				} else {
 					return "", err
@@ -116,13 +116,13 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string) (in
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
 			if field == "" {
-				configObj, err := s.getObjectWithOverlay(provider, object, overlays)
+				configObj, err := s.getObjectWithOverlay(provider, object, overlays, localContext)
 				if err != nil {
 					return "", err
 				}
 				return configObj, nil
 			} else {
-				if value, err := s.getWithOverlay(provider, object, field, overlays); err == nil {
+				if value, err := s.getWithOverlay(provider, object, field, overlays, localContext); err == nil {
 					return value, nil
 				}
 			}
@@ -130,31 +130,31 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string) (in
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object or key: %s, %s", object, field), v1alpha2.BadRequest)
 }
-func (s *ConfigsManager) getWithOverlay(provider config.IConfigProvider, object string, field string, overlays []string) (interface{}, error) {
+func (s *ConfigsManager) getWithOverlay(provider config.IConfigProvider, object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
 	if len(overlays) > 0 {
 		for _, overlay := range overlays {
-			if overlayObject, err := provider.Read(overlay, field); err == nil {
+			if overlayObject, err := provider.Read(overlay, field, localContext); err == nil {
 				return overlayObject, nil
 			}
 		}
 	}
-	return provider.Read(object, field)
+	return provider.Read(object, field, localContext)
 }
 
-func (s *ConfigsManager) GetObject(object string, overlays []string) (map[string]interface{}, error) {
+func (s *ConfigsManager) GetObject(object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
 	if strings.Index(object, ":") > 0 {
 		parts := strings.Split(object, ":")
 		if len(parts) != 2 {
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
-			return s.getObjectWithOverlay(provider, parts[1], overlays)
+			return s.getObjectWithOverlay(provider, parts[1], overlays, localContext)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			if value, err := s.getObjectWithOverlay(provider, object, overlays); err == nil {
+			if value, err := s.getObjectWithOverlay(provider, object, overlays, localContext); err == nil {
 				return value, nil
 			} else {
 				return nil, err
@@ -163,22 +163,22 @@ func (s *ConfigsManager) GetObject(object string, overlays []string) (map[string
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if value, err := s.getObjectWithOverlay(provider, object, overlays); err == nil {
+			if value, err := s.getObjectWithOverlay(provider, object, overlays, localContext); err == nil {
 				return value, nil
 			}
 		}
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object: %s", object), v1alpha2.BadRequest)
 }
-func (s *ConfigsManager) getObjectWithOverlay(provider config.IConfigProvider, object string, overlays []string) (map[string]interface{}, error) {
+func (s *ConfigsManager) getObjectWithOverlay(provider config.IConfigProvider, object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
 	if len(overlays) > 0 {
 		for _, overlay := range overlays {
-			if overlayObject, err := provider.ReadObject(overlay); err == nil {
+			if overlayObject, err := provider.ReadObject(overlay, localContext); err == nil {
 				return overlayObject, nil
 			}
 		}
 	}
-	return provider.ReadObject(object)
+	return provider.ReadObject(object, localContext)
 }
 func (s *ConfigsManager) Set(object string, field string, value interface{}) error {
 	if strings.Index(object, ":") > 0 {

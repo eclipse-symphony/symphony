@@ -109,11 +109,12 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStag
 	ret.Password = password
 	return ret, nil
 }
-func (m *PatchStageProvider) traceValue(v interface{}) (interface{}, error) {
+func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
+		context.Value = ctx
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err
@@ -122,7 +123,7 @@ func (m *PatchStageProvider) traceValue(v interface{}) (interface{}, error) {
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v)
+			return m.traceValue(v, ctx)
 		}
 	case int:
 		return strconv.Itoa(val), nil
@@ -139,7 +140,7 @@ func (m *PatchStageProvider) traceValue(v interface{}) (interface{}, error) {
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v)
+			tv, err := m.traceValue(v, ctx)
 			if err != nil {
 				return "", err
 			}
@@ -149,7 +150,7 @@ func (m *PatchStageProvider) traceValue(v interface{}) (interface{}, error) {
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v)
+			tv, err := m.traceValue(v, ctx)
 			if err != nil {
 				return "", err
 			}
@@ -161,7 +162,7 @@ func (m *PatchStageProvider) traceValue(v interface{}) (interface{}, error) {
 	}
 }
 
-func (i *PatchStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	sLog.Info("  P (Patch Stage): start process request")
 
 	outputs := make(map[string]interface{})
@@ -194,7 +195,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, inputs map[string]inte
 		}
 
 		for k, v := range catalog.Spec.Properties {
-			tv, err := i.traceValue(v)
+			tv, err := i.traceValue(v, inputs["context"])
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
 				return nil, false, err

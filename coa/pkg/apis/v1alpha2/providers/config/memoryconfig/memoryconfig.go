@@ -93,7 +93,7 @@ func toMemoryConfigProviderConfig(config providers.IProviderConfig) (MemoryConfi
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MemoryConfigProvider) Read(object string, field string) (interface{}, error) {
+func (m *MemoryConfigProvider) Read(object string, field string, localContext interface{}) (interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return "", v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -102,7 +102,7 @@ func (m *MemoryConfigProvider) Read(object string, field string) (interface{}, e
 	}
 	return m.ConfigData[object][field], nil
 }
-func (m *MemoryConfigProvider) ReadObject(object string) (map[string]interface{}, error) {
+func (m *MemoryConfigProvider) ReadObject(object string, localContext interface{}) (map[string]interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}

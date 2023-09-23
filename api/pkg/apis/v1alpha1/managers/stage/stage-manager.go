@@ -29,6 +29,7 @@ package stage
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -139,6 +140,12 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.Inputs = status.Inputs
+					log.Debugf(" M (Stage): ResumeStage evaluation inputs: %v", eCtx.Inputs)
+					if eCtx.Inputs != nil {
+						if v, ok := eCtx.Inputs["context"]; ok {
+							eCtx.Value = v
+						}
+					}
 					eCtx.Outputs = outputs
 					val, err := parser.Eval(*eCtx)
 					if err != nil {
@@ -162,7 +169,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						Activation:           activation,
 						ActivationGeneration: activationGeneration,
 						Stage:                nextStage,
-						Inputs:               status.Outputs,
+						Inputs:               status.Inputs,
 						Provider:             cam.Stages[nextStage].Provider,
 						Config:               cam.Stages[nextStage].Config,
 						Outputs:              outputs,
@@ -208,6 +215,13 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.IsActive = false
 		return status
 	}
+
+	if _, ok := provider.(contexts.IWithManagerContext); ok {
+		provider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+	} else {
+		log.Errorf(" M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
+	}
+
 	if _, ok := provider.(*remote.RemoteStageProvider); ok {
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
@@ -246,6 +260,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
+			log.Debugf(" M (Stage): HandleTriggerEvent evaluation inputs 1: %v", eCtx.Inputs)
+			if eCtx.Inputs != nil {
+				if v, ok := eCtx.Inputs["context"]; ok {
+					eCtx.Value = v
+				}
+			}
 			eCtx.Outputs = triggerData.Outputs
 			val, err := parser.Eval(*eCtx)
 			if err != nil {
@@ -286,23 +306,20 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				inputs[k] = v
 			}
 		}
+
+		log.Debugf(" M (Stage): HandleTriggerEvent before evaluation inputs 2: %v", inputs)
+
 		for k, v := range inputs {
-			if _, ok := v.(string); ok {
-				parser := utils.NewParser(v.(string))
-				eCtx := s.VendorContext.EvaluationContext.Clone()
-				eCtx.Inputs = triggerData.Inputs
-				eCtx.Outputs = triggerData.Outputs
-				val, err := parser.Eval(*eCtx)
-				if err != nil {
-					status.Status = v1alpha2.InternalError
-					status.ErrorMessage = err.Error()
-					status.IsActive = false
-					log.Errorf(" M (Stage): failed to evaluate input: %v", err)
-					observ_utils.CloseSpanWithError(span, err)
-					return status, activationData
-				}
-				inputs[k] = val
+			val, err := s.traceValue(v, inputs, triggerData.Outputs)
+			if err != nil {
+				status.Status = v1alpha2.InternalError
+				status.ErrorMessage = err.Error()
+				status.IsActive = false
+				log.Errorf(" M (Stage): failed to evaluate input: %v", err)
+				observ_utils.CloseSpanWithError(span, err)
+				return status, activationData
 			}
+			inputs[k] = val
 		}
 
 		// inject default inputs
@@ -310,6 +327,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__activation"] = triggerData.Activation
 		inputs["__stage"] = triggerData.Stage
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
+
+		log.Debugf(" M (Stage): HandleTriggerEvent after evaluation inputs 2: %v", inputs)
 
 		factory := symproviders.SymphonyProviderFactory{}
 		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
@@ -320,6 +339,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			log.Errorf(" M (Stage): failed to create provider: %v", err)
 			observ_utils.CloseSpanWithError(span, err)
 			return status, activationData
+		}
+
+		if _, ok := provider.(contexts.IWithManagerContext); ok {
+			provider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+		} else {
+			log.Errorf(" M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
 		}
 
 		numTasks := len(sites)
@@ -414,6 +439,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			parser := utils.NewParser(currentStage.StageSelector)
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
+			if eCtx.Inputs != nil {
+				if v, ok := eCtx.Inputs["context"]; ok {
+					eCtx.Value = v
+				}
+			}
 			eCtx.Outputs = triggerData.Outputs
 			val, err := parser.Eval(*eCtx)
 			if err != nil {
@@ -436,7 +466,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						Activation:           triggerData.Activation,
 						ActivationGeneration: triggerData.ActivationGeneration,
 						Stage:                sVal,
-						Inputs:               outputs,
+						Inputs:               triggerData.Inputs,
 						Outputs:              triggerData.Outputs,
 						Provider:             nextStage.Provider,
 						Config:               nextStage.Config,
@@ -483,6 +513,66 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	log.Errorf(" M (Stage): failed to find stage: %v", err)
 	observ_utils.CloseSpanWithError(span, err)
 	return status, activationData
+}
+
+func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
+	switch val := v.(type) {
+	case string:
+		parser := utils.NewParser(val)
+		context := s.Context.VencorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = s.Context.VencorContext.EvaluationContext.DeploymentSpec
+		context.Inputs = inputs
+		context.Outputs = outputs
+		if context.Inputs != nil {
+			if v, ok := context.Inputs["context"]; ok {
+				context.Value = v
+			}
+		}
+		v, err := parser.Eval(*context)
+		if err != nil {
+			return "", err
+		}
+		switch vt := v.(type) {
+		case string:
+			return vt, nil
+		default:
+			return s.traceValue(v, inputs, outputs)
+		}
+	case int:
+		return strconv.Itoa(val), nil
+	case int32:
+		return strconv.Itoa(int(val)), nil
+	case int64:
+		return strconv.Itoa(int(val)), nil
+	case float32:
+		return strconv.FormatFloat(float64(val), 'f', -1, 32), nil
+	case float64:
+		return strconv.FormatFloat(val, 'f', -1, 64), nil
+	case bool:
+		return strconv.FormatBool(val), nil
+	case []interface{}:
+		ret := []interface{}{}
+		for _, v := range val {
+			tv, err := s.traceValue(v, inputs, outputs)
+			if err != nil {
+				return "", err
+			}
+			ret = append(ret, tv)
+		}
+		return ret, nil
+	case map[string]interface{}:
+		ret := map[string]interface{}{}
+		for k, v := range val {
+			tv, err := s.traceValue(v, inputs, outputs)
+			if err != nil {
+				return "", err
+			}
+			ret[k] = tv
+		}
+		return ret, nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alpha2.ActivationData, campaign model.CampaignSpec, activation model.ActivationState) (*v1alpha2.ActivationData, error) {

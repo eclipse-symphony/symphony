@@ -1467,3 +1467,110 @@ func TestEvaulateValueRangeOutside(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "false", val)
 }
+func TestValWithJsonPath(t *testing.T) {
+	parser := NewParser("$val('$.foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithProperty(t *testing.T) {
+	parser := NewParser("$val(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithContextProperty(t *testing.T) {
+	parser := NewParser("$context(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithJsonPathArray(t *testing.T) {
+
+	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz1", val)
+}
+
+func TestContextWithJsonPathArray(t *testing.T) {
+
+	parser := NewParser("$context('$[?(@.foo.bar==\"baz1\")].foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz1", val)
+}
+
+func TestValWithJsonPathArrayBoolean(t *testing.T) {
+
+	parser := NewParser("$equal($val('$[?(@.foo.bar==\"baz1\")].foo.bar'),'baz1')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+
+func TestMessedUpQuote(t *testing.T) {
+	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'")
+	_, err := parser.Eval(utils.EvaluationContext{})
+	assert.NotNil(t, err)
+}
+
+func TestStrangeString(t *testing.T) {
+	parser := NewParser("~pg~edges~ffr4~adapter~collector-ffr4")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "~pg~edges~ffr4~adapter~collector-ffr4", output)
+}

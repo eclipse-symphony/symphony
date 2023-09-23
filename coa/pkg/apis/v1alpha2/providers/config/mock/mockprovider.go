@@ -88,10 +88,10 @@ func toMockConfigProviderConfig(config providers.IProviderConfig) (MockConfigPro
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MockConfigProvider) Get(object string, field string, overrides []string) (interface{}, error) {
+func (m *MockConfigProvider) Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error) {
 	return object + "::" + field, nil
 }
-func (m *MockConfigProvider) GetObject(object string, overrides []string) (map[string]interface{}, error) {
+func (m *MockConfigProvider) GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{object: object}, nil
 }
 func (m *MockConfigProvider) Set(object string, field string, value string) error {
@@ -106,9 +106,9 @@ func (m *MockConfigProvider) Delete(object string, field string) error {
 func (m *MockConfigProvider) DeleteObject(object string) error {
 	return nil
 }
-func (m *MockConfigProvider) Read(object string, field string) (interface{}, error) {
+func (m *MockConfigProvider) Read(object string, field string, localContext interface{}) (interface{}, error) {
 	return object + "::" + field, nil
 }
-func (m *MockConfigProvider) ReadObject(object string) (map[string]interface{}, error) {
+func (m *MockConfigProvider) ReadObject(object string, localContext interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{object: object}, nil
 }
