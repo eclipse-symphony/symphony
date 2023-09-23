@@ -24,27 +24,47 @@
 
 */
 
-package stage
+package patch
 
 import (
 	"context"
+	"os"
+	"testing"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/stretchr/testify/assert"
 )
 
-type IStageProvider interface {
-	// Return values: map[string]interface{} - outputs, bool - should the activation be paused (wait for a remote event), error
-	Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error)
-}
+func TestPatchSolution(t *testing.T) {
+	testPatchSolution := os.Getenv("TEST_PATCH_SOLUTION")
+	if testPatchSolution != "yes" {
+		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
+	}
+	provider := PatchStageProvider{}
+	err := provider.Init(PatchStageProviderConfig{
+		BaseUrl:  "http://localhost:8082/v1alpha2/",
+		User:     "admin",
+		Password: "",
+	})
 
-func ReadInputString(inputs map[string]interface{}, key string) string {
-	if inputs == nil {
-		return ""
-	}
-	if val, ok := inputs[key]; ok {
-		if str, ok := val.(string); ok {
-			return str
-		}
-	}
-	return ""
+	provider.SetContext(&contexts.ManagerContext{
+		VencorContext: &contexts.VendorContext{
+			EvaluationContext: &utils.EvaluationContext{},
+		},
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), map[string]interface{}{
+		"objectType":  "solution",
+		"objectName":  "sample-redis",
+		"patchSource": "test-config",
+		"component":   "sample-redis",
+		"property":    "deep",
+		"subKey":      "key",
+		"dedupKey":    "foo",
+		"patchAction": "remove",
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, "OK", outputs["status"])
 }

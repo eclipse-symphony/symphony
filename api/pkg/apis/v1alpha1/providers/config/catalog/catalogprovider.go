@@ -170,6 +170,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}) (interface{}, error) {
 	case string:
 		parser := utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = m.Context.VencorContext.EvaluationContext.DeploymentSpec
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err

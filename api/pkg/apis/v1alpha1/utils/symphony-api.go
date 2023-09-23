@@ -382,7 +382,7 @@ func GetSolution(baseUrl string, solution string, user string, password string) 
 	return ret, nil
 }
 
-func CreateSolution(baseUrl string, solution string, user string, password string, payload []byte) error {
+func UpsertSolution(baseUrl string, solution string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
 		return err

@@ -144,7 +144,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					creationCount++
 				case "solution":
-					err = utils.CreateSolution(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.UpsertSolution(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						return outputs, false, err
 					}
