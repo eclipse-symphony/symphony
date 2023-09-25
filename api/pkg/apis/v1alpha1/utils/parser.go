@@ -543,7 +543,8 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "output":
 		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
-				return nil, errors.New("an output collection is needed to evaluate $output()")
+				//return nil, errors.New("an output collection is needed to evaluate $output()")
+				return "", nil
 			}
 			step, err := n.Args[0].Eval(context)
 			if err != nil {
