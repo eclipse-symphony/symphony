@@ -127,6 +127,10 @@ func (i *K8sTargetProvider) InitWithMap(properties map[string]string) error {
 	}
 	return i.Init(config)
 }
+func (s *K8sTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 	updateConfig, err := toK8sTargetProviderConfig(config)
 	if err != nil {
@@ -597,8 +601,10 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	servicePorts := make([]apiv1.ServicePort, 0)
 
 	if v, ok := metadata["service.ports"]; ok && v != "" {
+		log.Debugf("  P (K8s Target Provider): metadataToService - service ports: %s", v)
 		e := json.Unmarshal([]byte(v), &servicePorts)
 		if e != nil {
+			log.Errorf("  P (K8s Target Provider): metadataToService - unmarshal: %v", e)
 			return nil, e
 		}
 	} else {

@@ -30,6 +30,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +48,7 @@ func TestDeployInstance(t *testing.T) {
 		WaitInterval: 5,
 	})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, map[string]interface{}{
+	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "redis-server",
 		"object": map[string]interface{}{

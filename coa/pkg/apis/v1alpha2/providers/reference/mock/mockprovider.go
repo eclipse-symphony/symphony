@@ -74,9 +74,8 @@ func (m *MockReferenceProvider) ReferenceType() string {
 	return "mock"
 }
 
-func (a *MockReferenceProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *MockReferenceProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *MockReferenceProvider) Reconfigure(config providers.IProviderConfig) error {

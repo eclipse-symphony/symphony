@@ -56,9 +56,8 @@ func (v *InMemoryPubSubProvider) ID() string {
 	return v.Config.Name
 }
 
-func (s *InMemoryPubSubProvider) SetContext(ctx *contexts.ManagerContext) error {
+func (s *InMemoryPubSubProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
-	return nil
 }
 
 func (i *InMemoryPubSubProvider) InitWithMap(properties map[string]string) error {

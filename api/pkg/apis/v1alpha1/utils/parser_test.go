@@ -631,6 +631,39 @@ func TestConfigNoProvider(t *testing.T) {
 	_, err := parser.Eval(utils.EvaluationContext{})
 	assert.NotNil(t, err)
 }
+
+func TestConfigInExpression(t *testing.T) {
+	//create mock config provider
+	provider := &mock.MockConfigProvider{}
+	err := provider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	parser := NewParser("'[{\"name\":\"port' + $config(line-config-$instance(), SERVICE_PORT) + '\",\"port\": ' + $config(line-config-$instance(), SERVICE_PORT) + ',\"targetPort\":5000}]'")
+	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "instance1",
+		},
+	}})
+	assert.Nil(t, err)
+	assert.Equal(t, "[{\"name\":\"portline-config-instance1::SERVICE_PORT\",\"port\": line-config-instance1::SERVICE_PORT,\"targetPort\":5000}]", val)
+}
+
+func TestConfigObjectInExpression(t *testing.T) {
+	//create mock config provider
+	provider := &mock.MockConfigProvider{}
+	err := provider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	parser := NewParser("$config('<' + 'line-config-' + $instance() + '>', \"\")")
+	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "instance1",
+		},
+	}})
+	assert.Nil(t, err)
+	assert.Equal(t, "<line-config-instance1>::\"\"", val)
+}
+
 func TestConfig(t *testing.T) {
 	//create mock config provider
 	provider := &mock.MockConfigProvider{}
@@ -1071,6 +1104,84 @@ func TestEvaluateDeployment(t *testing.T) {
 	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
 	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
 }
+
+func TestEvaluateDeploymentMetadata(t *testing.T) {
+	context := utils.EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Metadata: map[string]string{
+							"foo": "$param(a)",
+							"bar": "$param(c) + ' ' + $param(a)",
+						},
+						Properties: map[string]interface{}{
+							"foo": "$param(a)",
+							"bar": "$param(c) + ' ' + $param(a)",
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
+	assert.Equal(t, "new-value", deployment.Solution.Components[0].Metadata["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Metadata["bar"])
+}
+func TestEvaluateDeploymentConfig(t *testing.T) {
+	configProvider := &mock.MockConfigProvider{}
+	err := configProvider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	context := utils.EvaluationContext{
+		ConfigProvider: configProvider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Properties: map[string]interface{}{
+							"foo": "$config(a,b)",
+							"bar": "$config(c,d)",
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "a::b", deployment.Solution.Components[0].Properties["foo"])
+	assert.Equal(t, "c::d", deployment.Solution.Components[0].Properties["bar"])
+}
 func TestEqualNumbers(t *testing.T) {
 	parser := NewParser("$equal(123, 123)")
 	val, err := parser.Eval(utils.EvaluationContext{})
@@ -1368,9 +1479,50 @@ func TestValWithJsonPath(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "baz", val)
 }
+func TestValWithProperty(t *testing.T) {
+	parser := NewParser("$val(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithContextProperty(t *testing.T) {
+	parser := NewParser("$context(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
 func TestValWithJsonPathArray(t *testing.T) {
 
 	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz1", val)
+}
+
+func TestContextWithJsonPathArray(t *testing.T) {
+
+	parser := NewParser("$context('$[?(@.foo.bar==\"baz1\")].foo.bar')")
 	val, err := parser.Eval(utils.EvaluationContext{
 		Value: []interface{}{
 			map[string]interface{}{
@@ -1414,4 +1566,11 @@ func TestMessedUpQuote(t *testing.T) {
 	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'")
 	_, err := parser.Eval(utils.EvaluationContext{})
 	assert.NotNil(t, err)
+}
+
+func TestStrangeString(t *testing.T) {
+	parser := NewParser("~pg~edges~ffr4~adapter~collector-ffr4")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "~pg~edges~ffr4~adapter~collector-ffr4", output)
 }

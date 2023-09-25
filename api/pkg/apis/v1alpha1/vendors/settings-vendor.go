@@ -27,6 +27,7 @@
 package vendors
 
 import (
+	"encoding/json"
 	"strings"
 
 	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
@@ -108,20 +109,21 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 			parts = strings.Split(overrides, ",")
 		}
 		if field != "" {
-			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts)
+			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts, nil)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
 				})
 			}
+			data, _ := json.Marshal(val)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.OK,
-				Body:        []byte(val),
+				Body:        data,
 				ContentType: "text/plain",
 			})
 		} else {
-			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts)
+			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts, nil)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,

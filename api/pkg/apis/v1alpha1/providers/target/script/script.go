@@ -110,6 +110,10 @@ func (i *ScriptProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *ScriptProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
 		"method": "Init",

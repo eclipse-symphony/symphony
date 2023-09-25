@@ -70,9 +70,8 @@ func (m *MockLedgerProvider) ID() string {
 	return m.Config.Name
 }
 
-func (a *MockLedgerProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *MockLedgerProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (i *MockLedgerProvider) InitWithMap(properties map[string]string) error {
