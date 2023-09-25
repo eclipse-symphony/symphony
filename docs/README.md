@@ -38,6 +38,10 @@ You can start using Symphony in minutes by selecting one of the following paths:
 * Developing solutions
 * Operations
 
+## Symphony Topics
+
+* [Workflows](./symphony-book/campaign-management/overview.md)
+
 ## Contributing to Symphony
 
 * Developer Guide
