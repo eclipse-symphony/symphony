@@ -291,6 +291,7 @@ func JsonPathQuery(obj interface{}, jsonPath string) (string, error) {
 }
 func jsonPathQuery(obj interface{}, jsonPath string) (string, error) {
 	jpLookup := jsonpath.New("lookup")
+	jpLookup.AllowMissingKeys(true)
 	err := jpLookup.Parse(jsonPath)
 	if err != nil {
 		return "", err
