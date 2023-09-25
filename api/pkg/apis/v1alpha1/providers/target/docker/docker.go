@@ -69,6 +69,10 @@ func (d *DockerTargetProvider) InitWithMap(properties map[string]string) error {
 	}
 	return d.Init(config)
 }
+func (s *DockerTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Docker Target Provider", context.Background(), &map[string]string{
 		"method": "Init",

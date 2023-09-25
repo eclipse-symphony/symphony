@@ -65,7 +65,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateSolution(baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(baseUrl, solutionName, user, password, solution1)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -245,7 +245,7 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateSolution(baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(baseUrl, solutionName, user, password, solution1)
 	require.NoError(t, err)
 
 	solutionsRes, err := GetSolutions(baseUrl, user, password)

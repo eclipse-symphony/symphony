@@ -62,6 +62,10 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 	}
 	return nil
 }
+func (s *MockTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func toMockTargetProviderConfig(config providers.IProviderConfig) (MockTargetProviderConfig, error) {
 	ret := MockTargetProviderConfig{}
 	data, err := json.Marshal(config)

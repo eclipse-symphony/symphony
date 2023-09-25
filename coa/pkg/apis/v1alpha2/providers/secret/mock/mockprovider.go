@@ -63,9 +63,8 @@ func (m *MockSecretProvider) ID() string {
 	return m.Config.Name
 }
 
-func (a *MockSecretProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *MockSecretProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *MockSecretProvider) Init(config providers.IProviderConfig) error {

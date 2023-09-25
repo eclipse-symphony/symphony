@@ -64,6 +64,7 @@ const (
 	RUNON
 	AMPHERSAND
 	SLASH
+	TILDE
 )
 
 var opNames = map[Token]string{
@@ -78,6 +79,7 @@ var opNames = map[Token]string{
 	QUESTION:   "?",
 	EQUAL:      "=",
 	AMPHERSAND: "&",
+	TILDE:      "~",
 }
 
 type Node interface {
@@ -408,6 +410,24 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 			}
 		}
 		return fmt.Sprintf("%v&%v", lv, rv), nil
+	case TILDE:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v~%v", lv, rv), nil
 	case RUNON:
 		var lv interface{} = ""
 		var le error
@@ -523,7 +543,8 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "output":
 		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
-				return nil, errors.New("an output collection is needed to evaluate $output()")
+				//return nil, errors.New("an output collection is needed to evaluate $output()")
+				return "", nil
 			}
 			step, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -749,13 +770,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(obj.(string), field.(string), overlays)
+			return context.ConfigProvider.Get(obj.(string), field.(string), overlays, context)
 		}
 		return nil, fmt.Errorf("$config() expects 2 arguments, found %d", len(n.Args))
 	case "secret":
 		if len(n.Args) == 2 {
 			if context.SecretProvider == nil {
-				return nil, errors.New("a secret provider is needed to evaluate $config()")
+				return nil, errors.New("a secret provider is needed to evaluate $secret()")
 			}
 			obj, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -776,7 +797,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return nil, errors.New("deployment spec is not found")
 		}
 		return nil, fmt.Errorf("$instance() expects 0 arguments, found %d", len(n.Args))
-	case "val":
+	case "val", "context":
 		if len(n.Args) == 0 {
 			return context.Value, nil
 		}
@@ -785,13 +806,40 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			result, err := JsonPathQuery(context.Value, obj.(string))
+			path := obj.(string)
+			if strings.HasPrefix(path, "$") || strings.HasPrefix(path, "{$") {
+				result, err := JsonPathQuery(context.Value, obj.(string))
+				if err != nil {
+					return nil, err
+				}
+				return result, nil
+			} else {
+				if mobj, ok := context.Value.(map[string]interface{}); ok {
+					if v, ok := mobj[path]; ok {
+						return v, nil
+					} else {
+						return nil, fmt.Errorf("key %s is not found in context value", path)
+					}
+				} else {
+					return nil, fmt.Errorf("context value '%v' is not a map", context.Value)
+				}
+			}
+		}
+		return nil, fmt.Errorf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args))
+	case "json":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			return result, nil
+			jData, err := json.Marshal(val)
+			if err != nil {
+				return nil, err
+			}
+			return string(jData), nil
 		}
-		return nil, fmt.Errorf("$val() expects 0 or 1 argument, found %d", len(n.Args))
+		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
+
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
@@ -825,16 +873,23 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			if r != nil {
 				return "", r
 			}
-			if _, ok := v.([]string); ok {
+			if vt, ok := v.([]string); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
 				}
-			} else if _, ok := v.([]interface{}); ok {
+			} else if vt, ok := v.([]interface{}); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
+			} else if vt, ok := v.(map[string]interface{}); ok {
+				if ret == nil {
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
@@ -903,6 +958,8 @@ func (p *Parser) scan() Token {
 		return EQUAL
 	case '&':
 		return AMPHERSAND
+	case '~':
+		return TILDE
 	}
 	if _, err := strconv.ParseFloat(p.text, 64); err == nil {
 		return NUMBER
@@ -1038,6 +1095,13 @@ func (p *Parser) factor() (Node, error) {
 				return nil, err
 			}
 			node = &BinaryNode{EQUAL, node, n}
+		case TILDE:
+			p.next()
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{TILDE, node, n}
 		case AMPHERSAND:
 			p.next()
 			n, err := p.primary()
@@ -1127,7 +1191,24 @@ func (p *Parser) function() (Node, error) {
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
 		for ic, c := range deploymentSpec.Solution.Components {
-			val, err := evalProperties(context, c.Properties)
+
+			val, err := evalProperties(context, c.Metadata)
+			if err != nil {
+				return deploymentSpec, err
+			}
+			if val != nil {
+				metadata, ok := val.(map[string]string)
+				if !ok {
+					return deploymentSpec, fmt.Errorf("metadata must be a map")
+				}
+				stringMap := make(map[string]string)
+				for k, v := range metadata {
+					stringMap[k] = fmt.Sprintf("%v", v)
+				}
+				deploymentSpec.Solution.Components[ic].Metadata = stringMap
+			}
+
+			val, err = evalProperties(context, c.Properties)
 			if err != nil {
 				return deploymentSpec, err
 			}
@@ -1189,6 +1270,14 @@ func toNumber(val interface{}) (float64, bool) {
 }
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch p := properties.(type) {
+	case map[string]string:
+		for k, v := range p {
+			val, err := evalProperties(context, v)
+			if err != nil {
+				return nil, err
+			}
+			p[k] = FormatAsString(val)
+		}
 	case map[string]interface{}:
 		for k, v := range p {
 			val, err := evalProperties(context, v)

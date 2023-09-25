@@ -140,6 +140,10 @@ func (i *MQTTTargetProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *MQTTTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	lock.Lock()
 	defer lock.Unlock()

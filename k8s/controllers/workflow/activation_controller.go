@@ -29,12 +29,18 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strconv"
 
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
+
+	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ActivationReconciler reconciles a Campaign object
@@ -57,30 +63,34 @@ type ActivationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// log := ctrllog.FromContext(ctx)
-	// log.Info("Reconcile Activation")
+	log := ctrllog.FromContext(ctx)
+	log.Info("Reconcile Activation")
 
-	// //get Activation
-	// activation := &workflowv1.Activation{}
-	// if err := r.Get(ctx, req.NamespacedName, activation); err != nil {
-	// 	log.Error(err, "unable to fetch Activation")
-	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
-	// }
+	//get Activation
+	activation := &workflowv1.Activation{}
+	if err := r.Get(ctx, req.NamespacedName, activation); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	// if activation.ObjectMeta.DeletionTimestamp.IsZero() {
-	// 	if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.ActivationGeneration != strconv.FormatInt(activation.Generation, 10) {
-	// 		err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
-	// 			Campaign:             activation.Spec.Campaign,
-	// 			Activation:           activation.Name,
-	// 			ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
-	// 			Stage:                "",
-	// 			Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
-	// 		})
-	// 		if err != nil {
-	// 			return ctrl.Result{}, err
-	// 		}
-	// 	}
-	// }
+	if strconv.FormatInt(activation.Generation, 10) == activation.Status.ActivationGeneration {
+		return ctrl.Result{}, nil
+	}
+
+	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
+		if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.ActivationGeneration == "" {
+			err := api_utils.PublishActivationEvent("http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
+				Campaign:             activation.Spec.Campaign,
+				Activation:           activation.Name,
+				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
+				Stage:                "",
+				Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
+			})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }

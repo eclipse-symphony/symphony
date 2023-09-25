@@ -36,6 +36,7 @@ type ManagerContext struct {
 	Logger         logger.Logger
 	PubsubProvider pubsub.IPubSubProvider
 	SiteInfo       v1alpha2.SiteInfo
+	VencorContext  *VendorContext
 }
 
 func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error {
@@ -52,6 +53,9 @@ func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error 
 	if c != nil {
 		v.SiteInfo = c.SiteInfo
 	}
+	if c != nil {
+		v.VencorContext = c
+	}
 	return nil
 }
 
@@ -67,4 +71,8 @@ func (v *ManagerContext) Subscribe(feed string, handler v1alpha2.EventHandler) e
 		return v.PubsubProvider.Subscribe(feed, handler)
 	}
 	return nil
+}
+
+type IWithManagerContext interface {
+	SetContext(ctx *ManagerContext)
 }

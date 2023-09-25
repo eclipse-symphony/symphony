@@ -24,24 +24,47 @@
 
 */
 
-package mock
+package patch
 
 import (
+	"context"
+	"os"
 	"testing"
 
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInit(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
+func TestPatchSolution(t *testing.T) {
+	testPatchSolution := os.Getenv("TEST_PATCH_SOLUTION")
+	if testPatchSolution != "yes" {
+		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
+	}
+	provider := PatchStageProvider{}
+	err := provider.Init(PatchStageProviderConfig{
+		BaseUrl:  "http://localhost:8082/v1alpha2/",
+		User:     "admin",
+		Password: "",
+	})
+
+	provider.SetContext(&contexts.ManagerContext{
+		VencorContext: &contexts.VendorContext{
+			EvaluationContext: &utils.EvaluationContext{},
+		},
+	})
 	assert.Nil(t, err)
-}
-func TestGet(t *testing.T) {
-	provider := MockConfigProvider{}
-	err := provider.Init(MockConfigProviderConfig{})
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType":  "solution",
+		"objectName":  "sample-redis",
+		"patchSource": "test-config",
+		"component":   "sample-redis",
+		"property":    "deep",
+		"subKey":      "key",
+		"dedupKey":    "foo",
+		"patchAction": "remove",
+	})
 	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field", nil, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, "obj::field", val)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, "OK", outputs["status"])
 }

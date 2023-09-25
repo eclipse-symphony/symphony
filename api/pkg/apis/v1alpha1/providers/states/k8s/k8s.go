@@ -106,6 +106,10 @@ func (i *K8sStateProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *K8sStateProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
 		"method": "Init",
@@ -184,11 +188,6 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sStateProvide
 		ret.ConfigType = "path"
 	}
 	return ret, err
-}
-
-func (s *K8sStateProvider) SetContext(ctx *contexts.ManagerContext) error {
-	s.Context = ctx
-	return nil
 }
 
 func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {

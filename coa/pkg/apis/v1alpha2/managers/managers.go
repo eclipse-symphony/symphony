@@ -82,6 +82,11 @@ func (m *Manager) Init(context *contexts.VendorContext, config ManagerConfig, pr
 	m.Context = &contexts.ManagerContext{}
 	m.Config = config
 	err := m.Context.Init(m.VendorContext, nil)
+	for _, p := range providers {
+		if c, ok := p.(contexts.IWithManagerContext); ok {
+			c.SetContext(m.Context)
+		}
+	}
 	m.Context.Logger.Debugf(" M (%s): initalize manager type '%s'", config.Name, config.Type)
 	return err
 }
