@@ -83,17 +83,21 @@ func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProv
 	return ret, nil
 }
 func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	fmt.Printf("MOCK STAGE PROVIDER IS BUSY PROCESSING: %v\n", inputs)
+	fmt.Printf("MOCK STAGE PROVIDER IS BUSY PROCESSING INPUTS: %v\n", inputs)
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
 	}
 	if v, ok := inputs["foo"]; ok {
-		val, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
-		if err == nil {
-			outputs["foo"] = val + 1
+		if v == nil || v == "" {
+			outputs["foo"] = 1
+		} else {
+			val, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			if err == nil {
+				outputs["foo"] = val + 1
+			}
 		}
 	}
-	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING: %v\n", outputs)
+	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING WITH OUTPUTS: %v\n", outputs)
 	return outputs, false, nil
 }
