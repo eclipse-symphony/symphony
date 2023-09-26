@@ -1,0 +1,47 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: test-app
+spec:  
+  components:
+  - name: nginx-ingress
+    properties:
+      chart:
+        repo: ghcr.io/nginxinc/charts/nginx-ingress
+        version: 0.18.1
+    type: helm.v3
+  - name: frontend
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"      
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+  - name: backend-v1
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3012\",\"port\": 3012,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"      
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+  - name: ingress
+    type: ingress
+    metadata:
+      annotations.nginx.ingress.kubernetes.io/rewrite-target: "/"
+    properties:
+      rules.0:
+        http:
+          paths:
+          - path: "/api"
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-v1
+                port:
+                  number: 3012      
+    dependencies:
+    - nginx-ingress    
