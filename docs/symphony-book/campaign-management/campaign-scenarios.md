@@ -4,7 +4,7 @@ Campaign is a versatile type that can be used to implement many useful workflows
 
 ## Canary Deployment
 
-Symphony offers several ways to model a canary deployment, depending on your specific requirements. The following discussion assumes you have an application with a frontend and a backend, and you want to rollout a canary deployment for the backend. 
+Symphony offers several ways to model a canary deployment, depending on your specific requirements. The following discussion assumes you have an application with a frontend and a backend, and you want to roll out a canary deployment for the backend. 
 
 ### Modeling the application
 
@@ -24,13 +24,13 @@ You have several options to model your application:
 
 ### Shifting the traffice
 
-You can adjust the traffic pattern by adjusting your ```ingress``` settings, for instance to send 10% of traffic to the new version. Then, based on validation results, you can gradually shift the traffic to the new version, or rollback to the original version if validation fails.
+You can adjust the traffic pattern by adjusting your ```ingress``` settings, for instance to send 10% of traffic to the new version. Then, based on validation results, you can gradually shift the traffic to the new version, or roll back to the original version if validation fails.
 
 ### Automating canary deployment with a Campaign
 
 You can factor deployments, validations and ingress updates into a ```Campaign``` to automate the canary deployments. Conceptually, the Campaign contains the following stages:
 
-1. Add backend(v2) to your Solution object. This can be done as a stage using a ```patch``` provider that patches your existing Solution (to add a new component).
+1. Add ```backend(v2)``` to your Solution object. This can be done at a stage using a ```patch``` provider that patches your existing Solution (to add a new component).
 
 2.	Patch your ingress configuration to shift a portion of traffic to the new version. The workflow jumps to stage 4 if all traffic has been shifted to the new version. Or it jumps to stage 5 if all traffic has been reverted to the original version.
 3.	Using a ```http``` provider, you can run tests against the new version. Depending on the output, you can go back to stage 2 with a new percentage configuration to adjust the traffic pattern.
@@ -39,5 +39,5 @@ You can factor deployments, validations and ingress updates into a ```Campaign``
 
 ## Gated Deployment
 
-It’s fairly easy to implement a gated deployment using Symphony ```Campaign```. Basically, you can add a stage that invokes an HTTP endpoint (such as an [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview)) to trigger a custom approval flow – such as sending an email to an approver and waiting for the approver to click on an “Approve” button in the email using Office 365 features. When the external approval flow succeeds, the Campaign will progress to the next stage, which is to deploy the ```Instance```.
+It’s easy to implement a gated deployment using Symphony ```Campaign```. Basically, you can add a stage that invokes an HTTP endpoint (such as an [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview)) to trigger a custom approval flow – such as sending an email to an approver and waiting for the approver to click on an “Approve” button in the email using Office 365 features. When the external approval flow succeeds, the Campaign will progress to the next stage, which is to deploy the ```Instance```.
 

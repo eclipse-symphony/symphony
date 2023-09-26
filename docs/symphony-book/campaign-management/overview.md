@@ -4,4 +4,6 @@ Symphony employs a state-seeking approach to maintain system consistency in alig
 
 Symphony’s workflow is described by a ```Campaign``` object. A Campaign can be activated by creating the corresponding ```Activation``` object. Each Activation object maintains its own state and context. Symphony uses an event-based approach to drive the Activation objects. And it allows steps in a Campaign to be executed remotely on a different Symphony control plane. A Campaign is comprised of one or multiple ```Stages```. I can be set to the default self-driving model, and it can also be put into a “stepped” model, which essentially transforms a Campaign into a collection of stateful nano services that can be invoked by an external workflow engine.
 
-[Campaigns](./campaign.md)
+## Topics
+* [Campaigns](./campaign.md)
+* [Campaign Scenarios](./campaign-scenarios.md)
