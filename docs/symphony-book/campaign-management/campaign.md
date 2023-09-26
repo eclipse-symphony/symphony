@@ -29,7 +29,7 @@ type IStageProvider interface {
 	Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error)
 }
 ```
-Essetially, a stage provider takes the inputs, perform any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the ```inputs``` parameter, plus any input parameters declared on the stage itself. For example, if a Campaign is activated with inputs ```foo``` and ```bar```, and the stage definition contains an input ```baz```, the ```inputs``` parameter will contain all the three values. 
+Essentially, a stage provider takes the inputs, performs any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the ```inputs``` parameter, plus any input parameter declared on the stage itself. For example, if a Campaign is activated with inputs ```foo``` and ```bar```, and the stage definition contains an input ```baz```, the ```inputs``` parameter will contain all the three values. 
 
 > **NOTE**: In current version, inputs defined in stage definition override activation inputs. If you do want to keep the activation input, you can use expression ```$input(<field name>)``` in your stage definition to carry over activation input.
 
