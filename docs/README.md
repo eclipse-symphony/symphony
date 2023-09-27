@@ -31,16 +31,18 @@ You can start using Symphony in minutes by selecting one of the following paths:
 | [Deploying a Redis container with standalone Symphony](./symphony-book/quick_start/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
 | [Deploying a simulated temperature sensor Solution to an Azure IoT Edge device](./symphony-book/quick_start/deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
 
-## Learning more about Symphony
+## Concepts
 
-* [Concepts](./symphony-book/concepts/overview.md)
-* Modeling edge environment
-* Developing solutions
-* Operations
+* [Overview](./symphony-book/concepts/overview.md)
+* [Information Graph](./symphony-book/concepts/information_graph.md)
+* [State Seeking](./symphony-book/concepts/state_seeking.md)
+* [Workflows](./symphony-book/concepts/workflows.md)
+* [App Orchestration Model](./symphony-book/concepts/orchestration_model.md)
 
-## Symphony Topics
 
-* [Workflows](./symphony-book/campaign-management/overview.md)
+## Using Symphony
+
+* [Modeling Applications](./symphony-book/solution-management/solution-management.md)
 
 ## Contributing to Symphony
 
