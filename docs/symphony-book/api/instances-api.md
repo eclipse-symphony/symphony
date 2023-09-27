@@ -3,7 +3,7 @@
 |--------|-------|--------|
 | ```/instances/{instance name}``` | POST | Creates or updates an instance |
 | ```/instances/[{instance name}]?[<path=<json path>]&[<doc-type>=<doc type>]``` | GET | Query instances |
-| ```/instances/{instance name}``` | DELETE | Deletes a instance |
+| ```/instances/{instance name}``` | DELETE | Deletes an instance |
 
 >**NOTE**: ```{}``` indicate path parameter; ```<>``` indicates query parameter; ```[]``` indicates optional parameter
 

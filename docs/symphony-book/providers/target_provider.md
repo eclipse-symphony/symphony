@@ -5,6 +5,7 @@ A target provider interacts with a specific system to carry out state seeking ac
 | Provider Type | Platform |
 |--------|--------|
 | ```providers.target.adb``` | Sideload Android apps using [Android Debug Bridge (adb)](https://developer.android.com/tools/adb) | 
+|```providers.target.arcextension``` | Manages Arc extensions |
 | ```providers.target.azure.adu``` | Device updates using [Device Update for IoT Hub (a.k.a. ADU)](https://learn.microsoft.com/en-us/azure/iot-hub-device-update/) |
 | ```providers.target.azure.iotedge``` | Deploy solution instances as [Azure IoT Edge](https://learn.microsoft.com/en-us/azure/iot-edge/?view=iotedge-1.4) modules |
 | ```providers.target.docker```| Deploy [Docker](https://www.docker.com/) containers |
@@ -21,4 +22,4 @@ A target provider interacts with a specific system to carry out state seeking ac
 
 1: Difference between ```providers.target.http``` and ```providers.target.proxy```. The proxy provider expects the target HTTP handler implements the [Target Provider Interface](./provider_interface.md), while the http provider allows any handler to be used. The http provider is commonly used as a webhook to trigger external workflows (such as [human approval](../scenarios/human-approval.md)) instead of doing actual deployment.
 
-2: The staging provider stages solution components onto the selected target object instead of doing any actual deployments. The scenario is to allow an exteranl poll-based agent to pick up components to be deployed from the target object.
+2: The staging provider stages solution components onto the selected target object instead of doing any actual deployments. The scenario is to allow an external poll-based agent to pick up components to be deployed from the target object.

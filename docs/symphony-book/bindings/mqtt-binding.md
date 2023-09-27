@@ -6,7 +6,7 @@ MQTT binding allows you to access Symphony API, standalone providers, as well as
 ## Setting up a MQTT broker
 You can use any standard MQTT broker, either cloud-based or locally hosted. This section provides a couple of options using [Eclipse Mosquitto](https://mosquitto.org/).
 
-> **NOTE:** At the time of writing, Symphony MQTT impelmentation doesn't support authentication, so anonymous access is required.
+> **NOTE:** At the time of writing, Symphony MQTT implementation doesn't support authentication, so anonymous access is required.
 
 
 ### Run Eclipse Mosquitto for local tests
@@ -34,7 +34,7 @@ listener 1883
  ```
  ## Configuring MQTT binding
 
- > **NOTE:** At the time of wrting, MQTT binding doesn't support middleware yet.
+ > **NOTE:** At the time of writing, MQTT binding doesn't support middleware yet.
 
  To use MQTT binding, define your binding in your [Symphony host configuration file](../hosts/overview.md):
  ```json

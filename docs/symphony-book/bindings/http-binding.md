@@ -13,9 +13,8 @@ To set up HTTP binding, modify your [Symphony host configuration file](../hosts/
     }
   ]
 ```
-And to se up a HTTPS binding with a auto-generated self-signed certificate:
+And to set up a HTTPS binding with an auto-generated self-signed certificate:
 
-> **NOTE:** You can use multiple bindings at the same time.
 ```json
 "bindings": [
     {
@@ -31,7 +30,9 @@ And to se up a HTTPS binding with a auto-generated self-signed certificate:
     }
 ]
 ```
-Please seee [Cert providers](../providers/cert_providers.md) for details on supported certificate providers and their configurations.
+> **NOTE:** You can use multiple bindings at the same time.
+
+Please see [Cert providers](../providers/cert_providers.md) for details on supported certificate providers and their configurations.
 
 ## Pipeline
 HTTP binding also allows you to define a pipeline of middleware, such as [CORS](./cors.md), [JWT token handler](./jwt-handler.md) and [distributed tracing using OpenTelemetry](./tracing.md). It's expected that other middleware will be enabled in future versions, such as caching, device attestation, and more.
@@ -57,6 +58,6 @@ To define a middleware pipeline, add a ```pipeline``` element to the root of you
 ]
 ```
 
-Upon requests, middleware are applied in the order they are defined in the pipeline. Unpon responses, middleware are applied in the reversed order. A specific middleware may choose to handle only requests, only responses, or both.
+Upon requests, middleware is applied in the order they are defined in the pipeline. Upon responses, middleware is applied in the reversed order. Specific middleware may choose to handle only requests, only responses, or both.
 
-> **NOTE:** Please see a few examples of Symphony host configuration files under the root folder of the ```symphony-api``` repo, as explained [here](../hosts/overview.md).
+> **NOTE:** Please see a few examples of Symphony host configuration files under the ```/api``` folder of the ```symphony``` repo, as explained [here](../hosts/overview.md).

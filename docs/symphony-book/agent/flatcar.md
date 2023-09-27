@@ -8,7 +8,7 @@
    ```bash
    # from repo root folder
    cd piccolo
-   cargo build --relase
+   cargo build --release
    ```
 2. Copy Piccolo binary to staging folder (currently ```0.0.1```)
    ```bash
