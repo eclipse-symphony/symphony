@@ -17,7 +17,7 @@ The following table summarizes how constants are evaluated:
 
 | Expression | Value | Comment |
 |--------|--------|--------|
-| ```"1"``` | ```"1"``` | Intergers are treated as strings, when no further evalutaion is possible |
+| ```"1"``` | ```"1"``` | Integers are treated as strings when no further evaluation is possible |
 | ```"3.14"``` | ```"3.14"``` | Floats are always treated as strings
 | ```" "``` | ```""``` | Spaces are trimmed |
 | ```"  abc   "``` | ```"abc"```| Spaces are trimmed |
@@ -50,7 +50,7 @@ The following table summarizes how operators work:
 | ```"abc*-3"```|```"abc*-3"```| Repeating -3 times is impossible, return as a string|
 | ```"abc*0"```| ```""```| Repeat 0 times |
 | ```"abc*(5/2)"```| ```"abcabc"```| Repeat floor(5/2) times |
-|```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluted first|
+|```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluated first |
 
 
 > **NOTE:** **Why do we treat integers as numbers when possible, and floats always as strings?** We allow integer calculations for cases like calculating an offset and other simple number manipulations. However, we don’t aim to offer a full-scale scripting language, and floats in our contexts are often version numbers like “```1.2```” and “```1.2.3```”. Hence we always treat floats as strings. Of course, you can do things like “```1.(3+4)```”, which evaluates to “```1.7```” because at ```(3+4)``` numerical evaluation of integer expression is still possible.
