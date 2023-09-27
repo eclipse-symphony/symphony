@@ -81,10 +81,10 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 |```$secret(<secret object>, <secret key>)```| Reads a secret from a secret store provider |
 |```$val([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value |
 
-<sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overriden by stage Arguments in [Instance](./instance.md).
+<sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overridden by stage Arguments in [Instance](./instance.md).
 
 ## Evaluation Context
-Functions like ```$input()```, ```$output()```, ```instance()```, ```property()``` and  ```$val()``` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropirate context leads to an error.
+Functions like ```$input()```, ```$output()```, ```instance()```, ```property()``` and  ```$val()``` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropriate context leads to an error.
 
 ## Using Operators Alone
 
@@ -92,7 +92,7 @@ We try to parse properties as closely as strings as possible with limited calcul
 
 * When used alone, a period (```.```) are returned as it is, such as ```.``` and ```...``` are returned as they are.
 * When used alone, a plus(```+```) is treated as a unary operator, which means a single, or a consecutive ```+``` signs are evaluated to empty strings, as “plus nothing” is still “nothing”.
-* When used alone, a minus(```-```) is treated as a unary operator, which means a single ```-``` is evaluated to empty string, as “minus nothing” is “nothing”. However, when you use two minus signs, the second minus is treated as “dash”, and a negative “dash” is still “dash”. Hence ```--``` evalutes to ```-```. 
+* When used alone, a minus(```-```) is treated as a unary operator, which means a single ```-``` is evaluated to empty string, as “minus nothing” is “nothing”. However, when you use two minus signs, the second minus is treated as “dash”, and a negative “dash” is still “dash”. Hence ```--``` evaluates to ```-```. 
 * When used alone, a forward-slash (```/```) are returned as it is, such as ```/``` and ```///``` are returned as they are.
 
 ## Skipping Parsing
@@ -104,4 +104,7 @@ and
 ```json
 "'https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<secret>'"
 ```
-In such cases, the string is returned as it is (with surrounding single quotes removed).
+In such cases, the string is returned as it is (with surrounding single quotes removed). You can also partially skip parsing by using string concatations. For example:
+```bash
+parsed + 'this is not parsed'
+```
