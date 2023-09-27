@@ -15,7 +15,7 @@
   |--------|--------|
   | ```[{solution name}]``` | (optional) name of the solution, a list is returned when this parameter is omitted |
   | ```[<path>]``` | (option) JSON Path filter|
-  |```[<doc-type>]```| (optional) return doc type, like ```yaml``` or ```json```, default is ```json```. See [query projection](./projection.md) for mroe details |
+  |```[<doc-type>]```| (optional) return doc type, like ```yaml``` or ```json```, default is ```json```. See [query projection](./projection.md) for more details |
   
 * **Headers:**
   |Parameter| Value|
@@ -55,12 +55,12 @@
   | ```[<embed-component>]``` | name of the embedded component<sup>1</sup>|
   | ```[<embed-property>]```| name of the embedded component property<sup>1</sup>|
   
-  <sup>1</sup>: Symphony allows a foeign application artifact to be directly embedded as a component property. The embedded artifact can be in any format. When you send the POST request, you need to use the correct content encoding. For example, to embed a YAML file as a ```embedded``` property of a ```my-external-component``` component, you need to set body encoding to ```application/text```.
+  <sup>1</sup>: Symphony allows a foreign application artifact to be directly embedded as a component property. The embedded artifact can be in any format. When you send the POST request, you need to use the correct content encoding. For example, to embed a YAML file as an ```embedded``` property of a ```my-external-component``` component, you need to set body encoding to ```application/text```.
 * **Headers:**
   |Parameter| Value|
   |--------|--------|
   | ```Authorization``` | Bearer token. see [authorization](../security/authorization.md) for more details |
-* **Request Body:** Solution Spec (JSON), or an arbitary text payload when ```embed-*``` parameters are used. For example, the following request: ```http://localhost:8080/v1alpha2/solutions/api-test-1?embed-type=container&embed-component=galaxy-services&embed-property=embedded``` with request body:
+* **Request Body:** Solution Spec (JSON), or an arbitrary text payload when ```embed-*``` parameters are used. For example, the following request: ```http://localhost:8080/v1alpha2/solutions/api-test-1?embed-type=container&embed-component=galaxy-services&embed-property=embedded``` with request body:
   ```yaml
   version: '3.8'
   provisioner-version: '1.0'
@@ -74,7 +74,7 @@
   - "/:/usr/local/apache2/htdocs"
   container_name: my-apache-app
   ```
-  creates a ```api-test-1``` solution with a single ```galaxy-services``` component that has a ```embedded``` property containing the posted YAML. This is equivalent to sending request to ```http://localhost:8080/v1alpha2/solutions/api-test-1``` with JSON request body:
+  creates an ```api-test-1``` solution with a single ```galaxy-services``` component that has an ```embedded``` property containing the posted YAML. This is equivalent to sending request to ```http://localhost:8080/v1alpha2/solutions/api-test-1``` with JSON request body:
   ```json
   {
     "displayName": "api-test-1",

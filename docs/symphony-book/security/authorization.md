@@ -3,7 +3,7 @@ Symphony API supports authorization using a [JWT token](https://jwt.io/). To acc
 
 ## Authorization with AAD Token
 
-To use AAD token, you need to configure your [JWT handler](../bindings/jwt-handler.md) in you HTTP binding pipeline accordingly. The following example shows the ```verifyKey``` is set to AAD certificate public key. it shows requires presence of an ```appid``` claim and an ```oid``` claim with specified values.
+To use AAD token, you need to configure your [JWT handler](../bindings/jwt-handler.md) in you HTTP binding pipeline accordingly. The following example shows the ```verifyKey``` is set to AAD certificate public key. It shows requires presence of an ```appid``` claim and an ```oid``` claim with specified values.
 
 ```json
 "pipeline": [
@@ -27,7 +27,7 @@ curl -X POST -H 'Content-Type: application/x-www-form-urlencoded' -d 'grant_type
 ```
 
 ## Authorization with Symphony Default User Store
-Symphony offers a default user store that supports basic authentication with a password. To sign in, send a POST request to ```http://<symphony api address>/v1alpha2/users/auth``` with the following JSON payload:
+Symphony offers a default user store that supports basic authentication with a password, mostly for dev-test scenarios. To sign in, send a POST request to ```http://<symphony api address>/v1alpha2/users/auth``` with the following JSON payload:
 ```json
 {
     "username": "<user name>",
@@ -52,7 +52,7 @@ Symphony REST API defines a couple of roles:
 * **Target Manager** (```target-manager```) - CRUD [Targets](../uom/target.md) only
 * **Solution Operator** (```operator```) - CRUD on [Instances](../uom/instance.md) only
 
-Symphony's JWT Handler allows you to map claim values into above roles. For example, the following mapping rule maps a ```admin``` user to the ```administrator``` role. When integrated with an external identity provider (IdP) such as AAD, you proably want to configure such mappings based on the AAD token you expect (such as looking for embedded application roles).
+Symphony's JWT Handler allows you to map claim values into the above roles. For example, the following mapping rule maps a ```admin``` user to the ```administrator``` role. When integrated with an external identity provider (IdP) such as AAD, you probably want to configure such mappings based on the AAD token you expect (such as looking for embedded application roles).
 
 ```json
 {
@@ -61,7 +61,7 @@ Symphony's JWT Handler allows you to map claim values into above roles. For exam
   "value": "admin"
 }
 ```
-A user can be associated with multiple roles. For example, the following mapping assign any users to the ```reader``` role. If both mapping rules are applied, the ```admin``` user is assigned to both the ```administrator``` role and the ```reader``` role in this case.
+A user can be associated with multiple roles. For example, the following mapping assigns any users to the ```reader``` role. If both mapping rules are applied, the ```admin``` user is assigned to both the ```administrator``` role and the ```reader``` role in this case.
 ```json
 {
     "role": "reader",
@@ -144,6 +144,6 @@ You can define REST API path access policies as part of the JWT Handler's config
 ]
 ```
 ## Using an external user store
-By default, Symphony uses a in-memory user store to simplify deployments. In a production environment, you'll want to switch to an external user store, such as SQL Server, Redis and MySQL. Symphony is integrated with [Dapr](https://dapr.io/) through a HTTP state provider accessing the Dapr sidecar state interface. This allows Symphony to connect to a few dozens of database types supported by Dapr.
+By default, Symphony uses an in-memory user store to simplify deployments. In a production environment, you'll want to switch to an external user store, such as SQL Server, Redis and MySQL. Symphony is integrated with [Dapr](https://dapr.io/) through a HTTP state provider accessing the Dapr sidecar state interface. This allows Symphony to connect to a few dozens of database types supported by Dapr.
 
 > **NOTE**: Symphony doesn't write passwords to databases. Instead, it writes a hash based on user id and password. If you plan to support renaming user ids, you need to be aware that the saved hash won't work under the new user id.
