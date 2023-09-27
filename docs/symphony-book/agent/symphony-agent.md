@@ -2,7 +2,7 @@
 
 A Symphony Agent runs on a ```Target``` and provides several services to Symphony payloads running on the same target, including:
 * Get object references from the control plane.
-* Probe and report health of associated ```Device```s.
+* Probe and report on health of associated ```Device```s.
 * Capture and upload camera images for camera ```Device```s.
 
 A Symphony Agent is a microservice that exposes a HTTP endpoint to Symphony payloads. We offer a Symphony container (```possprod.azurecr.io/symphony-agent```) as well as cross-platform binary that can be configured as a system daemon or service.
