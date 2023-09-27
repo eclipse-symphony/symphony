@@ -39,6 +39,7 @@ import (
 	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	patchstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/patch"
 	remotestage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
+	scriptstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/script"
 	waitstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
@@ -302,6 +303,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.create":
 		mProvider := &symphonystage.CreateStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.script":
+		mProvider := &scriptstage.ScriptStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -610,6 +617,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.stage.mock":
 					provider := &mockstage.MockStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.script":
+					provider := &scriptstage.ScriptStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
