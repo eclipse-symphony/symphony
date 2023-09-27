@@ -5,6 +5,7 @@ A target provider interacts with a specific system to carry out state seeking ac
 | Provider Type | Platform |
 |--------|--------|
 | ```providers.target.adb``` | Sideload Android apps using [Android Debug Bridge (adb)](https://developer.android.com/tools/adb) | 
+|```providers.target.arcextension``` | Manages Arc extensions |
 | ```providers.target.azure.adu``` | Device updates using [Device Update for IoT Hub (a.k.a. ADU)](https://learn.microsoft.com/en-us/azure/iot-hub-device-update/) |
 | ```providers.target.azure.iotedge``` | Deploy solution instances as [Azure IoT Edge](https://learn.microsoft.com/en-us/azure/iot-edge/?view=iotedge-1.4) modules |
 | ```providers.target.docker```| Deploy [Docker](https://www.docker.com/) containers |
