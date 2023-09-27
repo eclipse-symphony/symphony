@@ -1,6 +1,6 @@
 # Property Expressions
 
-Symphony Solution [```Components```](./solution.md#componentspec) can use property expressions in its property values. Property expressions are evaluated at Solution [Vendor](../vendors/overview.md) level, which means they are immediately evaluated once they arrive at the Symphony API surface. Hence, none of the [Managers](../managers/overview.md) or [Providers](../providers/overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their Solution documents.
+Symphony Solution [```Components```](./solution.md#componentspec) and Campaign Stages can use property expressions in their property values. Property expressions are evaluated at Solution [Vendor](../vendors/overview.md) level, which means they are immediately evaluated once they arrive at the Symphony API surface. Hence, none of the [Managers](../managers/overview.md) or [Providers](../providers/overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their Solution documents.
 
 In general, Symphony attempts to pare the property values as close as strings as possible. Only when Symphony detects clear and valid arithmetical expressions and function calls, it will try to evaluate them first before the string evaluation. This means Symphony is mostly tolerable to syntax errors in expressions and will treat those as string literals, unless there are clear errors such trying to divide by zero. For example, ```"10/"``` is allowed as Symphony assumes ```/``` is used as a forward-slash. However, ```"10/0"``` is disallowed as it leads to division by zero. ```"'10/0'"``` is allowed as it’s a quoted string.
 
@@ -53,7 +53,7 @@ The following table summarizes how operators work:
 |```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluted first|
 
 
-> **NOTE:** **Why we treat integers as numbers when possible, and floats always as strings?** We allow integer calculations for cases like calculating an offset and other simple number manipulations. However, we don’t aim to offer a full-scale scripting language, and floats in our contexts are often version numbers like “```1.2```” and “```1.2.3```”. Hence we always treat floats as strings. Of course, you can do things like “```1.(3+4)```”, which evaluates to “```1.7```” because at ```(3+4)``` numerical evaluation of integer expression is still possible.
+> **NOTE:** **Why do we treat integers as numbers when possible, and floats always as strings?** We allow integer calculations for cases like calculating an offset and other simple number manipulations. However, we don’t aim to offer a full-scale scripting language, and floats in our contexts are often version numbers like “```1.2```” and “```1.2.3```”. Hence we always treat floats as strings. Of course, you can do things like “```1.(3+4)```”, which evaluates to “```1.7```” because at ```(3+4)``` numerical evaluation of integer expression is still possible.
 ## Functions
 Symphony supports a few functions for artifact content overrides, as summarized by the following table.
 
@@ -61,12 +61,30 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 
 | Function | Behavior|
 |--------|--------|
-|```$config(<config object>, <config key>)``` | Reads a configuration from a config provider |
+|```$and(<condition1>, <condition2>)``` | If both ```<condition1>``` and ```<condition2>``` evaluate to ```true``` (boolean) or ```"true"``` (string)|
+|```$between(<value>, <value1>,<value2>)``` | If ```<value>``` is between ```<value1>``` and ```<value2>``` |
+|```$config(<config object>, <config key>, [<overrides>])``` | Reads a configuration from a config provider |
+|```$equal(<value1>, <value2>)``` | if ```<value1>``` equals to ```<value2>``` |
+|```$ge(<value1>, <value2>)``` | if ```<value1>``` is greater or euqal to ```<value2>``` |
+|```$gt(<value1>, <value2>)``` | if ```<value1>``` is greater than ```<value2>``` |
+|```$if(<condition>)``` | If ```<condition>``` evaluates to ```true``` (boolean) or ```"true"``` (string)|
+|```$in(<value>, [<ref-value>])``` | If ```<value>``` exists in the list of ```<ref-value>``` |
+|```$input(<field>)``` | Reads Campaign activation input ```<field>``` |
 |```$instance()```| Gets instance name of the current deployment |
+|```$le(<value1>, <value2>)``` | if ```<value1>``` is less or euqal to ```<value2>``` |
+|```$lt(<value1>, <value2>)``` | if ```<value1>``` is less than ```<value2>``` |
+|```$not(<condition>)``` | If ```<condition>``` evaluates to ```false``` (boolean) or ```"false"``` (string)|
+|```$output(<stage>, <field>)``` | Reads the output ```<field>``` value from a Campaign ```<stage>``` outputs|
+|```$or(<condition1>, <condition2>)``` | If either ```<condition1>``` or ```<condition2>``` evaluates to ```true``` (boolean) or ```"true"``` (string)|
 |```$param(<parameter name>)```| Reads a component parameter<sup>1</sup>|
+|```$property(<proerty name>)```| Reads a property from the evaluation context |
 |```$secret(<secret object>, <secret key>)```| Reads a secret from a secret store provider |
+|```$val([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value |
 
 <sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overriden by stage Arguments in [Instance](./instance.md).
+
+## Evaluation Context
+Functions like ```$input()```, ```$output()```, ```instance()```, ```property()``` and  ```$val()``` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropirate context leads to an error.
 
 ## Using Operators Alone
 

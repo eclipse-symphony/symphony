@@ -1,4 +1,4 @@
-# Modeling a Factory using ISA95 Model
+# Modeling a Factory using the ISA95 Model
 
 The following diagram illustrates a typical structure of an industrial automation system using the ISA95 model. Such a system encompasses multiple sub-systems, including ERP, MES, and SCADA, as well as various device categories like servers, PLCs, and sensors. Additionally, it involves multiple network connections, various user roles, policies, and numerous other components.
 
