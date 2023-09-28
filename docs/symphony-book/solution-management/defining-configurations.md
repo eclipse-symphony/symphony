@@ -21,7 +21,7 @@ spec:
 
 ## Static Overrides
 
-You can make a configuration to inherit from another configuration by setting its parentName property to another configuration ```Catalog``` object. The child configuration inherits all values from its parent. And the child can overrides inherited values by redefining these values in its own definition.
+You can make a configuration to inherit from another configuration by setting its ```parentName``` property to another configuration ```Catalog``` object. The child configuration inherits all values from its parent. And the child can override inherited values by redefining these values in its own definition.
 
 ## Dynamic Overrides
 
