@@ -16,8 +16,7 @@ spec:
     type: container
     properties:
       container.image: "possprod.azurecr.io/sample-flask-app:latest"      
-      env.MY_CONFIG: "$config(config-obj, config-key)"
-    
+      env.MY_CONFIG: "$config(config-obj, config-key)" 
 ```
 ## Configuration as a mounted file
 When deploying applications on Kubernetes, Symphony can assemble a configuration file and mount the file to a pod. To do this, you’ll need to declare a configuration component, and then a container component that has the configuration component as a dependency, as shown in the following example:
