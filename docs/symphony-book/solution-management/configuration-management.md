@@ -14,3 +14,4 @@ Symphony separates the concern of configuration management and configuration con
 ## Topics
 
 * [Defining Configurations](./defining-configurations.md)
+* [Serving Configurations](./serving-configurations.md)
