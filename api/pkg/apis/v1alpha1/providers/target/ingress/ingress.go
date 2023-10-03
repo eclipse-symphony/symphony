@@ -156,7 +156,7 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("  P (ConfigMap Target): %+v", err)
+					sLog.Errorf("  P (Ingress Target): %+v", err)
 					return err
 				}
 			}
@@ -165,40 +165,40 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (ConfigMap Target):  %+v", err)
+					sLog.Errorf("  P (Ingress Target):  %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				sLog.Errorf("  P (ConfigMap Target): %+v", err)
+				sLog.Errorf("  P (Ingress Target): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and inline", v1alpha2.BadConfig)
-			sLog.Errorf("  P (ConfigMap Target): %+v", err)
+			sLog.Errorf("  P (Ingress Target): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.Errorf("  P (Ingress Target): %+v", err)
 		return err
 	}
 
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.Errorf("  P (Ingress Target): %+v", err)
 		return err
 	}
 
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.Errorf("  P (Ingress Target): %+v", err)
 		return err
 	}
 
 	i.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.Errorf("  P (Ingress Target): %+v", err)
 		return err
 	}
 
@@ -244,9 +244,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		}
 		component.Component.Properties = make(map[string]interface{})
 
-		for i, value := range obj.Spec.Rules {
-			component.Component.Properties["rules."+strconv.Itoa(i)] = value
-		}
+		component.Component.Properties["rules"] = obj.Spec.Rules
 		ret = append(ret, component.Component)
 	}
 
@@ -289,16 +287,24 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						Rules: make([]networkingv1.IngressRule, 0),
 					},
 				}
-				for i := 0; i < len(component.Properties); i++ {
-					if value, ok := component.Properties["rules."+strconv.Itoa(i)]; ok {
-						jData, _ := json.Marshal(value)
-						var rule networkingv1.IngressRule
-						err := json.Unmarshal(jData, &rule)
-						if err != nil {
-							sLog.Error("  P (Ingress Target): failed to unmarshal ingress: +%v", err)
-							return ret, err
-						}
-						newIngress.Spec.Rules = append(newIngress.Spec.Rules, rule)
+				if v, ok := component.Properties["rules"]; ok {
+					jData, _ := json.Marshal(v)
+					var rules []networkingv1.IngressRule
+					err := json.Unmarshal(jData, &rules)
+					if err != nil {
+						sLog.Error("  P (Ingress Target): failed to unmarshal ingress: +%v", err)
+						return ret, err
+					}
+					newIngress.Spec.Rules = rules
+				}
+
+				if v, ok := component.Properties["ingressClassName"]; ok {
+					s, ok := v.(string)
+					if ok {
+						newIngress.Spec.IngressClassName = &s
+					} else {
+						sLog.Error("  P (Ingress Target): failed to convert ingress class name: +%v", v)
+						return ret, err
 					}
 				}
 

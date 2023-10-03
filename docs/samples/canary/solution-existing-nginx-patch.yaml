@@ -4,32 +4,11 @@ metadata:
   name: test-app
 spec:  
   components:
-  - name: nginx-ingress  
-    properties:
-      chart:
-        repo: https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
-        name: ingress-nginx
-      values:
-        controller:
-          replicaCount: 1
-          nodeSelector:
-            kubernetes.io/os: linux
-          admissionWebhooks:
-            patch:
-              nodeSelector:
-                kubernetes.io/os: linux 
-          service:
-            annotations:
-              service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz      
-        defaultBackend:
-          nodeSelector:
-            kubernetes.io/os: linux  
-    type: helm.v3
   - name: frontend
     type: container
     metadata:
       service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
-      service.type: "LoadBalancer"      
+      service.type: "NodePort"      
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
@@ -38,7 +17,16 @@ spec:
     type: container
     metadata:
       service.ports: "[{\"name\":\"port3012\",\"port\": 3012,\"targetPort\":5000}]"
-      service.type: "LoadBalancer"      
+      service.type: "NodePort"      
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "possprod.azurecr.io/sample-flask-app:latest"
+  - name: backend-v2
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3013\",\"port\": 3013,\"targetPort\":5000}]"
+      service.type: "NodePort"      
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
@@ -51,13 +39,26 @@ spec:
       rules.0:
         http:
           paths:
-          - host: "samples.com"
-            path: "/api"
+          - path: "/api"
             pathType: Prefix
             backend:
               service:
                 name: backend-v1
                 port:
-                  number: 3012      
-    dependencies:
-    - nginx-ingress    
+                  number: 3012 
+  - name: canary
+    type: ingress
+    metadata:
+      annotations.nginx.ingress.kubernetes.io/canary: "true"
+      annotations.nginx.ingress.kubernetes.io/canary-weight: "50"
+    properties:
+      rules.0:
+        http:
+          paths:
+          - path: "/api"
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-v2
+                port:
+                  number: 3013
