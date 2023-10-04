@@ -199,7 +199,7 @@ func TestJsonPathInvalidJsonPath(t *testing.T) {
 	json.Unmarshal([]byte(jData), &obj)
 	result, err := JsonPathQuery(obj, "{$[?(@.status=='queued')].status")
 	assert.NotNil(t, err)
-	assert.Equal(t, "", result)
+	assert.Equal(t, nil, result)
 }
 func TestJsonPathBadJsonPath(t *testing.T) {
 	jData := `
@@ -218,5 +218,5 @@ func TestJsonPathBadJsonPath(t *testing.T) {
 	json.Unmarshal([]byte(jData), &obj)
 	result, err := JsonPathQuery(obj, "sdgsgsdg")
 	assert.NotNil(t, err)
-	assert.Equal(t, "", result)
+	assert.Equal(t, nil, result)
 }

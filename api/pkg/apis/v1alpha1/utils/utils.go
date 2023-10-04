@@ -266,7 +266,7 @@ func FormatAsString(val interface{}) string {
 		return fmt.Sprintf("%v", tv)
 	}
 }
-func JsonPathQuery(obj interface{}, jsonPath string) (string, error) {
+func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {
 		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JsonPath expression to be wrapped in {}
@@ -283,26 +283,37 @@ func JsonPathQuery(obj interface{}, jsonPath string) (string, error) {
 	switch obj.(type) {
 	case []interface{}:
 		// the object is already an array, so the query didn't work
-		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
 	default:
 		arr = append(arr, obj)
 	}
 	return jsonPathQuery(arr, jPath)
 }
-func jsonPathQuery(obj interface{}, jsonPath string) (string, error) {
+func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jpLookup := jsonpath.New("lookup")
 	jpLookup.AllowMissingKeys(true)
+	jpLookup.EnableJSONOutput(true)
+
 	err := jpLookup.Parse(jsonPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+
 	var buf bytes.Buffer
 	err = jpLookup.Execute(&buf, obj)
-	result := buf.String()
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+
+	var result []interface{}
+	err = json.Unmarshal(buf.Bytes(), &result)
+
+	if err != nil {
+		return nil, err
 	} else if len(result) == 0 {
-		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
+	} else if len(result) == 1 {
+		return result[0], nil
 	} else {
 		return result, nil
 	}
