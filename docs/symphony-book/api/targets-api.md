@@ -135,7 +135,7 @@ You can optionally send heartbeat signals. When the heartbeat URL is invoked, th
   ```
 
 ## Target Status Report
-To report Target status, you can report a single status value through the query parameter. Or, you can PUT a property bag with multiple properties (or use a combination of both).
+To report Target status, you can report a single status value through the query parameter. Or you can PUT a property bag with multiple properties (or use a combination of both).
 * **Path:** /targets/status/{target name}
 * **Method:** PUT
 * **Parameters:**

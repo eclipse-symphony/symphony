@@ -2,7 +2,7 @@
 
 _(last edit: 6/26/2023)_
 
-Symphony defines a simple Provider interface with 5 methods:
+Symphony defines a simple Provider interface with 4 methods:
 
 ```go
 type ITargetProvider interface {
@@ -22,14 +22,14 @@ To simplify developer development, Symphony assumes:
 * A provider may or may not be idempotent
 
 ## Get()
-The ```Get()``` method probes the target device and returns the currently installed components. Because a target device may host applications from different sources, the ```Get()``` method passes in the expected deployment description as well a component list as a reference to help the provider to narrow down the scope of interest. For example, a mobile phone may have dozens of applications installed. The deployment description informs the provider which application(s) should be checked. 
+The ```Get()``` method probes the target device and returns the currently installed components. Because a target device may host applications from different sources, the ```Get()``` method passes in the expected deployment description as well as a component list as a reference to help the provider to narrow down the scope of interest. For example, a mobile phone may have dozens of applications installed. The deployment description informs the provider which application(s) should be checked. 
 
-A provider works mostly with the reference component list. In case if additional contexts is needed, the provider can consult the deployment spec.
+A provider works mostly with the reference component list. In case if additional context is needed, the provider can consult the deployment spec.
 
 ## Apply()
 The ```Apply()``` method runs a ```DeploymentStep```, which contains a list of ```ComponentStep```s. The provider needs to operate on each of the ```ComponentStep``` to apply the desired state to the target system.
 
-A ```ComponentStep``` can be either an ```"update"``` or ```"delete"``` step. Your provider should preform corresponding actions based on this flag.
+A ```ComponentStep``` can be either an ```"update"``` or ```"delete"``` step. Your provider should perform corresponding actions based on this flag.
 
 > **NOTE**: A provider is expected to operate only on components affected by the deployment descriptions. Some providers may need to wipe the whole device during deployment. In such cases, the development description is expected to contain the entire software stack. Or a device image can be treated as a single component in a solution. If a provider maintains a collection resource that holds components, it should remove the collection resource when the collection becomes empty.
 
