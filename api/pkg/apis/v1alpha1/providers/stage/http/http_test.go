@@ -176,6 +176,35 @@ func TestFakeAPIWithJsonPathArrayResult(t *testing.T) {
 	assert.EqualValues(t, []interface{}{float64(1), float64(2), float64(3)}, outputs["waitResult"])
 }
 
+func TestFakeAPIWithJsonPathMapResult(t *testing.T) {
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method:             "GET",
+		Url:                "https://www.bing.com",
+		WaitStartCodes:     []int{200},
+		WaitUrl:            "https://jsonplaceholder.typicode.com/users/1",
+		WaitCount:          1,
+		WaitInterval:       1,
+		WaitExpression:     "$.address",
+		WaitExpressionType: "jsonpath",
+		WaitSuccessCodes:   []int{200},
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, 200, outputs["status"])
+	assert.EqualValues(
+		t,
+		map[string]interface{}{
+			"street":  "Kulas Light",
+			"suite":   "Apt. 556",
+			"city":    "Gwenborough",
+			"zipcode": "92998-3874",
+			"geo":     map[string]interface{}{"lat": "-37.3159", "lng": "81.1496"}},
+		outputs["waitResult"])
+}
+
 func TestFakeAPIWithSymphonyExpression(t *testing.T) {
 	// This is what's returned from the jsonplacehoder URL:
 	// {
