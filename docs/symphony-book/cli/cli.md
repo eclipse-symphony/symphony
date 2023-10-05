@@ -2,6 +2,8 @@
 
 _(last edit: 4/12/2023)_
 
+Maestro is a cross-platform CLI for you to interact with your Symphony control planes. When running on Kubernetes, you can use maestro together with kubectl without conflicts.
+
 ## Download and install
 
 ### Linux/Mac

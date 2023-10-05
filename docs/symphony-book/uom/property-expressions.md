@@ -1,6 +1,6 @@
 # Property Expressions
 
-Symphony Solution [```Components```](./solution.md#componentspec) can use property expressions in its property values. Property expressions are evaluated at Solution [Vendor](../vendors/overview.md) level, which means they are immediately evaluated once they arrive at the Symphony API surface. Hence, none of the [Managers](../managers/overview.md) or [Providers](../providers/overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their Solution documents.
+Symphony Solution [```Components```](./solution.md#componentspec) and Campaign Stages can use property expressions in their property values. Property expressions are evaluated at Solution [Vendor](../vendors/overview.md) level, which means they are immediately evaluated once they arrive at the Symphony API surface. Hence, none of the [Managers](../managers/overview.md) or [Providers](../providers/overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their Solution documents.
 
 In general, Symphony attempts to pare the property values as close as strings as possible. Only when Symphony detects clear and valid arithmetical expressions and function calls, it will try to evaluate them first before the string evaluation. This means Symphony is mostly tolerable to syntax errors in expressions and will treat those as string literals, unless there are clear errors such trying to divide by zero. For example, ```"10/"``` is allowed as Symphony assumes ```/``` is used as a forward-slash. However, ```"10/0"``` is disallowed as it leads to division by zero. ```"'10/0'"``` is allowed as it’s a quoted string.
 
@@ -17,7 +17,7 @@ The following table summarizes how constants are evaluated:
 
 | Expression | Value | Comment |
 |--------|--------|--------|
-| ```"1"``` | ```"1"``` | Intergers are treated as strings, when no further evalutaion is possible |
+| ```"1"``` | ```"1"``` | Integers are treated as strings when no further evaluation is possible |
 | ```"3.14"``` | ```"3.14"``` | Floats are always treated as strings
 | ```" "``` | ```""``` | Spaces are trimmed |
 | ```"  abc   "``` | ```"abc"```| Spaces are trimmed |
@@ -50,10 +50,10 @@ The following table summarizes how operators work:
 | ```"abc*-3"```|```"abc*-3"```| Repeating -3 times is impossible, return as a string|
 | ```"abc*0"```| ```""```| Repeat 0 times |
 | ```"abc*(5/2)"```| ```"abcabc"```| Repeat floor(5/2) times |
-|```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluted first|
+|```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluated first |
 
 
-> **NOTE:** **Why we treat integers as numbers when possible, and floats always as strings?** We allow integer calculations for cases like calculating an offset and other simple number manipulations. However, we don’t aim to offer a full-scale scripting language, and floats in our contexts are often version numbers like “```1.2```” and “```1.2.3```”. Hence we always treat floats as strings. Of course, you can do things like “```1.(3+4)```”, which evaluates to “```1.7```” because at ```(3+4)``` numerical evaluation of integer expression is still possible.
+> **NOTE:** **Why do we treat integers as numbers when possible, and floats always as strings?** We allow integer calculations for cases like calculating an offset and other simple number manipulations. However, we don’t aim to offer a full-scale scripting language, and floats in our contexts are often version numbers like “```1.2```” and “```1.2.3```”. Hence we always treat floats as strings. Of course, you can do things like “```1.(3+4)```”, which evaluates to “```1.7```” because at ```(3+4)``` numerical evaluation of integer expression is still possible.
 ## Functions
 Symphony supports a few functions for artifact content overrides, as summarized by the following table.
 
@@ -61,12 +61,30 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 
 | Function | Behavior|
 |--------|--------|
-|```$config(<config object>, <config key>)``` | Reads a configuration from a config provider |
+|```$and(<condition1>, <condition2>)``` | If both ```<condition1>``` and ```<condition2>``` evaluate to ```true``` (boolean) or ```"true"``` (string)|
+|```$between(<value>, <value1>,<value2>)``` | If ```<value>``` is between ```<value1>``` and ```<value2>``` |
+|```$config(<config object>, <config key>, [<overrides>])``` | Reads a configuration from a config provider |
+|```$equal(<value1>, <value2>)``` | if ```<value1>``` equals to ```<value2>``` |
+|```$ge(<value1>, <value2>)``` | if ```<value1>``` is greater or euqal to ```<value2>``` |
+|```$gt(<value1>, <value2>)``` | if ```<value1>``` is greater than ```<value2>``` |
+|```$if(<condition>)``` | If ```<condition>``` evaluates to ```true``` (boolean) or ```"true"``` (string)|
+|```$in(<value>, [<ref-value>])``` | If ```<value>``` exists in the list of ```<ref-value>``` |
+|```$input(<field>)``` | Reads Campaign activation input ```<field>``` |
 |```$instance()```| Gets instance name of the current deployment |
+|```$le(<value1>, <value2>)``` | if ```<value1>``` is less or euqal to ```<value2>``` |
+|```$lt(<value1>, <value2>)``` | if ```<value1>``` is less than ```<value2>``` |
+|```$not(<condition>)``` | If ```<condition>``` evaluates to ```false``` (boolean) or ```"false"``` (string)|
+|```$output(<stage>, <field>)``` | Reads the output ```<field>``` value from a Campaign ```<stage>``` outputs|
+|```$or(<condition1>, <condition2>)``` | If either ```<condition1>``` or ```<condition2>``` evaluates to ```true``` (boolean) or ```"true"``` (string)|
 |```$param(<parameter name>)```| Reads a component parameter<sup>1</sup>|
+|```$property(<proerty name>)```| Reads a property from the evaluation context |
 |```$secret(<secret object>, <secret key>)```| Reads a secret from a secret store provider |
+|```$val([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value |
 
-<sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overriden by stage Arguments in [Instance](./instance.md).
+<sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overridden by stage Arguments in [Instance](./instance.md).
+
+## Evaluation Context
+Functions like ```$input()```, ```$output()```, ```instance()```, ```property()``` and  ```$val()``` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropriate context leads to an error.
 
 ## Using Operators Alone
 
@@ -74,7 +92,7 @@ We try to parse properties as closely as strings as possible with limited calcul
 
 * When used alone, a period (```.```) are returned as it is, such as ```.``` and ```...``` are returned as they are.
 * When used alone, a plus(```+```) is treated as a unary operator, which means a single, or a consecutive ```+``` signs are evaluated to empty strings, as “plus nothing” is still “nothing”.
-* When used alone, a minus(```-```) is treated as a unary operator, which means a single ```-``` is evaluated to empty string, as “minus nothing” is “nothing”. However, when you use two minus signs, the second minus is treated as “dash”, and a negative “dash” is still “dash”. Hence ```--``` evalutes to ```-```. 
+* When used alone, a minus(```-```) is treated as a unary operator, which means a single ```-``` is evaluated to empty string, as “minus nothing” is “nothing”. However, when you use two minus signs, the second minus is treated as “dash”, and a negative “dash” is still “dash”. Hence ```--``` evaluates to ```-```. 
 * When used alone, a forward-slash (```/```) are returned as it is, such as ```/``` and ```///``` are returned as they are.
 
 ## Skipping Parsing
@@ -86,4 +104,7 @@ and
 ```json
 "'https://manual-approval.azurewebsites.net:443/api/approval/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=<secret>'"
 ```
-In such cases, the string is returned as it is (with surrounding single quotes removed).
+In such cases, the string is returned as it is (with surrounding single quotes removed). You can also partially skip parsing by using string concatations. For example:
+```bash
+parsed + 'this is not parsed'
+```

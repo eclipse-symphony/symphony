@@ -19,6 +19,21 @@ Actions in each stage are carried out by a stage provider. Symphony ships with a
 | ```providers.stage.remote``` | Executes an action on a remote Symphony control plane |
 | ```providers.stage.wait``` | Wait for a Symphony object to be created |
 
+## Stage Interface
+
+Each stage is carried out by a stage provider. The stage provider is defined by a simple ```IProcessor``` interface:
+
+```go
+type IStageProvider interface {
+	// Return values: map[string]interface{} - outputs, bool - should the activation be paused (wait for a remote event), error
+	Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error)
+}
+```
+Essentially, a stage provider takes the inputs, performs any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the ```inputs``` parameter, plus any input parameter declared on the stage itself. For example, if a Campaign is activated with inputs ```foo``` and ```bar```, and the stage definition contains an input ```baz```, the ```inputs``` parameter will contain all the three values. 
+
+> **NOTE**: In current version, inputs defined in stage definition override activation inputs. If you do want to keep the activation input, you can use expression ```$input(<field name>)``` in your stage definition to carry over activation input.
+
+
 ## Stage Selectors
 When a stage finishes execution, its stage selector is evaluated to decide the next stage to be executed. A stage selector is a Symphony expression that evaluates to a stage name (string). For example, the expression "```next-stage```" selects a stage with the name "```next-stage```".
 
@@ -50,3 +65,4 @@ deploy:
       - site-app
       - site-instance
 ```
+

@@ -1,5 +1,7 @@
 # Vendors
 
+A vendor defines a chunk of API. You can consider each vendor a nano service, which can be assembled into one or multiple microservices. Developing with vendors uses an API-first approach, in which API shapes are mocked up and tested before any API implementations. This allows rapid iterations of APIs to satisfy project requirements before any expensive API implementation takes place.
+
 ## Vendor configuration
 Vendors are configured as part of the [host configuration file](../hosts/overview.md#host-configuration), under the ```vendors``` array under the top-level ```api``` element. The following example shows an example of a simpliest ```vendors.echo``` vendor, which returns a string when invoked:
 ```json
@@ -44,7 +46,7 @@ A more complex vendor usually loads a number of [Managers](../managers/overview.
 ## Pub/Sub
 Symphony doesn't allow any horizontal dependencies across Vendors, Managers or Providers. These components can exchange messages with each other through a pub/sub system provided by Symphony vendors.
 
-The Vendor object has a ```VendorContext``` property. It has a ```Publish``` method and a ```Subscribe``` method for messaing. When a Vendor needs to publish an event, it simply uses its context property to publish to a topic:
+The Vendor object has a ```VendorContext``` property. It has a ```Publish``` method and a ```Subscribe``` method for messaging. When a Vendor needs to publish an event, it simply uses its context property to publish to a topic:
 ```go
 c.Vendor.Context.Publish("trace", v1alpha2.Event{
     Body: "test message",
