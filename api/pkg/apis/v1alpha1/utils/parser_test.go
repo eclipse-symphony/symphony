@@ -412,14 +412,14 @@ func TestStarNumber(t *testing.T) {
 	parser := NewParser("*123")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "", val)
+	assert.Equal(t, "*123", val)
 }
 func TestStringRepeat(t *testing.T) {
-	// repeat (empty) 123 times
+	// repeat (empty) 123 times - this is no longer supported Oct 2023
 	parser := NewParser("abc*3")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabcabc", val)
+	assert.Equal(t, "abc*3", val)
 }
 func TestStringStarStar(t *testing.T) {
 	// repeat (empty) 123 times
@@ -446,6 +446,62 @@ func TestDivideAddString(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "2.5a", val)
 }
+func TestFloatMinus(t *testing.T) {
+	parser := NewParser("5/2-5/2")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "0", val)
+}
+func TestFloatMinus2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5-2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5-2.5", val)
+}
+func TestFloatMultiply(t *testing.T) {
+	parser := NewParser("5/2*5/2")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "6.25", val)
+}
+func TestFloatMultiply2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5*2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5*2.5", val)
+}
+func TestFloatDivide(t *testing.T) {
+	parser := NewParser("(5/2)/(5/2)")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "1", val)
+}
+func TestFloatDivide2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5/2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5/2.5", val)
+}
+
+func TestFloatDot(t *testing.T) {
+	parser := NewParser("5/2.")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5.", val)
+}
+func TestFloatDot2(t *testing.T) {
+	parser := NewParser("2.5.")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5.", val)
+}
+
 func TestDivideNegative(t *testing.T) {
 	parser := NewParser("10/-2")
 	val, err := parser.Eval(utils.EvaluationContext{})
@@ -454,8 +510,9 @@ func TestDivideNegative(t *testing.T) {
 }
 func TestDivideZero(t *testing.T) {
 	parser := NewParser("10/0")
-	_, err := parser.Eval(utils.EvaluationContext{})
-	assert.NotNil(t, err)
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "10/0", val) // can't divide, original string is returned
 }
 func TestStringAddNumber(t *testing.T) {
 	parser := NewParser("dog+1")
@@ -503,7 +560,7 @@ func TestStringMultiply(t *testing.T) {
 	parser := NewParser("dog*3")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "dogdogdog", val)
+	assert.Equal(t, "dog*3", val)
 }
 func TestNumberMultiplyString(t *testing.T) {
 	parser := NewParser("3*dog")
@@ -521,13 +578,13 @@ func TestStringMultiplyZero(t *testing.T) {
 	parser := NewParser("dog*0")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "", val)
+	assert.Equal(t, "dog*0", val)
 }
 func TestStringMultiplyFraction(t *testing.T) {
 	parser := NewParser("dog*(5/2)")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "dogdog", val)
+	assert.Equal(t, "dog*2.5", val)
 }
 func TestStringDivide(t *testing.T) {
 	parser := NewParser("dog/3")
@@ -596,7 +653,7 @@ func TestSecretWithExpression(t *testing.T) {
 	parser := NewParser("$secret(abc*2,def+4)")
 	val, err := parser.Eval(utils.EvaluationContext{SecretProvider: provider})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabc>>def4", val)
+	assert.Equal(t, "abc*2>>def4", val)
 }
 func TestSecretRecursive(t *testing.T) {
 	//create mock secret provider
@@ -684,7 +741,7 @@ func TestConfigWithExpression(t *testing.T) {
 	parser := NewParser("$config(abc*2,def+4)")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabc::def4", val)
+	assert.Equal(t, "abc*2::def4", val)
 }
 func TestConfigRecursive(t *testing.T) {
 	//create mock config provider
@@ -1587,4 +1644,36 @@ func TestReqularExps(t *testing.T) {
 	output, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
 	assert.Equal(t, "/api(/|$)(.*)", output)
+}
+
+func TestJsonPathSimple(t *testing.T) {
+	parser := NewParser("$.store.books[*]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[*]", output)
+}
+func TestJsonPathSlice(t *testing.T) {
+	parser := NewParser("$.store.books[-2:]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[-2:]", output)
+}
+func TestJsonPathConditional(t *testing.T) {
+	parser := NewParser("$.store.books[?(@author=='Nigel Rees')]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@author=='Nigel Rees')]", output)
+}
+func TestJsonPathRegularExpression(t *testing.T) {
+	parser := NewParser("$.store.books[?(@author=~ /^Nigel|Waugh$/  )] ")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@author=~ /^Nigel|Waugh$/  )]", output)
+}
+
+func TestJsonPathComplex(t *testing.T) {
+	parser := NewParser("$.store.books[?(@.sections[*]=='s1' || @.sections[*]=='s2' )]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@.sections[*]=='s1' || @.sections[*]=='s2' )]", output)
 }
