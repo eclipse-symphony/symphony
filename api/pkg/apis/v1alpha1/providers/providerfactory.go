@@ -32,7 +32,9 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	memorygraph "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	counterstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
+	delaystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
 	materialize "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
@@ -171,6 +173,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.ledger.mock":
 		mProvider := &mockledger.MockLedgerProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.counter":
+		mProvider := &counterstage.CounterStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -333,6 +341,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.wait":
 		mProvider := &waitstage.WaitStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.delay":
+		mProvider := &delaystage.DelayStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -583,6 +597,12 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
+				case "providers.stage.delay":
+					provider := &delaystage.DelayStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
 				case "providers.target.extendedlocation":
 					provider := &extendedlocation.ExtendedLocationTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
@@ -633,6 +653,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.stage.patch":
 					provider := &patchstage.PatchStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.counter":
+					provider := &counterstage.CounterStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

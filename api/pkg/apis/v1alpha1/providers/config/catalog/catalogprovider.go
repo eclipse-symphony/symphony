@@ -29,7 +29,6 @@ package catalog
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
@@ -194,18 +193,6 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		default:
 			return m.traceValue(v, localcontext)
 		}
-	case int:
-		return strconv.Itoa(val), nil
-	case int32:
-		return strconv.Itoa(int(val)), nil
-	case int64:
-		return strconv.Itoa(int(val)), nil
-	case float32:
-		return strconv.FormatFloat(float64(val), 'f', -1, 32), nil
-	case float64:
-		return strconv.FormatFloat(val, 'f', -1, 64), nil
-	case bool:
-		return strconv.FormatBool(val), nil
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
@@ -227,7 +214,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		}
 		return ret, nil
 	default:
-		return fmt.Sprintf("%v", v), nil
+		return val, nil
 	}
 }
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {

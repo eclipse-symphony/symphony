@@ -142,4 +142,7 @@ const (
 	ProvidersReporter      = "providers.reporter"
 	ProviderQueue          = "providers.queue"
 	ProviderLedger         = "providers.ledger"
+	StatusOutput           = "__status"
+	ErrorOutput            = "__error"
+	StateOutput            = "__state"
 )

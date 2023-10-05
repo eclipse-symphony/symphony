@@ -839,15 +839,15 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return string(jData), nil
 		}
 		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
-
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
 
 type Parser struct {
-	s     *scanner.Scanner
-	token Token
-	text  string
+	s            *scanner.Scanner
+	token        Token
+	text         string
+	OriginalText string
 }
 
 func NewParser(text string) *Parser {
@@ -855,7 +855,9 @@ func NewParser(text string) *Parser {
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &Parser{
-		s: &s,
+		s:            &s,
+		text:         text,
+		OriginalText: strings.TrimSpace(text),
 	}
 	p.next()
 	return p
@@ -866,7 +868,7 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	for {
 		n, err := p.expr(false)
 		if err != nil {
-			return nil, err
+			return p.OriginalText, nil //can't be interpreted as an expression, return the original text
 		}
 		if _, ok := n.(*NullNode); !ok {
 			v, r := n.Eval(context)
@@ -1147,6 +1149,17 @@ func (p *Parser) expr(inFunc bool) (Node, error) {
 			} else {
 				return node, nil
 			}
+		case OPAREN:
+			p.next()
+			node, err := p.expr(false)
+			if err != nil {
+				return nil, err
+			}
+			expr := node
+			if err := p.match(CPAREN); err != nil {
+				return nil, err
+			}
+			return expr, nil
 		default:
 			return node, nil
 		}

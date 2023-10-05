@@ -130,17 +130,20 @@ func TestIngressTargetProviderApply(t *testing.T) {
 			"annotations.nginx.ingress.kubernetes.io/rewrite-target": "/",
 		},
 		Properties: map[string]interface{}{
-			"rules.0": map[string]interface{}{
-				"http": map[string]interface{}{
-					"paths": []interface{}{
-						map[string]interface{}{
-							"path":     "/testpath",
-							"pathType": "Prefix",
-							"backend": map[string]interface{}{
-								"service": map[string]interface{}{
-									"name": "test-service1",
-									"port": map[string]interface{}{
-										"number": 80,
+			"ingressClassName": "nginx",
+			"rules": []map[string]interface{}{
+				{
+					"http": map[string]interface{}{
+						"paths": []interface{}{
+							map[string]interface{}{
+								"path":     "/testpath",
+								"pathType": "Prefix",
+								"backend": map[string]interface{}{
+									"service": map[string]interface{}{
+										"name": "test-service1",
+										"port": map[string]interface{}{
+											"number": 88,
+										},
 									},
 								},
 							},
@@ -193,17 +196,19 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 			"annotations.nginx.ingress.kubernetes.io/rewrite-target": "/",
 		},
 		Properties: map[string]interface{}{
-			"rules.0": map[string]interface{}{
-				"http": map[string]interface{}{
-					"paths": []interface{}{
-						map[string]interface{}{
-							"path":     "/testpath",
-							"pathType": "Prefix",
-							"backend": map[string]interface{}{
-								"service": map[string]interface{}{
-									"name": "test-service1",
-									"port": map[string]interface{}{
-										"number": 80,
+			"ruless": []map[string]interface{}{
+				{
+					"http": map[string]interface{}{
+						"paths": []interface{}{
+							map[string]interface{}{
+								"path":     "/testpath",
+								"pathType": "Prefix",
+								"backend": map[string]interface{}{
+									"service": map[string]interface{}{
+										"name": "test-service1",
+										"port": map[string]interface{}{
+											"number": 80,
+										},
 									},
 								},
 							},
