@@ -32,7 +32,9 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	memorygraph "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	counterstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
+	delaystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
 	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
 	materialize "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
@@ -51,6 +53,7 @@ import (
 	extendedlocation "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extendedlocation"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/ingress"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
 	tgtmock "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
@@ -175,6 +178,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.counter":
+		mProvider := &counterstage.CounterStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.target.azure.iotedge":
 		mProvider := &iotedge.IoTEdgeTargetProvider{}
 		err = mProvider.Init(config)
@@ -195,6 +204,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.docker":
 		mProvider := &docker.DockerTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.ingress":
+		mProvider := &ingress.IngressTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -337,6 +352,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.delay":
+		mProvider := &delaystage.DelayStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.stage.materialize":
 		mProvider := &materialize.MaterializeStageProvider{}
 		err = mProvider.Init(config)
@@ -402,6 +423,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.target.docker":
 					provider := &docker.DockerTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.ingress":
+					provider := &ingress.IngressTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
@@ -575,6 +604,12 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
+				case "providers.stage.delay":
+					provider := &delaystage.DelayStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
 				case "providers.target.extendedlocation":
 					provider := &extendedlocation.ExtendedLocationTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
@@ -633,6 +668,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.stage.patch":
 					provider := &patchstage.PatchStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.counter":
+					provider := &counterstage.CounterStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

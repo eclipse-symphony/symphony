@@ -517,8 +517,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			if i.Config.DeploymentStrategy == SERVICES_NS {
 				scope = dep.Instance.Name
 			}
-			slice := dep.GetComponentSlice()
-			for _, component := range slice {
+			for _, component := range deleted {
 				serviceName := component.Name
 				if component.Metadata != nil {
 					if v, ok := component.Metadata["service.name"]; ok {

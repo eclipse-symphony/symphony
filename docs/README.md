@@ -31,6 +31,10 @@ You can start using Symphony in minutes by selecting one of the following paths:
 | [Deploying a Redis container with standalone Symphony](./symphony-book/quick_start/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
 | [Deploying a simulated temperature sensor Solution to an Azure IoT Edge device](./symphony-book/quick_start/deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
 
+## Advanced Scenarios
+
+* [Canary Deployment](./symphony-book/scenarios/canary-deployment.md)
+
 ## Learning more about Symphony
 
 * [Concepts](./symphony-book/concepts/overview.md)
