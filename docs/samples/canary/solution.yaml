@@ -43,17 +43,19 @@ spec:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
       container.image: "possprod.azurecr.io/sample-flask-app:latest"
+      env.APP_VERSION: "This_is_version_1"
   - name: ingress
     type: ingress
     metadata:
-      annotations.nginx.ingress.kubernetes.io/rewrite-target: "/"
+      annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
     properties:
-      rules.0:
-        http:
+      ingressClassName: nginx
+      rules:
+      - http:
           paths:
           - host: "samples.com"
-            path: "/api"
-            pathType: Prefix
+            path: "'/api(/|$)(.*)'"
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: backend-v1

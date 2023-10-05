@@ -390,6 +390,11 @@ func (*IngressTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 				Name: "*", //react to all property changes
 			},
 		},
+		ChangeDetectionMetadata: []model.PropertyDesc{
+			{
+				Name: "annotations.*", //react to all annotation changes
+			},
+		},
 	}
 }
 

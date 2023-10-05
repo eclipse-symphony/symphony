@@ -44,6 +44,7 @@ type PropertyDesc struct {
 type ValidationRule struct {
 	RequiredComponentType     string         `json:"requiredType"`
 	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
+	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
 	RequiredProperties        []string       `json:"requiredProperties"`
 	OptionalProperties        []string       `json:"optionalProperties"`
 	RequiredMetadata          []string       `json:"requiredMetadata"`
@@ -84,7 +85,7 @@ func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec)
 			regexpPattern := strings.ReplaceAll(escapedPattern, `\*`, ".*")
 			// Compile the regular expression
 			regexpObject := regexp.MustCompile("^" + regexpPattern + "$")
-			for k, _ := range old.Properties {
+			for k := range old.Properties {
 				if regexpObject.MatchString(k) {
 					if compareProperties(c, old, new, k) {
 						return true
@@ -100,6 +101,26 @@ func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec)
 				if compareProperties(c, old, new, c.Name) {
 					return true
 				}
+			}
+		}
+	}
+	for _, c := range v.ChangeDetectionMetadata {
+		if strings.Contains(c.Name, "*") {
+			escapedPattern := regexp.QuoteMeta(c.Name)
+			// Replace the wildcard (*) with a regular expression pattern
+			regexpPattern := strings.ReplaceAll(escapedPattern, `\*`, ".*")
+			// Compile the regular expression
+			regexpObject := regexp.MustCompile("^" + regexpPattern + "$")
+			for k := range old.Metadata {
+				if regexpObject.MatchString(k) {
+					if compareMetadata(c, old, new, k) {
+						return true
+					}
+				}
+			}
+		} else {
+			if compareMetadata(c, old, new, c.Name) {
+				return true
 			}
 		}
 	}
@@ -121,6 +142,21 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 func compareProperties(c PropertyDesc, old ComponentSpec, new ComponentSpec, key string) bool {
 	if v, ok := old.Properties[key]; ok {
 		if nv, nok := new.Properties[key]; nok {
+			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
+				return true
+			}
+		}
+	} else {
+		if !c.SkipIfMissing {
+			return true
+		}
+	}
+	return false
+}
+
+func compareMetadata(c PropertyDesc, old ComponentSpec, new ComponentSpec, key string) bool {
+	if v, ok := old.Metadata[key]; ok {
+		if nv, nok := new.Metadata[key]; nok {
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}

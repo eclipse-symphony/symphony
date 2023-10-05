@@ -216,10 +216,10 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 
 func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
-	// testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSIONS")
-	// if testSymphonyHelmVersion == "" {
-	// 	t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
-	// }
+	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSIONS")
+	if testSymphonyHelmVersion == "" {
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
+	}
 
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}

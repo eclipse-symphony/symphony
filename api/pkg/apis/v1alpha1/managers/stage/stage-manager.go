@@ -29,7 +29,6 @@ package stage
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -328,6 +327,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__stage"] = triggerData.Stage
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
 
+		if triggerData.Outputs != nil {
+			if v, ok := triggerData.Outputs[triggerData.Stage]; ok {
+				if vs, ok := v["__state"]; ok {
+					inputs["__state"] = vs
+				}
+			}
+		}
+
 		log.Debugf(" M (Stage): HandleTriggerEvent after evaluation inputs 2: %v", inputs)
 
 		factory := symproviders.SymphonyProviderFactory{}
@@ -407,6 +414,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 		}
 
+		status.Outputs = outputs //TODO: This is newly added 10/3/2023, is this correct?
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
 		}
@@ -538,18 +546,6 @@ func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, 
 		default:
 			return s.traceValue(v, inputs, outputs)
 		}
-	case int:
-		return strconv.Itoa(val), nil
-	case int32:
-		return strconv.Itoa(int(val)), nil
-	case int64:
-		return strconv.Itoa(int(val)), nil
-	case float32:
-		return strconv.FormatFloat(float64(val), 'f', -1, 32), nil
-	case float64:
-		return strconv.FormatFloat(val, 'f', -1, 64), nil
-	case bool:
-		return strconv.FormatBool(val), nil
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
@@ -571,7 +567,7 @@ func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, 
 		}
 		return ret, nil
 	default:
-		return fmt.Sprintf("%v", v), nil
+		return val, nil
 	}
 }
 
