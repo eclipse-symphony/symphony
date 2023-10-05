@@ -186,20 +186,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		lv_f, okl := lv.(float64)
-		rv_f, okr := rv.(float64)
-		if okl && okr {
-			v := lv_f + rv_f
-			return v, nil
-		} else if okl {
-			lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
-			return fmt.Sprintf("%v%v", lv_str, rv), nil
-		} else if okr {
-			rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
-			return fmt.Sprintf("%v%v", lv, rv_str), nil
-		} else {
-			return fmt.Sprintf("%v%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, ""), nil
 	case MINUS:
 		var lv interface{} = ""
 		var le error
@@ -217,14 +204,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			v := vl - vr
-			return v, nil
-		} else {
-			return fmt.Sprintf("%v-%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, "-"), nil
 	case COMMA:
 		lv, le := n.Left.Eval(context)
 		if le != nil {
@@ -252,24 +232,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			v := vl * vr
-			return v, nil
-		} else {
-			if !okl && okr {
-				if vr > 0 {
-					return strings.Repeat(fmt.Sprintf("%v", lv), int(vr)), nil
-				} else if vr == 0 {
-					return "", nil
-				} else {
-					return fmt.Sprintf("%v*%v", lv, rv), nil
-				}
-			} else {
-				return fmt.Sprintf("%v*%v", lv, rv), nil
-			}
-		}
+		return formatFloats(lv, rv, "*"), nil
 	case DIV:
 		var lv interface{} = ""
 		var le error
@@ -287,18 +250,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			if vr != 0 {
-				v := vl / vr
-				return v, nil
-			} else {
-				return nil, errors.New("divide by zero")
-			}
-		} else {
-			return fmt.Sprintf("%v/%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, "/"), nil
 	case SLASH:
 		var lv interface{} = ""
 		var le error
@@ -334,16 +286,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			return fmt.Sprintf("%s.%s", strconv.FormatFloat(vl, 'f', -1, 64), strconv.FormatFloat(vr, 'f', -1, 64)), nil
-		} else if okl {
-			return fmt.Sprintf("%s.%v", strconv.FormatFloat(vl, 'f', -1, 64), rv), nil
-		} else if okr {
-			return fmt.Sprintf("%v.%s", lv, strconv.FormatFloat(vr, 'f', -1, 64)), nil
-		}
-		return fmt.Sprintf("%v.%v", lv, rv), nil
+		return formatFloats(lv, rv, "."), nil
 	case COLON:
 		var lv interface{} = ""
 		var le error
@@ -491,6 +434,43 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 		}
 	}
 	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
+}
+
+func formatFloats(left interface{}, right interface{}, operator string) interface{} {
+	lv_f, okl := left.(float64)
+	rv_f, okr := right.(float64)
+	if okl && okr {
+		switch operator {
+		case "":
+			return lv_f + rv_f
+		case "-":
+			return lv_f - rv_f
+		case "*":
+			return lv_f * rv_f
+		case "/":
+			if rv_f != 0 {
+				return lv_f / rv_f
+			} else {
+				lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+				rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+				return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
+			}
+		case ".":
+			lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+			rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+			return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
+		default:
+			return fmt.Errorf("operator '%s' is not allowed in this context", operator)
+		}
+	} else if okl {
+		lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+		return fmt.Sprintf("%v%s%v", lv_str, operator, right)
+	} else if okr {
+		rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+		return fmt.Sprintf("%v%s%v", left, operator, rv_str)
+	} else {
+		return fmt.Sprintf("%v%s%v", left, operator, right)
+	}
 }
 
 func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
