@@ -29,10 +29,9 @@ package patch
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
 	"sync"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -125,18 +124,6 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 		default:
 			return m.traceValue(v, ctx)
 		}
-	case int:
-		return strconv.Itoa(val), nil
-	case int32:
-		return strconv.Itoa(int(val)), nil
-	case int64:
-		return strconv.Itoa(int(val)), nil
-	case float32:
-		return strconv.FormatFloat(float64(val), 'f', -1, 32), nil
-	case float64:
-		return strconv.FormatFloat(val, 'f', -1, 64), nil
-	case bool:
-		return strconv.FormatBool(val), nil
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
@@ -158,7 +145,7 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 		}
 		return ret, nil
 	default:
-		return fmt.Sprintf("%v", v), nil
+		return val, nil
 	}
 }
 
@@ -170,6 +157,10 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	objectType := stage.ReadInputString(inputs, "objectType")
 	objectName := stage.ReadInputString(inputs, "objectName")
 	patchSource := stage.ReadInputString(inputs, "patchSource")
+	var patchContent interface{}
+	if v, ok := inputs["patchContent"]; ok {
+		patchContent = v
+	}
 	componentName := stage.ReadInputString(inputs, "component")
 	propertyName := stage.ReadInputString(inputs, "property")
 	subKey := stage.ReadInputString(inputs, "subKey")
@@ -180,6 +171,63 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	}
 	udpated := false
 
+	var catalog model.CatalogState
+	var err error
+
+	switch patchSource {
+	case "", "catalog":
+		if v, ok := patchContent.(string); ok {
+			catalog, err = utils.GetCatalog(i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
+
+			if err != nil {
+				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+				return nil, false, err
+			}
+		} else {
+			sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+			return nil, false, v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+		}
+	case "inline":
+		if componentName != "" {
+			if v, ok := patchContent.(map[string]interface{}); ok {
+				catalog = model.CatalogState{
+					Spec: &model.CatalogSpec{
+						Properties: v,
+					},
+				}
+			} else {
+				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+				return nil, false, v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			}
+		} else {
+			var componentSpec model.ComponentSpec
+			jData, _ := json.Marshal(patchContent)
+			if err := json.Unmarshal(jData, &componentSpec); err != nil {
+				sLog.Errorf("  P (Patch Stage): error unmarshalling componentSpec")
+				return nil, false, err
+			}
+			catalog = model.CatalogState{
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"spec": componentSpec,
+					},
+				},
+			}
+		}
+	default:
+		sLog.Errorf("  P (Patch Stage): unsupported patchSource: %s", patchSource)
+		return nil, false, v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+	}
+
+	for k, v := range catalog.Spec.Properties {
+		tv, err := i.traceValue(v, inputs["context"])
+		if err != nil {
+			sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
+			return nil, false, err
+		}
+		catalog.Spec.Properties[k] = tv
+	}
+
 	switch objectType {
 	case "solution":
 		solution, err := utils.GetSolution(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
@@ -187,96 +235,100 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
 		}
-		catalog, err := utils.GetCatalog(i.Config.BaseUrl, patchSource, i.Config.User, i.Config.Password)
 
-		if err != nil {
-			sLog.Errorf("  P (Patch Stage): error getting catalog %s", patchSource)
-			return nil, false, err
-		}
-
-		for k, v := range catalog.Spec.Properties {
-			tv, err := i.traceValue(v, inputs["context"])
-			if err != nil {
-				sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
-				return nil, false, err
+		if componentName == "" {
+			componentSpec := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			for i, c := range solution.Spec.Components {
+				if c.Name == componentSpec.Name {
+					if patchAction == "remove" {
+						solution.Spec.Components = append(solution.Spec.Components[:i], solution.Spec.Components[i+1:]...)
+					} else {
+						solution.Spec.Components[i] = componentSpec
+					}
+					udpated = true
+					break
+				}
 			}
-			catalog.Spec.Properties[k] = tv
-		}
-
-		for i, c := range solution.Spec.Components {
-			if c.Name == componentName {
-				for k, p := range c.Properties {
-					if k == propertyName {
-						if subKey != "" {
-							if detailedTarget, ok := p.(map[string]interface{}); ok {
-								if v, ok := detailedTarget[subKey]; ok {
-									if targetMap, ok := v.([]interface{}); ok {
-										replaced := false
-										if dedupKey != "" {
-											for i, v := range targetMap {
-												if vmap, ok := v.(map[string]interface{}); ok {
-													if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
-														if patchAction == "remove" {
-															targetMap = append(targetMap[:i], targetMap[i+1:]...)
-														} else {
-															targetMap[i] = catalog.Spec.Properties
+			if !udpated && patchAction != "remove" {
+				solution.Spec.Components = append(solution.Spec.Components, componentSpec)
+				udpated = true
+			}
+		} else {
+			for i, c := range solution.Spec.Components {
+				if c.Name == componentName {
+					for k, p := range c.Properties {
+						if k == propertyName {
+							if subKey != "" {
+								if detailedTarget, ok := p.(map[string]interface{}); ok {
+									if v, ok := detailedTarget[subKey]; ok {
+										if targetMap, ok := v.([]interface{}); ok {
+											replaced := false
+											if dedupKey != "" {
+												for i, v := range targetMap {
+													if vmap, ok := v.(map[string]interface{}); ok {
+														if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
+															if patchAction == "remove" {
+																targetMap = append(targetMap[:i], targetMap[i+1:]...)
+															} else {
+																targetMap[i] = catalog.Spec.Properties
+															}
+															replaced = true
+															break
 														}
-														replaced = true
-														break
 													}
 												}
 											}
+											if !replaced && patchAction != "remove" {
+												targetMap = append(targetMap, catalog.Spec.Properties)
+											}
+											detailedTarget[subKey] = targetMap
+											solution.Spec.Components[i].Properties[propertyName] = detailedTarget
+											udpated = true
+										} else {
+											sLog.Errorf("  P (Patch Stage): target properties is not valid")
+											return nil, false, v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
 										}
-										if !replaced && patchAction != "remove" {
-											targetMap = append(targetMap, catalog.Spec.Properties)
-										}
-										detailedTarget[subKey] = targetMap
-										solution.Spec.Components[i].Properties[propertyName] = detailedTarget
-										udpated = true
 									} else {
-										sLog.Errorf("  P (Patch Stage): target properties is not valid")
-										return nil, false, v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+										sLog.Errorf("  P (Patch Stage): subKey is not valid")
+										return nil, false, v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
 									}
 								} else {
 									sLog.Errorf("  P (Patch Stage): subKey is not valid")
 									return nil, false, v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
 								}
 							} else {
-								sLog.Errorf("  P (Patch Stage): subKey is not valid")
-								return nil, false, v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
-							}
-						} else {
-							if targetMap, ok := p.([]interface{}); ok {
-								replaced := false
-								if dedupKey != "" {
-									for i, v := range targetMap {
-										if vmap, ok := v.(map[string]interface{}); ok {
-											if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
-												if patchAction == "remove" {
-													targetMap = append(targetMap[:i], targetMap[i+1:]...)
-												} else {
-													targetMap[i] = catalog.Spec.Properties
+								if targetMap, ok := p.([]interface{}); ok {
+									replaced := false
+									if dedupKey != "" {
+										for i, v := range targetMap {
+											if vmap, ok := v.(map[string]interface{}); ok {
+												if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
+													if patchAction == "remove" {
+														targetMap = append(targetMap[:i], targetMap[i+1:]...)
+													} else {
+														targetMap[i] = catalog.Spec.Properties
+													}
+													replaced = true
+													break
 												}
-												replaced = true
-												break
 											}
 										}
 									}
+									if !replaced && patchAction != "remove" {
+										targetMap = append(targetMap, catalog.Spec.Properties)
+									}
+									solution.Spec.Components[i].Properties[propertyName] = targetMap
+									udpated = true
+								} else {
+									sLog.Errorf("  P (Patch Stage): target properties is not valid")
+									return nil, false, v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
 								}
-								if !replaced && patchAction != "remove" {
-									targetMap = append(targetMap, catalog.Spec.Properties)
-								}
-								solution.Spec.Components[i].Properties[propertyName] = targetMap
-								udpated = true
-							} else {
-								sLog.Errorf("  P (Patch Stage): target properties is not valid")
-								return nil, false, v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
 							}
+							break
 						}
-						break
 					}
+					break
 				}
-				break
 			}
 		}
 		if udpated {

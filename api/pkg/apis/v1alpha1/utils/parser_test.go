@@ -1563,9 +1563,11 @@ func TestValWithJsonPathArrayBoolean(t *testing.T) {
 }
 
 func TestMessedUpQuote(t *testing.T) {
+	//when we see an expression we can't parse, return the original value
 	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'")
-	_, err := parser.Eval(utils.EvaluationContext{})
-	assert.NotNil(t, err)
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'", output)
 }
 
 func TestStrangeString(t *testing.T) {
@@ -1573,4 +1575,16 @@ func TestStrangeString(t *testing.T) {
 	output, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
 	assert.Equal(t, "~pg~edges~ffr4~adapter~collector-ffr4", output)
+}
+func TestTwoDolloars(t *testing.T) {
+	parser := NewParser("/$2")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "/$2", output)
+}
+func TestReqularExps(t *testing.T) {
+	parser := NewParser("/api(/|$)(.*)")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "/api(/|$)(.*)", output)
 }
