@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -92,15 +93,24 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 
 	for k, v := range inputs {
 		if k != "__state" {
-			if v, err := getNumber(v); err == nil {
-				if s, ok := selfState[k]; ok {
-					if sv, err := getNumber(s); err == nil {
-						selfState[k] = sv + v
-						outputs[k] = sv + v
+			if !strings.HasSuffix(k, ".init") {
+				if v, err := getNumber(v); err == nil {
+					if s, ok := selfState[k]; ok {
+						if sv, err := getNumber(s); err == nil {
+							selfState[k] = sv + v
+							outputs[k] = sv + v
+						}
+					} else {
+						if vs, ok := inputs[k+".init"]; ok {
+							if vs, err := getNumber(vs); err == nil {
+								selfState[k] = vs + v
+								outputs[k] = vs + v
+							}
+						} else {
+							selfState[k] = v
+							outputs[k] = v
+						}
 					}
-				} else {
-					selfState[k] = v
-					outputs[k] = v
 				}
 			}
 		}

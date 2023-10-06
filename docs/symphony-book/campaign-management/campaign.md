@@ -10,13 +10,16 @@ Actions in each stage are carried out by a stage provider. Symphony ships with a
 
 | provider | description |
 |--------|--------|
+| ```providers.stage.counter``` | Keeps track of multiple variables ([details](./providers/counter.md)) |
 | ```providers.stage.create``` | Creates a Symphony object like ```Solutions``` and ```Instances``` |
+| ```providers.stage.delay``` | Delay execution ([details](./providers/delay.md)) |
 | ```providers.stage.http``` | Sends a HTTP request and wait for a response |
 | ```providers.stage.list``` | Lists objects like ```Instances``` and sites |
 | ```providers.stage.materialize``` | Materializes a ```Catalog``` as a Symphony object |
 | ```providers.stage.mock``` | A mock provider for testing purposes |
 |```providers.stage.patch``` | Patches an existing Symphony object|
 | ```providers.stage.remote``` | Executes an action on a remote Symphony control plane |
+| ```providers.stage.script``` | Executes a shell script or a PowerShell script |
 | ```providers.stage.wait``` | Wait for a Symphony object to be created |
 
 ## Stage Interface
