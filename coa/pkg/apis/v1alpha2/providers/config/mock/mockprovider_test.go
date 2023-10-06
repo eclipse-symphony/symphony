@@ -41,7 +41,7 @@ func TestGet(t *testing.T) {
 	provider := MockConfigProvider{}
 	err := provider.Init(MockConfigProviderConfig{})
 	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field", nil)
+	val, err := provider.Get("obj", "field", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val)
 }

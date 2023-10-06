@@ -27,6 +27,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -101,4 +102,121 @@ func TestFormatObjectDictYaml(t *testing.T) {
 	val, err := FormatObject(obj, false, "$.foo", "yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, "bar\n", string(val))
+}
+
+func TestJsonPathBasic(t *testing.T) {
+	jData := `
+	{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "$[?(@.status=='queued')].status")
+	assert.Nil(t, err)
+	assert.Equal(t, "queued", result)
+}
+
+func TestJsonPathBasicDirectQuery(t *testing.T) {
+	jData := `
+	{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "$.status")
+	assert.Nil(t, err)
+	assert.Equal(t, "queued", result)
+}
+
+func TestJsonPathObjectInArray(t *testing.T) {
+	jData := `
+	[{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}]`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "$[?(@.status=='queued')].status")
+	assert.Nil(t, err)
+	assert.Equal(t, "queued", result)
+}
+func TestJsonPathQueryInBracket(t *testing.T) {
+	jData := `
+	[{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}]`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "{$[?(@.status=='queued')].status}")
+	assert.Nil(t, err)
+	assert.Equal(t, "queued", result)
+}
+func TestJsonPathInvalidJsonPath(t *testing.T) {
+	jData := `
+	[{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}]`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "{$[?(@.status=='queued')].status")
+	assert.NotNil(t, err)
+	assert.Equal(t, nil, result)
+}
+func TestJsonPathBadJsonPath(t *testing.T) {
+	jData := `
+	[{
+		"id": 30433642,
+		"name": "Build",
+		"head_branch": "main",
+		"run_number": 562,
+		"event": "push",
+		"display_title": "Update README.md",
+		"status": "queued",
+		"conclusion": null,
+		"workflow_id": 159038
+	}]`
+	var obj interface{}
+	json.Unmarshal([]byte(jData), &obj)
+	result, err := JsonPathQuery(obj, "sdgsgsdg")
+	assert.NotNil(t, err)
+	assert.Equal(t, nil, result)
 }

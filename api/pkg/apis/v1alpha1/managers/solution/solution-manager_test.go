@@ -483,3 +483,49 @@ func TestMockApply(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 }
+func TestMockApplyWithUpdateAndRemove(t *testing.T) {
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock",
+				},
+				{
+					Name: "b",
+					Type: "mock",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock",
+								Provider: "providers.target.mock",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	summary, err := manager.Reconcile(context.Background(), deployment, false)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
+}

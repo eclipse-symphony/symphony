@@ -46,8 +46,7 @@ type AutoGenCertProvider struct {
 func (w *AutoGenCertProvider) ID() string {
 	return w.Config.Name
 }
-func (s *AutoGenCertProvider) SetContext(ctx contexts.ManagerContext) error {
-	return v1alpha2.NewCOAError(nil, "Auto cert generation provider doesn't support manager context", v1alpha2.InternalError)
+func (s *AutoGenCertProvider) SetContext(ctx contexts.ManagerContext) {
 }
 func (w *AutoGenCertProvider) Init(config providers.IProviderConfig) error {
 	certConfig, err := toAutoGenCertProviderConfig(config)

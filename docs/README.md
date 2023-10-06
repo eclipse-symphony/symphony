@@ -39,17 +39,21 @@ You can start using Symphony in minutes by selecting one of the following paths:
 * [Workflows](./symphony-book/concepts/workflows.md)
 * [App Orchestration Model](./symphony-book/concepts/orchestration_model.md)
 
-
 ## Using Symphony
 
 * [Modeling Applications](./symphony-book/solution-management/solution-management.md)
 
+## Advanced Scenarios
+
+* [Canary Deployment](./symphony-book/scenarios/canary-deployment.md)
+
 ## Contributing to Symphony
 
-* Developer Guide
-* API Reference
+* [Developer Guide](./symphony-book/dev-guide/getting-started.md)
+* [API Reference](./symphony-book/api/api.md)
 * Extending Symphony
 
 ## Additional Topics
 
-* Symphony Portal
+* [Symphony Portal](./symphony-book/portals/overview.md)
+* [Symphony Expression](./symphony-book/uom/property-expressions.md)

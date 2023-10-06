@@ -76,9 +76,8 @@ func (m *AzureBlobUploader) ID() string {
 	return m.Config.Name
 }
 
-func (a *AzureBlobUploader) SetContext(context *contexts.ManagerContext) error {
+func (a *AzureBlobUploader) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *AzureBlobUploader) Init(config providers.IProviderConfig) error {

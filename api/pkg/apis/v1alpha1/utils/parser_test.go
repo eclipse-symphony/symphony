@@ -412,14 +412,14 @@ func TestStarNumber(t *testing.T) {
 	parser := NewParser("*123")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "", val)
+	assert.Equal(t, "*123", val)
 }
 func TestStringRepeat(t *testing.T) {
-	// repeat (empty) 123 times
+	// repeat (empty) 123 times - this is no longer supported Oct 2023
 	parser := NewParser("abc*3")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabcabc", val)
+	assert.Equal(t, "abc*3", val)
 }
 func TestStringStarStar(t *testing.T) {
 	// repeat (empty) 123 times
@@ -446,6 +446,62 @@ func TestDivideAddString(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "2.5a", val)
 }
+func TestFloatMinus(t *testing.T) {
+	parser := NewParser("5/2-5/2")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "0", val)
+}
+func TestFloatMinus2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5-2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5-2.5", val)
+}
+func TestFloatMultiply(t *testing.T) {
+	parser := NewParser("5/2*5/2")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "6.25", val)
+}
+func TestFloatMultiply2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5*2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5*2.5", val)
+}
+func TestFloatDivide(t *testing.T) {
+	parser := NewParser("(5/2)/(5/2)")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "1", val)
+}
+func TestFloatDivide2(t *testing.T) {
+	// Note we treat floats as strings, as it's a common format for version numbers
+	// This differs from the above test, in which floats are the result of a calculation (5/2)
+	parser := NewParser("2.5/2.5")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5/2.5", val)
+}
+
+func TestFloatDot(t *testing.T) {
+	parser := NewParser("5/2.")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5.", val)
+}
+func TestFloatDot2(t *testing.T) {
+	parser := NewParser("2.5.")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "2.5.", val)
+}
+
 func TestDivideNegative(t *testing.T) {
 	parser := NewParser("10/-2")
 	val, err := parser.Eval(utils.EvaluationContext{})
@@ -454,8 +510,9 @@ func TestDivideNegative(t *testing.T) {
 }
 func TestDivideZero(t *testing.T) {
 	parser := NewParser("10/0")
-	_, err := parser.Eval(utils.EvaluationContext{})
-	assert.NotNil(t, err)
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "10/0", val) // can't divide, original string is returned
 }
 func TestStringAddNumber(t *testing.T) {
 	parser := NewParser("dog+1")
@@ -503,7 +560,7 @@ func TestStringMultiply(t *testing.T) {
 	parser := NewParser("dog*3")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "dogdogdog", val)
+	assert.Equal(t, "dog*3", val)
 }
 func TestNumberMultiplyString(t *testing.T) {
 	parser := NewParser("3*dog")
@@ -521,13 +578,13 @@ func TestStringMultiplyZero(t *testing.T) {
 	parser := NewParser("dog*0")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "", val)
+	assert.Equal(t, "dog*0", val)
 }
 func TestStringMultiplyFraction(t *testing.T) {
 	parser := NewParser("dog*(5/2)")
 	val, err := parser.Eval(utils.EvaluationContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, "dogdog", val)
+	assert.Equal(t, "dog*2.5", val)
 }
 func TestStringDivide(t *testing.T) {
 	parser := NewParser("dog/3")
@@ -596,7 +653,7 @@ func TestSecretWithExpression(t *testing.T) {
 	parser := NewParser("$secret(abc*2,def+4)")
 	val, err := parser.Eval(utils.EvaluationContext{SecretProvider: provider})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabc>>def4", val)
+	assert.Equal(t, "abc*2>>def4", val)
 }
 func TestSecretRecursive(t *testing.T) {
 	//create mock secret provider
@@ -631,6 +688,39 @@ func TestConfigNoProvider(t *testing.T) {
 	_, err := parser.Eval(utils.EvaluationContext{})
 	assert.NotNil(t, err)
 }
+
+func TestConfigInExpression(t *testing.T) {
+	//create mock config provider
+	provider := &mock.MockConfigProvider{}
+	err := provider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	parser := NewParser("'[{\"name\":\"port' + $config(line-config-$instance(), SERVICE_PORT) + '\",\"port\": ' + $config(line-config-$instance(), SERVICE_PORT) + ',\"targetPort\":5000}]'")
+	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "instance1",
+		},
+	}})
+	assert.Nil(t, err)
+	assert.Equal(t, "[{\"name\":\"portline-config-instance1::SERVICE_PORT\",\"port\": line-config-instance1::SERVICE_PORT,\"targetPort\":5000}]", val)
+}
+
+func TestConfigObjectInExpression(t *testing.T) {
+	//create mock config provider
+	provider := &mock.MockConfigProvider{}
+	err := provider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	parser := NewParser("$config('<' + 'line-config-' + $instance() + '>', \"\")")
+	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "instance1",
+		},
+	}})
+	assert.Nil(t, err)
+	assert.Equal(t, "<line-config-instance1>::\"\"", val)
+}
+
 func TestConfig(t *testing.T) {
 	//create mock config provider
 	provider := &mock.MockConfigProvider{}
@@ -651,7 +741,7 @@ func TestConfigWithExpression(t *testing.T) {
 	parser := NewParser("$config(abc*2,def+4)")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
 	assert.Nil(t, err)
-	assert.Equal(t, "abcabc::def4", val)
+	assert.Equal(t, "abc*2::def4", val)
 }
 func TestConfigRecursive(t *testing.T) {
 	//create mock config provider
@@ -1071,6 +1161,84 @@ func TestEvaluateDeployment(t *testing.T) {
 	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
 	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
 }
+
+func TestEvaluateDeploymentMetadata(t *testing.T) {
+	context := utils.EvaluationContext{
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Parameters: map[string]string{
+							"a": "b",
+							"c": "d",
+						},
+						Metadata: map[string]string{
+							"foo": "$param(a)",
+							"bar": "$param(c) + ' ' + $param(a)",
+						},
+						Properties: map[string]interface{}{
+							"foo": "$param(a)",
+							"bar": "$param(c) + ' ' + $param(a)",
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
+	assert.Equal(t, "new-value", deployment.Solution.Components[0].Metadata["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Metadata["bar"])
+}
+func TestEvaluateDeploymentConfig(t *testing.T) {
+	configProvider := &mock.MockConfigProvider{}
+	err := configProvider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	context := utils.EvaluationContext{
+		ConfigProvider: configProvider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceSpec{
+				Solution: "fake-solution",
+				Arguments: map[string]map[string]string{
+					"component-1": {
+						"a": "new-value",
+					},
+				},
+			},
+			SolutionName: "fake-solution",
+			Solution: model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "component-1",
+						Properties: map[string]interface{}{
+							"foo": "$config(a,b)",
+							"bar": "$config(c,d)",
+						},
+					},
+				},
+			},
+		},
+		Component: "component-1",
+	}
+	deployment, err := EvaluateDeployment(context)
+	assert.Nil(t, err)
+	assert.Equal(t, "a::b", deployment.Solution.Components[0].Properties["foo"])
+	assert.Equal(t, "c::d", deployment.Solution.Components[0].Properties["bar"])
+}
 func TestEqualNumbers(t *testing.T) {
 	parser := NewParser("$equal(123, 123)")
 	val, err := parser.Eval(utils.EvaluationContext{})
@@ -1355,4 +1523,157 @@ func TestEvaulateValueRangeOutside(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "false", val)
+}
+func TestValWithJsonPath(t *testing.T) {
+	parser := NewParser("$val('$.foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithProperty(t *testing.T) {
+	parser := NewParser("$val(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithContextProperty(t *testing.T) {
+	parser := NewParser("$context(foo)")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: map[string]interface{}{
+			"foo": "baz",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz", val)
+}
+func TestValWithJsonPathArray(t *testing.T) {
+
+	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz1", val)
+}
+
+func TestContextWithJsonPathArray(t *testing.T) {
+
+	parser := NewParser("$context('$[?(@.foo.bar==\"baz1\")].foo.bar')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "baz1", val)
+}
+
+func TestValWithJsonPathArrayBoolean(t *testing.T) {
+
+	parser := NewParser("$equal($val('$[?(@.foo.bar==\"baz1\")].foo.bar'),'baz1')")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Value: []interface{}{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz1",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "baz2",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val)
+}
+
+func TestMessedUpQuote(t *testing.T) {
+	//when we see an expression we can't parse, return the original value
+	parser := NewParser("$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$val('$[?(@.foo.bar==\"baz1\")].foo.bar)'", output)
+}
+
+func TestStrangeString(t *testing.T) {
+	parser := NewParser("~pg~edges~ffr4~adapter~collector-ffr4")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "~pg~edges~ffr4~adapter~collector-ffr4", output)
+}
+func TestTwoDolloars(t *testing.T) {
+	parser := NewParser("/$2")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "/$2", output)
+}
+func TestReqularExps(t *testing.T) {
+	parser := NewParser("/api(/|$)(.*)")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "/api(/|$)(.*)", output)
+}
+
+func TestJsonPathSimple(t *testing.T) {
+	parser := NewParser("$.store.books[*]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[*]", output)
+}
+func TestJsonPathSlice(t *testing.T) {
+	parser := NewParser("$.store.books[-2:]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[-2:]", output)
+}
+func TestJsonPathConditional(t *testing.T) {
+	parser := NewParser("$.store.books[?(@author=='Nigel Rees')]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@author=='Nigel Rees')]", output)
+}
+func TestJsonPathRegularExpression(t *testing.T) {
+	parser := NewParser("$.store.books[?(@author=~ /^Nigel|Waugh$/  )] ")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@author=~ /^Nigel|Waugh$/  )]", output)
+}
+
+func TestJsonPathComplex(t *testing.T) {
+	parser := NewParser("$.store.books[?(@.sections[*]=='s1' || @.sections[*]=='s2' )]")
+	output, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "$.store.books[?(@.sections[*]=='s1' || @.sections[*]=='s2' )]", output)
 }

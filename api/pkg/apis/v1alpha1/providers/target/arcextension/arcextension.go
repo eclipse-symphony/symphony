@@ -121,6 +121,10 @@ func (i *ArcExtensionTargetProvider) Init(config providers.IProviderConfig) erro
 	return nil
 }
 
+func (s *ArcExtensionTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 // toArcExtensionTargetProviderConfig sets the ARC extension config
 func toArcExtensionTargetProviderConfig(config providers.IProviderConfig) (ArcExtensionTargetProviderConfig, error) {
 	ret := ArcExtensionTargetProviderConfig{}

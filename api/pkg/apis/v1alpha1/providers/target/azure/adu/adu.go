@@ -106,6 +106,10 @@ func (i *ADUTargetProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *ADUTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("ADU Target Provider", context.Background(), &map[string]string{
 		"method": "Init",

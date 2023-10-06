@@ -115,9 +115,8 @@ func (s *HttpStateProvider) ID() string {
 	return s.Config.Name
 }
 
-func (s *HttpStateProvider) SetContext(ctx *contexts.ManagerContext) error {
+func (s *HttpStateProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
-	return nil
 }
 
 func (i *HttpStateProvider) InitWithMap(properties map[string]string) error {

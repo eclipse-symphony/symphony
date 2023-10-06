@@ -103,6 +103,10 @@ func (i *Win10SideLoadProvider) InitWithMap(properties map[string]string) error 
 	return i.Init(config)
 }
 
+func (s *Win10SideLoadProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
 		"method": "Init",

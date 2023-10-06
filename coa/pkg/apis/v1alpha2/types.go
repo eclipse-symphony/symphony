@@ -26,7 +26,9 @@
 
 package v1alpha2
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // State represents a response state
 type State uint16
@@ -140,4 +142,7 @@ const (
 	ProvidersReporter      = "providers.reporter"
 	ProviderQueue          = "providers.queue"
 	ProviderLedger         = "providers.ledger"
+	StatusOutput           = "__status"
+	ErrorOutput            = "__error"
+	StateOutput            = "__state"
 )

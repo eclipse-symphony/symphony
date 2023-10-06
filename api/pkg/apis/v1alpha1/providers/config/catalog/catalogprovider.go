@@ -29,13 +29,13 @@ package catalog
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 var msLock sync.Mutex
@@ -61,6 +61,10 @@ func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
+func (s *CatalogConfigProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func toCatalogConfigProviderConfig(config providers.IProviderConfig) (CatalogConfigProviderConfig, error) {
 	ret := CatalogConfigProviderConfig{}
 	data, err := json.Marshal(config)
@@ -115,48 +119,14 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
-func (m *CatalogConfigProvider) traceDown(val string) (string, error) {
-	if strings.HasPrefix(val, "<") {
-		if strings.HasSuffix(val, ">") {
-			objectName := val[1:strings.Index(val, ">")]
-			val, err := m.ReadObject(objectName)
-			if err != nil {
-				return "", err
-			}
-			data, _ := json.Marshal(val)
-			return string(data), nil
-		} else if strings.Index(val, ">.") > 0 {
-			fieldName := val[strings.Index(val, ">.")+2 : len(val)]
-			objectName := val[1:strings.Index(val, ">")]
-			if fieldName != "" {
-				val, err := m.Read(objectName, fieldName)
-				if err != nil {
-					return "", err
-				}
-				return val, nil
-			} else {
-				val, err := m.ReadObject(objectName)
-				if err != nil {
-					return "", err
-				}
-				data, _ := json.Marshal(val)
-				return string(data), nil
-			}
-		} else {
-			return val, nil
-		}
-	}
-	return val, nil
-}
-func (m *CatalogConfigProvider) Read(object string, field string) (string, error) {
+func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	catalog, err := utils.GetCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
 
 	if v, ok := catalog.Spec.Properties[field]; ok {
-		val := v.(string)
-		return m.traceDown(val)
+		return m.traceValue(v, localcontext)
 	}
 
 	if catalog.Spec.ParentName != "" {
@@ -170,22 +140,84 @@ func (m *CatalogConfigProvider) Read(object string, field string) (string, error
 
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
 }
-func (m *CatalogConfigProvider) ReadObject(object string) (map[string]string, error) {
+func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	catalog, err := utils.GetCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return nil, err
 	}
-	ret := map[string]string{}
+	ret := map[string]interface{}{}
 	for k, v := range catalog.Spec.Properties {
-		val, err := m.traceDown(v.(string))
+		tv, err := m.traceValue(v, localcontext)
 		if err != nil {
 			return nil, err
 		}
-		ret[k] = val
+		// line 189-196 extracts the returned map and merge the keys with the parent
+		// this allows a referenced configuration to be overriden by local values
+		if tmap, ok := tv.(map[string]interface{}); ok {
+			for tk, tv := range tmap {
+				if _, ok := ret[tk]; !ok {
+					ret[tk] = tv
+				}
+			}
+			continue
+		}
+		ret[k] = tv
 	}
 	return ret, nil
 }
-func (m *CatalogConfigProvider) Set(object string, field string, value string) error {
+func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}) (interface{}, error) {
+	switch val := v.(type) {
+	case string:
+		parser := utils.NewParser(val)
+		context := m.Context.VencorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = m.Context.VencorContext.EvaluationContext.DeploymentSpec
+		if localcontext != nil {
+			if ltx, ok := localcontext.(coa_utils.EvaluationContext); ok {
+				context.Inputs = ltx.Inputs
+				context.Outputs = ltx.Outputs
+				context.Value = ltx.Value
+				context.Properties = ltx.Properties
+				context.Component = ltx.Component
+				if ltx.DeploymentSpec != nil {
+					context.DeploymentSpec = ltx.DeploymentSpec
+				}
+			}
+		}
+		v, err := parser.Eval(*context)
+		if err != nil {
+			return "", err
+		}
+		switch vt := v.(type) {
+		case string:
+			return vt, nil
+		default:
+			return m.traceValue(v, localcontext)
+		}
+	case []interface{}:
+		ret := []interface{}{}
+		for _, v := range val {
+			tv, err := m.traceValue(v, localcontext)
+			if err != nil {
+				return "", err
+			}
+			ret = append(ret, tv)
+		}
+		return ret, nil
+	case map[string]interface{}:
+		ret := map[string]interface{}{}
+		for k, v := range val {
+			tv, err := m.traceValue(v, localcontext)
+			if err != nil {
+				return "", err
+			}
+			ret[k] = tv
+		}
+		return ret, nil
+	default:
+		return val, nil
+	}
+}
+func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
 	catalog, err := utils.GetCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return err
@@ -194,7 +226,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value string) e
 	data, _ := json.Marshal(catalog.Spec)
 	return utils.UpsertCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
-func (m *CatalogConfigProvider) SetObject(object string, value map[string]string) error {
+func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
 	catalog, err := utils.GetCatalog(m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return err

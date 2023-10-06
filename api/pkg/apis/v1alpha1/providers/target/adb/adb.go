@@ -70,6 +70,9 @@ func (i *AdbProvider) InitWithMap(properties map[string]string) error {
 	}
 	return i.Init(config)
 }
+func (s *AdbProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
 
 func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
