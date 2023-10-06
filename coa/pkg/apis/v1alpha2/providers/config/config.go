@@ -32,15 +32,15 @@ import (
 
 type IConfigProvider interface {
 	Init(config providers.IProviderConfig) error
-	Read(object string, field string) (string, error)
-	ReadObject(object string) (map[string]string, error)
-	Set(object string, field string, value string) error
-	SetObject(object string, value map[string]string) error
+	Read(object string, field string, localContext interface{}) (interface{}, error)
+	ReadObject(object string, localContext interface{}) (map[string]interface{}, error)
+	Set(object string, field string, value interface{}) error
+	SetObject(object string, value map[string]interface{}) error
 	Remove(object string, field string) error
 	RemoveObject(object string) error
 }
 
 type IExtConfigProvider interface {
-	Get(object string, field string, overrides []string) (string, error)
-	GetObject(object string, overrides []string) (map[string]string, error)
+	Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error)
+	GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error)
 }

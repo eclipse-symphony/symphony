@@ -176,6 +176,10 @@ func (i *IoTEdgeTargetProvider) InitWithMap(properties map[string]string) error 
 	return i.Init(config)
 }
 
+func (s *IoTEdgeTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("IoT Edge Target Provider", context.Background(), &map[string]string{
 		"method": "Init",

@@ -41,7 +41,7 @@ func TestGetEmpty(t *testing.T) {
 	provider := MemoryConfigProvider{}
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
-	_, err = provider.Read("obj", "field")
+	_, err = provider.Read("obj", "field", nil)
 	assert.NotNil(t, err)
 }
 func TestGet(t *testing.T) {
@@ -49,7 +49,7 @@ func TestGet(t *testing.T) {
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
 	provider.Set("obj", "field", "obj::field")
-	val, err := provider.Read("obj", "field")
+	val, err := provider.Read("obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val)
 }
@@ -57,10 +57,10 @@ func TestGetObject(t *testing.T) {
 	provider := MemoryConfigProvider{}
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
-	provider.SetObject("obj", map[string]string{"field": "obj::field"})
-	val, err := provider.ReadObject("obj")
+	provider.SetObject("obj", map[string]interface{}{"field": "obj::field"})
+	val, err := provider.ReadObject("obj", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, map[string]string{"field": "obj::field"}, val)
+	assert.Equal(t, map[string]interface{}{"field": "obj::field"}, val)
 }
 func TestDelete(t *testing.T) {
 	provider := MemoryConfigProvider{}
@@ -69,16 +69,16 @@ func TestDelete(t *testing.T) {
 	provider.Set("obj", "field", "obj::field")
 	err = provider.Remove("obj", "field")
 	assert.Nil(t, err)
-	_, err = provider.Read("obj", "field")
+	_, err = provider.Read("obj", "field", nil)
 	assert.NotNil(t, err)
 }
 func TestDeleteObject(t *testing.T) {
 	provider := MemoryConfigProvider{}
 	err := provider.Init(MemoryConfigProviderConfig{})
 	assert.Nil(t, err)
-	provider.SetObject("obj", map[string]string{"field": "obj::field"})
+	provider.SetObject("obj", map[string]interface{}{"field": "obj::field"})
 	err = provider.RemoveObject("obj")
 	assert.Nil(t, err)
-	_, err = provider.ReadObject("obj")
+	_, err = provider.ReadObject("obj", nil)
 	assert.NotNil(t, err)
 }

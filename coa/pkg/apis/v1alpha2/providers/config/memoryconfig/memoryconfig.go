@@ -52,7 +52,7 @@ func MockConfigProviderConfigFromMap(properties map[string]string) (MemoryConfig
 type MemoryConfigProvider struct {
 	Config     MemoryConfigProviderConfig
 	Context    *contexts.ManagerContext
-	ConfigData map[string]map[string]string
+	ConfigData map[string]map[string]interface{}
 	Lock       *sync.Mutex
 }
 
@@ -68,9 +68,8 @@ func (m *MemoryConfigProvider) ID() string {
 	return m.Config.Name
 }
 
-func (a *MemoryConfigProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *MemoryConfigProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *MemoryConfigProvider) Init(config providers.IProviderConfig) error {
@@ -80,7 +79,7 @@ func (m *MemoryConfigProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid mock config provider config", v1alpha2.BadConfig)
 	}
 	m.Config = aConfig
-	m.ConfigData = make(map[string]map[string]string)
+	m.ConfigData = make(map[string]map[string]interface{})
 	return nil
 }
 
@@ -94,7 +93,7 @@ func toMemoryConfigProviderConfig(config providers.IProviderConfig) (MemoryConfi
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MemoryConfigProvider) Read(object string, field string) (string, error) {
+func (m *MemoryConfigProvider) Read(object string, field string, localContext interface{}) (interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return "", v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -103,22 +102,22 @@ func (m *MemoryConfigProvider) Read(object string, field string) (string, error)
 	}
 	return m.ConfigData[object][field], nil
 }
-func (m *MemoryConfigProvider) ReadObject(object string) (map[string]string, error) {
+func (m *MemoryConfigProvider) ReadObject(object string, localContext interface{}) (map[string]interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
 	return m.ConfigData[object], nil
 }
-func (m *MemoryConfigProvider) Set(object string, field string, value string) error {
+func (m *MemoryConfigProvider) Set(object string, field string, value interface{}) error {
 	if _, ok := m.ConfigData[object]; !ok {
-		m.ConfigData[object] = make(map[string]string)
+		m.ConfigData[object] = make(map[string]interface{})
 	}
 	m.ConfigData[object][field] = value
 	return nil
 }
-func (m *MemoryConfigProvider) SetObject(object string, value map[string]string) error {
+func (m *MemoryConfigProvider) SetObject(object string, value map[string]interface{}) error {
 	if _, ok := m.ConfigData[object]; !ok {
-		m.ConfigData[object] = make(map[string]string)
+		m.ConfigData[object] = make(map[string]interface{})
 	}
 	for k, v := range value {
 		m.ConfigData[object][k] = v

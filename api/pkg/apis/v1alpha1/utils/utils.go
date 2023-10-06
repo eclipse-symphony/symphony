@@ -27,6 +27,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -34,7 +35,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/oliveagle/jsonpath"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	oJsonpath "github.com/oliveagle/jsonpath"
+	"k8s.io/client-go/util/jsonpath"
 	"sigs.k8s.io/yaml"
 )
 
@@ -173,7 +176,7 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 			if format == "yaml" {
 				ret := make([]byte, 0)
 				for i, item := range dict.([]interface{}) {
-					ob, _ := jsonpath.JsonPathLookup(item, path)
+					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					if s, ok := ob.(string); ok {
 						str, err := strconv.Unquote(strings.TrimSpace(s))
 						if err != nil {
@@ -198,14 +201,14 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 			} else {
 				ret := make([]interface{}, 0)
 				for _, item := range dict.([]interface{}) {
-					ob, _ := jsonpath.JsonPathLookup(item, path)
+					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					ret = append(ret, ob)
 					jData, _ = yaml.Marshal(ob)
 				}
 				jData, _ = json.Marshal(ret)
 			}
 		} else {
-			ob, _ := jsonpath.JsonPathLookup(dict, path)
+			ob, _ := oJsonpath.JsonPathLookup(dict, path)
 			if format == "yaml" {
 				if s, ok := ob.(string); ok {
 					str, err := strconv.Unquote(strings.TrimSpace(s))
@@ -236,4 +239,82 @@ func toInterfaceMap(m map[string]string) map[string]interface{} {
 		ret[k] = v
 	}
 	return ret
+}
+func FormatAsString(val interface{}) string {
+	switch tv := val.(type) {
+	case string:
+		return tv
+	case int:
+		return strconv.Itoa(tv)
+	case int32:
+		return strconv.Itoa(int(tv))
+	case int64:
+		return strconv.Itoa(int(tv))
+	case float32:
+		return strconv.FormatFloat(float64(tv), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(tv, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(tv)
+	case map[string]interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	case []interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	default:
+		return fmt.Sprintf("%v", tv)
+	}
+}
+func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
+	jPath := jsonPath
+	if !strings.HasPrefix(jPath, "{") {
+		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JsonPath expression to be wrapped in {}
+	}
+
+	result, err := jsonPathQuery(obj, jPath)
+	if err == nil {
+		return result, nil
+	}
+
+	// This is a workaround for filtering by root-level attributes. In this case, we need to
+	// wrap the object into an array and then query the array.
+	var arr []interface{}
+	switch obj.(type) {
+	case []interface{}:
+		// the object is already an array, so the query didn't work
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
+	default:
+		arr = append(arr, obj)
+	}
+	return jsonPathQuery(arr, jPath)
+}
+func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
+	jpLookup := jsonpath.New("lookup")
+	jpLookup.AllowMissingKeys(true)
+	jpLookup.EnableJSONOutput(true)
+
+	err := jpLookup.Parse(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	err = jpLookup.Execute(&buf, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []interface{}
+	err = json.Unmarshal(buf.Bytes(), &result)
+
+	if err != nil {
+		return nil, err
+	} else if len(result) == 0 {
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
+	} else if len(result) == 1 {
+		return result[0], nil
+	} else {
+		return result, nil
+	}
 }

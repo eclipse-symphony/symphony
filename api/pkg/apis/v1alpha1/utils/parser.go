@@ -64,6 +64,7 @@ const (
 	RUNON
 	AMPHERSAND
 	SLASH
+	TILDE
 )
 
 var opNames = map[Token]string{
@@ -78,6 +79,7 @@ var opNames = map[Token]string{
 	QUESTION:   "?",
 	EQUAL:      "=",
 	AMPHERSAND: "&",
+	TILDE:      "~",
 }
 
 type Node interface {
@@ -184,14 +186,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			v := vl + vr
-			return v, nil
-		} else {
-			return fmt.Sprintf("%v%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, ""), nil
 	case MINUS:
 		var lv interface{} = ""
 		var le error
@@ -209,14 +204,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			v := vl - vr
-			return v, nil
-		} else {
-			return fmt.Sprintf("%v-%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, "-"), nil
 	case COMMA:
 		lv, le := n.Left.Eval(context)
 		if le != nil {
@@ -244,24 +232,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			v := vl * vr
-			return v, nil
-		} else {
-			if !okl && okr {
-				if vr > 0 {
-					return strings.Repeat(fmt.Sprintf("%v", lv), int(vr)), nil
-				} else if vr == 0 {
-					return "", nil
-				} else {
-					return fmt.Sprintf("%v*%v", lv, rv), nil
-				}
-			} else {
-				return fmt.Sprintf("%v*%v", lv, rv), nil
-			}
-		}
+		return formatFloats(lv, rv, "*"), nil
 	case DIV:
 		var lv interface{} = ""
 		var le error
@@ -279,18 +250,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			if vr != 0 {
-				v := vl / vr
-				return v, nil
-			} else {
-				return nil, errors.New("divide by zero")
-			}
-		} else {
-			return fmt.Sprintf("%v/%v", lv, rv), nil
-		}
+		return formatFloats(lv, rv, "/"), nil
 	case SLASH:
 		var lv interface{} = ""
 		var le error
@@ -326,16 +286,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 				return nil, re
 			}
 		}
-		vl, okl := lv.(float64)
-		vr, okr := rv.(float64)
-		if okl && okr {
-			return fmt.Sprintf("%s.%s", strconv.FormatFloat(vl, 'f', -1, 64), strconv.FormatFloat(vr, 'f', -1, 64)), nil
-		} else if okl {
-			return fmt.Sprintf("%s.%v", strconv.FormatFloat(vl, 'f', -1, 64), rv), nil
-		} else if okr {
-			return fmt.Sprintf("%v.%s", lv, strconv.FormatFloat(vr, 'f', -1, 64)), nil
-		}
-		return fmt.Sprintf("%v.%v", lv, rv), nil
+		return formatFloats(lv, rv, "."), nil
 	case COLON:
 		var lv interface{} = ""
 		var le error
@@ -408,6 +359,24 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 			}
 		}
 		return fmt.Sprintf("%v&%v", lv, rv), nil
+	case TILDE:
+		var lv interface{} = ""
+		var le error
+		if n.Left != nil {
+			lv, le = n.Left.Eval(context)
+			if le != nil {
+				return nil, le
+			}
+		}
+		var rv interface{} = ""
+		var re error
+		if n.Right != nil {
+			rv, re = n.Right.Eval(context)
+			if re != nil {
+				return nil, re
+			}
+		}
+		return fmt.Sprintf("%v~%v", lv, rv), nil
 	case RUNON:
 		var lv interface{} = ""
 		var le error
@@ -467,6 +436,43 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
 }
 
+func formatFloats(left interface{}, right interface{}, operator string) interface{} {
+	lv_f, okl := left.(float64)
+	rv_f, okr := right.(float64)
+	if okl && okr {
+		switch operator {
+		case "":
+			return lv_f + rv_f
+		case "-":
+			return lv_f - rv_f
+		case "*":
+			return lv_f * rv_f
+		case "/":
+			if rv_f != 0 {
+				return lv_f / rv_f
+			} else {
+				lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+				rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+				return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
+			}
+		case ".":
+			lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+			rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+			return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
+		default:
+			return fmt.Errorf("operator '%s' is not allowed in this context", operator)
+		}
+	} else if okl {
+		lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
+		return fmt.Sprintf("%v%s%v", lv_str, operator, right)
+	} else if okr {
+		rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
+		return fmt.Sprintf("%v%s%v", left, operator, rv_str)
+	} else {
+		return fmt.Sprintf("%v%s%v", left, operator, right)
+	}
+}
+
 func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Name {
 	case "param":
@@ -487,7 +493,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
-		return nil, fmt.Errorf("$params() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$params() expects 1 argument, found %d", len(n.Args))
 	case "property":
 		if len(n.Args) == 1 {
 			if context.Properties == nil || len(context.Properties) == 0 {
@@ -503,7 +509,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$property() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$property() expects 1 argument, found %d", len(n.Args))
 	case "input":
 		if len(n.Args) == 1 {
 			if context.Inputs == nil || len(context.Inputs) == 0 {
@@ -519,11 +525,12 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$input() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$input() expects 1 argument, found %d", len(n.Args))
 	case "output":
 		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
-				return nil, errors.New("an output collection is needed to evaluate $output()")
+				//return nil, errors.New("an output collection is needed to evaluate $output()")
+				return "", nil
 			}
 			step, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -542,7 +549,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$output() expects 2 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$output() expects 2 argument, found %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -555,7 +562,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return compareInterfaces(v1, v2), nil
 		}
-		return nil, fmt.Errorf("$equal() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$equal() expects 2 arguments, found %d", len(n.Args))
 	case "and":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -568,7 +575,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return andBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$and() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$and() expects 2 arguments, found %d", len(n.Args))
 	case "or":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -581,7 +588,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return orBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$or() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$or() expects 2 arguments, found %d", len(n.Args))
 	case "not":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -590,7 +597,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return notBool(val)
 		}
-		return nil, fmt.Errorf("$not() expects 1 argument, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$not() expects 1 argument, found %d", len(n.Args))
 	case "gt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -609,7 +616,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$gt() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$gt() expects 2 arguments, found %d", len(n.Args))
 	case "ge":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -628,7 +635,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$ge() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$ge() expects 2 arguments, found %d", len(n.Args))
 	case "if":
 		if len(n.Args) == 3 {
 			cond, err := n.Args[0].Eval(context)
@@ -641,7 +648,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				return n.Args[2].Eval(context)
 			}
 		}
-		return nil, fmt.Errorf("$if() expects 3 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$if() expects 3 arguments, found %d", len(n.Args))
 	case "in":
 		if len(n.Args) >= 2 {
 			val, err := n.Args[0].Eval(context)
@@ -659,7 +666,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return false, nil
 		}
-		return nil, fmt.Errorf("$in() expects at least 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$in() expects at least 2 arguments, found %d", len(n.Args))
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -678,7 +685,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$lt() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$lt() expects 2 arguments, found %d", len(n.Args))
 	case "between":
 		if len(n.Args) == 3 {
 			val1, err := n.Args[0].Eval(context)
@@ -704,7 +711,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
 	case "le":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -723,7 +730,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, fmt.Errorf("%v is not a valid number", val1)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
 	case "config":
 		if len(n.Args) >= 2 {
 			if context.ConfigProvider == nil {
@@ -749,13 +756,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(obj.(string), field.(string), overlays)
+			return context.ConfigProvider.Get(obj.(string), field.(string), overlays, context)
 		}
-		return nil, fmt.Errorf("$config() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$config() expects 2 arguments, found %d", len(n.Args))
 	case "secret":
 		if len(n.Args) == 2 {
 			if context.SecretProvider == nil {
-				return nil, errors.New("a secret provider is needed to evaluate $config()")
+				return nil, errors.New("a secret provider is needed to evaluate $secret()")
 			}
 			obj, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -767,7 +774,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return context.SecretProvider.Get(obj.(string), field.(string))
 		}
-		return nil, fmt.Errorf("$secret() expects 2 arguments, fount %d", len(n.Args))
+		return nil, fmt.Errorf("$secret() expects 2 arguments, found %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
@@ -775,17 +782,58 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
-		return nil, fmt.Errorf("$instance() expects 0 arguments, fount %d", len(n.Args))
-	case "val":
-		return context.Value, nil
+		return nil, fmt.Errorf("$instance() expects 0 arguments, found %d", len(n.Args))
+	case "val", "context":
+		if len(n.Args) == 0 {
+			return context.Value, nil
+		}
+		if len(n.Args) == 1 {
+			obj, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			path := obj.(string)
+			if strings.HasPrefix(path, "$") || strings.HasPrefix(path, "{$") {
+				result, err := JsonPathQuery(context.Value, obj.(string))
+				if err != nil {
+					return nil, err
+				}
+				return result, nil
+			} else {
+				if mobj, ok := context.Value.(map[string]interface{}); ok {
+					if v, ok := mobj[path]; ok {
+						return v, nil
+					} else {
+						return nil, fmt.Errorf("key %s is not found in context value", path)
+					}
+				} else {
+					return nil, fmt.Errorf("context value '%v' is not a map", context.Value)
+				}
+			}
+		}
+		return nil, fmt.Errorf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args))
+	case "json":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			jData, err := json.Marshal(val)
+			if err != nil {
+				return nil, err
+			}
+			return string(jData), nil
+		}
+		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
 	}
 	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
 }
 
 type Parser struct {
-	s     *scanner.Scanner
-	token Token
-	text  string
+	s            *scanner.Scanner
+	token        Token
+	text         string
+	OriginalText string
 }
 
 func NewParser(text string) *Parser {
@@ -793,7 +841,9 @@ func NewParser(text string) *Parser {
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &Parser{
-		s: &s,
+		s:            &s,
+		text:         text,
+		OriginalText: strings.TrimSpace(text),
 	}
 	p.next()
 	return p
@@ -804,23 +854,30 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	for {
 		n, err := p.expr(false)
 		if err != nil {
-			return nil, err
+			return p.OriginalText, nil //can't be interpreted as an expression, return the original text
 		}
 		if _, ok := n.(*NullNode); !ok {
 			v, r := n.Eval(context)
 			if r != nil {
 				return "", r
 			}
-			if _, ok := v.([]string); ok {
+			if vt, ok := v.([]string); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
 				}
-			} else if _, ok := v.([]interface{}); ok {
+			} else if vt, ok := v.([]interface{}); ok {
 				if ret == nil {
-					ret = v
+					ret = vt
+				} else {
+					jData, _ := json.Marshal(v)
+					ret = fmt.Sprintf("%v%v", ret, string(jData))
+				}
+			} else if vt, ok := v.(map[string]interface{}); ok {
+				if ret == nil {
+					ret = vt
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
@@ -889,6 +946,8 @@ func (p *Parser) scan() Token {
 		return EQUAL
 	case '&':
 		return AMPHERSAND
+	case '~':
+		return TILDE
 	}
 	if _, err := strconv.ParseFloat(p.text, 64); err == nil {
 		return NUMBER
@@ -1024,6 +1083,13 @@ func (p *Parser) factor() (Node, error) {
 				return nil, err
 			}
 			node = &BinaryNode{EQUAL, node, n}
+		case TILDE:
+			p.next()
+			n, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			node = &BinaryNode{TILDE, node, n}
 		case AMPHERSAND:
 			p.next()
 			n, err := p.primary()
@@ -1069,6 +1135,17 @@ func (p *Parser) expr(inFunc bool) (Node, error) {
 			} else {
 				return node, nil
 			}
+		case OPAREN:
+			p.next()
+			node, err := p.expr(false)
+			if err != nil {
+				return nil, err
+			}
+			expr := node
+			if err := p.match(CPAREN); err != nil {
+				return nil, err
+			}
+			return expr, nil
 		default:
 			return node, nil
 		}
@@ -1095,6 +1172,9 @@ func (p *Parser) function() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
+		if _, ok := node.(*NullNode); ok {
+			return nil, fmt.Errorf("invalid argument")
+		}
 		args = append(args, node)
 		if p.token == COMMA {
 			p.next()
@@ -1110,7 +1190,24 @@ func (p *Parser) function() (Node, error) {
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
 		for ic, c := range deploymentSpec.Solution.Components {
-			val, err := evalProperties(context, c.Properties)
+
+			val, err := evalProperties(context, c.Metadata)
+			if err != nil {
+				return deploymentSpec, err
+			}
+			if val != nil {
+				metadata, ok := val.(map[string]string)
+				if !ok {
+					return deploymentSpec, fmt.Errorf("metadata must be a map")
+				}
+				stringMap := make(map[string]string)
+				for k, v := range metadata {
+					stringMap[k] = fmt.Sprintf("%v", v)
+				}
+				deploymentSpec.Solution.Components[ic].Metadata = stringMap
+			}
+
+			val, err = evalProperties(context, c.Properties)
 			if err != nil {
 				return deploymentSpec, err
 			}
@@ -1172,6 +1269,14 @@ func toNumber(val interface{}) (float64, bool) {
 }
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch p := properties.(type) {
+	case map[string]string:
+		for k, v := range p {
+			val, err := evalProperties(context, v)
+			if err != nil {
+				return nil, err
+			}
+			p[k] = FormatAsString(val)
+		}
 	case map[string]interface{}:
 		for k, v := range p {
 			val, err := evalProperties(context, v)

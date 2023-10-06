@@ -139,6 +139,10 @@ func (i *HelmTargetProvider) InitWithMap(properties map[string]string) error {
 	return i.Init(config)
 }
 
+func (s *HelmTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
+}
+
 // Init initializes the HelmTargetProvider
 func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
@@ -404,6 +408,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			if component.Component.Type == "helm.v3" {
 				_, err := i.UninstallClient.Run(component.Component.Name)
 				if err != nil {
+					if strings.Contains(err.Error(), "not found") {
+						continue //TODO: better way to detect this error?
+					}
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.DeleteFailed,
 						Message: err.Error(),

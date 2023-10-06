@@ -208,11 +208,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	if err != nil {
-		summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
-		log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
-		s.saveSummary(ctx, deployment, summary)
-		observ_utils.CloseSpanWithError(span, err)
-		return summary, err
+		if remove {
+			log.Infof(" M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+		} else {
+			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
+			log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
+			s.saveSummary(ctx, deployment, summary)
+			observ_utils.CloseSpanWithError(span, err)
+			return summary, err
+		}
 	}
 
 	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Name)

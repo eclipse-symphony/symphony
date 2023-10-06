@@ -2,7 +2,7 @@
 
 Symphony Solution [```Components```](./solution.md#componentspec) and Campaign Stages can use property expressions in their property values. Property expressions are evaluated at Solution [Vendor](../vendors/overview.md) level, which means they are immediately evaluated once they arrive at the Symphony API surface. Hence, none of the [Managers](../managers/overview.md) or [Providers](../providers/overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their Solution documents.
 
-In general, Symphony attempts to pare the property values as close as strings as possible. Only when Symphony detects clear and valid arithmetical expressions and function calls, it will try to evaluate them first before the string evaluation. This means Symphony is mostly tolerable to syntax errors in expressions and will treat those as string literals, unless there are clear errors such trying to divide by zero. For example, ```"10/"``` is allowed as Symphony assumes ```/``` is used as a forward-slash. However, ```"10/0"``` is disallowed as it leads to division by zero. ```"'10/0'"``` is allowed as it’s a quoted string.
+In general, Symphony attempts to pare the property values as close as strings as possible. Only when Symphony detects clear and valid arithmetical expressions and function calls, it will try to evaluate them first before the string evaluation. This means Symphony is mostly tolerable to syntax errors in expressions and will treat those as string literals. For example, ```"10/2"``` is interpreted as a division, while ```"10/0"``` is treated as a string because otherwise it's a divide-by-zero error.
 
 ## Constants
 
@@ -29,7 +29,7 @@ The following table summarizes how constants are evaluated:
 ## Operators
 * Plus(```+```) is treated as numeric addition, if both sides of ```+``` evaluate to numbers. Otherwise, it’s treated as string concatenation. 
 * Minus (```-```) is treated as numeric addition, if both sides of ```-``` evaluate to numbers. Otherwise, it’s treated as a dash (```-```). 
-* Multiplication (```*```) is treated as numeric multiply, if both sides of ```-``` evaluate to numbers. If the left of * is a string and the right of * is a number, the string is repeated the number of times. Otherwise, it’s treated as a star (```*```). 
+* Multiplication (```*```) is treated as numeric multiply, if both sides of ```-``` evaluate to numbers. Otherwise, it’s treated as a star (```*```). 
 * Divide (```-```) is treated as numeric addition, if both sides of ```-``` evaluate to numbers (divide by zero is not allowed). Otherwise, it’s treated as a forward-slash (```/```). 
 * Use parenthesis (```()```) to change calculation precedence. Expressions in parenthesis are evaluated first.
 
@@ -46,10 +46,6 @@ The following table summarizes how operators work:
 | ```"1.0+2.0"```|```"1.02.0"```| Concatenation (floats are always treated as strings)|
 | ```"1-2"```|```"-1"```| Subtraction |
 |  ```"3*-4""```|```"-12"```| Multiplication|
-| ```"abc*3"```|```"abcabcabc"```| Repeat abc 3 times |
-| ```"abc*-3"```|```"abc*-3"```| Repeating -3 times is impossible, return as a string|
-| ```"abc*0"```| ```""```| Repeat 0 times |
-| ```"abc*(5/2)"```| ```"abcabc"```| Repeat floor(5/2) times |
 |```"3-(1+2)/(2+1)"```|```"2"```| Parentheses are evaluated first |
 
 
@@ -64,6 +60,7 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 |```$and(<condition1>, <condition2>)``` | If both ```<condition1>``` and ```<condition2>``` evaluate to ```true``` (boolean) or ```"true"``` (string)|
 |```$between(<value>, <value1>,<value2>)``` | If ```<value>``` is between ```<value1>``` and ```<value2>``` |
 |```$config(<config object>, <config key>, [<overrides>])``` | Reads a configuration from a config provider |
+|```$context([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value (same as ```$val()```) |
 |```$equal(<value1>, <value2>)``` | if ```<value1>``` equals to ```<value2>``` |
 |```$ge(<value1>, <value2>)``` | if ```<value1>``` is greater or euqal to ```<value2>``` |
 |```$gt(<value1>, <value2>)``` | if ```<value1>``` is greater than ```<value2>``` |
@@ -71,6 +68,7 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 |```$in(<value>, [<ref-value>])``` | If ```<value>``` exists in the list of ```<ref-value>``` |
 |```$input(<field>)``` | Reads Campaign activation input ```<field>``` |
 |```$instance()```| Gets instance name of the current deployment |
+|```$json(<value>)```| Marshals ```<value>``` into a JSON string |
 |```$le(<value1>, <value2>)``` | if ```<value1>``` is less or euqal to ```<value2>``` |
 |```$lt(<value1>, <value2>)``` | if ```<value1>``` is less than ```<value2>``` |
 |```$not(<condition>)``` | If ```<condition>``` evaluates to ```false``` (boolean) or ```"false"``` (string)|
@@ -79,7 +77,7 @@ When these functions are used, a valid ```EvaluationContext``` is required, whic
 |```$param(<parameter name>)```| Reads a component parameter<sup>1</sup>|
 |```$property(<proerty name>)```| Reads a property from the evaluation context |
 |```$secret(<secret object>, <secret key>)```| Reads a secret from a secret store provider |
-|```$val([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value |
+|```$val([<JsonPath>])``` | Reads the evaulation context value. if a JsonPath is specified, apply the path to the context value (same as ```$context()```) |
 
 <sup>1</sup>: Parameters are defined on [Component](./solution.md#componentspec) and can be overridden by stage Arguments in [Instance](./instance.md).
 

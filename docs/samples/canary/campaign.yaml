@@ -1,0 +1,215 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: canary
+spec:
+  firstStage: "deploy-v2"
+  selfDriving: true
+  stages:
+    deploy-v2:
+      name: "deploy-v2"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: backend-v2
+          type: container
+          metadata:
+            service.ports: "[{\"name\":\"port3013\",\"port\": 3013,\"targetPort\":5000}]"
+            service.type: "LoadBalancer"      
+          properties:
+            deployment.replicas: "#1"
+            container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+            container.image: "possprod.azurecr.io/sample-flask-app:latest"
+            env.APP_VERSION: "This_is_version_2"
+        patchAction: add
+      stageSelector: "canary-ingress"
+    canary-ingress:
+      name: "canary-ingress"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: canary-ingress
+          type: ingress
+          metadata:
+            annotations.nginx.ingress.kubernetes.io/canary: "true"
+            annotations.nginx.ingress.kubernetes.io/canary-weight: "10"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+          properties:
+            ingressClassName: nginx
+            rules:
+            - http:
+                paths:
+                - path: "'/api(/|$)(.*)'"
+                  pathType: ImplementationSpecific
+                  backend:
+                    service:
+                      name: backend-v2
+                      port:
+                        number: 3013
+        patchAction: add
+      stageSelector: "before-test"
+    before-test:
+      name: "before-test"
+      provider: "providers.stage.delay"
+      inputs:
+        delay: "180s"
+      stageSelector: "test"
+    test:
+      name: "test"
+      provider: "providers.stage.http"
+      inputs:
+        url: "http://backend-v2:3013/"
+        method: "GET"
+      stageSelector: "delay"
+    delay:
+      name: "delay"
+      provider: "providers.stage.delay"
+      inputs:
+        delay: "30s"
+      stageSelector: "weight-counter"
+    weight-counter:
+      name: "weight-counter"
+      provider: "providers.stage.counter"
+      inputs:
+        weight: "$if($equal($output(test,status),200),20,-100)"
+      stageSelector: "$if($le($output(weight-counter,weight),0), roll-back, $if($ge($output(weight-counter, weight), 100), finalize,adjust-weight))"
+    roll-back:
+      name: "roll-back"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: canary-ingress
+          type: ingress
+        patchAction: remove
+      stageSelector: "roll-back-2"
+    roll-back-2:
+      name: "roll-back-2"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: backend-v2
+          type: container
+        patchAction: remove
+      stageSelector: ""
+    finalize:
+      name: "finalize"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: ingress
+          type: ingress
+          metadata:
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+          properties:
+            ingressClassName: nginx
+            rules:
+            - http:
+                paths:
+                - path: "'/api(/|$)(.*)'"
+                  pathType: ImplementationSpecific
+                  backend:
+                    service:
+                      name: backend-v2
+                      port:
+                        number: 3013
+        patchAction: add
+      stageSelector: "finalize-2"
+    finalize-2:
+      name: "finalize-2"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: canary-ingress
+          type: ingress
+        patchAction: remove
+      stageSelector: "finalize-3"
+    finalize-3:
+      name: "finalize-3"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: backend-v1
+          type: container
+        patchAction: remove
+      stageSelector: ""
+    adjust-weight:
+      name: "adjust-weight"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: test-app
+        patchSource: inline
+        patchContent:
+          name: canary-ingress
+          type: ingress
+          metadata:
+            annotations.nginx.ingress.kubernetes.io/canary: "true"
+            annotations.nginx.ingress.kubernetes.io/canary-weight: "$output(weight-counter,weight)"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+          properties:
+            ingressClassName: nginx
+            rules:
+            - http:
+                paths:
+                - path: "'/api(/|$)(.*)'"
+                  pathType: ImplementationSpecific
+                  backend:
+                    service:
+                      name: backend-v2
+                      port:
+                        number: 3013
+        patchAction: add
+      stageSelector: "test"

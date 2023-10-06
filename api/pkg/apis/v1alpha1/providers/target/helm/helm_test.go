@@ -214,6 +214,70 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
+	// To run this test case successfully, you shouldn't have a symphony Helm chart already deployed to your current Kubernetes context
+	testSymphonyHelmVersion := os.Getenv("TEST_SYMPHONY_HELM_VERSIONS")
+	if testSymphonyHelmVersion == "" {
+		t.Skip("Skipping because TEST_SYMPHONY_HELM_VERSION environment variable is not set")
+	}
+
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "ingress-nginx",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz",
+				"name":    "ingress-nginx",
+				"version": "4.7.1",
+			},
+			"values": map[string]interface{}{
+				"controller": map[string]interface{}{
+					"replicaCount": 1,
+					"nodeSelector": map[string]interface{}{
+						"kubernetes.io/os": "linux",
+					},
+					"admissionWebhooks": map[string]interface{}{
+						"patch": map[string]interface{}{
+							"nodeSelector": map[string]interface{}{
+								"kubernetes.io/os": "linux",
+							},
+						},
+					},
+					"service": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							"service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path": "/healthz",
+						},
+					},
+				},
+				"defaultBackend": map[string]interface{}{
+					"nodeSelector": map[string]interface{}{
+						"kubernetes.io/os": "linux",
+					},
+				},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
 // TestHelmTargetProviderInstallDirectDownload tests the Apply function of HelmTargetProvider with direct download
 func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_HELM_GATEKEEPER")

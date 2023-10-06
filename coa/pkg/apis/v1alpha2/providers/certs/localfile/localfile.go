@@ -49,8 +49,7 @@ type LocalCertFileProvider struct {
 func (w *LocalCertFileProvider) ID() string {
 	return w.Config.Name
 }
-func (s *LocalCertFileProvider) SetContext(ctx contexts.ManagerContext) error {
-	return v1alpha2.NewCOAError(nil, "Local cert file provider doesn't support manager context", v1alpha2.InternalError)
+func (s *LocalCertFileProvider) SetContext(ctx contexts.ManagerContext) {
 }
 func (w *LocalCertFileProvider) Init(config providers.IProviderConfig) error {
 	certConfig, err := toLocalCertFileProviderConfig(config)

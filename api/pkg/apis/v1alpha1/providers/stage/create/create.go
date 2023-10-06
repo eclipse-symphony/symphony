@@ -33,6 +33,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -63,6 +64,9 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	s.Config = mockConfig
 	return nil
+}
+func (s *CreateStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
 }
 func toSymphonyStageProviderConfig(config providers.IProviderConfig) (CreateStageProviderConfig, error) {
 	ret := CreateStageProviderConfig{}
@@ -126,32 +130,43 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 	}
 	return ret, nil
 }
-func (i *CreateStageProvider) Process(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
 	}
-	objectType := inputs["objectType"].(string)
-	objectName := inputs["objectName"].(string)
+	objectType := stage.ReadInputString(inputs, "objectType")
+	objectName := stage.ReadInputString(inputs, "objectName")
+	action := stage.ReadInputString(inputs, "action")
 	object := inputs["object"]
-	oData, _ := json.Marshal(object)
+	var oData []byte
+	if object != nil {
+		oData, _ = json.Marshal(object)
+	}
 	deployed := false
 	switch objectType {
 	case "instance":
-		err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
-		if err != nil {
-			return nil, false, err
-		}
-		for ic := 0; ic < i.Config.WaitCount; ic++ {
-			summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+		if action == "remove" {
+			err := utils.DeleteInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
-			if summary.Summary.SuccessCount == summary.Summary.TargetCount {
-				deployed = true
-				break
+		} else {
+			err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
+			if err != nil {
+				return nil, false, err
 			}
-			time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
+			for ic := 0; ic < i.Config.WaitCount; ic++ {
+				summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+				if err != nil {
+					return nil, false, err
+				}
+				if summary.Summary.SuccessCount == summary.Summary.TargetCount {
+					deployed = true
+					break
+				}
+				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
+			}
 		}
 	}
 	outputs["objectType"] = objectType

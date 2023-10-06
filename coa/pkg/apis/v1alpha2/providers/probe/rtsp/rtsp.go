@@ -71,9 +71,8 @@ func (m *RTSPProbeProvider) ID() string {
 	return m.Config.Name
 }
 
-func (a *RTSPProbeProvider) SetContext(context *contexts.ManagerContext) error {
+func (a *RTSPProbeProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
-	return nil
 }
 
 func (m *RTSPProbeProvider) Init(config providers.IProviderConfig) error {

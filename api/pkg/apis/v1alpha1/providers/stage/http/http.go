@@ -39,27 +39,29 @@ import (
 	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
-	"k8s.io/client-go/util/jsonpath"
 )
 
 var msLock sync.Mutex
 var sLog = logger.NewLogger("coa.runtime")
 
 type HttpStageProviderConfig struct {
-	Url              string `json:"url"`
-	Method           string `json:"method"`
-	SuccessCodes     []int  `json:"successCodes,omitempty"`
-	WaitUrl          string `json:"wait.url,omitempty"`
-	WaitInterval     int    `json:"wait.interval,omitempty"`
-	WaitCount        int    `json:"wait.count,omitempty"`
-	WaitStartCodes   []int  `json:"wait.start,omitempty"`
-	WaitSuccessCodes []int  `json:"wait.success,omitempty"`
-	WaitFailedCodes  []int  `json:"wait.fail,omitempty"`
-	WaitJsonPath     string `json:"wait.jsonpath,omitempty"`
+	Url                string `json:"url"`
+	Method             string `json:"method"`
+	SuccessCodes       []int  `json:"successCodes,omitempty"`
+	WaitUrl            string `json:"wait.url,omitempty"`
+	WaitInterval       int    `json:"wait.interval,omitempty"`
+	WaitCount          int    `json:"wait.count,omitempty"`
+	WaitStartCodes     []int  `json:"wait.start,omitempty"`
+	WaitSuccessCodes   []int  `json:"wait.success,omitempty"`
+	WaitFailedCodes    []int  `json:"wait.fail,omitempty"`
+	WaitExpression     string `json:"wait.expression,omitempty"`
+	WaitExpressionType string `json:"wait.expressionType,omitempty"`
 }
 type HttpStageProvider struct {
 	Config  HttpStageProviderConfig
@@ -78,6 +80,9 @@ func (m *HttpStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	m.Config = mockConfig
 	return nil
+}
+func (s *HttpStageProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
 }
 func toHttpStageProviderConfig(config providers.IProviderConfig) (HttpStageProviderConfig, error) {
 	ret := HttpStageProviderConfig{}
@@ -152,8 +157,13 @@ func MockStageProviderConfigFromMap(properties map[string]string) (HttpStageProv
 		}
 		ret.WaitCount = count
 	}
-	if v, ok := properties["wait.jsonpath"]; ok {
-		ret.WaitJsonPath = v
+	if v, ok := properties["wait.expression"]; ok {
+		ret.WaitExpression = v
+	}
+	if v, ok := properties["wait.expressionType"]; ok {
+		ret.WaitExpressionType = v
+	} else {
+		ret.WaitExpressionType = "symphony"
 	}
 	return ret, nil
 }
@@ -295,14 +305,32 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 					sLog.Errorf("  P (Http Stage): failed to read wait request response: %v", err)
 					succeeded = false
 				} else {
-					if i.Config.WaitJsonPath != "" {
+					if i.Config.WaitExpression != "" {
 						var obj interface{}
 						err = json.Unmarshal(data, &obj)
 						if err != nil {
 							sLog.Errorf("  P (Http Stage): wait response could not be decoded to json: %v", err)
 							succeeded = false
 						} else {
-							succeeded, outputs["waitJsonPathResult"] = jsonPathQuery(obj, i.Config.WaitJsonPath)
+							switch i.Config.WaitExpressionType {
+							case "jsonpath":
+								result, err := utils.JsonPathQuery(obj, i.Config.WaitExpression)
+								if err != nil {
+									sLog.Errorf("  P (Http Stage): failed to evaluate JsonPath: %v", err)
+								}
+								succeeded = err == nil
+								outputs["waitResult"] = result
+							default:
+								parser := utils.NewParser(i.Config.WaitExpression)
+								val, err := parser.Eval(coa_utils.EvaluationContext{
+									Value: obj,
+								})
+								if err != nil {
+									sLog.Errorf("  P (Http Stage): failed to evaluate Symphony expression: %v", err)
+								}
+								succeeded = (err == nil && val != "false") // a boolean Symphony expression may evaluate to "false" as a string, indicating the condition is not met
+								outputs["waitResult"] = val
+							}
 						}
 					}
 					if succeeded {
@@ -336,37 +364,6 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	sLog.Infof("  P (Http Stage): process request completed with: %d", resp.StatusCode)
 	return outputs, false, nil
-}
-func jsonPathQuery(obj interface{}, jsonPath string) (bool, string) {
-	var succeeded bool
-	var arr []interface{}
-	switch t := obj.(type) {
-	case []interface{}:
-		arr = t
-	default:
-		arr = append(arr, obj)
-	}
-	jpLookup := jsonpath.New("lookup")
-	jPath := jsonPath
-	if !strings.HasPrefix(jPath, "{") {
-		jPath = "{" + jsonPath + "}" // k8s.io/client-go/util/jsonpath requires JsonPath expression to be wrapped in {}
-	}
-	err := jpLookup.Parse(jPath)
-	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to parse JsonPath '%s' : %v", jPath, err)
-	}
-	var buf bytes.Buffer
-	err = jpLookup.Execute(&buf, arr)
-	result := buf.String()
-	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to parse JsonPath '%s' : %v", jPath, err)
-		succeeded = false
-	} else if len(result) == 0 {
-		succeeded = false
-	} else {
-		succeeded = true //we consider it success as long as something is selected
-	}
-	return succeeded, result
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
