@@ -27,6 +27,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -144,6 +145,48 @@ func TestBasicPubSubTwoProviders(t *testing.T) {
 	provider1.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
 	assert.Equal(t, "TEST", msg)
+}
+func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
+	// testRedis := os.Getenv("TEST_REDIS")
+	// if testRedis == "" {
+	// 	t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	// }
+	sig := make(chan int)
+	var msg v1alpha2.JobData
+	provider1 := RedisPubSubProvider{}
+	err := provider1.Init(RedisPubSubProviderConfig{
+		Name:            "redis-1",
+		Host:            "localhost:6379",
+		Password:        "",
+		NumberOfWorkers: 1,
+	})
+	assert.Nil(t, err)
+	provider2 := RedisPubSubProvider{}
+	err = provider2.Init(RedisPubSubProviderConfig{
+		Name:            "redis-2",
+		Host:            "localhost:6379",
+		Password:        "",
+		NumberOfWorkers: 1,
+		ConsumerID:      "c",
+	})
+	assert.Nil(t, err)
+	provider2.Subscribe("job", func(topic string, message v1alpha2.Event) error {
+		jData, _ := json.Marshal(message.Body)
+		json.Unmarshal(jData, &msg)
+		sig <- 1
+		return nil
+	})
+	provider1.Publish("job", v1alpha2.Event{
+		Metadata: map[string]string{
+			"objectType": "mock",
+		},
+		Body: v1alpha2.JobData{
+			Id:     "123",
+			Action: "do-it",
+		},
+	})
+	<-sig
+	assert.Equal(t, "do-it", msg.Action)
 }
 func TestMultipleSubscriber(t *testing.T) {
 	testRedis := os.Getenv("TEST_REDIS")

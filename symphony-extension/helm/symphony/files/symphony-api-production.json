@@ -1,0 +1,587 @@
+{
+  "siteInfo": {
+    "siteId": "hq",
+    "properties": {
+      "address": "1 Microsoft Way",
+      "city": "Redmond",
+      "state": "WA",
+      "zip": "98052",
+      "country": "USA",
+      "phone": "425-882-8080",
+      "version": "0.45.1",
+      "lat": "43.67961",
+      "lng": "-122.12826"
+    },
+    "currentSite": {
+      "baseUrl": "http://symphony-service:8080/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    }
+  },
+  "api": {
+    "pubsub": {      
+      "provider": {
+        "type": "providers.pubsub.redis",
+        "config": {
+          "name": "redis",
+          "host": "symphony-redis:6379",
+          "requireTLS": false,
+          "password": "",
+          "numberOfWorkers": 1
+        }
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.settings",
+        "managers": [
+          {
+            "name": "config-manager",
+            "type": "managers.symphony.configs",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "catalog": {
+                "type": "providers.config.catalog",
+                "config": {
+                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
+                  "user": "admin",
+                  "password": ""
+                }
+              }
+            }
+          }
+        ]        
+      },
+      {
+        "type": "vendors.stage",
+        "route": "stage",
+        "managers": [
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": {   
+              "providers.state": "k8s-state"        
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.activations",
+        "route": "activations",
+        "managers": [
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigns",
+        "route": "campaigns",
+        "managers": [
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.jobs",
+        "route": "jobs",
+        "loopInterval": 15,
+        "managers": [
+          {
+            "name": "jobs-manager",
+            "type": "managers.symphony.jobs",
+            "properties": {
+              "providers.state": "mem-state",
+              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "poll.enabled": "false"               
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.targets",
+        "route": "targets",
+        "managers": [
+          {
+            "name": "targets-manager",
+            "type": "managers.symphony.targets",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.solutions",
+        "route": "solutions",
+        "managers": [
+          {
+            "name": "solutions-manager",
+            "type": "managers.symphony.solutions",                     
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.instances",
+        "route": "instances",
+        "managers": [
+          {
+            "name": "instances-manager",
+            "type": "managers.symphony.instances",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.devices",
+        "route": "devices",
+        "managers": [
+          {
+            "name": "devices-manager",
+            "type": "managers.symphony.devices",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.models",
+        "loopInterval": 15,
+        "route": "models",
+        "managers": [
+          {
+            "name": "models-manager",
+            "type": "managers.symphony.models",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.skills",
+        "loopInterval": 15,
+        "route": "skills",
+        "managers": [
+          {
+            "name": "skills-manager",
+            "type": "managers.symphony.skills",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.users",
+        "route": "users",
+        "properties": {
+          "test-users": "true"
+        },
+        "managers": [
+          {
+            "name": "users-manager",
+            "type": "managers.symphony.users",
+            "properties": {
+              "providers.state": "mem-state"              
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.state": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }     
+          }
+        ]
+      },
+      {
+        "type": "vendors.agent",
+        "loopInterval": 15,
+        "route": "agent",
+        "managers": [
+          {
+            "name": "reference-manager",
+            "type": "managers.symphony.reference",
+            "properties": {              
+              "providers.state": "memory",
+              "providers.reporter": "k8s-reporter"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "k8s-reference": {
+                "type": "providers.reference.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "cv-reference": {
+                "type": "providers.reference.customvision",
+                "config": {
+                  "key": "$env:CUSTOM_VISION_KEY"
+                }
+              },
+              "k8s-reporter": {
+                "type": "providers.reporter.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.federation",
+        "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sites-manager",
+            "type": "managers.symphony.sites",
+            "properties": {
+              "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "providers.queue": "memeory"              
+            },
+            "providers": {
+              "memeory": {
+                "type": "providers.queue.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogs",
+        "route": "catalogs",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8080,
+        "pipeline": [
+          {
+            "type": "middleware.http.cors",
+            "properties": {
+              "Access-Control-Allow-Headers": "authorization,Content-Type",
+              "Access-Control-Allow-Credentials": "true",
+              "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+              "Access-Control-Allow-Origin": "*"
+            }
+          },
+          {
+            "type": "middleware.http.jwt",                   
+            "properties": {
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings", "/v1alpha2/agent/config"],
+              "verifyKey": "SymphonyKey",              
+              "enableRBAC": true,
+              "roles": [
+                {
+                  "role": "administrator",
+                  "claim": "user",
+                  "value": "admin"
+                },
+                {
+                  "role": "reader",
+                  "claim": "user",
+                  "value": "*"
+                },
+                {
+                  "role": "solution-creator",
+                  "claim": "user",
+                  "value": "developer"
+                },
+                {
+                  "role": "target-manager",
+                  "claim": "user",
+                  "value": "device-manager"
+                },
+                {
+                  "role": "operator",
+                  "claim": "user",
+                  "value": "solution-operator"
+                }
+              ],
+              "policy": {                
+                "administrator": {
+                  "items": {
+                    "*": "*"                    
+                  }
+                },
+                "reader": {
+                  "items": {
+                    "*": "GET"
+                  }
+                },
+                "solution-creator": {
+                  "items": {
+                    "/v1alpha2/solutions": "*"
+                  }
+                },
+                "target-manager": {
+                  "items": {
+                    "/v1alpha2/targets": "*"
+                  }
+                },
+                "solution-operator": {
+                  "items": {
+                    "/v1alpha2/instances": "*"
+                  }
+                }                
+              }
+            }
+          },
+          {
+            "type": "middleware.http.telemetry",
+            "properties": {
+              "enabled": true,
+              "maxBatchSize": 8192,
+              "maxBatchIntervalSeconds": 2,
+              "client": "my-dev-machine"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "bindings.http",
+      "config": {
+          "port": 8081,
+          "tls": true,
+          "certProvider": {
+          "type": "certs.autogen",
+          "config":{}
+          }
+      }
+    }
+  ]
+}

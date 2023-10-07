@@ -120,7 +120,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	})
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
 		fLog.Debugf("V (Federation): received report event: %v", event)
-		if status, ok := event.Body.(model.ActivationStatus); ok {
+		jData, _ := json.Marshal(event.Body)
+		var status model.ActivationStatus
+		err := json.Unmarshal(jData, &status)
+		if err == nil {
 			err := utils.SyncActivationStatus(
 				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
@@ -134,7 +137,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	})
 	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
 		if f.TrailsManager != nil {
-			if trails, ok := event.Body.([]v1alpha2.Trail); ok {
+			jData, _ := json.Marshal(event.Body)
+			var trails []v1alpha2.Trail
+			err := json.Unmarshal(jData, &trails)
+			if err == nil {
 				return f.TrailsManager.Append(context.Background(), trails)
 			}
 		}
