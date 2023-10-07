@@ -4,5 +4,10 @@ metadata:
   name: {{ include "symphony.configmapName" . }}
   namespace: {{ .Release.Namespace }}
 data:
+  {{- if .Values.redis.enabled }}
   symphony-api.json: |-
+    {{ tpl (.Files.Get "files/symphony-api-production.json") . | nindent 4 }}
+  {{- else }}
+  symphony-api.json: |-    
     {{ tpl (.Files.Get "files/symphony-api.json") . | nindent 4 }}
+  {{- end }}  

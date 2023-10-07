@@ -93,8 +93,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	}
 	s.Vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
 		var actData v1alpha2.ActivationData
-		var aok bool
-		if actData, aok = event.Body.(v1alpha2.ActivationData); !aok {
+		jData, _ := json.Marshal(event.Body)
+		err := json.Unmarshal(jData, &actData)
+		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
 		campaign, err := s.CampaignsManager.GetSpec(context.Background(), actData.Campaign)
@@ -128,8 +129,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			IsActive:     true,
 		}
 		triggerData := v1alpha2.ActivationData{}
-		var aok bool
-		if triggerData, aok = event.Body.(v1alpha2.ActivationData); !aok {
+		jData, _ := json.Marshal(event.Body)
+		err := json.Unmarshal(jData, &triggerData)
+		if err != nil {
 			err = v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 			status.Status = v1alpha2.BadRequest
 			status.ErrorMessage = err.Error()
@@ -175,7 +177,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	})
 	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
 		sLog.Debugf("V (Stage): handling job report event: %v", event)
-		status := event.Body.(model.ActivationStatus)
+		jData, _ := json.Marshal(event.Body)
+		var status model.ActivationStatus
+		json.Unmarshal(jData, &status)
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaign, err := s.CampaignsManager.GetSpec(context.Background(), status.Outputs["__campaign"].(string))
 			if err != nil {
@@ -207,8 +211,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return nil
 	})
 	s.Vendor.Context.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
-		job := event.Body.(v1alpha2.JobData)
-		jData, _ := json.Marshal(job.Body)
+		jData, _ := json.Marshal(event.Body)
+		var job v1alpha2.JobData
+		json.Unmarshal(jData, &job)
+		jData, _ = json.Marshal(job.Body)
 		var dataPackage v1alpha2.InputOutputData
 		err := json.Unmarshal(jData, &dataPackage)
 		if err != nil {

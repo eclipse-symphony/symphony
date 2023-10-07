@@ -28,6 +28,7 @@ package stage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -100,7 +101,10 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	if err != nil {
 		return nil, err
 	}
-	if p, ok := entry.Body.(PendingTask); ok {
+	jData, _ := json.Marshal(entry.Body)
+	var p PendingTask
+	err = json.Unmarshal(jData, &p)
+	if err == nil {
 		// //find site in p.Sites
 		// found := false
 		// for _, s := range p.Sites {
