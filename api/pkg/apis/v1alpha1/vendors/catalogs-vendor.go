@@ -73,7 +73,10 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
 	e.Vendor.Context.Subscribe("catalog-sync", func(topic string, event v1alpha2.Event) error {
-		if job, ok := event.Body.(v1alpha2.JobData); ok {
+		jData, _ := json.Marshal(event.Body)
+		var job v1alpha2.JobData
+		err := json.Unmarshal(jData, &job)
+		if err == nil {
 			if catalog, ok := job.Body.(model.CatalogSpec); ok {
 				name := fmt.Sprintf("%s-%s", catalog.SiteId, catalog.Name)
 				catalog.Name = name

@@ -28,6 +28,7 @@ package staging
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -66,8 +67,9 @@ func (s *StagingManager) Reconcil() []error {
 
 func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	var job v1alpha2.JobData
-	var jok bool
-	if job, jok = event.Body.(v1alpha2.JobData); !jok {
+	jData, _ := json.Marshal(event.Body)
+	err := json.Unmarshal(jData, &job)
+	if err != nil {
 		return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 	}
 	return s.QueueProvider.Enqueue(event.Metadata["site"], job)
