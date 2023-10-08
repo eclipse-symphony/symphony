@@ -193,7 +193,24 @@ func (h *APIHost) Launch(config HostConfig,
 					if wait {
 						wg.Add(1)
 					}
-					binding, err := h.launchHTTP(b.Config, endpoints, h.SharedPubSubProvider.(pubsub.IPubSubProvider))
+					var binding bindings.IBinding
+					var err error
+					if h.SharedPubSubProvider != nil {
+						binding, err = h.launchHTTP(b.Config, endpoints, h.SharedPubSubProvider.(pubsub.IPubSubProvider))
+					} else {
+						var bindingPubsub pv.IProvider
+						for _, providerFactory := range providerFactories {
+							mProvider, err := providerFactory.CreateProvider(
+								config.API.PubSub.Provider.Type,
+								config.API.PubSub.Provider.Config)
+							if err != nil {
+								return err
+							}
+							bindingPubsub = mProvider
+							break
+						}
+						binding, err = h.launchHTTP(b.Config, endpoints, bindingPubsub.(pubsub.IPubSubProvider))
+					}
 					if err != nil {
 						return err
 					}

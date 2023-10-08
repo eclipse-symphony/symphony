@@ -18,11 +18,12 @@ require (
 )
 
 require (
-	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/extendedlocation/armextendedlocation v1.1.0-beta.2
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration v1.1.1
+	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/goccy/go-json v0.10.2
+	github.com/princjef/mageutil v1.0.0
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9
 )
 
@@ -32,12 +33,12 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
+	github.com/go-redis/redis/v7 v7.4.1 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/microsoft/ApplicationInsights-Go v0.4.4 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
-	github.com/princjef/mageutil v1.0.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.11.1 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.11.1 // indirect
 )
@@ -59,7 +60,6 @@ require (
 	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
-	github.com/docker/api/errors v1.3.0 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect

@@ -69,6 +69,7 @@ import (
 	mockledger "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	mempubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	reidspubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/redis"
 	memoryqueue "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
 	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
@@ -300,6 +301,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.pubsub.memory":
 		mProvider := &mempubsub.InMemoryPubSubProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.pubsub.redis":
+		mProvider := &reidspubsub.RedisPubSubProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -740,6 +747,22 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.graph.memory":
 					provider := &memorygraph.MemoryGraphProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.pubsub.memory":
+					provider := &mempubsub.InMemoryPubSubProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.pubsub.redis":
+					provider := &reidspubsub.RedisPubSubProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

@@ -1,0 +1,37 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "symphony.fullname" . }}-redis
+  labels:
+    app: {{ include "symphony.name" . }}-redis
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "symphony.name" . }}-redis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ include "symphony.name" . }}-redis
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          ports:
+            - containerPort: {{ .Values.redis.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" . }}-redis
+  labels:
+    app: {{ include "symphony.name" . }}-redis
+spec:
+  selector:
+    app: {{ include "symphony.name" . }}-redis
+  ports:
+    - name: redis
+      port: {{ .Values.redis.port }}
+      targetPort: {{ .Values.redis.port }}
+{{- end }}

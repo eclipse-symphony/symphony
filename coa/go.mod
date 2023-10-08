@@ -7,7 +7,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.0.0
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/fasthttp/router v1.4.12
-	github.com/go-redis/redis/v7 v7.0.1
+	github.com/go-redis/redis/v7 v7.4.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	github.com/microsoft/ApplicationInsights-Go v0.4.4

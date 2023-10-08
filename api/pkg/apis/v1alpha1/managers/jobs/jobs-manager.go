@@ -131,7 +131,10 @@ func (s *JobsManager) Poll() []error {
 		})
 		needsPub := true
 		if err == nil {
-			if stamp, ok := entry.Body.(LastSuccessTime); ok {
+			var stamp LastSuccessTime
+			jData, _ := json.Marshal(entry.Body)
+			err = json.Unmarshal(jData, &stamp)
+			if err == nil {
 				if time.Since(stamp.Time) > time.Duration(interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
@@ -159,12 +162,13 @@ func (s *JobsManager) Reconcil() []error {
 }
 func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.Event) error {
 	var heartbeat v1alpha2.HeartBeatData
-	var jok bool
-	if heartbeat, jok = event.Body.(v1alpha2.HeartBeatData); !jok {
+	jData, _ := json.Marshal(event.Body)
+	err := json.Unmarshal(jData, &heartbeat)
+	if err != nil {
 		return v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
-	_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
 			Body: heartbeat,
@@ -206,14 +210,14 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	if objectType, ok := event.Metadata["objectType"]; ok {
-
 		var job v1alpha2.JobData
-		var jok bool
-		if job, jok = event.Body.(v1alpha2.JobData); !jok {
+		jData, _ := json.Marshal(event.Body)
+		err := json.Unmarshal(jData, &job)
+		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
-		err := s.DelayOrSkipJob(ctx, objectType, job)
+		err = s.DelayOrSkipJob(ctx, objectType, job)
 		if err != nil {
 			return err
 		}
@@ -230,7 +234,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		if err != nil {
 			return err
 		}
-
 		switch objectType {
 		case "instance":
 			instanceName := job.Id

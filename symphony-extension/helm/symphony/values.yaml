@@ -22,3 +22,7 @@ zipkin:
 cert-manager:
   fullnameOverride: symphony-cert-manager
 flavor: oss
+redis:
+  enabled: true
+  image: redis/redis-stack-server:latest
+  port: 6379
