@@ -1,6 +1,6 @@
 {
   "siteInfo": {
-    "siteId": "hq",
+    "siteId": "laptop",
     "properties": {
       "address": "1 Microsoft Way",
       "city": "Redmond",
@@ -14,6 +14,11 @@
     },
     "currentSite": {
       "baseUrl": "http://symphony-service:8080/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    },
+    "parentSite": {
+      "baseUrl": "http://20.102.39.161:8080/v1alpha2/",
       "username": "admin",
       "password": ""
     }
@@ -62,6 +67,9 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
+              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
               "providers.state": "k8s-state"        
             },
             "providers": {
@@ -103,7 +111,14 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",
@@ -398,6 +413,8 @@
       },
       {
         "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
         "managers": [
           {
             "name": "trails-manager",
@@ -451,6 +468,14 @@
                 "type": "providers.queue.memory",
                 "config": {}
               }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "interval": "#15",
+              "sync.enabled": "true"
             }
           }
         ]

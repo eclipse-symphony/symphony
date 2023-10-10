@@ -77,7 +77,10 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 		var job v1alpha2.JobData
 		err := json.Unmarshal(jData, &job)
 		if err == nil {
-			if catalog, ok := job.Body.(model.CatalogSpec); ok {
+			var catalog model.CatalogSpec
+			jData, _ = json.Marshal(job.Body)
+			err = json.Unmarshal(jData, &catalog)
+			if err == nil {
 				name := fmt.Sprintf("%s-%s", catalog.SiteId, catalog.Name)
 				catalog.Name = name
 				if catalog.ParentName != "" {
@@ -87,9 +90,13 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 				if err != nil {
 					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
 				}
+			} else {
+				iLog.Errorf("Failed to unmarshal job body: %v", err)
+				return err
 			}
 		}
-		return nil
+		iLog.Errorf("Failed to unmarshal job data: %v", err)
+		return err
 	})
 	return nil
 }
