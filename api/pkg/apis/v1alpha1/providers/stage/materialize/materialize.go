@@ -37,9 +37,11 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 var maLock sync.Mutex
+var mLog = logger.NewLogger("coa.runtime")
 
 type MaterializeStageProviderConfig struct {
 	BaseUrl  string `json:"baseUrl"`
@@ -140,12 +142,32 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				case "instance":
 					err = utils.CreateInstance(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
+						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "solution":
 					err = utils.UpsertSolution(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
+						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					creationCount++
+				case "target":
+					err = utils.UpsertTarget(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					if err != nil {
+						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					creationCount++
+				default:
+					catalog.Spec.Name = name
+					catalog.Id = name
+					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
+					objectData, _ := json.Marshal(catalog.Spec)
+					err = utils.UpsertCatalog(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					if err != nil {
+						mLog.Errorf("Failed to create catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++

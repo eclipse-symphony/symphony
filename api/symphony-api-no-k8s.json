@@ -434,11 +434,18 @@
             "name": "staging-manager",
             "type": "managers.symphony.staging",
             "properties": {
-              "providers.queue": "memeory"              
+              "poll.enabled": "true",
+              "interval": "#15",
+              "providers.queue": "memory-queue",
+              "providers.state": "memory-state"              
             },
             "providers": {
-              "memeory": {
+              "memory-queue": {
                 "type": "providers.queue.memory",
+                "config": {}
+              },
+              "memory-state": {
+                "type": "providers.state.memory",
                 "config": {}
               }
             }
