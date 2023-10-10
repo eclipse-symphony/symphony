@@ -393,6 +393,8 @@
       },
       {
         "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
         "managers": [
           {
             "name": "trails-manager",
@@ -446,6 +448,14 @@
                 "type": "providers.queue.memory",
                 "config": {}
               }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "interval": "#15",
+              "sync.enabled": "true"
             }
           }
         ]

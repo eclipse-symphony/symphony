@@ -382,6 +382,20 @@ func GetSolution(baseUrl string, solution string, user string, password string) 
 	return ret, nil
 }
 
+func UpsertTarget(baseUrl string, solution string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "targets/registry/"+solution, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func UpsertSolution(baseUrl string, solution string, user string, password string, payload []byte) error {
 	token, err := auth(baseUrl, user, password)
 	if err != nil {
