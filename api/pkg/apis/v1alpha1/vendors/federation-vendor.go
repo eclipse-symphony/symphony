@@ -29,6 +29,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
@@ -326,7 +327,18 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSync-GET", pCtx, nil)
 		id := request.Parameters["__site"]
-		batch, err := f.StagingManager.GetABatchForSite(id)
+		count := request.Parameters["count"]
+		if count == "" {
+			count = "1"
+		}
+		intCount, err := strconv.Atoi(count)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.BadRequest,
+				Body:  []byte(err.Error()),
+			})
+		}
+		batch, err := f.StagingManager.GetABatchForSite(id, intCount)
 
 		pack := model.SyncPackage{
 			Origin: f.Context.SiteInfo.SiteId,
