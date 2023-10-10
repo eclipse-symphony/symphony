@@ -207,7 +207,7 @@ func GetABatchForSite(baseUrl string, site string, user string, password string)
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "federation/sync/"+site, "GET", nil, token)
+	response, err := callRestAPI(baseUrl, "federation/sync/"+site+"?count=10", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -380,6 +380,20 @@ func GetSolution(baseUrl string, solution string, user string, password string) 
 	}
 
 	return ret, nil
+}
+
+func UpsertTarget(baseUrl string, solution string, user string, password string, payload []byte) error {
+	token, err := auth(baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(baseUrl, "targets/registry/"+solution, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func UpsertSolution(baseUrl string, solution string, user string, password string, payload []byte) error {

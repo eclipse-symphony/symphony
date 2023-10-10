@@ -62,6 +62,9 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
+              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
               "providers.state": "k8s-state"        
             },
             "providers": {
@@ -103,7 +106,14 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",
@@ -398,6 +408,8 @@
       },
       {
         "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
         "managers": [
           {
             "name": "trails-manager",
@@ -444,13 +456,31 @@
             "name": "staging-manager",
             "type": "managers.symphony.staging",
             "properties": {
-              "providers.queue": "memeory"              
+              "poll.enabled": "true",
+              "interval": "#15",
+              "providers.queue": "memory-queue",
+              "providers.state": "memory-state"               
             },
             "providers": {
-              "memeory": {
+              "memory-queue": {
                 "type": "providers.queue.memory",
                 "config": {}
+              },
+              "memory-state": {
+                "type": "providers.state.memory",
+                "config": {}
               }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "interval": "#15",
+              "sync.enabled": "true",               
+              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "user": "admin",
+              "password": ""
             }
           }
         ]

@@ -2,11 +2,11 @@ fullnameOverride: symphony
 symphonyImage:
   repository: possprod.azurecr.io/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "0.45.31"
 paiImage:
   repository: possprod.azurecr.io/symphony-api
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "0.45.31"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: true
 global:
@@ -26,3 +26,8 @@ redis:
   enabled: true
   image: redis/redis-stack-server:latest
   port: 6379
+parent:
+  url: 
+  username: admin
+  password:
+siteId: hq
