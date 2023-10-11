@@ -29,6 +29,7 @@ package create
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -132,9 +133,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 }
 func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
-	for k, v := range inputs {
-		outputs[k] = v
-	}
+
 	objectType := stage.ReadInputString(inputs, "objectType")
 	objectName := stage.ReadInputString(inputs, "objectName")
 	action := stage.ReadInputString(inputs, "action")
@@ -143,7 +142,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	if object != nil {
 		oData, _ = json.Marshal(object)
 	}
-	deployed := false
+	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":
 		if action == "remove" {
@@ -158,24 +157,20 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err
 				}
 				if summary.Summary.SuccessCount == summary.Summary.TargetCount {
-					deployed = true
 					break
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
+			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
 		}
 	}
 	outputs["objectType"] = objectType
 	outputs["objectName"] = objectName
 
-	if deployed {
-		outputs["status"] = "OK"
-	} else {
-		outputs["status"] = "Failed"
-	}
 	return outputs, false, nil
 }

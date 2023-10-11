@@ -119,9 +119,7 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 }
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	outputs := make(map[string]interface{})
-	for k, v := range inputs {
-		outputs[k] = v
-	}
+
 	objects := inputs["names"].([]interface{})
 	prefixedNames := make([]string, len(objects))
 	for i, object := range objects {
@@ -178,6 +176,5 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	if creationCount < len(objects) {
 		return outputs, false, v1alpha2.NewCOAError(nil, "failed to create all objects", v1alpha2.InternalError)
 	}
-	outputs["status"] = "OK"
 	return outputs, true, nil
 }
