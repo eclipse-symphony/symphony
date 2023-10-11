@@ -1,0 +1,8 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: multisite-deploy
+spec:
+  campaign: "site-apps"
+  name: "multisite-deploy"
+  
