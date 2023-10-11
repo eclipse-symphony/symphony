@@ -9,11 +9,11 @@ Maestro is Symphony’s CLI that allows you to bootstrap Symphony with your Kube
 ## Option 2: Using Helm
 You can also deploy Symphony to a Kubernetes cluster using Helm 3:
 ```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
+helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.45.31
 ```
 Or, to update your existing Symphony release to a new version:
 ```bash
-helm upgrade --install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
+helm upgrade --install symphony oci://possprod.azurecr.io/helm/symphony --version 0.45.31
 ```
 
 ## Option 3: Using Docker
@@ -39,4 +39,21 @@ In addition to the default in-memory store (which doesn't scale beyond a single 
 ### Pub/sub
 If you host vendors on multiple processes or containers, you need to ensure that these vendors share the same pub/sub message bus, such as a Redis cluster. 
 
+> **NOTE**: By default, Symphony deploys a Reids pod as its pub/sub backbone.
+
 Symphony is extensible to support additional state stores and pub/sub message buses through its [Providers](../providers/overview.md) mechanism.
+
+## Customize Helm Deployment
+
+The following table summarizes some Helm chart value switches you can use during Symphony deployment with Helm (by adding ```--set <key>=<value>``` switches):
+
+| Value | Description|
+|--------|--------|
+| ```installServiceExt``` | when set to ```true``` (default), Symphony deploys a publicly accessible ```symphony-service-ext``` service for agents and child sites. If you don't have such needs, you can turn off this service by setting the value to ```false```. |
+| ```redis.enabled``` | When set to ```true``` (default), Symphony deploys a Redis pod as its pub/sub messaging backbone. If you turn this to ```false```, an in-memory backbone is used, which can't be scaled beyond a single API pod. |
+| ```siteId``` | You can change the default site id, which is ```hq```, to a different value with this switch. |
+| ```parent.url``` | When this value is set, the current Symphony control plane is linked to a parent Symphony control plane. See [here](./multisite-deploy.md) for more details.|
+
+
+
+
