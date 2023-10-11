@@ -41,11 +41,16 @@ You can start using Symphony in minutes by selecting one of the following paths:
 
 ## Using Symphony
 
+* [Deploying Symphony (Single Site)](./symphony-book/build_deployment/deploy.md)
+* [Deploying Symphony (Multiple Sites)](./symphony-book/build_deployment/multisite-deploy.md)
+* [Troubeshoot](./symphony-book/dev-guide/troubleshooting.md)
 * [Modeling Applications](./symphony-book/solution-management/solution-management.md)
+
 
 ## Advanced Scenarios
 
 * [Canary Deployment](./symphony-book/scenarios/canary-deployment.md)
+* [Multisite Deployment](./symphony-book/scenarios/multisite-deployment.md)
 
 ## Contributing to Symphony
 

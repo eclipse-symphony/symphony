@@ -15,7 +15,6 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
 1. Build and launch Symphony API as a local process:
    ```bash
    # folder: symphony/api
-   go mod vendor
    go build -o symphon-api
     ./symphony-api -c ./symphony-api-no-k8s.json -l Debug
     ```
