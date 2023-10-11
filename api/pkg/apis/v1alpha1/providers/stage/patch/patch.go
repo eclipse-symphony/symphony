@@ -341,11 +341,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 
 	}
-	if udpated {
-		outputs["status"] = "OK"
-	} else {
-		outputs["status"] = "Skipped"
-	}
 	sLog.Info("  P (Patch Stage): end process request")
 	return outputs, false, nil
 }

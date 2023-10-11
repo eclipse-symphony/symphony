@@ -56,6 +56,7 @@ type ActivationData struct {
 	Outputs              map[string]map[string]interface{} `json:"outputs,omitempty"`
 	Provider             string                            `json:"provider,omitempty"`
 	Config               interface{}                       `json:"config,omitempty"`
+	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 }
 type HeartBeatData struct {
 	JobId  string    `json:"id"`

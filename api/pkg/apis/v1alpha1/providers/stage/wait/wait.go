@@ -167,9 +167,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
-	for k, v := range inputs {
-		outputs[k] = v
-	}
+
 	objectType := inputs["objectType"].(string)
 	objects := inputs["names"].([]interface{})
 	prefixedNames := make([]string, len(objects))
@@ -238,7 +236,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	outputs["objectType"] = objectType
-	outputs["status"] = "Failed"
 	log.Errorf("  P (Wait Processor): failed to wait for %v %v", objectType, objects)
 	observ_utils.CloseSpanWithError(span, errors.New("failed to wait for "+objectType))
 	return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for %v %v", objectType, objects), v1alpha2.NotFound)
