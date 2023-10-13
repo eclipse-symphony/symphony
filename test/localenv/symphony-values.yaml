@@ -2,3 +2,4 @@ symphonyImage:
   pullPolicy: Never
 paiImage:
   pullPolicy: Never
+installServiceExt: false
