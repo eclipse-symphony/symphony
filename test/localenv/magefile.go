@@ -191,10 +191,10 @@ func (Build) Api() error {
 func buildAPI() error {
 	return conditionalRun(
 		func() error {
-			return shellcmd.Command("docker-compose -f ../api/docker-compose.azure.yaml build").Run() //azure
+			return shellcmd.Command("docker-compose -f ../../api/docker-compose.azure.yaml build").Run() //azure
 		},
 		func() error {
-			return shellcmd.Command("docker-compose -f ../api/docker-compose.yaml build").Run() //oss
+			return shellcmd.Command("docker-compose -f ../../api/docker-compose.yaml build").Run() //oss
 		})
 }
 
@@ -209,10 +209,10 @@ func (Build) K8s() error {
 func buildK8s() error {
 	return conditionalRun(
 		func() error {
-			return shellcmd.Command("docker-compose -f ../k8s/docker-compose.azure.yaml build").Run() //azure
+			return shellcmd.Command("docker-compose -f ../../k8s/docker-compose.azure.yaml build").Run() //azure
 		},
 		func() error {
-			return shellcmd.Command("docker-compose -f ../k8s/docker-compose.yaml build").Run() //oss
+			return shellcmd.Command("docker-compose -f ../../k8s/docker-compose.yaml build").Run() //oss
 		})
 }
 
