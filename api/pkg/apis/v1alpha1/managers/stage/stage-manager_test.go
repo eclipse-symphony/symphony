@@ -522,3 +522,165 @@ func TestAccessingPreviousStage(t *testing.T) {
 		assert.Equal(t, "test", activation.TriggeringStage)
 	}
 }
+func TestIntentionalError(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.ActivationStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.mock",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"__status": 400,
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  true,
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"])
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+}
+func TestIntentionalErrorState(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.ActivationStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.mock",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"__status": v1alpha2.DeleteFailed,
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  true,
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+		assert.Equal(t, v1alpha2.DeleteFailed, status.Outputs["__status"])
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+}
+func TestIntentionalErrorString(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.ActivationStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.mock",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"__status": "Conflict",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  true,
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+		assert.Equal(t, "Conflict", status.Outputs["__status"])
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+}
