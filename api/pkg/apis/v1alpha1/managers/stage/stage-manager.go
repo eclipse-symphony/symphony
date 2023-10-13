@@ -30,6 +30,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -59,6 +60,36 @@ type TaskResult struct {
 	Outputs map[string]interface{}
 	Site    string
 	Error   error
+}
+
+func (t *TaskResult) GetError() error {
+	if t.Error != nil {
+		return t.Error
+	}
+	if v, ok := t.Outputs["__status"]; ok {
+		switch sv := v.(type) {
+		case v1alpha2.State:
+			break
+		case int:
+			state := v1alpha2.State(sv)
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %d", sv)
+			}
+			t.Outputs["__status"] = state
+		default:
+			return fmt.Errorf("invalid state %v", v)
+		}
+
+		if t.Outputs["__status"] != v1alpha2.OK {
+			if v, ok := t.Outputs["__error"]; ok {
+				return fmt.Errorf("%v", v)
+			} else {
+				return fmt.Errorf("stage returned unsuccessful status without an error")
+			}
+		}
+	}
+	return nil
 }
 
 type PendingTask struct {
@@ -230,6 +261,14 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
 	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+
+	result := TaskResult{
+		Outputs: outputs,
+		Error:   err,
+		Site:    s.VendorContext.SiteInfo.SiteId,
+	}
+
+	err = result.GetError()
 	if err != nil {
 		status.Status = v1alpha2.InternalError
 		status.ErrorMessage = err.Error()
@@ -428,16 +467,17 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		outputs := make(map[string]interface{})
 		delayedExit := false
 		for result := range results {
-			if result.Error != nil {
+			err = result.GetError()
+			if err != nil {
 				status.Status = v1alpha2.InternalError
-				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, result.Error.Error())
+				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
 				status.IsActive = false
 				site := result.Site
 				if result.Site == s.Context.SiteInfo.SiteId {
 					site = ""
 				}
-				status.Outputs = carryOutPutsToErrorStatus(nil, result.Error, site)
-				log.Errorf(" M (Stage): failed to process stage outputs: %v", result.Error)
+				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				log.Errorf(" M (Stage): failed to process stage outputs: %v", err)
 				delayedExit = true
 			}
 			for k, v := range result.Outputs {
