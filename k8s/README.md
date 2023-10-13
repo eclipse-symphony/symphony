@@ -8,7 +8,7 @@ There are a few routes to take when developing in Symphony-K8s
 
 Depending on what you're updating you will end up taking one of these two routes.
 
-> **Note** This guide is deprecated. The recommended way to do local development now is with localenv. See [localenv](../localenv/README.md) for more information.
+> **Note** This guide is deprecated. The recommended way to do local development now is with localenv. See [localenv](../test/localenv/README.md) for more information.
 > To setup a local env with minikube run the following
 >```bash
 ># k8s directory
@@ -51,7 +51,7 @@ If you would like to start with a fresh cluster and test out the arc-extension y
 
 However if you are just interested in installing symphony not as an arc-extension, you can just install it directly from the repo. Assuming you're in the root of the symphony-k8s directory you can run
 ```bash
-cd ../symphony-extension/helm/
+cd ../.azure/symphony-extension/helm/
 helm install symphony symphony/
 ```
 
@@ -93,9 +93,9 @@ helm install symphony symphony/
 assuming you're in the root of symphony-k8s directory
 ### 2.6.2 Symphony Helm Chart with RP and as an arc-extension
 1. Pick a version from [symphonycr/arc-extension](https://ms.portal.azure.com/#view/Microsoft_Azure_ContainerRegistries/RepositoryBlade/id/%2Fsubscriptions%2F77969078-2897-47b0-9143-917252379303%2FresourceGroups%2FSymphony_Shared_RG%2Fproviders%2FMicrosoft.ContainerRegistry%2Fregistries%2Fsymphonycr/repository/arc-extension%2Fsymphony), these are the only versions that are registered through geneva actions to be used as an arc-extension. When picking one be sure you pick one that isn't used by others by pinging in the DH chat to see what others are using. Some work needs to be done to have this process be more streamlined. Such as configuring a dev ACR where the test-arc-extension can use any version within it. **Version to avoid: 0.43.x**
-2. Update version in Chart.yaml to be a version you chose from the ACR inside  `symphony-extension/helm/symphony-chart` We are essentially replacing the helm chart at that version. If you would like to have your own version inside this repository let me know and I can help configure that. Below is how to helm package and push to the arc-extension acr.
+2. Update version in Chart.yaml to be a version you chose from the ACR inside  `.azure/symphony-extension/helm/symphony-chart` We are essentially replacing the helm chart at that version. If you would like to have your own version inside this repository let me know and I can help configure that. Below is how to helm package and push to the arc-extension acr.
 ```bash
-cd ../symphony-extension/helm/
+cd ../.azure/symphony-extension/helm/
 az login --use-device-code
 az acr login -n symphonycr
 helm package symphony/  

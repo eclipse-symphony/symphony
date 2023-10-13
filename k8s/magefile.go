@@ -134,10 +134,10 @@ func Run() error {
 func HelmTemplate() error {
 	return conditionalRun(
 		func() error {
-			return kustomize.Command("build config/azure/helm -o ../symphony-extension/helm/symphony/templates/symphony.yaml").Run()
+			return kustomize.Command("build config/azure/helm -o ../.azure/symphony-extension/helm/symphony/templates/symphony.yaml").Run()
 		},
 		func() error {
-			return kustomize.Command("build config/oss/helm -o ../symphony-extension/helm/symphony/templates/symphony.yaml").Run()
+			return kustomize.Command("build config/oss/helm -o ../.azure/symphony-extension/helm/symphony/templates/symphony.yaml").Run()
 		})
 }
 
