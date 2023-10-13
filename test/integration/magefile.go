@@ -140,7 +140,7 @@ func Azure() error {
 
 // Run a mage command from /localenv
 func localenvCmd(mageCmd string, flavor string) error {
-	return shellExec(fmt.Sprintf("cd ../../localenv && mage %s %s", mageCmd, flavor))
+	return shellExec(fmt.Sprintf("cd ../localenv && mage %s %s", mageCmd, flavor))
 }
 
 // Run a command with | or other things that do not work in shellcmd
