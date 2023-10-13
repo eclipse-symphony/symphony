@@ -684,3 +684,61 @@ func TestIntentionalErrorString(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 }
+func TestAccessingPreviousStageInExpression(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.mock",
+	}
+	var status model.ActivationStatus
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"ticket": "bar",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  false,
+					Inputs: map[string]interface{}{
+						"stcheck": "$output($input(__previousStage), __status)",
+						"stfoo":   "$output($input(__previousStage), ticket)",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			assert.Equal(t, "OK", status.Outputs["stcheck"])
+			assert.Equal(t, "bar", status.Outputs["stfoo"])
+			break
+		}
+	}
+}
