@@ -31,7 +31,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -374,6 +373,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		log.Debugf(" M (Stage): HandleTriggerEvent before evaluation inputs 2: %v", inputs)
 
+		// inject default inputs
+		inputs["__campaign"] = triggerData.Campaign
+		inputs["__activation"] = triggerData.Activation
+		inputs["__stage"] = triggerData.Stage
+		inputs["__activationGeneration"] = triggerData.ActivationGeneration
+		inputs["__previousStage"] = triggerData.TriggeringStage
+		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
+
 		for k, v := range inputs {
 			val, err := s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {
@@ -386,14 +393,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 			inputs[k] = val
 		}
-
-		// inject default inputs
-		inputs["__campaign"] = triggerData.Campaign
-		inputs["__activation"] = triggerData.Activation
-		inputs["__stage"] = triggerData.Stage
-		inputs["__activationGeneration"] = triggerData.ActivationGeneration
-		inputs["__previousStage"] = triggerData.TriggeringStage
-		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
 
 		if triggerData.Outputs != nil {
 			if v, ok := triggerData.Outputs[triggerData.Stage]; ok {
@@ -433,19 +432,28 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				defer wg.Done()
 				inputCopy := make(map[string]interface{})
 				for k, v := range inputs {
-					if _, ok := v.(string); ok {
-						sv := v.(string)
-						sv = strings.ReplaceAll(sv, "__site", site)
-						sv = strings.ReplaceAll(sv, "__campaign", triggerData.Campaign)
-						sv = strings.ReplaceAll(sv, "__activation", triggerData.Activation)
-						sv = strings.ReplaceAll(sv, "__activationGeneration", triggerData.ActivationGeneration)
-						sv = strings.ReplaceAll(sv, "__previousStage", triggerData.TriggeringStage)
-						inputCopy[k] = sv
-					} else {
-						inputCopy[k] = v
-					}
+					inputCopy[k] = v
 				}
 				inputCopy["__site"] = site
+
+				for k, v := range inputCopy {
+					val, err := s.traceValue(v, inputCopy, triggerData.Outputs)
+					if err != nil {
+						status.Status = v1alpha2.InternalError
+						status.ErrorMessage = err.Error()
+						status.IsActive = false
+						log.Errorf(" M (Stage): failed to evaluate input: %v", err)
+						observ_utils.CloseSpanWithError(span, err)
+						results <- TaskResult{
+							Outputs: nil,
+							Error:   err,
+							Site:    site,
+						}
+						return
+					}
+					inputCopy[k] = val
+				}
+
 				if _, ok := provider.(*remote.RemoteStageProvider); ok {
 					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 				}
