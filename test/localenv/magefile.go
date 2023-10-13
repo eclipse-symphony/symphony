@@ -29,7 +29,7 @@ const (
 	OSS_CONTAINER_REGISTRY   = "possprod.azurecr.io"
 	NAMESPACE                = "default"
 	DOCKER_TAG               = "latest"
-	CHART_PATH               = "../symphony-extension/helm/symphony"
+	CHART_PATH               = "../../.azure/symphony-extension/helm/symphony"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -59,11 +59,11 @@ func conditionalString(azureStr string, ossStr string) string {
 func (Cluster) Deploy() error {
 	return conditionalRun(
 		func() error { //azure
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../symphony-extension/helm/symphony/values.azure.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../../.azure/symphony-extension/helm/symphony/values.azure.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		},
 		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../symphony-extension/helm/symphony/values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f symphony-values.yaml -f ../../.azure/symphony-extension/helm/symphony/values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		})
 }
