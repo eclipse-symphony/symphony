@@ -522,6 +522,63 @@ func TestAccessingPreviousStage(t *testing.T) {
 		assert.Equal(t, "test", activation.TriggeringStage)
 	}
 }
+
+func TestAccessingStageStatus(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.http",
+	}
+	var status model.ActivationStatus
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.http",
+					StageSelector: "$if($equal($output(test, __status), 200), test2, '')",
+					Inputs: map[string]interface{}{
+						"method": "GET",
+						"url":    "https://www.bing.com",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  false,
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+		assert.Equal(t, "test", activation.TriggeringStage)
+		assert.Equal(t, "test2", status.NextStage)
+	}
+}
+
 func TestIntentionalError(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
