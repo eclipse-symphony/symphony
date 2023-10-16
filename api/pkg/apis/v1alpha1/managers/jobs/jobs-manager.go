@@ -207,7 +207,9 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 	}
 	return v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
 }
-
+func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {
+	return nil
+}
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData

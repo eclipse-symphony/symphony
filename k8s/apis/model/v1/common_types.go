@@ -73,6 +73,13 @@ type SolutionSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type ScheduleSpec struct {
+	Date string `json:"date"`
+	Time string `json:"time"`
+	Zone string `json:"zone"`
+}
+
+// +kubebuilder:object:generate=true
 type StageSpec struct {
 	Name     string `json:"name,omitempty"`
 	Contexts string `json:"contexts,omitempty"`
@@ -85,6 +92,7 @@ type StageSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
+	Schedule        ScheduleSpec         `json:"schedule,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
