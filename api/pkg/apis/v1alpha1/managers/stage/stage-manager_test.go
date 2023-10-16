@@ -666,7 +666,7 @@ func TestIntentionalErrorString(t *testing.T) {
 					Provider:      "providers.stage.mock",
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
-						"__status": "Conflict",
+						"__status": "400",
 					},
 				},
 				"test2": {
@@ -680,7 +680,7 @@ func TestIntentionalErrorString(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, "Conflict", status.Outputs["__status"])
+		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 }

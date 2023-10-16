@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -74,6 +75,17 @@ func (t *TaskResult) GetError() error {
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
 				return fmt.Errorf("invalid state %d", sv)
+			}
+			t.Outputs["__status"] = state
+		case string:
+			vInt, err := strconv.ParseInt(sv, 10, 32)
+			if err != nil {
+				return fmt.Errorf("invalid state %s", sv)
+			}
+			state := v1alpha2.State(vInt)
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %d", vInt)
 			}
 			t.Outputs["__status"] = state
 		default:
