@@ -57,13 +57,18 @@ type ActivationData struct {
 	Provider             string                            `json:"provider,omitempty"`
 	Config               interface{}                       `json:"config,omitempty"`
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
+	Schedule             *ScheduleSpec                     `json:"schedule,omitempty"`
 }
 type HeartBeatData struct {
 	JobId  string    `json:"id"`
 	Action string    `json:"action"`
 	Time   time.Time `json:"time"`
 }
-
+type ScheduleSpec struct {
+	Date string `json:"date"`
+	Time string `json:"time"`
+	Zone string `json:"zone"`
+}
 type InputOutputData struct {
 	Inputs  map[string]interface{}            `json:"inputs,omitempty"`
 	Outputs map[string]map[string]interface{} `json:"outputs,omitempty"`

@@ -90,6 +90,9 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 	e.Vendor.Context.Subscribe("heartbeat", func(topic string, event v1alpha2.Event) error {
 		return e.JobsManager.HandleHeartBeatEvent(context.Background(), event)
 	})
+	e.Vendor.Context.Subscribe("schedule", func(topic string, event v1alpha2.Event) error {
+		return e.JobsManager.HandleScheduleEvent(context.Background(), event)
+	})
 
 	if err != nil {
 		return err

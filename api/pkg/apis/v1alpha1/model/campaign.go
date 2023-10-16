@@ -29,6 +29,7 @@ package model
 import (
 	"errors"
 	"reflect"
+	"time"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 )
@@ -44,6 +45,37 @@ type ActivationState struct {
 	Spec     *ActivationSpec   `json:"spec,omitempty"`
 	Status   *ActivationStatus `json:"status,omitempty"`
 }
+type ScheduleSpec struct {
+	Date string `json:"date"`
+	Time string `json:"time"`
+	Zone string `json:"zone"`
+}
+
+func (s ScheduleSpec) GetTime() (time.Time, error) {
+	dt, err := parseTimeWithZone(s.Time, s.Date, s.Zone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return dt, nil
+}
+
+func parseTimeWithZone(timeStr string, dateStr string, zoneStr string) (time.Time, error) {
+	dtStr := dateStr + " " + timeStr + " " + zoneStr
+	dt, err := time.Parse("2006-01-02 3:04PM MST", dtStr)
+	if err != nil {
+		loc, err := time.LoadLocation(zoneStr)
+		if err != nil {
+			return time.Time{}, err
+		}
+		dtStr := dateStr + " " + timeStr
+		dt, err := time.ParseInLocation("2006-01-02 3:04PM", dtStr, loc)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return dt, nil
+	}
+	return dt, nil
+}
 
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
@@ -53,6 +85,24 @@ type StageSpec struct {
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
+	Schedule      ScheduleSpec           `json:"schedule,omitempty"`
+}
+
+func (s ScheduleSpec) DeepEquals(other IDeepEquals) (bool, error) {
+	otherS, ok := other.(ScheduleSpec)
+	if !ok {
+		return false, errors.New("parameter is not a ScheduleSpec type")
+	}
+	if s.Date != otherS.Date {
+		return false, nil
+	}
+	if s.Time != otherS.Time {
+		return false, nil
+	}
+	if s.Zone != otherS.Zone {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {

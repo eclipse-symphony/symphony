@@ -1,6 +1,6 @@
 {
   "siteInfo": {
-    "siteId": "{{ .Values.parent.url }}",
+    "siteId": "{{ .Values.siteId }}",
     "properties": {
       "address": "1 Microsoft Way",
       "city": "Redmond",

@@ -259,6 +259,17 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	if _, ok := provider.(*remote.RemoteStageProvider); ok {
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
+
+	if triggerData.Schedule != nil {
+		s.Context.Publish("schedule", v1alpha2.Event{
+			Body: triggerData,
+		})
+		status.Outputs["__status"] = v1alpha2.Delayed
+		status.Status = v1alpha2.Paused
+		status.IsActive = false
+		return status
+	}
+
 	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
 
 	result := TaskResult{
@@ -457,14 +468,28 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				if _, ok := provider.(*remote.RemoteStageProvider); ok {
 					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 				}
-				outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
-				if pause {
+
+				if triggerData.Schedule != nil {
+					s.Context.Publish("schedule", v1alpha2.Event{
+						Body: triggerData,
+					})
 					pauseRequested = true
-				}
-				results <- TaskResult{
-					Outputs: outputs,
-					Error:   err,
-					Site:    site,
+					results <- TaskResult{
+						Outputs: nil,
+						Error:   nil,
+						Site:    site,
+					}
+				} else {
+					outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+
+					if pause {
+						pauseRequested = true
+					}
+					results <- TaskResult{
+						Outputs: outputs,
+						Error:   err,
+						Site:    site,
+					}
 				}
 			}(&waitGroup, site, results)
 		}

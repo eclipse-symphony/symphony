@@ -64,3 +64,58 @@ func TestCampaignRoleNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+func TestScheduleTimeZone(t *testing.T) {
+	schedule := ScheduleSpec{
+		Date: "2020-01-01",
+		Time: "12:00PM",
+		Zone: "PST",
+	}
+	dt, err := schedule.GetTime()
+	assert.Nil(t, err)
+	assert.Equal(t, "2020-01-01 12:00:00 -0800 PST", dt.String())
+}
+
+func TestScheduleIANATimeZone(t *testing.T) {
+	schedule := ScheduleSpec{
+		Date: "2020-01-01",
+		Time: "12:00PM",
+		Zone: "America/Los_Angeles",
+	}
+	dt, err := schedule.GetTime()
+	assert.Nil(t, err)
+	assert.Equal(t, "2020-01-01 12:00:00 -0800 PST", dt.String())
+}
+
+func TestScheduleEmpty(t *testing.T) {
+	schedule := ScheduleSpec{
+		Date: "2020-01-01",
+		Time: "12:00PM",
+		Zone: "", //this is equivalent to UTC
+	}
+	dt, err := schedule.GetTime()
+	assert.Nil(t, err)
+	assert.Equal(t, "2020-01-01 12:00:00 +0000 UTC", dt.String())
+}
+
+func TestScheduleUTC(t *testing.T) {
+	schedule := ScheduleSpec{
+		Date: "2020-01-01",
+		Time: "12:00PM",
+		Zone: "UTC",
+	}
+	dt, err := schedule.GetTime()
+	assert.Nil(t, err)
+	assert.Equal(t, "2020-01-01 12:00:00 +0000 UTC", dt.String())
+}
+
+// TODO: This test works only in PST timezone, need to fix it for all time zones
+// func TestScheduleLocal(t *testing.T) {
+// 	schedule := ScheduleSpec{
+// 		Date: "2020-01-01",
+// 		Time: "12:00PM",
+// 		Zone: "Local",
+// 	}
+// 	dt, err := schedule.GetTime()
+// 	assert.Nil(t, err)
+// 	assert.Equal(t, "2020-01-01 12:00:00 -0800 PST", dt.String())
+// }
