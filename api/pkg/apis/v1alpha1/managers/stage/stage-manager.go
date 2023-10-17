@@ -94,7 +94,7 @@ func (t *TaskResult) GetError() error {
 
 		if t.Outputs["__status"] != v1alpha2.OK {
 			if v, ok := t.Outputs["__error"]; ok {
-				return fmt.Errorf("%v", v)
+				return v1alpha2.NewCOAError(nil, v.(string), t.Outputs["__status"].(v1alpha2.State))
 			} else {
 				return fmt.Errorf("stage returned unsuccessful status without an error")
 			}
@@ -308,7 +308,11 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 		ret[k] = v
 	}
 	if _, ok := ret[statusKey]; !ok {
-		ret[statusKey] = v1alpha2.InternalError
+		if cErr, ok := err.(v1alpha2.COAError); ok {
+			ret[statusKey] = cErr.State
+		} else {
+			ret[statusKey] = v1alpha2.InternalError
+		}
 	}
 	if _, ok := ret[errorKey]; !ok {
 		ret[errorKey] = err.Error()

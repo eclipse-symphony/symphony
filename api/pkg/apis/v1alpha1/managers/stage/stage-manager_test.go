@@ -616,6 +616,7 @@ func TestIntentionalError(t *testing.T) {
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
 						"__status": 400,
+						"__error":  "bad",
 					},
 				},
 				"test2": {
@@ -670,6 +671,7 @@ func TestIntentionalErrorState(t *testing.T) {
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
 						"__status": v1alpha2.DeleteFailed,
+						"__error":  "failed",
 					},
 				},
 				"test2": {
@@ -737,7 +739,63 @@ func TestIntentionalErrorString(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"])
+		assert.Equal(t, v1alpha2.InternalError, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+}
+func TestIntentionalErrorStringProper(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.ActivationStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.mock",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			Name:        "test-campaign",
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"__status": "400",
+						"__error":  "this_is_an_error",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.mock",
+					StageSelector: "",
+					HandleErrors:  true,
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
+		assert.Equal(t, "this_is_an_error", status.Outputs["__error"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 }
