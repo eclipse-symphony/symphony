@@ -17,8 +17,6 @@ First, install Symphony on your device using one of the following methods:
 
 * [Use Symphony with the Maestro cross-platform CLI tool](./symphony-book/quick_start/quick_start_maestro.md)
 
-* [Use Symphony in a Docker container](./symphony-book/quick_start/quick_start_docker.md)
-
 * [Use Symphony on a Kubernetes cluster with Helm](./symphony-book/quick_start/quick_start_helm.md)
 
 * [Use Symphony as a self-contained binary](./symphony-book/quick_start/quick_start_binary.md)
@@ -46,7 +44,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Deploy Symphony (multiple sites)](./symphony-book/build_deployment/multisite-deploy.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshooting.md)
 * [Modeling Applications](./symphony-book/solution-management/solution-management.md)
-
+* [Use Symphony in a Docker container](./symphony-book/quick_start/quick_start_docker.md)
 
 ## Advanced Scenarios
 

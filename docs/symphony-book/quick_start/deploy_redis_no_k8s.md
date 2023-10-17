@@ -16,7 +16,8 @@ Using a web client, send the following request:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/users/auth
 * **METHOD**: POST
-* **BODY**: 
+* **BODY**:
+
     ```json
     {
         "username": "admin",
@@ -39,7 +40,8 @@ Define your current machine as a [Target](../uom/target.md) with a Docker [targe
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/targets/registry/sample-docker-target
 * **METHOD**: POST
-* **BODY**: 
+* **BODY**:
+
     ```json
     {
         "displayName": "sample-docker-target",
@@ -64,7 +66,8 @@ Define a [Solution](../uom/solution.md) with a single Redis container as a compo
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/solutions/sample-redis
 * **METHOD**: POST
-* **BODY**: 
+* **BODY**:
+
     ```json
     {
         "displayName": "sample-redis",
@@ -79,6 +82,7 @@ Define a [Solution](../uom/solution.md) with a single Redis container as a compo
         ]
     }
     ```
+
 ## Define an instance
 
 Define an [Instance](../uom/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to you location machine *target*:
@@ -120,7 +124,8 @@ To delete the container, send a `DELETE` request:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: DELETE
-* **BODY**: 
+* **BODY**:
+
     ```json
     {
         "displayName": "redis-server",
@@ -130,6 +135,7 @@ To delete the container, send a `DELETE` request:
         }        
     }
     ```
+
 If you run `docker ps` again, you should see that the container has been terminated.
 
 > **NOTE**: The standalone Symphony API uses a in-memory state store by default. If you shut down the `symphony-api` process, all states will be purged.
