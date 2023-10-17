@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -76,13 +77,24 @@ func (t *TaskResult) GetError() error {
 				return fmt.Errorf("invalid state %d", sv)
 			}
 			t.Outputs["__status"] = state
+		case string:
+			vInt, err := strconv.ParseInt(sv, 10, 32)
+			if err != nil {
+				return fmt.Errorf("invalid state %s", sv)
+			}
+			state := v1alpha2.State(vInt)
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %d", vInt)
+			}
+			t.Outputs["__status"] = state
 		default:
 			return fmt.Errorf("invalid state %v", v)
 		}
 
 		if t.Outputs["__status"] != v1alpha2.OK {
 			if v, ok := t.Outputs["__error"]; ok {
-				return fmt.Errorf("%v", v)
+				return v1alpha2.NewCOAError(nil, v.(string), t.Outputs["__status"].(v1alpha2.State))
 			} else {
 				return fmt.Errorf("stage returned unsuccessful status without an error")
 			}
@@ -284,6 +296,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.ErrorMessage = err.Error()
 		status.IsActive = false
 		status.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
+		result.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
 		return status
 	}
 	status.Outputs = outputs
@@ -306,7 +319,11 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 		ret[k] = v
 	}
 	if _, ok := ret[statusKey]; !ok {
-		ret[statusKey] = v1alpha2.InternalError
+		if cErr, ok := err.(v1alpha2.COAError); ok {
+			ret[statusKey] = cErr.State
+		} else {
+			ret[statusKey] = v1alpha2.InternalError
+		}
 	}
 	if _, ok := ret[errorKey]; !ok {
 		ret[errorKey] = err.Error()
@@ -510,6 +527,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					site = ""
 				}
 				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				log.Errorf(" M (Stage): failed to process stage outputs: %v", err)
 				delayedExit = true
 			}
