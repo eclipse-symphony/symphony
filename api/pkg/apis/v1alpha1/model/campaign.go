@@ -52,6 +52,7 @@ type StageSpec struct {
 	Config        interface{}            `json:"config,omitempty"`
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
+	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {

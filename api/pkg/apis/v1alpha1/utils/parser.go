@@ -30,11 +30,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/scanner"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
@@ -1222,6 +1225,26 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 	return model.DeploymentSpec{}, errors.New("deployment spec is not found")
 }
 func compareInterfaces(a, b interface{}) bool {
+	if reflect.TypeOf(a) == reflect.TypeOf(b) {
+		switch a.(type) {
+		case int, int8, int16, int32, int64:
+			return a.(int64) == b.(int64)
+		case uint, uint8, uint16, uint32, uint64:
+			return a.(uint64) == b.(uint64)
+		case float32, float64:
+			return math.Abs(a.(float64)-b.(float64)) < 1e-9
+		case string:
+			return a.(string) == b.(string)
+		case bool:
+			return a.(bool) == b.(bool)
+		}
+	}
+	if aState, ok := a.(v1alpha2.State); ok {
+		a = int(aState)
+	}
+	if bState, ok := b.(v1alpha2.State); ok {
+		b = int(bState)
+	}
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 func andBools(a, b interface{}) (bool, error) {
