@@ -116,9 +116,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	log.Info("  P (List Processor): processing inputs")
 
 	outputs := make(map[string]interface{})
-	for k, v := range inputs {
-		outputs[k] = v
-	}
+
 	objectType := inputs["objectType"].(string)
 	namesOnly := false
 	if v, ok := inputs["namesOnly"]; ok {
@@ -167,7 +165,6 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	}
 	outputs["objectType"] = objectType
-	outputs["status"] = "OK"
 	observ_utils.CloseSpanWithError(span, nil)
 	return outputs, false, nil
 }

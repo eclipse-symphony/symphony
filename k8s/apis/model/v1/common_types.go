@@ -83,7 +83,8 @@ type StageSpec struct {
 	StageSelector string               `json:"stageSelector,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
+	TriggeringStage string               `json:"triggeringStage,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

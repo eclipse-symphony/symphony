@@ -30,7 +30,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -59,6 +60,47 @@ type TaskResult struct {
 	Outputs map[string]interface{}
 	Site    string
 	Error   error
+}
+
+func (t *TaskResult) GetError() error {
+	if t.Error != nil {
+		return t.Error
+	}
+	if v, ok := t.Outputs["__status"]; ok {
+		switch sv := v.(type) {
+		case v1alpha2.State:
+			break
+		case int:
+			state := v1alpha2.State(sv)
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %d", sv)
+			}
+			t.Outputs["__status"] = state
+		case string:
+			vInt, err := strconv.ParseInt(sv, 10, 32)
+			if err != nil {
+				return fmt.Errorf("invalid state %s", sv)
+			}
+			state := v1alpha2.State(vInt)
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %d", vInt)
+			}
+			t.Outputs["__status"] = state
+		default:
+			return fmt.Errorf("invalid state %v", v)
+		}
+
+		if t.Outputs["__status"] != v1alpha2.OK {
+			if v, ok := t.Outputs["__error"]; ok {
+				return v1alpha2.NewCOAError(nil, v.(string), t.Outputs["__status"].(v1alpha2.State))
+			} else {
+				return fmt.Errorf("stage returned unsuccessful status without an error")
+			}
+		}
+	}
+	return nil
 }
 
 type PendingTask struct {
@@ -176,6 +218,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						Provider:             cam.Stages[nextStage].Provider,
 						Config:               cam.Stages[nextStage].Config,
 						Outputs:              outputs,
+						TriggeringStage:      stage,
 					}
 					return activationData, nil
 				} else {
@@ -229,17 +272,52 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
 	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+
+	result := TaskResult{
+		Outputs: outputs,
+		Error:   err,
+		Site:    s.VendorContext.SiteInfo.SiteId,
+	}
+
+	err = result.GetError()
 	if err != nil {
 		status.Status = v1alpha2.InternalError
 		status.ErrorMessage = err.Error()
 		status.IsActive = false
-		status.Outputs = outputs //TODO: this is not good. It assumes a process carries over inputs to outputs, and outputs are always returned even if there are errors. Downstream, some code relies on properties like __activation and __campaign in output collection.
+		status.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
+		result.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
 		return status
 	}
 	status.Outputs = outputs
+	status.Outputs["__status"] = v1alpha2.OK
 	status.Status = v1alpha2.Done
 	status.IsActive = false
 	return status
+}
+func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site string) map[string]interface{} {
+	ret := make(map[string]interface{})
+	statusKey := "__status"
+	if site != "" {
+		statusKey = fmt.Sprintf("%s.%s", statusKey, site)
+	}
+	errorKey := "__error"
+	if site != "" {
+		errorKey = fmt.Sprintf("%s.%s", errorKey, site)
+	}
+	for k, v := range outputs {
+		ret[k] = v
+	}
+	if _, ok := ret[statusKey]; !ok {
+		if cErr, ok := err.(v1alpha2.COAError); ok {
+			ret[statusKey] = cErr.State
+		} else {
+			ret[statusKey] = v1alpha2.InternalError
+		}
+	}
+	if _, ok := ret[errorKey]; !ok {
+		ret[errorKey] = err.Error()
+	}
+	return ret
 }
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
 	_, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
@@ -312,6 +390,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		log.Debugf(" M (Stage): HandleTriggerEvent before evaluation inputs 2: %v", inputs)
 
+		// inject default inputs
+		inputs["__campaign"] = triggerData.Campaign
+		inputs["__activation"] = triggerData.Activation
+		inputs["__stage"] = triggerData.Stage
+		inputs["__activationGeneration"] = triggerData.ActivationGeneration
+		inputs["__previousStage"] = triggerData.TriggeringStage
+		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
+
 		for k, v := range inputs {
 			val, err := s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {
@@ -324,12 +410,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 			inputs[k] = val
 		}
-
-		// inject default inputs
-		inputs["__campaign"] = triggerData.Campaign
-		inputs["__activation"] = triggerData.Activation
-		inputs["__stage"] = triggerData.Stage
-		inputs["__activationGeneration"] = triggerData.ActivationGeneration
 
 		if triggerData.Outputs != nil {
 			if v, ok := triggerData.Outputs[triggerData.Stage]; ok {
@@ -369,18 +449,28 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				defer wg.Done()
 				inputCopy := make(map[string]interface{})
 				for k, v := range inputs {
-					if _, ok := v.(string); ok {
-						sv := v.(string)
-						sv = strings.ReplaceAll(sv, "__site", site)
-						sv = strings.ReplaceAll(sv, "__campaign", triggerData.Campaign)
-						sv = strings.ReplaceAll(sv, "__activation", triggerData.Activation)
-						sv = strings.ReplaceAll(sv, "__activationGeneration", triggerData.ActivationGeneration)
-						inputCopy[k] = sv
-					} else {
-						inputCopy[k] = v
-					}
+					inputCopy[k] = v
 				}
 				inputCopy["__site"] = site
+
+				for k, v := range inputCopy {
+					val, err := s.traceValue(v, inputCopy, triggerData.Outputs)
+					if err != nil {
+						status.Status = v1alpha2.InternalError
+						status.ErrorMessage = err.Error()
+						status.IsActive = false
+						log.Errorf(" M (Stage): failed to evaluate input: %v", err)
+						observ_utils.CloseSpanWithError(span, err)
+						results <- TaskResult{
+							Outputs: nil,
+							Error:   err,
+							Site:    site,
+						}
+						return
+					}
+					inputCopy[k] = val
+				}
+
 				if _, ok := provider.(*remote.RemoteStageProvider); ok {
 					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 				}
@@ -400,20 +490,37 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		close(results)
 
 		outputs := make(map[string]interface{})
+		delayedExit := false
 		for result := range results {
-			if result.Error != nil {
+			err = result.GetError()
+			if err != nil {
 				status.Status = v1alpha2.InternalError
-				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, result.Error.Error())
+				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
 				status.IsActive = false
-				log.Errorf(" M (Stage): failed to process stage outputs: %v", result.Error)
-				observ_utils.CloseSpanWithError(span, result.Error)
-				return status, activationData
+				site := result.Site
+				if result.Site == s.Context.SiteInfo.SiteId {
+					site = ""
+				}
+				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				log.Errorf(" M (Stage): failed to process stage outputs: %v", err)
+				delayedExit = true
 			}
 			for k, v := range result.Outputs {
 				if result.Site == s.Context.SiteInfo.SiteId {
 					outputs[k] = v
 				} else {
 					outputs[fmt.Sprintf("%s.%s", result.Site, k)] = v
+				}
+			}
+			if result.Site == s.Context.SiteInfo.SiteId {
+				if _, ok := result.Outputs["__status"]; !ok {
+					outputs["__status"] = v1alpha2.OK
+				}
+			} else {
+				key := fmt.Sprintf("%s.__status", result.Site)
+				if _, ok := result.Outputs[key]; !ok {
+					outputs[fmt.Sprintf("%s.__status", result.Site)] = v1alpha2.OK
 				}
 			}
 		}
@@ -472,16 +579,26 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 			if sVal != "" {
 				if nextStage, ok := campaign.Stages[sVal]; ok {
-					status.NextStage = sVal
-					activationData = &v1alpha2.ActivationData{
-						Campaign:             triggerData.Campaign,
-						Activation:           triggerData.Activation,
-						ActivationGeneration: triggerData.ActivationGeneration,
-						Stage:                sVal,
-						Inputs:               triggerData.Inputs,
-						Outputs:              triggerData.Outputs,
-						Provider:             nextStage.Provider,
-						Config:               nextStage.Config,
+					if !delayedExit || nextStage.HandleErrors {
+						status.NextStage = sVal
+						activationData = &v1alpha2.ActivationData{
+							Campaign:             triggerData.Campaign,
+							Activation:           triggerData.Activation,
+							ActivationGeneration: triggerData.ActivationGeneration,
+							Stage:                sVal,
+							Inputs:               triggerData.Inputs,
+							Outputs:              triggerData.Outputs,
+							Provider:             nextStage.Provider,
+							Config:               nextStage.Config,
+							TriggeringStage:      triggerData.Stage,
+						}
+					} else {
+						status.Status = v1alpha2.InternalError
+						status.ErrorMessage = fmt.Sprintf("stage %s failed", triggerData.Stage)
+						status.IsActive = false
+						log.Errorf(" M (Stage): failed to process stage outputs: %v", status.ErrorMessage)
+						observ_utils.CloseSpanWithError(span, err)
+						return status, activationData
 					}
 				} else {
 					err = v1alpha2.NewCOAError(nil, status.ErrorMessage, v1alpha2.BadRequest)
@@ -595,6 +712,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			Inputs:               activation.Spec.Inputs,
 			Provider:             stageSpec.Provider,
 			Config:               stageSpec.Config,
+			TriggeringStage:      stage,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)
