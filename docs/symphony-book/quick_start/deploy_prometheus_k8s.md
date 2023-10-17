@@ -40,7 +40,7 @@ Once you have Symphony installed on your Kubernetes cluster, you can use standar
 
 A Symphony *target* is a specific deployment environment that inculdes definitions of infrastructural components and types of resources to be managed.
 
-Create a YAML file that registers the current Kubernetes cluster as a deployment target. (Note the `inCluster=true` property. For more information on the Kubernetes provider, see [providers.target.k8s](../providers/k8s_provider.md)).
+Create a YAML file that registers the current Kubernetes cluster as a deployment target:
 
 ```yaml
 apiVersion: fabric.symphony/v1
@@ -56,6 +56,8 @@ spec:
       config:
         inCluster: "true"   
 ```
+
+The `inCluster` property is set to `true` because the resource is being created in the cluster where Symphony has been installed. For more information on the Kubernetes provider, see [providers.target.k8s](../providers/k8s_provider.md).
 
 This YAML file is also available at [docs/samples/k8s/hello-world/target.yaml](../../samples/k8s/hello-world/target.yaml).
 
@@ -112,7 +114,7 @@ spec:
 
 This YAML file is also available at [docs/samples/k8s/hello-world/instance.yaml](../../samples/k8s/hello-world/instance.yaml).
 
-## Create all objects
+### 4. Create all objects
 
 ```bash
 kubectl create -f target.yaml
@@ -120,7 +122,7 @@ kubectl create -f solution.yaml
 kubectl create -f instance.yaml
 ```
 
-## Verify the Symphony objects
+### 5. Verify the Symphony objects
 
 Verify that all of the Symphony objects were created:
 
@@ -145,7 +147,7 @@ kubectl get all -n sample-k8s-scope
 
 You should observe that a `sample-prometheus-instance` pod and a `sample-prometheus-instance` service have been created. You can get the public IP of the Prometheus service and use a browser to navigate to the Prometheus portal (port 9090).
 
-## Clean up Symphony objects
+### 6. Clean up Symphony objects
 
 To delete all Symphony objects:
 

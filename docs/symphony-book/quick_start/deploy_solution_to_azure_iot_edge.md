@@ -16,16 +16,17 @@ These steps create a new resource group, a new IoT Hub, and a new IoT Edge devic
 az extension add --name azure-iot
 
 # create resource grouop
-az group create --name s8c-demo --location westus2
+az group create --name <REPLACE_WITH_GROUP_NAME> --location westus2
 
 # create IoT Hub
-az iot hub create --name s8chub --resource-group s8c-demo --sku S1
+az iot hub create --name <REPLACE_WITH_HUB_NAME> --resource-group <REPLACE_WITH_GROUP_NAME> --sku S1
 
 # create a IoT Edge device
-az iot hub device-identity create --device-id s8c-vm --hub-name s8chub --edge-enabled
+az iot hub device-identity create --device-id s8c-vm --hub-name <REPLACE_WITH_HUB_NAME> --edge-enabled
 
 # get IoT Edge device connection string
-az iot hub device-identity connection-string show --device-id s8c-vm --resource-group s8c-demo --hub-name s8chub
+# copy the output to use when you configure the device
+az iot hub device-identity connection-string show --device-id s8c-vm --resource-group <REPLACE_WITH_GROUP_NAME> --hub-name <REPLACE_WITH_HUB_NAME>
 ```
 
 ### 2. Configure a Linux VM as your IoT Edge device
@@ -36,11 +37,11 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
   ```bash
   # use ARM deployment to create a VM and install IoT Edge runtime
   az deployment group create \
-  --resource-group s8c-demo \
+  --resource-group <REPLACE_WITH_GROUP_NAME> \
   --template-uri "https://raw.githubusercontent.com/Azure/iotedge-vm-deploy/1.4/edgeDeploy.json" \
   --parameters dnsLabelPrefix='s8c-vm' \
   --parameters adminUsername='hbai' \
-  --parameters deviceConnectionString=$(az iot hub device-identity connection-string show --device-id s8c-vm --hub-name s8chub -o tsv) \
+  --parameters deviceConnectionString=$(az iot hub device-identity connection-string show --device-id s8c-vm --hub-name <REPLACE_WITH_HUB_NAME> -o tsv) \
   --parameters authenticationType='password' \
   --parameters adminPasswordOrKey="<REPLACE_WITH_PASSWORD>"
   ```
@@ -49,7 +50,7 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
 
   ```bash
   # create vm
-  az vm create --resource-group s8c-demo --name s8c-vm --image UbuntuLTS --admin-username hbai --generate-ssh-keys --size Standard_D2s_v5
+  az vm create --resource-group <REPLACE_WITH_GROUP_NAME> --name s8c-vm --image UbuntuLTS --admin-username hbai --generate-ssh-keys --size Standard_D2s_v5
 
   # SSH into the machine
   ssh hbai@<public IP of your VM>
@@ -68,7 +69,7 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
     sudo apt-get install aziot-edge defender-iot-micro-agent-edge
 
   # update iotedge setting
-  sudo iotedge config mp --connection-string '<IoT Edge device connection string>'
+  sudo iotedge config mp --connection-string '<REPLACE_WITH_DEVICE_CONNECTION_STRING>'
   ```
 
 ## OPTION 1: Use Maestro
@@ -78,7 +79,13 @@ To use this option, first install Maestro and the Symphony API. For more informa
 Once you have maestro installed, you can launch this sample with the following command:
 
 ```bash
-maestro samples run hello-iot-edge --set iot-hub-key=<IoT Hub key> --set iot-hub-name=<IoT Hub name> --set device-name=<IoT Edge device name>
+maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HUB_NAME> --set device-name=s8c-vm
+```
+
+You can get your IoT hub's key from the connection string:
+
+```bash
+az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
 ```
 
 To clean up, use:
@@ -113,11 +120,17 @@ spec:
       provider: providers.target.azure.iotedge
       config:
         name: "iot-edge"
-        keyName: "<IoT Hub Key Name>"
-        key: "<IoT Hub Key>"
-        iotHub: "<IoT Hub Name>"
+        keyName: "<REPLACE_WITH_HUB_KEY_NAME>"
+        key: "<REPLACE_WITH_HUB_KEY>"
+        iotHub: "<REPLACE_WITH_HUB_NAME>"
         apiVersion: "2020-05-31-preview"
-        deviceName: "<Device Name>"
+        deviceName: "s8c-vm"
+```
+
+You can get your IoT hub's key and key name from the connection string:
+
+```bash
+az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
 ```
 
 This YAML file is also available at [docs/samples/iot-edge/simulated-temperature-sensor/target.yaml](../../samples/iot-edge/simulated-temperature-sensor/target.yaml).
@@ -175,7 +188,7 @@ You can also create additional instances. Symphony does the following for each o
 * It generates IoT Edge module with a `<instance id>-` prefix.
 * It rewrites all IoT Edge route definitions in the solution so that messages are routed to the right instance module.
 
-## Create all objects
+### 4. Create all objects
 
 ```bash
 kubectl create -f target.yaml
@@ -184,7 +197,7 @@ kubectl create -f instance-1.yaml
 kubectl create -f instance-2.yaml # if you've defined additional instances
 ```
 
-## Verify
+### 5. Verify
 
 Examine all Symphony objects have created:
 
@@ -197,7 +210,7 @@ kubectl get instances
 On IoT Hub page, verify all IoT Edge modules are up and running (screen shot shows only one instance):
 ![IoT Edge](../images/iot-edge.png)
 
-## Clean up Symphony objects
+### 6. Clean up Symphony objects
 
 To delete all Symphony objects:
 
