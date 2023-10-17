@@ -285,6 +285,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.ErrorMessage = err.Error()
 		status.IsActive = false
 		status.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
+		result.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
 		return status
 	}
 	status.Outputs = outputs
@@ -497,6 +498,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					site = ""
 				}
 				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				log.Errorf(" M (Stage): failed to process stage outputs: %v", err)
 				delayedExit = true
 			}
