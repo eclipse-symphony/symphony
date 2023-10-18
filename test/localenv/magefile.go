@@ -63,7 +63,7 @@ func (Cluster) Deploy() error {
 			return shellcmd.Command(helmUpgrade).Run()
 		},
 		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.yaml -f symphony-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)
 			return shellcmd.Command(helmUpgrade).Run()
 		})
 }
