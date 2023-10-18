@@ -19,7 +19,7 @@ Symphony operates within an orchestration layer, strategically positioned atop p
 * Device
 
 ### Federation objects
-* Campaign
+* [Campaign](../campaign-management/campaign.md)
 * Catalog
 
 ## AI objects
