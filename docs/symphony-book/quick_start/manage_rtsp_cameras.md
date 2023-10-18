@@ -22,7 +22,7 @@ The Symphony agent will capture camera snapshots and upload them to the storage 
 * **Symphony Agent** binary. For build instructions, see [Build Symphony containers](../build_deployment/build.md).
 * **Symphony** deployed to your cluster. For instructions, see [Use Symphony on Kubernetes clusters with Helm](./quick_start_helm.md).
 
-## 1. Create the camera bject
+## 1. Create the camera object
 
 Manually register your camera as a Symphony device by creating a `device` object using `kubectl`. You need to set the `ip` property, the `user` property, and the `password` property to match with your camera settings. Note that the camera is labeled to be connected to a `gateway-1` target, which you'll create next.
 

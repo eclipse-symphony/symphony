@@ -82,7 +82,7 @@ Once you have maestro installed, you can launch this sample with the following c
 maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HUB_NAME> --set device-name=s8c-vm
 ```
 
-You can get your IoT hub's key from the connection string:
+You can get your IoT hub key from the connection string:
 
 ```bash
 az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
