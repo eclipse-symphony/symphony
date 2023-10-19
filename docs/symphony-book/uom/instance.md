@@ -15,9 +15,9 @@
 | `Solution` | `string` | Solution name |
 | `Stage` | `string` | Deployment stage |
 | `Target` | `TargetSelector` | Targets (see [Target selection](#target-selection)) |
-| `Topologies` | `[]TopologySpec` | Device topologies (see [Device topology](#device-topology)) |
+| `Topologies` | `[]TopologySpec` | Device topologies |
 
-## Target Selection
+## Target selection
 
 You can specify a single target using `name`; Or, you can select a group of targets using `selector`. A selector specifies a list of key-value pairs. Any target with the matching properties are considered a match. For example, the selector:
 
@@ -36,6 +36,3 @@ properties:
   group: group-1
   other: properties
 ```
-
-## Device topology
-
