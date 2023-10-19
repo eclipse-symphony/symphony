@@ -1,7 +1,0 @@
-{
-    "yaml.schemas": {
-        "file:///c%3A/Users/kgremban/.vscode/extensions/docsmsft.docs-yaml-1.0.1/dist/toc.schema.json": "/toc\\.yml/i",
-        "file:///c:/Users/kgremban/.vscode/extensions/teamtoolbox.docindex-1.4.2/resources/config/common/docindex.schema.json": "**/.[dD][oO][cC][iI][nN][dD][eE][xX]/**/*.yml",
-        "file:///c:/Users/kgremban/.vscode/extensions/teamtoolbox.docindex-1.4.2/resources/config/common/module.schema.json": "**/[iI][nN][dD][eE][xX].yml"
-    }
-}
