@@ -208,6 +208,9 @@ To run unit tests, we need to
 sudo apt-get update
 sudo apt-get install build-essential
 
+# install jq
+sudo apt-get install jq
+
 # configure go env - CGO_ENABLED 
 go env -w CGO_ENABLED=1
 go env CGO_ENABLED
