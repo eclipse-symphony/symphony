@@ -44,3 +44,7 @@ The following workflow depicts a typical process of camera management as an exam
       properties:
         snapshot: https://voestore.blob.core.windows.net/snapshots/camera-1-snapshot.jpg # <------------
     ```
+
+## Related topics
+
+* [Device schema](../uom/device.md)

@@ -11,18 +11,22 @@ Symphony operates within an orchestration layer, strategically positioned atop p
 
 ## Object model
 
+The Symphony object model defines common elements of intelligent solutions as Kubernetes custom resources that can be managed using standard tools. For more information, see [Unified object model](../uom/uom.md).
+
 ### Foundational objects
 
-* Solution
-* Instance
-* Target
-* Device
+* [Solution](../solution-management/solution-management.md)
+* [Instance](../uom/instance.md)
+* [Target](../target-management/target-management.md)
+* [Device](../device-management/device-management.md)
 
 ### Federation objects
+
 * [Campaign](../campaign-management/campaign.md)
-* Catalog
+* [Catalog](../information-graph/overview.md)
 
 ## AI objects
+
 * AI Model
-* AI Skill
+* [AI Skill](../skill-management/skill-management.md)
 * AI Skill Package
