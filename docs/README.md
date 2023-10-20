@@ -55,7 +55,6 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 
 * [Developer Guide](./symphony-book/dev-guide/getting-started.md)
 * [API Reference](./symphony-book/api/api.md)
-* Extending Symphony
 
 ## Additional Topics
 
