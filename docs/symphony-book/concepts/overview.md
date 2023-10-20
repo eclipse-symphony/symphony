@@ -1,28 +1,39 @@
-# Symphony Concepts
+# Symphony concepts
 
-Symphony operates within an orchestration layer, strategically positioned atop preexisting tools and services. To establish uniformity amidst the diverse edge environment, Symphony relies on a set of fundamental high-level abstractions. These encompass state-seeking, graph, workflow, and app models. These foundational abstractions empower Symphony to deliver robust functionalities across various technologies and platforms while maintaining an exceedingly concise object model.
+Symphony operates within an orchestration layer, strategically positioned atop preexisting tools and services. To establish uniformity amidst the diverse edge environment, Symphony relies on a set of fundamental high-level abstractions. These encompass state-seeking, graph, workflow, and app models. These foundational abstractions empower Symphony to deliver robust functionalities across various technologies and platforms while maintaining a concise object model.
 
 ## Abstractions
 
-* [State Seeking](./state_seeking.md)
-* [Information Graph](./information_graph.md)
-* [Workflows](./workflows.md)
-* [App Orchestration Model](./orchestration_model.md)
+* [State seeking](./state_seeking.md): How Symphony brings the current state of a system to the desired state.
+* [Information graph](./information_graph.md): How Symphony organizes, accesses, and synchronizes enterprise information.
+* [Workflows](./workflows.md): How Symphony manages multi-stage deployment scenarios.
+* [App orchestration model](./orchestration_model.md): How Symphony defines the components that make up a scenario.
 
-## Object Model
+## Object model
 
-### Fundational objects
+The Symphony object model defines common elements of intelligent solutions as Kubernetes custom resources that can be managed using standard tools. For more information, see [Unified object model](../uom/uom.md).
 
-* Solution
-* Instance
-* Target
-* Device
+### Foundational objects
+
+* [Solution](../solution-management/solution-management.md)
+* [Instance](../uom/instance.md)
+* [Target](../target-management/target-management.md)
+* [Device](../device-management/device-management.md)
 
 ### Federation objects
-* Campaign
-* Catalog
+
+<<<<<<< HEAD
+=======
+Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalog` object is a generic graph data structure that you can use to create information models for your organization.
+
+For more information, see:
+
+>>>>>>> Incorporate feedback from Haishi
+* [Campaign](../campaign-management/campaign.md)
+* [Catalog](../information-graph/overview.md)
 
 ## AI objects
+
 * AI Model
-* AI Skill
+* [AI Skill](../skill-management/skill-management.md)
 * AI Skill Package

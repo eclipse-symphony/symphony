@@ -1,4 +1,4 @@
-# Chapter 19: Symphony Agent
+# Symphony agent
 
 _(last edit: 9/18/2023)_
 

@@ -1,16 +1,22 @@
 # Prepare your Kubernetes Cluster
+
 Once you've got your Kubernetes cluster up and running, we need to put in some additional components to support our scenarios. To carry out these steps, you'll need
 
 * [Kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
 * [Helm 3](https://helm.sh/)
 
 ## 1. Deploy cert manager
+
 Symphony uses [cert-manager](https://cert-manager.io/docs/installation/kubernetes/) to simplfy certifate management tasks. Use ```kubectl``` to deploy cert manager:
 
 ```bash
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml
 ```
-## 2. Deploy Azure IoT Edge on Kubernetes (optional, only for running K8s as IoT Edge target)
+
+## 2. Deploy Azure IoT Edge on Kubernetes (optional)
+
+Use the steps in this section if you're running K8s for your Kubernetes cluster.
+
 (See official docs [here](https://microsoft.github.io/iotedge-k8s-doc/introduction.html))
 
 ```bash
@@ -20,9 +26,16 @@ export connStr='<Your IoT Hub device connection string>'
 helm install --repo https://edgek8s.blob.core.windows.net/staging edge1 edge-kubernetes --namespace iotedge --set "provisioning.deviceConnectionString=$connStr"
 ```
 
-> **NOTE:** The IoT Hub device connection string should be the connection string of the IoT Edge device you've created previously. Please see Chapter 9 for more details on Azure IoT Edge integration.
+> **NOTE:** The IoT Hub device connection string is the connection string of the IoT Edge device you've created previously. To get the connection string, use the following command:
+>
+>```azurecli
+>az iot hub device-identity connection-string show --device-id <device name> --hub-name <iot hub name>
+>```
 
-## 3. Install Hierarchical Namspaces Controller and Kubectl HNS plugin (optional, only for using hierarchical namespaces)
+## 3. Install Hierarchical Namespaces controller and Kubectl HNS plugin (optional)
+
+Use the steps in this section if you're using hierarchical namespaces.
+
 ```bash
 # Select the latest version of HNC
 HNC_VERSION=v1.0.0
@@ -39,4 +52,9 @@ chmod +x ./kubectl-hns
 kubectl hns
 # The help text should be displayed
 ```
-> **NOTE**: See the [original HNC instllation doc](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v1.0.0).
+
+For more information about installing hierarchical namespaces, see [Install HNC v1.0.0](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v1.0.0).
+
+## Next steps
+
+Now, you're ready to [deploy Symphony](./deploy.md).

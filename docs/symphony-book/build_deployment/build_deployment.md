@@ -1,10 +1,10 @@
-# Chapter 2: Build & Deployment
+# Build and deploy
 
 > **NOTE:**  As we optimize build and deployment process, this doc will be updated frequently to reflect latest changes. When you start fresh, we recommend you use the latest code and instructions.
 
 ## 1. Build (optional)
 
-Plese follow [these steps](./build.md) to build Symphony K8s container and Symphony API container.
+To begin, follow the steps to [build Symphony containers](./build.md).
 
 If you don't want to build the containers yourself, you can use these prebuilt images:
 
@@ -15,11 +15,12 @@ If you don't want to build the containers yourself, you can use these prebuilt i
 > **NOTE:** These images may get removed at any time without prior notice.
 
 ## 2. Prepare Azure resources
-Please follow [these steps](./prepare_azure.md) to prepare your Azure environment for running test scenarios.
+
+Next, follow the steps to [prepare Azure resources](./prepare_azure.md) in your Azure environment for running test scenarios.
 
 ## 3. Create a Kubernetes cluster (as needed)
 
-Please follow one of the follwoing links to create a Kuberentes cluster:
+Next, create a Kuberentes cluster with one of the following options:
 
 * [AKS](./aks.md)
 * [Kind](./kind.md)
@@ -27,7 +28,9 @@ Please follow one of the follwoing links to create a Kuberentes cluster:
 * [K3s](./k3s.md)
 
 ## 4. Prepare your Kubernetes cluster
-Please follow [these steps](./prepare_k8s.md) to prepare your Kubernetes cluster for Azure IoT Hub, Azure Video Analyzer and Azure Arc.
+
+Next, follow the steps to [prepare your Kubernetes cluster](./prepare_k8s.md) for Azure IoT Hub, Azure Video Analyzer and Azure Arc.
 
 ## 5. Deploy Symphony
-Now, follw [these steps](./deploy.md) to deploy Symphony.
+
+Finally, follow the steps to [deploy Symphony](./deploy.md).

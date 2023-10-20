@@ -147,10 +147,10 @@ func TestBasicPubSubTwoProviders(t *testing.T) {
 	assert.Equal(t, "TEST", msg)
 }
 func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
-	// testRedis := os.Getenv("TEST_REDIS")
-	// if testRedis == "" {
-	// 	t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
-	// }
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	sig := make(chan int)
 	var msg v1alpha2.JobData
 	provider1 := RedisPubSubProvider{}

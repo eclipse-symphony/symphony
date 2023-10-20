@@ -1,4 +1,0 @@
-.env
-vendor/
-.vscode/
-cmd/gitops/__debug_bin
