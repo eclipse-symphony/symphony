@@ -1,6 +1,6 @@
-# Debugging Symphony API Locally
+# Debug Symphony API Locally
 
-## Leveraging Unit Tests
+## Leverage Unit Tests
 
 The best way to test a specific Symphony API component is to write/use unit test cases in the project to test the component in isolation. With VS Code extensions like [Code Debugger]( https://marketplace.visualstudio.com/items?itemName=wowbox.code-debuger), you can set up break point and trace through the code, as shown in the following screenshot:
 
@@ -8,8 +8,7 @@ The best way to test a specific Symphony API component is to write/use unit test
 
 > **NOTE**: If you use VS Code with a WSL folder, please make sure you have the [WSL extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) installed.
 
-
-## Using Postman
+## Use Postman
 
 Symphony exposes a REST API, which you can call using tools like [Postman](https://www.postman.com/). 
 1. Build and launch Symphony API as a local process:
