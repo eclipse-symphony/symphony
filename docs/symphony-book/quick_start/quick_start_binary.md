@@ -28,7 +28,7 @@ Launch Symphony with a [configuration file](../hosts/overview.md):
 
 Now that you have the Symphony API, try out one of the quick start scenarios:
 
-| Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requries Docker | Requires RTSP Camera |
+| Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requires Docker | Requires RTSP Camera |
 |--------|--------|--------|--------|--------|--------|
 | [Deploy a Prometheus server to a K8s cluster](./symphony-book/quick_start/deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
 | [Deploy a Redis container with standalone Symphony](./symphony-book/quick_start/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |

@@ -8,8 +8,20 @@ Welcome to Symphony!
   <img src="./symphony-book/images/symphony.png" alt="Symphony" width="200" height="200">
 </div>
 
-
 Have you encountered the complexities of manually orchestrating multiple toolchains to oversee your edge infrastructure and solutions? Symphony orchestrates existing services and tools to form an end-to-end, consistent intelligent edge experience. Symphony unites various device classes, software artifacts, and service toolchains, seamlessly harmonizing them into a unified system. With Symphony, you become the maestro, holding the complete vision and exerting precise control while enabling each component to realize its full potential, regardless of whether it's on heavy edge, light edge, or tiny edge, and irrespective of whether it's running on Kubernetes, in the cloud, or on-premises services.
+
+## Features
+
+To enable your edge solution orchestration, Symphony:
+
+* Projects resources as Kubernetes custom resources, allowing the control plane to be managed using K8s native tools such as kubectl.
+* Supports different application model formats, including Helm charts, and a ModuleGroup format that is designed to group multiple Azure IoT Edge modules.
+* Supports hardware-accelerated AI payloads using media pipelines through Live AI, OpenVINO, etc.
+* Shares the same solution management, security management, and device management logic to ensure consistent behavior across cloud and edge.
+* Works well with AKS, Arc, IoT Hub and other Azure services.
+* Supports dynamic device discovery and update through Akri.
+* Supports additional computational nodes such as Azure Sphere through Virtual Kubelet.
+* Supports end-to-end observability with distributed tracing using OpenTelemetry.
 
 ## Get started
 
@@ -23,7 +35,7 @@ First, install Symphony on your device using one of the following methods:
 
 Then, try one of the quickstart scenarios that use Symphony to deploy a sample solution:
 
-| Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requries Docker | Requires RTSP Camera |
+| Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requires Docker | Requires RTSP Camera |
 |--------|--------|--------|--------|--------|--------|
 | [Deploy a Prometheus server to a K8s cluster](./symphony-book/quick_start/deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
 | [Deploy a Redis container with standalone Symphony](./symphony-book/quick_start/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
@@ -33,30 +45,59 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 ## Concepts
 
 * [Overview](./symphony-book/concepts/overview.md)
-* [Information Graph](./symphony-book/concepts/information_graph.md)
-* [State Seeking](./symphony-book/concepts/state_seeking.md)
+* [Information graph](./symphony-book/concepts/information_graph.md)
+* [State seeking](./symphony-book/concepts/state_seeking.md)
 * [Workflows](./symphony-book/concepts/workflows.md)
-* [App Orchestration Model](./symphony-book/concepts/orchestration_model.md)
+* [App orchestration model](./symphony-book/concepts/orchestration_model.md)
 
 ## Use Symphony
 
-* [Deploy Symphony (single site)](./symphony-book/build_deployment/deploy.md)
-* [Deploy Symphony (multiple sites)](./symphony-book/build_deployment/multisite-deploy.md)
+* [Deploy Symphony to a single site](./symphony-book/build_deployment/deploy.md)
+* [Deploy Symphony to multiple sites](./symphony-book/build_deployment/multisite-deploy.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshooting.md)
-* [Modeling Applications](./symphony-book/solution-management/solution-management.md)
-* [Use Symphony in a Docker container](./symphony-book/quick_start/quick_start_docker.md)
+* [Model applications](./symphony-book/solution-management/solution-management.md)
 
-## Advanced Scenarios
+## Advanced scenarios
 
-* [Canary Deployment](./symphony-book/scenarios/canary-deployment.md)
-* [Multisite Deployment](./symphony-book/scenarios/multisite-deployment.md)
+* [Canary deployment](./symphony-book/scenarios/canary-deployment.md)
+* [Multi-site deployment](./symphony-book/scenarios/multisite-deployment.md)
 
-## Contributing to Symphony
+## Contribute to Symphony
 
 * [Developer Guide](./symphony-book/dev-guide/getting-started.md)
 * [API Reference](./symphony-book/api/api.md)
 
-## Additional Topics
+## Additional topics
 
-* [Symphony Portal](./symphony-book/portals/overview.md)
-* [Symphony Expression](./symphony-book/uom/property-expressions.md)
+* [Symphony portal](./symphony-book/portals/overview.md)
+* [Symphony expressions](./symphony-book/uom/property-expressions.md)
+
+## Key application scenarios
+
+Symphony aims to deploy and manage secured, hardware-accelerated intelligent edge payloads on a K8s-based fabric that offers adaptive workload scheduling for HA and resource balancing. Some key application scenarios include:
+
+* Manage intelligent payloads on a highly available field gateway cluster, such as an HCI cluster, that manages attached sensors like brown-field cameras.
+* Manage intelligent payloads on a in-vehicle cluster for smart cars, construction vehicles, and/or airplanes.
+* Provide business continuity for occasionally connected or disconnected environments.
+* Manage intelligent payloads on a fully virtualized environments for large-scale scenarios such as simulation and testing.
+
+## Supported technologies
+
+Symphony is platform neutral and protocol neutral. Through its extensible architecture, Symphony supports a broad range of AI frameworks, devices, hardware, services and many more. The following table summarizes some of the supported technologies and the list grows rapidly.
+
+| Area | Supported Technologies |
+|--------|--------|
+| AI Pipeline | ![ONNX](../images/onnx.png) ![OpenCV](../images/opencv.png), DeepStream* |
+| Application Model | ![Helm](../images/helm.png), Symphony, Radius*, ARM* |
+| Device Updates | ![GitOps](../images/gitops.png) ![Flux](../images/flux.png)\*, ADU for IoT Hub, ![Arc](../images/arc.png) ![pyOCD](../images/pyocd.png)\*|
+| Discovery | ![ONVIF](../images/onvif.png) ![OPC UA](../images/opcua.png)\*, udev (via Akri) |
+| Hardware | Azure Stack HCI, MIMXRT1170-EVK, Nvidia Jeston Orin, Nvidia dGPU |
+| K8s Distributions | ![Kubernetes](../images/k8s.png) ![Azure Kubernetes Service](../images/aks.png) ![MicroK8s](../images/microk8s.png) ![Kind](../images/kind.png) ![K3s](../images/k3s.png) AKS-IoT |
+| Observability | ![Open Telemetry](../images/open-telemetry.png), Azure Monitor |
+| OS | ![Ubuntu](../images/ubuntu.png) ![Windows 10](../images/windows.png) ![MacOS](../images/macos.png), CBL-Mariner, Azure RTOS |
+| Other Azure Service | Azure Storage, Azure Logic Apps, Azure Functions |
+| Policies | Gatekeeper, ![Kyverno](../images/kyverno.png) |
+| Runtime | Azure IoT Edge, Kubernetes, Windows 10, Samsung DERAM* |
+| Scripting | Bash, ![PowerShell](../images/powershell.png), Windows Batch |
+
+_*:upcoming_
