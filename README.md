@@ -97,6 +97,7 @@ Symphony is an extensible system with the concept of providers. For each provide
 
 * [Quickstart scenarios](./docs/symphony-book/quick_start/quick_start.md)
 * [The Symphony Book](./docs/README.md)
+* [Setting up a local environment](./test/localenv/README.md)
 
 ## Contributing
 
