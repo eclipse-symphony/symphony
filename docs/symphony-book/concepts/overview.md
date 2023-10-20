@@ -22,6 +22,13 @@ The Symphony object model defines common elements of intelligent solutions as Ku
 
 ### Federation objects
 
+<<<<<<< HEAD
+=======
+Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalog` object is a generic graph data structure that you can use to create information models for your organization.
+
+For more information, see:
+
+>>>>>>> Incorporate feedback from Haishi
 * [Campaign](../campaign-management/campaign.md)
 * [Catalog](../information-graph/overview.md)
 
