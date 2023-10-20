@@ -76,23 +76,6 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 			"scope":       "alice-springs",
 			"components": []interface{}{
 				map[string]interface{}{
-					"name": "observability",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "symphonycr.azurecr.io/sample-dashboard",
-							"version": "0.4.0-dev",
-						},
-						"values": map[string]interface{}{
-							"obsConfig": map[string]interface{}{
-								"bluefin": true,
-								"e4i":     true,
-								"e4k":     true,
-							},
-						},
-					},
-				},
-				map[string]interface{}{
 					"name": "e4k",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
@@ -276,23 +259,6 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 			"displayName": "int-virtual-02",
 			"scope":       "alice-springs",
 			"components": []interface{}{
-				map[string]interface{}{
-					"name": "observability",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "symphonycr.azurecr.io/sample-dashboard",
-							"version": "0.4.0-dev",
-						},
-						"values": map[string]interface{}{
-							"obsConfig": map[string]interface{}{
-								"bluefin": true,
-								"e4i":     true,
-								"e4k":     true,
-							},
-						},
-					},
-				},
 				map[string]interface{}{
 					"name": "e4k",
 					"type": "helm.v3",

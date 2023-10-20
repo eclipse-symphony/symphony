@@ -23,13 +23,12 @@ import (
 )
 
 const (
-	RELEASE_NAME             = "ecosystem"
-	LOCAL_HOST_URL           = "http://localhost"
-	AZURE_CONTAINER_REGISTRY = "symphonycr.azurecr.io"
-	OSS_CONTAINER_REGISTRY   = "possprod.azurecr.io"
-	NAMESPACE                = "default"
-	DOCKER_TAG               = "latest"
-	CHART_PATH               = "../../.azure/symphony-extension/helm/symphony"
+	RELEASE_NAME           = "ecosystem"
+	LOCAL_HOST_URL         = "http://localhost"
+	OSS_CONTAINER_REGISTRY = "possprod.azurecr.io"
+	NAMESPACE              = "default"
+	DOCKER_TAG             = "latest"
+	CHART_PATH             = "../../.azure/symphony-extension/helm/symphony"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -400,13 +399,7 @@ func (Pull) Api() error {
 // Log into the ACR, prompt if az creds are expired
 func ACRLogin() error {
 	for i := 0; i < 3; i++ {
-		err := conditionalRun(
-			func() error {
-				return shellcmd.Command.Run("az acr login --name symphonycr") //azure
-			},
-			func() error {
-				return shellcmd.Command.Run("az acr login --name possprod") //oss
-			})
+		err := shellcmd.Command.Run("az acr login --name possprod") //oss
 		if err != nil {
 			err := shellcmd.Command.Run("az login --use-device-code")
 			if err != nil {
@@ -464,7 +457,7 @@ func load(names ...string) []shellcmd.Command {
 	for i, name := range names {
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"minikube image load %s/%s",
-			conditionalString(AZURE_CONTAINER_REGISTRY, OSS_CONTAINER_REGISTRY),
+			OSS_CONTAINER_REGISTRY,
 			name,
 		))
 	}
@@ -478,7 +471,7 @@ func pull(names ...string) []shellcmd.Command {
 	for i, name := range names {
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"docker pull %s/%s",
-			conditionalString(AZURE_CONTAINER_REGISTRY, OSS_CONTAINER_REGISTRY),
+			OSS_CONTAINER_REGISTRY,
 			name,
 		))
 	}
