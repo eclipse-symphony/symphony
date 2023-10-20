@@ -1,0 +1,8 @@
+symphonyImage:
+  pullPolicy: Never
+  repository: ghcr.io/msftcoderdjw/possprod/symphony-k8s
+paiImage:
+  pullPolicy: Never
+  repository: ghcr.io/msftcoderdjw/possprod/symphony-api
+installServiceExt: false
+imagePrivateRegistryUrl: ghcr.io
