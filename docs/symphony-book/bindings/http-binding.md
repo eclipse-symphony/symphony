@@ -32,7 +32,9 @@ And to set up a HTTPS binding with an auto-generated self-signed certificate:
 ```
 > **NOTE:** You can use multiple bindings at the same time.
 
+<!--
 Please see [Cert providers](../providers/cert_providers.md) for details on supported certificate providers and their configurations.
+-->
 
 ## Pipeline
 HTTP binding also allows you to define a pipeline of middleware, such as [CORS](./cors.md), [JWT token handler](./jwt-handler.md) and [distributed tracing using OpenTelemetry](./tracing.md). It's expected that other middleware will be enabled in future versions, such as caching, device attestation, and more.

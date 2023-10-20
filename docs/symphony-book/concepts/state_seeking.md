@@ -1,15 +1,15 @@
-# State Seeking
+# State seeking
 
 Many software management problems can be viewed as a state seeking problem: a system reports its current state, a user specifies a new desired state, and a state seeking system brings the current state towards the desired state.
 
 With this high-level abstraction, Symphony unifies the workflow of software deployment, software update, configuration management, policy management, device update, firmware update, OS update and many other tasks where a system needs to be updated according to a given new state. 
 
-When Symphony defines state seeking, it identifies four explicit concerns:
+When Symphony defines state seeking, it identifies five concerns:
 * **Understanding** – how the current state is understood 
-* **Authoring** – how the new desired state is designed and authored
-* **Staging** – how the new desired state is staged for transmission to targets
+* **Authoring** – how the desired state is designed and authored
+* **Staging** – how the desired state is staged for transmission to targets
 * **Distribution** – how the desired state is transmitted from source to targets
-* **Application** – how the new desired state is applied to the target
+* **Application** – how the desired state is applied to a target
 
 Symphony doesn’t bet on any specific technology or artifact formats. Instead, it defines abstract API for each of the concerns and allows different systems to be plugged into the same state seeking flow.
 
