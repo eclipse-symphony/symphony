@@ -23,6 +23,16 @@ To enable your edge solution orchestration, Symphony:
 * Supports additional computational nodes such as Azure Sphere through Virtual Kubelet.
 * Supports end-to-end observability with distributed tracing using OpenTelemetry.
 
+
+## Key application scenarios
+
+Symphony aims to deploy and manage secured, hardware-accelerated intelligent edge payloads on a K8s-based fabric that offers adaptive workload scheduling for HA and resource balancing. Some key application scenarios include:
+
+* Manage intelligent payloads on a highly available field gateway cluster, such as an HCI cluster, that manages attached sensors like brown-field cameras.
+* Manage intelligent payloads on a in-vehicle cluster for smart cars, construction vehicles, and/or airplanes.
+* Provide business continuity for occasionally connected or disconnected environments.
+* Manage intelligent payloads on a fully virtualized environments for large-scale scenarios such as simulation and testing.
+
 ## Get started
 
 First, install Symphony on your device using one of the following methods:
@@ -72,32 +82,23 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Symphony portal](./symphony-book/portals/overview.md)
 * [Symphony expressions](./symphony-book/uom/property-expressions.md)
 
-## Key application scenarios
-
-Symphony aims to deploy and manage secured, hardware-accelerated intelligent edge payloads on a K8s-based fabric that offers adaptive workload scheduling for HA and resource balancing. Some key application scenarios include:
-
-* Manage intelligent payloads on a highly available field gateway cluster, such as an HCI cluster, that manages attached sensors like brown-field cameras.
-* Manage intelligent payloads on a in-vehicle cluster for smart cars, construction vehicles, and/or airplanes.
-* Provide business continuity for occasionally connected or disconnected environments.
-* Manage intelligent payloads on a fully virtualized environments for large-scale scenarios such as simulation and testing.
-
 ## Supported technologies
 
 Symphony is platform neutral and protocol neutral. Through its extensible architecture, Symphony supports a broad range of AI frameworks, devices, hardware, services and many more. The following table summarizes some of the supported technologies and the list grows rapidly.
 
 | Area | Supported Technologies |
 |--------|--------|
-| AI Pipeline | ![ONNX](../images/onnx.png) ![OpenCV](../images/opencv.png), DeepStream* |
-| Application Model | ![Helm](../images/helm.png), Symphony, Radius*, ARM* |
-| Device Updates | ![GitOps](../images/gitops.png) ![Flux](../images/flux.png)\*, ADU for IoT Hub, ![Arc](../images/arc.png) ![pyOCD](../images/pyocd.png)\*|
-| Discovery | ![ONVIF](../images/onvif.png) ![OPC UA](../images/opcua.png)\*, udev (via Akri) |
+| AI Pipeline | ![ONNX](./symphony-book/images/onnx.png) ![OpenCV](./symphony-book/images/opencv.png), DeepStream* |
+| Application Model | ![Helm](./symphony-book/images/helm.png), Symphony, Radius*, ARM* |
+| Device Updates | ![GitOps](./symphony-book/images/gitops.png) ![Flux](./symphony-book/images/flux.png)\*, ADU for IoT Hub, ![Arc](./symphony-book/images/arc.png) ![pyOCD](./symphony-book/images/pyocd.png)\*|
+| Discovery | ![ONVIF](./symphony-book/images/onvif.png) ![OPC UA](./symphony-book/images/opcua.png)\*, udev (via Akri) |
 | Hardware | Azure Stack HCI, MIMXRT1170-EVK, Nvidia Jeston Orin, Nvidia dGPU |
-| K8s Distributions | ![Kubernetes](../images/k8s.png) ![Azure Kubernetes Service](../images/aks.png) ![MicroK8s](../images/microk8s.png) ![Kind](../images/kind.png) ![K3s](../images/k3s.png) AKS-IoT |
-| Observability | ![Open Telemetry](../images/open-telemetry.png), Azure Monitor |
-| OS | ![Ubuntu](../images/ubuntu.png) ![Windows 10](../images/windows.png) ![MacOS](../images/macos.png), CBL-Mariner, Azure RTOS |
+| K8s Distributions | ![Kubernetes](./symphony-book/images/k8s.png) ![Azure Kubernetes Service](./symphony-book/images/aks.png) ![MicroK8s](./symphony-book/images/microk8s.png) ![Kind](./symphony-book/images/kind.png) ![K3s](./symphony-book/images/k3s.png) AKS-IoT |
+| Observability | ![Open Telemetry](./symphony-book/images/open-telemetry.png), Azure Monitor |
+| OS | ![Ubuntu](./symphony-book/images/ubuntu.png) ![Windows 10](./symphony-book/images/windows.png) ![MacOS](./symphony-book/images/macos.png), CBL-Mariner, Azure RTOS |
 | Other Azure Service | Azure Storage, Azure Logic Apps, Azure Functions |
-| Policies | Gatekeeper, ![Kyverno](../images/kyverno.png) |
+| Policies | Gatekeeper, ![Kyverno](./symphony-book/images/kyverno.png) |
 | Runtime | Azure IoT Edge, Kubernetes, Windows 10, Samsung DERAM* |
-| Scripting | Bash, ![PowerShell](../images/powershell.png), Windows Batch |
+| Scripting | Bash, ![PowerShell](./symphony-book/images/powershell.png), Windows Batch |
 
 _*:upcoming_
