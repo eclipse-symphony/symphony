@@ -53,6 +53,19 @@ spec:
                       type: string
                     provider:
                       type: string
+                    schedule:
+                      properties:
+                        date:
+                          type: string
+                        time:
+                          type: string
+                        zone:
+                          type: string
+                      required:
+                      - date
+                      - time
+                      - zone
+                      type: object
                     stageSelector:
                       type: string
                     triggeringStage:

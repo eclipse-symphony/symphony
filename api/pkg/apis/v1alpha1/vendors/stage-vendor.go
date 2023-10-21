@@ -111,6 +111,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			return err
 		}
+
+		jData, _ = json.Marshal(evt)
+		fmt.Printf("\n\nActivated with ActivationData: %s\n\n", string(jData))
+
 		if evt != nil {
 			s.Vendor.Context.Publish("trigger", v1alpha2.Event{
 				Body: *evt,

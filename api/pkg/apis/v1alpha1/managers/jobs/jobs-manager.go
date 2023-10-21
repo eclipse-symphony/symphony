@@ -69,10 +69,10 @@ func (s *JobsManager) Init(context *contexts.VendorContext, config managers.Mana
 }
 
 func (s *JobsManager) Enabled() bool {
-	return s.Config.Properties["poll.enabled"] == "true"
+	return s.Config.Properties["poll.enabled"] == "true" || s.Config.Properties["schedule.enabled"] == "true"
 }
 
-func (s *JobsManager) Poll() []error {
+func (s *JobsManager) pollObjects() []error {
 	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
 		return []error{err}
@@ -156,6 +156,58 @@ func (s *JobsManager) Poll() []error {
 	}
 	return nil
 }
+func (s *JobsManager) Poll() []error {
+	// TODO: do these in parallel?
+	if s.Config.Properties["poll.enabled"] == "true" {
+		errors := s.pollObjects()
+		if len(errors) > 0 {
+			return errors
+		}
+	}
+	if s.Config.Properties["schedule.enabled"] == "true" {
+		errors := s.pollSchedules()
+		if len(errors) > 0 {
+			return errors
+		}
+	}
+	return nil
+}
+
+func (s *JobsManager) pollSchedules() []error {
+	//TODO: use filters and continue tokens
+	list, _, err := s.StateProvider.List(context.Background(), states.ListRequest{})
+	if err != nil {
+		return []error{err}
+	}
+
+	for _, entry := range list {
+		var activationData v1alpha2.ActivationData
+		entryData, _ := json.Marshal(entry.Body)
+		err := json.Unmarshal(entryData, &activationData)
+		if err != nil {
+			return []error{err}
+		}
+		if activationData.Schedule != nil {
+			fire, err := activationData.Schedule.ShouldFireNow()
+			if err != nil {
+				return []error{err}
+			}
+			if fire {
+				activationData.Schedule = nil
+				err = s.StateProvider.Delete(context.Background(), states.DeleteRequest{
+					ID: entry.ID,
+				})
+				if err != nil {
+					return []error{err}
+				}
+				s.Context.Publish("trigger", v1alpha2.Event{
+					Body: activationData,
+				})
+			}
+		}
+	}
+	return nil
+}
 
 func (s *JobsManager) Reconcil() []error {
 	return nil
@@ -208,7 +260,22 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 	return v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
 }
 func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {
-	return nil
+	var activationData v1alpha2.ActivationData
+	jData, _ := json.Marshal(event.Body)
+	err := json.Unmarshal(jData, &activationData)
+	if err != nil {
+		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
+	}
+	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
+
+	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+		Value: states.StateEntry{
+			ID:   key,
+			Body: activationData,
+		},
+	})
+
+	return err
 }
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	if objectType, ok := event.Metadata["objectType"]; ok {
