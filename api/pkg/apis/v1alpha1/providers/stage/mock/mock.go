@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -83,7 +84,16 @@ func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProv
 	return ret, nil
 }
 func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	fmt.Printf("MOCK STAGE PROVIDER IS BUSY PROCESSING INPUTS: %v\n", inputs)
+
+	fmt.Printf("\n\n====================================================\n")
+	fmt.Printf("MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")
+	for k, v := range inputs {
+		fmt.Printf("%v: \t%v\n", k, v)
+	}
+	fmt.Printf("----------------------------------------\n")
+	fmt.Printf("TIME (UTC)  : %s\n", time.Now().UTC().Format(time.RFC3339))
+	fmt.Printf("TIME (Local): %s\n", time.Now().Local().Format(time.RFC3339))
+	fmt.Printf("----------------------------------------\n")
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -98,6 +108,10 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 	}
-	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING WITH OUTPUTS: %v\n", outputs)
+	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING WITH OUTPUTS:\n")
+	for k, v := range outputs {
+		fmt.Printf("%v: \t%v\n", k, v)
+	}
+	fmt.Printf("====================================================\n\n\n")
 	return outputs, false, nil
 }

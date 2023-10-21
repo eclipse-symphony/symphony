@@ -219,6 +219,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						Config:               cam.Stages[nextStage].Config,
 						Outputs:              outputs,
 						TriggeringStage:      stage,
+						Schedule:             cam.Stages[nextStage].Schedule,
 					}
 					return activationData, nil
 				} else {
@@ -616,6 +617,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							Provider:             nextStage.Provider,
 							Config:               nextStage.Config,
 							TriggeringStage:      triggerData.Stage,
+							Schedule:             nextStage.Schedule,
 						}
 					} else {
 						status.Status = v1alpha2.InternalError
@@ -738,6 +740,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			Provider:             stageSpec.Provider,
 			Config:               stageSpec.Config,
 			TriggeringStage:      stage,
+			Schedule:             stageSpec.Schedule,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)
