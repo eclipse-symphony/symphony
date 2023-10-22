@@ -1,13 +1,14 @@
-# Information Graph
-Symphony provides a generic graph data structure through the object type Catalog. It can be used to model any information ontologies, hardware topologies, asset trees, BOMs, artifact catalogs and more. 
+# Information graph
+
+Symphony provides a generic graph data structure through the object type Catalog. It can be used to model any information ontologies, hardware topologies, asset trees, BOMs, artifact catalogs and more.
 
 A Symphony Catalog is a piece of indexed information. It can contain a key-value pair collection itself, or it can be used as an index of a piece of external data, such as a document at a URL or a record in a database. Symphony saves Catalog objects in a non-SQL store and puts a graph engine on top to provide graph query capabilities.
 
 ## Catalog
 
-The following is an example of a simple Symphony ```Catalog``` that holds information about an office as a collection of key-value pairs. You can put any key-value pairs in a ```Catalog``` object. This object represents a node in a graph.
+The following is an example of a simple Symphony `catalog` that holds information about an office as a collection of key-value pairs. You can put any key-value pairs in a `catalog` object. This object represents a node in a graph.
 
-```yaml 
+```yaml
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
@@ -28,9 +29,10 @@ spec:
     lat: "43.67961"
     lng: "-122.12826"
 ```
-To represent a collection of edges, you can use an ```edge``` catalog:
 
-> **NOTE**: In current version, all edges are assumed to be directional, pointing from the key to the value in a key-value pair. 
+To represent a collection of edges, you can use an `edge` catalog:
+
+> **NOTE**: In the current version, all edges are assumed to be directional, pointing from the key to the value in a key-value pair.
 
 ```yaml
 apiVersion: federation.symphony/v1
@@ -45,9 +47,10 @@ spec:
     node1: node2
     node2: node3
 ```
-Symphony also provides an easier way to construct tree views with a ```parentName``` property, which can be used to point to a parent node/Catalog.
 
-In any of the property values, you can refer to another Catalog using a ```<catalog-name>``` expression. In the following example, the ```line``` property refers to another Catalog object named ```line-config```. All properties from the ```line-config``` object will be copied into the ```line``` property as child attributes. The sample also shows how you can use a ```parentName``` to set the parent node to a ```global-config``` catalog.
+Symphony also provides an easier way to construct tree views with a `parentName` property, which can be used to point to a parent node/Catalog.
+
+In any of the property values, you can refer to another catalog using a `<catalog-name>` expression. In the following example, the `line` property refers to another catalog object named `line-config`. All properties from the `line-config` object will be copied into the `line` property as child attributes. The sample also shows how you can use a `parentName` to set the parent node to a `global-config` catalog.
 
 ```yaml
 apiVersion: federation.symphony/v1
