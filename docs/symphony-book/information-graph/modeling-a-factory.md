@@ -7,6 +7,7 @@ Using Symphony Catalogs, you can model various aspects of the system as graphs a
 ![isa-95](../images/isa-95.png)
 
 Symphony offers several key platform-agnostic capabilities for modeling such a complex system:
+
 * Modeling arbitrary information graph using Catalogs such as:
   * Asset trees
   * BOMs
