@@ -1,4 +1,5 @@
-# Standalone Providers
-You can write a standalone provider as a web services or a MQTT client using programming languages of your choice.
+# Standalone providers
 
-Please see a sample [here](./python_provider.md) for how to write a standalone provider using Python.
+You can write a standalone provider as a web services or a MQTT client using the programming language of your choice.
+
+For an example, see [Write a Python-based provider](./python_provider.md).

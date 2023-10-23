@@ -12,6 +12,7 @@ This quick start walks you through the steps of setting up a new Symphony contro
 * [Docker](https://www.docker.com/) on your development machine.
 
 ## Authentication
+
 Using a web client, send the following request:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/users/auth
@@ -85,21 +86,22 @@ Define a [Solution](../uom/solution.md) with a single Redis container as a compo
 
 ## Define an instance
 
-Define an [Instance](../uom/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to you location machine *target*:
+Define an [Instance](../uom/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to your location machine *target*:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: POST
-* **BODY**: 
-    ```json
-    {
-        "displayName": "redis-server",
-        "name": "default",
-        "solution": "sample-redis",
-        "target": {
-            "name": "sample-docker-target"
-        }        
-    }
-    ```
+* **BODY**:
+
+  ```json
+  {
+    "displayName": "redis-server",
+    "name": "default",
+    "solution": "sample-redis",
+    "target": {
+      "name": "sample-docker-target"
+    }        
+  }
+  ```
 
 ## Validate
 
@@ -126,15 +128,15 @@ To delete the container, send a `DELETE` request:
 * **METHOD**: DELETE
 * **BODY**:
 
-    ```json
-    {
-        "displayName": "redis-server",
-        "solution": "sample-redis",
-        "target": {
-            "name": "sample-docker-target"
-        }        
-    }
-    ```
+  ```json
+  {
+    "displayName": "redis-server",
+    "solution": "sample-redis",
+    "target": {
+      "name": "sample-docker-target"
+    }        
+  }
+  ```
 
 If you run `docker ps` again, you should see that the container has been terminated.
 

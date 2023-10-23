@@ -2,7 +2,7 @@
 
 _(last edit: 9/18/2023)_
 
-Symphony can run as a standalone binary with zero external depedencies. You can build Symphony API with [Go](https://go.dev/) (1.20 or above).
+Symphony can run as a standalone binary with zero external dependencies. You can build Symphony API with [Go](https://go.dev/) (1.20 or above).
 
 Clone the Symphony repo:
 

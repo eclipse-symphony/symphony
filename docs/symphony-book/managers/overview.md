@@ -4,7 +4,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Jobs manager
 
-  Listens to `job` events and invokes Symphony reconcile API (offered by the [solution vendor](../vendors/solution.md)). It can also be configured with a timer that triggers periodical reconciliations.
+  Listens to `job` events and invokes Symphony reconcile API (offered by the solution vendor). It can also be configured with a timer that triggers periodical reconciliations.
 
 * Object managers
 

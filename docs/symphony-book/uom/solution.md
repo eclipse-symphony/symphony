@@ -17,7 +17,7 @@ Solution objects, `solution.solution.symphony`, define an intelligent edge solut
 |--------|--------|--------|
 | `Name`| `string` | component name | 
 | `Constraints` | `map[string]ConstraintSpec` | component constraints |
-| `Dependencies` | `[]string` | component depedencies |
+| `Dependencies` | `[]string` | component dependencies |
 | `Properties` | `map[string]string` | component properties |
 | `Routes` | `[]RoutSpec` | incoming/outgoing routes |
 | `Skills` | `[]string` | Referenced [AI skills](./ai-skill.md) |
@@ -31,4 +31,4 @@ Circular references are not allowed.
 
 ## Related topics
 
-* [Modeling applications](../solution-management/solution-management.md)
+* [Model applications](../solution-management/solution-management.md)
