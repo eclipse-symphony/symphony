@@ -4,6 +4,6 @@ The Symphony API is intentionally designed to be simple and agnostic. The antici
 
 * The KubeAI Application Nucleus for edge (KAN)  project uses Symphony as its backend API. It provides an intuitive portal experience for users to create and deploy artificial intelligence solutions, especially computer-vision solutions, at edge.
 
-* The Opera portal is shipped as a sample under the Symphony repository. It demonstrates key elements of building a custom portal using the Symphony API.
+* The [Opera portal](../../samples/opera/README.md) is shipped as a sample under the Symphony repository. It demonstrates key elements of building a custom portal using the Symphony API.
 
 ![Opera](../images/opera.png)

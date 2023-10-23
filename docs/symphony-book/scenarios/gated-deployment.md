@@ -7,7 +7,11 @@ Symphony [instance](../uom/instance.md)  object has a **Stage** property that ca
 
 ## Gated deployment through web hook
 
-Symphony allows you to insert processing gates through web hooks during your [instance](../uom/instance.md) deployments. For example, you can invoke an external approval process, as introduced in the [human approval](./human-approval.md) scenario. 
+Symphony allows you to insert processing gates through web hooks during your [instance](../uom/instance.md) deployments.
+
+<!--
+For example, you can invoke an external approval process, as introduced in the [human approval](./human-approval.md) scenario. 
+-->
 
 You can set up multiple gates in your [instance](../uom/instance.md). And each gate governs a set of components who set a [dependency](../uom/solution.md#depedencies) on the gate. If a gate is at the root of the dependency graph, the gate controls the deployment of all components.
 

@@ -1,27 +1,34 @@
 # Solution
 
-```solution.solution.symphony``` defines an intelligent edge solution.
+Solution objects, `solution.solution.symphony`, define an intelligent edge solution.
 
-## Schema
+## Solution schema
+
 | Field | Type | Description |
 |--------|--------|--------|
-| ```Components```| ```[]ComponentSpec``` | A list of components | 
-| ```DisplayName``` | ```string``` | A user friendly name |
-| ```Metadata``` | ```map[string]string``` | metadata |
-| ```Scope``` | ```string``` | A scope name, which usually maps to a namespace |
+| `Components`| `[]ComponentSpec` | A list of components |
+| `DisplayName` | `string` | A user friendly name |
+| `Metadata` | `map[string]string` | metadata |
+| `Scope` | `string` | A scope name, which usually maps to a namespace |
 
-## ```ComponentSpec```
+## ComponentSpec schema
+
 | Field | Type | Description |
 |--------|--------|--------|
-| ```Name```| ```string``` | component name | 
-| ```Constraints``` | ```map[string]ConstraintSpec``` | component constraints |
-| ```Dependencies``` | ```[]string``` | component depedencies |
-| ```Properties``` | ```map[string]string``` | component properties |
-| ```Routes``` | ```[]RoutSpec``` | incoming/outgoing routes |
-| ```Skills``` | ```[]string``` | Referenced [AI skills](./ai-skill.md) |
-| ```Type``` | ```string``` | component type |
+| `Name`| `string` | component name | 
+| `Constraints` | `map[string]ConstraintSpec` | component constraints |
+| `Dependencies` | `[]string` | component depedencies |
+| `Properties` | `map[string]string` | component properties |
+| `Routes` | `[]RoutSpec` | incoming/outgoing routes |
+| `Skills` | `[]string` | Referenced [AI skills](./ai-skill.md) |
+| `Type` | `string` | component type |
 
-### Depedencies
-When Symphony deploys a solution, it first sorts all solution components by their depedencies. This allows [providers](../providers/overview.md) that allow ordering to apply the components in order. 
+### Dependencies
 
-> **NOTE**: Circular references are not allowed.
+When Symphony deploys a solution, it sorts all solution components by their dependencies so that [providers](../providers/overview.md) that allow ordering can apply the components in order.
+
+Circular references are not allowed.
+
+## Related topics
+
+* [Modeling applications](../solution-management/solution-management.md)

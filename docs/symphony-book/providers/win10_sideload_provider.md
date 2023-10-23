@@ -11,7 +11,7 @@ This provider installs your application package (```.appxbundle```), registered 
 | ComponentSpec Properties | Win 10 Sideload Provider |
 |--------|--------|
 | ```name```| This should match with your application package name|
-| ```app.package.path```| Path to the ```.appxbundle``` file. This path should be accessible from the provider, such as a Win 10 sideload provider hosted on a [Windows-based Symphony agent](../build_deployment/windows_agent.md).|
+| ```app.package.path```| Path to the ```.appxbundle``` file. This path should be accessible from the provider, such as a Win 10 sideload provider hosted on a Windows-based Symphony agent.|
 
 ## Provider Configuration
 
@@ -30,18 +30,21 @@ Before you can use sideloading to install apps on your Windows 10 client devices
 * Enable the [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development).
 * When developer mode is enabled, also enable the **Device Discovery** feature. 
 
-### 1. Pairing your agent machine and your target machine
+### Pairing your agent machine and your target machine
 1. On your target machine, under the **Device Discovery** developer feature, click on the **Pair** button to display the paring pin.
-2. From the machine where you plan to run your [Windows-based Symphony agent](../build_deployment/windows_agent.md), use command:
+2. From the machine where you plan to run your Windows-based Symphony agent, use command:
     ```cmd
     WinAppDeployCmd list -ip <target machine IP> -pin <pairing pin>
     ```
     This command lists all installed application packages on your target machine. This also remembers the pairing pin so that you don't need the pairing pin any more.
-### 2. Configuring the Windows-based Sysmphony agent
 
-Follow instructions here to conigure your agent: [Windows-based Symphony agent](../build_deployment/windows_agent.md). 
+<!--
+### Configure the Windows-based Symphony agent
 
-### 3. Import application signing certificate
+Follow instructions here to configure your agent: [Windows-based Symphony agent](../build_deployment/windows_agent.md). 
+-->
+
+### Import application signing certificate
 You also need to import the application signing certificate. Please contact your application vendor.
 
 ## Create Symphony Target

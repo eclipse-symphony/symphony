@@ -1,6 +1,6 @@
-# App Orchestration Model
+# App orchestration model
 
-As an orchestrator, Symphony purposefully designs an application model tailored for orchestration. We refer to this specialized application model as the "App Orchestration Model" to distinguish it from a standard application model.
+As an orchestrator, Symphony purposefully designs an application model tailored for orchestration. We refer to this specialized application model as the *app orchestration model* to distinguish it from a standard application model.
 
 An app orchestration model defines a collection of interconnected components. Each component can be represented by a different artifact type, such as a Helm Chart, a Kubernetes deployment spec, a Docker container, a configuration map, or anything else. As you can see, Symphony orchestration model allows multiple artifacts from different systems be assembled into one consistent package. 
 
