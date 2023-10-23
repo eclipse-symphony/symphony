@@ -58,6 +58,7 @@ type ActivationData struct {
 	Config               interface{}                       `json:"config,omitempty"`
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 	Schedule             *ScheduleSpec                     `json:"schedule,omitempty"`
+	NeedsReport          bool                              `json:"needsReport,omitempty"`
 }
 type HeartBeatData struct {
 	JobId  string    `json:"id"`

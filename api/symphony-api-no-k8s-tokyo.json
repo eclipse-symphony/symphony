@@ -14,7 +14,7 @@
       "lng": "139.74043"
     },
     "parentSite": {
-      "baseUrl": "http://52.226.193.42:8080/v1alpha2/",
+      "baseUrl": "http://localhost:8080/v1alpha2/",
       "username": "admin",
       "password": ""
     },

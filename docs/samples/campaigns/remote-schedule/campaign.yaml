@@ -8,25 +8,34 @@ spec:
   stages:
     stage1:
       name: "stage1"
-      provider: "providers.stage.mock"      
+      provider: "providers.stage.remote"      
       stageSelector: "stage2"
+      contexts: "tokyo"
+      inputs:
+        operation: mock
       schedule:
         date: "2023-10-23"
-        time: "2:00:00PM"
+        time: "1:40:00PM"
         zone: "America/Los_Angeles"
     stage2:
       name: "stage2"
-      provider: "providers.stage.mock"      
+      provider: "providers.stage.remote"      
       stageSelector: "stage3"
+      contexts: "tokyo"
+      inputs:
+        operation: mock
       schedule:
         date: "2023-10-23"
-        time: "2:01:00PM"
+        time: "1:40:20PM"
         zone: "America/Los_Angeles"
     stage3:
       name: "stage3"
-      provider: "providers.stage.mock"      
+      provider: "providers.stage.remote"      
       stageSelector: ""
+      contexts: "tokyo"
+      inputs:
+        operation: mock
       schedule:
         date: "2023-10-23"
-        time: "2:02:00PM"
+        time: "1:41:00PM"
         zone: "America/Los_Angeles"

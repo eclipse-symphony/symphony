@@ -131,6 +131,7 @@ func (s *StageManager) Reconcil() []error {
 	return nil
 }
 func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
+	log.Debugf(" M (Stage): ResumeStage: %v\n", status)
 	campaign := status.Outputs["__campaign"].(string)
 	activation := status.Outputs["__activation"].(string)
 	activationGeneration := status.Outputs["__activationGeneration"].(string)
@@ -221,8 +222,10 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						TriggeringStage:      stage,
 						Schedule:             cam.Stages[nextStage].Schedule,
 					}
+					log.Debugf(" M (Stage): Activating next stage: %s\n", activationData.Stage)
 					return activationData, nil
 				} else {
+					log.Debugf(" M (Stage): No next stage found\n")
 					return nil, nil
 				}
 			}
@@ -269,11 +272,14 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		log.Errorf(" M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
 	}
 
+	isRemote := false
 	if _, ok := provider.(*remote.RemoteStageProvider); ok {
+		isRemote = true
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
 
-	if triggerData.Schedule != nil {
+	if triggerData.Schedule != nil && !isRemote {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!SCHEDULED")
 		s.Context.Publish("schedule", v1alpha2.Event{
 			Body: triggerData,
 		})
@@ -336,7 +342,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		"method": "HandleTriggerEvent",
 	})
 	log.Info(" M (Stage): HandleTriggerEvent")
-
 	status := model.ActivationStatus{
 		Stage:        triggerData.Stage,
 		NextStage:    "",
@@ -409,7 +414,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
 		inputs["__previousStage"] = triggerData.TriggeringStage
 		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
-
+		if triggerData.Schedule != nil {
+			jSchedule, _ := json.Marshal(triggerData.Schedule)
+			inputs["__schedule"] = string(jSchedule)
+		}
 		for k, v := range inputs {
 			val, err := s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {

@@ -8,7 +8,7 @@ paiImage:
   pullPolicy: IfNotPresent
   tag: "latest"
 CUSTOM_VISION_KEY: "AAAA"
-installServiceExt: false
+installServiceExt: true
 global:
   azure:
     identity:

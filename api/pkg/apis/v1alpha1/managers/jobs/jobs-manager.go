@@ -267,7 +267,6 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
 	}
 	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
-
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   key,

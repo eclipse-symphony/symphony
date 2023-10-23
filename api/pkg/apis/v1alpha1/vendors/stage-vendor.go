@@ -36,6 +36,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -112,9 +113,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 
-		jData, _ = json.Marshal(evt)
-		fmt.Printf("\n\nActivated with ActivationData: %s\n\n", string(jData))
-
 		if evt != nil {
 			s.Vendor.Context.Publish("trigger", v1alpha2.Event{
 				Body: *evt,
@@ -161,22 +159,40 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		status.ActivationGeneration = triggerData.ActivationGeneration
 		status.ErrorMessage = ""
 		status.Status = v1alpha2.Running
-		err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
-		if err != nil {
-			sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
-			return err
-		}
-		status, activation := s.StageManager.HandleTriggerEvent(context.Background(), *campaign.Spec, triggerData)
-		err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
-		if err != nil {
-			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
-			return err
-		}
-		if activation != nil && status.Status != v1alpha2.Done && status.Status != v1alpha2.Paused {
-			s.Vendor.Context.Publish("trigger", v1alpha2.Event{
-				Body: *activation,
+		if triggerData.NeedsReport {
+			sLog.Debugf("V (Stage): reporting status: %v", status)
+			s.Vendor.Context.Publish("report", v1alpha2.Event{
+				Body: status,
 			})
+		} else {
+			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			if err != nil {
+				sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
+				return err
+			}
 		}
+
+		status, activation := s.StageManager.HandleTriggerEvent(context.Background(), *campaign.Spec, triggerData)
+
+		if triggerData.NeedsReport {
+			sLog.Debugf("V (Stage): reporting status: %v", status)
+			s.Vendor.Context.Publish("report", v1alpha2.Event{
+				Body: status,
+			})
+
+		} else {
+			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			if err != nil {
+				sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
+				return err
+			}
+			if activation != nil && status.Status != v1alpha2.Done && status.Status != v1alpha2.Paused {
+				s.Vendor.Context.Publish("trigger", v1alpha2.Event{
+					Body: *activation,
+				})
+			}
+		}
+		log.Info("V (Stage): Finished handling trigger event")
 		return nil
 	})
 	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
@@ -215,6 +231,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return nil
 	})
 	s.Vendor.Context.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
+		// Unwrap data package from event body
 		jData, _ := json.Marshal(event.Body)
 		var job v1alpha2.JobData
 		json.Unmarshal(jData, &job)
@@ -225,6 +242,15 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 
+		// restore schedule
+		var schedule *v1alpha2.ScheduleSpec
+		if v, ok := dataPackage.Inputs["__schedule"]; ok {
+			err = json.Unmarshal([]byte(v.(string)), &schedule)
+			if err != nil {
+				return err
+			}
+		}
+
 		triggerData := v1alpha2.ActivationData{
 			Activation:           dataPackage.Inputs["__activation"].(string),
 			ActivationGeneration: dataPackage.Inputs["__activationGeneration"].(string),
@@ -232,6 +258,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			Stage:                dataPackage.Inputs["__stage"].(string),
 			Inputs:               dataPackage.Inputs,
 			Outputs:              dataPackage.Outputs,
+			Schedule:             schedule,
+			NeedsReport:          true,
 		}
 
 		triggerData.Inputs["__origin"] = event.Metadata["origin"]
@@ -247,6 +275,13 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		case "materialize":
 			triggerData.Provider = "providers.stage.materialize"
 			config, err := materialize.MaterializeStageProviderConfigFromVendorMap(s.Vendor.Config.Properties)
+			if err != nil {
+				return err
+			}
+			triggerData.Config = config
+		case "mock":
+			triggerData.Provider = "providers.stage.mock"
+			config, err := mock.MockStageProviderConfigFromMap(s.Vendor.Config.Properties)
 			if err != nil {
 				return err
 			}
