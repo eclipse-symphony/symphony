@@ -23,7 +23,6 @@ To enable your edge solution orchestration, Symphony:
 * Supports additional computational nodes such as Azure Sphere through Virtual Kubelet.
 * Supports end-to-end observability with distributed tracing using OpenTelemetry.
 
-
 ## Key application scenarios
 
 Symphony aims to deploy and manage secured, hardware-accelerated intelligent edge payloads on a K8s-based fabric that offers adaptive workload scheduling for HA and resource balancing. Some key application scenarios include:
@@ -74,8 +73,8 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 
 ## Contribute to Symphony
 
-* [Developer Guide](./symphony-book/dev-guide/getting-started.md)
-* [API Reference](./symphony-book/api/api.md)
+* [Developer guide](./symphony-book/dev-guide/getting-started.md)
+* [API reference](./symphony-book/api/api.md)
 
 ## Additional topics
 
