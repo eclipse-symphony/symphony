@@ -1,13 +1,17 @@
-# Building and Releasing Maestro CLI
+# Build and releasing Maestro CLI
 
 _(last edit: 4/12/2023)_
 
 ## Manually create a new CLI release
-0. If you are doing this from WSL/Ubuntu, you need to install ```zip```:
+
+1. If you are doing this from WSL/Ubuntu, install `zip`.
+
    ```bash
    sudo apt-get install zip unzip -y
    ```
-1. Build symphony-api and maestro for Windows, Mac and Linux
+
+1. Build symphony-api and maestro for Windows, Mac and Linux.
+
    ```bash
    # under symphony/api folder
    go mod vendor
@@ -15,9 +19,13 @@ _(last edit: 4/12/2023)_
    GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
    GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
    ```
-2. Update maestro version
-   Update the ```SymphonyAPIVersion``` constant under ```cli/cmd/up.go``` to reflect the latest Symphony version.
-3. Build maestro
+
+1. Update maestro version.
+
+   Update the `SymphonyAPIVersion` constant under `cli/cmd/up.go` to reflect the latest Symphony version.
+
+1. Build maestro
+
    ```bash
    # under symphony/cli folder
    go mod vendor
@@ -25,7 +33,9 @@ _(last edit: 4/12/2023)_
    GOOS=windows GOARCH=amd64 go build -o maestro.exe
    GOOS=darwin GOARCH=amd64 go build -o maestro-mac
    ```
-4. In a separate working folder:
+
+1. In a separate working folder:
+
    ```bash
    # This example assumes you are under ~/assemble folder, and you've checked out
    # Symphony repos to the ~/projects/go/src/github.com/azure folder
@@ -64,31 +74,39 @@ _(last edit: 4/12/2023)_
    mv symphony-api-mac symphony-api
    tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge
    ```
-5. Edit your release to include the three **.gz** files from the previous step:
+
+1. Edit your release to include the three **.gz** files from the previous step:
+
    ![CLI release](../images/cli-release.png)
 
-6. Check ```symphony/cli/install/install.sh``` and ```symphony/cli/install/install.ps1``` to a public repository. Users will be instructed to use scripts from this repo for the one-command experience, for example:
+1. Check `symphony/cli/install/install.sh` and `symphony/cli/install/install.ps1` to a public repository. Users will be instructed to use scripts from this repo for the one-command experience, for example:
+
    ```bash
    wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
    ```
 
 ## Appendix
-* Build for x64 (on a x64 machine)
+
+* Build for x64 (on an x64 machine)
+
   ```bash
   go build -o maestro-x64-<version>
   ```
 
 * Build for ARM64
+
   ```bash
   CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o maestro-arm64-<version>
   ```
 
 * Build for Windows AMD64
+
   ```bash
   GOOS=windows GOARCH=amd64 go build -o maestro.exe
   ```
 
-* Build for Mac 
+* Build for Mac
+
   ```bash
   GOOS=darwin GOARCH=amd64 go build -o maestro-mac
   ```

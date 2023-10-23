@@ -15,25 +15,31 @@ The Symphony object model defines common elements of intelligent solutions as Ku
 
 ### Foundational objects
 
+Foundational objects represent the hardware and software for your intelligent solution.
+
+Use a `device` object to register managed devices like cameras or other sensors. A `target` object represents a computational resource that can receive Symphony deployments. Devices can be attached to and managed by target objects. A `solution` object defines an application to be deployed, and an `instance` object applies a specific solution to one or more targets.
+
+For more information, see:
+
+* [Device](../device-management/device-management.md)
+* [Target](../target-management/target-management.md)
 * [Solution](../solution-management/solution-management.md)
 * [Instance](../uom/instance.md)
-* [Target](../target-management/target-management.md)
-* [Device](../device-management/device-management.md)
 
 ### Federation objects
 
-<<<<<<< HEAD
-=======
 Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalog` object is a generic graph data structure that you can use to create information models for your organization.
 
 For more information, see:
 
->>>>>>> Incorporate feedback from Haishi
 * [Campaign](../campaign-management/campaign.md)
 * [Catalog](../information-graph/overview.md)
 
 ## AI objects
 
-* AI Model
-* [AI Skill](../skill-management/skill-management.md)
-* AI Skill Package
+AI objects represent elements of AI workflows. Use the `model` object to represent AI models or transformations that you apply to your data, and use the `skill` object to define the processing pipelines that implement the models.
+
+For more information, see:
+
+* [AI skill](../skill-management/skill-management.md)
+* [AI model](../uom/ai-model.md)
