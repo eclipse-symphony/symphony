@@ -1,4 +1,4 @@
-# Target Management
+# Target management
 
 A `target` in Symphony is an endpoint to which Symphony `components` can be deployed. A target can be a server, a PC, a mobile device, a cluster, or simply a service endpoint. When a target is registered, Symphony allows a full-stack description of all software components, policies, and configurations that are required on the target, and Symphony uses its state-seeking mechanism to make sure that the target is configured properly.
 
