@@ -11,7 +11,7 @@ helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
 Or, if you already have the **symphony** repository cloned:
 
 ```bash
-cd <path>/symphony/.azure/symphony-extension/helm
+cd <path>/symphony/packages/helm
 helm install symphony ./symphony
 ```
 
