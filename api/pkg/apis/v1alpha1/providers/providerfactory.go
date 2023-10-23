@@ -45,12 +45,10 @@ import (
 	waitstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/arcextension"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
-	extendedlocation "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/extendedlocation"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/ingress"
@@ -217,12 +215,6 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.kubectl":
 		mProvider := &kubectl.KubectlTargetProvider{}
-		err = mProvider.Init(config)
-		if err == nil {
-			return mProvider, nil
-		}
-	case "providers.target.arcextension":
-		mProvider := &arcextension.ArcExtensionTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -420,14 +412,6 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
-				case "providers.target.arcextension":
-					provider := &arcextension.ArcExtensionTargetProvider{}
-					err := provider.InitWithMap(binding.Config)
-					if err != nil {
-						return nil, err
-					}
-					provider.Context = context
-					return provider, nil
 				case "providers.target.docker":
 					provider := &docker.DockerTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
@@ -617,14 +601,6 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
-				case "providers.target.extendedlocation":
-					provider := &extendedlocation.ExtendedLocationTargetProvider{}
-					err := provider.InitWithMap(binding.Config)
-					if err != nil {
-						return nil, err
-					}
-					provider.Context = context
-					return provider, nil
 				case "providers.target.mock":
 					provider := &tgtmock.MockTargetProvider{}
 					err := provider.InitWithMap(binding.Config)

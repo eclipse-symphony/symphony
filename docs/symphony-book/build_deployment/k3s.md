@@ -2,15 +2,10 @@
 
 An easy way to set up K3s on a Windows, Mac or Linux PC is by using [Rancher Desktop](https://rancherdesktop.io/), which can be downloaded and installed as a native app.
 
+## WSL2 on Windows
 
+### 1. Set up K3s
 
-
-
-<hr />
-
-## Appendix
-### WSL2 on Windows
-#### 1. Setting up K3s
 ```bash
 # Download k3s binary
  wget https://github.com/k3s-io/k3s/releases/download/v1.26.3%2Bk3s1/k3s-arm64
@@ -23,8 +18,11 @@ sudo mv k3s /usr/local/bin
 # Luanch K3s server
 sudo k3s server
 ```
-#### 2. Configure kubectl
+
+### 2. Configure kubectl
+
 On another terminal:
+
 ```bash
 # Copy K8s config file
 sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube
@@ -35,3 +33,7 @@ kubectl config use-context default
 # Display cluster info
 kubectl cluster-info
 ```
+
+## Next steps
+
+Next, [prepare your Kubernetes cluster](./prepare_k8s.md) for Azure IoT Hub, Azure Video Analyzer and Azure Arc.

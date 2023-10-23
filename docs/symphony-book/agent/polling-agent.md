@@ -1,4 +1,4 @@
-# Symphony Polling Agent (Piccolo)
+# Symphony polling agent (Piccolo)
 
 _(last edit: 9/18/2023)_
 
@@ -6,20 +6,24 @@ Piccolo is a lightweight Symphony agent that can be installed on tiny edge devic
 
 Piccolo is written in [Rust](https://www.rust-lang.org/).
 
-## Building Piccolo binary
+## Build Piccolo binary
 
 * Build debug target
+
   ```bash
   # under the repo root folder
   cd piccolo
   cargo build
   ```
+
 * Build release target
+
   ```bash
   # under the repo root folder
   cd piccolo
   cargo build --release
   ```
 
-## More Topics
+## Related topics
+
 * [Piccolo on Flatcar](./flatcar.md)

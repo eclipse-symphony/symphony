@@ -35,7 +35,7 @@ mage RunTest scenarios/basic
 Steps to debug a test:
 ```
 # Start the cluster
-cd localenv
+cd test/localenv
 mage test:up
 
 # Go to the test folder
