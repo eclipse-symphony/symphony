@@ -19,74 +19,74 @@ Using a web client, send the following request:
 * **METHOD**: POST
 * **BODY**:
 
-    ```json
-    {
-        "username": "admin",
-        "password": ""
-    }
-    ```
+  ```json
+  {
+    "username": "admin",
+    "password": ""
+  }
+  ```
 
 The response body contains an access token, which you need to attach to the subsequent requests as a **bearer token**.
 
 ```json
 {
-    "accessToken": "eyJhbGci...",
-    "tokenType": "Bearer"
+  "accessToken": "eyJhbGci...",
+  "tokenType": "Bearer"
 }
 ```
 
 ## Define a target
 
-Define your current machine as a [Target](../uom/target.md) with a Docker [target provider](../providers/target_provider.md):
+Define your current machine as a [target](../uom/target.md) with a Docker [target provider](../providers/target_provider.md):
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/targets/registry/sample-docker-target
 * **METHOD**: POST
 * **BODY**:
 
-    ```json
-    {
-        "displayName": "sample-docker-target",
-        "forceRedploy": true,
-        "topologies": [
-            {
-                "bindings": [
-                    {
-                        "role": "instance",
-                        "provider": "providers.target.docker",
-                        "config": {}
-                    }
-                ]
-            }
+  ```json
+  {
+    "displayName": "sample-docker-target",
+    "forceRedploy": true,
+    "topologies": [
+      {
+        "bindings": [
+          {
+            "role": "instance",
+            "provider": "providers.target.docker",
+            "config": {}
+          }
         ]
-    }
-    ```
+      }
+    ]
+  }
+  ```
 
 ## Define a solution
 
-Define a [Solution](../uom/solution.md) with a single Redis container as a component:
+Define a [solution](../uom/solution.md) with a single Redis container as a component:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/solutions/sample-redis
 * **METHOD**: POST
 * **BODY**:
 
-    ```json
-    {
-        "displayName": "sample-redis",
-        "components": [
-            {
-                "name": "sample-redis",
-                "type": "container",
-                "properties": {
-                    "container.image": "redis:latest"
-                }
-            }
-        ]
-    }
-    ```
+  ```json
+  {
+    "displayName": "sample-redis",
+    "components": [
+      {
+        "name": "sample-redis",
+        "type": "container",
+        "properties": {
+          "container.image": "redis:latest"
+        }
+      }
+    ]
+  }
+  ```
 
 ## Define an instance
 
-Define an [Instance](../uom/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to your location machine *target*:
+Define an [instance](../uom/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to your location machine *target*:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: POST
@@ -122,6 +122,7 @@ docker rm -f sample-redis
 You should see the container relaunched after a few seconds.
 
 ## Delete
+
 To delete the container, send a `DELETE` request:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
