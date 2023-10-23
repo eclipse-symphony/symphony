@@ -28,7 +28,7 @@ const (
 	OSS_CONTAINER_REGISTRY = "ghcr.io/azure/symphony"
 	NAMESPACE              = "default"
 	DOCKER_TAG             = "latest"
-	CHART_PATH             = "../../.azure/symphony-extension/helm/symphony"
+	CHART_PATH             = "../../packages/helm/symphony"
 	GITHUB_PAT             = "CR_PAT"
 )
 
@@ -65,11 +65,11 @@ func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube, imagePullSecrets: %s\n", CR_PAT)
 	return conditionalRun(
 		func() error { //azure
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.azure.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.azure.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		},
 		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
 			return shellcmd.Command(helmUpgrade).Run()
 		})
 }
