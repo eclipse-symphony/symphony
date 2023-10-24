@@ -28,6 +28,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
@@ -40,8 +41,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "0.45.31"
+const SymphonyAPIVersion = "0.45.32"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
+const GITHUB_PAT = "CR_PAT"
 
 var (
 	symphonyVersion string
@@ -189,7 +191,7 @@ func init() {
 func checkSymphonyAddress() (bool, string) {
 	count := 0
 	for {
-		str, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", "symphony-k8s-system", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+		str, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", "default", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to check public Symphony API address./%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false, ""
@@ -241,6 +243,29 @@ func checkSymphonyAddress() (bool, string) {
 // 	return true
 // }
 
+// Log into ghcr, prompts if login failed.
+func GhcrLogin() error {
+	for i := 0; i < 3; i++ {
+		github_pat := os.Getenv(GITHUB_PAT)
+		if github_pat == "" {
+			fmt.Println("Please input your GitHub PAT token:")
+			fmt.Scanln(&github_pat)
+			os.Setenv(GITHUB_PAT, github_pat)
+		}
+		cmd := exec.Command("docker", "login", "ghcr.io", "-u", "USERNAME", "--password", github_pat)
+		_, err := cmd.Output()
+		if err != nil {
+			if i == 3 {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+
+	return nil
+}
+
 func handleSymphony() bool {
 	str, _ := utils.RunCommand("Checking Symphony API (Symphony)", "done", verbose, "helm", "list", "-q", "-l", "name=symphony")
 
@@ -262,7 +287,17 @@ func handleSymphony() bool {
 			c.Run()
 		}
 	}
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://possprod.azurecr.io/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy")
+
+	// check ghcr access token
+	if err := GhcrLogin(); err != nil {
+		return false
+	}
+	CR_PAT := os.Getenv(GITHUB_PAT)
+	fmt.Printf("Deploying Symphony API (Symphony), imagePullSecrets: %s\n", CR_PAT)
+	pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
+	// debug line
+	// _, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting)
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always")
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 		return false

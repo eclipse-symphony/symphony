@@ -2012,10 +2012,6 @@ spec:
       labels:
         control-plane: '{{ include "symphony.name" . }}-controller-manager'
     spec:
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      - name: {{ include "symphony.fullname" . }}-regcred
-      {{- end }}
       containers:
       - args:
         - --health-probe-bind-address=:8081
@@ -2079,6 +2075,8 @@ spec:
           requests:
             cpu: 5m
             memory: 64Mi
+      imagePullSecrets:
+      - name: '{{ include "symphony.fullname" . }}-regcred'
       securityContext:
         runAsNonRoot: true
       serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'
