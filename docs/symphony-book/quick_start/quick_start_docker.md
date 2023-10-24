@@ -9,7 +9,7 @@ You can run the Symphony API as a single Docker container with a configuration f
 docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json possprod.azurecr.io/symphony-api:latest
 ```
 
-> **Pre-release NOTE**: ```possprod.azurecr.io``` is a private repo. To access the repo, your Azure account needs to be granted access. Then, you need to login to Docker using Azure token: 
+> **Pre-release NOTE**: ```possprod.azurecr.io``` is a private repo. To access the repo, your Azure account needs to be granted access. Then, you need to login to Docker using Azure token:
 >
 >```bash
 >az login

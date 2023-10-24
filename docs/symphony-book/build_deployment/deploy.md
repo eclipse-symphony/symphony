@@ -30,11 +30,11 @@ The default Symphony configuration uses in-memory state stores and pub/sub messa
 
 By default, all Symphony vendors are hosted on a single [host](../hosts/overview.md). If you need to scale these vendors independently, you can create multiple host configurations, each loading only the desired vendors, and run multiple host processes or containers in your environment. Because Symphony doesn't allow horizontal dependencies, you can slice up vendors into different topologies freely. However, for these vendors to communicate with each other through messaging, they need to share the same pub/sub message bus, such as a Redis cluster.
 
-Symphony's [job manager](../managers/overview.md) invokes Symphony's reconcile API on the [solution vendor](../vendors/solution.md) through HTTP. Make sure that your job manager is configured to talk to the solution vendor host FDN (or load-balancer FDN) instead of `localhost`.
+Symphony's [job manager](../managers/overview.md) invokes Symphony's reconcile API on the solution vendor through HTTP. Make sure that your job manager is configured to talk to the solution vendor host FDN (or load-balancer FDN) instead of `localhost`.
 
 ### State stores
 
-Most Symphony components are stateless, with exception of the [instance manager](../managers/instance-manager.md). The instance manager uses a state store to remember the last deployment it has successfully applied. When you have multiple instance managers running (by scaling out the [solution vendor](../vendors/solution.md)), they need to use a shared state store instead of the in-memory state store.
+Most Symphony components are stateless, with exception of the [instance manager](../managers/instance-manager.md). The instance manager uses a state store to remember the last deployment it has successfully applied. When you have multiple instance managers running (by scaling out the solution vendor), they need to use a shared state store instead of the in-memory state store.
 
 In addition to the default in-memory store (which doesn't scale beyond a single process), Symphony also supports an HTTP-proxy store through which you can connect to [most of the popular databases](https://docs.dapr.io/reference/components-reference/supported-state-stores/) via [Dapr](https://dapr.io/).
 
