@@ -131,7 +131,9 @@ func Run() error {
 	return shellcmd.Command("go run ./main.go").Run()
 }
 
+// Kustomize startup symphony yaml for helm chart.
 func HelmTemplate() error {
+	mg.Deps(ensureKustomize, Manifests)
 	return conditionalRun(
 		func() error {
 			return kustomize.Command("build config/azure/helm -o ../packages/helm/symphony/templates/symphony.yaml").Run()

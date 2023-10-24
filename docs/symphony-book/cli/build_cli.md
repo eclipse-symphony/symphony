@@ -1,6 +1,6 @@
 # Build and releasing Maestro CLI
 
-_(last edit: 4/12/2023)_
+_(last edit: 10/24/2023)_
 
 ## Manually create a new CLI release
 

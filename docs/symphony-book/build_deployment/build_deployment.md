@@ -8,9 +8,9 @@ To begin, follow the steps to [build Symphony containers](./build.md).
 
 If you don't want to build the containers yourself, you can use these prebuilt images:
 
-* possprod.azurecr.io/symphony-agent:latest (or use a release tag. The latest is 0.38.2)
-* possprod.azurecr.io/symphony-api:latest (or use a release tag. The latest is 0.38.2)
-* possprod.azurecr.io/symphony-k8s:latest (or use a release tag. The latest is 0.38.2)
+* ghcr.io/azure/symphony/symphony-agent:latest (or use a release tag. The latest is 0.38.2)
+* ghcr.io/azure/symphony/symphony-api:latest (or use a release tag. The latest is 0.38.2)
+* ghcr.io/azure/symphony/symphony-k8s:latest (or use a release tag. The latest is 0.38.2)
 
 > **NOTE:** These images may get removed at any time without prior notice.
 
