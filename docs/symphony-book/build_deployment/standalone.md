@@ -10,7 +10,7 @@ However, when running in a standalone mode, Symphony takes over object state man
 
 ## State reconciliation flows
 
-Under Kubernetes mode, users interact with Symphony Kubernetes CRDs using Kubernetes APIs and tools. Symphony controller queries Symphony API (via `/queue GET`) to decide if a new reconciliation job needs to be queued. If so, it queues a new job through the `/queue POST` route. The queued job is forward to a event bus, to which a [job vendor](../vendors/job.md) subscribes. When a reconcile job is received, the job vendor generates a Symphony deployment spec and calls the `/reconcile` route of a [solution vendor](../vendors/solution.md).
+Under Kubernetes mode, users interact with Symphony Kubernetes CRDs using Kubernetes APIs and tools. Symphony controller queries Symphony API (via `/queue GET`) to decide if a new reconciliation job needs to be queued. If so, it queues a new job through the `/queue POST` route. The queued job is forward to a event bus, to which a [job vendor](../vendors/job.md) subscribes. When a reconcile job is received, the job vendor generates a Symphony deployment spec and calls the `/reconcile` route of a solution vendor.
 
 When running under the standalone mode, Symphony REST API queues reconciliation jobs when it updates Symphony objects. In addition, the job vendor is configured to periodically trigger reconciliation events by itself at configured intervals.
 

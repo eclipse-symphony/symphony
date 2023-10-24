@@ -1,4 +1,4 @@
-# Symphony Portal Experiences
+# Symphony portal experiences
 
 The Symphony API is intentionally designed to be simple and agnostic. The anticipation is that more opinionated experiences can be built on top Symphony API to provide streamlined experiences tailored for specific use cases and payload types. There have been multiple user experiences built on top of Symphony, two of which are publicly available:
 

@@ -23,7 +23,8 @@ Maestro displays the service public IP that you can open with a browser. If the 
 > **NOTE**: If you are using Kubernetes distributions that don't support assigning public IPs, you can set up port forwarding to access the deployed Prometheus server.
 
 To clean up, use:
-```
+
+```bash
 maestro samples remove hello-k8s
 ```
 
@@ -34,7 +35,7 @@ maestro samples remove hello-k8s
 * Symphony installed on your Kubernetes cluster.  For more information, see [Use Symphony on Kubernetes clusters with Helm](./quick_start_helm.md).
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) is configured with the Kubernetes cluster you want to use as the default context
 
-Once you have Symphony installed on your Kubernetes cluster, you can use standard Kubernetes tools like ```kubectl``` to interact with Symphony.
+Once you have Symphony installed on your Kubernetes cluster, you can use standard Kubernetes tools like `kubectl` to interact with Symphony.
 
 ### 1. Register the current cluster as a Symphony target
 
@@ -91,14 +92,13 @@ spec:
 
 This YAML file is also available at [docs/samples/k8s/hello-world/solution.yaml](../../samples/k8s/hello-world/solution.yaml).
 
-
 > **NOTE**: This solution uses the default deployment strategy, which is to deploy all component containers in the solution into a same pod. For details on other possible deployment strategies, see [providers.target.k8s](../providers/k8s_provider.md).
 
 ### 3. Create a Symphony solution instance
 
-A Symphony *solution instance* maps a *solution* to one or multiple *targets*. 
+A Symphony *solution instance* maps a *solution* to one or multiple *targets*.
 
-Create a YAML file that maps the `sample-prometheus-server` solution to the `sample-k8s-target ` target:
+Create a YAML file that maps the `sample-prometheus-server` solution to the `sample-k8s-target` target:
 
 ```yaml
 apiVersion: solution.symphony/v1
