@@ -12,7 +12,7 @@ spec:
     properties:
       container.version: "1.0"
       container.type: "docker"
-      container.image: "possprod.azurecr.io/symphony-agent:0.38.0"
+      container.image: "ghcr.io/azure/symphony/symphony-agent:0.38.0"
       container.createOptions: "{\"HostConfig\":{\"Binds\":[\"/etc/iotedge/storage:/snapshots\"]}}"      
       container.restartPolicy: "always"     
       env.AZURE_CLIENT_ID: "<SP App ID>"

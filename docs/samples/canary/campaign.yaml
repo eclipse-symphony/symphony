@@ -26,7 +26,7 @@ spec:
           properties:
             deployment.replicas: "#1"
             container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-            container.image: "possprod.azurecr.io/sample-flask-app:latest"
+            container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
             env.APP_VERSION: "This_is_version_2"
         patchAction: add
       stageSelector: "canary-ingress"
