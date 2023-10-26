@@ -1,15 +1,17 @@
-# Scenario: Adaptive Deployment
+# Scenario: Adaptive deployment
 
-In this scenario, you'll deploy a [Solution](../uom/solution.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony will automatically adapt the solution to fit with the corresponding platforms.
+In this scenario, you'll deploy a [solution](../uom/solution.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony automatically adapts the solution to fit with the corresponding platforms.
 
 ![adaptive](../images/adaptive.png)
 
 ## Prerequisites
 
-* An [Azure IoT Edge](https://azure.microsoft.com/en-us/products/iot-edge/) device (see instructions [here](../quick_start/deploy_solution_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
+* An [Azure IoT Edge](https://azure.microsoft.com/ products/iot-edge/) device (see instructions [here](../quick_start/deploy_solution_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
 
 ## 1. Register targets
-First, you need to register your IoT Edge device as a [Target](../uom/target.md):
+
+First, register your IoT Edge device as a [target](../uom/target.md):
+
 ```yaml
 apiVersion: fabric.symphony/v1
 kind: Target
@@ -30,7 +32,9 @@ spec:
         apiVersion: "2020-05-31-preview"
         deviceName: "<IoT Edge device name>"
 ```
-Then, you'll register your current Kubernetes cluster as the second [Target](../uom/target.md):
+
+Then, register your current Kubernetes cluster as a second target:
+
 ```yaml
 apiVersion: fabric.symphony/v1
 kind: Target
@@ -46,9 +50,13 @@ spec:
       config:
         inCluster: "true"   
 ```
-> **NOTE:** both targets are marked with a ```group: demo``` property, which you'll use as the target selector in your [Instance](../uom/instance.md) object.
-## 2. Creation solution
-Create a simple [Solution](../uom/solution.md) with a single component:
+
+> **NOTE:** both targets are marked with a `group: demo` property, which you'll use as the target selector in your [instance](../uom/instance.md) object.
+
+## 2. Create a solution
+
+Create a simple [solution](../uom/solution.md) with a single component:
+
 ```yaml
 apiVersion: solution.symphony/v1
 kind: Solution
@@ -70,8 +78,11 @@ spec:
       container.version: "1.0"
       container.type: "docker"
 ```
-## 3. Create instance
-To deploy the solution to both targets, create a new [Instance](../uom/instance.md) object:
+
+## 3. Create an instance
+
+To deploy the solution to both targets, create an [instance](../uom/instance.md) object that applies the `redis-server` solution to the `demo` group of targets:
+
 ```yaml
 apiVersion: solution.symphony/v1
 kind: Instance
@@ -82,12 +93,13 @@ spec:
   solution: redis-server
   target:
     selector: 
-      group: demo
-      
+      group: demo      
 ```
-> **NOTE:**: ```scope``` is optional. If used, your pods on Kubernetes will be deployed to the designated namepace.
 
-Observe the solution is deployed on both targets:
+> **NOTE:**: `scope` is optional. If used, your pods on Kubernetes will be deployed to the designated namespace.
+
+Observe that the solution is deployed on both targets:
+
 ```bash
 kubectl get instance
 NAME          STATUS   TARGETS   DEPLOYED
@@ -95,6 +107,7 @@ my-instance   OK       2         2
 ```
 
 ## 4. Clean up
+
 ```bash
 kubectl delete instance my-instance
 kubectl delete solution redis-server

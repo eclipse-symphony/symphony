@@ -1,4 +1,4 @@
-# Symphony quickstart - Manange RTSP cameras connected to a gateway
+# Symphony quickstart - Manage RTSP cameras connected to a gateway
 
 In this scenario, you will:
 
@@ -16,8 +16,8 @@ The Symphony agent will capture camera snapshots and upload them to the storage 
 * A Kubernetes cluster.
 * [Helm 3](https://helm.sh/).
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/), configured with the Kubernetes cluster you want to use as the default context.
-* [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
-* **Azure Storage Account** and **Azure Service Principal**. For intructions on configuring these resources for the Symphony agent, see [Symphony agent](../agent/symphony-agent.md).
+* [Azure CLI](https://docs.microsoft.com/cli/azure/).
+* **Azure Storage Account** and **Azure Service Principal**. For instructions on configuring these resources for the Symphony agent, see [Symphony agent](../agent/symphony-agent.md).
 * An **RTSP camera** on your local network. If the camera is password protected, you'll need the corresponding user name and password. 
 * **Symphony Agent** binary. For build instructions, see [Build Symphony containers](../build_deployment/build.md).
 * **Symphony** deployed to your cluster. For instructions, see [Use Symphony on Kubernetes clusters with Helm](./quick_start_helm.md).
@@ -52,7 +52,7 @@ kubectl create -f ./camera-1.yaml
 
 ## 2. Create the target object
 
-Next, you'll create a `target` object that represents the gateway device. The association between the gateway and the camera is done through Kubernetes [selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). 
+Next, you'll create a `target` object that represents the gateway device. The association between the gateway and the camera is done through Kubernetes [selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/).
 
 Create a YAML file called `gateway-1.yaml` with the following target information:
 
@@ -86,7 +86,7 @@ To get the Symphony API address, use kubectl:
 kubectl get svc symphony-service-ext
 ```
 
-Copy the `EXTENRAL-IP` field, as shown in the following sample:
+Copy the `EXTERNAL-IP` field, as shown in the following sample:
 
 ```bash
 NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP    PORT(S)          AGE
@@ -101,7 +101,7 @@ export AZURE_TENANT_ID=<service principal tenant id>
 export AZURE_CLIENT_SECRET=<service principal client secret>
 export STORAGE_ACCOUNT=<storage account name>
 export STORAGE_CONTAINER=<storage container name>
-export SYMPHONY_URL=http://<symphony API address>:8080/v1alpha2/agent/references # point to your local Symphony API endpoint, or the public Symphony API service ednpoint on K8s
+export SYMPHONY_URL=http://<symphony API address>:8080/v1alpha2/agent/references # point to your local Symphony API endpoint, or the public Symphony API service endpoint on K8s
 export TARGET_NAME=<target name> #the name of the Target object representing the current compute device
 ```
 

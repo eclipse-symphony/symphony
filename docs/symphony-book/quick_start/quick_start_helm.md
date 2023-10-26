@@ -5,27 +5,27 @@ _(last edit: 9/18/2023)_
 To install Symphony on your Kubernetes clusters using Helm 3, use `helm install`:
 
 ```bash
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.44.6
+helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.44.6 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 Or, if you already have the **symphony** repository cloned:
 
 ```bash
-cd <path>/symphony/.azure/symphony-extension/helm
-helm install symphony ./symphony
+cd <path>/symphony/packages/helm
+helm install symphony ./symphony --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
-If you need to install the Helm chart from a private ACR like ```possprod.azurecr.io```, you need to log in first:
+If you need to install the Helm chart from a private ACR like ```ghcr.io```, you need to log in first:
 
 ```bash
 # login as necessary. Note once the repo is turned public no authentication is needed
 export HELM_EXPERIMENTAL_OCI=1
-USER_NAME="00000000-0000-0000-0000-000000000000"
-PASSWORD=$(az acr login --name possprod --expose-token --output tsv --query accessToken)
-helm registry login possprod.azurecr.io   --username $USER_NAME --password $PASSWORD
+USER_NAME="USERNAME"
+PASSWORD='{YOUR_GITHUB_PAT_TOKEN}'
+helm registry login ghcr.io --username $USER_NAME --password $PASSWORD
 
 # install using Helm chart
-helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.40.8
+helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.40.8 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 ## Update Symphony
@@ -33,7 +33,7 @@ helm install symphony oci://possprod.azurecr.io/helm/symphony --version 0.40.8
 To update your existing Symphony release to a new version, use `helm upgrade`:
 
 ```bash
-helm upgrade --install symphony oci://possprod.azurecr.io/helm/symphony --version 0.45.31
+helm upgrade --install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.45.31 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 ## Customize Helm deployment

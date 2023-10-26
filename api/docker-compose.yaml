@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   api:
-    image: possprod.azurecr.io/symphony-api
+    image: ghcr.io/azure/symphony/symphony-api
     build: 
       context: ../
       dockerfile: api/Dockerfile

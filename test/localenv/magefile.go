@@ -25,10 +25,11 @@ import (
 const (
 	RELEASE_NAME           = "ecosystem"
 	LOCAL_HOST_URL         = "http://localhost"
-	OSS_CONTAINER_REGISTRY = "possprod.azurecr.io"
+	OSS_CONTAINER_REGISTRY = "ghcr.io/azure/symphony"
 	NAMESPACE              = "default"
 	DOCKER_TAG             = "latest"
-	CHART_PATH             = "../../.azure/symphony-extension/helm/symphony"
+	CHART_PATH             = "../../packages/helm/symphony"
+	GITHUB_PAT             = "CR_PAT"
 )
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -56,13 +57,19 @@ func conditionalString(azureStr string, ossStr string) string {
 
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
+	// Make sure users have PAT token for GitHub container registry configured
+	if err := GhcrLogin(); err != nil {
+		return err
+	}
+	CR_PAT := os.Getenv(GITHUB_PAT)
+	fmt.Printf("Deploying symphony to minikube, imagePullSecrets: %s\n", CR_PAT)
 	return conditionalRun(
 		func() error { //azure
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.azure.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.azure.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
 			return shellcmd.Command(helmUpgrade).Run()
 		},
 		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../.azure/symphony-extension/helm/symphony/values.yaml -f symphony-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)
+			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
 			return shellcmd.Command(helmUpgrade).Run()
 		})
 }
@@ -361,7 +368,7 @@ func (Minikube) Dashboard() error {
 func (Pull) All() error {
 	defer logTime(time.Now(), "pull:all")
 
-	if err := ACRLogin(); err != nil {
+	if err := GhcrLogin(); err != nil {
 		return err
 	}
 
@@ -374,7 +381,7 @@ func (Pull) All() error {
 
 // Pull symphony-k8s
 func (Pull) K8s() error {
-	if err := ACRLogin(); err != nil {
+	if err := GhcrLogin(); err != nil {
 		return err
 	}
 
@@ -386,7 +393,7 @@ func (Pull) K8s() error {
 
 // Pull symphony-api
 func (Pull) Api() error {
-	if err := ACRLogin(); err != nil {
+	if err := GhcrLogin(); err != nil {
 		return err
 	}
 
@@ -396,16 +403,17 @@ func (Pull) Api() error {
 	)...)
 }
 
-// Log into the ACR, prompt if az creds are expired
-func ACRLogin() error {
+// Log into ghcr, prompts if login failed.
+func GhcrLogin() error {
 	for i := 0; i < 3; i++ {
-		err := shellcmd.Command.Run("az acr login --name possprod") //oss
+		github_pat := os.Getenv(GITHUB_PAT)
+		if github_pat == "" {
+			fmt.Println("Please input your GitHub PAT token:")
+			fmt.Scanln(&github_pat)
+			os.Setenv(GITHUB_PAT, github_pat)
+		}
+		err := shellcmd.RunAll(shellcmd.Command(fmt.Sprintf("docker login ghcr.io -u USERNAME --password %s", github_pat)))
 		if err != nil {
-			err := shellcmd.Command.Run("az login --use-device-code")
-			if err != nil {
-				return err
-			}
-
 			if i == 3 {
 				return err
 			}
