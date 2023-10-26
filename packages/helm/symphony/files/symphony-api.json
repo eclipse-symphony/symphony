@@ -29,10 +29,23 @@
   "api": {
     "pubsub": {
       "shared": true,
+      {{- if .Values.redis.enabled }}
+      "provider": {
+        "type": "providers.pubsub.redis",
+        "config": {
+          "name": "redis",
+          "host": "symphony-redis:6379",
+          "requireTLS": false,
+          "password": "",
+          "numberOfWorkers": 1
+        }
+      }
+      {{- else }}
       "provider": {
         "type": "providers.pubsub.memory",
         "config": {}
       }
+      {{- end }}
     },
     "vendors": [
       {
@@ -65,7 +78,10 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
-              "providers.state": "k8s-state"        
+              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "providers.state": "k8s-state"          
             },
             "providers": {
               "k8s-state": {
@@ -106,7 +122,14 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",
@@ -513,6 +536,7 @@
       "config": {
         "port": 8080,
         "pipeline": [
+          {{- include "symphony.zipkinMiddleware" . | indent 10 }}
           {
             "type": "middleware.http.cors",
             "properties": {
