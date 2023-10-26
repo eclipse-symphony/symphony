@@ -5,11 +5,11 @@
 Symphony Akri custom broker container can be built from the `symphony-k8s` repository:
 
 ```bash
-cd akri/discover-job
+cd ../../samples/akri-discover-job/
 # build binary
 go build -o discover-job
 # build container
-docker build -t ghcr.io/azure/symphony/symphony-akri:<version> .
+docker build -t ghcr.io/azure/symphony/symphony-akri:<version> -f ./Dockerfile.microsoft .
 # push container
 docker push ghcr.io/azure/symphony/symphony-akri:<version>
 ```
