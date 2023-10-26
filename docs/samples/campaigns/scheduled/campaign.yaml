@@ -1,0 +1,32 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: scheduled-campaign
+spec:
+  firstStage: "stage1"
+  selfDriving: true
+  stages:
+    stage1:
+      name: "stage1"
+      provider: "providers.stage.mock"      
+      stageSelector: "stage2"
+      schedule:
+        date: "2023-10-23"
+        time: "2:00:00PM"
+        zone: "America/Los_Angeles"
+    stage2:
+      name: "stage2"
+      provider: "providers.stage.mock"      
+      stageSelector: "stage3"
+      schedule:
+        date: "2023-10-23"
+        time: "2:01:00PM"
+        zone: "America/Los_Angeles"
+    stage3:
+      name: "stage3"
+      provider: "providers.stage.mock"      
+      stageSelector: ""
+      schedule:
+        date: "2023-10-23"
+        time: "2:02:00PM"
+        zone: "America/Los_Angeles"

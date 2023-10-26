@@ -164,7 +164,8 @@
               "user": "admin",
               "password": "",
               "interval": "#15",
-              "poll.enabled": "true"    
+              "poll.enabled": "true",
+              "schedule.enabled": "true"                 
             },
             "providers": {
               "mem-state": {

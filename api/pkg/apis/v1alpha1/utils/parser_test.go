@@ -1378,6 +1378,7 @@ func TestLtNegative(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "false", val)
 }
+
 func TestLe(t *testing.T) {
 	parser := NewParser("$le(2, 3.0)")
 	val, err := parser.Eval(utils.EvaluationContext{})
