@@ -123,7 +123,7 @@ docker run --rm -it -v /path/to/my-config.json:/configs -e CONFIG=/configs/symph
 For example, while under the `api` folder, you can launch latest Symphony API container with `docker run`:
 
 ```bash
-docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json possprod.azurecr.io/symphony-api:latest
+docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 You can override the default logging level with a `LOG_LEVEL` environment variable. For example, to launch Symphony API with `Info` log level:
@@ -135,7 +135,7 @@ export LOG_LEVEL=Info
 # or, you can directly set the log level switch
 ./symphony-api -c ./symphony-api-no-k8s.json -l Info
 # or, running as container in console model
-docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json possprod.azurecr.io/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 ## 3. Build Symphony K8s binding container
@@ -151,24 +151,22 @@ make docker-build IMG=<Symphony-k8s image tag>
 docker push <Symphony-k8s image tag>
 ```
 
-## 4. Push Symphony containers to Azure container registry (optional)
+## 4. Push Symphony containers to GitHub container registry (optional)
 
 ```bash
-az login
-TOKEN=$(az acr login --name possprod --expose-token --output tsv --query accessToken)
-docker login possprod.azurecr.io --username 00000000-0000-0000-0000-000000000000 --password $TOKEN
-docker tag <Symphony-k8s image tag> possprod.azurecr.io/symphony-k8s:latest
-docker push possprod.azurecr.io/symphony-k8s:latest
+# GitHub Container Registry
+TOKEN='{YOUR_GITHUB_PAT_TOKEN}'
+docker login ghcr.io --username USERNAME --password $TOKEN
+docker tag <Symphony-k8s image tag> ghcr.io/azure/symphony/symphony-k8s:latest
+docker push ghcr.io/azure/symphony/symphony-k8s:latest
 ```
 
 ## 5. Update Helm chart (optional)
 
 ```bash
 cd k8s
-cd config/manager
-kustomize edit set image controller=possprod.azurecr.io/symphony-k8s:0.43.1 #set to your build version
-cd ../..
-kustomize build ./config/default/ -o ./helm/symphony/templates/symphony.yaml
+mage helmTemplate
+# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony.yaml.
 ```
 
 > **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.
@@ -176,7 +174,7 @@ kustomize build ./config/default/ -o ./helm/symphony/templates/symphony.yaml
 ## 5. Package and push Helm chart (optional)
 
 ```bash
-cd k8s/helm
+cd packages/helm
 # update helm version
 # 1) Edit Chart.yaml and update both version and appVersion to desired version number, like 0.43.1
 # 2) Edit values.yaml and update both tags to the desired version number, like 0.43.1
@@ -184,11 +182,11 @@ cd k8s/helm
 helm package symphony
 # log in to registry
 export HELM_EXPERIMENTAL_OCI=1
-USER_NAME="00000000-0000-0000-0000-000000000000"
-PASSWORD=$(az acr login --name possprod --expose-token --output tsv --query accessToken)
-helm registry login possprod.azurecr.io   --username $USER_NAME --password $PASSWORD
+USER_NAME="USERNAME"
+TOKEN='{YOUR_GITHUB_PAT_TOKEN}'
+helm registry login ghcr.io --username $USER_NAME --password $PASSWORD
 # push image
-helm push symphony-0.43.1.tgz oci://possprod.azurecr.io/helm
+helm push symphony-0.43.1.tgz oci://ghcr.io/azure/symphony/helm
 ```
 
 ## 6. Build Symphony agent container (optional)

@@ -24,13 +24,13 @@ The easiest way to get started with Symphony is to use Maestro, Symphony's CLI t
 
 ## 2. Set up Symphony API
 
-Use `maestro up` to configure all depedencies and set up Symphony. If you already have **kubectl** configured, maestro will install Symphony API to your current Kubernetes context.
+Use `maestro up` to configure all dependencies and set up Symphony. If you already have **kubectl** configured, maestro will install Symphony API to your current Kubernetes context.
 
 ```bash
 maestro up
 ```
 
-> **NOTE**: ```maestro up``` will try to install a [kind](https://kind.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured. 
+> **NOTE**: ```maestro up``` will try to install a [kind](https://kind.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
 
 ## 3. Browse and run samples
 

@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   manager:
-    image: possprod.azurecr.io/symphony-k8s
+    image: ghcr.io/azure/symphony/symphony-k8s
     build:
       context: ../
       dockerfile: k8s/Dockerfile

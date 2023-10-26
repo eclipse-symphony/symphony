@@ -30,6 +30,7 @@ az iot hub device-identity connection-string show --device-id s8c-vm --resource-
 ```
 
 ### 2. Configure a Linux VM as your IoT Edge device
+
 You need to prepare a Linux virtual machine or physical device for IoT Edge. In this guide, you create a Linux VM. You can use an ARM deployment to automate these steps, or use the Azure CLI.
 
 * ARM deployment steps:
@@ -90,7 +91,7 @@ az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
 
 To clean up, use:
 
-```
+```bash
 maestro samples remove hello-iot-edge 
 ```
 
@@ -166,11 +167,10 @@ This YAML file is also available at [docs/samples/iot-edge/simulated-temperature
 
 ### 3. Create the Symphony Solution Instance
 
-A Symphony *solution instance* maps a *solution* to one or multiple *targets*. 
+A Symphony *solution instance* maps a *solution* to one or multiple *targets*.
 
 Create a YAML file called `instance-1.yaml` that maps the `sample-simulated-temperature-sensor` soltuion to the `sample-iot-edge-target` target above:
 
-> **NOTE**: You can get a sample of this file under ``````:
 ```yaml
 apiVersion: solution.symphony/v1
 kind: Instance
@@ -185,6 +185,7 @@ spec:
 This YAML file is also available at [docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml](../../samples/iot-edge/simulated-temperature-sensor/instance-1.yaml).
 
 You can also create additional instances. Symphony does the following for each of the instances:
+
 * It generates IoT Edge module with a `<instance id>-` prefix.
 * It rewrites all IoT Edge route definitions in the solution so that messages are routed to the right instance module.
 
@@ -208,6 +209,7 @@ kubectl get instances
 ```
 
 On IoT Hub page, verify all IoT Edge modules are up and running (screen shot shows only one instance):
+
 ![IoT Edge](../images/iot-edge.png)
 
 ### 6. Clean up Symphony objects

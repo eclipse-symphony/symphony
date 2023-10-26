@@ -56,14 +56,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://symphonyk8s.azurecr.io/helm/symphony --version 0.43.1
+helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version '0.45.32' --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
 You can also install Symphony using Docker by running the following command:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 possprod.azurecr.io/symphony-api:0.43.1
+docker run -d --name symphony-api -p 8080:8080 ghcr.io/azure/symphony/symphony-api:0.45.32
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:
