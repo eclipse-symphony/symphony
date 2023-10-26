@@ -131,6 +131,7 @@ func (s *StageManager) Reconcil() []error {
 	return nil
 }
 func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
+	log.Debugf(" M (Stage): ResumeStage: %v\n", status)
 	campaign := status.Outputs["__campaign"].(string)
 	activation := status.Outputs["__activation"].(string)
 	activationGeneration := status.Outputs["__activationGeneration"].(string)
@@ -219,9 +220,12 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						Config:               cam.Stages[nextStage].Config,
 						Outputs:              outputs,
 						TriggeringStage:      stage,
+						Schedule:             cam.Stages[nextStage].Schedule,
 					}
+					log.Debugf(" M (Stage): Activating next stage: %s\n", activationData.Stage)
 					return activationData, nil
 				} else {
+					log.Debugf(" M (Stage): No next stage found\n")
 					return nil, nil
 				}
 			}
@@ -268,9 +272,23 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		log.Errorf(" M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
 	}
 
+	isRemote := false
 	if _, ok := provider.(*remote.RemoteStageProvider); ok {
+		isRemote = true
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
+
+	if triggerData.Schedule != nil && !isRemote {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!SCHEDULED")
+		s.Context.Publish("schedule", v1alpha2.Event{
+			Body: triggerData,
+		})
+		status.Outputs["__status"] = v1alpha2.Delayed
+		status.Status = v1alpha2.Paused
+		status.IsActive = false
+		return status
+	}
+
 	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
 
 	result := TaskResult{
@@ -324,7 +342,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		"method": "HandleTriggerEvent",
 	})
 	log.Info(" M (Stage): HandleTriggerEvent")
-
 	status := model.ActivationStatus{
 		Stage:        triggerData.Stage,
 		NextStage:    "",
@@ -397,7 +414,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
 		inputs["__previousStage"] = triggerData.TriggeringStage
 		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
-
+		if triggerData.Schedule != nil {
+			jSchedule, _ := json.Marshal(triggerData.Schedule)
+			inputs["__schedule"] = string(jSchedule)
+		}
 		for k, v := range inputs {
 			val, err := s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {
@@ -474,14 +494,28 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				if _, ok := provider.(*remote.RemoteStageProvider); ok {
 					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 				}
-				outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
-				if pause {
+
+				if triggerData.Schedule != nil {
+					s.Context.Publish("schedule", v1alpha2.Event{
+						Body: triggerData,
+					})
 					pauseRequested = true
-				}
-				results <- TaskResult{
-					Outputs: outputs,
-					Error:   err,
-					Site:    site,
+					results <- TaskResult{
+						Outputs: nil,
+						Error:   nil,
+						Site:    site,
+					}
+				} else {
+					outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+
+					if pause {
+						pauseRequested = true
+					}
+					results <- TaskResult{
+						Outputs: outputs,
+						Error:   err,
+						Site:    site,
+					}
 				}
 			}(&waitGroup, site, results)
 		}
@@ -591,6 +625,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							Provider:             nextStage.Provider,
 							Config:               nextStage.Config,
 							TriggeringStage:      triggerData.Stage,
+							Schedule:             nextStage.Schedule,
 						}
 					} else {
 						status.Status = v1alpha2.InternalError
@@ -713,6 +748,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			Provider:             stageSpec.Provider,
 			Config:               stageSpec.Config,
 			TriggeringStage:      stage,
+			Schedule:             stageSpec.Schedule,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)

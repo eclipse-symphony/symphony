@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.20.2-alpine AS build
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -25,7 +25,8 @@ RUN \
     && chmod +x get_helm.sh \
     && ./get_helm.sh \
     && apt upgrade -y
-
+ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
+ENV ZONEINFO /zoneinfo.zip
 COPY --from=build /dist /
 ADD ./api/symphony-api.json /
 EXPOSE 8080
