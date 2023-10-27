@@ -20,7 +20,6 @@ Although this scenario is designed for a distributed environment, for simplicity
 
    ```bash
    # under the api folder of the repository
-   go mod vendor
    go build -o symphony-api
    GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
    ```
