@@ -14,7 +14,6 @@ _(last edit: 10/24/2023)_
 
    ```bash
    # under symphony/api folder
-   go mod vendor
    go build -o symphony-api
    GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
    GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
@@ -28,7 +27,6 @@ _(last edit: 10/24/2023)_
 
    ```bash
    # under symphony/cli folder
-   go mod vendor
    go build -o maestro
    GOOS=windows GOARCH=amd64 go build -o maestro.exe
    GOOS=darwin GOARCH=amd64 go build -o maestro-mac

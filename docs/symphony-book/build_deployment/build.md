@@ -144,7 +144,6 @@ To build Symphony K8s binding container, use the following commands:
 
 ```bash
 cd k8s
-go mod vendor
 make generate
 make build
 make docker-build IMG=<Symphony-k8s image tag>
@@ -195,7 +194,6 @@ If you plan to use Symphony Agent as a container, run the following commands to 
 
 ```bash
 cd api
-go mod vendor    
 docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.agent --push .
 # or to build for single platform
 docker build -t <Agent image tag> -f ./Dockerfile.agent .
@@ -215,7 +213,6 @@ If you plan to use Symphony Agent as a binary, run the following commands to bui
 
 ```bash
 cd api
-go mod vendor
 go build -o ./symphony-agent #./symphony-agent.exe for Windows
 ```
 
