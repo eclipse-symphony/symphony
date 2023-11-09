@@ -20,7 +20,7 @@ spec:
       name: wait-sync
       provider: providers.stage.remote
       stageSelector: deploy
-      contexts: "$output(list,items)"
+      contexts: "${{$output(list,items)}}"
       inputs:
         operation: wait
         objectType: catalogs
@@ -32,7 +32,7 @@ spec:
       name: deploy
       provider: providers.stage.remote
       stageSelector: ""
-      contexts: "$output(list,items)"
+      contexts: "${{$output(list,items)}}"
       inputs:
         operation: materialize
         names:

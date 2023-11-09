@@ -279,7 +279,6 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	}
 
 	if triggerData.Schedule != nil && !isRemote {
-		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!SCHEDULED")
 		s.Context.Publish("schedule", v1alpha2.Event{
 			Body: triggerData,
 		})

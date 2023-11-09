@@ -84,7 +84,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "$instance()"}}`, model.SolutionGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
 			"scope":    "",
 			"group":    model.SolutionGroup,
 			"version":  "v1",

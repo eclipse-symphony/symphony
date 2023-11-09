@@ -116,7 +116,7 @@ func TestUpSert(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -184,7 +184,7 @@ func TestDelete(t *testing.T) {
 			ID: "s123",
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -231,7 +231,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -284,7 +284,7 @@ func TestUpSertWithState(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -322,7 +322,7 @@ func TestUpSertWithStateOnly(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",

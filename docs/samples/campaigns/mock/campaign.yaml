@@ -10,5 +10,5 @@ spec:
       name: "mock"
       provider: "providers.stage.mock"
       inputs:
-        foo: "$output(mock,foo)"
-      stageSelector: "$if($lt($output(mock,foo), 5), mock, '')"
+        foo: "${{$output(mock,foo)}}"
+      stageSelector: "${{$if($lt($output(mock,foo), 5), mock, '')}}"

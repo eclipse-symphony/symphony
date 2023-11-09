@@ -290,7 +290,7 @@ func TestExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
 			"expression": Rule{
-				Expression: "$and($gt($val(),10),$lt($val(),20))",
+				Expression: "${{$and($gt($val(),10),$lt($val(),20))}}",
 			},
 		},
 	}
@@ -305,7 +305,7 @@ func TestInExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
 			"expression": Rule{
-				Expression: "$in($val(), 'foo', 'bar', 'baz')",
+				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},
 	}
@@ -320,7 +320,7 @@ func TestInExpressionMiss(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
 			"expression": Rule{
-				Expression: "$in($val(), 'foo', 'bar', 'baz')",
+				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},
 	}

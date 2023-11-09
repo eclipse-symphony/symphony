@@ -150,8 +150,8 @@ func ParseValue(v string) (interface{}, error) { //TODO: make this a generic uti
 
 // TODO: This should not be used anymore
 func ProjectValue(val string, name string) string {
-	if strings.Contains(val, "$instance()") {
-		val = strings.ReplaceAll(val, "$instance()", name)
+	if strings.Contains(val, "${{$instance()}}") {
+		val = strings.ReplaceAll(val, "${{$instance()}}", name)
 	}
 	return val
 }

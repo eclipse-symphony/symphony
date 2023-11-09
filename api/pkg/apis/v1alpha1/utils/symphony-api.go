@@ -646,7 +646,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 				if err != nil {
 					return ret, err
 				}
-				match = val == "true"
+				match = (val == "true" || val == true)
 			}
 			if match {
 				ret[key] += "{" + component.Name + "}"
