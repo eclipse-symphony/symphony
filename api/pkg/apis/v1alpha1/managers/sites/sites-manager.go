@@ -186,7 +186,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "$site()"}}`, model.FederationGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "${{$site()}}"}}`, model.FederationGroup),
 			"scope":    "",
 			"group":    model.FederationGroup,
 			"version":  "v1",

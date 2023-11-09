@@ -14,7 +14,7 @@ spec:
       env.AISKILLS: '["person-detection-skill as person-detection-skill"]'
       env.BLOB_STORAGE_CONNECTION_STRING: <Blob Storage Connection>
       env.BLOB_STORAGE_CONTAINER: voe
-      env.INSTANCE: $instance()
+      env.INSTANCE: ${{$instance()}}
       env.IOTEDGE_CONNECTION_STRING: ""
       env.SYMPHONY_AGENT_ADDRESS: target-runtime.default.svc.cluster.local
       env.WEBMODULE_URL: http://20.172.1.13

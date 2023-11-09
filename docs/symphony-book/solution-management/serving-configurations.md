@@ -17,7 +17,7 @@ spec:
     type: container
     properties:
       container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"      
-      env.MY_CONFIG: "$config(config-obj, config-key)" 
+      env.MY_CONFIG: "${{$config(config-obj, config-key)}}" 
 ```
 
 ## Configuration as a mounted file
@@ -34,7 +34,7 @@ spec:
   - name: app-config
     type: config
     properties:
-      appSettings.json: "$json($config('<config-obj>', ''))"
+      appSettings.json: "${{$json($config('<config-obj>', ''))}}"
   - name: app
     type: container
     metadata:

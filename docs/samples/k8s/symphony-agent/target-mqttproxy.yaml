@@ -23,7 +23,7 @@ spec:
       env.STORAGE_CONTAINER: "snapshots"
       env.SYMPHONY_URL: "http://20.118.178.8:8080/v1alpha2/agent/references"
       env.TARGET_NAME: "symphony-k8s-target" 
-      env.INSTANCE: "$instance()"
+      env.INSTANCE: "${{$instance()}}"
   topologies:
   - bindings:    
     - role: instance

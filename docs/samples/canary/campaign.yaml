@@ -85,8 +85,8 @@ spec:
       name: "weight-counter"
       provider: "providers.stage.counter"
       inputs:
-        weight: "$if($equal($output(test,status),200),20,-100)"
-      stageSelector: "$if($le($output(weight-counter,weight),0), roll-back, $if($ge($output(weight-counter, weight), 100), finalize,adjust-weight))"
+        weight: "${{$if($equal($output(test,status),200),20,-100)}}"
+      stageSelector: "${{$if($le($output(weight-counter,weight),0), roll-back, $if($ge($output(weight-counter, weight), 100), finalize,adjust-weight))}}"
     roll-back:
       name: "roll-back"
       provider: "providers.stage.patch"
@@ -197,7 +197,7 @@ spec:
           type: ingress
           metadata:
             annotations.nginx.ingress.kubernetes.io/canary: "true"
-            annotations.nginx.ingress.kubernetes.io/canary-weight: "$output(weight-counter,weight)"
+            annotations.nginx.ingress.kubernetes.io/canary-weight: "${{$output(weight-counter,weight)}}"
             annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
           properties:
             ingressClassName: nginx
