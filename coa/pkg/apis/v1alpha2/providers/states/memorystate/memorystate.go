@@ -45,7 +45,7 @@ import (
 )
 
 var sLog = logger.NewLogger("coa.runtime")
-var mLock sync.Mutex
+var mLock sync.RWMutex
 
 type MemoryStateProviderConfig struct {
 	Name string `json:"name"`
@@ -120,8 +120,8 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 }
 
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	mLock.Lock()
-	defer mLock.Unlock()
+	mLock.RLock()
+	defer mLock.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
@@ -166,8 +166,8 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 }
 
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	mLock.Lock()
-	defer mLock.Unlock()
+	mLock.RLock()
+	defer mLock.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
