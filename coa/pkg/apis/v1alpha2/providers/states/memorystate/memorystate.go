@@ -32,6 +32,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -44,6 +45,7 @@ import (
 )
 
 var sLog = logger.NewLogger("coa.runtime")
+var mLock sync.Mutex
 
 type MemoryStateProviderConfig struct {
 	Name string `json:"name"`
@@ -91,6 +93,8 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
+	mLock.Lock()
+	defer mLock.Unlock()
 	tag := "1"
 	if entry.Value.ETag != "" {
 		if v, err := strconv.ParseInt(entry.Value.ETag, 10, 64); err == nil {
@@ -116,6 +120,8 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 }
 
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
+	mLock.Lock()
+	defer mLock.Unlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
@@ -126,7 +132,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 		vE, ok := v.(states.StateEntry)
 		if ok {
 			if request.Filter != "" {
-
+				//TODO: support filters in the future
 			}
 			entities = append(entities, vE)
 		} else {
@@ -141,6 +147,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 }
 
 func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
+	mLock.Lock()
+	defer mLock.Unlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
@@ -158,6 +166,8 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 }
 
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
+	mLock.Lock()
+	defer mLock.Unlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})

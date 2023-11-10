@@ -94,9 +94,11 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 				iLog.Errorf("Failed to unmarshal job body: %v", err)
 				return err
 			}
+		} else {
+			iLog.Errorf("Failed to unmarshal job data: %v", err)
+			return err
 		}
-		iLog.Errorf("Failed to unmarshal job data: %v", err)
-		return err
+		return nil
 	})
 	return nil
 }
