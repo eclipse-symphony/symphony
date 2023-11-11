@@ -301,7 +301,7 @@ func fillParameters(data1 []byte, data2 []byte, id string, alias string) ([]byte
 	}
 	strData := string(data1)
 	for k, v := range params1 {
-		strData = strings.ReplaceAll(strData, "$param("+k+")", v)
+		strData = strings.ReplaceAll(strData, "$param("+k+")", v) //TODO: this needs to use property expression syntax instead of string replaces
 	}
 	return []byte(strData), nil
 }

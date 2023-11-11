@@ -77,9 +77,9 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 				"test": {
 					Provider: "providers.stage.mock",
 					Inputs: map[string]interface{}{
-						"foo": "$output(test,foo)",
+						"foo": "${{$output(test,foo)}}",
 					},
-					StageSelector: "$if($lt($output(test,foo), 5), test, '')",
+					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 				},
 			},
 		}, *activation)
@@ -128,7 +128,7 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 			Stages: map[string]model.StageSpec{
 				"test": {
 					Provider:      "providers.stage.counter",
-					StageSelector: "$if($lt($output(test,foo), 5), test, '')",
+					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 				},
 			},
 		}, *activation)
@@ -178,7 +178,7 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 			Stages: map[string]model.StageSpec{
 				"test": {
 					Provider:      "providers.stage.counter",
-					StageSelector: "$if($gt($output(test,foo), -50), test, '')",
+					StageSelector: "${{$if($gt($output(test,foo), -50), test, '')}}",
 				},
 			},
 		}, *activation)
@@ -233,7 +233,7 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 				},
 				"test2": {
 					Provider:      "providers.stage.counter",
-					StageSelector: "$if($lt($output(test2,bar), 5), test, '')",
+					StageSelector: "${{$if($lt($output(test2,bar), 5), test, '')}}",
 				},
 			},
 		}, *activation)
@@ -290,9 +290,9 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "$if($equal($output(test, status), 200), 1, 0)",
+						"success": "${{$if($equal($output(test, status), 200), 1, 0)}}",
 					},
-					StageSelector: "$if($lt($output(test2,success), 5), test, '')",
+					StageSelector: "${{$if($lt($output(test2,success), 5), test, '')}}",
 				},
 			},
 		}, *activation)
@@ -397,7 +397,7 @@ func TestErrorHandler(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "$if($equal($output(test, __status), 200), 1, 0)",
+						"success": "${{$if($equal($output(test, __status), 200), 1, 0)}}",
 					},
 					StageSelector: "",
 					HandleErrors:  true,
@@ -455,7 +455,7 @@ func TestErrorHandlerNotSet(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "$if($equal($output(test, __status), 200), 1, 0)",
+						"success": "${{$if($equal($output(test, __status), 200), 1, 0)}}",
 					},
 					StageSelector: "",
 					HandleErrors:  false,
@@ -557,7 +557,7 @@ func TestAccessingStageStatus(t *testing.T) {
 			Stages: map[string]model.StageSpec{
 				"test": {
 					Provider:      "providers.stage.http",
-					StageSelector: "$if($equal($output(test, __status), 200), test2, '')",
+					StageSelector: "${{$if($equal($output(test, __status), 200), test2, '')}}",
 					Inputs: map[string]interface{}{
 						"method": "GET",
 						"url":    "https://www.bing.com",
@@ -843,15 +843,15 @@ func TestAccessingPreviousStageInExpression(t *testing.T) {
 					StageSelector: "",
 					HandleErrors:  false,
 					Inputs: map[string]interface{}{
-						"stcheck": "$output($input(__previousStage), __status)",
-						"stfoo":   "$output($input(__previousStage), ticket)",
+						"stcheck": "${{$output($input(__previousStage), __status)}}",
+						"stfoo":   "${{$output($input(__previousStage), ticket)}}",
 					},
 				},
 			},
 		}, *activation)
 
 		if activation == nil {
-			assert.Equal(t, "OK", status.Outputs["stcheck"])
+			assert.Equal(t, v1alpha2.OK, status.Outputs["stcheck"])
 			assert.Equal(t, "bar", status.Outputs["stfoo"])
 			break
 		}

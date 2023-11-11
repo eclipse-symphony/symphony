@@ -12,4 +12,4 @@ spec:
         foo:
           pattern: "<email>"
         bar:
-          expression: "$and($gt($val(),10),$lt($val(),20))"
+          expression: "${{$and($gt($val(),10),$lt($val(),20))}}"

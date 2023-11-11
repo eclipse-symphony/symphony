@@ -14,7 +14,7 @@ spec:
         container.version: 0.39.0-dev.7
         env.BLOB_STORAGE_CONNECTION_STRING: <Blob Connection String>
         env.BLOB_STORAGE_CONTAINER: voe
-        env.INSTANCE: $instance()
+        env.INSTANCE: ${{$instance()}}
         env.IOTEDGE_CONNECTION_STRING: ""
         env.WEBMODULE_URL: http://20.89.186.195   
       routes:

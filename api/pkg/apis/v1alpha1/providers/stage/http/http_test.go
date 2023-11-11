@@ -221,7 +221,7 @@ func TestFakeAPIWithSymphonyExpression(t *testing.T) {
 		WaitUrl:          "https://jsonplaceholder.typicode.com/todos/1",
 		WaitCount:        1,
 		WaitInterval:     1,
-		WaitExpression:   "$equal($val('$.title'), 'delectus aut autem')",
+		WaitExpression:   "${{$equal($val('$.title'), 'delectus aut autem')}}",
 		WaitSuccessCodes: []int{200},
 	})
 	assert.Nil(t, err)
@@ -229,5 +229,5 @@ func TestFakeAPIWithSymphonyExpression(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
-	assert.Equal(t, "true", outputs["waitResult"])
+	assert.Equal(t, true, outputs["waitResult"])
 }

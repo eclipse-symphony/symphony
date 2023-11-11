@@ -45,11 +45,11 @@ When a stage finishes execution, its stage selector is evaluated to decide the n
 
 A stage selector can be used to construct **branches** and **loops** in a workflow. For example, the following expression selects either a "`success`" stage or a "`failed`" stage based on the value of stage output["`status`"]:
 
-`$if($equal($output(my-stage,status),200),success,failed)`
+`${{$if($equal($output(my-stage,status),200),success,failed)}}`
 
 And the following expression creates a loop based on a `foo` counter (assuming the counter is incremented by the stage provider):
 
-`$if($lt($output(foo), 5), mock, '')`
+`${{$if($lt($output(foo), 5), mock, '')}}`
 
 A workflow stops when no next stages are selected.
 
@@ -64,7 +64,7 @@ deploy:
   name: deploy
     provider: providers.stage.remote
     stageSelector: ""
-    contexts: "$output(list,items)"
+    contexts: "${{$output(list,items)}}"
     inputs:
       operation: materialize
       names:

@@ -55,7 +55,7 @@ counter:
   name: "counter"
   provider: "providers.stage.counter"
   inputs:
-    successes: "$if($equal($output(test,status),200),1,0)"
-    internal-errors: "$if($equal($output(test,status),500),1,0)"
+    successes: ${{$if($equal($output(test,status),200),1,0)}}
+    internal-errors: ${{$if($equal($output(test,status),500),1,0)}}
 ```
 
