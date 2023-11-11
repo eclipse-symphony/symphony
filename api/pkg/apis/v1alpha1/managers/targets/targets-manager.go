@@ -87,7 +87,7 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "$target()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",

@@ -703,15 +703,15 @@ func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {
 	res, err := AssignComponentsToTargets([]model.ComponentSpec{
 		{
 			Name:        "componentName1",
-			Constraints: "$equal($property(OS),windows)",
+			Constraints: "${{$equal($property(OS),windows)}}",
 		},
 		{
 			Name:        "componentName2",
-			Constraints: "$equal($property(OS),linux)",
+			Constraints: "${{$equal($property(OS),linux)}}",
 		},
 		{
 			Name:        "componentName3",
-			Constraints: "$equal($property(OS),unix)",
+			Constraints: "${{$equal($property(OS),unix)}}",
 		},
 	}, map[string]model.TargetSpec{
 		"target1": {

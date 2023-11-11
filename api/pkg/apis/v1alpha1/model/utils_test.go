@@ -74,7 +74,7 @@ func TestStringMapsEqualCompareEqual(t *testing.T) {
 func TestStringMapsEqualCompareEqualWithInstanceFunc(t *testing.T) {
 	assert.True(t, StringMapsEqual(map[string]string{
 		"A": "B",
-		"C": "$instance()",
+		"C": "${{$instance()}}",
 	}, map[string]string{
 		"C": "D",
 		"A": "B",
@@ -208,7 +208,7 @@ func TestStringStringMapsEqualCompareEqualWithInstanceFunc(t *testing.T) {
 			"foo1": "bar1",
 		},
 		"C": {
-			"foo1": "$instance()",
+			"foo1": "${{$instance()}}",
 		},
 	}
 	outerMapB := map[string]map[string]string{
@@ -326,7 +326,7 @@ func TestEnvMapsCompareDifferentSizesWithTarget(t *testing.T) {
 	assert.True(t, EnvMapsEqual(map[string]string{
 		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
 		"env.STORAGE_CONTAINER": "snapshots",
-		"env.TARGET_NAME":       "$target()",
+		"env.TARGET_NAME":       "${{$target()}}",
 	}, map[string]string{
 		"env.AZURE_CLIENT_ID": "\\u003cSP App ID\\u003e",
 		"env.TARGET_NAME":     "someRandomName",

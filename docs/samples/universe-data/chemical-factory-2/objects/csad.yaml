@@ -15,7 +15,7 @@ spec:
         data:
           appSettings.json: |
             {
-              "line-a-config": "$config('line-a-config','line-a-1')",
+              "line-a-config": "${{$config('line-a-config','line-a-1')}}",
               "site-config": "site1",
               "l3-config": "l3-1",
               "global-config": "global1"
@@ -31,10 +31,10 @@ spec:
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
       container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
       container.volumeMounts: "[{\"name\":\"service-a-config\",\"mountPath\":\"/app/config\"}]"
-      env.line-a-1: "$config('line-a-config','line-a-1')"
-      env.site1: "$config('site-config','site1')"
-      env.l3-config: "$config('l3-config','l3-1')"
-      env.global1: "$config('global-config','global1')"
+      env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
+      env.site1: "${{$config('site-config','site1')}}"
+      env.l3-config: "${{$config('l3-config','l3-1')}}"
+      env.global1: "${{$config('global-config','global1')}}"
       env.APP_TITLE: "CSAD A"
     dependencies:
     - service-a-config
@@ -49,7 +49,7 @@ spec:
         data:
           appSettings.json: |
             {
-              "line-a-config": "$config('line-a-config','line-a-1')",
+              "line-a-config": "${{$config('line-a-config','line-a-1')}}",
               "site-config": "site1",
               "l3-config": "l3-1",
               "global-config": "global1",
@@ -66,10 +66,10 @@ spec:
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
       container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
       container.volumeMounts: "[{\"name\":\"service-b-config\",\"mountPath\":\"/app/config\"}]"
-      env.line-a-1: "$config('line-a-config','line-a-1')"
-      env.site1: "$config('site-config','site1')"
-      env.l3-config: "$config('l3-config','l3-1')"
-      env.global1: "$config('global-config','global1')"
+      env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
+      env.site1: "${{$config('site-config','site1')}}"
+      env.l3-config: "${{$config('l3-config','l3-1')}}"
+      env.global1: "#{{$config('global-config','global1')}}"
       env.APP_TITLE: "CSAD B"
     dependencies:
     - service-b-config
@@ -82,8 +82,8 @@ spec:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
       container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
-      env.line-a-1: "$config('line-a-config','line-a-1')"
-      env.site1: "$config('site-config','site1')"
-      env.l3-config: "$config('l3-config','l3-1')"
-      env.global1: "$config('global-config','global1')"
+      env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
+      env.site1: "${{$config('site-config','site1')}}"
+      env.l3-config: "${{$config('l3-config','l3-1')}}"
+      env.global1: "${{$config('global-config','global1')}}"
       env.APP_TITLE: "CSAD C"

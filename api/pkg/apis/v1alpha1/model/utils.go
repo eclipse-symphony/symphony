@@ -60,10 +60,17 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 	// 	return false
 	// }
 
+	//TODO: I don't think we need this anymore
+
 	for k, v := range a {
 		if bv, ok := b[k]; ok {
 			if bv != v {
-				if !strings.Contains(bv, "$instance()") && !strings.Contains(v, "$instance()") && !strings.Contains(bv, "$solution()") && !strings.Contains(v, "$solution()") && !strings.Contains(bv, "$target()") && !strings.Contains(v, "$target()") { // Skip comparision because $instance is filled by different instances
+				if !strings.Contains(bv, "${{$instance()}}") &&
+					!strings.Contains(v, "${{$instance()}}") &&
+					!strings.Contains(bv, "${{$solution()}}") &&
+					!strings.Contains(v, "${{$solution()}}") &&
+					!strings.Contains(bv, "${{$target()}}") &&
+					!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 					return false
 				}
 			}
@@ -77,7 +84,12 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 	for k, v := range b {
 		if bv, ok := a[k]; ok {
 			if bv != v {
-				if !strings.Contains(bv, "$instance()") && !strings.Contains(v, "$instance()") && !strings.Contains(bv, "$solution()") && !strings.Contains(v, "$solution()") && !strings.Contains(bv, "$target()") && !strings.Contains(v, "$target()") { // Skip comparision because $instance is filled by different instances
+				if !strings.Contains(bv, "${{$instance()}}") &&
+					!strings.Contains(v, "${{$instance()}}") &&
+					!strings.Contains(bv, "${{$solution()}}") &&
+					!strings.Contains(v, "${{$solution()}}") &&
+					!strings.Contains(bv, "${{$target()}}") &&
+					!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 					return false
 				}
 			}
@@ -140,7 +152,12 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 		if strings.HasPrefix(k, "env.") {
 			if bv, ok := b[k]; ok {
 				if bv != v {
-					if !strings.Contains(bv, "$instance()") && !strings.Contains(v, "$instance()") && !strings.Contains(bv, "$solution()") && !strings.Contains(v, "$solution()") && !strings.Contains(bv, "$target()") && !strings.Contains(v, "$target()") { // Skip comparision because $instance is filled by different instances
+					if !strings.Contains(bv, "${{$instance()}}") &&
+						!strings.Contains(v, "${{$instance()}}") &&
+						!strings.Contains(bv, "${{$solution()}}") &&
+						!strings.Contains(v, "${{$solution()}}") &&
+						!strings.Contains(bv, "${{$target()}}") &&
+						!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 						return false
 					}
 				}
@@ -152,7 +169,12 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 		if strings.HasPrefix(k, "env.") {
 			if bv, ok := a[k]; ok {
 				if bv != v {
-					if !strings.Contains(bv, "$instance()") && !strings.Contains(v, "$instance()") && !strings.Contains(bv, "$solution()") && !strings.Contains(v, "$solution()") && !strings.Contains(bv, "$target()") && !strings.Contains(v, "$target()") { // Skip comparision because $instance is filled by different instances
+					if !strings.Contains(bv, "${{$instance()}}") &&
+						!strings.Contains(v, "${{$instance()}}") &&
+						!strings.Contains(bv, "${{$solution()}}") &&
+						!strings.Contains(v, "${{$solution()}}") &&
+						!strings.Contains(bv, "${{$target()}}") &&
+						!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 						return false
 					}
 				}
@@ -321,16 +343,16 @@ func ReadProperty(col map[string]string, key string, injections *ValueInjections
 func ResolveString(value string, injections *ValueInjections) string {
 	//TODO: future enhancement - analyze the syntax instead of doing simply string replacement
 	if injections != nil {
-		value = strings.ReplaceAll(value, "$instance()", injections.InstanceId)
-		value = strings.ReplaceAll(value, "$solution()", injections.SolutionId)
-		value = strings.ReplaceAll(value, "$target()", injections.TargetId)
-		value = strings.ReplaceAll(value, "$activation()", injections.ActivationId)
-		value = strings.ReplaceAll(value, "$catalog()", injections.CatalogId)
-		value = strings.ReplaceAll(value, "$campaign()", injections.CampaignId)
-		value = strings.ReplaceAll(value, "$device()", injections.DeviceId)
-		value = strings.ReplaceAll(value, "$model()", injections.ModelId)
-		value = strings.ReplaceAll(value, "$skill()", injections.SkillId)
-		value = strings.ReplaceAll(value, "$site()", injections.SiteId)
+		value = strings.ReplaceAll(value, "${{$instance()}}", injections.InstanceId)
+		value = strings.ReplaceAll(value, "${{$solution()}}", injections.SolutionId)
+		value = strings.ReplaceAll(value, "${{$target()}}", injections.TargetId)
+		value = strings.ReplaceAll(value, "${{$activation()}}", injections.ActivationId)
+		value = strings.ReplaceAll(value, "${{$catalog()}}", injections.CatalogId)
+		value = strings.ReplaceAll(value, "${{$campaign()}}", injections.CampaignId)
+		value = strings.ReplaceAll(value, "${{$device()}}", injections.DeviceId)
+		value = strings.ReplaceAll(value, "${{$model()}}", injections.ModelId)
+		value = strings.ReplaceAll(value, "${{$skill()}}", injections.SkillId)
+		value = strings.ReplaceAll(value, "${{$site()}}", injections.SiteId)
 	}
 
 	return value

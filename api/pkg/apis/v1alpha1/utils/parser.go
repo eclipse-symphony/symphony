@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/scanner"
@@ -46,6 +47,7 @@ type Token int
 const (
 	EOF Token = iota
 	NUMBER
+	INT
 	DOLLAR
 	IDENT
 	OPAREN
@@ -97,6 +99,14 @@ func (n *NumberNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 	return n.Value, nil
 }
 
+type IntNode struct {
+	Value int64
+}
+
+func (n *IntNode) Eval(context utils.EvaluationContext) (interface{}, error) {
+	return n.Value, nil
+}
+
 type IdentifierNode struct {
 	Value string
 }
@@ -141,6 +151,9 @@ func (n *UnaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 			val, err := n.Expr.Eval(context)
 			if err != nil {
 				return val, err
+			}
+			if v, ok := val.(int64); ok {
+				return -v, nil
 			}
 			if v, ok := val.(float64); ok {
 				return -v, nil
@@ -439,20 +452,40 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
 }
 
+func toIntIfPossible(f float64) interface{} {
+	i := int64(f)
+	if float64(i) == f {
+		return i
+	}
+	return f
+}
+
 func formatFloats(left interface{}, right interface{}, operator string) interface{} {
-	lv_f, okl := left.(float64)
-	rv_f, okr := right.(float64)
+	var lv_f, rv_f float64
+	var okl, okr bool
+	if lv_i, ok := left.(int64); ok {
+		lv_f = float64(lv_i)
+		okl = true
+	} else {
+		lv_f, okl = left.(float64)
+	}
+	if rv_i, ok := right.(int64); ok {
+		rv_f = float64(rv_i)
+		okr = true
+	} else {
+		rv_f, okr = right.(float64)
+	}
 	if okl && okr {
 		switch operator {
 		case "":
-			return lv_f + rv_f
+			return toIntIfPossible(lv_f + rv_f)
 		case "-":
-			return lv_f - rv_f
+			return toIntIfPossible(lv_f - rv_f)
 		case "*":
-			return lv_f * rv_f
+			return toIntIfPossible(lv_f * rv_f)
 		case "/":
 			if rv_f != 0 {
-				return lv_f / rv_f
+				return toIntIfPossible(lv_f / rv_f)
 			} else {
 				lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
 				rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
@@ -833,31 +866,87 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 }
 
 type Parser struct {
-	s            *scanner.Scanner
-	token        Token
-	text         string
+	Segments     []string
 	OriginalText string
 }
 
+type ExpressionParser struct {
+	s     *scanner.Scanner
+	token Token
+	text  string
+}
+
 func NewParser(text string) *Parser {
+	re := regexp.MustCompile(`(\${{.*?}})`)
+	loc := re.FindAllStringIndex(text, -1)
+
+	segments := make([]string, 0, len(loc)*2+1)
+	start := 0
+	for _, l := range loc {
+		if start != l[0] {
+			segments = append(segments, text[start:l[0]])
+		}
+		segments = append(segments, text[l[0]:l[1]])
+		start = l[1]
+	}
+	if start < len(text) {
+		segments = append(segments, text[start:])
+	}
+
+	p := &Parser{
+		Segments: segments,
+	}
+	return p
+}
+
+func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
+	results := make([]interface{}, 0)
+	for _, s := range p.Segments {
+		if strings.HasPrefix(s, "${{") && strings.HasSuffix(s, "}}") {
+			text := s[3 : len(s)-2]
+			parser := newExpressionParser(text)
+			n, err := parser.Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, n)
+		} else {
+			results = append(results, s)
+		}
+	}
+	if len(results) == 1 {
+		return results[0], nil
+	}
+	//join the results as string
+	var ret interface{}
+	for _, v := range results {
+		if ret == nil {
+			ret = fmt.Sprintf("%v", v)
+		} else {
+			ret = fmt.Sprintf("%v%v", ret, v)
+		}
+	}
+	return ret, nil
+}
+
+func newExpressionParser(text string) *ExpressionParser {
 	var s scanner.Scanner // TODO: this is mostly used to scan go code, we should use a custom scanner
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
-	p := &Parser{
-		s:            &s,
-		text:         text,
-		OriginalText: strings.TrimSpace(text),
+	p := &ExpressionParser{
+		s:    &s,
+		text: text,
 	}
 	p.next()
 	return p
 }
 
-func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
+func (p *ExpressionParser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	var ret interface{}
 	for {
 		n, err := p.expr(false)
 		if err != nil {
-			return p.OriginalText, nil //can't be interpreted as an expression, return the original text
+			return nil, err
 		}
 		if _, ok := n.(*NullNode); !ok {
 			v, r := n.Eval(context)
@@ -867,6 +956,9 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			if vt, ok := v.([]string); ok {
 				if ret == nil {
 					ret = vt
+				} else if vr, o := ret.([]string); o {
+					vr = append(vr, vt...)
+					ret = vr
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
@@ -874,6 +966,9 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			} else if vt, ok := v.([]interface{}); ok {
 				if ret == nil {
 					ret = vt
+				} else if vr, o := ret.([]interface{}); o {
+					vr = append(vr, vt...)
+					ret = vr
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
@@ -881,13 +976,18 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			} else if vt, ok := v.(map[string]interface{}); ok {
 				if ret == nil {
 					ret = vt
+				} else if vr, o := ret.(map[string]interface{}); o {
+					for k, v := range vt {
+						vr[k] = v
+					}
+					ret = vr
 				} else {
 					jData, _ := json.Marshal(v)
 					ret = fmt.Sprintf("%v%v", ret, string(jData))
 				}
 			} else {
 				if ret == nil {
-					ret = fmt.Sprintf("%v", v)
+					ret = v
 				} else {
 					ret = fmt.Sprintf("%v%v", ret, v)
 				}
@@ -899,11 +999,11 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 	}
 }
 
-func (p *Parser) next() {
+func (p *ExpressionParser) next() {
 	p.token = p.scan()
 }
 
-func (p *Parser) scan() Token {
+func (p *ExpressionParser) scan() Token {
 	tok := p.s.Scan()
 	p.text = p.s.TokenText()
 	switch tok {
@@ -952,13 +1052,17 @@ func (p *Parser) scan() Token {
 	case '~':
 		return TILDE
 	}
+	if _, err := strconv.ParseInt(p.text, 10, 64); err == nil {
+		return INT
+	}
+
 	if _, err := strconv.ParseFloat(p.text, 64); err == nil {
 		return NUMBER
 	}
 	return IDENT
 }
 
-func (p *Parser) match(t Token) error {
+func (p *ExpressionParser) match(t Token) error {
 	if p.token == t {
 		p.next()
 	} else {
@@ -967,8 +1071,12 @@ func (p *Parser) match(t Token) error {
 	return nil
 }
 
-func (p *Parser) primary() (Node, error) {
+func (p *ExpressionParser) primary() (Node, error) {
 	switch p.token {
+	case INT:
+		v, _ := strconv.ParseInt(p.text, 10, 64)
+		p.next()
+		return &IntNode{v}, nil
 	case NUMBER:
 		v, _ := strconv.ParseFloat(p.text, 64)
 		p.next()
@@ -1030,7 +1138,7 @@ func (p *Parser) primary() (Node, error) {
 	return nil, nil
 }
 
-func (p *Parser) factor() (Node, error) {
+func (p *ExpressionParser) factor() (Node, error) {
 	node, err := p.primary()
 	if err != nil {
 		return nil, err
@@ -1106,7 +1214,7 @@ func (p *Parser) factor() (Node, error) {
 	}
 }
 
-func (p *Parser) expr(inFunc bool) (Node, error) {
+func (p *ExpressionParser) expr(inFunc bool) (Node, error) {
 	node, err := p.factor()
 	if node == nil || err != nil {
 		return &NullNode{}, err
@@ -1155,7 +1263,7 @@ func (p *Parser) expr(inFunc bool) (Node, error) {
 	}
 }
 
-func (p *Parser) function() (Node, error) {
+func (p *ExpressionParser) function() (Node, error) {
 	err := p.match(DOLLAR)
 	if err != nil {
 		return nil, err
