@@ -78,6 +78,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 
 ## Additional topics
 
+* [Symphony agent](./symphony-book/agent/agent.md)
 * [Symphony portal](./symphony-book/portals/overview.md)
 * [Symphony expressions](./symphony-book/uom/property-expressions.md)
 
