@@ -24,7 +24,7 @@
 
 */
 
-use std::{process::Command, collections::HashMap};
+use std::{process::{Command, ExitStatus}, collections::HashMap, os::{unix::process::ExitStatusExt, linux::raw::stat}};
 use serde_json::json;
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
@@ -95,30 +95,20 @@ fn main()  {
                     if let Some(components) = catalog.spec.properties.components {                
                         for component in components {
                             print!("reconcil {} >>> ", component.name);
-                            //check if container is running
-                            let output = Command::new("docker")
-                            .arg("ps")
-                            .arg(format!("--filter=name={}", component.name))   
-                            .arg("--format")
-                            .arg("{{.Names}}")
-                            .output();
-
-                            if output.is_ok() && output.unwrap().stdout.len() > 0 {
-                                println!("skipped");
-                                continue;
+                            let status: ExitStatus = ExitStatus::from_raw(0);
+                            match component.component_type.as_str() {
+                                "docker" => {
+                                    let status = deploy_docker(&component);
+                                    if status.success() {
+                                        println!("done");
+                                    } else {
+                                        println!("failed");
+                                    }
+                                },
+                                _ => {
+                                    println!("skipped");
+                                }
                             }
-                            
-                            let mut cmd = Command::new("docker")
-                            .arg("run")
-                            .arg("-d")
-                            .arg("--name")
-                            .arg(component.name)
-                            .arg(component.properties.unwrap().get("container.image").unwrap())
-                            .spawn()
-                            .expect("failed to execute command");
-
-                            let status = cmd.wait().expect("failed to wait on child");
-
                             if status.success() {
                                 println!("done");
                             } else {
@@ -132,9 +122,39 @@ fn main()  {
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(15));
-    }
-        
+    }   
 }
+fn deploy_docker(component: &ComponentSpec) -> ExitStatus {
+     //check if container is running
+     let output = Command::new("docker")
+     .arg("ps")
+     .arg(format!("--filter=name={}", component.name))   
+     .arg("--format")
+     .arg("{{.Names}}")
+     .output();
+
+     if output.is_ok() && output.unwrap().stdout.len() > 0 {
+         println!("skipped");
+         return ExitStatus::from_raw(0);
+     }
+     
+     let mut cmd = Command::new("docker");
+
+     cmd.arg("run");
+     if component.properties.as_ref().unwrap().contains_key("container.runtime") {
+        let runtime = component.properties.as_ref().unwrap().get("container.runtime").unwrap();
+        cmd.arg("--runtime").arg(runtime);       
+     }
+     cmd.arg("-d")
+     .arg("--name")
+     .arg(component.name.clone())
+     .arg(component.properties.as_ref().unwrap().get("container.image").unwrap())
+     .spawn()
+     .expect("failed to execute command");
+
+     cmd.spawn().expect("failed to wait on child").wait().expect("failed to wait on child")
+}
+
 fn get_catalogs(token: &str) -> Vec<CatalogState> {
     let req = attohttpc::get("http://52.188.128.127:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
     if req.is_err() {
