@@ -155,7 +155,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 			"scope":    "",
 			"group":    model.FederationGroup,
 			"version":  "v1",
