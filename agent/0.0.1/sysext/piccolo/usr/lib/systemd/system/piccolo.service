@@ -1,9 +1,0 @@
-[Unit]
-Description=Symphony Piccolo Agent
-
-[Service]
-ExecStart=/usr/bin/piccolo
-Restart=always
-
-[Install]
-WantedBy=multi-user.target

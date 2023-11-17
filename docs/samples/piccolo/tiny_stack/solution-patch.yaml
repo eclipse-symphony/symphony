@@ -1,0 +1,16 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: busybox
+spec:  
+  components:
+  - name: wasm-shim
+    type: container
+    properties:
+      container.image: "redis:latest"
+      container.runtime: "io.containerd.wasm.v1"
+  - name: wasm-module
+    type: wasm
+    properties:
+      wasm.image: "https://github.com/Haishi2016/Vault818/releases/tag/vtest"
+      wasm.runtime: "wasmtime"

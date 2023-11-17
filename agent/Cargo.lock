@@ -297,6 +297,7 @@ name = "piccolo"
 version = "0.1.0"
 dependencies = [
  "attohttpc",
+ "lazy_static",
  "openssl",
  "serde",
  "serde_json",

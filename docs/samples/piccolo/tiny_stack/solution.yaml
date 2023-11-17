@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: tiny-app
+spec:  
+  components:
+  - name: wasm-module
+    type: wasm
+    properties:
+      wasm.url: "https://github.com/Haishi2016/Vault818/releases/download/vtest/http-wasm.wasm"
+      wasm.runtime: "wasmedge"

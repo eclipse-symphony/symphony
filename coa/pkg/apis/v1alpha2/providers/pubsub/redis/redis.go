@@ -267,6 +267,7 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 		}).Result()
 		if err != nil {
 			mLog.Debugf("  P (Redis PubSub) : failed to poll message %v", err)
+			time.Sleep(30 * time.Second)
 			continue
 		}
 		for _, s := range streams {

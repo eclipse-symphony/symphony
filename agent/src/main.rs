@@ -1,32 +1,12 @@
-/*
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+// SPDX-License-Identifier: MIT
 
-	MIT License
-
-	Copyright (c) Microsoft Corporation.
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE
-
-*/
-
-use std::{process::{Command, ExitStatus}, collections::HashMap, os::{unix::process::ExitStatusExt, linux::raw::stat}};
+use std::{process::{Command, ExitStatus}, collections::HashMap, os::{unix::process::ExitStatusExt}};
 use serde_json::json;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+
 #[derive(Serialize, Deserialize)]
 struct Token {
     #[serde(rename = "accessToken")]
@@ -82,8 +62,15 @@ struct CatalogState {
     spec: CatalogSpec,
     status: Option<CatalogStatus>,
 }
+
+lazy_static::lazy_static! {
+    static ref PROCESS_HASHMAP: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
+}
+
 fn main()  {
-    println!("SYMPHONY PICCOLO ver 0.0.1");
+    println!("+============================+");
+    println!("| SYMPHONY PICCOLO ver 0.0.1 |");
+    println!("+============================+\n");
     loop {
         println!("reconciling...");
         let token = auth();
@@ -98,7 +85,15 @@ fn main()  {
                             let status: ExitStatus = ExitStatus::from_raw(0);
                             match component.component_type.as_str() {
                                 "docker" => {
-                                    let status = deploy_docker(&component);
+                                    let status = deploy_docker(&catalog.spec.name, &component);
+                                    if status.success() {
+                                        println!("done");
+                                    } else {
+                                        println!("failed");
+                                    }
+                                },
+                                "wasm" => {
+                                    let status = deploy_wasmedge(&catalog.spec.name, &component);
                                     if status.success() {
                                         println!("done");
                                     } else {
@@ -124,7 +119,58 @@ fn main()  {
         std::thread::sleep(std::time::Duration::from_secs(15));
     }   
 }
-fn deploy_docker(component: &ComponentSpec) -> ExitStatus {
+fn deploy_wasmedge(name :&str, component: &ComponentSpec) -> ExitStatus {
+
+    let key = format!("{}-{}", name, component.name);
+
+    let mut process_hashmap = PROCESS_HASHMAP.lock().unwrap();
+    if process_hashmap.contains_key(key.as_str()) {
+        let pid = process_hashmap.get(key.as_str()).unwrap();
+        let output = Command::new("ps")
+        .arg("-p")
+        .arg(pid)
+        .output();
+
+        if output.is_ok() && output.unwrap().stdout.len() > 0 {
+            println!("skipped");
+            return ExitStatus::from_raw(0);
+        }
+    }
+
+    let url = component.properties.as_ref().unwrap().get("wasm.url").unwrap();
+    let file_name = url.split("/").last().unwrap();
+
+    let output = Command::new("wget")
+    .arg(url)
+    .output();
+
+    if output.is_err() {
+        return ExitStatus::from_raw(1);
+    }
+
+    let mut cmd = Command::new("wasmedge");
+    if component.properties.as_ref().unwrap().contains_key("wasm.dir") {
+        let dir = component.properties.as_ref().unwrap().get("wasm.dir").unwrap();
+        cmd.arg("--dir").arg(dir);  
+    }
+    cmd.arg(file_name);
+
+    let _ = match cmd.spawn() {
+        Ok(child) => {
+            let pid = child.id().to_string();
+            process_hashmap.insert(key, pid);
+            child
+        },
+        Err(e) => {
+            eprintln!("Failed to launch command: {}", e);
+            return ExitStatus::from_raw(1);
+        }
+    };
+
+    ExitStatus::from_raw(0)
+
+}
+fn deploy_docker(_name: &str, component: &ComponentSpec) -> ExitStatus {
      //check if container is running
      let output = Command::new("docker")
      .arg("ps")
@@ -156,7 +202,7 @@ fn deploy_docker(component: &ComponentSpec) -> ExitStatus {
 }
 
 fn get_catalogs(token: &str) -> Vec<CatalogState> {
-    let req = attohttpc::get("http://52.188.128.127:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
+    let req = attohttpc::get("http://20.121.77.132:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
     if req.is_err() {
         return vec![];
     }
@@ -176,7 +222,7 @@ fn auth() -> String {
         "username": "admin",
         "password": ""
     });
-    let req = attohttpc::post("http://52.188.128.127:8080/v1alpha2/users/auth").json(&body);
+    let req = attohttpc::post("http://20.121.77.132:8080/v1alpha2/users/auth").json(&body);
     if req.is_err() {
         return "".to_string();
     }

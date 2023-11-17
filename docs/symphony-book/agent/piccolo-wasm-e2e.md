@@ -45,3 +45,10 @@ bunzip2 flatcar_production_qemu_image.img.bz2
 1. Open `target.yaml`. Point out that the targt uses a `providers.target.staging` provider, which stages the artifacts to be deployed on Symphony control plane instead of directly pushing them to the target. The artifact will be later picked up by a polling agent (Piccolo).
 
 > **NOTE**: In many scenarios, you don't have direct access to the tiny edge devices. Hence a polling agent is used to communicate with the control plane through an outbound connection.
+
+## Building maze web server
+rustup target add wasm32-wasi
+cargo build --target wasm32-wasi
+
+## Building Piccolo
+cargo build --release
