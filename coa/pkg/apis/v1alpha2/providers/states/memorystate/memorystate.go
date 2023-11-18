@@ -95,6 +95,13 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
+
+	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
+		"method": "Upsert",
+	})
+
+	defer span.End()
+
 	tag := "1"
 	if entry.Value.ETag != "" {
 		if v, err := strconv.ParseInt(entry.Value.ETag, 10, 64); err == nil {
@@ -116,6 +123,8 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	}
 
 	s.Data[entry.Value.ID] = entry.Value
+	observ_utils.CloseSpanWithError(span, nil)
+
 	return entry.Value.ID, nil
 }
 
@@ -125,6 +134,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
+	defer span.End()
+
 	sLog.Debug("  P (Memory State): list states")
 
 	var entities []states.StateEntry
@@ -152,6 +163,8 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
+	defer span.End()
+
 	sLog.Debug("  P (Memory State): delete state")
 
 	if _, ok := s.Data[request.ID]; !ok {
@@ -171,6 +184,8 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Debug("  P (Memory State): get state")
 
 	if v, ok := s.Data[request.ID]; ok {
