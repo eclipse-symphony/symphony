@@ -1,0 +1,40 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: ebpf-approval
+spec:
+  firstStage: "approval"
+  selfDriving: true
+  stages:
+    approval:
+      name: "approval"
+      provider: "providers.stage.http"     
+      config: 
+        url: "<Logic Apps Workflow URL>"
+        method: "GET"
+        successCodes: [200]
+      stageSelector: ${{$if($equal($output(approval,status), 200),'patch','end')}}     
+    patch:
+      name: "patch"
+      provider: "providers.stage.patch"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: solution
+        objectName: tiny-app
+        patchSource: inline
+        patchContent:
+          name: ebpf-module
+          type: ebpf
+          properties:
+            ebpf.url: "https://github.com/Haishi2016/Vault818/releases/download/vtest/hello.bpf.o"
+            ebpf.name: "hello"
+            ebpf.event: "xdp"
+        patchAction: add
+      stageSelector: "" 
+    end:
+      name: "end"
+      provider: "providers.stage.mock"      
+      stageSelector: ""  

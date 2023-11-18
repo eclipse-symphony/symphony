@@ -1,0 +1,9 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: tiny-app
+spec:
+  solution: tiny-app
+  target: 
+    selector: 
+      scenario: tiny_edge_e2e

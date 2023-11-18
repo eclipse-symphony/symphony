@@ -1,0 +1,16 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: cloud   
+spec:  
+  forceRedeploy: true
+  properties:
+    location: "cloud"
+    scenario: "tiny_edge_e2e"
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"   
+        deploymentStrategy: "services"

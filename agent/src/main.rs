@@ -2,66 +2,13 @@
 // Licensed under the MIT license.
 // SPDX-License-Identifier: MIT
 
-use std::{process::{Command, ExitStatus}, collections::HashMap, os::{unix::process::ExitStatusExt}};
-use serde_json::json;
-use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+mod models;
+mod symphony_api;
 
-#[derive(Serialize, Deserialize)]
-struct Token {
-    #[serde(rename = "accessToken")]
-    access_token: String,
-    #[serde(rename = "tokenType")]
-    token_type: String,
-    #[serde(rename = "username")]
-    user_name: String,
-    roles: Option<Vec<String>>
-}
-#[derive(Serialize, Deserialize)]
-struct ComponentSpec {
-    name: String,
-    properties: Option<HashMap<String, String>>,
-    #[serde(rename = "type")]
-    component_type: String,
-}
-#[derive(Serialize, Deserialize)]
-struct ObjectRef {
-    #[serde(rename = "siteId")]
-    site_id: String,
-    name: String,
-    group: String,
-    version: String,
-    kind: String,
-    scope: String,
-}
-#[derive(Serialize, Deserialize)]
-struct StagedProperties {
-    components: Option<Vec<ComponentSpec>>,
-    #[serde(rename = "removed-components")]
-    removed_components: Option<Vec<ComponentSpec>>,
-}
-#[derive(Serialize, Deserialize)]
-struct CatalogSpec {
-    #[serde(rename = "siteId")]
-    site_id: String,
-    name: String,
-    #[serde(rename = "type")]
-    catalog_type: String,
-    properties: StagedProperties,
-    #[serde(rename = "objectRef")]
-    object_ref: Option<ObjectRef>,
-    generation: String,
-}
-#[derive(Serialize, Deserialize)]
-struct CatalogStatus {
-    properties: Option<HashMap<String, String>>,
-}
-#[derive(Serialize, Deserialize)]
-struct CatalogState {
-    id: String,
-    spec: CatalogSpec,
-    status: Option<CatalogStatus>,
-}
+use std::{process::{Command, ExitStatus}, collections::HashMap, os::unix::process::ExitStatusExt};
+use std::sync::Mutex;
+use models::ComponentSpec;
+use crate::symphony_api::{auth, get_catalogs};
 
 lazy_static::lazy_static! {
     static ref PROCESS_HASHMAP: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
@@ -87,7 +34,7 @@ fn main()  {
                                 "docker" => {
                                     let status = deploy_docker(&catalog.spec.name, &component);
                                     if status.success() {
-                                        println!("done");
+                                        println!("Docker deployment is done.");
                                     } else {
                                         println!("failed");
                                     }
@@ -95,11 +42,19 @@ fn main()  {
                                 "wasm" => {
                                     let status = deploy_wasmedge(&catalog.spec.name, &component);
                                     if status.success() {
-                                        println!("done");
+                                        println!("WASM deployment is done.");
                                     } else {
                                         println!("failed");
                                     }
                                 },
+                                "ebpf" => {
+                                    let status = deploy_ebpf(&catalog.spec.name, &component);
+                                    if status.success() {
+                                        println!("eBPF deployment is done.");
+                                    } else {
+                                        println!("failed");
+                                    }
+                                }
                                 _ => {
                                     println!("skipped");
                                 }
@@ -119,34 +74,54 @@ fn main()  {
         std::thread::sleep(std::time::Duration::from_secs(15));
     }   
 }
-fn deploy_wasmedge(name :&str, component: &ComponentSpec) -> ExitStatus {
-
-    let key = format!("{}-{}", name, component.name);
-
-    let mut process_hashmap = PROCESS_HASHMAP.lock().unwrap();
-    if process_hashmap.contains_key(key.as_str()) {
-        let pid = process_hashmap.get(key.as_str()).unwrap();
-        let output = Command::new("ps")
-        .arg("-p")
-        .arg(pid)
-        .output();
-
-        if output.is_ok() && output.unwrap().stdout.len() > 0 {
-            println!("skipped");
-            return ExitStatus::from_raw(0);
-        }
-    }
-
-    let url = component.properties.as_ref().unwrap().get("wasm.url").unwrap();
-    let file_name = url.split("/").last().unwrap();
-
-    let output = Command::new("wget")
-    .arg(url)
+fn deploy_ebpf(_name: &str, component: &ComponentSpec) -> ExitStatus {
+    //let key = format!("{}-{}", name, component.name);
+    let output = Command::new("bpftool")
+    .arg("prog").arg("show").arg("name").arg(component.name.clone())
     .output();
+    if output.is_ok() && output.unwrap().stdout.len() > 0 {
+        println!("skipped");
+        return ExitStatus::from_raw(0);
+    }
+    
+    let file_name = match download_file(component.properties.as_ref().unwrap().get("ebpf.url").unwrap()) {
+        Ok(value) => value,
+        Err(value) => return value,
+    };
 
-    if output.is_err() {
+    println!("loading {}...", file_name);
+
+    let output = Command::new("bpftool")
+    .arg("prog").arg("load").arg(file_name).arg(format!("/sys/fs/bpf/{}", component.name.clone()))
+    .output();
+    if !output.is_ok() {        
         return ExitStatus::from_raw(1);
     }
+
+    if component.properties.as_ref().unwrap().contains_key("ebpf.event") {
+        let event = component.properties.as_ref().unwrap().get("ebpf.event").unwrap();
+        let output = Command::new("bpftool")
+        .arg("net").arg("attach").arg(event).arg("name").arg(component.name.clone()).arg("dev").arg("eth0")
+        .output();
+        if !output.is_ok() {        
+            return ExitStatus::from_raw(1);
+        }
+    }
+    
+    return ExitStatus::from_raw(0);
+}
+fn deploy_wasmedge(name :&str, component: &ComponentSpec) -> ExitStatus {
+    let key = format!("{}-{}", name, component.name);
+
+    if check_process(&key) {
+        println!("skipped");
+        return ExitStatus::from_raw(0);
+    }
+    
+    let file_name = match download_file(component.properties.as_ref().unwrap().get("wasm.url").unwrap()) {
+        Ok(value) => value,
+        Err(value) => return value,
+    };
 
     let mut cmd = Command::new("wasmedge");
     if component.properties.as_ref().unwrap().contains_key("wasm.dir") {
@@ -155,21 +130,54 @@ fn deploy_wasmedge(name :&str, component: &ComponentSpec) -> ExitStatus {
     }
     cmd.arg(file_name);
 
+    launch_process(cmd, key)
+}
+
+fn launch_process(mut cmd: Command, key: String) -> ExitStatus {
+    let mut process_hashmap = PROCESS_HASHMAP.lock().unwrap();
     let _ = match cmd.spawn() {
         Ok(child) => {
             let pid = child.id().to_string();
             process_hashmap.insert(key, pid);
-            child
+            ExitStatus::from_raw(0)
         },
         Err(e) => {
             eprintln!("Failed to launch command: {}", e);
-            return ExitStatus::from_raw(1);
+            ExitStatus::from_raw(1)
         }
     };
-
-    ExitStatus::from_raw(0)
-
+    ExitStatus::from_raw(0)    
 }
+
+fn check_process(key: &String) -> bool {
+    let process_hashmap = PROCESS_HASHMAP.lock().unwrap();
+    if process_hashmap.contains_key(key.as_str()) {
+        let pid = process_hashmap.get(key.as_str()).unwrap();
+        let output = Command::new("ps")
+        .arg("-p")
+        .arg(pid)
+        .output();
+
+        if output.is_ok() && output.unwrap().stdout.len() > 0 {
+           return true;
+        }
+    }
+    return false;
+}
+
+fn download_file(address :&str) -> Result<&str, ExitStatus> {
+    let file_name = address.split("/").last().unwrap();
+    let output = Command::new("wget")
+    .arg("-O")
+    .arg(file_name)
+    .arg(address)
+    .output();
+    if output.is_err() {
+        return Err(ExitStatus::from_raw(1));
+    }
+    Ok(file_name)
+}
+
 fn deploy_docker(_name: &str, component: &ComponentSpec) -> ExitStatus {
      //check if container is running
      let output = Command::new("docker")
@@ -199,46 +207,4 @@ fn deploy_docker(_name: &str, component: &ComponentSpec) -> ExitStatus {
      .expect("failed to execute command");
 
      cmd.spawn().expect("failed to wait on child").wait().expect("failed to wait on child")
-}
-
-fn get_catalogs(token: &str) -> Vec<CatalogState> {
-    let req = attohttpc::get("http://20.121.77.132:8080/v1alpha2/catalogs/registry").bearer_auth(token).send();
-    if req.is_err() {
-        return vec![];
-    }
-    let resp = req.unwrap();
-    if resp.is_success() {        
-        let catalogs = resp.json::<Vec<CatalogState>>();
-        if catalogs.is_err() {
-            println!("catalogs error: {:?}", catalogs.err().unwrap());
-            return vec![];
-        }
-        return catalogs.unwrap();
-    }
-    vec![]
-}
-fn auth() -> String {
-    let body = json!({
-        "username": "admin",
-        "password": ""
-    });
-    let req = attohttpc::post("http://20.121.77.132:8080/v1alpha2/users/auth").json(&body);
-    if req.is_err() {
-        return "".to_string();
-    }
-    let resp = req.unwrap().send();
-
-    if resp.is_err() {
-        return "".to_string();
-    }
-    let resp = resp.unwrap();
-    if resp.is_success() {
-        let token = resp.json::<Token>();
-        if token.is_err() {
-            println!("token error: {:?}", token.err().unwrap());
-            return "".to_string();
-        }
-        return token.unwrap().access_token;
-    }
-    "".to_string()
 }

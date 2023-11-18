@@ -9,3 +9,4 @@ spec:
     properties:
       wasm.url: "https://github.com/Haishi2016/Vault818/releases/download/vtest/http-wasm.wasm"
       wasm.runtime: "wasmedge"
+      wasm.dir: "/:/sys/kernel/debug/tracing"
