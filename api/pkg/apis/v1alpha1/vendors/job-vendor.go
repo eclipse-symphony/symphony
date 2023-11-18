@@ -118,6 +118,8 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 
 func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Job Vendor", request.Context, nil)
+	defer span.End()
+
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var activationData v1alpha2.ActivationData
@@ -142,6 +144,6 @@ func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
+
 	return resp
 }

@@ -28,13 +28,15 @@ package exporters
 
 import (
 	"io"
+	"log"
+	"os"
 
 	stdout "go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-//var logger = log.New(os.Stderr, "zipkin-example", log.Ldate|log.Ltime|log.Llongfile)
+var logger = log.New(os.Stderr, "zipkin-example", log.Ldate|log.Ltime|log.Llongfile)
 
 func NewConsoleExporter(writer io.Writer) (sdktrace.SpanExporter, error) {
 	if writer != nil {
@@ -50,6 +52,5 @@ func NewConsoleExporter(writer io.Writer) (sdktrace.SpanExporter, error) {
 }
 
 func NewZipkinExporter(url string, sampleRate string) (sdktrace.SpanExporter, error) {
-	return zipkin.New(url) //,
-	//zipkin.WithLogger(logger))
+	return zipkin.New(url, zipkin.WithLogger(logger))
 }

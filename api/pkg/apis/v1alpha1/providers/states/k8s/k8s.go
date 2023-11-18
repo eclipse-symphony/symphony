@@ -114,6 +114,7 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
 	sLog.Debug("  P (K8s State): initialize")
 
 	updateConfig, err := toK8sStateProviderConfig(config)
@@ -191,9 +192,11 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sStateProvide
 }
 
 func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
+	defer span.End()
+
 	sLog.Info("  P (K8s State): upsert state")
 
 	scope := model.ReadProperty(entry.Metadata, "scope", nil)
@@ -296,9 +299,11 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	var entities []states.StateEntry
 
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
+	defer span.End()
+
 	sLog.Info("  P (K8s State): list state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
@@ -339,9 +344,11 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 }
 
 func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
+	defer span.End()
+
 	sLog.Info("  P (K8s State): delete state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
@@ -370,9 +377,11 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 }
 
 func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Info("  P (K8s State): get state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
