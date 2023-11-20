@@ -27,6 +27,7 @@
 package counter
 
 import (
+	"context"
 	"testing"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -38,7 +39,7 @@ func TestSmpleCount(t *testing.T) {
 	provider := CounterStageProvider{}
 	err := provider.Init(CounterStageProvider{})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo": 1,
 	})
 	assert.Nil(t, err)
@@ -49,10 +50,10 @@ func TestAccumulate(t *testing.T) {
 	provider := CounterStageProvider{}
 	err := provider.Init(CounterStageProvider{})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo": 1,
 	})
-	outputs2, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs2, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":     1,
 		"__state": outputs["__state"],
 	})
@@ -64,7 +65,7 @@ func TestSmpleCountWithInitialValue(t *testing.T) {
 	provider := CounterStageProvider{}
 	err := provider.Init(CounterStageProvider{})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":      1,
 		"foo.init": 5,
 	})
@@ -76,11 +77,11 @@ func TestAccumulateWithInitialValue(t *testing.T) {
 	provider := CounterStageProvider{}
 	err := provider.Init(CounterStageProvider{})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":      1,
 		"foo.init": 5,
 	})
-	outputs2, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs2, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":     1,
 		"__state": outputs["__state"],
 	})
