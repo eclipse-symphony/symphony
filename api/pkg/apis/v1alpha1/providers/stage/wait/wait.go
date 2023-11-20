@@ -180,7 +180,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		foundCount := 0
 		switch objectType {
 		case "instance":
-			instances, err := utils.GetInstances(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
 				observ_utils.CloseSpanWithError(span, err)
@@ -194,7 +194,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "sites":
-			sites, err := utils.GetSites(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			sites, err := utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
 				observ_utils.CloseSpanWithError(span, err)
@@ -208,7 +208,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "catalogs":
-			catalogs, err := utils.GetCatalogs(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
 				observ_utils.CloseSpanWithError(span, err)

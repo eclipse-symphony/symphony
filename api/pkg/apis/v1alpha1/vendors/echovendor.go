@@ -83,7 +83,11 @@ func (o *EchoVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Echo Vendor", request.Context, nil)
+	_, span := observability.StartSpan("Echo Vendor", request.Context, &map[string]string{
+		"method": "onHello",
+	})
+	defer span.End()
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		message := "Hello from Symphony K8s control plane (S8C)"
@@ -112,6 +116,5 @@ func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

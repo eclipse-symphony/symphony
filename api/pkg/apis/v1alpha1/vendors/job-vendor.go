@@ -117,7 +117,9 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Job Vendor", request.Context, nil)
+	_, span := observability.StartSpan("Job Vendor", request.Context, &map[string]string{
+		"method": "onHello",
+	})
 	defer span.End()
 
 	switch request.Method {

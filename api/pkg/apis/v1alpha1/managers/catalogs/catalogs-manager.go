@@ -40,6 +40,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 var log = logger.NewLogger("coa.runtime")
@@ -70,6 +73,11 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 }
 
 func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.CatalogState, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	defer span.End()
+
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -80,11 +88,13 @@ func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.Catal
 	}
 	entry, err := s.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.CatalogState{}, err
 	}
 
 	ret, err := getCatalogState(name, entry.Body, entry.ETag)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.CatalogState{}, err
 	}
 	return ret, nil
@@ -115,6 +125,11 @@ func getCatalogState(id string, body interface{}, etag string) (model.CatalogSta
 	return state, nil
 }
 func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSpec) (utils.SchemaResult, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "ValidateSpec",
+	})
+	defer span.End()
+
 	if schemaName, ok := spec.Metadata["schema"]; ok {
 		schema, err := m.GetSpec(ctx, schemaName)
 		if err != nil {
@@ -125,22 +140,34 @@ func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSp
 			jData, _ := json.Marshal(s)
 			err = json.Unmarshal(jData, &schemaObj)
 			if err != nil {
-				return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				retError := v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				observ_utils.CloseSpanWithError(span, retError)
+				return utils.SchemaResult{Valid: false}, retError
 			}
 			return schemaObj.CheckProperties(spec.Properties, nil)
 		} else {
-			return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
+			retError := v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
+			observ_utils.CloseSpanWithError(span, retError)
+			return utils.SchemaResult{Valid: false}, retError
 		}
 	}
 	return utils.SchemaResult{Valid: true}, nil
 }
 func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec model.CatalogSpec) error {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	defer span.End()
+
 	result, err := m.ValidateSpec(ctx, spec)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	if !result.Valid {
-		return v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
+		retError := v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
+		observ_utils.CloseSpanWithError(span, retError)
+		return retError
 	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -164,6 +191,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	m.Context.Publish("catalog", v1alpha2.Event{
@@ -180,6 +208,11 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 }
 
 func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	defer span.End()
+
 	//TODO: publish DELETE event
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -193,6 +226,11 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 }
 
 func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	defer span.End()
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -232,13 +270,20 @@ func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context) error 
 	return nil
 }
 func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "GetChains",
+	})
+	defer span.End()
+
 	log.Debug(" M (Graph): GetChains")
 	err := g.setProviderDataIfNecessary(ctx)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret, err := g.GraphProvider.GetChains(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	res := make(map[string][]v1alpha2.INode)
@@ -248,13 +293,20 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[str
 	return res, nil
 }
 func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "GetTrees",
+	})
+	defer span.End()
+
 	log.Debug(" M (Graph): GetTrees")
 	err := g.setProviderDataIfNecessary(ctx)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret, err := g.GraphProvider.GetTrees(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	res := make(map[string][]v1alpha2.INode)

@@ -249,6 +249,11 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	return nil, nil
 }
 func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.ActivationStatus {
+	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
+		"method": "HandleDirectTriggerEvent",
+	})
+	defer span.End()
+
 	status := model.ActivationStatus{
 		Stage:        "",
 		NextStage:    "",
@@ -337,9 +342,11 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	return ret
 }
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
-	_, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
+	defer span.End()
+
 	log.Info(" M (Stage): HandleTriggerEvent")
 	status := model.ActivationStatus{
 		Stage:        triggerData.Stage,

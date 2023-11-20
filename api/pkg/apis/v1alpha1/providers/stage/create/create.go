@@ -146,17 +146,17 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	switch objectType {
 	case "instance":
 		if action == "remove" {
-			err := utils.DeleteInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+			err := utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 		} else {
-			err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
+			err := utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+				summary, err := utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err

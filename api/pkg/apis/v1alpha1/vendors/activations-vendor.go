@@ -101,6 +101,8 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 	pCtx, span := observability.StartSpan("Activations Vendor", request.Context, &map[string]string{
 		"method": "onStatus",
 	})
+	defer span.End()
+
 	cLog.Info("V (Activations Vendor): onStatus")
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -131,13 +133,14 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Activations Vendor", request.Context, &map[string]string{
 		"method": "onActivations",
 	})
+	defer span.End()
+
 	cLog.Info("V (Activations Vendor): onActivations")
 
 	switch request.Method {
@@ -229,6 +232,5 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

@@ -94,6 +94,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Campaigns Vendor", request.Context, &map[string]string{
 		"method": "onCampaigns",
 	})
+	defer span.End()
 	cLog.Info("V (Campaigns): onCampaigns")
 
 	switch request.Method {
@@ -169,6 +170,5 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

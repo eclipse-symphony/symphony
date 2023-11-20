@@ -177,7 +177,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
-			catalog, err = utils.GetCatalog(i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
+			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
 
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
@@ -230,7 +230,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
-		solution, err := utils.GetSolution(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
@@ -333,7 +333,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 		if udpated {
 			jData, _ := json.Marshal(solution.Spec)
-			err := utils.UpsertSolution(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
+			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
 				return nil, false, err

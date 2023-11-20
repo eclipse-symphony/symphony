@@ -28,6 +28,7 @@ package utils
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -35,6 +36,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -63,6 +65,16 @@ func AddAttributesToSpan(span trace.Span, attributes map[string]string) {
 	for k, v := range attributes {
 		span.SetAttributes(attribute.String(k, v))
 	}
+}
+
+func PropagateSpanContextToHttpRequestHeader(req *http.Request) {
+	// https://www.w3.org/TR/trace-context/#traceparent-header
+	if req == nil {
+		return
+	}
+
+	propagator := propagation.TraceContext{}
+	propagator.Inject(req.Context(), propagation.HeaderCarrier(req.Header))
 }
 
 func SpanToFastHTTPContext(ctx *fasthttp.RequestCtx, span *trace.Span) {

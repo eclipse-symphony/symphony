@@ -94,6 +94,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Solutions Vendor", request.Context, &map[string]string{
 		"method": "onSolutions",
 	})
+	defer span.End()
 	tLog.Info("V (Solutions): onSolutions")
 
 	switch request.Method {
@@ -200,6 +201,5 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

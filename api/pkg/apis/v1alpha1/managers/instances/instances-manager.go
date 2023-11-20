@@ -36,6 +36,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type InstancesManager struct {
@@ -58,6 +61,11 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 }
 
 func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
+	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	defer span.End()
+
 	return t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -70,6 +78,11 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 }
 
 func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec) error {
+	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	defer span.End()
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -93,12 +106,18 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 	}
 	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
 }
 
 func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState, error) {
+	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	defer span.End()
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -108,12 +127,14 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	}
 	instances, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		rt, err := getInstanceState(t.ID, t.Body, t.ETag)
 		if err != nil {
+			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -155,6 +176,11 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 }
 
 func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.InstanceState, error) {
+	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	defer span.End()
+
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
@@ -165,11 +191,13 @@ func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.Instan
 	}
 	instance, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.InstanceState{}, err
 	}
 
 	ret, err := getInstanceState(id, instance.Body, instance.ETag)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.InstanceState{}, err
 	}
 	return ret, nil

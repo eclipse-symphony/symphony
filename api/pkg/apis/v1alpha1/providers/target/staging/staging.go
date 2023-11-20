@@ -116,6 +116,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		scope = "default"
 	}
 	catalog, err := utils.GetCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
@@ -154,7 +155,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	return nil, err
 }
 func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
@@ -181,6 +182,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var catalog model.CatalogState
 
 	catalog, err = utils.GetCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
@@ -268,6 +270,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog.Spec.Properties["removed-components"] = deleted
 	jData, _ := json.Marshal(catalog.Spec)
 	err = utils.UpsertCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
