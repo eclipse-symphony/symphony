@@ -77,6 +77,8 @@ func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Docker Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("  P (Docker Target): Init()")
 
 	// convert config to DockerTargetProviderConfig type
@@ -104,6 +106,8 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
@@ -178,9 +182,11 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 }
 
 func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	injections := &model.ValueInjections{

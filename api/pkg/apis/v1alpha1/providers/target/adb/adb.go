@@ -104,6 +104,8 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -141,9 +143,11 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 }
 
 func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()

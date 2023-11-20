@@ -111,6 +111,8 @@ func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("~~~ Win 10 Sideload Provider ~~~ : Init()")
 
 	updateConfig, err := toWin10SideLoadProviderConfig(config)
@@ -132,9 +134,11 @@ func toWin10SideLoadProviderConfig(config providers.IProviderConfig) (Win10SideL
 	return ret, err
 }
 func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	params := make([]string, 0)
@@ -180,9 +184,11 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	return ret, nil
 }
 func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()

@@ -35,6 +35,7 @@ import (
 	"sync"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -84,6 +85,10 @@ func MockStageProviderConfigFromMap(properties map[string]string) (CounterStageP
 	return ret, nil
 }
 func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("[Stage] Counter provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	defer span.End()
 
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})

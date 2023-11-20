@@ -110,9 +110,11 @@ func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProv
 	return ret, nil
 }
 func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("List Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] List Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
+	defer span.End()
+
 	log.Info("  P (List Processor): processing inputs")
 
 	outputs := make(map[string]interface{})

@@ -151,6 +151,8 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("MQTT Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("  P (MQTT Target): Init()")
 
 	if i.Initialized {
@@ -235,6 +237,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
 	sLog.Infof("  P (MQTT Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -282,6 +285,8 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
+	defer span.End()
+
 	sLog.Infof("  P (MQTT Target): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -316,9 +321,11 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 }
 
 func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()

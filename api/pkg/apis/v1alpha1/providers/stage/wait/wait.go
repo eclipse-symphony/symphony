@@ -162,9 +162,11 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 	return ret, nil
 }
 func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("Wait Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Wait Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
+	defer span.End()
+
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
 

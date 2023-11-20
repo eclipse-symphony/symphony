@@ -42,6 +42,7 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
@@ -183,6 +184,11 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("[Stage] Http provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	defer span.End()
+
 	sLog.Info("  P (Http Stage): start process request")
 
 	// Check all config fields for override in inputs

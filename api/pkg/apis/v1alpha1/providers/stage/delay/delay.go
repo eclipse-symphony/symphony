@@ -36,6 +36,7 @@ import (
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -85,6 +86,10 @@ func MockStageProviderConfigFromMap(properties map[string]string) (DelayStagePro
 	return ret, nil
 }
 func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("[Stage] Delay provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	defer span.End()
 
 	outputs := make(map[string]interface{})
 	outputs[v1alpha2.StatusOutput] = v1alpha2.OK

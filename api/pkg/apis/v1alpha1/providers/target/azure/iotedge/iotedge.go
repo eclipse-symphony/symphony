@@ -184,6 +184,8 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("IoT Edge Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("  P(IoT Edge Target): Init()")
 
 	updateConfig, err := toIoTEdgeTargetProviderConfig(config)
@@ -198,9 +200,10 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
 
 	sLog.Info("  P(IoT Edge Target): getting components")
 
@@ -241,9 +244,11 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 }
 
 func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("IoT Edge Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Info("  P(IoT Edge Target): applying components")
 
 	components := step.GetComponents()

@@ -233,6 +233,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
 	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s", dep.Instance.Scope, dep.Instance.Name)
 
 	var components []model.ComponentSpec

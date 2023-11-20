@@ -81,6 +81,7 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Staging Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
 	sLog.Info("  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
@@ -103,7 +104,7 @@ func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTar
 	return ret, err
 }
 func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)

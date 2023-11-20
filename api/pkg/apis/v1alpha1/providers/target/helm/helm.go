@@ -329,7 +329,7 @@ func downloadFile(url string, fileName string) error {
 
 // Apply deploys the helm chart for a given deployment
 func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
 		&map[string]string{
