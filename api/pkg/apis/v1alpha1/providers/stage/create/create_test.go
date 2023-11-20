@@ -27,6 +27,7 @@
 package create
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -48,7 +49,7 @@ func TestDeployInstance(t *testing.T) {
 		WaitInterval: 5,
 	})
 	assert.Nil(t, err)
-	outputs, _, err := provider.Process(nil, contexts.ManagerContext{}, map[string]interface{}{
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "redis-server",
 		"object": map[string]interface{}{
