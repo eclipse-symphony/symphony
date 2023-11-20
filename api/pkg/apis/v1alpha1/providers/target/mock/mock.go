@@ -35,6 +35,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -57,7 +58,8 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 			"method": "Init",
 		},
 	)
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	mLock.Lock()
 	defer mLock.Unlock()
@@ -108,7 +110,8 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			"method": "Get",
 		},
 	)
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	return cache[m.Config.ID], nil
 }
@@ -120,7 +123,8 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			"method": "Apply",
 		},
 	)
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	mLock.Lock()
 	defer mLock.Unlock()

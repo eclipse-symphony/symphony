@@ -80,17 +80,16 @@ func (s *StagingManager) Poll() []error {
 	ctx, span := observability.StartSpan("Staging Manager", context.Background(), &map[string]string{
 		"method": "Poll",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	log.Debug(" M (Staging): Polling...")
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
-		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
 	site, err := s.QueueProvider.Dequeue(Site_Job_Queue)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	siteId := site.(string)
@@ -141,7 +140,6 @@ func (s *StagingManager) Poll() []error {
 			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.Spec.Name, err.Error())
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func (s *StagingManager) Reconcil() []error {
@@ -152,11 +150,12 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 	ctx, span := observability.StartSpan("Staging Manager", ctx, &map[string]string{
 		"method": "HandleJobEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	var job v1alpha2.JobData
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &job)
+	err = json.Unmarshal(jData, &job)
 	if err != nil {
 		return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 	}

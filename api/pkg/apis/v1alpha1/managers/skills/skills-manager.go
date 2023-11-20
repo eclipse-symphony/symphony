@@ -60,9 +60,10 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -71,13 +72,15 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "skills",
 		},
 	})
+	return err
 }
 
 func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.SkillSpec) error {
 	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -99,19 +102,16 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			"resource": "skills",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
-	}
-	return nil
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	return err
 }
 
 func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error) {
 	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -122,14 +122,12 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	}
 	models, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.SkillState, 0)
 	for _, t := range models {
 		rt, err := getSkillState(t.ID, t.Body, t.ETag)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -159,7 +157,8 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -171,13 +170,11 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	}
 	m, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SkillState{}, err
 	}
 
 	ret, err := getSkillState(id, m.Body, m.ETag)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SkillState{}, err
 	}
 	return ret, nil

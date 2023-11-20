@@ -37,6 +37,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -89,7 +90,8 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	_, span := observability.StartSpan("[Stage] Delay provider", ctx, &map[string]string{
 		"method": "Process",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	outputs := make(map[string]interface{})
 	outputs[v1alpha2.StatusOutput] = v1alpha2.OK

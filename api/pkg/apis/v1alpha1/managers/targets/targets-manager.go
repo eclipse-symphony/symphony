@@ -67,9 +67,10 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -78,13 +79,15 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "targets",
 		},
 	})
+	return err
 }
 
 func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model.TargetSpec) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -107,19 +110,16 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 			"resource": "targets",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
-	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
-		return err
-	}
-	return nil
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	return err
 }
 
 func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetState) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ReportState",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID:       current.Id,
@@ -173,7 +173,6 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.TargetState{}, err
 	}
 
@@ -187,7 +186,8 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -198,14 +198,12 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	}
 	targets, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		rt, err := getTargetState(t.ID, t.Body, t.ETag)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -250,7 +248,8 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -262,13 +261,11 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.TargetState{}, err
 	}
 
 	ret, err := getTargetState(id, target.Body, target.ETag)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.TargetState{}, err
 	}
 	return ret, nil

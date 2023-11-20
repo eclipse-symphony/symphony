@@ -754,16 +754,16 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		"http.method": method,
 		"http.url":    baseUrl + route,
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
+
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
-	var err error
 	if payload != nil {
 		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
@@ -771,7 +771,6 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 	}
@@ -783,14 +782,12 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 
 	resp, err := client.Do(req)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 
@@ -800,9 +797,9 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		// if resp.StatusCode == 404 { // API service is already gone
 		// 	return nil, nil
 		// }
-		observ_utils.CloseSpanWithError(span, v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes))
-		return nil, v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
+		err = v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
+		return nil, err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return bodyBytes, nil
 }

@@ -113,7 +113,8 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	ctx, span := observability.StartSpan("[Stage] List Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	log.Info("  P (List Processor): processing inputs")
 
@@ -131,7 +132,6 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		if namesOnly {
@@ -147,7 +147,6 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		sites, err := utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get sites: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		filteredSites := make([]model.SiteState, 0)
@@ -167,6 +166,5 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	}
 	outputs["objectType"] = objectType
-	observ_utils.CloseSpanWithError(span, nil)
 	return outputs, false, nil
 }

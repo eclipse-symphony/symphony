@@ -132,9 +132,7 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 			"method": "Init",
 		},
 	)
-	defer span.End()
-
-	var err error
+	var err error = nil
 	defer utils.CloseSpanWithError(span, err)
 	sLog.Info("  P (ConfigMap Target): Init()")
 
@@ -227,9 +225,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 			"method": "Get",
 		},
 	)
-	defer span.End()
-
-	var err error
+	var err error = nil
 	defer utils.CloseSpanWithError(span, err)
 	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -269,9 +265,9 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 			"method": "Apply",
 		},
 	)
-	defer span.End()
+	var err error = nil
+	defer utils.CloseSpanWithError(span, err)
 
-	var err error
 	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -280,6 +276,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		return nil, err
 	}
 	if isDryRun {
+		err = nil
 		return nil, nil
 	}
 
@@ -307,7 +304,6 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Scope)
 				if err != nil {
 					sLog.Error("  P (ConfigMap Target): failed to apply configmap: +%v", err)
-					utils.CloseSpanWithError(span, err)
 					return ret, err
 				}
 			}
@@ -320,7 +316,6 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Scope)
 				if err != nil {
 					sLog.Error("  P (ConfigMap Target): failed to delete configmap: +%v", err)
-					utils.CloseSpanWithError(span, err)
 					return ret, err
 				}
 			}
@@ -338,8 +333,8 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 			"method": "ensureNamespace",
 		},
 	)
-	defer span.End()
-	var err error
+	var err error = nil
+	defer utils.CloseSpanWithError(span, err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {
@@ -354,13 +349,11 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 		}, metav1.CreateOptions{})
 		if err != nil {
 			sLog.Error("  P (ConfigMap Target): failed to create namespace: +%v", err)
-			utils.CloseSpanWithError(span, err)
 			return err
 		}
 
 	} else {
 		sLog.Error("  P (ConfigMap Target): failed to get namespace: +%v", err)
-		utils.CloseSpanWithError(span, err)
 		return err
 	}
 

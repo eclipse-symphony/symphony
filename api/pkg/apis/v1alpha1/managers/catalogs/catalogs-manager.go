@@ -76,7 +76,8 @@ func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.Catal
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -88,13 +89,11 @@ func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.Catal
 	}
 	entry, err := s.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.CatalogState{}, err
 	}
 
 	ret, err := getCatalogState(name, entry.Body, entry.ETag)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.CatalogState{}, err
 	}
 	return ret, nil
@@ -128,7 +127,8 @@ func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSp
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "ValidateSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	if schemaName, ok := spec.Metadata["schema"]; ok {
 		schema, err := m.GetSpec(ctx, schemaName)
@@ -140,15 +140,13 @@ func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSp
 			jData, _ := json.Marshal(s)
 			err = json.Unmarshal(jData, &schemaObj)
 			if err != nil {
-				retError := v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
-				observ_utils.CloseSpanWithError(span, retError)
-				return utils.SchemaResult{Valid: false}, retError
+				err = v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				return utils.SchemaResult{Valid: false}, err
 			}
 			return schemaObj.CheckProperties(spec.Properties, nil)
 		} else {
-			retError := v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
-			observ_utils.CloseSpanWithError(span, retError)
-			return utils.SchemaResult{Valid: false}, retError
+			err = v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
+			return utils.SchemaResult{Valid: false}, err
 		}
 	}
 	return utils.SchemaResult{Valid: true}, nil
@@ -157,17 +155,16 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	result, err := m.ValidateSpec(ctx, spec)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	if !result.Valid {
-		retError := v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
-		observ_utils.CloseSpanWithError(span, retError)
-		return retError
+		err = v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
+		return err
 	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -191,7 +188,6 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	m.Context.Publish("catalog", v1alpha2.Event{
@@ -211,7 +207,8 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	//TODO: publish DELETE event
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -229,7 +226,8 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -273,17 +271,16 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[str
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetChains",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	log.Debug(" M (Graph): GetChains")
-	err := g.setProviderDataIfNecessary(ctx)
+	err = g.setProviderDataIfNecessary(ctx)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret, err := g.GraphProvider.GetChains(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	res := make(map[string][]v1alpha2.INode)
@@ -296,17 +293,16 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[stri
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetTrees",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	log.Debug(" M (Graph): GetTrees")
-	err := g.setProviderDataIfNecessary(ctx)
+	err = g.setProviderDataIfNecessary(ctx)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret, err := g.GraphProvider.GetTrees(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	res := make(map[string][]v1alpha2.INode)

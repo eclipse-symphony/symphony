@@ -137,7 +137,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	ctx, span := observability.StartSpan("[Stage] Create provider", ctx, &map[string]string{
 		"method": "Process",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	outputs := make(map[string]interface{})
 
@@ -155,13 +156,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		if action == "remove" {
 			err := utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 		} else {
 			err := utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
@@ -176,9 +175,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
-			retError := v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
-			observ_utils.CloseSpanWithError(span, retError)
-			return nil, false, retError
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			return nil, false, err
 		}
 	}
 	outputs["objectType"] = objectType

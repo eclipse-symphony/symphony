@@ -67,11 +67,13 @@ func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Users Manager", ctx, &map[string]string{
 		"method": "DeleteUser",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 	})
+	return err
 }
 
 func hash(name string, s string) string {

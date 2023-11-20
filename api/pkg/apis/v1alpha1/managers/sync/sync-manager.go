@@ -59,9 +59,9 @@ func (s *SyncManager) Poll() []error {
 	ctx, span := observability.StartSpan("Sync Manager", context.Background(), &map[string]string{
 		"method": "Poll",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
-		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
 	batch, err := utils.GetABatchForSite(
@@ -71,7 +71,6 @@ func (s *SyncManager) Poll() []error {
 		s.VendorContext.SiteInfo.ParentSite.Username,
 		s.VendorContext.SiteInfo.ParentSite.Password)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	if batch.Catalogs != nil {
@@ -99,10 +98,8 @@ func (s *SyncManager) Poll() []error {
 		}
 	}
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func (s *SyncManager) Reconcil() []error {
