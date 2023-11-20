@@ -36,6 +36,7 @@ import (
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -88,7 +89,8 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	_, span := observability.StartSpan("[Stage] Mock Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	fmt.Printf("\n\n====================================================\n")
 	fmt.Printf("MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")

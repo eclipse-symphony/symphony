@@ -62,7 +62,8 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 	ctx, span := observability.StartSpan("Sync Manager", ctx, &map[string]string{
 		"method": "Append",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	errMessage := ""
 	for _, p := range s.LedgerProviders {
@@ -73,7 +74,6 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 	}
 	if errMessage != "" {
 		retError := v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
-		observ_utils.CloseSpanWithError(span, retError)
 		return retError
 	}
 	return nil

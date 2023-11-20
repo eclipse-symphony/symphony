@@ -104,7 +104,8 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -123,7 +124,6 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 			out, err := exec.Command("adb", params...).Output()
 
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, err
 			}
 			str := string(out)
@@ -138,7 +138,6 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
@@ -146,19 +145,19 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	ctx, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
 
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 	ret := step.PrepareResultMap()
@@ -178,7 +177,6 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 								Status:  v1alpha2.UpdateFailed,
 								Message: err.Error(),
 							}
-							observ_utils.CloseSpanWithError(span, err)
 							return ret, err
 						}
 					}
@@ -202,14 +200,13 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 							Status:  v1alpha2.DeleteFailed,
 							Message: err.Error(),
 						}
-						observ_utils.CloseSpanWithError(span, err)
 						return ret, err
 					}
 				}
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 

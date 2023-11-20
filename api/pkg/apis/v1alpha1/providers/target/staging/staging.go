@@ -81,17 +81,16 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Staging Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 	sLog.Info("  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Staging Target): expected StagingTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTargetProviderConfig, error) {

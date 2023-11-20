@@ -77,14 +77,14 @@ func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Docker Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Info("  P (Docker Target): Init()")
 
 	// convert config to DockerTargetProviderConfig type
 	dockerConfig, err := toDockerTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): expected DockerTargetProviderConfig: %+v", err)
 		return err
 	}
@@ -106,13 +106,13 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
 		return nil, err
 	}
@@ -177,7 +177,6 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 		}
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
@@ -185,7 +184,8 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -196,13 +196,12 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	}
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -210,7 +209,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
 		return ret, err
 	}
@@ -225,7 +223,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Helm Target): component doesn't have container.image property")
 				return ret, err
 			}
@@ -251,7 +248,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
-						observ_utils.CloseSpanWithError(span, err)
 						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 						return ret, err
 					}
@@ -262,7 +258,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
@@ -289,7 +284,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
 					return ret, err
 				}
@@ -303,7 +297,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
 				return ret, err
 			}
@@ -313,7 +306,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
 				return ret, err
 			}
@@ -325,7 +317,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 					return ret, err
 				}
@@ -333,7 +324,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			err = cli.ContainerRemove(context.Background(), component.Component.Name, types.ContainerRemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
@@ -344,7 +334,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 

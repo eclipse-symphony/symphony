@@ -252,7 +252,8 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleDirectTriggerEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	status := model.ActivationStatus{
 		Stage:        "",
@@ -345,7 +346,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	log.Info(" M (Stage): HandleTriggerEvent")
 	status := model.ActivationStatus{
@@ -377,7 +379,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate context: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			if _, ok := val.([]string); ok {
@@ -393,7 +394,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
 				status.IsActive = false
 				log.Errorf(" M (Stage): invalid context: %v", currentStage.Contexts)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 		} else {
@@ -431,7 +431,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate input: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			inputs[k] = val
@@ -454,7 +453,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			log.Errorf(" M (Stage): failed to create provider: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return status, activationData
 		}
 
@@ -486,7 +484,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						status.ErrorMessage = err.Error()
 						status.IsActive = false
 						log.Errorf(" M (Stage): failed to evaluate input: %v", err)
-						observ_utils.CloseSpanWithError(span, err)
 						results <- TaskResult{
 							Outputs: nil,
 							Error:   err,
@@ -587,7 +584,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.ErrorMessage = err.Error()
 					status.IsActive = false
 					log.Errorf(" M (Stage): failed to save pending task: %v", err)
-					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 				status.Status = v1alpha2.Paused
@@ -610,7 +606,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate stage selector: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			sVal := ""
@@ -638,7 +633,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						status.ErrorMessage = fmt.Sprintf("stage %s failed", triggerData.Stage)
 						status.IsActive = false
 						log.Errorf(" M (Stage): failed to process stage outputs: %v", status.ErrorMessage)
-						observ_utils.CloseSpanWithError(span, err)
 						return status, activationData
 					}
 				} else {
@@ -647,7 +641,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.ErrorMessage = fmt.Sprintf("stage %s is not found", sVal)
 					status.IsActive = false
 					log.Errorf(" M (Stage): failed to find next stage: %v", err)
-					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 			}
@@ -665,23 +658,20 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			log.Infof(" M (Stage): stage %s is done", triggerData.Stage)
-			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		} else {
 			status.Status = v1alpha2.Done
 			status.NextStage = ""
 			status.IsActive = false
 			log.Infof(" M (Stage): stage %s is done (no next stage)", triggerData.Stage)
-			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		}
 	}
-	err := v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
 	status.Status = v1alpha2.InternalError
 	status.ErrorMessage = err.Error()
 	status.IsActive = false
 	log.Errorf(" M (Stage): failed to find stage: %v", err)
-	observ_utils.CloseSpanWithError(span, err)
 	return status, activationData
 }
 

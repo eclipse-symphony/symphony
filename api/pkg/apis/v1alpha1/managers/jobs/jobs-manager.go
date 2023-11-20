@@ -78,32 +78,28 @@ func (s *JobsManager) pollObjects() []error {
 	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollObjects",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	user, err := utils.GetString(s.Manager.Config.Properties, "user")
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	password, err := utils.GetString(s.Manager.Config.Properties, "password")
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	interval := utils.ReadInt32(s.Manager.Config.Properties, "interval", 0)
 	if interval == 0 {
-		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
 	instances, err := utils.GetInstances(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	for _, instance := range instances {
@@ -135,7 +131,6 @@ func (s *JobsManager) pollObjects() []error {
 	targets, err := utils.GetTargets(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	for _, target := range targets {
@@ -167,7 +162,6 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 
 	return nil
 }
@@ -192,12 +186,12 @@ func (s *JobsManager) pollSchedules() []error {
 	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollSchedules",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	//TODO: use filters and continue tokens
 	list, _, err := s.StateProvider.List(context, states.ListRequest{})
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 
@@ -206,13 +200,11 @@ func (s *JobsManager) pollSchedules() []error {
 		entryData, _ := json.Marshal(entry.Body)
 		err := json.Unmarshal(entryData, &activationData)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return []error{err}
 		}
 		if activationData.Schedule != nil {
 			fire, err := activationData.Schedule.ShouldFireNow()
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return []error{err}
 			}
 			if fire {
@@ -221,7 +213,6 @@ func (s *JobsManager) pollSchedules() []error {
 					ID: entry.ID,
 				})
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					return []error{err}
 				}
 				s.Context.Publish("trigger", v1alpha2.Event{
@@ -230,7 +221,6 @@ func (s *JobsManager) pollSchedules() []error {
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
@@ -241,13 +231,13 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
 		"method": "HandleHeartBeatEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &heartbeat)
+	err = json.Unmarshal(jData, &heartbeat)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
@@ -257,7 +247,6 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 			Body: heartbeat,
 		},
 	})
-	observ_utils.CloseSpanWithError(span, err)
 	return err
 }
 
@@ -265,7 +254,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
 		"method": "DelayOrSkipJob",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	key := "h_" + job.Id
 	if objectType == "target" {
@@ -277,42 +267,36 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
-		observ_utils.CloseSpanWithError(span, nil)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(entry.Body)
 	err = json.Unmarshal(jData, &heartbeat)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	if time.Since(heartbeat.Time) > time.Duration(60)*time.Second { //TODO: make this configurable
 		// heartbeat is too old
-		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
 	if job.Action == "delete" && heartbeat.Action == "update" {
-		observ_utils.CloseSpanWithError(span, nil)
 		return v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
 }
 func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {
 	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
 		"method": "HandleScheduleEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	var activationData v1alpha2.ActivationData
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &activationData)
+	err = json.Unmarshal(jData, &activationData)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
 	}
 	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
@@ -322,43 +306,38 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 			Body: activationData,
 		},
 	})
-	observ_utils.CloseSpanWithError(span, err)
 	return err
 }
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
 	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
 		"method": "HandleJobEvent",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData
 		jData, _ := json.Marshal(event.Body)
 		err := json.Unmarshal(jData, &job)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
 		err = s.DelayOrSkipJob(ctx, objectType, job)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 
 		baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 		user, err := utils.GetString(s.Manager.Config.Properties, "user")
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 		password, err := utils.GetString(s.Manager.Config.Properties, "password")
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 		switch objectType {
@@ -368,7 +347,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//get intance
 			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return err //TODO: instance is gone
 			}
 
@@ -400,7 +378,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//create deployment spec
 			deployment, err := utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return err
 			}
 
@@ -408,7 +385,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "UPDATE" {
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
@@ -424,10 +400,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "DELETE" {
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
-					observ_utils.CloseSpanWithError(span, nil)
 					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password)
 				}
 			}
@@ -435,18 +409,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			targetName := job.Id
 			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return err
 			}
 			deployment, err := utils.CreateSymphonyDeploymentFromTarget(target)
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return err
 			}
 			if job.Action == "UPDATE" {
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
 					// TODO: how to handle status updates?
@@ -463,15 +434,12 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "DELETE" {
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
-					observ_utils.CloseSpanWithError(span, nil)
 					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password)
 				}
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }

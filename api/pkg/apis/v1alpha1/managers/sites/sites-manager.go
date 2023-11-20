@@ -67,7 +67,8 @@ func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteStat
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -79,13 +80,11 @@ func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteStat
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SiteState{}, err
 	}
 
 	ret, err := getSiteState(name, entry.Body)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SiteState{}, err
 	}
 	return ret, nil
@@ -124,7 +123,8 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "ReportState",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	current.Metadata = map[string]string{
 		"version":  "v1",
@@ -143,17 +143,14 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	entry, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 		err = t.UpsertSpec(ctx, current.Id, *current.Spec)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 		entry, err = t.StateProvider.Get(ctx, getRequest)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return err
 		}
 	}
@@ -195,7 +192,8 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -217,9 +215,8 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 			"resource": "sites",
 		},
 	}
-	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
@@ -229,9 +226,10 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
-	return m.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -240,13 +238,16 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "sites",
 		},
 	})
+
+	return err
 }
 
 func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -257,14 +258,12 @@ func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) 
 	}
 	sites, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.SiteState, 0)
 	for _, t := range sites {
 		rt, err := getSiteState(t.ID, t.Body)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -278,7 +277,8 @@ func (s *SitesManager) Poll() []error {
 	ctx, span := observability.StartSpan("Sites Manager", context.Background(), &map[string]string{
 		"method": "Poll",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	thisSite, err := s.GetSpec(ctx, s.VendorContext.SiteInfo.SiteId)
 	if err != nil {

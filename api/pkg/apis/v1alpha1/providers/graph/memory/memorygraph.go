@@ -83,14 +83,14 @@ func (i *MemoryGraphProvider) GetSet(ctx context.Context, request graph.GetReque
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetSet",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	ret := graph.GetSetResponse{
 		Nodes: make([]v1alpha2.INode, 0),
 	}
-	_, err := i.getNode(request.Name, request.Filter)
+	_, err = i.getNode(request.Name, request.Filter)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return ret, err
 	}
 	for _, node := range i.Data {
@@ -107,14 +107,14 @@ func (i *MemoryGraphProvider) GetTree(ctx context.Context, request graph.GetRequ
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetTree",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	ret := graph.GetSetResponse{
 		Nodes: make([]v1alpha2.INode, 0),
 	}
 	root, err := i.getNode(request.Name, request.Filter)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return ret, err
 	}
 	ret.Nodes = append(ret.Nodes, root)
@@ -160,15 +160,18 @@ func (i *MemoryGraphProvider) GetChain(ctx context.Context, request graph.GetReq
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetChain",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
-	return i.GetTree(ctx, request)
+	rep, err := i.GetTree(ctx, request)
+	return rep, err
 }
 func (i *MemoryGraphProvider) GetSets(ctx context.Context, request graph.ListRequest) (graph.GetSetsResponse, error) {
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetSets",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{
@@ -184,7 +187,6 @@ func (i *MemoryGraphProvider) GetSets(ctx context.Context, request graph.ListReq
 				Name: node.GetId(),
 			})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return ret, err
 			}
 			ret.Sets[node.GetId()] = set
@@ -197,7 +199,8 @@ func (i *MemoryGraphProvider) GetTrees(ctx context.Context, request graph.ListRe
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetTrees",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{
@@ -213,7 +216,6 @@ func (i *MemoryGraphProvider) GetTrees(ctx context.Context, request graph.ListRe
 				Name: node.GetId(),
 			})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return ret, err
 			}
 			ret.Sets[node.GetId()] = set
@@ -225,7 +227,8 @@ func (i *MemoryGraphProvider) GetChains(ctx context.Context, request graph.ListR
 	ctx, span := observability.StartSpan("Memory Graph Provider", ctx, &map[string]string{
 		"method": "GetChains",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{
@@ -241,7 +244,6 @@ func (i *MemoryGraphProvider) GetChains(ctx context.Context, request graph.ListR
 				Name: node.GetId(),
 			})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return ret, err
 			}
 			ret.Sets[node.GetId()] = set

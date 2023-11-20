@@ -66,7 +66,8 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -78,13 +79,11 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.ActivationState{}, err
 	}
 
 	ret, err := getActivationState(name, entry.Body, entry.ETag)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.ActivationState{}, err
 	}
 	return ret, nil
@@ -119,7 +118,8 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -142,9 +142,8 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 			"resource": "activations",
 		},
 	}
-	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
@@ -154,7 +153,9 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
+
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -170,7 +171,9 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -196,7 +199,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ReportStatus",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	lock.Lock()
 	defer lock.Unlock()
@@ -210,7 +214,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	entry, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	dict := entry.Body.(map[string]interface{})
@@ -227,7 +230,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil

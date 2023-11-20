@@ -77,17 +77,18 @@ func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Http Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
+
 	sLog.Info("  P(HTTP Target): Init()")
 
 	updateConfig, err := toHttpTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P(HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetProviderConfig, error) {
@@ -103,11 +104,12 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
+
 	sLog.Infof("  P(HTTP Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	// This provider doesn't remember what it does, so it always return nil when asked
-
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil, nil
 }
 
@@ -115,7 +117,8 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Infof("  P(HTTP Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -126,13 +129,12 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -149,7 +151,6 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P(HTTP Target): %v", err)
 				return ret, err
 			}
@@ -163,7 +164,6 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P(HTTP Target): %v", err)
 				return ret, err
 			}
@@ -176,7 +176,6 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P(HTTP Target): %v", err)
 				return ret, err
 			}
@@ -186,13 +185,11 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Message: err.Error(),
 				}
 				err = errors.New("HTTP request didn't respond 200 OK")
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P(HTTP Target): %v", err)
 				return ret, err
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

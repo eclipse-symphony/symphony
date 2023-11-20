@@ -64,7 +64,8 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -76,13 +77,11 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.CampaignState{}, err
 	}
 
 	ret, err := getCampaignState(name, entry.Body)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.CampaignState{}, err
 	}
 	return ret, nil
@@ -109,7 +108,8 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -131,9 +131,8 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			"resource": "campaigns",
 		},
 	}
-	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
@@ -143,7 +142,8 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -160,7 +160,8 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -171,7 +172,6 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.CampaignState, 0)

@@ -114,19 +114,17 @@ func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("ADU Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Info("~~~ ADU Target Provider ~~~ : Init()")
 
 	updateConfig, err := toADUTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("~~~ ADU Target Provider ~~~ : expected ADUTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
-
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
@@ -150,12 +148,12 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Info("~~~ ADU Update Provider ~~~ : getting components")
 	deployment, err := i.getDeployment()
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("~~~ ADU Target Provider ~~~ : %+v", err)
 		return nil, err
 	}
@@ -173,7 +171,6 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		})
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
@@ -206,18 +203,18 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Info("  P (ADU Update): applying components")
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -230,7 +227,6 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 				Status:  v1alpha2.ValidateFailed,
 				Message: err.Error(),
 			}
-			observ_utils.CloseSpanWithError(span, err)
 			return ret, err
 		}
 		if c.Action == "update" {
@@ -241,7 +237,6 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (ADU Update): %+v", err)
 				return ret, err
 			}
@@ -252,13 +247,12 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 					Status:  v1alpha2.DeleteFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, nil)
+				err = nil
 				return ret, nil //TODO: are we ignoring errors on purpose here?
 			}
 		}
 
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 

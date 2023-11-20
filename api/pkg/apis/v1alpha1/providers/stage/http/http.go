@@ -43,6 +43,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
@@ -187,7 +188,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	_, span := observability.StartSpan("[Stage] Http provider", ctx, &map[string]string{
 		"method": "Process",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	sLog.Info("  P (Http Stage): start process request")
 
@@ -201,7 +203,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			configMap[key] = val
 		}
 	}
-	configJson, err := json.Marshal(configMap)
+	configJson, err = json.Marshal(configMap)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
 		return nil, false, err

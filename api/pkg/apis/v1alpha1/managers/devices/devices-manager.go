@@ -64,7 +64,8 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	return t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -81,7 +82,8 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -103,9 +105,8 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			"resource": "devices",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
@@ -115,7 +116,8 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -126,14 +128,12 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.DeviceState, 0)
 	for _, t := range solutions {
 		rt, err := getDeviceState(t.ID, t.Body)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -162,7 +162,8 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, err)
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -174,13 +175,11 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.DeviceState{}, err
 	}
 
 	ret, err := getDeviceState(id, target.Body)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return model.DeviceState{}, err
 	}
 	return ret, nil
