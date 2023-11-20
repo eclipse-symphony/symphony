@@ -83,7 +83,7 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "$solution()"}}`, model.SolutionGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "${{$solution()}}"}}`, model.SolutionGroup),
 			"scope":    "",
 			"group":    model.SolutionGroup,
 			"version":  "v1",
