@@ -103,6 +103,7 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Users Vendor", request.Context, &map[string]string{
 		"method": "onAuth",
 	})
+	defer span.End()
 	log.Debug("V (Users): authenticate user")
 
 	var authRequest AuthRequest
@@ -146,6 +147,5 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

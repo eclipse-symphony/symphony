@@ -100,7 +100,7 @@ func (s *JobsManager) pollObjects() []error {
 		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
-	instances, err := utils.GetInstances(baseUrl, user, password)
+	instances, err := utils.GetInstances(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		observ_utils.CloseSpanWithError(span, err)
@@ -132,7 +132,7 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	targets, err := utils.GetTargets(baseUrl, user, password)
+	targets, err := utils.GetTargets(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		observ_utils.CloseSpanWithError(span, err)
@@ -366,7 +366,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			instanceName := job.Id
 
 			//get intance
-			instance, err := utils.GetInstance(baseUrl, instanceName, user, password)
+			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password)
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
 				return err //TODO: instance is gone
@@ -377,7 +377,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 
 			//get solution
-			solution, err := utils.GetSolution(baseUrl, instance.Spec.Solution, user, password)
+			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password)
 			if err != nil {
 				solution = model.SolutionState{
 					Id: instance.Spec.Solution,
@@ -389,7 +389,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = utils.GetTargets(baseUrl, user, password)
+			targets, err = utils.GetTargets(ctx, baseUrl, user, password)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -406,7 +406,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//call api
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					return err
@@ -422,18 +422,18 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
 					observ_utils.CloseSpanWithError(span, nil)
-					return utils.DeleteInstance(baseUrl, deployment.Instance.Name, user, password)
+					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password)
 				}
 			}
 		case "target":
 			targetName := job.Id
-			target, err := utils.GetTarget(baseUrl, targetName, user, password)
+			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password)
 			if err != nil {
 				observ_utils.CloseSpanWithError(span, err)
 				return err
@@ -444,7 +444,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					return err
@@ -461,13 +461,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, err)
 					return err
 				} else {
 					observ_utils.CloseSpanWithError(span, nil)
-					return utils.DeleteTarget(baseUrl, targetName, user, password)
+					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password)
 				}
 			}
 		}

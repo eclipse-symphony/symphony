@@ -35,10 +35,13 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
+
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 var log = logger.NewLogger("coa.runtime")
@@ -74,21 +77,31 @@ func (s *StagingManager) Enabled() bool {
 	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *StagingManager) Poll() []error {
+	ctx, span := observability.StartSpan("Staging Manager", context.Background(), &map[string]string{
+		"method": "Poll",
+	})
+	defer span.End()
+
 	log.Debug(" M (Staging): Polling...")
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
+		observ_utils.CloseSpanWithError(span, nil)
 		return nil
 	}
 	site, err := s.QueueProvider.Dequeue(Site_Job_Queue)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
+		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	siteId := site.(string)
-	catalogs, err := utils.GetCatalogs(s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
+	catalogs, err := utils.GetCatalogs(
+		ctx,
+		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
 		s.VendorContext.SiteInfo.CurrentSite.Username,
 		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
+		observ_utils.CloseSpanWithError(span, err)
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
@@ -101,7 +114,7 @@ func (s *StagingManager) Poll() []error {
 				"resource": "catalogs",
 			},
 		}
-		entry, err := s.StateProvider.Get(context.Background(), getRequest)
+		entry, err := s.StateProvider.Get(ctx, getRequest)
 		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.Spec.Generation {
 			continue
 		}
@@ -113,7 +126,7 @@ func (s *StagingManager) Poll() []error {
 			Action: "UPDATE",
 			Body:   catalog,
 		})
-		_, err = s.StateProvider.Upsert(context.Background(), states.UpsertRequest{
+		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
 				Body: catalog.Spec.Generation,
@@ -128,6 +141,7 @@ func (s *StagingManager) Poll() []error {
 			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.Spec.Name, err.Error())
 		}
 	}
+	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func (s *StagingManager) Reconcil() []error {
@@ -135,6 +149,11 @@ func (s *StagingManager) Reconcil() []error {
 }
 
 func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Staging Manager", ctx, &map[string]string{
+		"method": "HandleJobEvent",
+	})
+	defer span.End()
+
 	var job v1alpha2.JobData
 	jData, _ := json.Marshal(event.Body)
 	err := json.Unmarshal(jData, &job)

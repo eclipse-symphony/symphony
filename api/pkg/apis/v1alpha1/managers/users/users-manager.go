@@ -64,6 +64,11 @@ func (s *UsersManager) Init(context *contexts.VendorContext, config managers.Man
 	return nil
 }
 func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
+	ctx, span := observability.StartSpan("Users Manager", ctx, &map[string]string{
+		"method": "DeleteUser",
+	})
+	defer span.End()
+
 	return t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 	})

@@ -126,6 +126,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
 			err := utils.SyncActivationStatus(
+				context.Background(),
 				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
 				f.Vendor.Context.SiteInfo.ParentSite.Password, status)
@@ -196,12 +197,15 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 }
 func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Federation Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+		"method": "onStatus",
+	})
+	defer span.End()
 
 	var state model.SiteState
 	json.Unmarshal(request.Body, &state)
 
-	err := c.SitesManager.ReportState(request.Context, state)
+	err := c.SitesManager.ReportState(pCtx, state)
 
 	if err != nil {
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -218,6 +222,8 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onRegistry",
 	})
+	defer span.End()
+
 	tLog.Info("V (Federation): onRegistry")
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -291,13 +297,14 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onSync",
 	})
+	defer span.End()
+
 	tLog.Info("V (Federation): onSync")
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -385,10 +392,14 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+		"method": "onTrail",
+	})
+	defer span.End()
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -400,6 +411,8 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onK8sHook",
 	})
+	defer span.End()
+
 	tLog.Info("V (Federation): onK8sHook")
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -441,6 +454,5 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

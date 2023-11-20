@@ -133,6 +133,8 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
 		"method": "onCheck",
 	})
+	defer span.End()
+
 	lLog.Info("V (Catalogs Vendor): onCheck")
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -172,13 +174,14 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
 		"method": "onCatalogsGraph",
 	})
+	defer span.End()
+
 	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -230,13 +233,14 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
 		"method": "onCatalogs",
 	})
+	defer span.End()
+
 	lLog.Info("V (Catalogs Vendor): onCatalogs")
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -323,6 +327,5 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

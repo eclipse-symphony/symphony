@@ -34,6 +34,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
+
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type TrailsManager struct {
@@ -56,6 +59,11 @@ func (s *TrailsManager) Init(context *contexts.VendorContext, config managers.Ma
 }
 
 func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) error {
+	ctx, span := observability.StartSpan("Sync Manager", ctx, &map[string]string{
+		"method": "Append",
+	})
+	defer span.End()
+
 	errMessage := ""
 	for _, p := range s.LedgerProviders {
 		err := p.Append(ctx, trails)
@@ -64,7 +72,9 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 		}
 	}
 	if errMessage != "" {
-		return v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
+		retError := v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
+		observ_utils.CloseSpanWithError(span, retError)
+		return retError
 	}
 	return nil
 }

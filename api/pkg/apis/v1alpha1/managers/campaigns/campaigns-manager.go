@@ -34,6 +34,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
@@ -59,6 +61,11 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 
 // GetCampaign retrieves a CampaignSpec object by name
 func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.CampaignState, error) {
+	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	defer span.End()
+
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -69,11 +76,13 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.CampaignState{}, err
 	}
 
 	ret, err := getCampaignState(name, entry.Body)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.CampaignState{}, err
 	}
 	return ret, nil
@@ -97,6 +106,11 @@ func getCampaignState(id string, body interface{}) (model.CampaignState, error) 
 }
 
 func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec model.CampaignSpec) error {
+	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	defer span.End()
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -119,12 +133,18 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 	}
 	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
 }
 
 func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
+	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	defer span.End()
+
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -137,6 +157,11 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 }
 
 func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState, error) {
+	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	defer span.End()
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -146,6 +171,7 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.CampaignState, 0)

@@ -35,6 +35,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
@@ -61,6 +63,11 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 }
 
 func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.ActivationState, error) {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	defer span.End()
+
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -71,11 +78,13 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.ActivationState{}, err
 	}
 
 	ret, err := getActivationState(name, entry.Body, entry.ETag)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return model.ActivationState{}, err
 	}
 	return ret, nil
@@ -107,6 +116,11 @@ func getActivationState(id string, body interface{}, etag string) (model.Activat
 }
 
 func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec model.ActivationSpec) error {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	defer span.End()
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -130,12 +144,17 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 	}
 	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
 }
 
 func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	defer span.End()
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -148,6 +167,10 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 }
 
 func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationState, error) {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	defer span.End()
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -170,6 +193,11 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	return ret, nil
 }
 func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, current model.ActivationStatus) error {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "ReportStatus",
+	})
+	defer span.End()
+
 	lock.Lock()
 	defer lock.Unlock()
 	getRequest := states.GetRequest{
@@ -182,6 +210,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	entry, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	dict := entry.Body.(map[string]interface{})
@@ -198,6 +227,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, err)
 		return err
 	}
 	return nil
