@@ -102,7 +102,7 @@ func (s *ScriptStageProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("[Stage] Script Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
 	sLog.Info("  P (Script Stage): Init()")
@@ -158,7 +158,7 @@ func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageP
 }
 
 func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("[Stage] Script Provider", context.Background(), &map[string]string{
 		"method": "Get",
 	})
 	sLog.Info("  P (Script Stage): start process request")

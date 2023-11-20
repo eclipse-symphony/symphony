@@ -38,6 +38,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -132,6 +134,11 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 	return ret, nil
 }
 func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	ctx, span := observability.StartSpan("[Stage] Create provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	defer span.End()
+
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
@@ -148,17 +155,20 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		if action == "remove" {
 			err := utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
+				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 		} else {
 			err := utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 			if err != nil {
+				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				summary, err := utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
+					observ_utils.CloseSpanWithError(span, err)
 					return nil, false, err
 				}
 				if summary.Summary.SuccessCount == summary.Summary.TargetCount {
@@ -166,7 +176,9 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
-			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			retError := v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			observ_utils.CloseSpanWithError(span, retError)
+			return nil, false, retError
 		}
 	}
 	outputs["objectType"] = objectType

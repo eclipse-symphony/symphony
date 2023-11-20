@@ -253,7 +253,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 // Apply applies the ingress artifacts
 func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx,
 		&map[string]string{

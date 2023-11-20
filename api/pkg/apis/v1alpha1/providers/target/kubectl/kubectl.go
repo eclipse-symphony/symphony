@@ -310,7 +310,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 // Apply applies the deployment artifacts
 func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx,
 		&map[string]string{

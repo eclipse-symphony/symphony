@@ -114,6 +114,8 @@ func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("ADU Target Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("~~~ ADU Target Provider ~~~ : Init()")
 
 	updateConfig, err := toADUTargetProviderConfig(config)
@@ -148,6 +150,8 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Info("~~~ ADU Update Provider ~~~ : getting components")
 	deployment, err := i.getDeployment()
 	if err != nil {
@@ -199,9 +203,11 @@ func getDeploymentFromComponent(c model.ComponentSpec) (azureutils.ADUDeployment
 }
 
 func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Info("  P (ADU Update): applying components")
 
 	components := step.GetComponents()

@@ -86,6 +86,7 @@ func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
 	sLog.Info("~~~ Proxy Provider ~~~ : Init()")
 
 	updateConfig, err := toProxyUpdateProviderConfig(config)
@@ -133,9 +134,11 @@ func (a *ProxyUpdateProvider) callRestAPI(route string, method string, payload [
 }
 
 func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Proxy Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Infof("~~~ Proxy Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -156,9 +159,11 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 }
 
 func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Proxy Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()

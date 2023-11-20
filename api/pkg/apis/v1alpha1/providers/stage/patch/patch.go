@@ -36,6 +36,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -150,6 +152,11 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 }
 
 func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	ctx, span := observability.StartSpan("[Stage] Patch Provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	defer span.End()
+
 	sLog.Info("  P (Patch Stage): start process request")
 
 	outputs := make(map[string]interface{})
@@ -181,11 +188,14 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 		} else {
 			sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
-			return nil, false, v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			retError := v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			observ_utils.CloseSpanWithError(span, retError)
+			return nil, false, retError
 		}
 	case "inline":
 		if componentName != "" {
@@ -197,13 +207,16 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				}
 			} else {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
-				return nil, false, v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+				retError := v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+				observ_utils.CloseSpanWithError(span, retError)
+				return nil, false, retError
 			}
 		} else {
 			var componentSpec model.ComponentSpec
 			jData, _ := json.Marshal(patchContent)
 			if err := json.Unmarshal(jData, &componentSpec); err != nil {
 				sLog.Errorf("  P (Patch Stage): error unmarshalling componentSpec")
+				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			catalog = model.CatalogState{
@@ -216,13 +229,16 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 	default:
 		sLog.Errorf("  P (Patch Stage): unsupported patchSource: %s", patchSource)
-		return nil, false, v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+		retError := v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+		observ_utils.CloseSpanWithError(span, retError)
+		return nil, false, retError
 	}
 
 	for k, v := range catalog.Spec.Properties {
 		tv, err := i.traceValue(v, inputs["context"])
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
+			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		catalog.Spec.Properties[k] = tv
@@ -233,6 +249,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
+			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 
@@ -290,11 +307,15 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 										}
 									} else {
 										sLog.Errorf("  P (Patch Stage): subKey is not valid")
-										return nil, false, v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+										retError := v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+										observ_utils.CloseSpanWithError(span, retError)
+										return nil, false, retError
 									}
 								} else {
 									sLog.Errorf("  P (Patch Stage): subKey is not valid")
-									return nil, false, v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+									retError := v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+									observ_utils.CloseSpanWithError(span, retError)
+									return nil, false, retError
 								}
 							} else {
 								if targetMap, ok := p.([]interface{}); ok {
@@ -321,7 +342,9 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 									udpated = true
 								} else {
 									sLog.Errorf("  P (Patch Stage): target properties is not valid")
-									return nil, false, v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+									retError := v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+									observ_utils.CloseSpanWithError(span, retError)
+									return nil, false, retError
 								}
 							}
 							break
@@ -336,6 +359,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
+				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 		}

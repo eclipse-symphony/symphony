@@ -112,9 +112,11 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 }
 
 func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
+
 	sLog.Infof("  P(HTTP Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	injections := &model.ValueInjections{

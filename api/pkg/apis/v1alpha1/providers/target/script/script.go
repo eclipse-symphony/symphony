@@ -118,6 +118,8 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
 		"method": "Init",
 	})
+	defer span.End()
+
 	sLog.Info("  P (Script Target): Init()")
 
 	updateConfig, err := toScriptProviderConfig(config)
@@ -179,9 +181,11 @@ func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderCon
 }
 
 func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	defer span.End()
+
 	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	id := uuid.New().String()
@@ -303,9 +307,10 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 	return ret, nil
 }
 func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	defer span.End()
 	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
