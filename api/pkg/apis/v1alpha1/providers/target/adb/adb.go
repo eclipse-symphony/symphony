@@ -78,6 +78,9 @@ func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan("Android ADB Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	aLog.Info("  P (Android ADB): Init()")
 
 	updateConfig, err := toAdbProviderConfig(config)
@@ -85,8 +88,6 @@ func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 		return errors.New("expected AdbProviderConfig")
 	}
 	i.Config = updateConfig
-
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
