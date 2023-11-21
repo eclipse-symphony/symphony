@@ -192,7 +192,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		data, _ := json.Marshal(deployment)
-		_, err := i.callRestAPI("instances", "DELETE", data)
+		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {
 			return ret, err
 		}

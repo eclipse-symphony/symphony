@@ -129,7 +129,8 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	switch objectType {
 	case "instance":
-		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		var instances []model.InstanceState
+		instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err
@@ -144,7 +145,8 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["items"] = instances
 		}
 	case "sites":
-		sites, err := utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		var sites []model.SiteState
+		sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get sites: %v", err)
 			return nil, false, err

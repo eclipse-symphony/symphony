@@ -385,7 +385,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 
 				} else {
-					err := errors.New("component doesn't have yaml property or resource property")
+					err = errors.New("component doesn't have yaml property or resource property")
 					sLog.Error("  P (Kubectl Target):  component doesn't have yaml property or resource property")
 					return ret, err
 				}

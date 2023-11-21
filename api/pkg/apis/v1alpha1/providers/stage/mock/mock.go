@@ -109,7 +109,8 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if v == nil || v == "" {
 			outputs["foo"] = 1
 		} else {
-			val, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			var val int64
+			val, err = strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
 			if err == nil {
 				outputs["foo"] = val + 1
 			}

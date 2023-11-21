@@ -373,7 +373,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(*eCtx)
+			var val interface{}
+			val, err = parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
@@ -425,7 +426,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			inputs["__schedule"] = string(jSchedule)
 		}
 		for k, v := range inputs {
-			val, err := s.traceValue(v, inputs, triggerData.Outputs)
+			var val interface{}
+			val, err = s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
@@ -447,7 +449,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		log.Debugf(" M (Stage): HandleTriggerEvent after evaluation inputs 2: %v", inputs)
 
 		factory := symproviders.SymphonyProviderFactory{}
-		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
+		var provider providers.IProvider
+		provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
 		if err != nil {
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
@@ -478,7 +481,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				inputCopy["__site"] = site
 
 				for k, v := range inputCopy {
-					val, err := s.traceValue(v, inputCopy, triggerData.Outputs)
+					var val interface{}
+					val, err = s.traceValue(v, inputCopy, triggerData.Outputs)
 					if err != nil {
 						status.Status = v1alpha2.InternalError
 						status.ErrorMessage = err.Error()
@@ -509,7 +513,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						Site:    site,
 					}
 				} else {
-					outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+					var outputs map[string]interface{}
+					var pause bool
+					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
 
 					if pause {
 						pauseRequested = true
@@ -573,7 +579,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					Sites:         sites,
 					OutputContext: triggerData.Outputs,
 				}
-				_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 					Value: states.StateEntry{
 						ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
 						Body: pendingTask,
@@ -600,7 +606,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(*eCtx)
+			var val interface{}
+			val, err = parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()

@@ -63,7 +63,7 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -72,6 +72,7 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "models",
 		},
 	})
+	return err
 }
 
 func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
@@ -128,7 +129,8 @@ func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error
 	}
 	ret := make([]model.ModelState, 0)
 	for _, t := range models {
-		rt, err := getModelState(t.ID, t.Body, t.ETag)
+		var rt model.ModelState
+		rt, err = getModelState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

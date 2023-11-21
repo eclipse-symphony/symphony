@@ -134,7 +134,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	if spec, ok := catalog.Spec.Properties["components"]; ok {
 		var components []model.ComponentSpec
 		jData, _ := json.Marshal(spec)
-		err := json.Unmarshal(jData, &components)
+		err = json.Unmarshal(jData, &components)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return nil, err
@@ -207,7 +207,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
 		jData, _ := json.Marshal(v)
-		err := json.Unmarshal(jData, &existing)
+		err = json.Unmarshal(jData, &existing)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return ret, err
@@ -238,7 +238,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var deleted []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
 		jData, _ := json.Marshal(v)
-		err := json.Unmarshal(jData, &deleted)
+		err = json.Unmarshal(jData, &deleted)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return ret, err

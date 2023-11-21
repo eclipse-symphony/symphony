@@ -192,7 +192,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			}
 		} else {
 			sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
-			err := v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
 			return nil, false, err
 		}
 	case "inline":
@@ -205,13 +205,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				}
 			} else {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
-				err := v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+				err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
 				return nil, false, err
 			}
 		} else {
 			var componentSpec model.ComponentSpec
 			jData, _ := json.Marshal(patchContent)
-			if err := json.Unmarshal(jData, &componentSpec); err != nil {
+			if err = json.Unmarshal(jData, &componentSpec); err != nil {
 				sLog.Errorf("  P (Patch Stage): error unmarshalling componentSpec")
 				return nil, false, err
 			}
@@ -225,12 +225,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 	default:
 		sLog.Errorf("  P (Patch Stage): unsupported patchSource: %s", patchSource)
-		err := v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+		err = v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
 		return nil, false, err
 	}
 
 	for k, v := range catalog.Spec.Properties {
-		tv, err := i.traceValue(v, inputs["context"])
+		var tv interface{}
+		tv, err = i.traceValue(v, inputs["context"])
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
 			return nil, false, err
@@ -240,7 +241,8 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
-		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+		var solution model.SolutionState
+		solution, err = utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
@@ -301,12 +303,12 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 										}
 									} else {
 										sLog.Errorf("  P (Patch Stage): subKey is not valid")
-										err := v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+										err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
 										return nil, false, err
 									}
 								} else {
 									sLog.Errorf("  P (Patch Stage): subKey is not valid")
-									err := v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+									err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
 									return nil, false, err
 								}
 							} else {
@@ -334,7 +336,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 									udpated = true
 								} else {
 									sLog.Errorf("  P (Patch Stage): target properties is not valid")
-									err := v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+									err = v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
 									return nil, false, err
 								}
 							}
@@ -347,7 +349,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 		if udpated {
 			jData, _ := json.Marshal(solution.Spec)
-			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
+			err = utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
 				return nil, false, err

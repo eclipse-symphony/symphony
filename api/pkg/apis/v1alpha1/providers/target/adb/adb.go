@@ -121,7 +121,8 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 			params = append(params, "list")
 			params = append(params, "packages")
 			params = append(params, fmt.Sprintf("%v", p))
-			out, err := exec.Command("adb", params...).Output()
+			var out []byte
+			out, err = exec.Command("adb", params...).Output()
 
 			if err != nil {
 				return nil, err
@@ -171,7 +172,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 						params = append(params, "install")
 						params = append(params, p.(string))
 						cmd := exec.Command("adb", params...)
-						err := cmd.Run()
+						err = cmd.Run()
 						if err != nil {
 							ret[component.Name] = model.ComponentResultSpec{
 								Status:  v1alpha2.UpdateFailed,
@@ -194,7 +195,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 					params = append(params, p.(string))
 
 					cmd := exec.Command("adb", params...)
-					err := cmd.Run()
+					err = cmd.Run()
 					if err != nil {
 						ret[component.Name] = model.ComponentResultSpec{
 							Status:  v1alpha2.DeleteFailed,

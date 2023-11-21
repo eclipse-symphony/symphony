@@ -233,7 +233,8 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		obj, err := i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		var obj *networkingv1.Ingress
+		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (Ingress Target): resource not found: %s", err)
@@ -290,7 +291,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				if v, ok := component.Properties["rules"]; ok {
 					jData, _ := json.Marshal(v)
 					var rules []networkingv1.IngressRule
-					err := json.Unmarshal(jData, &rules)
+					err = json.Unmarshal(jData, &rules)
 					if err != nil {
 						sLog.Error("  P (Ingress Target): failed to unmarshal ingress: +%v", err)
 						return ret, err

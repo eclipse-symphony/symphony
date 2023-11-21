@@ -34,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
@@ -154,17 +155,18 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	switch objectType {
 	case "instance":
 		if action == "remove" {
-			err := utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 		} else {
-			err := utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
+			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				summary, err := utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+				var summary model.SummaryResult
+				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					observ_utils.CloseSpanWithError(span, &err)

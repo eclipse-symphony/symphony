@@ -219,7 +219,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				params = append(params, path)
 
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					ret[component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -261,7 +261,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				params = append(params, name)
 
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					if i.Config.Silent {
 						return ret, nil

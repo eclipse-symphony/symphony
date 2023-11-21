@@ -101,21 +101,24 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	for k, v := range inputs {
 		if k != "__state" {
 			if !strings.HasSuffix(k, ".init") {
-				if v, err := getNumber(v); err == nil {
+				var iv int64
+				if iv, err = getNumber(v); err == nil {
 					if s, ok := selfState[k]; ok {
-						if sv, err := getNumber(s); err == nil {
-							selfState[k] = sv + v
-							outputs[k] = sv + v
+						var sv int64
+						if sv, err = getNumber(s); err == nil {
+							selfState[k] = sv + iv
+							outputs[k] = sv + iv
 						}
 					} else {
 						if vs, ok := inputs[k+".init"]; ok {
-							if vs, err := getNumber(vs); err == nil {
-								selfState[k] = vs + v
-								outputs[k] = vs + v
+							var ivs int64
+							if ivs, err = getNumber(vs); err == nil {
+								selfState[k] = ivs + iv
+								outputs[k] = ivs + iv
 							}
 						} else {
-							selfState[k] = v
-							outputs[k] = v
+							selfState[k] = iv
+							outputs[k] = iv
 						}
 					}
 				}

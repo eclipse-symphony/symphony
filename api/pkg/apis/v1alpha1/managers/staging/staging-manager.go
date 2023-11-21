@@ -113,7 +113,8 @@ func (s *StagingManager) Poll() []error {
 				"resource": "catalogs",
 			},
 		}
-		entry, err := s.StateProvider.Get(ctx, getRequest)
+		var entry states.StateEntry
+		entry, err = s.StateProvider.Get(ctx, getRequest)
 		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.Spec.Generation {
 			continue
 		}
@@ -147,7 +148,7 @@ func (s *StagingManager) Reconcil() []error {
 }
 
 func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
-	ctx, span := observability.StartSpan("Staging Manager", ctx, &map[string]string{
+	_, span := observability.StartSpan("Staging Manager", ctx, &map[string]string{
 		"method": "HandleJobEvent",
 	})
 	var err error = nil
@@ -157,7 +158,8 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 	jData, _ := json.Marshal(event.Body)
 	err = json.Unmarshal(jData, &job)
 	if err != nil {
-		return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
+		err = v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
+		return err
 	}
 	s.QueueProvider.Enqueue(Site_Job_Queue, event.Metadata["site"])
 	return s.QueueProvider.Enqueue(event.Metadata["site"], job)

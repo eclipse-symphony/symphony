@@ -156,7 +156,7 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	return m.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -165,6 +165,7 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 			"resource": "activations",
 		},
 	})
+	return err
 }
 
 func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationState, error) {
@@ -187,7 +188,8 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	}
 	ret := make([]model.ActivationState, 0)
 	for _, t := range solutions {
-		rt, err := getActivationState(t.ID, t.Body, t.ETag)
+		var rt model.ActivationState
+		rt, err = getActivationState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

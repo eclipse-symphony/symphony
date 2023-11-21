@@ -183,7 +183,8 @@ func (i *MemoryGraphProvider) GetSets(ctx context.Context, request graph.ListReq
 		}
 		if node.GetParent() == "" && !seenSets[node.GetId()] {
 			seenSets[node.GetId()] = true
-			set, err := i.GetSet(ctx, graph.GetRequest{
+			var set graph.GetSetResponse
+			set, err = i.GetSet(ctx, graph.GetRequest{
 				Name: node.GetId(),
 			})
 			if err != nil {
@@ -212,7 +213,8 @@ func (i *MemoryGraphProvider) GetTrees(ctx context.Context, request graph.ListRe
 		}
 		if node.GetParent() == "" && !seenSets[node.GetId()] {
 			seenSets[node.GetId()] = true
-			set, err := i.GetTree(ctx, graph.GetRequest{
+			var set graph.GetSetResponse
+			set, err = i.GetTree(ctx, graph.GetRequest{
 				Name: node.GetId(),
 			})
 			if err != nil {
@@ -240,7 +242,8 @@ func (i *MemoryGraphProvider) GetChains(ctx context.Context, request graph.ListR
 		}
 		if node.GetParent() == "" && !seenSets[node.GetId()] {
 			seenSets[node.GetId()] = true
-			set, err := i.GetChain(ctx, graph.GetRequest{
+			var set graph.GetSetResponse
+			set, err = i.GetChain(ctx, graph.GetRequest{
 				Name: node.GetId(),
 			})
 			if err != nil {

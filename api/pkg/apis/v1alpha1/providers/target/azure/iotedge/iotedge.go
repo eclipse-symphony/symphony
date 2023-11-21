@@ -221,12 +221,14 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	components := make([]model.ComponentSpec, 0)
 	for k, m := range modules {
 		if k != "$edgeAgent" && k != "$edgeHub" {
-			twin, err := i.getIoTEdgeModuleTwin(ctx, k)
+			var twin ModuleTwin
+			twin, err = i.getIoTEdgeModuleTwin(ctx, k)
 			if err != nil {
 				sLog.Error("  P(IoT Edge Target): +%v", err)
 				return nil, err
 			}
-			component, err := toComponent(hubTwin, twin, deployment.Instance.Name, m)
+			var component model.ComponentSpec
+			component, err = toComponent(hubTwin, twin, deployment.Instance.Name, m)
 			if err != nil {
 				sLog.Error("  P(IoT Edge Target): +%v", err)
 				return nil, err
