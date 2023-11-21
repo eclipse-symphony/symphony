@@ -61,35 +61,14 @@ var (
 	))
 )
 
-func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureFunc()
-	}
-	return ossFunc()
-}
-func conditionalString(azureStr string, ossStr string) string {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureStr
-	}
-	return ossStr
-}
-
 // Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition manifest.
 func Manifests() error {
 	mg.Deps(ensureControllerGen)
-	return conditionalRun(
-		func() error {
-			return shellcmd.RunAll(
-				shellcmd.Command("rm -rf config/azure/crd/bases"),
-				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/symphony.microsoft.com/v1 output:crd:artifacts:config=config/azure/crd/bases output:webhook:artifacts:config=config/azure/webhook"),
-			)
-		},
-		func() error {
-			return shellcmd.RunAll(
-				shellcmd.Command("rm -rf config/oss/crd/bases"),
-				controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/ai/v1 paths=./apis/fabric/v1 paths=./apis/solution/v1 paths=./apis/workflow/v1 paths=./apis/federation/v1 output:crd:artifacts:config=config/oss/crd/bases output:webhook:artifacts:config=config/oss/webhook"),
-			)
-		})
+	return shellcmd.RunAll(
+		shellcmd.Command("rm -rf config/oss/crd/bases"),
+		controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/ai/v1 paths=./apis/fabric/v1 paths=./apis/solution/v1 paths=./apis/workflow/v1 paths=./apis/federation/v1 output:crd:artifacts:config=config/oss/crd/bases output:webhook:artifacts:config=config/oss/webhook"),
+	)
+
 }
 
 // Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -110,20 +89,9 @@ func OperatorTest() error {
 	return shellcmd.Command("go test ./... -race -v -coverprofile cover.out").Run()
 }
 
-func Azure() error {
-	//this is a hack to get around the fact that mage doesn't support passing args to targets
-	return nil
-}
-
 // Build manager binary.
 func Build() error {
-	return conditionalRun(
-		func() error {
-			return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager -tags=azure").Run()
-		},
-		func() error {
-			return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager").Run()
-		})
+	return shellcmd.Command("CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bin/manager").Run()
 }
 
 // Run a controller from your host.
@@ -134,37 +102,19 @@ func Run() error {
 // Kustomize startup symphony yaml for helm chart.
 func HelmTemplate() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return conditionalRun(
-		func() error {
-			return kustomize.Command("build config/azure/helm -o ../packages/helm/symphony/templates/symphony.yaml").Run()
-		},
-		func() error {
-			return kustomize.Command("build config/oss/helm -o ../packages/helm/symphony/templates/symphony.yaml").Run()
-		})
+	return kustomize.Command("build config/oss/helm -o ../packages/helm/symphony/templates/symphony.yaml").Run()
 }
 
 // Install CRDs into the K8s cluster specified in ~/.kube/config.
 func InstallCRDs() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return conditionalRun(
-		func() error {
-			return shellcmd.Command("kubectl apply -f config/azure/crd").Run()
-		},
-		func() error {
-			return shellcmd.Command("kubectl apply -f config/oss/crd").Run()
-		})
+	return shellcmd.Command("kubectl apply -f config/oss/crd").Run()
 }
 
 // Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 func UninstallCRDs() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return conditionalRun(
-		func() error {
-			return shellcmd.Command("kubectl delete --ignore-not-found -f config/azure/crd/bases").Run()
-		},
-		func() error {
-			return shellcmd.Command("kubectl delete --ignore-not-found -f config/oss/crd/bases").Run()
-		})
+	return shellcmd.Command("kubectl delete --ignore-not-found -f config/oss/crd/bases").Run()
 }
 
 func ensureControllerGen() error {

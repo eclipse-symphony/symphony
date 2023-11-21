@@ -1,0 +1,163 @@
+//go:build mage
+
+/*
+Use this tool to quickly build symphony api or maestro cli. It can also help generate the release package.
+*/
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/princjef/mageutil/shellcmd"
+)
+
+// Build maestro cli tools for Windows, Mac and Linux.
+func BuildCli() error {
+	if err := shellcmd.RunAll(
+		"go build -o maestro",
+		"GOOS=windows GOARCH=amd64 go build -o maestro.exe",
+		"GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Build Symphony api for Windows, Mac and Linux.
+func BuildApi() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	err = os.Chdir(filepath.Join(wd, "..", "api"))
+	if err != nil {
+		return err
+	}
+	if err := shellcmd.RunAll(
+		shellcmd.Command("go build -o symphony-api"),
+		shellcmd.Command("GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
+		shellcmd.Command("GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+	); err != nil {
+		return err
+	}
+	err = os.Chdir(filepath.Join(wd))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Generate packages with Symphony api, maestro cli and samples for Windows, Mac and Linux.
+func GeneratePackages(des string) error {
+	des = filepath.Clean(des)
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	symphonyPath := filepath.Dir(wd)
+	fmt.Println(symphonyPath)
+	if err := BuildCli(); err != nil {
+		return err
+	}
+	if err := BuildApi(); err != nil {
+		return err
+	}
+	err = os.MkdirAll(des, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// remove previous packages, if any
+	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_linux_amd64.tar.gz", des)); err != nil {
+		return err
+	}
+	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_windows_amd64.zip", des)); err != nil {
+		return err
+	}
+	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_darwin_amd64.tar.gz", des)); err != nil {
+		return err
+	}
+
+	// copy new binary files, configuration files and scripts
+	if err := shellcmd.RunAll(
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro.exe %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s//cli/maestro-mac %s", symphonyPath, des)),
+	); err != nil {
+		return err
+	}
+
+	// copy over samples
+	err = os.MkdirAll(filepath.Join(des, "k8s"), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(des, "iot-edge"), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if err := shellcmd.RunAll(
+		shellcmd.Command(fmt.Sprintf("cp %s/docs/samples/samples.json %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/k8s/hello-world/ %s", symphonyPath, filepath.Join(des, "k8s"))),
+		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/k8s/staged/ %s", symphonyPath, filepath.Join(des, "k8s"))),
+		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/iot-edge/simulated-temperature-sensor/ %s", symphonyPath, filepath.Join(des, "iot-edge"))),
+	); err != nil {
+		return err
+	}
+
+	// change working directory to des folder
+	err = os.Chdir(des)
+	if err != nil {
+		return err
+	}
+
+	// package Linux
+	linuxCommand := fmt.Sprintf("tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	if err := shellcmd.RunAll(
+		shellcmd.Command(linuxCommand),
+	); err != nil {
+		return err
+	}
+
+	// package windows
+	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
+	if err := shellcmd.RunAll(
+		shellcmd.Command(windowsCommand),
+	); err != nil {
+		return err
+	}
+
+	// package mac
+	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	if err := shellcmd.RunAll(
+		shellcmd.Command(fmt.Sprintf("rm maestro")),
+		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
+		shellcmd.Command(fmt.Sprintf("mv maestro-mac maestro")),
+		shellcmd.Command(fmt.Sprintf("mv symphony-api-mac symphony-api")),
+		shellcmd.Command(macComomand),
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removePakcageIfExist(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		if err := shellcmd.Command(
+			fmt.Sprintf("rm %s", path),
+		).Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}

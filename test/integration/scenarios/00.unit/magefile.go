@@ -51,19 +51,6 @@ var (
 	}
 )
 
-func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureFunc()
-	}
-	return ossFunc()
-}
-func conditionalString(azureStr string, ossStr string) string {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureStr
-	}
-	return ossStr
-}
-
 // Entry point for running the tests
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
@@ -87,7 +74,7 @@ func Test() error {
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
 	// Deploy symphony
-	err := localenvCmd("cluster:deploy", conditionalString("azure", ""))
+	err := localenvCmd("cluster:deploy", "")
 	if err != nil {
 		return err
 	}
@@ -115,7 +102,7 @@ func Verify() error {
 	if err != nil {
 		return err
 	}
-	os.Setenv("SYMPHONY_FLAVOR", conditionalString("azure", "oss"))
+	os.Setenv("SYMPHONY_FLAVOR", "oss")
 	for _, testFile := range testPackage {
 		fullPath, err := filepath.Abs(testFile)
 		if err != nil {
@@ -130,14 +117,11 @@ func Verify() error {
 
 	return nil
 }
-func Azure() error {
-	return nil
-}
 
 // Clean up
 func Cleanup() {
 	shellExec(fmt.Sprintf("kubectl delete deployment nginx -n default"))
-	localenvCmd("destroy all", conditionalString("azure", ""))
+	localenvCmd("destroy all", "")
 }
 
 // Run a mage command from /localenv

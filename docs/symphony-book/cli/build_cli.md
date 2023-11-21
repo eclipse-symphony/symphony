@@ -64,7 +64,7 @@ _(last edit: 10/24/2023)_
    # package Linux
    tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge
    # package Windows
-   zip maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge
+   zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge
    # package Mac
    rm maestro
    rm symphony-api
