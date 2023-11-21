@@ -61,7 +61,7 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -80,7 +80,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -111,7 +111,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -158,7 +158,7 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,

@@ -81,7 +81,7 @@ func (s *StagingManager) Poll() []error {
 		"method": "Poll",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Debug(" M (Staging): Polling...")
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
@@ -100,7 +100,7 @@ func (s *StagingManager) Poll() []error {
 		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
@@ -151,7 +151,7 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 		"method": "HandleJobEvent",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	var job v1alpha2.JobData
 	jData, _ := json.Marshal(event.Body)

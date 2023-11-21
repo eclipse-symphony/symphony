@@ -115,7 +115,7 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Debug("  P (K8s State): initialize")
 
@@ -190,7 +190,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		"method": "Upsert",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (K8s State): upsert state")
 
@@ -229,7 +229,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
+			observ_utils.CloseSpanWithError(span, &err)
 			sLog.Errorf("  P (K8s State): failed to deserialize template: %v", err)
 			return "", err
 		}
@@ -292,7 +292,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 		"method": "List",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (K8s State): list state")
 
@@ -336,7 +336,7 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 		"method": "Delete",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (K8s State): delete state")
 
@@ -368,7 +368,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (K8s State): get state")
 

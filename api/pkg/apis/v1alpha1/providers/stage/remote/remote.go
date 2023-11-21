@@ -92,7 +92,7 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info("  P (Remote Processor): Process")
 

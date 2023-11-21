@@ -77,7 +77,7 @@ func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.Catal
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -128,7 +128,7 @@ func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSp
 		"method": "ValidateSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	if schemaName, ok := spec.Metadata["schema"]; ok {
 		schema, err := m.GetSpec(ctx, schemaName)
@@ -156,7 +156,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	result, err := m.ValidateSpec(ctx, spec)
 	if err != nil {
@@ -208,7 +208,7 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	//TODO: publish DELETE event
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -227,7 +227,7 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -272,7 +272,7 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[str
 		"method": "GetChains",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Debug(" M (Graph): GetChains")
 	err = g.setProviderDataIfNecessary(ctx)
@@ -294,7 +294,7 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[stri
 		"method": "GetTrees",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Debug(" M (Graph): GetTrees")
 	err = g.setProviderDataIfNecessary(ctx)

@@ -101,7 +101,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	})
 
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	tag := "1"
 	if entry.Value.ETag != "" {
@@ -135,7 +135,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 		"method": "List",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Debug("  P (Memory State): list states")
 
@@ -163,7 +163,7 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 		"method": "Delete",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Debug("  P (Memory State): delete state")
 
@@ -183,7 +183,7 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Debug("  P (Memory State): get state")
 

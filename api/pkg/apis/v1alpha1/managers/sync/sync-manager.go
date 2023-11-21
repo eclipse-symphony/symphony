@@ -60,7 +60,7 @@ func (s *SyncManager) Poll() []error {
 		"method": "Poll",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}

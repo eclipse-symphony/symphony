@@ -140,9 +140,9 @@ func CloseSpanWithCOAResponse(span trace.Span, resp v1alpha2.COAResponse) v1alph
 	span.End()
 	return resp
 }
-func CloseSpanWithError(span trace.Span, err error) {
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
+func CloseSpanWithError(span trace.Span, err *error) {
+	if err != nil && *err != nil {
+		span.SetStatus(codes.Error, (*err).Error())
 	} else {
 		span.SetStatus(codes.Ok, "")
 	}

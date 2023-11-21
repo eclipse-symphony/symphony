@@ -185,7 +185,7 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P(IoT Edge Target): Init()")
 
@@ -203,7 +203,7 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P(IoT Edge Target): getting components")
 
@@ -243,7 +243,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P(IoT Edge Target): applying components")
 
@@ -548,7 +548,7 @@ func (i *IoTEdgeTargetProvider) getIoTEdgeModuleTwin(ctx context.Context, id str
 		"url":    url,
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	module := ModuleTwin{}
 	sasToken := azureutils.CreateSASToken(fmt.Sprintf("%s/devices/%s", i.Config.IoTHub, i.Config.DeviceName), i.Config.KeyName, i.Config.Key)
@@ -628,7 +628,7 @@ func (i *IoTEdgeTargetProvider) applyIoTEdgeDeployment(ctx context.Context, depl
 	})
 
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sasToken := azureutils.CreateSASToken(fmt.Sprintf("%s/devices/%s", i.Config.IoTHub, i.Config.DeviceName), i.Config.KeyName, i.Config.Key)
 	client := &http.Client{}

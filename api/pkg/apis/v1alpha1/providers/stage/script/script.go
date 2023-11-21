@@ -106,7 +106,7 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (Script Stage): Init()")
 
@@ -164,7 +164,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (Script Stage): start process request")
 

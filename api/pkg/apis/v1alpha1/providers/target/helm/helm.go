@@ -153,7 +153,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Helm Target): Init()")
 
 	err = initChartsDir()
@@ -258,7 +258,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 	i.ListClient.Deployed = true
 	var results []*release.Release
@@ -337,7 +337,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()

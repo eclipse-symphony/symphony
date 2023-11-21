@@ -84,7 +84,7 @@ func (i *MemoryGraphProvider) GetSet(ctx context.Context, request graph.GetReque
 		"method": "GetSet",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	ret := graph.GetSetResponse{
 		Nodes: make([]v1alpha2.INode, 0),
@@ -108,7 +108,7 @@ func (i *MemoryGraphProvider) GetTree(ctx context.Context, request graph.GetRequ
 		"method": "GetTree",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	ret := graph.GetSetResponse{
 		Nodes: make([]v1alpha2.INode, 0),
@@ -161,7 +161,7 @@ func (i *MemoryGraphProvider) GetChain(ctx context.Context, request graph.GetReq
 		"method": "GetChain",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	rep, err := i.GetTree(ctx, request)
 	return rep, err
@@ -171,7 +171,7 @@ func (i *MemoryGraphProvider) GetSets(ctx context.Context, request graph.ListReq
 		"method": "GetSets",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{
@@ -200,7 +200,7 @@ func (i *MemoryGraphProvider) GetTrees(ctx context.Context, request graph.ListRe
 		"method": "GetTrees",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{
@@ -228,7 +228,7 @@ func (i *MemoryGraphProvider) GetChains(ctx context.Context, request graph.ListR
 		"method": "GetChains",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	seenSets := make(map[string]bool)
 	ret := graph.GetSetsResponse{

@@ -90,7 +90,7 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})

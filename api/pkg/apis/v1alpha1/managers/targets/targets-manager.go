@@ -68,7 +68,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -87,7 +87,7 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -119,7 +119,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		"method": "ReportState",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID:       current.Id,
@@ -127,7 +127,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -147,14 +147,14 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	var rStatus map[string]interface{}
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 	j, _ = json.Marshal(rStatus["properties"])
 	var rProperties map[string]string
 	err = json.Unmarshal(j, &rProperties)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -187,7 +187,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -249,7 +249,7 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,

@@ -755,7 +755,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		"http.url":    baseUrl + route,
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	client := &http.Client{}
 	rUrl := baseUrl + route

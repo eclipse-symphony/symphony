@@ -87,7 +87,7 @@ func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Info("~~~ Proxy Provider ~~~ : Init()")
 
 	updateConfig, err := toProxyUpdateProviderConfig(config)
@@ -139,7 +139,7 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("~~~ Proxy Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -162,7 +162,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 

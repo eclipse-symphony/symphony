@@ -140,7 +140,7 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Kubectl Target): Init()")
 
 	updateConfig, err := toKubectlTargetProviderConfig(config)
@@ -233,7 +233,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -318,7 +318,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -464,7 +464,7 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

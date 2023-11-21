@@ -63,7 +63,7 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 		"method": "Append",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	errMessage := ""
 	for _, p := range s.LedgerProviders {

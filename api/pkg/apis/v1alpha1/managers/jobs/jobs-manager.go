@@ -79,7 +79,7 @@ func (s *JobsManager) pollObjects() []error {
 		"method": "pollObjects",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
@@ -187,7 +187,7 @@ func (s *JobsManager) pollSchedules() []error {
 		"method": "pollSchedules",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	//TODO: use filters and continue tokens
 	list, _, err := s.StateProvider.List(context, states.ListRequest{})
@@ -232,7 +232,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		"method": "HandleHeartBeatEvent",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(event.Body)
@@ -255,7 +255,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 		"method": "DelayOrSkipJob",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	key := "h_" + job.Id
 	if objectType == "target" {
@@ -291,7 +291,7 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 		"method": "HandleScheduleEvent",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	var activationData v1alpha2.ActivationData
 	jData, _ := json.Marshal(event.Body)
@@ -313,7 +313,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		"method": "HandleJobEvent",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData
