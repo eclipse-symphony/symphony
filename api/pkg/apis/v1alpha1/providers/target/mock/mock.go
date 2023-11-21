@@ -59,7 +59,7 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 		},
 	)
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()
@@ -111,7 +111,7 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		},
 	)
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	return cache[m.Config.ID], nil
 }
@@ -124,7 +124,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		},
 	)
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()

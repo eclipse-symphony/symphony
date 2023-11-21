@@ -67,7 +67,7 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -119,7 +119,7 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -154,7 +154,7 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -172,7 +172,7 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -200,7 +200,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 		"method": "ReportStatus",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	lock.Lock()
 	defer lock.Unlock()

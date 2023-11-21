@@ -115,7 +115,7 @@ func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("~~~ ADU Target Provider ~~~ : Init()")
 
@@ -149,7 +149,7 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("~~~ ADU Update Provider ~~~ : getting components")
 	deployment, err := i.getDeployment()
@@ -204,7 +204,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (ADU Update): applying components")
 

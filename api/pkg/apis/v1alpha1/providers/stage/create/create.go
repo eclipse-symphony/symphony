@@ -138,7 +138,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	outputs := make(map[string]interface{})
 
@@ -167,7 +167,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				summary, err := utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
+					observ_utils.CloseSpanWithError(span, &err)
 					return nil, false, err
 				}
 				if summary.Summary.SuccessCount == summary.Summary.TargetCount {

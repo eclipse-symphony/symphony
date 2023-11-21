@@ -189,7 +189,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (Http Stage): start process request")
 

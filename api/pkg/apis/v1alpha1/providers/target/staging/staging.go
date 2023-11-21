@@ -82,7 +82,7 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
@@ -109,7 +109,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	var err error
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	scope := deployment.Instance.Scope
 	if scope == "" {
@@ -161,7 +161,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	var err error
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {

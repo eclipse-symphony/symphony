@@ -119,7 +119,7 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (Script Target): Init()")
 
@@ -187,7 +187,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -310,7 +310,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?

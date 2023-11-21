@@ -105,7 +105,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -146,7 +146,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 

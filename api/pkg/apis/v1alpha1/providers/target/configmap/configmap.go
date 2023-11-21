@@ -133,7 +133,7 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 		},
 	)
 	var err error = nil
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toConfigMapTargetProviderConfig(config)
@@ -226,7 +226,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 		},
 	)
 	var err error = nil
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -266,7 +266,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		},
 	)
 	var err error = nil
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -334,7 +334,7 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 		},
 	)
 	var err error = nil
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

@@ -65,7 +65,7 @@ func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -84,7 +84,7 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -115,7 +115,7 @@ func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState,
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -161,7 +161,7 @@ func (t *SolutionsManager) GetSpec(ctx context.Context, id string) (model.Soluti
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,

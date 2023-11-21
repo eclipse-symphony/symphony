@@ -78,7 +78,7 @@ func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P(HTTP Target): Init()")
 
@@ -105,7 +105,7 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P(HTTP Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -118,7 +118,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P(HTTP Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 

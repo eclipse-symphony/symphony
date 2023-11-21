@@ -91,7 +91,7 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	outputs := make(map[string]interface{})
 	outputs[v1alpha2.StatusOutput] = v1alpha2.OK

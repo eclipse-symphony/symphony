@@ -68,7 +68,7 @@ func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
 		"method": "DeleteUser",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -99,7 +99,7 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	}
 	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		log.Debugf(" M (Users) : failed to upsert user - %s", err)
 		return err
 	}
@@ -116,7 +116,7 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	}
 	user, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
+		observ_utils.CloseSpanWithError(span, &err)
 		log.Debugf(" M (Users) : failed to read user - %s", err)
 		return nil, false
 	}

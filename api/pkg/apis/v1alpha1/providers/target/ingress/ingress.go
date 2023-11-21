@@ -135,7 +135,7 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toIngressTargetProviderConfig(config)
@@ -228,7 +228,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Ingress Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -261,7 +261,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -351,7 +351,7 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

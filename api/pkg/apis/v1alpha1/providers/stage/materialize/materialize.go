@@ -124,7 +124,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	outputs := make(map[string]interface{})
 

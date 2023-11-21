@@ -132,7 +132,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.Sum
 		"method": "GetSummary",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info(" M (Solution): get summary")
 
@@ -192,7 +192,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		"method": "Reconcile",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info(" M (Solution): reconciling")
 
@@ -307,7 +307,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// 				log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
 		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
 		// 				s.saveSummary(ctx, deployment, summary)
-		// 				observ_utils.CloseSpanWithError(span, err)
+		// 				observ_utils.CloseSpanWithError(span, &err)
 		// 				return summary, err
 		// 			}
 		// 		}
@@ -401,7 +401,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	log.Info(" M (Solution): getting deployment")
 
 	ret := model.DeploymentState{}

@@ -65,7 +65,7 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -109,7 +109,7 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -143,7 +143,7 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	return m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -161,7 +161,7 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{

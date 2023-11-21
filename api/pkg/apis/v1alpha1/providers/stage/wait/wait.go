@@ -103,7 +103,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 		"method": "WaitStageProviderConfigFromMap",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info("  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
@@ -161,7 +161,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		"method": "Process",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})

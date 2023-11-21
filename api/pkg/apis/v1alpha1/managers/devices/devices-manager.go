@@ -65,7 +65,7 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 		"method": "DeleteSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	return t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -83,7 +83,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 		"method": "UpsertSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -117,7 +117,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 		"method": "ListSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -163,7 +163,7 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 		"method": "GetSpec",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,

@@ -78,7 +78,7 @@ func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 		"method": "Init",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Info("  P (Docker Target): Init()")
 
@@ -107,7 +107,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -185,7 +185,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
@@ -236,7 +236,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
 			// reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 			// if err != nil {
-			// 	observ_utils.CloseSpanWithError(span, err)
+			// 	observ_utils.CloseSpanWithError(span, &err)
 			// 	sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
 			// 	return err
 			// }

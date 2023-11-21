@@ -234,7 +234,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		"method": "Get",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s", dep.Instance.Scope, dep.Instance.Name)
 
 	var components []model.ComponentSpec
@@ -361,7 +361,7 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, scope string, nam
 }
 func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Span, scope string, name string, metadata map[string]string, components []model.ComponentSpec, projector IK8sProjector, instanceName string) error {
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	deployment, err := componentsToDeployment(scope, name, metadata, components, instanceName)
 	if projector != nil {
@@ -430,7 +430,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		"method": "Apply",
 	})
 	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s", dep.Instance.Scope, dep.Instance.Name)
 
