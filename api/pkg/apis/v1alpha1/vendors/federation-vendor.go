@@ -99,14 +99,14 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
 	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		sites, err := f.SitesManager.ListSpec(context.Background())
+		sites, err := f.SitesManager.ListSpec(context.TODO())
 		if err != nil {
 			return err
 		}
 		for _, site := range sites {
 			if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
 				event.Metadata["site"] = site.Spec.Name
-				f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
+				f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
 			}
 		}
 		return nil
@@ -116,7 +116,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		if !ok {
 			return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
 		}
-		f.StagingManager.HandleJobEvent(context.Background(), event) //TODO: how to handle errors in this case?
+		f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
 		return nil
 	})
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
@@ -126,7 +126,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
 			err := utils.SyncActivationStatus(
-				context.Background(),
+				context.TODO(),
 				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
 				f.Vendor.Context.SiteInfo.ParentSite.Password, status)
@@ -143,13 +143,13 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			var trails []v1alpha2.Trail
 			err := json.Unmarshal(jData, &trails)
 			if err == nil {
-				return f.TrailsManager.Append(context.Background(), trails)
+				return f.TrailsManager.Append(context.TODO(), trails)
 			}
 		}
 		return nil
 	})
 	//now register the current site
-	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
+	return f.SitesManager.UpsertSpec(context.TODO(), f.Context.SiteInfo.SiteId, model.SiteSpec{
 		Name:       f.Context.SiteInfo.SiteId,
 		Properties: f.Context.SiteInfo.Properties,
 		IsSelf:     true,

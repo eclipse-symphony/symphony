@@ -88,7 +88,7 @@ func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]in
 	i.OutputContext = outputs
 }
 func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Remote Process Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil

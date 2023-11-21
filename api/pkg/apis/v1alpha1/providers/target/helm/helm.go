@@ -147,7 +147,7 @@ func (s *HelmTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"Helm Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},
@@ -192,7 +192,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 				}
 
 				namespace := DEFAULT_NAMESPACE
-				actionConfig, err = getActionConfig(context.Background(), namespace, kConfig)
+				actionConfig, err = getActionConfig(context.TODO(), namespace, kConfig)
 				if err != nil {
 					sLog.Errorf("  P (Helm Target): failed to init with config bytes: %+v", err)
 					return err

@@ -181,7 +181,7 @@ func (s *IoTEdgeTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("IoT Edge Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("IoT Edge Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

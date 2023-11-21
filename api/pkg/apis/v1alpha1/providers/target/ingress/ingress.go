@@ -129,7 +129,7 @@ func (i *IngressTargetProvider) InitWithMap(properties map[string]string) error 
 func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"ConfigMap Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},

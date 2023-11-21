@@ -74,7 +74,7 @@ func (s *HttpTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Http Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

@@ -127,7 +127,7 @@ func (i *ConfigMapTargetProvider) InitWithMap(properties map[string]string) erro
 func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"ConfigMap Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},

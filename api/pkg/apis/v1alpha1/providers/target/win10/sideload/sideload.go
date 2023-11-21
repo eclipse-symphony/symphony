@@ -108,7 +108,7 @@ func (s *Win10SideLoadProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Win 10 Sideload Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

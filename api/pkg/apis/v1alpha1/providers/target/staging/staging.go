@@ -78,7 +78,7 @@ func (s *StagingTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Staging Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Staging Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

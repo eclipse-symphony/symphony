@@ -160,7 +160,7 @@ func (m *K8sReferenceProvider) Get(id string, namespace string, group string, ki
 		Group:    group,
 		Version:  version,
 		Resource: kind,
-	}).Namespace(namespace).Get(context.Background(), id, v1.GetOptions{})
+	}).Namespace(namespace).Get(context.TODO(), id, v1.GetOptions{})
 
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (m *K8sReferenceProvider) List(labelSelector string, fieldSelector string, 
 		Group:    group,
 		Version:  version,
 		Resource: kind,
-	}).Namespace(namespace).List(context.Background(), v1.ListOptions{
+	}).Namespace(namespace).List(context.TODO(), v1.ListOptions{
 		LabelSelector: labelSelector,
 		FieldSelector: fieldSelector,
 	})

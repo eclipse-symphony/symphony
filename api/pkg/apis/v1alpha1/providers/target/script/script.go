@@ -115,7 +115,7 @@ func (s *ScriptProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
