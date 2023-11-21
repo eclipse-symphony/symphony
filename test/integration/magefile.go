@@ -56,19 +56,6 @@ type (
 	}
 )
 
-func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureFunc()
-	}
-	return ossFunc()
-}
-func conditionalString(azureStr string, ossStr string) string {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureStr
-	}
-	return ossStr
-}
-
 // Test runs all integration tests
 func Test() error {
 	fmt.Println("Searching for integration tests")
@@ -105,7 +92,7 @@ func RunTest(testDir string) error {
 
 	fmt.Printf("Starting test folder: %s\n", absPath)
 
-	err = shellExec(fmt.Sprintf("cd %s && mage test %s", absPath, conditionalString("azure", "")))
+	err = shellExec(fmt.Sprintf("cd %s && mage test", absPath))
 	if err != nil {
 		return err
 	}
@@ -131,11 +118,6 @@ func listTests(dir string) ([]string, error) {
 	}
 
 	return results, nil
-}
-
-func Azure() error {
-	//this is a hack to get around the fact that mage doesn't support passing args to targets
-	return nil
 }
 
 // Run a mage command from /localenv

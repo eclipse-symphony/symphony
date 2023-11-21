@@ -74,32 +74,19 @@ var (
 	testManifestsFolder = "../manifestForTestingOnly"
 )
 
-func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
-		return azureFunc()
-	}
-	return ossFunc()
-}
-func conditionalString(azureStr string, ossStr string) string {
-	if os.Getenv("SYMPHONY_FLAVOR") == "azure" {
-		return azureStr
-	}
-	return ossStr
-}
-
 var (
 	// Manifest templates
 	manifestTemplates = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, conditionalString("azure", "oss")),
+		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
+		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
+		"solution": fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
 	}
 
 	// Manifests to deploy
 	testManifests = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, conditionalString("azure", "oss")),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, conditionalString("azure", "oss")),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, conditionalString("azure", "oss")),
+		"target":   fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, "oss"),
+		"instance": fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, "oss"),
+		"solution": fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, "oss"),
 	}
 
 	testCases = []TestCase{
@@ -147,8 +134,8 @@ func TestScenario_Update(t *testing.T) {
 
 		// Construct the manifests
 		err := testhelpers.BuildManifestFile(
-			fmt.Sprintf("%s/%s", manifestTemplateFolder, conditionalString("azure", "oss")),
-			fmt.Sprintf("%s/%s", testManifestsFolder, conditionalString("azure", "oss")), test.Target, test.ComponentsToAdd)
+			fmt.Sprintf("%s/%s", manifestTemplateFolder, "oss"),
+			fmt.Sprintf("%s/%s", testManifestsFolder, "oss"), test.Target, test.ComponentsToAdd)
 		require.NoError(t, err)
 
 		// Deploy the manifests
@@ -176,7 +163,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 	// Verify targets
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   conditionalString("symphony.microsoft.com", "fabric.symphony"),
+		Group:   "fabric.symphony",
 		Version: "v1",
 		Kind:    "Target",
 	})
@@ -189,7 +176,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    conditionalString("symphony.microsoft.com", "fabric.symphony"),
+			Group:    "fabric.symphony",
 			Version:  "v1",
 			Resource: "targets",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -220,7 +207,7 @@ func verifyInstanceStatus(t *testing.T, test TestCase) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    conditionalString("symphony.microsoft.com", "solution.symphony"),
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})

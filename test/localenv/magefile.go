@@ -42,19 +42,6 @@ type Test mg.Namespace
 
 /******************** Targets ********************/
 
-func conditionalRun(azureFunc func() error, ossFunc func() error) error {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureFunc()
-	}
-	return ossFunc()
-}
-func conditionalString(azureStr string, ossStr string) string {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-1] == "azure" {
-		return azureStr
-	}
-	return ossStr
-}
-
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
 	// Make sure users have PAT token for GitHub container registry configured
@@ -63,15 +50,8 @@ func (Cluster) Deploy() error {
 	}
 	CR_PAT := os.Getenv(GITHUB_PAT)
 	fmt.Printf("Deploying symphony to minikube, imagePullSecrets: %s\n", CR_PAT)
-	return conditionalRun(
-		func() error { //azure
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.azure.yaml -f symphony-values.yaml", RELEASE_NAME, CHART_PATH, NAMESPACE)
-			return shellcmd.Command(helmUpgrade).Run()
-		},
-		func() error { //oss
-			helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
-			return shellcmd.Command(helmUpgrade).Run()
-		})
+	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
+	return shellcmd.Command(helmUpgrade).Run()
 }
 
 // Up brings the minikube cluster up with symphony deployed
@@ -195,17 +175,7 @@ func (Build) Api() error {
 	return buildAPI()
 }
 func buildAPI() error {
-	return conditionalRun(
-		func() error {
-			return shellcmd.Command("docker compose -f ../../api/docker-compose.azure.yaml build").Run() //azure
-		},
-		func() error {
-			return shellcmd.Command("docker compose -f ../../api/docker-compose.yaml build").Run() //oss
-		})
-}
-
-func Azure() error {
-	return nil
+	return shellcmd.Command("docker compose -f ../../api/docker-compose.yaml build").Run() //oss
 }
 
 // Build k8s container
@@ -213,13 +183,7 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
-	return conditionalRun(
-		func() error {
-			return shellcmd.Command("docker compose -f ../../k8s/docker-compose.azure.yaml build").Run() //azure
-		},
-		func() error {
-			return shellcmd.Command("docker compose -f ../../k8s/docker-compose.yaml build").Run() //oss
-		})
+	return shellcmd.Command("docker compose -f ../../k8s/docker-compose.yaml build").Run() //oss
 }
 
 /******************** Minikube ********************/
