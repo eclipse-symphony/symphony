@@ -13,7 +13,7 @@ replace github.com/azure/symphony/packages/mage => ../packages/mage
 require (
 	github.com/azure/symphony/api v0.0.0
 	github.com/azure/symphony/coa v0.0.0
-	github.com/azure/symphony/k8s v0.0.0-20211006182710-0b9b3b2b0b0a // indirect
+	github.com/azure/symphony/k8s v0.0.0-20211006182710-0b9b3b2b0b0a
 	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/magefile/mage v1.15.0
 	github.com/onsi/ginkgo v1.16.5
@@ -39,7 +39,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
@@ -50,6 +49,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.40.0 // indirect
 	go.opentelemetry.io/otel v1.11.1 // indirect
@@ -62,13 +62,6 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.99.0 // indirect
-	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.27 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
-	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
-	github.com/Azure/go-autorest/logger v0.2.1 // indirect
-	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -98,7 +91,6 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1
-	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sys v0.7.0 // indirect
