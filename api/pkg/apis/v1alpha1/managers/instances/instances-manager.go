@@ -67,7 +67,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -76,6 +76,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "instances",
 		},
 	})
+	return err
 }
 
 func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec) error {
@@ -133,7 +134,8 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 	}
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
-		rt, err := getInstanceState(t.ID, t.Body, t.ETag)
+		var rt model.InstanceState
+		rt, err = getInstanceState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

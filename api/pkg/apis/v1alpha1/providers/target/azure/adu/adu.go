@@ -221,7 +221,8 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	ret := step.PrepareResultMap()
 
 	for _, c := range step.Components {
-		deployment, err := getDeploymentFromComponent(c.Component)
+		var deployment azureutils.ADUDeployment
+		deployment, err = getDeploymentFromComponent(c.Component)
 		if err != nil {
 			ret[c.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.ValidateFailed,

@@ -196,7 +196,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		case "TargetProvider-Get":
 			if proxyResponse.IsOK {
 				var ret []model.ComponentSpec
-				err := json.Unmarshal(response.Body, &ret)
+				err = json.Unmarshal(response.Body, &ret)
 				if err != nil {
 					sLog.Errorf("  P (MQTT Target): faild to deserialize components from MQTT - %+v, %s", err.Error(), string(response.Body))
 				}
@@ -261,7 +261,8 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	select {
 	case resp := <-i.GetChan:
 		if resp.IsOK {
-			data, err := json.Marshal(resp.Payload)
+			var data []byte
+			data, err = json.Marshal(resp.Payload)
 			if err != nil {
 				sLog.Infof("  P (MQTT Target): failed to serialize payload - %s - %s", err.Error(), fmt.Sprint(resp.Payload))
 				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)

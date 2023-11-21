@@ -105,7 +105,8 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 
 	tag := "1"
 	if entry.Value.ETag != "" {
-		if v, err := strconv.ParseInt(entry.Value.ETag, 10, 64); err == nil {
+		var v int64
+		if v, err = strconv.ParseInt(entry.Value.ETag, 10, 64); err == nil {
 			tag = strconv.FormatInt(v+1, 10)
 		}
 	}
@@ -148,7 +149,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 			}
 			entities = append(entities, vE)
 		} else {
-			err := v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
 			return entities, "", err
 		}
 	}
@@ -168,7 +169,7 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	sLog.Debug("  P (Memory State): delete state")
 
 	if _, ok := s.Data[request.ID]; !ok {
-		err := v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
 		return err
 	}
 	delete(s.Data, request.ID)

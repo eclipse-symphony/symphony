@@ -365,7 +365,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			}
 
-			fileName, err := i.pullChart(&helmProp.Chart)
+			var fileName string
+			fileName, err = i.pullChart(&helmProp.Chart)
 			if err != nil {
 				sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -406,7 +407,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 		} else {
 			if component.Component.Type == "helm.v3" {
-				_, err := i.UninstallClient.Run(component.Component.Name)
+				_, err = i.UninstallClient.Run(component.Component.Name)
 				if err != nil {
 					if strings.Contains(err.Error(), "not found") {
 						continue //TODO: better way to detect this error?

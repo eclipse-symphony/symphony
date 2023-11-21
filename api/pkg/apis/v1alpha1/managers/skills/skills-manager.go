@@ -126,7 +126,8 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	}
 	ret := make([]model.SkillState, 0)
 	for _, t := range models {
-		rt, err := getSkillState(t.ID, t.Body, t.ETag)
+		var rt model.SkillState
+		rt, err = getSkillState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

@@ -145,7 +145,7 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	return m.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -154,6 +154,7 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "campaigns",
 		},
 	})
+	return err
 }
 
 func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState, error) {
@@ -176,7 +177,8 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 	}
 	ret := make([]model.CampaignState, 0)
 	for _, t := range solutions {
-		rt, err := getCampaignState(t.ID, t.Body)
+		var rt model.CampaignState
+		rt, err = getCampaignState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}

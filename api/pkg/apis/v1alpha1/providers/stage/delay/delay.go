@@ -99,9 +99,11 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	if v, ok := inputs["delay"]; ok {
 		switch vs := v.(type) {
 		case string:
-			duration, err := time.ParseDuration(vs)
+			var duration time.Duration
+			duration, err = time.ParseDuration(vs)
 			if err != nil {
-				if vi, err := strconv.Atoi(vs); err == nil {
+				var vi int
+				if vi, err = strconv.Atoi(vs); err == nil {
 					duration = time.Duration(vi) * time.Second
 				} else {
 					outputs[v1alpha2.StatusOutput] = v1alpha2.InternalError

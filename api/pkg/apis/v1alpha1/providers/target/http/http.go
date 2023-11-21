@@ -146,7 +146,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			method := model.ReadPropertyCompat(component.Component.Properties, "http.method", injections)
 
 			if url == "" {
-				err := errors.New("component doesn't have a http.url property")
+				err = errors.New("component doesn't have a http.url property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
@@ -158,7 +158,8 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				method = "POST"
 			}
 			jsonData := []byte(body)
-			request, err := http.NewRequest(method, url, bytes.NewBuffer(jsonData))
+			var request *http.Request
+			request, err = http.NewRequest(method, url, bytes.NewBuffer(jsonData))
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -170,7 +171,8 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 			client := &http.Client{}
-			resp, err := client.Do(request)
+			var resp *http.Response
+			resp, err = client.Do(request)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,

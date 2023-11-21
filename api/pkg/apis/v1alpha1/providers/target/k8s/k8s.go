@@ -254,7 +254,8 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		}
 		slice := dep.GetComponentSlice()
 		for _, component := range slice {
-			cComponents, err := i.getDeployment(ctx, scope, component.Name)
+			var cComponents []model.ComponentSpec
+			cComponents, err = i.getDeployment(ctx, scope, component.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider) - failed to get: %s", err.Error())
 				return nil, err
@@ -468,7 +469,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			if v, ok := dep.Instance.Metadata["service.name"]; ok && v != "" {
 				serviceName = v
 			}
-			err := i.removeService(ctx, dep.Instance.Scope, serviceName)
+			err = i.removeService(ctx, dep.Instance.Scope, serviceName)
 			if err != nil {
 				log.Debugf("failed to remove service: %s", err.Error())
 				return ret, err
@@ -515,7 +516,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						serviceName = v
 					}
 				}
-				err := i.removeService(ctx, scope, serviceName)
+				err = i.removeService(ctx, scope, serviceName)
 				if err != nil {
 					ret[component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.DeleteFailed,

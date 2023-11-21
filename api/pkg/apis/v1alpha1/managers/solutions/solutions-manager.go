@@ -130,7 +130,8 @@ func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState,
 	}
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
-		rt, err := getSolutionState(t.ID, t.Body)
+		var rt model.SolutionState
+		rt, err = getSolutionState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}

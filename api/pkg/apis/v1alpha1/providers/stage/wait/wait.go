@@ -35,6 +35,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -115,7 +116,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 	ret.BaseUrl = baseUrl
 	if ret.BaseUrl == "" {
 		log.Errorf("  P (Wait Processor): baseUrl is required")
-		err := v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
+		err = v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
 		return ret, err
 	}
 	user, err := utils.GetString(properties, "user")
@@ -126,7 +127,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 	ret.User = user
 	if ret.User == "" {
 		log.Errorf("  P (Wait Processor): user is required")
-		err := v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		err = v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
 		return ret, err
 	}
 	password, err := utils.GetString(properties, "password")
@@ -136,7 +137,8 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 	}
 	ret.Password = password
 	if v, ok := properties["wait.interval"]; ok {
-		interval, err := strconv.Atoi(v)
+		var interval int
+		interval, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait interval %v", v), v1alpha2.BadConfig)
 			log.Errorf("  P (Wait Processor): failed to parse wait interval %v", cErr)
@@ -145,7 +147,8 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 		ret.WaitInterval = interval
 	}
 	if v, ok := properties["wait.count"]; ok {
-		count, err := strconv.Atoi(v)
+		var count int
+		count, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait count %v", v), v1alpha2.BadConfig)
 			log.Errorf("  P (Wait Processor): failed to parse wait count %v", cErr)
@@ -178,7 +181,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		foundCount := 0
 		switch objectType {
 		case "instance":
-			instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var instances []model.InstanceState
+			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
 				return nil, false, err
@@ -191,7 +195,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "sites":
-			sites, err := utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var sites []model.SiteState
+			sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
 				return nil, false, err
@@ -204,7 +209,8 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "catalogs":
-			catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var catalogs []model.CatalogState
+			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
 				return nil, false, err

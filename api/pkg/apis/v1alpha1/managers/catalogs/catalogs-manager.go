@@ -131,9 +131,11 @@ func (m *CatalogsManager) ValidateSpec(ctx context.Context, spec model.CatalogSp
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	if schemaName, ok := spec.Metadata["schema"]; ok {
-		schema, err := m.GetSpec(ctx, schemaName)
+		var schema model.CatalogState
+		schema, err = m.GetSpec(ctx, schemaName)
 		if err != nil {
-			return utils.SchemaResult{Valid: false}, v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
+			err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
+			return utils.SchemaResult{Valid: false}, err
 		}
 		if s, ok := schema.Spec.Properties["spec"]; ok {
 			var schemaObj utils.Schema
@@ -211,7 +213,7 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	//TODO: publish DELETE event
-	return m.StateProvider.Delete(ctx, states.DeleteRequest{
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -220,6 +222,7 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "catalogs",
 		},
 	})
+	return err
 }
 
 func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, error) {
@@ -242,7 +245,8 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 	}
 	ret := make([]model.CatalogState, 0)
 	for _, t := range catalogs {
-		rt, err := getCatalogState(t.ID, t.Body, t.ETag)
+		var rt model.CatalogState
+		rt, err = getCatalogState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

@@ -67,14 +67,14 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 
 	errMessage := ""
 	for _, p := range s.LedgerProviders {
-		err := p.Append(ctx, trails)
+		err = p.Append(ctx, trails)
 		if err != nil {
 			errMessage += err.Error() + ";"
 		}
 	}
 	if errMessage != "" {
-		retError := v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
-		return retError
+		err := v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
+		return err
 	}
 	return nil
 }

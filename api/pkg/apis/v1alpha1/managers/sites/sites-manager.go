@@ -262,7 +262,8 @@ func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) 
 	}
 	ret := make([]model.SiteState, 0)
 	for _, t := range sites {
-		rt, err := getSiteState(t.ID, t.Body)
+		var rt model.SiteState
+		rt, err = getSiteState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}

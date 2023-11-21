@@ -231,7 +231,8 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		obj, err := i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		var obj *corev1.ConfigMap
+		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
@@ -243,7 +244,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 		component.Component.Properties = make(map[string]interface{})
 		for key, value := range obj.Data {
 			var data interface{}
-			err := json.Unmarshal([]byte(value), &data)
+			err = json.Unmarshal([]byte(value), &data)
 			if err == nil {
 				component.Component.Properties[key] = data
 			} else {

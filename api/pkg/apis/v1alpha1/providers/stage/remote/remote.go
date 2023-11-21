@@ -101,7 +101,7 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	v, ok := inputs["__site"]
 
 	if !ok {
-		err := v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
+		err = v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
 		log.Errorf("  P (Remote Processor): %v", err)
 		return nil, false, err
 	}

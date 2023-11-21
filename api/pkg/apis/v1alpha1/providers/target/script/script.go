@@ -325,7 +325,8 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
-		retU, err := i.runScriptOnComponents(deployment, components, false)
+		var retU map[string]model.ComponentResultSpec
+		retU, err = i.runScriptOnComponents(deployment, components, false)
 		if err != nil {
 			sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
 			return nil, err
@@ -336,7 +337,8 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
-		retU, err := i.runScriptOnComponents(deployment, components, true)
+		var retU map[string]model.ComponentResultSpec
+		retU, err = i.runScriptOnComponents(deployment, components, true)
 		if err != nil {
 			sLog.Errorf("  P (Script Target): failed to run remove script: %+v", err)
 			return nil, err

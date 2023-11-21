@@ -226,7 +226,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			req.Header.Add(key[7:], fmt.Sprintf("%v", input))
 		}
 		if key == "body" {
-			jData, err := json.Marshal(input)
+			var jData []byte
+			jData, err = json.Marshal(input)
 			if err != nil {
 				sLog.Errorf("  P (Http Stage): failed to encode json request body: %v", err)
 				return nil, false, err
@@ -275,7 +276,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		sLog.Debugf("  P (Http Stage): WaitCount: %d", i.Config.WaitCount)
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 			sLog.Infof("  P (Http Stage): start wait iteration %d", counter)
-			waitReq, err := http.NewRequest("GET", i.Config.WaitUrl, nil)
+			var waitReq *http.Request
+			waitReq, err = http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
 				if strings.HasPrefix(key, "header.") {
 					waitReq.Header.Add(key[7:], fmt.Sprintf("%v", input))
@@ -285,7 +287,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				sLog.Errorf("  P (Http Stage): failed to create wait request: %v", err)
 				return nil, false, err
 			}
-			waitResp, err := webClient.Do(waitReq)
+			var waitResp *http.Response
+			waitResp, err = webClient.Do(waitReq)
 			if err != nil {
 				sLog.Errorf("  P (Http Stage): wait request failed: %v", err)
 				return nil, false, err
@@ -308,7 +311,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 			if succeeded {
-				data, err := ioutil.ReadAll(waitResp.Body)
+				var data []byte
+				data, err = ioutil.ReadAll(waitResp.Body)
 				if err != nil {
 					sLog.Errorf("  P (Http Stage): failed to read wait request response: %v", err)
 					succeeded = false
@@ -322,7 +326,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 						} else {
 							switch i.Config.WaitExpressionType {
 							case "jsonpath":
-								result, err := utils.JsonPathQuery(obj, i.Config.WaitExpression)
+								var result interface{}
+								result, err = utils.JsonPathQuery(obj, i.Config.WaitExpression)
 								if err != nil {
 									sLog.Errorf("  P (Http Stage): failed to evaluate JsonPath: %v", err)
 								}
@@ -330,7 +335,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								outputs["waitResult"] = result
 							default:
 								parser := utils.NewParser(i.Config.WaitExpression)
-								val, err := parser.Eval(coa_utils.EvaluationContext{
+								var val interface{}
+								val, err = parser.Eval(coa_utils.EvaluationContext{
 									Value: obj,
 								})
 								if err != nil {

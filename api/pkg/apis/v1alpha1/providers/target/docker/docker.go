@@ -119,7 +119,8 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		info, err := cli.ContainerInspect(ctx, component.Component.Name)
+		var info types.ContainerJSON
+		info, err = cli.ContainerInspect(ctx, component.Component.Name)
 		if err == nil {
 			name := info.Name
 			if len(name) > 0 && name[0] == '/' {
@@ -218,7 +219,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			image := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
 			if image == "" {
-				err := errors.New("component doesn't have container.image property")
+				err = errors.New("component doesn't have container.image property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
@@ -228,7 +229,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			}
 
 			alreadyRunning := true
-			_, err := cli.ContainerInspect(ctx, component.Component.Name)
+			_, err = cli.ContainerInspect(ctx, component.Component.Name)
 			if err != nil { //TODO: check if the error is ErrNotFound
 				alreadyRunning = false
 			}
@@ -278,7 +279,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			var hostConfig *container.HostConfig
 			if resources != "" {
 				var resourceSpec container.Resources
-				err := json.Unmarshal([]byte(resources), &resourceSpec)
+				err = json.Unmarshal([]byte(resources), &resourceSpec)
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -291,7 +292,8 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Resources: resourceSpec,
 				}
 			}
-			container, err := cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			var container container.ContainerCreateCreatedBody
+			container, err = cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -301,7 +303,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				return ret, err
 			}
 
-			if err := cli.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{}); err != nil {
+			if err = cli.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),

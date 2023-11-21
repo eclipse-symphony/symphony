@@ -147,14 +147,12 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	var rStatus map[string]interface{}
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 	j, _ = json.Marshal(rStatus["properties"])
 	var rProperties map[string]string
 	err = json.Unmarshal(j, &rProperties)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -202,7 +200,8 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 	}
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
-		rt, err := getTargetState(t.ID, t.Body, t.ETag)
+		var rt model.TargetState
+		rt, err = getTargetState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
