@@ -229,7 +229,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, &err)
 			sLog.Errorf("  P (K8s State): failed to deserialize template: %v", err)
 			return "", err
 		}

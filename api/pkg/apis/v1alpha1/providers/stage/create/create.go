@@ -169,7 +169,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, &err)
 					return nil, false, err
 				}
 				if summary.Summary.SuccessCount == summary.Summary.TargetCount {

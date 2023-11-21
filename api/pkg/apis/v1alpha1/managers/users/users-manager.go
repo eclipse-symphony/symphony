@@ -86,6 +86,9 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	ctx, span := observability.StartSpan("Users Manager", ctx, &map[string]string{
 		"method": "UpsertUser",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Debug(" M (Users) : upsert user")
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -97,38 +100,36 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 			},
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		log.Debugf(" M (Users) : failed to upsert user - %s", err)
 		return err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func (t *UsersManager) CheckUser(ctx context.Context, name string, password string) ([]string, bool) {
 	ctx, span := observability.StartSpan("Users Manager", ctx, &map[string]string{
 		"method": "CheckUser",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Debug(" M (Users) : check user")
 	getRequest := states.GetRequest{
 		ID: name,
 	}
 	user, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		log.Debugf(" M (Users) : failed to read user - %s", err)
 		return nil, false
 	}
 
 	if v, ok := user.Body.(UserState); ok {
 		if hash(name, password) == v.PasswordHash {
-			observ_utils.CloseSpanWithError(span, nil)
 			log.Debug(" M (Users) : user authenticated")
 			return v.Roles, true
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	log.Debug(" M (Users) : authentication failed")
 	return nil, false
 }

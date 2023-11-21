@@ -167,7 +167,6 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	var rStatus model.SiteStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return err
 	}
 	rStatus.LastReported = time.Now().UTC().Format(time.RFC3339)
@@ -182,7 +181,6 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return err
 	}
 	return nil
