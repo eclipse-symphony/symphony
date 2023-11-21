@@ -40,6 +40,7 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 const (
@@ -72,6 +73,8 @@ type authResponse struct {
 // 		e.Message,
 // 	)
 // }
+
+var log = logger.NewLogger("coa.runtime")
 
 func GetInstances(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
@@ -756,6 +759,8 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.Infof("Calling Symphony API: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
 
 	client := &http.Client{}
 	rUrl := baseUrl + route
