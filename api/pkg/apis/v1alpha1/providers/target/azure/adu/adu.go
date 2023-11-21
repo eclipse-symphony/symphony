@@ -111,7 +111,7 @@ func (s *ADUTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("ADU Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("ADU Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

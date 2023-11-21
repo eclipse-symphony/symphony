@@ -53,7 +53,7 @@ var mLock sync.Mutex
 func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"Mock Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},

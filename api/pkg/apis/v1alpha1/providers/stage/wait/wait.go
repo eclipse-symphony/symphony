@@ -99,7 +99,7 @@ func WaitStageProviderConfigFromVendorMap(properties map[string]string) (WaitSta
 	return WaitStageProviderConfigFromMap(ret)
 }
 func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProviderConfig, error) {
-	_, span := observability.StartSpan("Wait Process Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Wait Process Provider", context.TODO(), &map[string]string{
 		"method": "WaitStageProviderConfigFromMap",
 	})
 	var err error = nil

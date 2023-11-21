@@ -134,7 +134,7 @@ func (s *KubectlTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"Kubectl Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},

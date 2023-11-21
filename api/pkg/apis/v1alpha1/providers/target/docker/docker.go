@@ -74,7 +74,7 @@ func (s *DockerTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Docker Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Docker Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
@@ -245,14 +245,14 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
-				err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
+				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
 						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 						return ret, err
 					}
 				}
-				err = cli.ContainerRemove(context.Background(), component.Component.Name, types.ContainerRemoveOptions{})
+				err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -291,7 +291,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Resources: resourceSpec,
 				}
 			}
-			container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			container, err := cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -301,7 +301,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				return ret, err
 			}
 
-			if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
+			if err := cli.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
@@ -314,14 +314,14 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				Message: "",
 			}
 		} else {
-			err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
+			err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 			if err != nil {
 				if !client.IsErrNotFound(err) {
 					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 					return ret, err
 				}
 			}
-			err = cli.ContainerRemove(context.Background(), component.Component.Name, types.ContainerRemoveOptions{})
+			err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)

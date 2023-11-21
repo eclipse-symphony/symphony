@@ -138,7 +138,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	site := status.Outputs["__site"].(string)
 	stage := status.Outputs["__stage"].(string)
 
-	entry, err := s.StateProvider.Get(context.Background(), states.GetRequest{
+	entry, err := s.StateProvider.Get(context.TODO(), states.GetRequest{
 		ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 	})
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			}
 		}
 		if len(newSites) == 0 {
-			err := s.StateProvider.Delete(context.Background(), states.DeleteRequest{
+			err := s.StateProvider.Delete(context.TODO(), states.DeleteRequest{
 				ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 			})
 			if err != nil {
@@ -232,7 +232,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			return nil, nil
 		} else {
 			p.Sites = newSites
-			_, err := s.StateProvider.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.StateProvider.Upsert(context.TODO(), states.UpsertRequest{
 				Value: states.StateEntry{
 					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 					Body: p,

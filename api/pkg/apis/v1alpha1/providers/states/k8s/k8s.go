@@ -111,7 +111,7 @@ func (s *K8sStateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("K8s State Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
@@ -275,7 +275,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				},
 			}
 			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(ctx, status, v1.UpdateOptions{})
 			if err != nil {
 				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
 				return "", err
@@ -411,7 +411,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 
 // Implmeement the IConfigProvider interface
 func (s *K8sStateProvider) Read(object string, field string) (string, error) {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -439,7 +439,7 @@ func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 }
 
 func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -467,7 +467,7 @@ func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) 
 }
 
 func (s *K8sStateProvider) Set(object string, field string, value string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -483,7 +483,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 		if v, ok := spec["properties"]; ok {
 			properties := v.(map[string]interface{})
 			properties[field] = value
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -501,7 +501,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) SetObject(object string, values map[string]string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -519,7 +519,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 			for k, v := range values {
 				properties[k] = v
 			}
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -537,7 +537,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) Remove(object string, field string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -553,7 +553,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 		if v, ok := spec["properties"]; ok {
 			properties := v.(map[string]interface{})
 			delete(properties, field)
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -571,7 +571,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) RemoveObject(object string) error {
-	return s.Delete(context.Background(), states.DeleteRequest{
+	return s.Delete(context.TODO(), states.DeleteRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"scope":    "",

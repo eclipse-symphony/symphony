@@ -148,7 +148,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	_, span := observability.StartSpan("MQTT Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("MQTT Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

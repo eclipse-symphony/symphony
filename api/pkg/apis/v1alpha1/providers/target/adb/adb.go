@@ -75,7 +75,7 @@ func (s *AdbProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *AdbProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Android ADB Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	aLog.Info("  P (Android ADB): Init()")
@@ -101,7 +101,7 @@ func toAdbProviderConfig(config providers.IProviderConfig) (AdbProviderConfig, e
 }
 
 func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil

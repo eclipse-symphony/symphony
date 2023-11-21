@@ -83,7 +83,7 @@ func (s *ProxyUpdateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil

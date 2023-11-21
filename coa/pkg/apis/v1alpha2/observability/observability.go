@@ -135,7 +135,7 @@ func (o *Observability) createExporter(config ExporterConfig) error {
 	}
 	batcher := sdktrace.NewBatchSpanProcessor(exporter)
 	//otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(batcher)))
-	//res, _ := resource.New(context.Background(), resource.WithAttributes(attribute.String("service.name", "Symphony API (PAI)")))
+	//res, _ := resource.New(context.TODO(), resource.WithAttributes(attribute.String("service.name", "Symphony API (PAI)")))
 	//otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(batcher), sdktrace.WithResource(res)))
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(batcher),
