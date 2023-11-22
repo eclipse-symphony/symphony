@@ -148,9 +148,12 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	_, span := observability.StartSpan("MQTT Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("MQTT Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (MQTT Target): Init()")
 
 	if i.Initialized {
@@ -158,7 +161,6 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	}
 	updateConfig, err := toMQTTTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (MQTT Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
@@ -170,7 +172,6 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	opts.CleanSession = true
 	i.MQTTClient = gmqtt.NewClient(opts)
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (MQTT Target): faild to connect to MQTT broker - %+v", err)
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
@@ -195,7 +196,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		case "TargetProvider-Get":
 			if proxyResponse.IsOK {
 				var ret []model.ComponentSpec
-				err := json.Unmarshal(response.Body, &ret)
+				err = json.Unmarshal(response.Body, &ret)
 				if err != nil {
 					sLog.Errorf("  P (MQTT Target): faild to deserialize components from MQTT - %+v, %s", err.Error(), string(response.Body))
 				}
@@ -214,11 +215,11 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
 			sLog.Errorf("  P (MQTT Target): faild to connect to subscribe to the response topic - %+v", token.Error())
-			return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
+			return err
 		}
 	}
 	i.Initialized = true
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetProviderConfig, error) {
@@ -235,6 +236,8 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (MQTT Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -250,38 +253,45 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 		sLog.Infof("  P (MQTT Target): failed to getting artifacts - %s", token.Error())
-		observ_utils.CloseSpanWithError(span, token.Error())
-		return nil, token.Error()
+		err = token.Error()
+		return nil, err
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.GetChan:
 		if resp.IsOK {
-			data, err := json.Marshal(resp.Payload)
+			var data []byte
+			data, err = json.Marshal(resp.Payload)
 			if err != nil {
 				sLog.Infof("  P (MQTT Target): failed to serialize payload - %s - %s", err.Error(), fmt.Sprint(resp.Payload))
-				return nil, v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
+				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
+				return nil, err
 			}
 			var ret []model.ComponentSpec
 			err = json.Unmarshal(data, &ret)
 			if err != nil {
 				sLog.Infof("  P (MQTT Target): failed to deserialize components - %s - %s", err.Error(), fmt.Sprint(data))
-				return nil, v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
+				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
+				return nil, err
 			}
 			return ret, nil
 		} else {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			return nil, err
 		}
 	case <-timeout:
-		return nil, v1alpha2.NewCOAError(nil, "didn't get response to Get() call over MQTT", v1alpha2.InternalError)
+		err = v1alpha2.NewCOAError(nil, "didn't get response to Get() call over MQTT", v1alpha2.InternalError)
+		return nil, err
 	}
 }
 func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
 	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (MQTT Target): deleting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -296,39 +306,42 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	data, _ = json.Marshal(request)
 
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-		observ_utils.CloseSpanWithError(span, token.Error())
-		return token.Error()
+		err = token.Error()
+		return err
 	}
-
-	observ_utils.CloseSpanWithError(span, nil)
 
 	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.RemoveChan:
 		if resp.IsOK {
-			return nil
+			err = nil
+			return err
 		} else {
-			return v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+			return err
 		}
 	case <-timeout:
-		return v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
+		err = v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
+		return err
 	}
 }
 
 func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -349,22 +362,23 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		data, _ = json.Marshal(request)
 
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-			observ_utils.CloseSpanWithError(span, token.Error())
-			return ret, token.Error()
+			err = token.Error()
+			return ret, err
 		}
-
-		observ_utils.CloseSpanWithError(span, nil)
 
 		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 		select {
 		case resp := <-i.ApplyChan:
 			if resp.IsOK {
-				return ret, nil
+				err = nil
+				return ret, err
 			} else {
-				return ret, v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+				return ret, err
 			}
 		case <-timeout:
-			return ret, v1alpha2.NewCOAError(nil, "didn't get response to Apply() call over MQTT", v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, "didn't get response to Apply() call over MQTT", v1alpha2.InternalError)
+			return ret, err
 		}
 	}
 	components = step.GetDeletedComponents()
@@ -380,26 +394,27 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		data, _ = json.Marshal(request)
 
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-			observ_utils.CloseSpanWithError(span, token.Error())
-			return ret, token.Error()
+			err = token.Error()
+			return ret, err
 		}
-
-		observ_utils.CloseSpanWithError(span, nil)
 
 		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 		select {
 		case resp := <-i.RemoveChan:
 			if resp.IsOK {
-				return ret, nil
+				err = nil
+				return ret, err
 			} else {
-				return ret, v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
+				return ret, err
 			}
 		case <-timeout:
-			return ret, v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
+			return ret, err
 		}
 	}
 	//TODO: Should we remove empty namespaces?
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 

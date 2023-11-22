@@ -111,14 +111,16 @@ func (s *K8sStateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("K8s State Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Debug("  P (K8s State): initialize")
 
 	updateConfig, err := toK8sStateProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State): expected KubectlTargetProviderConfig: %+v", err)
 		return err
 	}
@@ -134,7 +136,6 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (K8s State): %+v", err)
 					return err
 				}
@@ -144,36 +145,30 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (K8s State): %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (K8s State): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and bytes", v1alpha2.BadConfig)
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (K8s State): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State): %+v", err)
 		return err
 	}
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State): %+v", err)
 		return err
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
@@ -191,9 +186,12 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sStateProvide
 }
 
 func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (K8s State): upsert state")
 
 	scope := model.ReadProperty(entry.Metadata, "scope", nil)
@@ -231,21 +229,18 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (K8s State): failed to deserialize template: %v", err)
 			return "", err
 		}
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
 			return "", err
 		}
 		unc.Object["spec"] = dict["spec"]
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (K8s State): failed to create object: %v", err)
 			return "", err
 		}
@@ -255,7 +250,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
 			return "", err
 		}
@@ -264,7 +258,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (K8s State): failed to update object: %v", err)
 				return "", err
 			}
@@ -281,24 +274,25 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				},
 			}
 			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(ctx, status, v1.UpdateOptions{})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
 				return "", err
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return entry.Value.ID, nil
 }
 
 func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	var entities []states.StateEntry
 
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (K8s State): list state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
@@ -318,7 +312,6 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 
 	items, err := s.DynamicClient.Resource(resourceId).Namespace(scope).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State): failed to list objects: %v", err)
 		return nil, "", err
 	}
@@ -334,14 +327,16 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 		}
 		entities = append(entities, entry)
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return entities, "", nil
 }
 
 func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (K8s State): delete state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
@@ -359,20 +354,21 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 		Resource: resource,
 	}
 
-	err := s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
+	err = s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State): failed to delete objects: %v", err)
 		return err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
 func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	ctx, span := observability.StartSpan("K8s State Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (K8s State): get state")
 
 	scope := model.ReadProperty(request.Metadata, "scope", nil)
@@ -397,7 +393,6 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		if k8s_errors.IsNotFound(err) {
 			coaError.State = v1alpha2.NotFound
 		}
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (K8s State %v", coaError.Error())
 		return states.StateEntry{}, coaError
 	}
@@ -410,13 +405,12 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 			"status": item.Object["status"],
 		},
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
 // Implmeement the IConfigProvider interface
 func (s *K8sStateProvider) Read(object string, field string) (string, error) {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -444,7 +438,7 @@ func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 }
 
 func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -472,7 +466,7 @@ func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) 
 }
 
 func (s *K8sStateProvider) Set(object string, field string, value string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -488,7 +482,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 		if v, ok := spec["properties"]; ok {
 			properties := v.(map[string]interface{})
 			properties[field] = value
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -506,7 +500,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) SetObject(object string, values map[string]string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -524,7 +518,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 			for k, v := range values {
 				properties[k] = v
 			}
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -542,7 +536,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) Remove(object string, field string) error {
-	obj, err := s.Get(context.Background(), states.GetRequest{
+	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -558,7 +552,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 		if v, ok := spec["properties"]; ok {
 			properties := v.(map[string]interface{})
 			delete(properties, field)
-			_, err := s.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
@@ -576,7 +570,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 func (s *K8sStateProvider) RemoveObject(object string) error {
-	return s.Delete(context.Background(), states.DeleteRequest{
+	return s.Delete(context.TODO(), states.DeleteRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"scope":    "",

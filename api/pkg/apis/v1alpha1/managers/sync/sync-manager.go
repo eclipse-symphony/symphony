@@ -27,10 +27,14 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -52,10 +56,16 @@ func (s *SyncManager) Enabled() bool {
 	return s.Config.Properties["sync.enabled"] == "true"
 }
 func (s *SyncManager) Poll() []error {
+	ctx, span := observability.StartSpan("Sync Manager", context.Background(), &map[string]string{
+		"method": "Poll",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}
 	batch, err := utils.GetABatchForSite(
+		ctx,
 		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
 		s.VendorContext.SiteInfo.SiteId,
 		s.VendorContext.SiteInfo.ParentSite.Username,

@@ -99,16 +99,16 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
-		campaign, err := s.CampaignsManager.GetSpec(context.Background(), actData.Campaign)
+		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), actData.Campaign)
 		if err != nil {
 			return err
 		}
-		activation, err := s.ActivationsManager.GetSpec(context.Background(), actData.Activation)
+		activation, err := s.ActivationsManager.GetSpec(context.TODO(), actData.Activation)
 		if err != nil {
 			return err
 		}
 
-		evt, err := s.StageManager.HandleActivationEvent(context.Background(), actData, *campaign.Spec, activation)
+		evt, err := s.StageManager.HandleActivationEvent(context.TODO(), actData, *campaign.Spec, activation)
 		if err != nil {
 			return err
 		}
@@ -139,18 +139,18 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			sLog.Errorf("V (Stage): failed to deserialize activation data: %v", err)
-			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report error status: %v (%v)", status.ErrorMessage, err)
 			}
 		}
-		campaign, err := s.CampaignsManager.GetSpec(context.Background(), triggerData.Campaign)
+		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), triggerData.Campaign)
 		if err != nil {
 			status.Status = v1alpha2.BadRequest
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			sLog.Errorf("V (Stage): failed to get campaign spec: %v", err)
-			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report error status: %v (%v)", status.ErrorMessage, err)
 			}
@@ -165,14 +165,14 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				Body: status,
 			})
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
 				return err
 			}
 		}
 
-		status, activation := s.StageManager.HandleTriggerEvent(context.Background(), *campaign.Spec, triggerData)
+		status, activation := s.StageManager.HandleTriggerEvent(context.TODO(), *campaign.Spec, triggerData)
 
 		if triggerData.NeedsReport {
 			sLog.Debugf("V (Stage): reporting status: %v", status)
@@ -181,7 +181,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			})
 
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.Background(), triggerData.Activation, status)
+			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 				return err
@@ -201,7 +201,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		var status model.ActivationStatus
 		json.Unmarshal(jData, &status)
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
-			campaign, err := s.CampaignsManager.GetSpec(context.Background(), status.Outputs["__campaign"].(string))
+			campaign, err := s.CampaignsManager.GetSpec(context.TODO(), status.Outputs["__campaign"].(string))
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to get campaign spec '%s': %v", status.Outputs["__campaign"].(string), err)
 				return err
@@ -223,7 +223,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 
 		//TODO: later site overrides reports from earlier sites
-		err = s.ActivationsManager.ReportStatus(context.Background(), status.Outputs["__activation"].(string), status)
+		err = s.ActivationsManager.ReportStatus(context.TODO(), status.Outputs["__activation"].(string), status)
 		if err != nil {
 			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 			return err
@@ -289,7 +289,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("operation %v is not supported", dataPackage.Inputs["operation"]), v1alpha2.BadRequest)
 		}
-		status := s.StageManager.HandleDirectTriggerEvent(context.Background(), triggerData)
+		status := s.StageManager.HandleDirectTriggerEvent(context.TODO(), triggerData)
 		sLog.Debugf("V (Stage): reporting status: %v", status)
 		s.Vendor.Context.Publish("report", v1alpha2.Event{
 			Body: status,

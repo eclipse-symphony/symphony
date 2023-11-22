@@ -110,9 +110,12 @@ func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProv
 	return ret, nil
 }
 func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("List Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] List Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info("  P (List Processor): processing inputs")
 
 	outputs := make(map[string]interface{})
@@ -126,10 +129,10 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	switch objectType {
 	case "instance":
-		instances, err := utils.GetInstances(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		var instances []model.InstanceState
+		instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		if namesOnly {
@@ -142,10 +145,10 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["items"] = instances
 		}
 	case "sites":
-		sites, err := utils.GetSites(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		var sites []model.SiteState
+		sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get sites: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return nil, false, err
 		}
 		filteredSites := make([]model.SiteState, 0)
@@ -165,6 +168,5 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	}
 	outputs["objectType"] = objectType
-	observ_utils.CloseSpanWithError(span, nil)
 	return outputs, false, nil
 }

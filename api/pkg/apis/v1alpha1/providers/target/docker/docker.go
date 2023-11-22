@@ -74,15 +74,17 @@ func (s *DockerTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Docker Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Docker Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (Docker Target): Init()")
 
 	// convert config to DockerTargetProviderConfig type
 	dockerConfig, err := toDockerTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): expected DockerTargetProviderConfig: %+v", err)
 		return err
 	}
@@ -104,18 +106,21 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
 		return nil, err
 	}
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		info, err := cli.ContainerInspect(ctx, component.Component.Name)
+		var info types.ContainerJSON
+		info, err = cli.ContainerInspect(ctx, component.Component.Name)
 		if err == nil {
 			name := info.Name
 			if len(name) > 0 && name[0] == '/' {
@@ -173,14 +178,16 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 		}
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
 func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	injections := &model.ValueInjections{
@@ -190,13 +197,12 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	}
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -204,7 +210,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
 		return ret, err
 	}
@@ -214,18 +219,17 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			image := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
 			if image == "" {
-				err := errors.New("component doesn't have container.image property")
+				err = errors.New("component doesn't have container.image property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Helm Target): component doesn't have container.image property")
 				return ret, err
 			}
 
 			alreadyRunning := true
-			_, err := cli.ContainerInspect(ctx, component.Component.Name)
+			_, err = cli.ContainerInspect(ctx, component.Component.Name)
 			if err != nil { //TODO: check if the error is ErrNotFound
 				alreadyRunning = false
 			}
@@ -233,7 +237,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
 			// reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 			// if err != nil {
-			// 	observ_utils.CloseSpanWithError(span, err)
+			// 	observ_utils.CloseSpanWithError(span, &err)
 			// 	sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
 			// 	return err
 			// }
@@ -242,21 +246,19 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			// io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
-				err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
+				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
-						observ_utils.CloseSpanWithError(span, err)
 						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 						return ret, err
 					}
 				}
-				err = cli.ContainerRemove(context.Background(), component.Component.Name, types.ContainerRemoveOptions{})
+				err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
@@ -277,13 +279,12 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			var hostConfig *container.HostConfig
 			if resources != "" {
 				var resourceSpec container.Resources
-				err := json.Unmarshal([]byte(resources), &resourceSpec)
+				err = json.Unmarshal([]byte(resources), &resourceSpec)
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
 					return ret, err
 				}
@@ -291,23 +292,22 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Resources: resourceSpec,
 				}
 			}
-			container, err := cli.ContainerCreate(context.Background(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			var container container.ContainerCreateCreatedBody
+			container, err = cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
 				return ret, err
 			}
 
-			if err := cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{}); err != nil {
+			if err = cli.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				observ_utils.CloseSpanWithError(span, err)
 				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
 				return ret, err
 			}
@@ -316,18 +316,16 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				Message: "",
 			}
 		} else {
-			err = cli.ContainerStop(context.Background(), component.Component.Name, nil)
+			err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
 					return ret, err
 				}
 			}
-			err = cli.ContainerRemove(context.Background(), component.Component.Name, types.ContainerRemoveOptions{})
+			err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					observ_utils.CloseSpanWithError(span, err)
 					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
@@ -338,7 +336,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 

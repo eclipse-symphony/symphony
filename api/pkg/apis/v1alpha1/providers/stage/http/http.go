@@ -42,6 +42,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/azure/symphony/coa/pkg/logger"
@@ -183,6 +185,12 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("[Stage] Http provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (Http Stage): start process request")
 
 	// Check all config fields for override in inputs
@@ -195,7 +203,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			configMap[key] = val
 		}
 	}
-	configJson, err := json.Marshal(configMap)
+	configJson, err = json.Marshal(configMap)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
 		return nil, false, err
@@ -218,7 +226,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			req.Header.Add(key[7:], fmt.Sprintf("%v", input))
 		}
 		if key == "body" {
-			jData, err := json.Marshal(input)
+			var jData []byte
+			jData, err = json.Marshal(input)
 			if err != nil {
 				sLog.Errorf("  P (Http Stage): failed to encode json request body: %v", err)
 				return nil, false, err
@@ -267,7 +276,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		sLog.Debugf("  P (Http Stage): WaitCount: %d", i.Config.WaitCount)
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 			sLog.Infof("  P (Http Stage): start wait iteration %d", counter)
-			waitReq, err := http.NewRequest("GET", i.Config.WaitUrl, nil)
+			var waitReq *http.Request
+			waitReq, err = http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
 				if strings.HasPrefix(key, "header.") {
 					waitReq.Header.Add(key[7:], fmt.Sprintf("%v", input))
@@ -277,7 +287,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				sLog.Errorf("  P (Http Stage): failed to create wait request: %v", err)
 				return nil, false, err
 			}
-			waitResp, err := webClient.Do(waitReq)
+			var waitResp *http.Response
+			waitResp, err = webClient.Do(waitReq)
 			if err != nil {
 				sLog.Errorf("  P (Http Stage): wait request failed: %v", err)
 				return nil, false, err
@@ -300,7 +311,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 			if succeeded {
-				data, err := ioutil.ReadAll(waitResp.Body)
+				var data []byte
+				data, err = ioutil.ReadAll(waitResp.Body)
 				if err != nil {
 					sLog.Errorf("  P (Http Stage): failed to read wait request response: %v", err)
 					succeeded = false
@@ -314,7 +326,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 						} else {
 							switch i.Config.WaitExpressionType {
 							case "jsonpath":
-								result, err := utils.JsonPathQuery(obj, i.Config.WaitExpression)
+								var result interface{}
+								result, err = utils.JsonPathQuery(obj, i.Config.WaitExpression)
 								if err != nil {
 									sLog.Errorf("  P (Http Stage): failed to evaluate JsonPath: %v", err)
 								}
@@ -322,7 +335,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								outputs["waitResult"] = result
 							default:
 								parser := utils.NewParser(i.Config.WaitExpression)
-								val, err := parser.Eval(coa_utils.EvaluationContext{
+								var val interface{}
+								val, err = parser.Eval(coa_utils.EvaluationContext{
 									Value: obj,
 								})
 								if err != nil {

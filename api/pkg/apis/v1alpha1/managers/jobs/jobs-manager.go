@@ -37,6 +37,8 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/azure/symphony/coa/pkg/logger"
@@ -73,6 +75,12 @@ func (s *JobsManager) Enabled() bool {
 }
 
 func (s *JobsManager) pollObjects() []error {
+	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+		"method": "pollObjects",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
 		return []error{err}
@@ -89,13 +97,14 @@ func (s *JobsManager) pollObjects() []error {
 	if interval == 0 {
 		return nil
 	}
-	instances, err := utils.GetInstances(baseUrl, user, password)
+	instances, err := utils.GetInstances(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
 	}
 	for _, instance := range instances {
-		entry, err := s.StateProvider.Get(context.Background(), states.GetRequest{
+		var entry states.StateEntry
+		entry, err = s.StateProvider.Get(context, states.GetRequest{
 			ID: "i_" + instance.Id,
 		})
 		needsPub := true
@@ -120,13 +129,14 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	targets, err := utils.GetTargets(baseUrl, user, password)
+	targets, err := utils.GetTargets(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
 	}
 	for _, target := range targets {
-		entry, err := s.StateProvider.Get(context.Background(), states.GetRequest{
+		var entry states.StateEntry
+		entry, err = s.StateProvider.Get(context, states.GetRequest{
 			ID: "t_" + target.Id,
 		})
 		needsPub := true
@@ -154,6 +164,7 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
+
 	return nil
 }
 func (s *JobsManager) Poll() []error {
@@ -174,8 +185,14 @@ func (s *JobsManager) Poll() []error {
 }
 
 func (s *JobsManager) pollSchedules() []error {
+	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+		"method": "pollSchedules",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	//TODO: use filters and continue tokens
-	list, _, err := s.StateProvider.List(context.Background(), states.ListRequest{})
+	list, _, err := s.StateProvider.List(context, states.ListRequest{})
 	if err != nil {
 		return []error{err}
 	}
@@ -183,18 +200,19 @@ func (s *JobsManager) pollSchedules() []error {
 	for _, entry := range list {
 		var activationData v1alpha2.ActivationData
 		entryData, _ := json.Marshal(entry.Body)
-		err := json.Unmarshal(entryData, &activationData)
+		err = json.Unmarshal(entryData, &activationData)
 		if err != nil {
 			return []error{err}
 		}
 		if activationData.Schedule != nil {
-			fire, err := activationData.Schedule.ShouldFireNow()
+			var fire bool
+			fire, err = activationData.Schedule.ShouldFireNow()
 			if err != nil {
 				return []error{err}
 			}
 			if fire {
 				activationData.Schedule = nil
-				err = s.StateProvider.Delete(context.Background(), states.DeleteRequest{
+				err = s.StateProvider.Delete(context, states.DeleteRequest{
 					ID: entry.ID,
 				})
 				if err != nil {
@@ -213,11 +231,18 @@ func (s *JobsManager) Reconcil() []error {
 	return nil
 }
 func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
+		"method": "HandleHeartBeatEvent",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &heartbeat)
+	err = json.Unmarshal(jData, &heartbeat)
 	if err != nil {
-		return v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
+		err = v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
+		return err
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
@@ -230,6 +255,12 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 }
 
 func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job v1alpha2.JobData) error {
+	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
+		"method": "DelayOrSkipJob",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	key := "h_" + job.Id
 	if objectType == "target" {
 		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
@@ -255,14 +286,22 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 		return nil
 	}
 	if job.Action == "delete" && heartbeat.Action == "update" {
-		return v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
+		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
+		return err
 	}
-	return v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
+	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
+	return err
 }
 func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
+		"method": "HandleScheduleEvent",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	var activationData v1alpha2.ActivationData
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &activationData)
+	err = json.Unmarshal(jData, &activationData)
 	if err != nil {
 		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
 	}
@@ -273,14 +312,22 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 			Body: activationData,
 		},
 	})
-
 	return err
 }
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
+		"method": "HandleJobEvent",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData
+		var baseUrl string
+		var user string
+		var password string
 		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
+		err = json.Unmarshal(jData, &job)
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
@@ -290,24 +337,24 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return err
 		}
 
-		baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
+		baseUrl, err = utils.GetString(s.Manager.Config.Properties, "baseUrl")
 		if err != nil {
 			return err
 		}
-		user, err := utils.GetString(s.Manager.Config.Properties, "user")
+		user, err = utils.GetString(s.Manager.Config.Properties, "user")
 		if err != nil {
 			return err
 		}
-		password, err := utils.GetString(s.Manager.Config.Properties, "password")
+		password, err = utils.GetString(s.Manager.Config.Properties, "password")
 		if err != nil {
 			return err
 		}
 		switch objectType {
 		case "instance":
 			instanceName := job.Id
-
+			var instance model.InstanceState
 			//get intance
-			instance, err := utils.GetInstance(baseUrl, instanceName, user, password)
+			instance, err = utils.GetInstance(ctx, baseUrl, instanceName, user, password)
 			if err != nil {
 				return err //TODO: instance is gone
 			}
@@ -317,7 +364,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 
 			//get solution
-			solution, err := utils.GetSolution(baseUrl, instance.Spec.Solution, user, password)
+			var solution model.SolutionState
+			solution, err = utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password)
 			if err != nil {
 				solution = model.SolutionState{
 					Id: instance.Spec.Solution,
@@ -329,7 +377,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = utils.GetTargets(baseUrl, user, password)
+			targets, err = utils.GetTargets(ctx, baseUrl, user, password)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -338,14 +386,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			targetCandidates := utils.MatchTargets(instance, targets)
 
 			//create deployment spec
-			deployment, err := utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
+			var deployment model.DeploymentSpec
+			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
 			if err != nil {
 				return err
 			}
 
 			//call api
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
 					return err
 				} else {
@@ -360,25 +409,27 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteInstance(baseUrl, deployment.Instance.Name, user, password)
+					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password)
 				}
 			}
 		case "target":
 			targetName := job.Id
-			target, err := utils.GetTarget(baseUrl, targetName, user, password)
+			var target model.TargetState
+			target, err = utils.GetTarget(ctx, baseUrl, targetName, user, password)
 			if err != nil {
 				return err
 			}
-			deployment, err := utils.CreateSymphonyDeploymentFromTarget(target)
+			var deployment model.DeploymentSpec
+			deployment, err = utils.CreateSymphonyDeploymentFromTarget(target)
 			if err != nil {
 				return err
 			}
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, false)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
 				if err != nil {
 					return err
 				} else {
@@ -394,11 +445,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(baseUrl, user, password, deployment, true)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteTarget(baseUrl, targetName, user, password)
+					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password)
 				}
 			}
 		}

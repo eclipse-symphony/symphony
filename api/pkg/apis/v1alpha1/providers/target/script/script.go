@@ -115,14 +115,18 @@ func (s *ScriptProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (Script Target): Init()")
 
 	updateConfig, err := toScriptProviderConfig(config)
 	if err != nil {
-		return errors.New("expected ScriptProviderConfig")
+		err = errors.New("expected ScriptProviderConfig")
+		return err
 	}
 	i.Config = updateConfig
 
@@ -141,7 +145,7 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return nil
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
@@ -179,9 +183,12 @@ func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderCon
 }
 
 func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	id := uuid.New().String()
@@ -212,7 +219,6 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	sLog.Debugf("  P (Script Target): get script output: %s", o)
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Target): failed to run get script: %+v", err)
 		return nil, err
 	}
@@ -222,7 +228,6 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	data, err := ioutil.ReadFile(outputStaging)
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
 		return nil, err
 	}
@@ -234,11 +239,9 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
 		return nil, err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, components []model.ComponentSpec, isRemove bool) (map[string]model.ComponentResultSpec, error) {
@@ -303,27 +306,28 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 	return ret, nil
 }
 func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
-	err := i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
+	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
-		retU, err := i.runScriptOnComponents(deployment, components, false)
+		var retU map[string]model.ComponentResultSpec
+		retU, err = i.runScriptOnComponents(deployment, components, false)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
 			return nil, err
 		}
@@ -333,9 +337,9 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
-		retU, err := i.runScriptOnComponents(deployment, components, true)
+		var retU map[string]model.ComponentResultSpec
+		retU, err = i.runScriptOnComponents(deployment, components, true)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			sLog.Errorf("  P (Script Target): failed to run remove script: %+v", err)
 			return nil, err
 		}
@@ -343,7 +347,6 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 			ret[k] = v
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

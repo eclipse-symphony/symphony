@@ -36,6 +36,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type DevicesManager struct {
@@ -58,7 +61,13 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 }
 
 func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -67,9 +76,16 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "devices",
 		},
 	})
+	return err
 }
 
 func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
+	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -90,7 +106,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			"resource": "devices",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
 	}
@@ -98,6 +114,12 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 }
 
 func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, error) {
+	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -111,7 +133,8 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	}
 	ret := make([]model.DeviceState, 0)
 	for _, t := range solutions {
-		rt, err := getDeviceState(t.ID, t.Body)
+		var rt model.DeviceState
+		rt, err = getDeviceState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -138,6 +161,12 @@ func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
 }
 
 func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceState, error) {
+	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{

@@ -102,14 +102,18 @@ func (s *ScriptStageProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("[Stage] Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (Script Stage): Init()")
 
 	updateConfig, err := toScriptStageProviderConfig(config)
 	if err != nil {
-		return errors.New("expected ScriptProviderConfig")
+		err = errors.New("expected ScriptProviderConfig")
+		return err
 	}
 	i.Config = updateConfig
 
@@ -119,8 +123,6 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 			return err
 		}
 	}
-
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
@@ -158,9 +160,12 @@ func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageP
 }
 
 func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("Script Provider", context.Background(), &map[string]string{
-		"method": "Get",
+	_, span := observability.StartSpan("[Stage] Script Provider", ctx, &map[string]string{
+		"method": "Process",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("  P (Script Stage): start process request")
 
 	id := uuid.New().String()
@@ -184,7 +189,6 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	sLog.Debugf("  P (Script Stage): get script output: %s", o)
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Stage): failed to run get script: %+v", err)
 		return nil, false, err
 	}
@@ -194,7 +198,6 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	data, err := ioutil.ReadFile(outputStaging)
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
 		return nil, false, err
 	}
@@ -206,11 +209,10 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	ret := make(map[string]interface{})
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
 		return nil, false, err
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+
 	return ret, false, nil
 }
 

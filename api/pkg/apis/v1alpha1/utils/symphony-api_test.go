@@ -27,6 +27,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -65,7 +66,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -153,7 +154,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(baseUrl, targetName, user, password, target1)
+	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1)
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -170,13 +171,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateInstance(baseUrl, instanceName, user, password, instance1)
+	err = CreateInstance(context.Background(), baseUrl, instanceName, user, password, instance1)
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := GetInstances(baseUrl, user, password)
+	instancesRes, err := GetInstances(context.Background(), baseUrl, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -186,7 +187,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status["status"])
 
-	instanceRes, err := GetInstance(baseUrl, instanceName, user, password)
+	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -195,13 +196,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status["targets"])
 	require.Equal(t, "OK", instanceRes.Status["status"])
 
-	err = DeleteTarget(baseUrl, targetName, user, password)
+	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password)
 	require.NoError(t, err)
 
-	err = DeleteSolution(baseUrl, solutionName, user, password)
+	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password)
 	require.NoError(t, err)
 
-	err = DeleteInstance(baseUrl, instanceName, user, password)
+	err = DeleteInstance(context.Background(), baseUrl, instanceName, user, password)
 	require.NoError(t, err)
 }
 
@@ -228,21 +229,21 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1)
 	require.NoError(t, err)
 
-	solutionsRes, err := GetSolutions(baseUrl, user, password)
+	solutionsRes, err := GetSolutions(context.Background(), baseUrl, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := GetSolution(baseUrl, solutionName, user, password)
+	solutionRes, err := GetSolution(context.Background(), baseUrl, solutionName, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = DeleteSolution(baseUrl, solutionName, user, password)
+	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password)
 	require.NoError(t, err)
 }
 
@@ -337,13 +338,13 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(baseUrl, targetName, user, password, target1)
+	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1)
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
 	time.Sleep(time.Second)
 
-	targetsRes, err := GetTargets(baseUrl, user, password)
+	targetsRes, err := GetTargets(context.Background(), baseUrl, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
@@ -352,7 +353,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetsRes[0].Status["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status["status"])
 
-	targetRes, err := GetTarget(baseUrl, targetName, user, password)
+	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
@@ -360,7 +361,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetRes.Status["targets"])
 	require.Equal(t, "OK", targetRes.Status["status"])
 
-	err = DeleteTarget(baseUrl, targetName, user, password)
+	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password)
 	require.NoError(t, err)
 }
 

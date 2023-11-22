@@ -133,6 +133,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onRegistry",
 	})
+	defer span.End()
 	tLog.Info("V (Targets) : onRegistry")
 
 	switch request.Method {
@@ -274,12 +275,15 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 
 func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Targets Vendor", request.Context, nil)
+	_, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onBootstrap",
+	})
+	defer span.End()
+
 	var authRequest AuthRequest
 	err := json.Unmarshal(request.Body, &authRequest)
 	if err != nil || authRequest.UserName != "symphony-test" {
@@ -312,12 +316,14 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 
 func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Targets Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onStatus",
+	})
+	defer span.End()
 
 	var dict map[string]interface{}
 	json.Unmarshal(request.Body, &dict)
@@ -339,7 +345,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		}
 	}
 
-	state, err := c.TargetsManager.ReportState(request.Context, model.TargetState{
+	state, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -362,14 +368,16 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 
 func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Targets Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onDownload",
+	})
+	defer span.End()
 
-	state, err := c.TargetsManager.GetSpec(request.Context, request.Parameters["__name"])
+	state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"])
 	if err != nil {
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
@@ -394,14 +402,16 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	}
 
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 
 func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Targets Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onHeartBeat",
+	})
+	defer span.End()
 
-	_, err := c.TargetsManager.ReportState(request.Context, model.TargetState{
+	_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -426,6 +436,5 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

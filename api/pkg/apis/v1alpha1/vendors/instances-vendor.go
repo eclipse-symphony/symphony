@@ -95,6 +95,8 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	pCtx, span := observability.StartSpan("Instances Vendor", request.Context, &map[string]string{
 		"method": "onInstances",
 	})
+	defer span.End()
+
 	tLog.Info("~ Instances Manager ~ : onInstances")
 
 	switch request.Method {
@@ -226,6 +228,5 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

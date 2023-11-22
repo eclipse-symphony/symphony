@@ -28,6 +28,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -36,7 +37,10 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 const (
@@ -70,14 +74,16 @@ type authResponse struct {
 // 	)
 // }
 
-func GetInstances(baseUrl string, user string, password string) ([]model.InstanceState, error) {
+var log = logger.NewLogger("coa.runtime")
+
+func GetInstances(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "instances", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "instances", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -89,14 +95,14 @@ func GetInstances(baseUrl string, user string, password string) ([]model.Instanc
 
 	return ret, nil
 }
-func GetSites(baseUrl string, user string, password string) ([]model.SiteState, error) {
+func GetSites(context context.Context, baseUrl string, user string, password string) ([]model.SiteState, error) {
 	ret := make([]model.SiteState, 0)
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "federation/registry", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "federation/registry", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -108,28 +114,28 @@ func GetSites(baseUrl string, user string, password string) ([]model.SiteState, 
 
 	return ret, nil
 }
-func SyncActivationStatus(baseUrl string, user string, password string, status model.ActivationStatus) error {
-	token, err := auth(baseUrl, user, password)
+func SyncActivationStatus(context context.Context, baseUrl string, user string, password string, status model.ActivationStatus) error {
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return err
 	}
 	jData, _ := json.Marshal(status)
-	_, err = callRestAPI(baseUrl, "federation/sync", "POST", jData, token)
+	_, err = callRestAPI(context, baseUrl, "federation/sync", "POST", jData, token)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogState, error) {
+func GetCatalogs(context context.Context, baseUrl string, user string, password string) ([]model.CatalogState, error) {
 	ret := make([]model.CatalogState, 0)
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "catalogs/registry", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "catalogs/registry", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -141,9 +147,9 @@ func GetCatalogs(baseUrl string, user string, password string) ([]model.CatalogS
 
 	return ret, nil
 }
-func GetCatalog(baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
+func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -153,7 +159,7 @@ func GetCatalog(baseUrl string, catalog string, user string, password string) (m
 		catalogName = catalogName[1 : len(catalogName)-1]
 	}
 
-	response, err := callRestAPI(baseUrl, "catalogs/registry/"+catalogName, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "catalogs/registry/"+catalogName, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -165,15 +171,15 @@ func GetCatalog(baseUrl string, catalog string, user string, password string) (m
 
 	return ret, nil
 }
-func GetCampaign(baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
+func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
 	ret := model.CampaignState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "campaigns/"+campaign, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "campaigns/"+campaign, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -185,29 +191,29 @@ func GetCampaign(baseUrl string, campaign string, user string, password string) 
 
 	return ret, nil
 }
-func PublishActivationEvent(baseUrl string, user string, password string, event v1alpha2.ActivationData) error {
-	token, err := auth(baseUrl, user, password)
+func PublishActivationEvent(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) error {
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return err
 	}
 	jData, _ := json.Marshal(event)
-	_, err = callRestAPI(baseUrl, "jobs", "POST", jData, token)
+	_, err = callRestAPI(context, baseUrl, "jobs", "POST", jData, token)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-func GetABatchForSite(baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
+func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
 	ret := model.SyncPackage{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "federation/sync/"+site+"?count=10", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "federation/sync/"+site+"?count=10", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -218,15 +224,15 @@ func GetABatchForSite(baseUrl string, site string, user string, password string)
 	}
 	return ret, nil
 }
-func GetActivation(baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
+func GetActivation(context context.Context, baseUrl string, activation string, user string, password string) (model.ActivationState, error) {
 	ret := model.ActivationState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "activations/registry/"+activation, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "activations/registry/"+activation, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -238,30 +244,30 @@ func GetActivation(baseUrl string, activation string, user string, password stri
 
 	return ret, nil
 }
-func ReportActivationStatus(baseUrl string, name string, user string, password string, activation model.ActivationStatus) error {
-	token, err := auth(baseUrl, user, password)
+func ReportActivationStatus(context context.Context, baseUrl string, name string, user string, password string, activation model.ActivationStatus) error {
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return err
 	}
 
 	jData, _ := json.Marshal(activation)
-	_, err = callRestAPI(baseUrl, "activations/status/"+name, "POST", jData, token)
+	_, err = callRestAPI(context, baseUrl, "activations/status/"+name, "POST", jData, token)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-func GetInstance(baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
+func GetInstance(context context.Context, baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "instances/"+instance, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "instances/"+instance, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -273,40 +279,13 @@ func GetInstance(baseUrl string, instance string, user string, password string) 
 
 	return ret, nil
 }
-func UpsertCatalog(baseUrl string, catalog string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
+func UpsertCatalog(context context.Context, baseUrl string, catalog string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "POST", payload, token)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func CreateInstance(baseUrl string, instance string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
-	if err != nil {
-		return err
-	}
-
-	_, err = callRestAPI(baseUrl, "instances/"+instance, "POST", payload, token)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-func DeleteCatalog(baseUrl string, catalog string, user string, password string) error {
-	token, err := auth(baseUrl, user, password)
-	if err != nil {
-		return err
-	}
-
-	_, err = callRestAPI(baseUrl, "catalogs/registry/"+catalog, "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+catalog, "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -314,13 +293,26 @@ func DeleteCatalog(baseUrl string, catalog string, user string, password string)
 	return nil
 }
 
-func DeleteInstance(baseUrl string, instance string, user string, password string) error {
-	token, err := auth(baseUrl, user, password)
+func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "instances/"+instance+"?direct=true", "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "instances/"+instance, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func DeleteCatalog(context context.Context, baseUrl string, catalog string, user string, password string) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+catalog, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -328,13 +320,13 @@ func DeleteInstance(baseUrl string, instance string, user string, password strin
 	return nil
 }
 
-func DeleteTarget(baseUrl string, target string, user string, password string) error {
-	token, err := auth(baseUrl, user, password)
+func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "targets/registry/"+target+"?direct=true", "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "instances/"+instance+"?direct=true", "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -342,14 +334,28 @@ func DeleteTarget(baseUrl string, target string, user string, password string) e
 	return nil
 }
 
-func GetSolutions(baseUrl string, user string, password string) ([]model.SolutionState, error) {
+func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(context, baseUrl, "targets/registry/"+target+"?direct=true", "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetSolutions(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "solutions", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "solutions", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -362,14 +368,14 @@ func GetSolutions(baseUrl string, user string, password string) ([]model.Solutio
 	return ret, nil
 }
 
-func GetSolution(baseUrl string, solution string, user string, password string) (model.SolutionState, error) {
+func GetSolution(context context.Context, baseUrl string, solution string, user string, password string) (model.SolutionState, error) {
 	ret := model.SolutionState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "solutions/"+solution, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "solutions/"+solution, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -382,27 +388,13 @@ func GetSolution(baseUrl string, solution string, user string, password string) 
 	return ret, nil
 }
 
-func UpsertTarget(baseUrl string, solution string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
+func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "targets/registry/"+solution, "POST", payload, token)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func UpsertSolution(baseUrl string, solution string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
-	if err != nil {
-		return err
-	}
-
-	_, err = callRestAPI(baseUrl, "solutions/"+solution, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "targets/registry/"+solution, "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -410,13 +402,13 @@ func UpsertSolution(baseUrl string, solution string, user string, password strin
 	return nil
 }
 
-func DeleteSolution(baseUrl string, solution string, user string, password string) error {
-	token, err := auth(baseUrl, user, password)
+func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "solutions/"+solution, "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "solutions/"+solution, "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -424,14 +416,28 @@ func DeleteSolution(baseUrl string, solution string, user string, password strin
 	return nil
 }
 
-func GetTarget(baseUrl string, target string, user string, password string) (model.TargetState, error) {
+func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = callRestAPI(context, baseUrl, "solutions/"+solution, "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetTarget(context context.Context, baseUrl string, target string, user string, password string) (model.TargetState, error) {
 	ret := model.TargetState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "targets/registry/"+target, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "targets/registry/"+target, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -444,14 +450,14 @@ func GetTarget(baseUrl string, target string, user string, password string) (mod
 	return ret, nil
 }
 
-func GetTargets(baseUrl string, user string, password string) ([]model.TargetState, error) {
+func GetTargets(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(baseUrl, "targets/registry", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "targets/registry", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -464,13 +470,13 @@ func GetTargets(baseUrl string, user string, password string) ([]model.TargetSta
 	return ret, nil
 }
 
-func UpdateSite(baseUrl string, site string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
+func UpdateSite(context context.Context, baseUrl string, site string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "federation/status/"+site, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "federation/status/"+site, "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -478,13 +484,13 @@ func UpdateSite(baseUrl string, site string, user string, password string, paylo
 	return nil
 }
 
-func CreateTarget(baseUrl string, target string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
+func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(baseUrl, "targets/registry/"+target, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "targets/registry/"+target, "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -656,13 +662,13 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 
 	return ret, nil
 }
-func GetSummary(baseUrl string, user string, password string, id string) (model.SummaryResult, error) {
+func GetSummary(context context.Context, baseUrl string, user string, password string, id string) (model.SummaryResult, error) {
 	result := model.SummaryResult{}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return result, err
 	}
-	ret, err := callRestAPI(baseUrl, "solution/queue?instance="+id, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	ret, err := callRestAPI(context, baseUrl, "solution/queue?instance="+id, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return result, err
 	}
@@ -674,21 +680,21 @@ func GetSummary(baseUrl string, user string, password string, id string) (model.
 	}
 	return result, nil
 }
-func CatalogHook(baseUrl string, user string, password string, payload []byte) error {
-	token, err := auth(baseUrl, user, password)
+func CatalogHook(context context.Context, baseUrl string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "federation/k8shook?objectType=catalog"
-	_, err = callRestAPI(baseUrl, path, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func QueueJob(baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
-	token, err := auth(baseUrl, user, password)
+func QueueJob(context context.Context, baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
@@ -699,13 +705,13 @@ func QueueJob(baseUrl string, user string, password string, id string, isDelete 
 	if isTarget {
 		path += "&target=true"
 	}
-	_, err = callRestAPI(baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	_, err = callRestAPI(context, baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func Reconcile(baseUrl string, user string, password string, deployment model.DeploymentSpec, isDelete bool) (model.SummarySpec, error) {
+func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, isDelete bool) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
@@ -713,11 +719,11 @@ func Reconcile(baseUrl string, user string, password string, deployment model.De
 	if isDelete {
 		path = "solution/reconcile?delete=true"
 	}
-	token, err := auth(baseUrl, user, password)
+	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return summary, err
 	}
-	ret, err := callRestAPI(baseUrl, path, "POST", payload, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	ret, err := callRestAPI(context, baseUrl, path, "POST", payload, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return summary, err
 	}
@@ -729,10 +735,10 @@ func Reconcile(baseUrl string, user string, password string, deployment model.De
 	}
 	return summary, nil
 }
-func auth(baseUrl string, user string, password string) (string, error) {
+func auth(context context.Context, baseUrl string, user string, password string) (string, error) {
 	request := authRequest{Username: user, Password: password}
 	requestData, _ := json.Marshal(request)
-	ret, err := callRestAPI(baseUrl, "users/auth", "POST", requestData, "")
+	ret, err := callRestAPI(context, baseUrl, "users/auth", "POST", requestData, "")
 	if err != nil {
 		return "", err
 	}
@@ -745,20 +751,30 @@ func auth(baseUrl string, user string, password string) (string, error) {
 
 	return response.AccessToken, nil
 }
-func callRestAPI(baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+func callRestAPI(context context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+	context, span := observability.StartSpan("Symphony-API-Client", context, &map[string]string{
+		"method":      "callRestAPI",
+		"http.method": method,
+		"http.url":    baseUrl + route,
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.Infof("Calling Symphony API: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
-	var err error
 	if payload != nil {
-		req, err = http.NewRequest(method, rUrl, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
+		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
-
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, err = http.NewRequest(method, rUrl, nil)
+		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
+		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
@@ -786,9 +802,9 @@ func callRestAPI(baseUrl string, route string, method string, payload []byte, to
 		// if resp.StatusCode == 404 { // API service is already gone
 		// 	return nil, nil
 		// }
-
-		return nil, v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
+		err = v1alpha2.FromHTTPResponseCode(resp.StatusCode, bodyBytes)
+		return nil, err
 	}
-
+	err = nil
 	return bodyBytes, nil
 }

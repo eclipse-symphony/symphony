@@ -34,10 +34,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -132,6 +135,12 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 	return ret, nil
 }
 func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	ctx, span := observability.StartSpan("[Stage] Create provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
@@ -146,17 +155,18 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	switch objectType {
 	case "instance":
 		if action == "remove" {
-			err := utils.DeleteInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 		} else {
-			err := utils.CreateInstance(i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
+			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				summary, err := utils.GetSummary(i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
+				var summary model.SummaryResult
+				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err
@@ -166,7 +176,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
-			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			return nil, false, err
 		}
 	}
 	outputs["objectType"] = objectType

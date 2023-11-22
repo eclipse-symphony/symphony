@@ -211,7 +211,7 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 	} else {
 		entityId = fmt.Sprintf("%s-%s-%s-%s-%s-%s", refType, id, namespace, group, kind, version)
 	}
-	entity, err := s.StateProvider.Get(context.Background(), states.GetRequest{
+	entity, err := s.StateProvider.Get(context.TODO(), states.GetRequest{
 		ID: entityId,
 	})
 	if err == nil {

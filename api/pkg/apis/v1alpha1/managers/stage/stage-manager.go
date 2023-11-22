@@ -138,7 +138,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	site := status.Outputs["__site"].(string)
 	stage := status.Outputs["__stage"].(string)
 
-	entry, err := s.StateProvider.Get(context.Background(), states.GetRequest{
+	entry, err := s.StateProvider.Get(context.TODO(), states.GetRequest{
 		ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 	})
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			}
 		}
 		if len(newSites) == 0 {
-			err := s.StateProvider.Delete(context.Background(), states.DeleteRequest{
+			err := s.StateProvider.Delete(context.TODO(), states.DeleteRequest{
 				ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 			})
 			if err != nil {
@@ -232,7 +232,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			return nil, nil
 		} else {
 			p.Sites = newSites
-			_, err := s.StateProvider.Upsert(context.Background(), states.UpsertRequest{
+			_, err := s.StateProvider.Upsert(context.TODO(), states.UpsertRequest{
 				Value: states.StateEntry{
 					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 					Body: p,
@@ -249,6 +249,12 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	return nil, nil
 }
 func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.ActivationStatus {
+	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
+		"method": "HandleDirectTriggerEvent",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	status := model.ActivationStatus{
 		Stage:        "",
 		NextStage:    "",
@@ -337,9 +343,12 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	return ret
 }
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
-	_, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info(" M (Stage): HandleTriggerEvent")
 	status := model.ActivationStatus{
 		Stage:        triggerData.Stage,
@@ -364,13 +373,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(*eCtx)
+			var val interface{}
+			val, err = parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate context: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			if _, ok := val.([]string); ok {
@@ -386,7 +395,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
 				status.IsActive = false
 				log.Errorf(" M (Stage): invalid context: %v", currentStage.Contexts)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 		} else {
@@ -418,13 +426,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			inputs["__schedule"] = string(jSchedule)
 		}
 		for k, v := range inputs {
-			val, err := s.traceValue(v, inputs, triggerData.Outputs)
+			var val interface{}
+			val, err = s.traceValue(v, inputs, triggerData.Outputs)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate input: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			inputs[k] = val
@@ -441,13 +449,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		log.Debugf(" M (Stage): HandleTriggerEvent after evaluation inputs 2: %v", inputs)
 
 		factory := symproviders.SymphonyProviderFactory{}
-		provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
+		var provider providers.IProvider
+		provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
 		if err != nil {
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			log.Errorf(" M (Stage): failed to create provider: %v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			return status, activationData
 		}
 
@@ -473,13 +481,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				inputCopy["__site"] = site
 
 				for k, v := range inputCopy {
-					val, err := s.traceValue(v, inputCopy, triggerData.Outputs)
+					var val interface{}
+					val, err = s.traceValue(v, inputCopy, triggerData.Outputs)
 					if err != nil {
 						status.Status = v1alpha2.InternalError
 						status.ErrorMessage = err.Error()
 						status.IsActive = false
 						log.Errorf(" M (Stage): failed to evaluate input: %v", err)
-						observ_utils.CloseSpanWithError(span, err)
 						results <- TaskResult{
 							Outputs: nil,
 							Error:   err,
@@ -505,7 +513,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						Site:    site,
 					}
 				} else {
-					outputs, pause, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+					var outputs map[string]interface{}
+					var pause bool
+					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
 
 					if pause {
 						pauseRequested = true
@@ -569,7 +579,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					Sites:         sites,
 					OutputContext: triggerData.Outputs,
 				}
-				_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 					Value: states.StateEntry{
 						ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
 						Body: pendingTask,
@@ -580,7 +590,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.ErrorMessage = err.Error()
 					status.IsActive = false
 					log.Errorf(" M (Stage): failed to save pending task: %v", err)
-					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 				status.Status = v1alpha2.Paused
@@ -597,13 +606,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			eCtx.Outputs = triggerData.Outputs
-			val, err := parser.Eval(*eCtx)
+			var val interface{}
+			val, err = parser.Eval(*eCtx)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.ErrorMessage = err.Error()
 				status.IsActive = false
 				log.Errorf(" M (Stage): failed to evaluate stage selector: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return status, activationData
 			}
 			sVal := ""
@@ -631,7 +640,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						status.ErrorMessage = fmt.Sprintf("stage %s failed", triggerData.Stage)
 						status.IsActive = false
 						log.Errorf(" M (Stage): failed to process stage outputs: %v", status.ErrorMessage)
-						observ_utils.CloseSpanWithError(span, err)
 						return status, activationData
 					}
 				} else {
@@ -640,7 +648,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					status.ErrorMessage = fmt.Sprintf("stage %s is not found", sVal)
 					status.IsActive = false
 					log.Errorf(" M (Stage): failed to find next stage: %v", err)
-					observ_utils.CloseSpanWithError(span, err)
 					return status, activationData
 				}
 			}
@@ -658,23 +665,20 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			log.Infof(" M (Stage): stage %s is done", triggerData.Stage)
-			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		} else {
 			status.Status = v1alpha2.Done
 			status.NextStage = ""
 			status.IsActive = false
 			log.Infof(" M (Stage): stage %s is done (no next stage)", triggerData.Stage)
-			observ_utils.CloseSpanWithError(span, nil)
 			return status, activationData
 		}
 	}
-	err := v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
 	status.Status = v1alpha2.InternalError
 	status.ErrorMessage = err.Error()
 	status.IsActive = false
 	log.Errorf(" M (Stage): failed to find stage: %v", err)
-	observ_utils.CloseSpanWithError(span, err)
 	return status, activationData
 }
 
