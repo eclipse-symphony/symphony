@@ -78,19 +78,19 @@ func (s *StagingTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Staging Target Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Staging Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		sLog.Errorf("  P (Staging Target): expected StagingTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTargetProviderConfig, error) {
@@ -103,19 +103,20 @@ func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTar
 	return ret, err
 }
 func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	var err error
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	scope := deployment.Instance.Scope
 	if scope == "" {
 		scope = "default"
 	}
 	catalog, err := utils.GetCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
@@ -133,7 +134,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	if spec, ok := catalog.Spec.Properties["components"]; ok {
 		var components []model.ComponentSpec
 		jData, _ := json.Marshal(spec)
-		err := json.Unmarshal(jData, &components)
+		err = json.Unmarshal(jData, &components)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return nil, err
@@ -154,13 +155,13 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	return nil, err
 }
 func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	var err error
-	defer observ_utils.CloseSpanWithError(span, err)
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
@@ -181,6 +182,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var catalog model.CatalogState
 
 	catalog, err = utils.GetCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
@@ -205,7 +207,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
 		jData, _ := json.Marshal(v)
-		err := json.Unmarshal(jData, &existing)
+		err = json.Unmarshal(jData, &existing)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return ret, err
@@ -236,7 +238,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var deleted []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
 		jData, _ := json.Marshal(v)
-		err := json.Unmarshal(jData, &deleted)
+		err = json.Unmarshal(jData, &deleted)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 			return ret, err
@@ -268,6 +270,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog.Spec.Properties["removed-components"] = deleted
 	jData, _ := json.Marshal(catalog.Spec)
 	err = utils.UpsertCatalog(
+		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,

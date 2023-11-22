@@ -96,13 +96,16 @@ func (o *AgentVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 }
 func (c *AgentVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Agent Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Agent Vendor", request.Context, &map[string]string{
+		"method": "onConfig",
+	})
+	defer span.End()
 
 	log.Infof("V (Agent): onConfig %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		ctx, span := observability.StartSpan("Apply Config", request.Context, nil)
+		ctx, span := observability.StartSpan("Apply Config", pCtx, nil)
 		response := c.doApplyConfig(ctx, request.Parameters, request.Body)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
@@ -113,21 +116,23 @@ func (c *AgentVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Agent Vendor", request.Context, nil)
+	pCtx, span := observability.StartSpan("Agent Vendor", request.Context, &map[string]string{
+		"method": "onReference",
+	})
+	defer span.End()
 
 	log.Infof("V (Agent): onReference %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
-		ctx, span := observability.StartSpan("Get References", request.Context, nil)
+		ctx, span := observability.StartSpan("Get References", pCtx, nil)
 		response := c.doGet(ctx, request.Parameters)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	case fasthttp.MethodPost:
-		ctx, span := observability.StartSpan("Report Status", request.Context, nil)
+		ctx, span := observability.StartSpan("Report Status", pCtx, nil)
 		response := c.doPost(ctx, request.Parameters, request.Body)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
@@ -138,7 +143,6 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 

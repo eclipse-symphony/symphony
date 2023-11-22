@@ -75,9 +75,12 @@ func (s *AdbProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *AdbProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Android ADB Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	aLog.Info("  P (Android ADB): Init()")
 
 	updateConfig, err := toAdbProviderConfig(config)
@@ -85,8 +88,6 @@ func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 		return errors.New("expected AdbProviderConfig")
 	}
 	i.Config = updateConfig
-
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 
@@ -101,9 +102,12 @@ func toAdbProviderConfig(config providers.IProviderConfig) (AdbProviderConfig, e
 }
 
 func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Android ADB Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -118,10 +122,10 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 			params = append(params, "list")
 			params = append(params, "packages")
 			params = append(params, fmt.Sprintf("%v", p))
-			out, err := exec.Command("adb", params...).Output()
+			var out []byte
+			out, err = exec.Command("adb", params...).Output()
 
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, err
 			}
 			str := string(out)
@@ -136,25 +140,26 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
 func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Android ADB Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
 
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 	ret := step.PrepareResultMap()
@@ -168,13 +173,12 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 						params = append(params, "install")
 						params = append(params, p.(string))
 						cmd := exec.Command("adb", params...)
-						err := cmd.Run()
+						err = cmd.Run()
 						if err != nil {
 							ret[component.Name] = model.ComponentResultSpec{
 								Status:  v1alpha2.UpdateFailed,
 								Message: err.Error(),
 							}
-							observ_utils.CloseSpanWithError(span, err)
 							return ret, err
 						}
 					}
@@ -192,20 +196,19 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 					params = append(params, p.(string))
 
 					cmd := exec.Command("adb", params...)
-					err := cmd.Run()
+					err = cmd.Run()
 					if err != nil {
 						ret[component.Name] = model.ComponentResultSpec{
 							Status:  v1alpha2.DeleteFailed,
 							Message: err.Error(),
 						}
-						observ_utils.CloseSpanWithError(span, err)
 						return ret, err
 					}
 				}
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 

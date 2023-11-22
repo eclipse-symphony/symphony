@@ -94,6 +94,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 	pCtx, span := observability.StartSpan("Skills Vendor", request.Context, &map[string]string{
 		"method": "onSkills",
 	})
+	defer span.End()
 	tLog.Info("V (Skills): onSkills")
 
 	switch request.Method {
@@ -169,6 +170,5 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

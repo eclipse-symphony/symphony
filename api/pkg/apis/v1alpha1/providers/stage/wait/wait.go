@@ -29,13 +29,13 @@ package wait
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -100,71 +100,72 @@ func WaitStageProviderConfigFromVendorMap(properties map[string]string) (WaitSta
 	return WaitStageProviderConfigFromMap(ret)
 }
 func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProviderConfig, error) {
-	_, span := observability.StartSpan("Wait Process Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Wait Process Provider", context.TODO(), &map[string]string{
 		"method": "WaitStageProviderConfigFromMap",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info("  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
 	baseUrl, err := utils.GetString(properties, "baseUrl")
 	if err != nil {
 		log.Errorf("  P (Wait Processor): failed to get baseUrl: %v", err)
-		observ_utils.CloseSpanWithError(span, err)
 		return ret, err
 	}
 	ret.BaseUrl = baseUrl
 	if ret.BaseUrl == "" {
 		log.Errorf("  P (Wait Processor): baseUrl is required")
-		err := v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-		observ_utils.CloseSpanWithError(span, err)
+		err = v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
 		return ret, err
 	}
 	user, err := utils.GetString(properties, "user")
 	if err != nil {
 		log.Errorf("  P (Wait Processor): failed to get user: %v", err)
-		observ_utils.CloseSpanWithError(span, err)
 		return ret, err
 	}
 	ret.User = user
 	if ret.User == "" {
 		log.Errorf("  P (Wait Processor): user is required")
-		err := v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-		observ_utils.CloseSpanWithError(span, err)
+		err = v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
 		return ret, err
 	}
 	password, err := utils.GetString(properties, "password")
 	if err != nil {
 		log.Errorf("  P (Wait Processor): failed to get password: %v", err)
-		observ_utils.CloseSpanWithError(span, err)
 		return ret, err
 	}
 	ret.Password = password
 	if v, ok := properties["wait.interval"]; ok {
-		interval, err := strconv.Atoi(v)
+		var interval int
+		interval, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait interval %v", v), v1alpha2.BadConfig)
 			log.Errorf("  P (Wait Processor): failed to parse wait interval %v", cErr)
-			observ_utils.CloseSpanWithError(span, cErr)
 			return ret, cErr
 		}
 		ret.WaitInterval = interval
 	}
 	if v, ok := properties["wait.count"]; ok {
-		count, err := strconv.Atoi(v)
+		var count int
+		count, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait count %v", v), v1alpha2.BadConfig)
 			log.Errorf("  P (Wait Processor): failed to parse wait count %v", cErr)
-			observ_utils.CloseSpanWithError(span, cErr)
 			return ret, cErr
 		}
 		ret.WaitCount = count
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("Wait Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Wait Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
@@ -180,10 +181,10 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		foundCount := 0
 		switch objectType {
 		case "instance":
-			instances, err := utils.GetInstances(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var instances []model.InstanceState
+			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			for _, instance := range instances {
@@ -194,10 +195,10 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "sites":
-			sites, err := utils.GetSites(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var sites []model.SiteState
+			sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			for _, site := range sites {
@@ -208,10 +209,10 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 		case "catalogs":
-			catalogs, err := utils.GetCatalogs(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			var catalogs []model.CatalogState
+			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
-				observ_utils.CloseSpanWithError(span, err)
 				return nil, false, err
 			}
 			for _, catalog := range catalogs {
@@ -226,7 +227,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["objectType"] = objectType
 			outputs["status"] = "OK"
 			log.Infof("  P (Wait Processor): found %v %v", objectType, objects)
-			observ_utils.CloseSpanWithError(span, nil)
 			return outputs, false, nil
 		}
 		counter++
@@ -237,6 +237,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	outputs["objectType"] = objectType
 	log.Errorf("  P (Wait Processor): failed to wait for %v %v", objectType, objects)
-	observ_utils.CloseSpanWithError(span, errors.New("failed to wait for "+objectType))
-	return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for %v %v", objectType, objects), v1alpha2.NotFound)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for %v %v", objectType, objects), v1alpha2.NotFound)
+	return outputs, false, err
 }

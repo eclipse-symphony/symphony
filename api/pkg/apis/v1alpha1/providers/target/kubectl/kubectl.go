@@ -134,13 +134,13 @@ func (s *KubectlTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"Kubectl Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Kubectl Target): Init()")
 
 	updateConfig, err := toKubectlTargetProviderConfig(config)
@@ -233,7 +233,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -310,7 +310,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 // Apply applies the deployment artifacts
 func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx,
 		&map[string]string{
@@ -318,7 +318,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -385,7 +385,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 
 				} else {
-					err := errors.New("component doesn't have yaml property or resource property")
+					err = errors.New("component doesn't have yaml property or resource property")
 					sLog.Error("  P (Kubectl Target):  component doesn't have yaml property or resource property")
 					return ret, err
 				}
@@ -464,7 +464,7 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

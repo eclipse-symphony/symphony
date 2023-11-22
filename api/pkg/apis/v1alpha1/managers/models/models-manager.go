@@ -36,6 +36,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type ModelsManager struct {
@@ -54,7 +57,13 @@ func (s *ModelsManager) Init(context *contexts.VendorContext, config managers.Ma
 }
 
 func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -63,9 +72,16 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "models",
 		},
 	})
+	return err
 }
 
 func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
+	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -86,7 +102,7 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			"resource": "models",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
 	}
@@ -94,6 +110,12 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 }
 
 func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error) {
+	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -107,7 +129,8 @@ func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error
 	}
 	ret := make([]model.ModelState, 0)
 	for _, t := range models {
-		rt, err := getModelState(t.ID, t.Body, t.ETag)
+		var rt model.ModelState
+		rt, err = getModelState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +158,12 @@ func getModelState(id string, body interface{}, etag string) (model.ModelState, 
 }
 
 func (t *ModelsManager) GetSpec(ctx context.Context, id string) (model.ModelState, error) {
+	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{

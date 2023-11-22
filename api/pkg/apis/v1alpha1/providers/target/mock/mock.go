@@ -34,6 +34,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -49,6 +51,16 @@ var cache map[string][]model.ComponentSpec
 var mLock sync.Mutex
 
 func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
+	_, span := observability.StartSpan(
+		"Mock Target Provider",
+		context.TODO(),
+		&map[string]string{
+			"method": "Init",
+		},
+	)
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	mLock.Lock()
 	defer mLock.Unlock()
 
@@ -91,9 +103,29 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	mLock.Lock()
 	defer mLock.Unlock()
 
+	_, span := observability.StartSpan(
+		"Mock Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "Get",
+		},
+	)
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	return cache[m.Config.ID], nil
 }
 func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+	_, span := observability.StartSpan(
+		"Mock Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "Apply",
+		},
+	)
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	mLock.Lock()
 	defer mLock.Unlock()
 	if cache[m.Config.ID] == nil {

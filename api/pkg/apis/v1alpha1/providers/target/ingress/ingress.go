@@ -129,13 +129,13 @@ func (i *IngressTargetProvider) InitWithMap(properties map[string]string) error 
 func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"ConfigMap Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toIngressTargetProviderConfig(config)
@@ -228,12 +228,13 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Ingress Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		obj, err := i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		var obj *networkingv1.Ingress
+		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (Ingress Target): resource not found: %s", err)
@@ -253,7 +254,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 // Apply applies the ingress artifacts
 func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx,
 		&map[string]string{
@@ -261,7 +262,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -290,7 +291,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				if v, ok := component.Properties["rules"]; ok {
 					jData, _ := json.Marshal(v)
 					var rules []networkingv1.IngressRule
-					err := json.Unmarshal(jData, &rules)
+					err = json.Unmarshal(jData, &rules)
 					if err != nil {
 						sLog.Error("  P (Ingress Target): failed to unmarshal ingress: +%v", err)
 						return ret, err
@@ -351,7 +352,7 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

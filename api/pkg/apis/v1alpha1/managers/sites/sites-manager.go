@@ -37,6 +37,8 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
@@ -62,6 +64,12 @@ func (s *SitesManager) Init(context *contexts.VendorContext, config managers.Man
 
 // GetCampaign retrieves a CampaignSpec object by name
 func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteState, error) {
+	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -112,6 +120,12 @@ func getSiteState(id string, body interface{}) (model.SiteState, error) {
 }
 
 func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState) error {
+	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
+		"method": "ReportState",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	current.Metadata = map[string]string{
 		"version":  "v1",
 		"group":    model.FederationGroup,
@@ -173,6 +187,12 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 }
 
 func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.SiteSpec) error {
+	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -193,7 +213,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 			"resource": "sites",
 		},
 	}
-	_, err := m.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
 	}
@@ -201,7 +221,13 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 }
 
 func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
-	return m.StateProvider.Delete(ctx, states.DeleteRequest{
+	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -210,9 +236,17 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "sites",
 		},
 	})
+
+	return err
 }
 
 func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) {
+	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -226,7 +260,8 @@ func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) 
 	}
 	ret := make([]model.SiteState, 0)
 	for _, t := range sites {
-		rt, err := getSiteState(t.ID, t.Body)
+		var rt model.SiteState
+		rt, err = getSiteState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +273,13 @@ func (s *SitesManager) Enabled() bool {
 	return s.VendorContext.SiteInfo.ParentSite.BaseUrl != ""
 }
 func (s *SitesManager) Poll() []error {
-	thisSite, err := s.GetSpec(context.Background(), s.VendorContext.SiteInfo.SiteId)
+	ctx, span := observability.StartSpan("Sites Manager", context.Background(), &map[string]string{
+		"method": "Poll",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	thisSite, err := s.GetSpec(ctx, s.VendorContext.SiteInfo.SiteId)
 	if err != nil {
 		//TOOD: only ignore not found, and log the error
 		return nil
@@ -246,6 +287,7 @@ func (s *SitesManager) Poll() []error {
 	thisSite.Spec.IsSelf = false
 	jData, _ := json.Marshal(thisSite)
 	utils.UpdateSite(
+		ctx,
 		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
 		s.VendorContext.SiteInfo.SiteId,
 		s.VendorContext.SiteInfo.ParentSite.Username,

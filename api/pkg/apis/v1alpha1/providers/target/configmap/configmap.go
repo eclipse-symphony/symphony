@@ -127,13 +127,13 @@ func (i *ConfigMapTargetProvider) InitWithMap(properties map[string]string) erro
 func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"ConfigMap Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},
 	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toConfigMapTargetProviderConfig(config)
@@ -225,13 +225,14 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 			"method": "Get",
 		},
 	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
-		obj, err := i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		var obj *corev1.ConfigMap
+		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
@@ -243,7 +244,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 		component.Component.Properties = make(map[string]interface{})
 		for key, value := range obj.Data {
 			var data interface{}
-			err := json.Unmarshal([]byte(value), &data)
+			err = json.Unmarshal([]byte(value), &data)
 			if err == nil {
 				component.Component.Properties[key] = data
 			} else {
@@ -258,15 +259,16 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 
 // Apply applies the configmap artifacts
 func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx,
 		&map[string]string{
 			"method": "Apply",
 		},
 	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -275,6 +277,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		return nil, err
 	}
 	if isDryRun {
+		err = nil
 		return nil, nil
 	}
 
@@ -324,15 +327,15 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 
 // ensureNamespace ensures that the namespace exists
 func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace string) error {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx,
 		&map[string]string{
 			"method": "ensureNamespace",
 		},
 	)
-	var err error
-	defer utils.CloseSpanWithError(span, err)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {

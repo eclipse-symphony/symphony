@@ -29,6 +29,7 @@ package vendors
 import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
@@ -71,6 +72,11 @@ func (f *StagingVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 }
 func (f *StagingVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	_, span := observability.StartSpan("Staging Vendor", request.Context, &map[string]string{
+		"method": "onDownload",
+	})
+	defer span.End()
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

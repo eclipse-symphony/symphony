@@ -36,6 +36,8 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/logger"
 )
@@ -118,6 +120,12 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	return ret, nil
 }
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	ctx, span := observability.StartSpan("[Stage] Materialize Provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	outputs := make(map[string]interface{})
 
 	objects := inputs["names"].([]interface{})
@@ -126,7 +134,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		prefixedNames[i] = fmt.Sprintf("%s-%s", inputs["__origin"], object.(string))
 	}
 
-	catalogs, err := utils.GetCatalogs(i.Config.BaseUrl, i.Config.User, i.Config.Password)
+	catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
 	if err != nil {
 		return outputs, false, err
 	}
@@ -138,21 +146,21 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				name := strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", inputs["__origin"]))
 				switch catalog.Spec.Type {
 				case "instance":
-					err = utils.CreateInstance(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "solution":
-					err = utils.UpsertSolution(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "target":
-					err = utils.UpsertTarget(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
@@ -163,7 +171,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					catalog.Id = name
 					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
 					objectData, _ := json.Marshal(catalog.Spec)
-					err = utils.UpsertCatalog(i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
 						mLog.Errorf("Failed to create catalog %s: %s", name, err.Error())
 						return outputs, false, err
@@ -174,7 +182,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		}
 	}
 	if creationCount < len(objects) {
-		return outputs, false, v1alpha2.NewCOAError(nil, "failed to create all objects", v1alpha2.InternalError)
+		err = v1alpha2.NewCOAError(nil, "failed to create all objects", v1alpha2.InternalError)
+		return outputs, false, err
 	}
 	return outputs, true, nil
 }

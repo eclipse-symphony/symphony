@@ -102,11 +102,14 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onQueue",
 	})
+	defer span.End()
+
 	log.Info("V (Solution): onQueue")
 
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
+		defer span.End()
 		instance := request.Parameters["instance"]
 		if instance == "" {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -137,6 +140,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		})
 	case fasthttp.MethodPost:
 		_, span := observability.StartSpan("onQueue-POST", rContext, nil)
+		defer span.End()
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
 		target := request.Parameters["target"]
@@ -178,13 +182,16 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 }
 func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
-		"method": "onNeedsUpdate",
+		"method": "onReconcile",
 	})
+	defer span.End()
+
 	log.Info("V (Solution): onReconcile")
 
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
+		defer span.End()
 		var deployment model.DeploymentSpec
 		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
@@ -216,13 +223,17 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 }
 
 func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Solution Vendor", request.Context, nil)
+	_, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onApplyDeployment",
+	})
+	defer span.End()
 
 	log.Infof("V (Solution): received request %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("Apply Deployment", request.Context, nil)
+		defer span.End()
 		deployment := new(model.DeploymentSpec)
 		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
@@ -235,6 +246,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("Get Components", request.Context, nil)
+		defer span.End()
 		deployment := new(model.DeploymentSpec)
 		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
@@ -247,6 +259,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("Delete Components", request.Context, nil)
+		defer span.End()
 		var deployment model.DeploymentSpec
 		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
@@ -265,52 +278,76 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }
 
 func (c *SolutionVendor) doGet(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
+		"method": "doGet",
+	})
+	defer span.End()
 	_, components, err := c.SolutionManager.Get(ctx, deployment)
 	if err != nil {
-		return v1alpha2.COAResponse{
+		response := v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
+		observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+		return response
 	}
 	data, _ := json.Marshal(components)
-	return v1alpha2.COAResponse{
+	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
 		ContentType: "application/json",
 	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+	return response
 }
 func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
+		"method": "doDeploy",
+	})
+	defer span.End()
 	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false)
 	data, _ := json.Marshal(summary)
 	if err != nil {
-		return v1alpha2.COAResponse{
+		response := v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  data,
 		}
+		observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+		return response
 	}
-	return v1alpha2.COAResponse{
+	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
 		ContentType: "application/json",
 	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+	return response
 }
 func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
+		"method": "doRemove",
+	})
+	defer span.End()
+
 	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true)
 	data, _ := json.Marshal(summary)
 	if err != nil {
-		return v1alpha2.COAResponse{
+		response := v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  data,
 		}
+		observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+		return response
 	}
-	return v1alpha2.COAResponse{
+	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
 		ContentType: "application/json",
 	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
+	return response
 }

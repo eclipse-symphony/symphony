@@ -88,9 +88,12 @@ func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]in
 	i.OutputContext = outputs
 }
 func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("Remote Process Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info("  P (Remote Processor): Process")
 
 	outputs := make(map[string]interface{})
@@ -98,13 +101,12 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	v, ok := inputs["__site"]
 
 	if !ok {
-		err := v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
+		err = v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
 		log.Errorf("  P (Remote Processor): %v", err)
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, false, err
 	}
 
-	err := mgrContext.Publish("remote", v1alpha2.Event{
+	err = mgrContext.Publish("remote", v1alpha2.Event{
 		Metadata: map[string]string{
 			"site":       v.(string),
 			"objectType": "task",
@@ -121,7 +123,6 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	})
 	if err != nil {
 		log.Errorf("  P (Remote Processor): publish failed - %v", err)
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, false, err
 	}
 

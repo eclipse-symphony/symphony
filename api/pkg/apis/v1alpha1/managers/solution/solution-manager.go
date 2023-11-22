@@ -131,6 +131,9 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.Sum
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "GetSummary",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info(" M (Solution): get summary")
 
 	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
@@ -138,7 +141,6 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.Sum
 	})
 	if err != nil {
 		log.Errorf(" M (Solution): failed to get deployment summary[%s]: %+v", key, err)
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SummaryResult{}, err
 	}
 
@@ -147,11 +149,9 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.Sum
 	err = json.Unmarshal(jData, &result)
 	if err != nil {
 		log.Errorf(" M (Solution): failed to deserailze deployment summary[%s]: %+v", key, err)
-		observ_utils.CloseSpanWithError(span, err)
 		return model.SummaryResult{}, err
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return result, nil
 }
 
@@ -191,6 +191,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	log.Info(" M (Solution): reconciling")
 
 	summary := model.SummarySpec{
@@ -199,7 +202,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		SuccessCount:  0,
 	}
 
-	var err error
 	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
 		context := s.VendorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = deployment
@@ -213,8 +215,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		} else {
 			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 			log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
-			s.saveSummary(ctx, deployment, summary)
-			observ_utils.CloseSpanWithError(span, err)
+			s.saveSummary(iCtx, deployment, summary)
 			return summary, err
 		}
 	}
@@ -224,16 +225,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to create target manager state from deployment spec: %+v", err)
-		s.saveSummary(ctx, deployment, summary)
-		observ_utils.CloseSpanWithError(span, err)
+		s.saveSummary(iCtx, deployment, summary)
 		return summary, err
 	}
-	currentState, _, err := s.Get(ctx, deployment)
+	currentState, _, err := s.Get(iCtx, deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
 		log.Errorf(" M (Solution): failed to get current state: %+v", err)
-		s.saveSummary(ctx, deployment, summary)
-		observ_utils.CloseSpanWithError(span, err)
+		s.saveSummary(iCtx, deployment, summary)
 		return summary, err
 	}
 
@@ -252,8 +251,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
-		s.saveSummary(ctx, deployment, summary)
-		observ_utils.CloseSpanWithError(span, err)
+		s.saveSummary(iCtx, deployment, summary)
 		return summary, err
 	}
 
@@ -274,11 +272,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
+		var provider providers.IProvider
+		provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
 			summary.SummaryMessage = "failed to create provider:" + err.Error()
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
-			observ_utils.CloseSpanWithError(span, err)
 			s.saveSummary(ctx, deployment, summary)
 			return summary, err
 		}
@@ -310,7 +308,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// 				log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
 		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
 		// 				s.saveSummary(ctx, deployment, summary)
-		// 				observ_utils.CloseSpanWithError(span, err)
+		// 				observ_utils.CloseSpanWithError(span, &err)
 		// 				return summary, err
 		// 			}
 		// 		}
@@ -329,16 +327,16 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		if stepError != nil {
 			log.Errorf(" M (Solution): failed to execute deployment step: %+v", stepError)
-			s.saveSummary(ctx, deployment, summary)
-			observ_utils.CloseSpanWithError(span, stepError)
-			return summary, stepError
+			s.saveSummary(iCtx, deployment, summary)
+			err = stepError
+			return summary, err
 		}
 	}
 
 	mergedState.ClearAllRemoved()
 
 	// TODO: delete the state if the mergedState is empty (doesn't have any ComponentTarget assignements)
-	s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	s.StateProvider.Upsert(iCtx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: deployment.Instance.Name,
 			Body: SolutionManagerDeploymentState{
@@ -353,8 +351,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		summary.SuccessCount = summary.TargetCount
 	}
 	summary.IsRemoval = remove
-	s.saveSummary(ctx, deployment, summary)
-	observ_utils.CloseSpanWithError(span, nil)
+	s.saveSummary(iCtx, deployment, summary)
 	return summary, nil
 }
 func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec) {
@@ -404,19 +401,19 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	log.Info(" M (Solution): getting deployment")
 
 	ret := model.DeploymentState{}
 
 	state, err := NewDeploymentState(deployment)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		log.Errorf(" M (Solution): failed to create manager state for deployment: %+v", err)
 		return ret, nil, err
 	}
 	plan, err := PlanForDeployment(deployment, state)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
 		return ret, nil, err
 	}
@@ -428,15 +425,15 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v
 		}
-		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
+		var provider providers.IProvider
+		provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
 			return ret, nil, err
 		}
-		components, err := (provider.(tgt.ITargetProvider)).Get(iCtx, deployment, step.Components)
+		var components []model.ComponentSpec
+		components, err = (provider.(tgt.ITargetProvider)).Get(iCtx, deployment, step.Components)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			log.Errorf(" M (Solution): failed to get: %+v", err)
 			return ret, nil, err
 		}
@@ -459,7 +456,6 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {

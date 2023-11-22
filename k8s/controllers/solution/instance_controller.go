@@ -101,7 +101,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 
-		summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
+		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
 		if err != nil && !v1alpha2.IsNotFound(err) {
 			uErr := r.updateInstanceStatusToReconciling(instance, err)
 			if uErr != nil {
@@ -123,7 +123,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		} else {
 			// Queue a job every 60s or when the generation is changed
-			err = api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, false, false)
+			err = api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, false, false)
 			if err != nil {
 				uErr := r.updateInstanceStatusToReconciling(instance, err)
 				if uErr != nil {
@@ -149,7 +149,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else { // delete
 		if controllerutil.ContainsFinalizer(instance, myFinalizerName) {
-			err := api_utils.QueueJob("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
+			err := api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, true, false)
 
 			if err != nil {
 				uErr := r.updateInstanceStatusToReconciling(instance, err)
@@ -167,7 +167,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 					// Timeout exceeded, assume deletion failed and proceed with finalization
 					break loop
 				case <-ticker:
-					summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
+					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
 					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
 						break loop
 					}

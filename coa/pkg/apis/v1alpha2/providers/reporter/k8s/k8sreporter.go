@@ -149,7 +149,7 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 		Group:    group,
 		Version:  version,
 		Resource: kind,
-	}).Namespace(namespace).Get(context.Background(), id, v1.GetOptions{})
+	}).Namespace(namespace).Get(context.TODO(), id, v1.GetOptions{})
 
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 		Group:    group,
 		Version:  version,
 		Resource: kind,
-	}).Namespace(namespace).UpdateStatus(context.Background(), status, v1.UpdateOptions{})
+	}).Namespace(namespace).UpdateStatus(context.TODO(), status, v1.UpdateOptions{})
 
 	return err
 }

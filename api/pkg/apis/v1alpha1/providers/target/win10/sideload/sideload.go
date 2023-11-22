@@ -108,18 +108,21 @@ func (s *Win10SideLoadProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Win 10 Sideload Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Info("~~~ Win 10 Sideload Provider ~~~ : Init()")
 
 	updateConfig, err := toWin10SideLoadProviderConfig(config)
 	if err != nil {
-		return errors.New("expected Win10SideLoadProviderConfig")
+		err = errors.New("expected Win10SideLoadProviderConfig")
+		return err
 	}
 	i.Config = updateConfig
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toWin10SideLoadProviderConfig(config providers.IProviderConfig) (Win10SideLoadProviderConfig, error) {
@@ -132,9 +135,12 @@ func toWin10SideLoadProviderConfig(config providers.IProviderConfig) (Win10SideL
 	return ret, err
 }
 func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	params := make([]string, 0)
@@ -149,7 +155,6 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	out, err := exec.Command(i.Config.WinAppDeployCmdPath, params...).Output()
 
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	str := string(out)
@@ -176,23 +181,24 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 		}
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -213,13 +219,12 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				params = append(params, path)
 
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					ret[component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					observ_utils.CloseSpanWithError(span, err)
 					if i.Config.Silent {
 						return ret, nil
 					} else {
@@ -256,9 +261,8 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				params = append(params, name)
 
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
-					observ_utils.CloseSpanWithError(span, err)
 					if i.Config.Silent {
 						return ret, nil
 					} else {
@@ -269,7 +273,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 			}
 		}
 	}
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 

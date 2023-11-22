@@ -91,13 +91,13 @@ func (o *SettingsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name?"},
 		},
 	}
-	return nil
 }
 
 func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Settings Vendor", request.Context, &map[string]string{
-		"method": "onCampaigns",
+		"method": "onConfig",
 	})
+	defer span.End()
 	csLog.Info("V (Settings): onConfig")
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -144,6 +144,5 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 		ContentType: "application/json",
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	span.End()
 	return resp
 }

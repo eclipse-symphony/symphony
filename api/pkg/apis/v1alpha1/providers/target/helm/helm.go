@@ -147,13 +147,13 @@ func (s *HelmTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	_, span := observability.StartSpan(
 		"Helm Target Provider",
-		context.Background(),
+		context.TODO(),
 		&map[string]string{
 			"method": "Init",
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Info("  P (Helm Target): Init()")
 
 	err = initChartsDir()
@@ -192,7 +192,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 				}
 
 				namespace := DEFAULT_NAMESPACE
-				actionConfig, err = getActionConfig(context.Background(), namespace, kConfig)
+				actionConfig, err = getActionConfig(context.TODO(), namespace, kConfig)
 				if err != nil {
 					sLog.Errorf("  P (Helm Target): failed to init with config bytes: %+v", err)
 					return err
@@ -258,7 +258,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 	i.ListClient.Deployed = true
 	var results []*release.Release
@@ -329,7 +329,7 @@ func downloadFile(url string, fileName string) error {
 
 // Apply deploys the helm chart for a given deployment
 func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
 		&map[string]string{
@@ -337,7 +337,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		},
 	)
 	var err error
-	defer utils.CloseSpanWithError(span, err)
+	defer utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
@@ -365,7 +365,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			}
 
-			fileName, err := i.pullChart(&helmProp.Chart)
+			var fileName string
+			fileName, err = i.pullChart(&helmProp.Chart)
 			if err != nil {
 				sLog.Errorf("  P (Helm Target): failed to pull chart: %+v", err)
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -406,7 +407,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 		} else {
 			if component.Component.Type == "helm.v3" {
-				_, err := i.UninstallClient.Run(component.Component.Name)
+				_, err = i.UninstallClient.Run(component.Component.Name)
 				if err != nil {
 					if strings.Contains(err.Error(), "not found") {
 						continue //TODO: better way to detect this error?

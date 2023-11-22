@@ -36,6 +36,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type SolutionsManager struct {
@@ -58,7 +61,13 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 }
 
 func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -67,9 +76,16 @@ func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "solutions",
 		},
 	})
+	return err
 }
 
 func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec model.SolutionSpec) error {
+	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -90,14 +106,17 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			"resource": "solutions",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	return err
 }
 
 func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState, error) {
+	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -111,7 +130,8 @@ func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState,
 	}
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
-		rt, err := getSolutionState(t.ID, t.Body)
+		var rt model.SolutionState
+		rt, err = getSolutionState(t.ID, t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -138,6 +158,12 @@ func getSolutionState(id string, body interface{}) (model.SolutionState, error) 
 }
 
 func (t *SolutionsManager) GetSpec(ctx context.Context, id string) (model.SolutionState, error) {
+	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{

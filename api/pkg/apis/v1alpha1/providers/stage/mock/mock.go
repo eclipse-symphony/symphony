@@ -35,6 +35,8 @@ import (
 	"time"
 
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -84,6 +86,11 @@ func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProv
 	return ret, nil
 }
 func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
+	_, span := observability.StartSpan("[Stage] Mock Provider", ctx, &map[string]string{
+		"method": "Process",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 
 	fmt.Printf("\n\n====================================================\n")
 	fmt.Printf("MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")
@@ -102,7 +109,8 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if v == nil || v == "" {
 			outputs["foo"] = 1
 		} else {
-			val, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			var val int64
+			val, err = strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
 			if err == nil {
 				outputs["foo"] = val + 1
 			}

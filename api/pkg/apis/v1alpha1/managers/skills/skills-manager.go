@@ -36,6 +36,9 @@ import (
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+
+	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type SkillsManager struct {
@@ -54,7 +57,13 @@ func (s *SkillsManager) Init(context *contexts.VendorContext, config managers.Ma
 }
 
 func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
-	return t.StateProvider.Delete(ctx, states.DeleteRequest{
+	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
+		"method": "DeleteSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
 			"scope":    "",
@@ -63,9 +72,16 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "skills",
 		},
 	})
+	return err
 }
 
 func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.SkillSpec) error {
+	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
+		"method": "UpsertSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -86,14 +102,17 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			"resource": "skills",
 		},
 	}
-	_, err := t.StateProvider.Upsert(ctx, upsertRequest)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	return err
 }
 
 func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error) {
+	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
+		"method": "ListSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -107,7 +126,8 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	}
 	ret := make([]model.SkillState, 0)
 	for _, t := range models {
-		rt, err := getSkillState(t.ID, t.Body, t.ETag)
+		var rt model.SkillState
+		rt, err = getSkillState(t.ID, t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +155,12 @@ func getSkillState(id string, body interface{}, etag string) (model.SkillState, 
 }
 
 func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillState, error) {
+	ctx, span := observability.StartSpan("Skills Manager", ctx, &map[string]string{
+		"method": "GetSpec",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{

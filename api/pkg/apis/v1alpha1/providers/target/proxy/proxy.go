@@ -83,18 +83,20 @@ func (s *ProxyUpdateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Info("~~~ Proxy Provider ~~~ : Init()")
 
 	updateConfig, err := toProxyUpdateProviderConfig(config)
 	if err != nil {
-		return errors.New("expected ProxyUpdateProviderConfig")
+		err = errors.New("expected ProxyUpdateProviderConfig")
+		return err
 	}
 	i.Config = updateConfig
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return nil
 }
 func toProxyUpdateProviderConfig(config providers.IProviderConfig) (ProxyUpdateProviderConfig, error) {
@@ -133,42 +135,44 @@ func (a *ProxyUpdateProvider) callRestAPI(route string, method string, payload [
 }
 
 func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	_, span := observability.StartSpan("Proxy Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("~~~ Proxy Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	data, _ := json.Marshal(deployment)
 	payload, err := i.callRestAPI("instances", "GET", data)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(payload, &ret)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 
-	observ_utils.CloseSpanWithError(span, nil)
 	return ret, nil
 }
 
 func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
-	_, span := observability.StartSpan("Proxy Provider", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Proxy Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
 
 	components := step.GetComponents()
-	err := i.GetValidationRule(ctx).Validate(components)
+	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, err)
 		return nil, err
 	}
 	if isDryRun {
-		observ_utils.CloseSpanWithError(span, nil)
+		err = nil
 		return nil, nil
 	}
 
@@ -179,25 +183,22 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 
 		_, err = i.callRestAPI("instances", "POST", data)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return ret, err
 		}
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return ret, err
 		}
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		data, _ := json.Marshal(deployment)
-		_, err := i.callRestAPI("instances", "DELETE", data)
+		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {
-			observ_utils.CloseSpanWithError(span, err)
 			return ret, err
 		}
 	}
 	//TODO: Should we remove empty namespaces?
-	observ_utils.CloseSpanWithError(span, nil)
+	err = nil
 	return ret, nil
 }
 

@@ -75,7 +75,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 		var request v1alpha2.COARequest
 		var response v1alpha2.COAResponse
-		request.Context = context.Background()
+		request.Context = context.TODO()
 		err := json.Unmarshal(msg.Payload(), &request)
 		if err != nil {
 			response = v1alpha2.COAResponse{
