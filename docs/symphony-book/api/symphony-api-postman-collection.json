@@ -1,0 +1,3863 @@
+{
+	"info": {
+		"_postman_id": "562aee72-4c38-46b0-abe6-72ad6d3c2883",
+		"name": "Symphony REST API Queries",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "2490415"
+	},
+	"item": [
+		{
+			"name": "Solutions",
+			"item": [
+				{
+					"name": "Create Solution",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{SOLUTION_NAME}}\",\r\n    \"components\": [\r\n        {\r\n            \"name\": \"{{SOLUTION_NAME}}\",\r\n            \"type\": \"container\",\r\n            \"properties\": {\r\n                \"container.image\": \"redis:latest\"\r\n            }\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions",
+								"{{SOLUTION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Solution",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions",
+								"{{SOLUTION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Solutions",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Solution",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions",
+								"{{SOLUTION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Solution spec Yaml",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions",
+								"{{SOLUTION_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Solution with embedded spec",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "SOME RANDDOM TEXT",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}?embed-type=some-type&embed-component=some-component&embed-property=some-property",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solutions",
+								"{{SOLUTION_NAME}}"
+							],
+							"query": [
+								{
+									"key": "embed-type",
+									"value": "some-type"
+								},
+								{
+									"key": "embed-component",
+									"value": "some-component"
+								},
+								{
+									"key": "embed-property",
+									"value": "some-property"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Targets",
+			"item": [
+				{
+					"name": "List Targets",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "...",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Target",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{TARGET_NAME}}\",\r\n    \"topologies\": [\r\n        {\r\n            \"bindings\": [\r\n                {\r\n                    \"role\": \"instance\",\r\n                    \"provider\": \"providers.target.k8s\",\r\n                    \"config\": {\r\n                        \"inCluster\": \"true\",\r\n                        \"deploymentStrategy\": \"services\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Target",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Targets",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Target",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Target spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Target with staging binding",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{TARGET_NAME}}\"    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}?with-binding=staging",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							],
+							"query": [
+								{
+									"key": "with-binding",
+									"value": "staging"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Target with direct delete flag",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry/{{TARGET_NAME}}?direct=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"registry",
+								"{{TARGET_NAME}}"
+							],
+							"query": [
+								{
+									"key": "direct",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bootstrap (PoC)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"symphony-test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/bootstrap",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"bootstrap"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Target spec YAML (obsolete?)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/download/yaml/{{TARGET_NAME}}?path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"download",
+								"yaml",
+								"{{TARGET_NAME}}"
+							],
+							"query": [
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Target heartbeat",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/ping/{{TARGET_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"ping",
+								"{{TARGET_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Report Target status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\": {\r\n        \"properties\": {\r\n            \"foo\": \"bar\"\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/status/{{TARGET_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"targets",
+								"status",
+								"{{TARGET_NAME}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Instances",
+			"item": [
+				{
+					"name": "Create Instance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{INSTANCE_NAME}}\",\r\n    \"solution\": \"{{SOLUTION_NAME}}\",\r\n    \"target\": {\r\n        \"name\": \"{{TARGET_NAME}}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/instances/{{INSTANCE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"instances",
+								"{{INSTANCE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Instance",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/instances/{{INSTANCE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"instances",
+								"{{INSTANCE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Instances",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/instances",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"instances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Instance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/instances/{{INSTANCE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"instances",
+								"{{INSTANCE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Instance spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/instances/{{INSTANCE_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"instances",
+								"{{INSTANCE_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Catalogs",
+			"item": [
+				{
+					"name": "List Catalogs",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Catalog",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry",
+								"{{CATALOG_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Catalog",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry",
+								"{{CATALOG_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Catalog spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry",
+								"{{CATALOG_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Catalog",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry",
+								"{{CATALOG_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Catalogs - Asset Tree Template",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/graph?template=asset-trees",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"graph"
+							],
+							"query": [
+								{
+									"key": "template",
+									"value": "asset-trees"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Catalogs - Config Chains",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/graph?template=config-chains",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"graph"
+							],
+							"query": [
+								{
+									"key": "template",
+									"value": "config-chains"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Catalog",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/check",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"check"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Catalog 2",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}-2\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"new bar\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}-2",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"catalogs",
+								"registry",
+								"{{CATALOG_NAME}}-2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "User Auth",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{SYMPHONY_USER}}\",\r\n    \"password\": \"{{SYMPHONY_PASSWORD}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/users/auth",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"users",
+								"auth"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Campaigns",
+			"item": [
+				{
+					"name": "Create Campaign",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstStage\": \"mock\",\r\n    \"selfDriving\": true,\r\n    \"stages\": {\r\n        \"mock\": {\r\n            \"name\": \"mock\",\r\n            \"provider\": \"providers.stage.mock\",\r\n            \"inputs\": {\r\n                 \"foo\": \"${{$output(mock,foo)}}\"\r\n            },\r\n            \"stageSelector\": \"${{$if($lt($output(mock,foo), 5), mock, '')}}\"\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"campaigns",
+								"{{CAMPAIGN_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Campaign",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"campaigns",
+								"{{CAMPAIGN_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Campaigns",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"campaigns"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Campaign",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"campaigns",
+								"{{CAMPAIGN_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Campaign spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"campaigns",
+								"{{CAMPAIGN_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Activations",
+			"item": [
+				{
+					"name": "Create Activation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/activations/registry/{{ACTIVATION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"activations",
+								"registry",
+								"{{ACTIVATION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Activation",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/activations/registry/{{ACTIVATION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"activations",
+								"registry",
+								"{{ACTIVATION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Activations",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/activations/registry",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"activations",
+								"registry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Report Activation status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaign\": \"test-campaign\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"__status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/activations/status/{{ACTIVATION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"activations",
+								"status",
+								"{{ACTIVATION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Activation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/activations/registry/{{ACTIVATION_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"activations",
+								"registry",
+								"{{ACTIVATION_NAME}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Agent",
+			"item": [
+				{
+					"name": "Update object status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"foo\": \"bar bar\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{CATALOG_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=catalogs&group=federation.symphony&version=v1",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"agent",
+								"references"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{CATALOG_NAME}}"
+								},
+								{
+									"key": "ref",
+									"value": "v1alpha2.ReferenceK8sCRD"
+								},
+								{
+									"key": "kind",
+									"value": "catalogs"
+								},
+								{
+									"key": "group",
+									"value": "federation.symphony"
+								},
+								{
+									"key": "version",
+									"value": "v1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get object reference - solution",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{SOLUTION_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=solutions&group=solution.symphony&version=v1",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"agent",
+								"references"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{SOLUTION_NAME}}"
+								},
+								{
+									"key": "ref",
+									"value": "v1alpha2.ReferenceK8sCRD"
+								},
+								{
+									"key": "kind",
+									"value": "solutions"
+								},
+								{
+									"key": "group",
+									"value": "solution.symphony"
+								},
+								{
+									"key": "version",
+									"value": "v1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update provider configuration (PoC)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"type\": \"providers.reference.customvision\",\r\n    \"config\": {}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/config",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"agent",
+								"config"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Devices",
+			"item": [
+				{
+					"name": "Create Device",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{DEVICE_NAME}}\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"bindings\": [\r\n        {\r\n            \"role\": \"instance\",\r\n            \"provider\": \"providers.target.k8s\",\r\n            \"config\": {\r\n                \"inCluster\": \"true\",\r\n                \"deploymentStrategy\": \"services\"\r\n            }\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/devices/{{DEVICE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"devices",
+								"{{DEVICE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Device",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/devices/{{DEVICE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"devices",
+								"{{DEVICE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Device spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/devices/{{DEVICE_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"devices",
+								"{{DEVICE_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Devices",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/devices",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"devices"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Device",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/devices/{{DEVICE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"devices",
+								"{{DEVICE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Models",
+			"item": [
+				{
+					"name": "Create Model",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{MODEL_NAME}}\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"constraints\": \"\",\r\n    \"bindings\": [\r\n        {\r\n            \"role\": \"instance\",\r\n            \"provider\": \"providers.target.k8s\",\r\n            \"config\": {\r\n                \"inCluster\": \"true\",\r\n                \"deploymentStrategy\": \"services\"\r\n            }\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/models/{{MODEL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"models",
+								"{{MODEL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Model",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/models/{{MODEL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"models",
+								"{{MODEL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Model spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/models/{{MODEL_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"models",
+								"{{MODEL_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Models",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/models",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"models"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Model",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/models/{{MODEL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"models",
+								"{{MODEL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Skills",
+			"item": [
+				{
+					"name": "Create Skill",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"displayName\": \"{{SKILL_NAME}}\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"parameters\": {\r\n        \"delay_buffer\": \"0.1\",\r\n        \"model_platform\": \"invalid\",\r\n        \"model_flavor\": \"edge\"\r\n    },\r\n    \"nodes\": [\r\n        {\r\n            \"id\": \"1\",\r\n            \"type\": \"export\",\r\n            \"name\": \"video_snippet_export\",\r\n            \"configuration\": {\r\n                \"filename_prefix\": \"test\",\r\n                \"recording_duration\": \"${{param(model_flavor)}}\",\r\n                \"insights_overlay\": \"${{model_platform}}\",\r\n                \"delay_buffer\": \"${{delay_buffer}}\"\r\n            }\r\n        }\r\n    ],    \r\n    \"edges\": [],\r\n    \"bindings\": [\r\n        {\r\n            \"role\": \"instance\",\r\n            \"provider\": \"providers.target.k8s\",\r\n            \"config\": {\r\n                \"inCluster\": \"true\",\r\n                \"deploymentStrategy\": \"services\"\r\n            }\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/skills/{{SKILL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"skills",
+								"{{SKILL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Skill",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/skills/{{SKILL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"skills",
+								"{{SKILL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Skill spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/skills/{{SKILL_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"skills",
+								"{{SKILL_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Skills",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/skills",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"skills"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Skill",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/skills/{{SKILL_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"skills",
+								"{{SKILL_NAME}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Trails",
+			"item": [
+				{
+					"name": "Create trail (PoC, obsolete?)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/jobs",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Settings",
+			"item": [
+				{
+					"name": "Get config",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/settings/config",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"settings",
+								"config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get config field",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/settings/config/{{CATALOG_NAME}}?field=foo",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"settings",
+								"config",
+								"{{CATALOG_NAME}}"
+							],
+							"query": [
+								{
+									"key": "field",
+									"value": "foo"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get config field with overrides",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/settings/config/{{CATALOG_NAME}}?field=foo&overrides={{CATALOG_NAME}}-2,{{CATALOG_NAME}}-2",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"settings",
+								"config",
+								"{{CATALOG_NAME}}"
+							],
+							"query": [
+								{
+									"key": "field",
+									"value": "foo"
+								},
+								{
+									"key": "overrides",
+									"value": "{{CATALOG_NAME}}-2,{{CATALOG_NAME}}-2"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Jobs",
+			"item": [
+				{
+					"name": "Submit activation job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/jobs",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Echo",
+			"item": [
+				{
+					"name": "Greetings",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"foo\": \"bar\"  \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/greetings",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"greetings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Trace (PoC, obsolete)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"foo\": \"bar\"  \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/greetings",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"greetings"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Solution",
+			"item": [
+				{
+					"name": "Direct deployment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/reconcile",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"reconcile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get components",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"instances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Apply deployment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"instances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete components",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"instances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Direct delete deployment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/reconcile?delete=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"reconcile"
+							],
+							"query": [
+								{
+									"key": "delete",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get instance status",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "instance",
+									"value": "{{INSTANCE_NAME}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Queue instance reconciliation job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "instance",
+									"value": "{{INSTANCE_NAME}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Queue target reconciliation job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{TARGET_NAME}}&target=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "instance",
+									"value": "{{TARGET_NAME}}"
+								},
+								{
+									"key": "target",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Queue instance deletion job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}&delete=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "instance",
+									"value": "{{INSTANCE_NAME}}"
+								},
+								{
+									"key": "delete",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Queue target deletion job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{TARGET_NAME}}&target=true&delete=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"solution",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "instance",
+									"value": "{{TARGET_NAME}}"
+								},
+								{
+									"key": "target",
+									"value": "true"
+								},
+								{
+									"key": "delete",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Federation",
+			"item": [
+				{
+					"name": "Get sync jobs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/sync/my-site?count=10",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"sync",
+								"my-site"
+							],
+							"query": [
+								{
+									"key": "count",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit activation job",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/sync?site=my-site",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"sync"
+							],
+							"query": [
+								{
+									"key": "site",
+									"value": "my-site"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Site",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{SITE_NAME}}\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"isSelf\": false,\r\n    \"publicKey\": \"SOME KEY\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/registry/{{SITE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"registry",
+								"{{SITE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Site",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/registry/{{SITE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"registry",
+								"{{SITE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Sites",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/registry",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"registry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Site spec YAML",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/registry/{{SITE_NAME}}?doc-type=yaml&path=$.spec",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"registry",
+								"{{SITE_NAME}}"
+							],
+							"query": [
+								{
+									"key": "doc-type",
+									"value": "yaml"
+								},
+								{
+									"key": "path",
+									"value": "$.spec"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Site",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/registry/{{SITE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"registry",
+								"{{SITE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Report Site status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"{{SITE_NAME}}\",\r\n    \"status\": {\r\n        \"isOnline\": false\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/status/{{SITE_NAME}}",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"status",
+								"{{SITE_NAME}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Trail (obsolete)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"{{SITE_NAME}}\",\r\n    \"status\": {\r\n        \"isOnline\": false\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/trail",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"trail"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create catalog hook",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/k8shook?objectType=catalog",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"federation",
+								"k8shook"
+							],
+							"query": [
+								{
+									"key": "objectType",
+									"value": "catalog"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "SYMPHONY_USER",
+			"value": "admin",
+			"type": "string"
+		},
+		{
+			"key": "SYMPHONY_PASSWORD",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "SYMPHONY_BASE_URL",
+			"value": "localhost:8083/v1alpha2",
+			"type": "string"
+		},
+		{
+			"key": "SOLUTION_NAME",
+			"value": "test-solution",
+			"type": "string"
+		},
+		{
+			"key": "SYMPHONY_TOKEN",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "TARGET_NAME",
+			"value": "test-target",
+			"type": "string"
+		},
+		{
+			"key": "INSTANCE_NAME",
+			"value": "test-instance",
+			"type": "string"
+		},
+		{
+			"key": "CATALOG_NAME",
+			"value": "test-catalog",
+			"type": "string"
+		},
+		{
+			"key": "CAMPAIGN_NAME",
+			"value": "test-campaign",
+			"type": "string"
+		},
+		{
+			"key": "ACTIVATION_NAME",
+			"value": "test-activation",
+			"type": "string"
+		},
+		{
+			"key": "DEVICE_NAME",
+			"value": "test-device",
+			"type": "string"
+		},
+		{
+			"key": "MODEL_NAME",
+			"value": "test-model",
+			"type": "string"
+		},
+		{
+			"key": "SKILL_NAME",
+			"value": "test-skill",
+			"type": "string"
+		},
+		{
+			"key": "SITE_NAME",
+			"value": "test-site",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,1582 @@
+openapi: 3.0.0
+info:
+  title: Symphony REST API Queries
+  version: 1.0.0
+servers:
+  - url: http://{{symphony_base_url}}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    noauthAuth:
+      type: http
+      scheme: noauth
+tags:
+  - name: Solutions
+  - name: Targets
+  - name: Instances
+  - name: Catalogs
+  - name: Users
+  - name: Campaigns
+  - name: Activations
+  - name: Agent
+  - name: Devices
+  - name: Models
+  - name: Skills
+  - name: Trails
+  - name: Settings
+  - name: Jobs
+  - name: Echo
+  - name: Solution
+  - name: Federation
+paths:
+  /solutions/{SOLUTION_NAME}:
+    post:
+      tags:
+        - Solutions
+      summary: Create Solution with embedded spec
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: SOME RANDDOM TEXT
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: embed-type
+          in: query
+          schema:
+            type: string
+          example: some-type
+        - name: embed-component
+          in: query
+          schema:
+            type: string
+          example: some-component
+        - name: embed-property
+          in: query
+          schema:
+            type: string
+          example: some-property
+        - name: SOLUTION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Solutions
+      summary: Get Solution spec Yaml
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: SOLUTION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Solutions
+      summary: Delete Solution
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SOLUTION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /solutions:
+    get:
+      tags:
+        - Solutions
+      summary: List Solutions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/registry:
+    get:
+      tags:
+        - Targets
+      summary: List Targets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/registry/{TARGET_NAME}:
+    post:
+      tags:
+        - Targets
+      summary: Create Target with staging binding
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                displayName: '{{TARGET_NAME}}'
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: with-binding
+          in: query
+          schema:
+            type: string
+          example: staging
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Targets
+      summary: Get Target spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Targets
+      summary: Delete Target with direct delete flag
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: direct
+          in: query
+          schema:
+            type: boolean
+          example: 'true'
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/bootstrap:
+    post:
+      tags:
+        - Targets
+      summary: Bootstrap (PoC)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                username: symphony-test
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/download/yaml/{TARGET_NAME}:
+    get:
+      tags:
+        - Targets
+      summary: Download Target spec YAML (obsolete?)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/ping/{TARGET_NAME}:
+    get:
+      tags:
+        - Targets
+      summary: Target heartbeat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /targets/status/{TARGET_NAME}:
+    put:
+      tags:
+        - Targets
+      summary: Report Target status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                status:
+                  properties:
+                    foo: bar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: TARGET_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /instances/{INSTANCE_NAME}:
+    post:
+      tags:
+        - Instances
+      summary: Create Instance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                displayName: '{{INSTANCE_NAME}}'
+                solution: '{{SOLUTION_NAME}}'
+                target:
+                  name: '{{TARGET_NAME}}'
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: INSTANCE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Instances
+      summary: Get Instance spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: INSTANCE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Instances
+      summary: Delete Instance
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: INSTANCE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /instances:
+    get:
+      tags:
+        - Instances
+      summary: List Instances
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /catalogs/registry:
+    get:
+      tags:
+        - Catalogs
+      summary: List Catalogs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /catalogs/registry/{CATALOG_NAME}:
+    post:
+      tags:
+        - Catalogs
+      summary: Create Catalog
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                siteId: hq
+                name: '{{CATALOG_NAME}}'
+                type: asset
+                properties:
+                  foo: bar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CATALOG_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Catalogs
+      summary: Get Catalog spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: CATALOG_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Catalogs
+      summary: Delete Catalog
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CATALOG_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /catalogs/graph:
+    get:
+      tags:
+        - Catalogs
+      summary: List Catalogs - Config Chains
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: template
+          in: query
+          schema:
+            type: string
+          example: config-chains
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /catalogs/check:
+    post:
+      tags:
+        - Catalogs
+      summary: Validate Catalog
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                siteId: hq
+                name: '{{CATALOG_NAME}}'
+                type: asset
+                properties:
+                  foo: bar
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /catalogs/registry/{CATALOG_NAME}-2:
+    post:
+      tags:
+        - Catalogs
+      summary: Create Catalog 2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                siteId: hq
+                name: '{{CATALOG_NAME}}-2'
+                type: asset
+                properties:
+                  foo: new bar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CATALOG_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/auth:
+    post:
+      tags:
+        - Users
+      summary: User Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                username: '{{SYMPHONY_USER}}'
+                password: '{{SYMPHONY_PASSWORD}}'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /campaigns/{CAMPAIGN_NAME}:
+    post:
+      tags:
+        - Campaigns
+      summary: Create Campaign
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                firstStage: mock
+                selfDriving: true
+                stages:
+                  mock:
+                    name: mock
+                    provider: providers.stage.mock
+                    inputs:
+                      foo: ${{$output(mock,foo)}}
+                    stageSelector: ${{$if($lt($output(mock,foo), 5), mock, '')}}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CAMPAIGN_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Campaigns
+      summary: Get Campaign spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: CAMPAIGN_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Campaigns
+      summary: Delete Campaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CAMPAIGN_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /campaigns:
+    get:
+      tags:
+        - Campaigns
+      summary: List Campaigns
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /activations/registry/{ACTIVATION_NAME}:
+    post:
+      tags:
+        - Activations
+      summary: Create Activation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                campaign: '{{CAMPAIGN_NAME}}'
+                name: '{{ACTIVATION_NAME}}'
+                stage: ''
+                inputs:
+                  foo: 0
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ACTIVATION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Activations
+      summary: Get Activation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ACTIVATION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Activations
+      summary: Delete Activation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ACTIVATION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /activations/registry:
+    get:
+      tags:
+        - Activations
+      summary: List Activations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /activations/status/{ACTIVATION_NAME}:
+    post:
+      tags:
+        - Activations
+      summary: Report Activation status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                stage: mock
+                outputs:
+                  __activation: test-activation
+                  __activationGeneration: '1'
+                  __campaign: test-campaign
+                  __previousStage: mock
+                  __site: hq
+                  __stage: mock
+                  __status: 200
+                  foo: 5
+                status: 9996
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ACTIVATION_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /agent/references:
+    post:
+      tags:
+        - Agent
+      summary: Update object status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                foo: bar bar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          example: '{{CATALOG_NAME}}'
+        - name: ref
+          in: query
+          schema:
+            type: string
+          example: v1alpha2.ReferenceK8sCRD
+        - name: kind
+          in: query
+          schema:
+            type: string
+          example: catalogs
+        - name: group
+          in: query
+          schema:
+            type: string
+          example: federation.symphony
+        - name: version
+          in: query
+          schema:
+            type: string
+          example: v1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Agent
+      summary: Get object reference - solution
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          example: '{{SOLUTION_NAME}}'
+        - name: ref
+          in: query
+          schema:
+            type: string
+          example: v1alpha2.ReferenceK8sCRD
+        - name: kind
+          in: query
+          schema:
+            type: string
+          example: solutions
+        - name: group
+          in: query
+          schema:
+            type: string
+          example: solution.symphony
+        - name: version
+          in: query
+          schema:
+            type: string
+          example: v1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /agent/config:
+    post:
+      tags:
+        - Agent
+      summary: Update provider configuration (PoC)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                type: providers.reference.customvision
+                config: {}
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /devices/{DEVICE_NAME}:
+    post:
+      tags:
+        - Devices
+      summary: Create Device
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                displayName: '{{DEVICE_NAME}}'
+                properties:
+                  foo: bar
+                bindings:
+                  - role: instance
+                    provider: providers.target.k8s
+                    config:
+                      inCluster: 'true'
+                      deploymentStrategy: services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: DEVICE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Devices
+      summary: Get Device spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: DEVICE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Devices
+      summary: Delete Device
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: DEVICE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /devices:
+    get:
+      tags:
+        - Devices
+      summary: List Devices
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /models/{MODEL_NAME}:
+    post:
+      tags:
+        - Models
+      summary: Create Model
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                displayName: '{{MODEL_NAME}}'
+                properties:
+                  foo: bar
+                constraints: ''
+                bindings:
+                  - role: instance
+                    provider: providers.target.k8s
+                    config:
+                      inCluster: 'true'
+                      deploymentStrategy: services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: MODEL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Models
+      summary: Get Model spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: MODEL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Models
+      summary: Delete Model
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: MODEL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /models:
+    get:
+      tags:
+        - Models
+      summary: List Models
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /skills/{SKILL_NAME}:
+    post:
+      tags:
+        - Skills
+      summary: Create Skill
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                displayName: '{{SKILL_NAME}}'
+                properties:
+                  foo: bar
+                parameters:
+                  delay_buffer: '0.1'
+                  model_platform: invalid
+                  model_flavor: edge
+                nodes:
+                  - id: '1'
+                    type: export
+                    name: video_snippet_export
+                    configuration:
+                      filename_prefix: test
+                      recording_duration: ${{param(model_flavor)}}
+                      insights_overlay: ${{model_platform}}
+                      delay_buffer: ${{delay_buffer}}
+                edges: []
+                bindings:
+                  - role: instance
+                    provider: providers.target.k8s
+                    config:
+                      inCluster: 'true'
+                      deploymentStrategy: services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SKILL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Skills
+      summary: Get Skill spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: SKILL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Skills
+      summary: Delete Skill
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SKILL_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /skills:
+    get:
+      tags:
+        - Skills
+      summary: List Skills
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /jobs:
+    post:
+      tags:
+        - Jobs
+      summary: Submit activation job
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                campaign: '{{CAMPAIGN_NAME}}'
+                activation: '{{ACTIVATION_NAME}}'
+                activationGeneration: '1'
+                stage: first-stage
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /settings/config:
+    get:
+      tags:
+        - Settings
+      summary: Get config
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /settings/config/{CATALOG_NAME}:
+    get:
+      tags:
+        - Settings
+      summary: Get config field with overrides
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: field
+          in: query
+          schema:
+            type: string
+          example: foo
+        - name: overrides
+          in: query
+          schema:
+            type: string
+          example: '{{CATALOG_NAME}}-2,{{CATALOG_NAME}}-2'
+        - name: CATALOG_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /greetings:
+    post:
+      tags:
+        - Echo
+      summary: Trace (PoC, obsolete)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                foo: bar
+      security:
+        - noauthAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /solution/reconcile:
+    post:
+      tags:
+        - Solution
+      summary: Direct delete deployment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                solutionName: redis
+                solution:
+                  components:
+                    - name: redis
+                      type: container
+                      properties:
+                        container.image: redis
+                targets:
+                  local:
+                    topologies:
+                      - bindings:
+                          - role: instance
+                            provider: providers.target.docker
+                            config: {}
+                assignments:
+                  local: '{redis}'
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: delete
+          in: query
+          schema:
+            type: boolean
+          example: 'true'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /solution/instances:
+    get:
+      tags:
+        - Solution
+      summary: Get components
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Solution
+      summary: Apply deployment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                solutionName: redis
+                solution:
+                  components:
+                    - name: redis
+                      type: container
+                      properties:
+                        container.image: redis
+                targets:
+                  local:
+                    topologies:
+                      - bindings:
+                          - role: instance
+                            provider: providers.target.docker
+                            config: {}
+                assignments:
+                  local: '{redis}'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Solution
+      summary: Delete components
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /solution/queue:
+    get:
+      tags:
+        - Solution
+      summary: Get instance status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: instance
+          in: query
+          schema:
+            type: string
+          example: '{{INSTANCE_NAME}}'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Solution
+      summary: Queue target deletion job
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ''
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: instance
+          in: query
+          schema:
+            type: string
+          example: '{{TARGET_NAME}}'
+        - name: target
+          in: query
+          schema:
+            type: boolean
+          example: 'true'
+        - name: delete
+          in: query
+          schema:
+            type: boolean
+          example: 'true'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/sync/my-site:
+    get:
+      tags:
+        - Federation
+      summary: Get sync jobs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: count
+          in: query
+          schema:
+            type: integer
+          example: '10'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/sync:
+    post:
+      tags:
+        - Federation
+      summary: Submit activation job
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                campaign: '{{CAMPAIGN_NAME}}'
+                activation: '{{ACTIVATION_NAME}}'
+                activationGeneration: '1'
+                stage: first-stage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: site
+          in: query
+          schema:
+            type: string
+          example: my-site
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/registry/{SITE_NAME}:
+    post:
+      tags:
+        - Federation
+      summary: Register Site
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: '{{SITE_NAME}}'
+                properties:
+                  foo: bar
+                isSelf: false
+                publicKey: SOME KEY
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SITE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Federation
+      summary: Get Site spec YAML
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doc-type
+          in: query
+          schema:
+            type: string
+          example: yaml
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: $.spec
+        - name: SITE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Federation
+      summary: Delete Site
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SITE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/registry:
+    get:
+      tags:
+        - Federation
+      summary: List Sites
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/status/{SITE_NAME}:
+    post:
+      tags:
+        - Federation
+      summary: Report Site status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                id: '{{SITE_NAME}}'
+                status:
+                  isOnline: false
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SITE_NAME
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/trail:
+    post:
+      tags:
+        - Federation
+      summary: Trail (obsolete)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                id: '{{SITE_NAME}}'
+                status:
+                  isOnline: false
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /federation/k8shook:
+    post:
+      tags:
+        - Federation
+      summary: Create catalog hook
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                siteId: hq
+                name: '{{CATALOG_NAME}}'
+                type: asset
+                properties:
+                  foo: bar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: objectType
+          in: query
+          schema:
+            type: string
+          example: catalog
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
