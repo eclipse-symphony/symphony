@@ -99,7 +99,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "$device()"}}`, model.FabricGroup),
+			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
 			"scope":    "",
 			"group":    model.FabricGroup,
 			"version":  "v1",

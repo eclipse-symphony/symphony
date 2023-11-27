@@ -124,7 +124,7 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "$campaign()"}}`, model.WorkflowGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
 			"scope":    "",
 			"group":    model.WorkflowGroup,
 			"version":  "v1",
