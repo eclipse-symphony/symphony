@@ -485,7 +485,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"scope":    "",
 					"group":    model.FederationGroup,
 					"version":  "v1",
@@ -521,7 +521,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"scope":    "",
 					"group":    model.FederationGroup,
 					"version":  "v1",
@@ -555,7 +555,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "$catalog()"}}`, model.FederationGroup),
+					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"scope":    "",
 					"group":    model.FederationGroup,
 					"version":  "v1",
