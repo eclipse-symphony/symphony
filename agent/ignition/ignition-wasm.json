@@ -1,6 +1,6 @@
 {
     "ignition": {
-        "version": "2.3.0",
+        "version": "3.3.0",
         "config": {}
     },
     "storage": {
@@ -12,13 +12,30 @@
                 }
             },
             {
+                "path": "/opt/extensions/piccolo/docker-wasm.raw",
+                "contents": {
+                    "source": "https://github.com/Haishi2016/Vault818/releases/download/vtest/docker-wasm.raw"
+                }
+            },
+            {
                 "path": "/etc/sysupdate.d/noop.conf",
                 "contents": {
                     "source": "https://github.com/flatcar/sysext-bakery/releases/download/20230901/noop.conf"
                 }
+            },
+            {
+                "path": "/opt/extensions/wasmtime-v10.0.1-x86-64.raw",
+                "contents": {
+                    "source": "https://flatcarwasm.blob.core.windows.net/raw/wasmtime-v10.0.1-x86-64.raw"
+                }
             }
         ],
         "links": [
+            {
+                "target": "/opt/extensions/piccolo/docker-wasm.raw",
+                "path": "/etc/extensions/docker-wasm.raw",
+                "hard": false
+            },
             {
                 "target": "/opt/extensions/piccolo/piccolo.raw",
                 "path": "/etc/extensions/piccolo.raw",
@@ -27,6 +44,11 @@
             {
                 "target": "/etc/systemd/system/multi-user.target.wants/piccolo.service",
                 "path": "/user/lib/systemd/system/piccolo.service",
+                "hard": false
+            },
+            {
+                "path": "/opt/extensions/wasmtime.raw",
+                "target": "/etc/extensions/wasmtime-v10.0.1-x86-64.raw",
                 "hard": false
             }
         ]

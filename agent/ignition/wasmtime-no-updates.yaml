@@ -1,0 +1,32 @@
+variant: flatcar
+version: 1.0.0
+
+storage:
+
+  files: 
+    # handles updating everything wasmtime
+    - path: /etc/sysupdate.wasmtime.d/wasmtime.conf
+      contents:
+        inline: |
+          [Transfer]
+          Verify=false
+          [Source]
+          Type=url-file
+          Path=https://flatcarwasm.blob.core.windows.net/raw/
+          MatchPattern=wasmtime-@v-%a.raw
+          [Target]
+          InstancesMax=3
+          Type=regular-file
+          Path=/opt/extensions-store/
+          CurrentSymlink=/etc/extensions/wasmtime.raw
+    # installs wasmtime version on first boot
+    - path: /opt/extensions-store/wasmtime-v10.0.1-x86-64.raw
+      mode: 0420
+      contents:
+        source: https://flatcarwasm.blob.core.windows.net/raw/wasmtime-v10.0.1-x86-64.raw
+
+
+  links:
+    # creates a symlink to the current version so we can update easily
+    - path: /etc/extensions/wasmtime.raw
+      target: /opt/extensions-store/wasmtime-v10.0.1-x86-64.raw

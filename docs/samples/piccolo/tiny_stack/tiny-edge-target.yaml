@@ -1,0 +1,21 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: tiny-edge      
+spec:  
+  forceRedeploy: true
+  properties:
+    location: "edge"
+    scenario: "tiny_edge_e2e"
+  topologies:
+  - bindings:
+    - role: wasm
+      provider: providers.target.staging
+      config:
+        inCluster: "true"   
+        targetName: tiny-edge
+    - role: ebpf
+      provider: providers.target.staging
+      config:
+        inCluster: "true"   
+        targetName: tiny-edge
