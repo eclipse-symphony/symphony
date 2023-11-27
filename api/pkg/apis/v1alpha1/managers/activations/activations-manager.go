@@ -135,7 +135,7 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "$activation()"}}`, model.WorkflowGroup),
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
 			"scope":    "",
 			"group":    model.WorkflowGroup,
 			"version":  "v1",

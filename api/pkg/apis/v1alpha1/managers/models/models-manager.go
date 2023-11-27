@@ -95,7 +95,7 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Model", "metadata": {"name": "$model()"}}`, model.AIGroup),
+			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Model", "metadata": {"name": "${{$model()}}"}}`, model.AIGroup),
 			"scope":    "",
 			"group":    model.AIGroup,
 			"version":  "v1",

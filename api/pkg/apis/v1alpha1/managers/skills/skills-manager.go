@@ -95,7 +95,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Skill", "metadata": {"name": "$skill()"}}`, model.AIGroup),
+			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Skill", "metadata": {"name": "${{$skill()}}"}}`, model.AIGroup),
 			"scope":    "",
 			"group":    model.AIGroup,
 			"version":  "v1",
