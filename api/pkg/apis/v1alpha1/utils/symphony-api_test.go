@@ -66,7 +66,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -154,7 +154,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1)
+	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -171,13 +171,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateInstance(context.Background(), baseUrl, instanceName, user, password, instance1)
+	err = CreateInstance(context.Background(), baseUrl, instanceName, user, password, instance1, "default")
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := GetInstances(context.Background(), baseUrl, user, password)
+	instancesRes, err := GetInstances(context.Background(), baseUrl, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -187,7 +187,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status["status"])
 
-	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password)
+	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -196,13 +196,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status["targets"])
 	require.Equal(t, "OK", instanceRes.Status["status"])
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password)
+	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password)
+	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
 	require.NoError(t, err)
 
-	err = DeleteInstance(context.Background(), baseUrl, instanceName, user, password)
+	err = DeleteInstance(context.Background(), baseUrl, instanceName, user, password, "default")
 	require.NoError(t, err)
 }
 
@@ -229,21 +229,21 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1)
+	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
 	require.NoError(t, err)
 
-	solutionsRes, err := GetSolutions(context.Background(), baseUrl, user, password)
+	solutionsRes, err := GetSolutions(context.Background(), baseUrl, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := GetSolution(context.Background(), baseUrl, solutionName, user, password)
+	solutionRes, err := GetSolution(context.Background(), baseUrl, solutionName, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password)
+	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
 	require.NoError(t, err)
 }
 
@@ -338,13 +338,13 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1)
+	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
 	time.Sleep(time.Second)
 
-	targetsRes, err := GetTargets(context.Background(), baseUrl, user, password)
+	targetsRes, err := GetTargets(context.Background(), baseUrl, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
@@ -353,7 +353,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetsRes[0].Status["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status["status"])
 
-	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password)
+	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
@@ -361,7 +361,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetRes.Status["targets"])
 	require.Equal(t, "OK", targetRes.Status["status"])
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password)
+	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
 }
 
@@ -492,6 +492,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Id: "someTargetName",
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
+			Scope:       "targetScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -521,7 +522,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		SolutionName: "target-runtime-someTargetName",
 		Solution: model.SolutionSpec{
 			DisplayName: "target-runtime-someTargetName",
-			Scope:       "default",
+			Scope:       "targetScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -544,7 +545,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name:        "target-runtime-someTargetName",
 			DisplayName: "target-runtime-someTargetName",
-			Scope:       "default",
+			Scope:       "targetScope",
 			Solution:    "target-runtime-someTargetName",
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -553,7 +554,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Targets: map[string]model.TargetSpec{
 			"someTargetName": {
 				DisplayName: "someDisplayName",
-				Scope:       "",
+				Scope:       "targetScope",
 				Metadata: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -594,13 +595,14 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					"OS": "windows",
 				},
 			},
+			Scope: "instanceScope",
 		},
 		Status: map[string]string{},
 	}, model.SolutionState{
 		Id: "someOtherId",
 		Spec: &model.SolutionSpec{
 			DisplayName: "someDisplayName",
-			Scope:       "",
+			Scope:       "solutionsScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -633,6 +635,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				Properties: map[string]string{
 					"company": "microsoft",
 				},
+				Scope: "targetScope",
 			},
 		},
 	}, []model.DeviceState{
@@ -652,7 +655,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		SolutionName: "someOtherId",
 		Solution: model.SolutionSpec{
 			DisplayName: "someDisplayName",
-			Scope:       "",
+			Scope:       "solutionsScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -676,7 +679,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		Instance: model.InstanceSpec{
 			Name:        "someOtherId",
 			DisplayName: "",
-			Scope:       "default",
+			Scope:       "instanceScope",
 			Solution:    "",
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -687,7 +690,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		},
 		Targets: map[string]model.TargetSpec{
 			"someTargetName1": {
-				Scope: "",
+				Scope: "targetScope",
 				Properties: map[string]string{
 					"company": "microsoft",
 				},

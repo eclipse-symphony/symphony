@@ -63,7 +63,7 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	return nil
 }
 
-func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
+func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope string) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -73,7 +73,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -82,7 +82,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model.TargetSpec) error {
+func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, scope string, spec model.TargetSpec) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -104,7 +104,7 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -114,6 +114,7 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, spec model
 	return err
 }
 
+// Caller need to explicitly set scope in current.Metadata!
 func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetState) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ReportState",
@@ -180,7 +181,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		Status:   rProperties,
 	}, nil
 }
-func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, error) {
+func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -192,6 +193,7 @@ func (t *TargetsManager) ListSpec(ctx context.Context) ([]model.TargetState, err
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "targets",
+			"scope":    scope,
 		},
 	}
 	targets, _, err := t.StateProvider.List(ctx, listRequest)
@@ -235,15 +237,25 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		return model.TargetState{}, err
 	}
 	rSpec.Generation = etag
+
+	scope, exist := dict["scope"]
+	var s string
+	if !exist {
+		s = "default"
+	} else {
+		s = scope.(string)
+	}
+
 	state := model.TargetState{
 		Id:     id,
+		Scope:  s,
 		Spec:   &rSpec,
 		Status: rProperties,
 	}
 	return state, nil
 }
 
-func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetState, error) {
+func (t *TargetsManager) GetSpec(ctx context.Context, id string, scope string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -256,6 +268,7 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string) (model.TargetSt
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "targets",
+			"scope":    scope,
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

@@ -33,6 +33,7 @@ type (
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
 		Id     string            `json:"id"`
+		Scope  string            `json:"scope"`
 		Spec   *InstanceSpec     `json:"spec,omitempty"`
 		Status map[string]string `json:"status,omitempty"`
 	}

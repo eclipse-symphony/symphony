@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/princjef/mageutil/shellcmd"
@@ -42,7 +43,13 @@ import (
 const (
 	TEST_NAME    = "basic manifest deploy scenario"
 	TEST_TIMEOUT = "10m"
-	NAMESPACE    = "default"
+)
+
+var (
+	NAMESPACES = []string{
+		"nondefault",
+		"default",
+	}
 )
 
 var (
@@ -64,15 +71,25 @@ func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
 	defer Cleanup()
-
-	err := Setup()
+	err := SetupCluster()
 	if err != nil {
 		return err
 	}
-
-	err = Verify()
-	if err != nil {
-		return err
+	for _, namespace := range NAMESPACES {
+		os.Setenv("NAMESPACE", namespace)
+		err = DeployManifests(namespace)
+		if err != nil {
+			return err
+		}
+		err = Verify()
+		if err != nil {
+			return err
+		}
+		err = CleanUpSymphonyObjects(namespace)
+		if err != nil {
+			return err
+		}
+		time.Sleep(time.Second * 10)
 	}
 
 	return nil
@@ -80,13 +97,12 @@ func Test() error {
 
 // Prepare the cluster
 // Run this manually to prepare your local environment for testing/debugging
-func Setup() error {
+func SetupCluster() error {
 	// Deploy symphony
 	err := localenvCmd("cluster:deploy", "")
 	if err != nil {
 		return err
 	}
-
 	// Wait a few secs for symphony cert to be ready;
 	// otherwise we will see error when creating symphony manifests in the cluster
 	// <Error from server (InternalError): error when creating
@@ -96,6 +112,21 @@ func Setup() error {
 	// "https://symphony-webhook-service.default.svc:443/mutate-symphony-microsoft-com-v1-target?timeout=10s":
 	// x509: certificate signed by unknown authority>
 	time.Sleep(time.Second * 10)
+	return nil
+}
+
+func DeployManifests(namespace string) error {
+	if namespace != "default" {
+		// Create non-default namespace if not exist
+		err := shellcmd.Command(fmt.Sprintf("kubectl get namespace %s", namespace)).Run()
+		if err != nil {
+			// Better to check err message here but command only returns "exit status 1" for non-exisiting namespace
+			err = shellcmd.Command(fmt.Sprintf("kubectl create namespace %s", namespace)).Run()
+			if err != nil {
+				return err
+			}
+		}
+	}
 	// Deploy the manifests
 	for _, manifest := range testManifests {
 		fullPath, err := filepath.Abs(fmt.Sprintf(manifest, "oss"))
@@ -103,10 +134,25 @@ func Setup() error {
 			return err
 		}
 
-		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, NAMESPACE)).Run()
+		data, err := os.ReadFile(fullPath)
 		if err != nil {
 			return err
 		}
+		stringYaml := string(data)
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
+		stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution")
+
+		err = writeYamlStringsToFile(stringYaml, "./test.yaml")
+		if err != nil {
+			return err
+		}
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
+		if err != nil {
+			return err
+		}
+		os.Remove("./test.yaml")
 	}
 
 	return nil
@@ -129,6 +175,25 @@ func Verify() error {
 	return nil
 }
 
+func CleanUpSymphonyObjects(namespace string) error {
+	instanceName := namespace + "instance"
+	targetName := namespace + "target"
+	solutionName := namespace + "solution"
+	err := shellcmd.Command(fmt.Sprintf("kubectl delete instance %s -n %s", instanceName, namespace)).Run()
+	if err != nil {
+		return err
+	}
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete target %s -n %s", targetName, namespace)).Run()
+	if err != nil {
+		return err
+	}
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete solution %s -n %s", solutionName, namespace)).Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Clean up
 func Cleanup() {
 	localenvCmd("destroy all", "")
@@ -139,7 +204,6 @@ func localenvCmd(mageCmd string, flavor string) error {
 	return shellExec(fmt.Sprintf("cd ../../../localenv && mage %s %s", mageCmd, flavor))
 }
 
-// Run a command with | or other things that do not work in shellcmd
 func shellExec(cmd string) error {
 	fmt.Println("> ", cmd)
 
@@ -148,4 +212,19 @@ func shellExec(cmd string) error {
 	execCmd.Stderr = os.Stderr
 
 	return execCmd.Run()
+}
+
+func writeYamlStringsToFile(yamlString string, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte(yamlString))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

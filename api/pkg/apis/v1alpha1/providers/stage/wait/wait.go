@@ -177,12 +177,16 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	log.Debugf("  P (Wait Processor): waiting for %v %v", objectType, prefixedNames)
 	counter := 0
+	scope := "default"
+	if s, ok := inputs["scope"]; ok {
+		scope = s.(string)
+	}
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
 		switch objectType {
 		case "instance":
 			var instances []model.InstanceState
-			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, scope)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
 				return nil, false, err

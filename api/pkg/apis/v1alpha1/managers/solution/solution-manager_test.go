@@ -265,7 +265,7 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.Reconcile(context.Background(), deployment, false)
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 
 	state, _, err = manager.Get(context.Background(), deployment)
@@ -344,7 +344,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.Reconcile(context.Background(), deployment, false)
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 
 	state, _, err = manager.Get(context.Background(), deployment)
@@ -424,7 +424,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.Reconcile(context.Background(), deployment, false)
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 
 	state, _, err = manager.Get(context.Background(), deployment)
@@ -479,7 +479,7 @@ func TestMockApply(t *testing.T) {
 		},
 		StateProvider: stateProvider,
 	}
-	summary, err := manager.Reconcile(context.Background(), deployment, false)
+	summary, err := manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 }
@@ -525,7 +525,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 		},
 		StateProvider: stateProvider,
 	}
-	summary, err := manager.Reconcile(context.Background(), deployment, false)
+	summary, err := manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 }

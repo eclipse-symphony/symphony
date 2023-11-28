@@ -135,7 +135,10 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	})
 	defer span.End()
 	tLog.Info("V (Targets) : onRegistry")
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onRegistry-GET", pCtx, nil)
@@ -144,10 +147,14 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.TargetsManager.ListSpec(ctx)
+			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			if !exist {
+				scope = ""
+			}
+			state, err = c.TargetsManager.ListSpec(ctx, scope)
 			isArray = true
 		} else {
-			state, err = c.TargetsManager.GetSpec(ctx, id)
+			state, err = c.TargetsManager.GetSpec(ctx, id, scope)
 		}
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -218,7 +225,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				})
 			}
 		}
-		err = c.TargetsManager.UpsertSpec(ctx, id, target)
+		err = c.TargetsManager.UpsertSpec(ctx, id, scope, target)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -229,6 +236,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "target",
+					"scope":      scope,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
@@ -243,10 +251,12 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ctx, span := observability.StartSpan("onRegistry-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
+
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "target",
+					"scope":      scope,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
@@ -257,7 +267,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				State: v1alpha2.OK,
 			})
 		} else {
-			err := c.TargetsManager.DeleteSpec(ctx, id)
+			err := c.TargetsManager.DeleteSpec(ctx, id, scope)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -324,7 +334,10 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		"method": "onStatus",
 	})
 	defer span.End()
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	var dict map[string]interface{}
 	json.Unmarshal(request.Body, &dict)
 
@@ -351,6 +364,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "targets",
+			"scope":    scope,
 		},
 		Status: properties,
 	})
@@ -376,8 +390,11 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		"method": "onDownload",
 	})
 	defer span.End()
-
-	state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"])
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
+	state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"], scope)
 	if err != nil {
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
@@ -410,13 +427,17 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		"method": "onHeartBeat",
 	})
 	defer span.End()
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 		Id: request.Parameters["__name"],
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "targets",
+			"scope":    scope,
 		},
 		Status: map[string]string{
 			"ping": time.Now().UTC().String(),

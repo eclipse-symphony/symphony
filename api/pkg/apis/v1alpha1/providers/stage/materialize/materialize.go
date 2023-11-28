@@ -142,25 +142,29 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
 			if catalog.Spec.Name == object {
+				objectScope := "default"
+				if s, ok := inputs["objectScope"]; ok {
+					objectScope = s.(string)
+				}
 				objectData, _ := json.Marshal(catalog.Spec.Properties["spec"]) //TODO: handle errors
 				name := strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", inputs["__origin"]))
 				switch catalog.Spec.Type {
 				case "instance":
-					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "solution":
-					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "target":
-					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err

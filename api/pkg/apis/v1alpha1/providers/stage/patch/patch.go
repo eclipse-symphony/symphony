@@ -241,8 +241,12 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
+		objectScope := stage.ReadInputString(inputs, "objectScope")
+		if objectScope == "" {
+			objectScope = "default"
+		}
 		var solution model.SolutionState
-		solution, err = utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password)
+		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectScope)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
@@ -349,7 +353,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 		if udpated {
 			jData, _ := json.Marshal(solution.Spec)
-			err = utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData)
+			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectScope)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
 				return nil, false, err
