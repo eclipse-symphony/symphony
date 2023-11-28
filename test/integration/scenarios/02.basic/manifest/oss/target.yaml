@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: self
+  name: TARGETNAME
 spec:
   components:
   - name: observability

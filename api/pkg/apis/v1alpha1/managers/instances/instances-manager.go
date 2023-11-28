@@ -60,7 +60,7 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
+func (t *InstancesManager) DeleteSpec(ctx context.Context, name string, scope string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -70,7 +70,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "instances",
@@ -79,7 +79,7 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec) error {
+func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec, scope string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -101,7 +101,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "instances",
@@ -114,7 +114,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return nil
 }
 
-func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState, error) {
+func (t *InstancesManager) ListSpec(ctx context.Context, scope string) ([]model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -126,6 +126,7 @@ func (t *InstancesManager) ListSpec(ctx context.Context) ([]model.InstanceState,
 			"version":  "v1",
 			"group":    model.SolutionGroup,
 			"resource": "instances",
+			"scope":    scope,
 		},
 	}
 	instances, _, err := t.StateProvider.List(ctx, listRequest)
@@ -169,15 +170,25 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 		return model.InstanceState{}, err
 	}
 	rSpec.Generation = etag
+
+	scope, exist := dict["scope"]
+	var s string
+	if !exist {
+		s = "default"
+	} else {
+		s = scope.(string)
+	}
+
 	state := model.InstanceState{
 		Id:     id,
+		Scope:  s,
 		Spec:   &rSpec,
 		Status: rProperties,
 	}
 	return state, nil
 }
 
-func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.InstanceState, error) {
+func (t *InstancesManager) GetSpec(ctx context.Context, id string, scope string) (model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -190,6 +201,7 @@ func (t *InstancesManager) GetSpec(ctx context.Context, id string) (model.Instan
 			"version":  "v1",
 			"group":    model.SolutionGroup,
 			"resource": "instances",
+			"scope":    scope,
 		},
 	}
 	instance, err := t.StateProvider.Get(ctx, getRequest)

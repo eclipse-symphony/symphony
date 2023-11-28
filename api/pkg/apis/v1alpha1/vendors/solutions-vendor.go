@@ -96,7 +96,10 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	tLog.Info("V (Solutions): onSolutions")
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
@@ -105,10 +108,14 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.SolutionsManager.ListSpec(ctx)
+			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			if !exist {
+				scope = ""
+			}
+			state, err = c.SolutionsManager.ListSpec(ctx, scope)
 			isArray = true
 		} else {
-			state, err = c.SolutionsManager.GetSpec(ctx, id)
+			state, err = c.SolutionsManager.GetSpec(ctx, id, scope)
 		}
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -158,7 +165,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			}
 		}
-		err := c.SolutionsManager.UpsertSpec(ctx, id, solution)
+		err := c.SolutionsManager.UpsertSpec(ctx, id, solution, scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -177,6 +184,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 					},
 				},
 			},
+			Metadata: map[string]string{
+				"scope": scope,
+			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
@@ -184,7 +194,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.SolutionsManager.DeleteSpec(ctx, id)
+		err := c.SolutionsManager.DeleteSpec(ctx, id, scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

@@ -284,6 +284,19 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	return entry.Value.ID, nil
 }
 
+func (s *K8sStateProvider) ListAllNamespaces(ctx context.Context, version string) ([]string, error) {
+	namespaceResource := schema.GroupVersionResource{Group: "", Version: version, Resource: "namespaces"}
+	namespaces, err := s.DynamicClient.Resource(namespaceResource).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	ret := []string{}
+	for _, namespace := range namespaces.Items {
+		ret = append(ret, namespace.GetName())
+	}
+	return ret, err
+}
+
 func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	var entities []states.StateEntry
 
@@ -300,32 +313,41 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 	version := model.ReadProperty(request.Metadata, "version", nil)
 	resource := model.ReadProperty(request.Metadata, "resource", nil)
 
+	var namespaces []string
 	if scope == "" {
-		scope = "default"
-	}
-
-	resourceId := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}
-
-	items, err := s.DynamicClient.Resource(resourceId).Namespace(scope).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		sLog.Errorf("  P (K8s State): failed to list objects: %v", err)
-		return nil, "", err
-	}
-	for _, v := range items.Items {
-		generation := v.GetGeneration()
-		entry := states.StateEntry{
-			ETag: strconv.FormatInt(generation, 10),
-			ID:   v.GetName(),
-			Body: map[string]interface{}{
-				"spec":   v.Object["spec"],
-				"status": v.Object["status"],
-			},
+		ret, err := s.ListAllNamespaces(ctx, version)
+		if err != nil {
+			sLog.Errorf("  P (K8s State): failed to list namespaces: %v", err)
+			return nil, "", err
 		}
-		entities = append(entities, entry)
+		namespaces = ret
+	} else {
+		namespaces = []string{scope}
+	}
+	for _, namespace := range namespaces {
+		resourceId := schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: resource,
+		}
+		items, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			sLog.Errorf("  P (K8s State): failed to list objects in namespace %s: %v ", namespace, err)
+			return nil, "", err
+		}
+		for _, v := range items.Items {
+			generation := v.GetGeneration()
+			entry := states.StateEntry{
+				ETag: strconv.FormatInt(generation, 10),
+				ID:   v.GetName(),
+				Body: map[string]interface{}{
+					"spec":   v.Object["spec"],
+					"status": v.Object["status"],
+					"scope":  scope,
+				},
+			}
+			entities = append(entities, entry)
+		}
 	}
 	return entities, "", nil
 }
@@ -344,14 +366,13 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	version := model.ReadProperty(request.Metadata, "version", nil)
 	resource := model.ReadProperty(request.Metadata, "resource", nil)
 
-	if scope == "" {
-		scope = "default"
-	}
-
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,
 		Resource: resource,
+	}
+	if scope == "" {
+		scope = "default"
 	}
 
 	err = s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
@@ -403,6 +424,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		Body: map[string]interface{}{
 			"spec":   item.Object["spec"],
 			"status": item.Object["status"],
+			"scope":  scope,
 		},
 	}
 	return ret, nil
@@ -465,13 +487,14 @@ func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) 
 	return nil, v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 
-func (s *K8sStateProvider) Set(object string, field string, value string) error {
+func (s *K8sStateProvider) Set(object string, field string, value string, scope string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
+			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -486,7 +509,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    "",
+					"scope":    scope,
 					"group":    model.FederationGroup,
 					"version":  "v1",
 					"resource": "catalogs",
@@ -499,13 +522,14 @@ func (s *K8sStateProvider) Set(object string, field string, value string) error 
 	}
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
-func (s *K8sStateProvider) SetObject(object string, values map[string]string) error {
+func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
+			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -522,7 +546,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    "",
+					"scope":    scope,
 					"group":    model.FederationGroup,
 					"version":  "v1",
 					"resource": "catalogs",
@@ -535,13 +559,14 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string) er
 	}
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
-func (s *K8sStateProvider) Remove(object string, field string) error {
+func (s *K8sStateProvider) Remove(object string, field string, scope string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
+			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -556,7 +581,7 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 				Value: obj,
 				Metadata: map[string]string{
 					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    "",
+					"scope":    scope,
 					"group":    model.FederationGroup,
 					"version":  "v1",
 					"resource": "catalogs",
@@ -569,11 +594,11 @@ func (s *K8sStateProvider) Remove(object string, field string) error {
 	}
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
-func (s *K8sStateProvider) RemoveObject(object string) error {
+func (s *K8sStateProvider) RemoveObject(object string, scope string) error {
 	return s.Delete(context.TODO(), states.DeleteRequest{
 		ID: object,
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.FederationGroup,
 			"version":  "v1",
 			"resource": "catalogs",

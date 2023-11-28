@@ -79,6 +79,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Get target
 	target := &symphonyv1.Target{}
+
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
 		log.Error(err, "unable to fetch Target object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -96,7 +97,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 
-		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name))
+		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
 		if err != nil && !v1alpha2.IsNotFound(err) {
 			uErr := r.updateTargetStatusToReconciling(target, err)
 			if uErr != nil {
@@ -118,7 +119,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		} else {
 			// Queue a job every 60s or when the generation is changed
-			err = api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, false, true)
+			err = api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, target.ObjectMeta.Namespace, false, true)
 			if err != nil {
 				uErr := r.updateTargetStatusToReconciling(target, err)
 				if uErr != nil {
@@ -145,7 +146,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	} else { // remove
 		if controllerutil.ContainsFinalizer(target, myFinalizerName) {
-			err := api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, true, true)
+			err := api_utils.QueueJob(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", target.ObjectMeta.Name, target.ObjectMeta.Namespace, true, true)
 
 			if err != nil {
 				uErr := r.updateTargetStatusToReconciling(target, err)
@@ -163,7 +164,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					// Timeout exceeded, assume deletion failed and proceed with finalization
 					break loop
 				case <-ticker:
-					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name))
+					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
 					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
 						break loop
 					}

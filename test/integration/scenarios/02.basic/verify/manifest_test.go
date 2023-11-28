@@ -29,6 +29,7 @@ package verify
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,10 @@ import (
 // Verify target has correct status
 func TestBasic_TargetStatus(t *testing.T) {
 	// Verify targets
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "fabric.symphony",
@@ -62,7 +67,7 @@ func TestBasic_TargetStatus(t *testing.T) {
 			Group:    "fabric.symphony",
 			Version:  "v1",
 			Resource: "targets",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		require.Len(t, resources.Items, 1, "there should be only one target")
@@ -82,6 +87,10 @@ func TestBasic_TargetStatus(t *testing.T) {
 // Verify instance has correct status
 func TestBasic_InstanceStatus(t *testing.T) {
 	// Verify instances
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
 	cfg, err := testhelpers.RestConfig()
 	require.NoError(t, err)
 
@@ -93,7 +102,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		require.Len(t, resources.Items, 1, "there should be only one instance")
@@ -117,7 +126,10 @@ func TestBasic_VerifyPodsExist(t *testing.T) {
 	// Get kube client
 	kubeClient, err := testhelpers.KubeClient()
 	require.NoError(t, err)
-
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
 	i := 0
 	for {
 		i++

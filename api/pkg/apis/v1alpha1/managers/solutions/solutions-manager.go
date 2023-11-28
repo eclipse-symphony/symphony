@@ -60,7 +60,7 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
+func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string, scope string) error {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -70,7 +70,7 @@ func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "solutions",
@@ -79,7 +79,7 @@ func (t *SolutionsManager) DeleteSpec(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec model.SolutionSpec) error {
+func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec model.SolutionSpec, scope string) error {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -100,7 +100,7 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "${{$solution()}}"}}`, model.SolutionGroup),
-			"scope":    "",
+			"scope":    scope,
 			"group":    model.SolutionGroup,
 			"version":  "v1",
 			"resource": "solutions",
@@ -110,7 +110,7 @@ func (t *SolutionsManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return err
 }
 
-func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState, error) {
+func (t *SolutionsManager) ListSpec(ctx context.Context, scope string) ([]model.SolutionState, error) {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -122,6 +122,7 @@ func (t *SolutionsManager) ListSpec(ctx context.Context) ([]model.SolutionState,
 			"version":  "v1",
 			"group":    model.SolutionGroup,
 			"resource": "solutions",
+			"scope":    scope,
 		},
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
@@ -150,14 +151,23 @@ func getSolutionState(id string, body interface{}) (model.SolutionState, error) 
 	if err != nil {
 		return model.SolutionState{}, err
 	}
+	scope, exist := dict["scope"]
+	var s string
+	if !exist {
+		s = "default"
+	} else {
+		s = scope.(string)
+	}
+
 	state := model.SolutionState{
-		Id:   id,
-		Spec: &rSpec,
+		Id:    id,
+		Scope: s,
+		Spec:  &rSpec,
 	}
 	return state, nil
 }
 
-func (t *SolutionsManager) GetSpec(ctx context.Context, id string) (model.SolutionState, error) {
+func (t *SolutionsManager) GetSpec(ctx context.Context, id string, scope string) (model.SolutionState, error) {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -170,6 +180,7 @@ func (t *SolutionsManager) GetSpec(ctx context.Context, id string) (model.Soluti
 			"version":  "v1",
 			"group":    model.SolutionGroup,
 			"resource": "solutions",
+			"scope":    scope,
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

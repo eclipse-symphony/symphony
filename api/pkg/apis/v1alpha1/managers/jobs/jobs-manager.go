@@ -97,7 +97,7 @@ func (s *JobsManager) pollObjects() []error {
 	if interval == 0 {
 		return nil
 	}
-	instances, err := utils.GetInstances(context, baseUrl, user, password)
+	instances, err := utils.GetInstancesForAllScope(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -129,7 +129,7 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	targets, err := utils.GetTargets(context, baseUrl, user, password)
+	targets, err := utils.GetTargetsForAllScope(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -321,6 +321,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	scope := model.ReadProperty(event.Metadata, "scope", nil)
+	if scope == "" {
+		scope = "default"
+	}
+
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData
 		var baseUrl string
@@ -354,7 +359,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err = utils.GetInstance(ctx, baseUrl, instanceName, user, password)
+			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password, scope)
 			if err != nil {
 				return err //TODO: instance is gone
 			}
@@ -364,8 +369,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 
 			//get solution
-			var solution model.SolutionState
-			solution, err = utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password)
+			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, scope)
 			if err != nil {
 				solution = model.SolutionState{
 					Id: instance.Spec.Solution,
@@ -377,7 +381,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = utils.GetTargets(ctx, baseUrl, user, password)
+			targets, err = utils.GetTargets(ctx, baseUrl, user, password, scope)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -394,7 +398,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//call api
 			if job.Action == "UPDATE" {
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, false)
 				if err != nil {
 					return err
 				} else {
@@ -409,17 +413,16 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password)
+					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password, scope)
 				}
 			}
 		case "target":
 			targetName := job.Id
-			var target model.TargetState
-			target, err = utils.GetTarget(ctx, baseUrl, targetName, user, password)
+			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password, scope)
 			if err != nil {
 				return err
 			}
@@ -429,7 +432,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			if job.Action == "UPDATE" {
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, false)
 				if err != nil {
 					return err
 				} else {
@@ -445,11 +448,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password)
+					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password, scope)
 				}
 			}
 		}

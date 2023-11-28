@@ -109,9 +109,12 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	return nil
 }
 
-func (s *SolutionManager) getPreviousState(ctx context.Context, instance string) *SolutionManagerDeploymentState {
+func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, scope string) *SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
+		Metadata: map[string]string{
+			"scope": scope,
+		},
 	})
 	if err == nil {
 		var managerState SolutionManagerDeploymentState
@@ -124,7 +127,7 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string)
 	}
 	return nil
 }
-func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.SummaryResult, error) {
+func (s *SolutionManager) GetSummary(ctx context.Context, key string, scope string) (model.SummaryResult, error) {
 	// lock.Lock()
 	// defer lock.Unlock()
 
@@ -138,6 +141,9 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string) (model.Sum
 
 	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
 		ID: fmt.Sprintf("%s-%s", "summary", key),
+		Metadata: map[string]string{
+			"scope": scope,
+		},
 	})
 	if err != nil {
 		log.Errorf(" M (Solution): failed to get deployment summary[%s]: %+v", key, err)
@@ -180,7 +186,7 @@ func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan stru
 	}
 }
 
-func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool) (model.SummarySpec, error) {
+func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, scope string) (model.SummarySpec, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -215,24 +221,24 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		} else {
 			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 			log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
-			s.saveSummary(iCtx, deployment, summary)
+			s.saveSummary(iCtx, deployment, summary, scope)
 			return summary, err
 		}
 	}
 
-	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Name)
+	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Name, scope)
 	currentDesiredState, err := NewDeploymentState(deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to create target manager state from deployment spec: %+v", err)
-		s.saveSummary(iCtx, deployment, summary)
+		s.saveSummary(iCtx, deployment, summary, scope)
 		return summary, err
 	}
 	currentState, _, err := s.Get(iCtx, deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
 		log.Errorf(" M (Solution): failed to get current state: %+v", err)
-		s.saveSummary(iCtx, deployment, summary)
+		s.saveSummary(iCtx, deployment, summary, scope)
 		return summary, err
 	}
 
@@ -251,7 +257,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
-		s.saveSummary(iCtx, deployment, summary)
+		s.saveSummary(iCtx, deployment, summary, scope)
 		return summary, err
 	}
 
@@ -277,7 +283,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if err != nil {
 			summary.SummaryMessage = "failed to create provider:" + err.Error()
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
-			s.saveSummary(ctx, deployment, summary)
+			s.saveSummary(ctx, deployment, summary, scope)
 			return summary, err
 		}
 
@@ -327,7 +333,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		if stepError != nil {
 			log.Errorf(" M (Solution): failed to execute deployment step: %+v", stepError)
-			s.saveSummary(iCtx, deployment, summary)
+			s.saveSummary(iCtx, deployment, summary, scope)
 			err = stepError
 			return summary, err
 		}
@@ -344,6 +350,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				State: mergedState,
 			},
 		},
+		Metadata: map[string]string{
+			"scope": scope,
+		},
 	})
 
 	summary.Skipped = !someStepsRan
@@ -351,10 +360,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		summary.SuccessCount = summary.TargetCount
 	}
 	summary.IsRemoval = remove
-	s.saveSummary(iCtx, deployment, summary)
+	s.saveSummary(iCtx, deployment, summary, scope)
 	return summary, nil
 }
-func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec) {
+func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, scope string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
@@ -364,6 +373,9 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 				Generation: deployment.Generation,
 				Time:       time.Now().UTC(),
 			},
+		},
+		Metadata: map[string]string{
+			"scope": scope,
 		},
 	})
 }

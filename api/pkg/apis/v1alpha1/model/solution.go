@@ -26,12 +26,15 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+)
 
 type (
 	SolutionState struct {
-		Id   string        `json:"id"`
-		Spec *SolutionSpec `json:"spec,omitempty"`
+		Id    string        `json:"id"`
+		Scope string        `json:"scope"`
+		Spec  *SolutionSpec `json:"spec,omitempty"`
 	}
 
 	SolutionSpec struct {

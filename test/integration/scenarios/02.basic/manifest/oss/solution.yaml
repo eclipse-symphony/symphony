@@ -2,7 +2,7 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   annotations: {}
-  name: my-sol
+  name: SOLUTIONNAME
 spec:
   components:
   - name: e4k-high-availability-broker
@@ -80,4 +80,4 @@ spec:
                   x: 0
                   "y": 336
     type: yaml.k8s
-  displayName: My solution
+  displayName: SOLUTIONNAME

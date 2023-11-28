@@ -117,7 +117,7 @@ func TestUpSert(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -148,7 +148,7 @@ func TestList(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -157,7 +157,7 @@ func TestList(t *testing.T) {
 	assert.Nil(t, err)
 	entries, _, err := provider.List(context.Background(), states.ListRequest{
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -185,7 +185,7 @@ func TestDelete(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -195,7 +195,7 @@ func TestDelete(t *testing.T) {
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "s123",
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -232,7 +232,7 @@ func TestGet(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -242,7 +242,7 @@ func TestGet(t *testing.T) {
 	item, err := provider.Get(context.Background(), states.GetRequest{
 		ID: "s123",
 		Metadata: map[string]string{
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targetds",
@@ -285,7 +285,7 @@ func TestUpSertWithState(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",
@@ -323,7 +323,7 @@ func TestUpSertWithStateOnly(t *testing.T) {
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "",
+			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
 			"resource": "targets",

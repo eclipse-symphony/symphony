@@ -44,9 +44,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const (
-	NAMESPACE = "default"
-)
+const ()
 
 type (
 	TestCase struct {
@@ -128,7 +126,21 @@ var (
 	}
 )
 
-func TestScenario_Update(t *testing.T) {
+func TestScenario_Update_AllNamespaces(t *testing.T) {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace != "default" {
+		// Create non-default namespace if not exist
+		err := shellcmd.Command(fmt.Sprintf("kubectl get namespace %s", namespace)).Run()
+		if err != nil {
+			// Better to check err message here but command only returns "exit status 1" for non-exisiting namespace
+			err = shellcmd.Command(fmt.Sprintf("kubectl create namespace %s", namespace)).Run()
+			require.NoError(t, err)
+		}
+	}
+	Scenario_Update(t, namespace)
+}
+
+func Scenario_Update(t *testing.T, namespace string) {
 	for _, test := range testCases {
 		fmt.Printf("[Test case]: %s\n", test.Name)
 
@@ -147,19 +159,19 @@ func TestScenario_Update(t *testing.T) {
 				fullPath, err = filepath.Abs(manifestTemplates[k])
 				require.NoError(t, err)
 			}
-			err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, NAMESPACE)).Run()
+			err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
 			require.NoError(t, err)
 		}
 
-		verifyTargetStatus(t, test)
-		verifyInstanceStatus(t, test)
+		verifyTargetStatus(t, test, namespace)
+		verifyInstanceStatus(t, test, namespace)
 		verifyPodsExist(t, test, test.PodsToVerify)
 		verifyPodsDeleted(t, test, test.DeletedPodsToVerify)
 	}
 }
 
 // Verify target has correct status
-func verifyTargetStatus(t *testing.T, test TestCase) {
+func verifyTargetStatus(t *testing.T, test TestCase, namespace string) {
 	// Verify targets
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
@@ -179,7 +191,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 			Group:    "fabric.symphony",
 			Version:  "v1",
 			Resource: "targets",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		require.Len(t, resources.Items, 1, "there should be only one target")
@@ -197,7 +209,7 @@ func verifyTargetStatus(t *testing.T, test TestCase) {
 }
 
 // Verify instance has correct status
-func verifyInstanceStatus(t *testing.T, test TestCase) {
+func verifyInstanceStatus(t *testing.T, test TestCase, namespace string) {
 	// Verify instances
 	cfg, err := testhelpers.RestConfig()
 	require.NoError(t, err)
@@ -210,7 +222,7 @@ func verifyInstanceStatus(t *testing.T, test TestCase) {
 			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		require.Len(t, resources.Items, 1, "there should be only one instance")

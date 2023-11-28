@@ -76,7 +76,7 @@ type authResponse struct {
 
 var log = logger.NewLogger("coa.runtime")
 
-func GetInstances(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
+func GetInstancesForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -92,7 +92,25 @@ func GetInstances(context context.Context, baseUrl string, user string, password
 	if err != nil {
 		return ret, err
 	}
+	return ret, nil
+}
 
+func GetInstances(context context.Context, baseUrl string, user string, password string, scope string) ([]model.InstanceState, error) {
+	ret := make([]model.InstanceState, 0)
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+	path := "instances?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
 	return ret, nil
 }
 func GetSites(context context.Context, baseUrl string, user string, password string) ([]model.SiteState, error) {
@@ -168,7 +186,6 @@ func GetCatalog(context context.Context, baseUrl string, catalog string, user st
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
@@ -188,7 +205,6 @@ func GetCampaign(context context.Context, baseUrl string, campaign string, user 
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func PublishActivationEvent(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) error {
@@ -241,7 +257,6 @@ func GetActivation(context context.Context, baseUrl string, activation string, u
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func ReportActivationStatus(context context.Context, baseUrl string, name string, user string, password string, activation model.ActivationStatus) error {
@@ -256,10 +271,9 @@ func ReportActivationStatus(context context.Context, baseUrl string, name string
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
-func GetInstance(context context.Context, baseUrl string, instance string, user string, password string) (model.InstanceState, error) {
+func GetInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(context, baseUrl, user, password)
 
@@ -267,7 +281,9 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "instances/"+instance, "GET", nil, token)
+	path := "instances/" + instance
+	path = path + "?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -276,7 +292,6 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func UpsertCatalog(context context.Context, baseUrl string, catalog string, user string, password string, payload []byte) error {
@@ -289,23 +304,24 @@ func UpsertCatalog(context context.Context, baseUrl string, catalog string, user
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte) error {
+func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "instances/"+instance, "POST", payload, token)
+	path := "instances/" + instance
+	path = path + "?scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
+
 func DeleteCatalog(context context.Context, baseUrl string, catalog string, user string, password string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -316,39 +332,38 @@ func DeleteCatalog(context context.Context, baseUrl string, catalog string, user
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string) error {
+func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "instances/"+instance+"?direct=true", "DELETE", nil, token)
+	path := "instances/" + instance
+	path = path + "?direct=true&scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string) error {
+func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "targets/registry/"+target+"?direct=true", "DELETE", nil, token)
+	path := "targets/registry/" + target
+	path = path + "?direct=true&scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func GetSolutions(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
+func GetSolutionsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -364,18 +379,37 @@ func GetSolutions(context context.Context, baseUrl string, user string, password
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 
-func GetSolution(context context.Context, baseUrl string, solution string, user string, password string) (model.SolutionState, error) {
+func GetSolutions(context context.Context, baseUrl string, user string, password string, scope string) ([]model.SolutionState, error) {
+	ret := make([]model.SolutionState, 0)
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+	path := "solution" + "?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
+func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) (model.SolutionState, error) {
 	ret := model.SolutionState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-
-	response, err := callRestAPI(context, baseUrl, "solutions/"+solution, "GET", nil, token)
+	path := "solutions/" + solution
+	path = path + "?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -384,60 +418,60 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 
-func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte) error {
+func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "targets/registry/"+solution, "POST", payload, token)
+	path := "targets/registry/" + solution
+	path = path + "?scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte) error {
+func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "solutions/"+solution, "POST", payload, token)
+	path := "solutions/" + solution
+	path = path + "?scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string) error {
+func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "solutions/"+solution, "DELETE", nil, token)
+	path := "solutions/" + solution
+	path = path + "?scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func GetTarget(context context.Context, baseUrl string, target string, user string, password string) (model.TargetState, error) {
+func GetTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) (model.TargetState, error) {
 	ret := model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-
-	response, err := callRestAPI(context, baseUrl, "targets/registry/"+target, "GET", nil, token)
+	path := "targets/registry/" + target
+	path = path + "?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -446,11 +480,10 @@ func GetTarget(context context.Context, baseUrl string, target string, user stri
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 
-func GetTargets(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
+func GetTargetsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -466,7 +499,26 @@ func GetTargets(context context.Context, baseUrl string, user string, password s
 	if err != nil {
 		return ret, err
 	}
+	return ret, nil
+}
 
+func GetTargets(context context.Context, baseUrl string, user string, password string, scope string) ([]model.TargetState, error) {
+	ret := []model.TargetState{}
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+	path := "targets/registry"
+	path = path + "?scope=" + scope
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
 	return ret, nil
 }
 
@@ -484,17 +536,18 @@ func UpdateSite(context context.Context, baseUrl string, site string, user strin
 	return nil
 }
 
-func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte) error {
+func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte, scope string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-
-	_, err = callRestAPI(context, baseUrl, "targets/registry/"+target, "POST", payload, token)
+	path := "targets/registry/" + target
+	path = path + "?scope=" + scope
+	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-
+	log.Info(">>>>>CreateTarget Succeed: " + target + " " + scope)
 	return nil
 }
 
@@ -534,9 +587,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
 	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
 	scope := target.Spec.Scope
-	if scope == "" {
-		scope = "default"
-	}
+
 	ret := model.DeploymentSpec{}
 	solution := model.SolutionSpec{
 		DisplayName: key,
@@ -604,9 +655,6 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 
 	sInstance.Name = instance.Id
 	sInstance.Scope = instance.Spec.Scope
-	if sInstance.Scope == "" {
-		sInstance.Scope = "default"
-	}
 
 	// convert solution
 	sSolution := solution.Spec
@@ -662,13 +710,15 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 
 	return ret, nil
 }
-func GetSummary(context context.Context, baseUrl string, user string, password string, id string) (model.SummaryResult, error) {
+func GetSummary(context context.Context, baseUrl string, user string, password string, id string, scope string) (model.SummaryResult, error) {
 	result := model.SummaryResult{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return result, err
 	}
-	ret, err := callRestAPI(context, baseUrl, "solution/queue?instance="+id, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	path := "solution/queue"
+	path = path + "?instance=" + id + "&scope=" + scope
+	ret, err := callRestAPI(context, baseUrl, path, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return result, err
 	}
@@ -693,7 +743,7 @@ func CatalogHook(context context.Context, baseUrl string, user string, password 
 	return nil
 }
 
-func QueueJob(context context.Context, baseUrl string, user string, password string, id string, isDelete bool, isTarget bool) error {
+func QueueJob(context context.Context, baseUrl string, user string, password string, id string, scope string, isDelete bool, isTarget bool) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
@@ -705,19 +755,20 @@ func QueueJob(context context.Context, baseUrl string, user string, password str
 	if isTarget {
 		path += "&target=true"
 	}
+	path = path + "&scope=" + scope
 	_, err = callRestAPI(context, baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, isDelete bool) (model.SummarySpec, error) {
+func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, scope string, isDelete bool) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
-	path := "solution/reconcile"
+	path := "solution/reconcile" + "?scope=" + scope
 	if isDelete {
-		path = "solution/reconcile?delete=true"
+		path = path + "&delete=true"
 	}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -806,5 +857,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		return nil, err
 	}
 	err = nil
+	log.Infof("Symphony API succeeded: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+
 	return bodyBytes, nil
 }

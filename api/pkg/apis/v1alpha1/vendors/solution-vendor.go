@@ -106,11 +106,16 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 
 	log.Info("V (Solution): onQueue")
 
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
 		defer span.End()
 		instance := request.Parameters["instance"]
+
 		if instance == "" {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
@@ -118,7 +123,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		summary, err := c.SolutionManager.GetSummary(ctx, instance)
+		summary, err := c.SolutionManager.GetSummary(ctx, instance, scope)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			if v1alpha2.IsNotFound(err) {
@@ -162,6 +167,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		c.Vendor.Context.Publish("job", v1alpha2.Event{
 			Metadata: map[string]string{
 				"objectType": objType,
+				"scope":      scope,
 			},
 			Body: v1alpha2.JobData{
 				Id:     instance,
@@ -187,7 +193,10 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 	defer span.End()
 
 	log.Info("V (Solution): onReconcile")
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
@@ -201,7 +210,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 		delete := request.Parameters["delete"]
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true")
+		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", scope)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -229,7 +238,10 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 	defer span.End()
 
 	log.Infof("V (Solution): received request %s", request.Method)
-
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("Apply Deployment", request.Context, nil)
@@ -242,7 +254,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 				Body:  []byte(err.Error()),
 			}
 		}
-		response := c.doDeploy(ctx, *deployment)
+		response := c.doDeploy(ctx, *deployment, scope)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("Get Components", request.Context, nil)
@@ -268,7 +280,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 				Body:  []byte(err.Error()),
 			}
 		}
-		response := c.doRemove(ctx, deployment)
+		response := c.doRemove(ctx, deployment, scope)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
 
@@ -304,12 +316,12 @@ func (c *SolutionVendor) doGet(ctx context.Context, deployment model.DeploymentS
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
 	return response
 }
-func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
+func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec, scope string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doDeploy",
 	})
 	defer span.End()
-	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false, scope)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		response := v1alpha2.COAResponse{
@@ -327,13 +339,13 @@ func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.Deployme
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
 	return response
 }
-func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec) v1alpha2.COAResponse {
+func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec, scope string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doRemove",
 	})
 	defer span.End()
 
-	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true, scope)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		response := v1alpha2.COAResponse{
