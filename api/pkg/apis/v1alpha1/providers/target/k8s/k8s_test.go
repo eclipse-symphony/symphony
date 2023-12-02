@@ -45,6 +45,14 @@ func TestK8sTargetProviderConfigFromMapEmpty(t *testing.T) {
 	_, err := K8sTargetProviderConfigFromMap(map[string]string{})
 	assert.Nil(t, err)
 }
+func TestK8sTargetProviderConfigFromMap(t *testing.T) {
+	configMap := map[string]string{
+		"configType":           "path",
+		"deleteEmptyNamespace": "true",
+	}
+	_, err := K8sTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+}
 func TestMetadataToServiceNil(t *testing.T) {
 	s, e := metadataToService("", "", nil)
 	assert.Nil(t, e)

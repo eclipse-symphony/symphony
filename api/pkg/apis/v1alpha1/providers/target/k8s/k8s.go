@@ -34,6 +34,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s/projectors"
@@ -67,13 +68,16 @@ const (
 )
 
 type K8sTargetProviderConfig struct {
-	Name               string `json:"name"`
-	ConfigType         string `json:"configType,omitempty"`
-	ConfigData         string `json:"configData,omitempty"`
-	Context            string `json:"context,omitempty"`
-	InCluster          bool   `json:"inCluster"`
-	Projector          string `json:"projector,omitempty"`
-	DeploymentStrategy string `json:"deploymentStrategy,omitempty"`
+	Name                 string `json:"name"`
+	ConfigType           string `json:"configType,omitempty"`
+	ConfigData           string `json:"configData,omitempty"`
+	Context              string `json:"context,omitempty"`
+	InCluster            bool   `json:"inCluster"`
+	Projector            string `json:"projector,omitempty"`
+	DeploymentStrategy   string `json:"deploymentStrategy,omitempty"`
+	DeleteEmptyNamespace bool   `json:"deleteEmptyNamespace"`
+	RetryCount           int    `json:"retryCount"`
+	RetryIntervalInSec   int    `json:"retryIntervalInSec"`
 }
 
 type K8sTargetProvider struct {
@@ -117,6 +121,34 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 		ret.DeploymentStrategy = v
 	} else {
 		ret.DeploymentStrategy = SINGLE_POD
+	}
+	if v, ok := properties["deleteEmptyNamespace"]; ok {
+		val := v
+		if val != "" {
+			bVal, err := strconv.ParseBool(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'deleteEmptyNamespace' setting of K8s reference provider", v1alpha2.BadConfig)
+			}
+			ret.DeleteEmptyNamespace = bVal
+		}
+	}
+	if v, ok := properties["retryCount"]; ok && v != "" {
+		ival, err := strconv.Atoi(v)
+		if err != nil {
+			return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'retryCount' setting of K8s reference provider", v1alpha2.BadConfig)
+		}
+		ret.RetryCount = ival
+	} else {
+		ret.RetryCount = 3
+	}
+	if v, ok := properties["retryIntervalInSec"]; ok && v != "" {
+		ival, err := strconv.Atoi(v)
+		if err != nil {
+			return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'retryInterval' setting of K8s reference provider", v1alpha2.BadConfig)
+		}
+		ret.RetryIntervalInSec = ival
+	} else {
+		ret.RetryIntervalInSec = 2
 	}
 	return ret, nil
 }
@@ -291,7 +323,8 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, serviceName string) error {
 	svc, err := i.Client.CoreV1().Services(scope).Get(ctx, serviceName, metav1.GetOptions{})
 	if err == nil && svc != nil {
-		err = i.Client.CoreV1().Services(scope).Delete(ctx, serviceName, metav1.DeleteOptions{})
+		foregroundDeletion := metav1.DeletePropagationForeground
+		err = i.Client.CoreV1().Services(scope).Delete(ctx, serviceName, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 		if err != nil {
 			if !k8s_errors.IsNotFound(err) {
 				return err
@@ -301,15 +334,91 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, ser
 	return nil
 }
 func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, name string) error {
-	err := i.Client.AppsV1().Deployments(scope).Delete(ctx, name, metav1.DeleteOptions{})
+	foregroundDeletion := metav1.DeletePropagationForeground
+	err := i.Client.AppsV1().Deployments(scope).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return err
 		}
 	}
+
 	return nil
 }
+func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, retryCount int, retryIntervalInSec int) error {
+	_, err := i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
 
+	resourceCount := make(map[string]int)
+	count := 0
+	for {
+		count++
+		podList, _ := i.Client.CoreV1().Pods(scope).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		if len(podList.Items) == 0 || count == retryCount {
+			resourceCount["pod"] = len(podList.Items)
+			break
+		}
+		time.Sleep(time.Second * time.Duration(retryIntervalInSec))
+	}
+
+	deploymentList, err := i.Client.AppsV1().Deployments(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["deployment"] = len(deploymentList.Items)
+
+	serviceList, err := i.Client.CoreV1().Services(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["service"] = len(serviceList.Items)
+
+	replicasetList, err := i.Client.AppsV1().ReplicaSets(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["replicaset"] = len(replicasetList.Items)
+
+	statefulsetList, err := i.Client.AppsV1().StatefulSets(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["statefulset"] = len(statefulsetList.Items)
+
+	daemonsetList, err := i.Client.AppsV1().DaemonSets(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["daemonset"] = len(daemonsetList.Items)
+
+	jobList, err := i.Client.BatchV1().Jobs(scope).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	resourceCount["job"] = len(jobList.Items)
+
+	isEmpty := true
+	for resource, count := range resourceCount {
+		if count != 0 {
+			log.Debugf("  P (K8s Target Provider): failed to delete %s namespace as resource %s is not empty", scope, resource)
+			isEmpty = false
+			break
+		}
+	}
+
+	if isEmpty {
+		err = i.Client.CoreV1().Namespaces().Delete(ctx, scope, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) error {
 	_, err := i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
 	if err != nil {
@@ -479,6 +588,12 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				log.Debugf("failed to remove deployment: %s", err.Error())
 				return ret, err
 			}
+			if i.Config.DeleteEmptyNamespace {
+				err = i.removeNamespace(ctx, dep.Instance.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
+				if err != nil {
+					log.Debugf("failed to remove namespace: %s", err.Error())
+				}
+			}
 		}
 	case SERVICES, SERVICES_NS:
 		updated := step.GetUpdatedComponents()
@@ -533,6 +648,12 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					}
 					log.Debugf("failed to remove deployment: %s", err.Error())
 					return ret, err
+				}
+				if i.Config.DeleteEmptyNamespace {
+					err = i.removeNamespace(ctx, dep.Instance.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
+					if err != nil {
+						log.Debugf("failed to remove namespace: %s", err.Error())
+					}
 				}
 			}
 

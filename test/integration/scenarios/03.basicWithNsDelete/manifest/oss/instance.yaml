@@ -1,0 +1,9 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: instance03
+spec:
+  scope: k8s-scope  
+  solution: solution03
+  target: 
+    name: target03
