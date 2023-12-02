@@ -1,0 +1,15 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target03        
+spec:  
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"
+        deleteEmptyNamespace: "true"
+        retryCount: "4"
+        retryIntervalInSec: "1"

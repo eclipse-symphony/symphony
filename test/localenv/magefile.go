@@ -389,6 +389,17 @@ func GhcrLogin() error {
 	return nil
 }
 
+// Remove Symphony resource
+func Remove(resourceType, resourceName string) error {
+	fmt.Println("Deleting resource %s %s", resourceType, resourceName)
+	err := shellcmd.RunAll(shellcmd.Command(fmt.Sprintf("kubectl delete %s %s", resourceType, resourceName)))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 /******************** Helpers ********************/
 func browserOpen(url string) error {
 	openBrowser := fmt.Sprintf("xdg-open %s", url)
