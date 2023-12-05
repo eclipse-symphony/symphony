@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 scrape_configs:
 - job_name: ig
   scrape_interval: 1s

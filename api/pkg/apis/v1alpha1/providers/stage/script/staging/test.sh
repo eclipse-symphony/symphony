@@ -1,4 +1,9 @@
 #!/bin/bash
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 
 inputs_file=$1
 

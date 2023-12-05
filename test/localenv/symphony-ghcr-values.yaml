@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 symphonyImage:
   pullPolicy: Never
   repository: ghcr.io/azure/symphony/symphony-k8s

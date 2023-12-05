@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 mkdir -p $HOME/.symphony/k8s
 mkdir -p $HOME/.symphony/iot-edge
 

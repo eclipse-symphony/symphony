@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 apiVersion: config.symphony/v1
 kind: ProjectConfig
 metadata:

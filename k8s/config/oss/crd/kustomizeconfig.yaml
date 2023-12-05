@@ -1,3 +1,9 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
 # This file is for teaching kustomize how to substitute name and namespace reference in CRD
 nameReference:
 - kind: Service

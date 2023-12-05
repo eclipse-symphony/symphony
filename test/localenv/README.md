@@ -1,3 +1,8 @@
+<!--
+Copyright (c) Microsoft Corporation.
+Licensed under the MIT license.
+SPDX-License-Identifier: MIT
+-->
 # Local environment
 
 The local environment is a minikube cluster that deploys symphony for testing purposes.
