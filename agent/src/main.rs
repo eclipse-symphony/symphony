@@ -1,6 +1,8 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
 
 mod models;
 mod symphony_api;

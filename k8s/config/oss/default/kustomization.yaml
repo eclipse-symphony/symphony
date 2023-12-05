@@ -1,3 +1,9 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
 # Adds namespace to all resources.
 namespace: symphony-k8s-system
 

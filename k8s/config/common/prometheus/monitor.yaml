@@ -1,3 +1,9 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
 
 # Prometheus Monitor Service (Metrics)
 apiVersion: monitoring.coreos.com/v1

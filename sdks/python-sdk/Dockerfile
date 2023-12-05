@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 FROM mcr.microsoft.com/cbl-mariner/base/python:3
 
 WORKDIR /usr/src/app

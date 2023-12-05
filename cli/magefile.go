@@ -1,6 +1,12 @@
 //go:build mage
 
 /*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+/*
 Use this tool to quickly build symphony api or maestro cli. It can also help generate the release package.
 */
 package main

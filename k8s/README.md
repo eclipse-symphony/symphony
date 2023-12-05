@@ -1,3 +1,8 @@
+<!--
+Copyright (c) Microsoft Corporation.
+Licensed under the MIT license.
+SPDX-License-Identifier: MIT
+-->
 # Dev Guide for Symphony-k8s
 
 Subject to Change as better practices are discovered

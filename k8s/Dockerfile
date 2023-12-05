@@ -1,3 +1,9 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
 ## The build context is expected to be the root of the repository.
 ## Either build the image from the root of the repository:
 ##   docker build -f k8s/Dockerfile .

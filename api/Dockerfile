@@ -1,3 +1,8 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 FROM --platform=$BUILDPLATFORM golang:1.20.2-alpine AS build
 
 ARG TARGETPLATFORM

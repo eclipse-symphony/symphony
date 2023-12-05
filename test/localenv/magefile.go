@@ -1,6 +1,12 @@
 //go:build mage
 
 /*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+/*
 Use this tool to quickly get started developing in the symphony ecosystem. The
 tool provides a set of common commands to make development easier for the team.
 To get started using Minikube, run 'mage build minikube:start minikube:load deploy'.
@@ -10,9 +16,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -39,6 +45,7 @@ type Build mg.Namespace
 type Pull mg.Namespace
 type Cluster mg.Namespace
 type Test mg.Namespace
+type License mg.Namespace
 
 /******************** Targets ********************/
 
@@ -65,7 +72,7 @@ func Up() error {
 		return err
 	}
 
-	data, err := ioutil.ReadFile("header.txt")
+	data, err := os.ReadFile("header.txt")
 	if err == nil {
 		fmt.Println(string(data))
 	}
@@ -100,6 +107,44 @@ func PullUp() error {
 	}
 
 	if err := Up(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Add license headers to files under relative path, e.g. mage license:addHeaders api
+func (License) AddHeaders(relativePath string) error {
+	// leverage https://github.com/johann-petrak/licenseheaders to add license headers
+	fmt.Println("Install licenseheaders...")
+	err := shellcmd.Command("pip install licenseheaders").Run()
+	if err != nil {
+		return err
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	licenseHeaderPath := filepath.Join(wd, "licenseheader.txt")
+	data, err := os.ReadFile(licenseHeaderPath)
+	if err == nil {
+		fmt.Println("----------------License header----------------")
+		fmt.Println(string(data))
+		fmt.Println("----------------License header----------------")
+	}
+	repoRoot := filepath.Join(wd, "..", "..")
+	fmt.Println("Changing directory to REPO Root", repoRoot)
+	err = os.Chdir(repoRoot) // repo root
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Join(repoRoot, relativePath)
+	fmt.Println("Adding license header to files under", path)
+
+	err = shellcmd.Command(fmt.Sprintf("licenseheaders -t %s -d %s --additional-extensions script=.ps1", licenseHeaderPath, path)).Run()
+	if err != nil {
 		return err
 	}
 

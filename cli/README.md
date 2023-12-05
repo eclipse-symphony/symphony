@@ -1,3 +1,8 @@
+<!--
+Copyright (c) Microsoft Corporation.
+Licensed under the MIT license.
+SPDX-License-Identifier: MIT
+-->
 # Build up CLI and release
 
 _(last edit: 11/14/2023)_
