@@ -10,7 +10,7 @@ metadata:
   name: INSTANCENAME
 spec:
   displayName: INSTANCENAME
-  scope: alice-springs
+  scope: SCOPENAME
   solution: SOLUTIONNAME
   target:
     name: TARGETNAME
