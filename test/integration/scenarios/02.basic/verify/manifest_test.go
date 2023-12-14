@@ -114,7 +114,7 @@ func TestBasic_VerifyPodsExist(t *testing.T) {
 	for {
 		i++
 		// List all pods in the namespace
-		pods, err := kubeClient.CoreV1().Pods("alice-springs").List(context.Background(), metav1.ListOptions{})
+		pods, err := kubeClient.CoreV1().Pods(namespace+"scope").List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		// Verify that the pods we expect are running

@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -265,7 +266,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 		// heartbeat is too old
 		return nil
 	}
-	if job.Action == "delete" && heartbeat.Action == "update" {
+	// job.Action is upper case and heartbeat.Action is lower case, use case insensitive comparison
+	if strings.EqualFold(job.Action, "delete") && strings.EqualFold(heartbeat.Action, "update") {
 		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 		return err
 	}

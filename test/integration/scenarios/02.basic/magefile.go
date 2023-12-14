@@ -27,8 +27,8 @@ const (
 
 var (
 	NAMESPACES = []string{
-		"nondefault",
 		"default",
+		"nondefault",
 	}
 )
 
@@ -65,6 +65,7 @@ func Test() error {
 		if err != nil {
 			return err
 		}
+
 		err = CleanUpSymphonyObjects(namespace)
 		if err != nil {
 			return err
@@ -159,15 +160,15 @@ func CleanUpSymphonyObjects(namespace string) error {
 	instanceName := namespace + "instance"
 	targetName := namespace + "target"
 	solutionName := namespace + "solution"
-	err := shellcmd.Command(fmt.Sprintf("kubectl delete instance %s -n %s", instanceName, namespace)).Run()
+	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
 	if err != nil {
 		return err
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete target %s -n %s", targetName, namespace)).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
 	if err != nil {
 		return err
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete solution %s -n %s", solutionName, namespace)).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete solutions.solution.symphony %s -n %s", solutionName, namespace)).Run()
 	if err != nil {
 		return err
 	}

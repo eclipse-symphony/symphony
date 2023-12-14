@@ -323,7 +323,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 				Body: map[string]interface{}{
 					"spec":   v.Object["spec"],
 					"status": v.Object["status"],
-					"scope":  scope,
+					"scope":  namespace,
 				},
 			}
 			entities = append(entities, entry)
