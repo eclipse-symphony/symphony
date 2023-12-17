@@ -77,6 +77,7 @@ type ActivationStatus struct {
 	ErrorMessage         string                 `json:"errorMessage,omitempty"`
 	IsActive             bool                   `json:"isActive,omitempty"`
 	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
+	UpdateTime           string                 `json:"updateTime,omitempty"`
 }
 
 type ActivationSpec struct {

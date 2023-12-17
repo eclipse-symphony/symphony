@@ -139,7 +139,32 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.state": "k8s-state",
+              "cleanupInterval": "15"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.backgroundjob",
+        "route": "backgroundjob",
+        "loopInterval": 60,
+        "managers": [
+          {
+            "name": "activations-cleanup-manager",
+            "type": "managers.symphony.activationscleanup",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true",
+              "RetentionInMinutes": "1440"
             },
             "providers": {
               "k8s-state": {

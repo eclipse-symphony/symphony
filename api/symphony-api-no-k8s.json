@@ -126,6 +126,28 @@
         ]
       },
       {
+        "type": "vendors.backgroundjob",
+        "route": "backgroundjob",
+        "loopInterval": 60,
+        "managers": [
+          {
+            "name": "activations-cleanup-manager",
+            "type": "managers.symphony.activationscleanup",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true",
+              "RetentionInMinutes": "1440"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.campaigns",
         "route": "campaigns",
         "managers": [
