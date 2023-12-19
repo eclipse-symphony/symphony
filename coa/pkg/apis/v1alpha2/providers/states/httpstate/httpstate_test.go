@@ -231,3 +231,25 @@ func TestGet(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, v1alpha2.NotFound, sczErr.State)
 }
+
+func TestClone(t *testing.T) {
+	provider := HttpStateProvider{}
+	provider.Init(HttpStateProviderConfig{
+		Url: "http://localhost:3500/v1.0/state/statestore",
+	})
+
+	p, err := provider.Clone(HttpStateProviderConfig{
+		Url:               "http://localhost:3500/v1.0/state/statestore",
+		PostNameInPath:    false,
+		PostBodyKeyName:   "key",
+		PostBodyValueName: "value",
+		PostAsArray:       true,
+		NotFoundAs204:     true,
+	})
+	assert.NotNil(t, p)
+	assert.Nil(t, err)
+
+	p, err = provider.Clone(nil)
+	assert.NotNil(t, p)
+	assert.Nil(t, err)
+}

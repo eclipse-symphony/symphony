@@ -92,3 +92,19 @@ func TestMemoryPubsubProviderConfigFromMap(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "my-name", config.Name)
 }
+
+func TestClone(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	provider.Init(InMemoryPubSubConfig{Name: "test"})
+	assert.Equal(t, "test", provider.ID())
+
+	p, err := provider.Clone(InMemoryPubSubConfig{
+		Name: "",
+	})
+	assert.NotNil(t, p)
+	assert.Nil(t, err)
+
+	pc, err := provider.Clone(nil)
+	assert.NotNil(t, pc)
+	assert.Nil(t, err)
+}
