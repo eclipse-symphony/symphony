@@ -272,12 +272,17 @@ func TestGetEmptyID(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, v1alpha2.NotFound, sczErr.State)
 }
+
 func TestClone(t *testing.T) {
 	provider := MemoryStateProvider{}
 
 	p, err := provider.Clone(MemoryStateProviderConfig{
 		Name: "",
 	})
+	assert.NotNil(t, p)
+	assert.Nil(t, err)
+
+	p, err = provider.Clone(nil)
 	assert.NotNil(t, p)
 	assert.Nil(t, err)
 }
