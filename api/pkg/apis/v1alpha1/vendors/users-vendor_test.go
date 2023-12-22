@@ -72,3 +72,26 @@ func TestAuth(t *testing.T) {
 	})
 	assert.Equal(t, response.State, v1alpha2.OK)
 }
+
+func TestUnauthorized(t *testing.T) {
+	authRequest := AuthRequest{
+		UserName: "abc",
+		Password: "",
+	}
+	data, _ := json.Marshal(authRequest)
+	vendor := initVendor(t)
+	response := vendor.onAuth(v1alpha2.COARequest{
+		Context: context.Background(),
+		Method:  "POST",
+		Body:    data,
+	})
+	assert.Equal(t, response.State, v1alpha2.Unauthorized)
+}
+
+func TestUsersEndpoints(t *testing.T) {
+	vendor := initVendor(t)
+	vendor.Route = "user"
+	endpoints := vendor.GetEndpoints()
+	assert.NotNil(t, endpoints)
+	assert.Equal(t, "user/auth", endpoints[len(endpoints)-1].Route)
+}
