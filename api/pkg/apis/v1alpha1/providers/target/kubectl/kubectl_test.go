@@ -76,10 +76,33 @@ func TestInitWithEmptyData(t *testing.T) {
 }
 
 // TestInitWithBadData tests that passing bad data to Init returns an error
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "name",
+		"configType": "type",
+		"configData": "",
+		"context":    "context",
+		"inCluster":  "false",
+	}
+	provider := KubectlTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+}
+
+// TestInitWithBadData tests that passing bad data to Init returns an error
 func TestInitWithBadData(t *testing.T) {
 	config := KubectlTargetProviderConfig{
 		ConfigType: "inline",
 		ConfigData: "bad data",
+	}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.NotNil(t, err)
+}
+
+func TestInitWithInlineEmptyData(t *testing.T) {
+	config := KubectlTargetProviderConfig{
+		ConfigType: "inline",
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)

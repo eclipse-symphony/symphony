@@ -23,6 +23,34 @@ func TestConfiMapTargetProviderConfigFromMapNil(t *testing.T) {
 
 // TestConfigMapTargetProviderConfigFromMapEmpty tests that passing an empty map to ConfigMapTargetProviderConfigFromMap returns a valid config
 func TestConfigMapTargetProviderConfigFromMapEmpty(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "name",
+		"configType": "path",
+		"inCluster":  "true",
+		"configData": "data",
+		"context":    "context",
+	}
+	config, err := ConfigMapTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+	assert.Equal(t, "name", config.Name)
+	assert.Equal(t, "path", config.ConfigType)
+	assert.Equal(t, "data", config.ConfigData)
+	assert.True(t, config.InCluster)
+	assert.Equal(t, "context", config.Context)
+}
+
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"configType": "inline",
+		"inCluster":  "false",
+		"configData": "",
+	}
+	provider := ConfigMapTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+}
+
+func TestConfigMapTargetProviderConfigFromMap(t *testing.T) {
 	_, err := ConfigMapTargetProviderConfigFromMap(map[string]string{})
 	assert.Nil(t, err)
 }
@@ -60,6 +88,16 @@ func TestInitWithBadFile(t *testing.T) {
 	provider := ConfigMapTargetProvider{}
 	err := provider.Init(config)
 	assert.NotNil(t, err)
+}
+
+func TestInitWithEmptyConfigData(t *testing.T) {
+	config := ConfigMapTargetProviderConfig{
+		ConfigType: "path",
+		ConfigData: "",
+	}
+	provider := ConfigMapTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
 }
 
 // TestInitWithEmptyData tests that passing empty data to Init returns an error

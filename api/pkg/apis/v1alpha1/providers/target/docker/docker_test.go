@@ -30,6 +30,14 @@ func TestDockerTargetProviderInitEmptyConfig(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 }
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name": "name",
+	}
+	provider := DockerTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
 func TestDockerTargetProviderInstall(t *testing.T) {
 	testDockerProvider := os.Getenv("TEST_DOCKER_PROVIDER")
 	if testDockerProvider == "" {
@@ -105,12 +113,73 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	assert.Equal(t, "redis:latest", components[0].Properties[model.ContainerImage])
 	assert.NotEqual(t, "", components[0].Properties["env.REDIS_VERSION"])
 }
+func TestDockerTargetProviderGetFail(t *testing.T) {
+	config := DockerTargetProviderConfig{}
+	provider := DockerTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "redis-test",
+					Type: "container",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "redis:latest",
+					},
+				},
+			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "redis-test",
+				Type: "container",
+				Properties: map[string]interface{}{
+					model.ContainerImage: "redis:latest",
+					"env.REDIS_VERSION":  "7.0.12", // NOTE: Only environment variables passed in by the reference are returned.
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+}
 
 func TestDockerTargetProviderRemove(t *testing.T) {
 	testDockerProvider := os.Getenv("TEST_DOCKER_PROVIDER")
 	if testDockerProvider == "" {
 		t.Skip("Skipping because TEST_DOCKER_PROVIDER enviornment variable is not set")
 	}
+	config := DockerTargetProviderConfig{}
+	provider := DockerTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "redis-test",
+		Type: "container",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "redis:latest",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+func TestDockerTargetProviderRemoveFail(t *testing.T) {
 	config := DockerTargetProviderConfig{}
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)

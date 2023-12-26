@@ -26,7 +26,15 @@ func TestStagingTargetProviderConfigFromMapEmpty(t *testing.T) {
 	_, err := StagingProviderConfigFromMap(map[string]string{})
 	assert.NotNil(t, err)
 }
-
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "tiny",
+		"targetName": "tiny-edge",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
 func TestStagingTargetProviderGet(t *testing.T) {
 	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
 	// os.Setenv("SYMPHONY_API_USER", "admin")
