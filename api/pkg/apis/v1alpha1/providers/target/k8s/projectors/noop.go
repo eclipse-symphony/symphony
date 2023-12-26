@@ -8,6 +8,7 @@ package projectors
 
 import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	v1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 )
@@ -19,5 +20,8 @@ func (p *NoOpProjector) ProjectDeployment(scope string, name string, metadata ma
 	return nil
 }
 func (p *NoOpProjector) ProjectService(scope string, name string, metadata map[string]string, service *apiv1.Service) error {
+	if name == "error" {
+		return v1alpha2.NewCOAError(nil, "throw error project service", v1alpha2.BadConfig)
+	}
 	return nil
 }

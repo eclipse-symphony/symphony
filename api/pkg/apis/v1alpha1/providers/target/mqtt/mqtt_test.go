@@ -39,6 +39,19 @@ func TestDoubleIni(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":          "me",
+		"brokerAddress": "tcp://20.118.146.198:1883",
+		"clientID":      "coa-test2",
+		"requestTopic":  "coa-request",
+		"responseTopic": "coa-response",
+	}
+	provider := MQTTTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
+
 func TestGet(t *testing.T) {
 	testMQTT := os.Getenv("TEST_MQTT")
 	if testMQTT == "" {

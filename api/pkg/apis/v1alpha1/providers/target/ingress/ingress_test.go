@@ -88,6 +88,19 @@ func TestInitWithBadData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "name",
+		"configType": "type",
+		"configData": "",
+		"context":    "context",
+		"inCluster":  "false",
+	}
+	provider := IngressTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+}
+
 // TestIngressTargetProviderApply tests that applying a configmap works
 func TestIngressTargetProviderApply(t *testing.T) {
 	getConfigMap := os.Getenv("TEST_INGRESS")
