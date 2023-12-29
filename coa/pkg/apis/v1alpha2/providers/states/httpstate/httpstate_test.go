@@ -9,6 +9,8 @@ package httpstate
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -230,6 +232,51 @@ func TestGet(t *testing.T) {
 	sczErr, ok := err.(v1alpha2.COAError)
 	assert.True(t, ok)
 	assert.Equal(t, v1alpha2.NotFound, sczErr.State)
+}
+
+func TestUpsertGetDelete(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			response := map[string]interface{}{
+				"key": "abc",
+			}
+			jsonResponse, _ := json.Marshal(response)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(jsonResponse)
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}))
+	defer ts.Close()
+
+	provider := HttpStateProvider{}
+	err := provider.Init(HttpStateProviderConfig{
+		Url:               ts.URL,
+		PostNameInPath:    false,
+		PostBodyKeyName:   "key",
+		PostBodyValueName: "value",
+		PostAsArray:       true,
+		NotFoundAs204:     true,
+	})
+
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, err = provider.Get(context.Background(), states.GetRequest{
+		ID: "123",
+	})
+	assert.Nil(t, err)
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "123",
+	})
+	assert.Nil(t, err)
 }
 
 func TestClone(t *testing.T) {
