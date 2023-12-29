@@ -13,6 +13,7 @@ import (
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 // TestConfiMapTargetProviderConfigFromMapNil tests that passing nil to ConfigMapTargetProviderConfigFromMap returns a valid config
@@ -263,4 +264,53 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 	assert.Equal(t, "as", components[0].Properties["complex"].(map[string]interface{})["easy"])
 	// TODO: This could be problematic as integers are probably preferred
 	assert.Equal(t, 456.0, components[0].Properties["complex"].(map[string]interface{})["123"])
+}
+
+func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
+	config := ConfigMapTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+		ConfigData: "",
+	}
+	provider := ConfigMapTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	client := fake.NewSimpleClientset()
+	provider.Client = client
+
+	component := model.ComponentSpec{
+		Name: "test-config",
+		Type: "config",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "configimage",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "config-test",
+			Scope: "configs",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+
+	// Create, update, get and delete
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+	components, err := provider.Get(context.Background(), deployment, step.Components)
+	assert.Equal(t, 1, len(components))
+	assert.Nil(t, err)
+	err = provider.deleteConfigMap(context.Background(), "test-config", "configs")
+	assert.Nil(t, err)
 }

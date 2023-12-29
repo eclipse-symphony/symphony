@@ -8,6 +8,9 @@ package iotedge
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
@@ -35,6 +38,36 @@ func TestInitWithEmptyKeyName(t *testing.T) {
 	err := provider.Init(IoTEdgeTargetProviderConfig{})
 	assert.Nil(t, err)
 	assert.Equal(t, "iothubowner", provider.Config.KeyName)
+}
+
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name": "name",
+	}
+	provider := IoTEdgeTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+
+	configMap = map[string]string{
+		"name":             "name",
+		"keyName":          "key",
+		"key":              "value",
+		"apiVersion":       "2020-05-31",
+		"edgeAgentVersion": "1.2",
+		"edgeHubVersion":   "1.2",
+	}
+	err = provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+
+	configMap = map[string]string{
+		"name":       "name",
+		"keyName":    "key",
+		"key":        "value",
+		"iotHub":     "iotHub",
+		"deviceName": "device",
+	}
+	err = provider.InitWithMap(configMap)
+	assert.Nil(t, err)
 }
 
 func TestGetNullDevice(t *testing.T) {
@@ -564,6 +597,236 @@ func TestReduceDeploymentWithMoreModuleAndRoutes(t *testing.T) {
 	col2 := deployment.ModulesContent["$edgeHub"].DesiredProperties["routes"].(map[string]string)
 	assert.Equal(t, 1, len(col2))
 	assert.Equal(t, "FROM messagees/modules/my-instance-2-my-module INTO messages/modules/cool", col2["my-instance-2-route-1"])
+}
+
+func TestGetFailed(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	u, err := url.Parse(ts.URL)
+	assert.Nil(t, err)
+
+	provider := IoTEdgeTargetProvider{}
+	err = provider.Init(IoTEdgeTargetProviderConfig{
+		Name:       "name",
+		IoTHub:     u.Host,
+		DeviceName: "device",
+		KeyName:    "key",
+		Key:        "value",
+	})
+	assert.Nil(t, err)
+
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	assert.NotNil(t, err)
+}
+
+func TestApplyFailed(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	u, err := url.Parse(ts.URL)
+	assert.Nil(t, err)
+
+	provider := IoTEdgeTargetProvider{}
+	err = provider.Init(IoTEdgeTargetProviderConfig{
+		Name:       "name",
+		IoTHub:     u.Host,
+		DeviceName: "device",
+		KeyName:    "key",
+		Key:        "value",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "MyApp",
+		Properties: map[string]interface{}{
+			"container.image":   "image",
+			"container.version": "1.0.0",
+			"container.type":    "type",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestToComponent(t *testing.T) {
+	hubTwin := ModuleTwin{
+		DeviceId: "id",
+		Properties: ModuleTwinProperties{
+			Desired: map[string]interface{}{
+				"routes": map[string]interface{}{
+					"rt1": "modules/mid/abc",
+				},
+			},
+		},
+	}
+	twin := ModuleTwin{
+		DeviceId: "id",
+		ModuleId: "mid",
+		Properties: ModuleTwinProperties{
+			Desired: map[string]interface{}{
+				"a": 1,
+				"b": 1.22,
+				"c": true,
+				"d": "abc",
+				"e": uint(123),
+				"f": int8(123),
+				"g": int16(123),
+				"h": int32(123),
+				"i": int64(123),
+				"j": uint8(123),
+				"k": uint16(123),
+				"l": uint32(123),
+				"m": uint64(123),
+				"n": uint32(123),
+				"o": uint32(123),
+				"p": float32(123.12),
+				"q": float64(123.12),
+				"z": []interface{}{"hello", 123, 4.56, true},
+			},
+		},
+	}
+	module := Module{
+		RestartPolicy: "policy",
+		Version:       "1.0.0",
+		Type:          "type",
+		Settings: map[string]string{
+			"createOptions": "opt",
+			"image":         "img",
+		},
+	}
+	component, err := toComponent(hubTwin, twin, "default", module)
+	assert.Nil(t, err)
+	assert.NotNil(t, component)
+}
+
+func TestGetIoTEdgeModules(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	u, err := url.Parse(ts.URL)
+	assert.Nil(t, err)
+
+	provider := IoTEdgeTargetProvider{}
+	err = provider.Init(IoTEdgeTargetProviderConfig{
+		Name:       "name",
+		IoTHub:     u.Host,
+		DeviceName: "device",
+		KeyName:    "key",
+		Key:        "value",
+	})
+	assert.Nil(t, err)
+
+	twin := ModuleTwin{
+		DeviceId: "id",
+		ModuleId: "mid",
+		Properties: ModuleTwinProperties{
+			Desired: map[string]interface{}{
+				"routes": map[string]interface{}{
+					"rt1": "modules/mid/abc",
+				},
+				"modules": map[string]interface{}{
+					"m1": "value1",
+				},
+			},
+		},
+	}
+
+	_, err = provider.getIoTEdgeModules(context.Background())
+	assert.NotNil(t, err)
+
+	err = provider.deployToIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
+	assert.NotNil(t, err)
+
+	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
+	assert.NotNil(t, err)
+}
+
+func TestDeployRemove(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	u, err := url.Parse(ts.URL)
+	assert.Nil(t, err)
+
+	provider := IoTEdgeTargetProvider{}
+	err = provider.Init(IoTEdgeTargetProviderConfig{
+		Name:       "name",
+		IoTHub:     u.Host,
+		DeviceName: "device",
+		KeyName:    "key",
+		Key:        "value",
+	})
+	assert.Nil(t, err)
+
+	twin := ModuleTwin{
+		DeviceId: "id",
+		ModuleId: "mid",
+		Properties: ModuleTwinProperties{
+			Desired: map[string]interface{}{
+				"routes": map[string]interface{}{
+					"rt1": "modules/mid/abc",
+				},
+				"modules": map[string]interface{}{
+					"m1": "value1",
+				},
+			},
+		},
+	}
+
+	err = provider.deployToIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
+	assert.NotNil(t, err)
+
+	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
+	assert.NotNil(t, err)
+}
+
+func TestApplyIoTEdgeDeployment(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	u, err := url.Parse(ts.URL)
+	assert.Nil(t, err)
+
+	provider := IoTEdgeTargetProvider{}
+	err = provider.Init(IoTEdgeTargetProviderConfig{
+		Name:       "name",
+		IoTHub:     u.Host,
+		DeviceName: "device",
+		KeyName:    "key",
+		Key:        "value",
+	})
+	assert.Nil(t, err)
+
+	deployment := IoTEdgeDeployment{
+		ModulesContent: map[string]ModuleState{
+			"desire1": {
+				map[string]interface{}{
+					"m1": "value1",
+				},
+			},
+		},
+	}
+	err = provider.applyIoTEdgeDeployment(context.Background(), deployment)
+	assert.NotNil(t, err)
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance

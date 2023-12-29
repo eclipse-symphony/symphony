@@ -60,7 +60,7 @@ type (
 	KubectlTargetProvider struct {
 		Config          KubectlTargetProviderConfig
 		Context         *contexts.ManagerContext
-		Client          *kubernetes.Clientset
+		Client          kubernetes.Interface
 		DynamicClient   dynamic.Interface
 		DiscoveryClient *discovery.DiscoveryClient
 		Mapper          *restmapper.DeferredDiscoveryRESTMapper
