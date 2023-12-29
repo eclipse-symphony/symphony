@@ -20,13 +20,13 @@ func TestProjectDeployment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func ProjectService(t *testing.T) {
+func TestProjectService(t *testing.T) {
 	projector := &NoOpProjector{}
 	err := projector.ProjectService("default", "name", nil, nil)
 	assert.Nil(t, err)
 }
 
-func ProjectServiceError(t *testing.T) {
+func TestProjectServiceError(t *testing.T) {
 	projector := &NoOpProjector{}
 	err := projector.ProjectService("default", "error", nil, nil)
 	assert.NotNil(t, err)
