@@ -15,6 +15,9 @@ import (
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
+	dfake "k8s.io/client-go/dynamic/fake"
+	kfake "k8s.io/client-go/kubernetes/fake"
 )
 
 // TestKubectlTargetProviderConfigFromMapNil tests that passing nil to KubectlTargetProviderConfigFromMap returns a valid config
@@ -557,4 +560,173 @@ func TestConformanceSuite(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	conformance.ConformanceSuite(t, provider)
+}
+
+func TestKubectlTargetProviderApply(t *testing.T) {
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+		ConfigData: "",
+	}
+
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	client := kfake.NewSimpleClientset()
+	provider.Client = client
+	dynamicClient := dfake.NewSimpleDynamicClient(runtime.NewScheme())
+	provider.DynamicClient = dynamicClient
+
+	component := model.ComponentSpec{
+		Name: "gatekeeper",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "gatekeeper",
+			Scope: "gatekeeper-system",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+
+	component = model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx-deployment",
+				},
+			},
+		},
+	}
+	deployment = model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "nginx",
+			Scope: "nginx-system",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestKubectlTargetProviderGet(t *testing.T) {
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+		ConfigData: "",
+	}
+
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	client := kfake.NewSimpleClientset()
+	provider.Client = client
+	dynamicClient := dfake.NewSimpleDynamicClient(runtime.NewScheme())
+	provider.DynamicClient = dynamicClient
+
+	component := model.ComponentSpec{
+		Name: "policies",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "policies",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	reference := []model.ComponentStep{
+		{
+			Action:    "update",
+			Component: component,
+		},
+	}
+	_, err = provider.Get(context.Background(), deployment, reference)
+	assert.NotNil(t, err)
+
+	component = model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx-deployment",
+				},
+			},
+		},
+	}
+	deployment = model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name:  "nginx",
+			Scope: "nginx-system",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	reference = []model.ComponentStep{
+		{
+			Action:    "update",
+			Component: component,
+		},
+	}
+	_, err = provider.Get(context.Background(), deployment, reference)
+	assert.NotNil(t, err)
 }
