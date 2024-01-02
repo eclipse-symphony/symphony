@@ -265,7 +265,7 @@ func TestMultipleSubscriber(t *testing.T) {
 
 func TestSubscribePublish(t *testing.T) {
 	provider := RedisPubSubProvider{}
-	err := provider.Init(RedisPubSubProviderConfig{
+	provider.Init(RedisPubSubProviderConfig{
 		Name:              "test",
 		Host:              "localhost:6379",
 		Password:          "",
