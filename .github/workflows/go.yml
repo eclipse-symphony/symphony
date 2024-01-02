@@ -39,3 +39,27 @@ jobs:
 
     - name: API Test
       run: cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+
+    - id: target-api-testcoverage-app
+      run: |
+        cd api && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        echo "coverage=$COVERAGE"
+      continue-on-error: true
+      if: always()
+
+    - id: target-k8s-testcoverage-app
+      run: |
+        cd k8s && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        echo "coverage=$COVERAGE"
+      continue-on-error: true
+      if: always()
+
+    - id: target-coa-testcoverage-app
+      run: |
+        cd coa && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        echo "coverage=$COVERAGE"
+      continue-on-error: true
+      if: always()
