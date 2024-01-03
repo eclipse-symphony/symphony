@@ -71,6 +71,74 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "\"def\"", string(target))
 }
 
+func TestGetExt(t *testing.T) {
+	referenceProvider := refmock.MockReferenceProvider{}
+	referenceProvider.Init(refmock.MockReferenceProviderConfig{
+		Values: map[string]interface{}{
+			"abc": "def",
+		},
+	})
+	stateProvider := memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	reporterProvider := http.HTTPReporter{}
+	reporterProvider.Init(http.HTTPReporterConfig{})
+	manager := ReferenceManager{}
+	err := manager.Init(nil, managers.ManagerConfig{
+		Properties: map[string]string{
+			"providers.reference": "mock",
+			"providers.state":     "memory",
+			"providers.reporter":  "report",
+		},
+	}, map[string]providers.IProvider{
+		"mock":   &referenceProvider,
+		"memory": &stateProvider,
+		"report": &reporterProvider,
+	})
+	assert.Nil(t, err)
+	_, err = manager.GetExt("mock", "", "abc", "", "", "", "abc", "", "", "", "", "")
+	assert.Nil(t, err)
+}
+
+func TestGetExtDownload(t *testing.T) {
+	modelSpec := &model.ModelSpec{}
+	modelSpec.DisplayName = "test"
+	modelSpec.Properties = map[string]string{
+		"model.type":      "customvision",
+		"model.endpoint":  "endpoint",
+		"model.project":   "project",
+		"model.version.1": "00000000-0000-0000-0000-000000000000",
+	}
+
+	referenceProvider := refmock.MockReferenceProvider{}
+	referenceProvider.Init(refmock.MockReferenceProviderConfig{
+		Values: map[string]interface{}{
+			"abc": map[string]interface{}{
+				"spec": modelSpec,
+			},
+			"project": "project",
+		},
+	})
+	stateProvider := memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	reporterProvider := http.HTTPReporter{}
+	reporterProvider.Init(http.HTTPReporterConfig{})
+	manager := ReferenceManager{}
+	err := manager.Init(nil, managers.ManagerConfig{
+		Properties: map[string]string{
+			"providers.reference": "mock",
+			"providers.state":     "memory",
+			"providers.reporter":  "report",
+		},
+	}, map[string]providers.IProvider{
+		"mock":   &referenceProvider,
+		"memory": &stateProvider,
+		"report": &reporterProvider,
+	})
+	assert.Nil(t, err)
+	_, err = manager.GetExt("mock", "", "abc", "", "", "", "abc", "download", "", "", "latest", "")
+	assert.Nil(t, err)
+}
+
 type AnyType struct {
 	Name  string
 	Value uint64
@@ -102,7 +170,7 @@ func TestGetAnyType(t *testing.T) {
 		"memory": &stateProvider,
 		"report": &reporterProvider,
 	})
-
+	assert.Nil(t, err)
 	target := AnyType{}
 	data, err := manager.Get("mock", "abc", "", "", "", "", "", "")
 	assert.Nil(t, err)
@@ -110,6 +178,35 @@ func TestGetAnyType(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "def", target.Name)
 	assert.Equal(t, uint64(12345), target.Value)
+}
+
+func TestPoll(t *testing.T) {
+	referenceProvider := refmock.MockReferenceProvider{}
+	referenceProvider.Init(refmock.MockReferenceProviderConfig{})
+	stateProvider := memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	reporterProvider := http.HTTPReporter{}
+	reporterProvider.Init(http.HTTPReporterConfig{})
+	manager := ReferenceManager{}
+	err := manager.Init(nil, managers.ManagerConfig{
+		Properties: map[string]string{
+			"providers.reference": "mock",
+			"providers.state":     "memory",
+			"providers.reporter":  "report",
+			"poll.enabled":        "true",
+		},
+	}, map[string]providers.IProvider{
+		"mock":   &referenceProvider,
+		"memory": &stateProvider,
+		"report": &reporterProvider,
+	})
+	assert.Nil(t, err)
+	res := manager.Enabled()
+	assert.True(t, res)
+	errPoll := manager.Poll()
+	assert.Nil(t, errPoll)
+	errRec := manager.Poll()
+	assert.Nil(t, errRec)
 }
 
 func TestCacheLifespan(t *testing.T) {
@@ -132,7 +229,7 @@ func TestCacheLifespan(t *testing.T) {
 		"memory": &stateProvider,
 		"report": &reporterProvider,
 	})
-
+	assert.Nil(t, err)
 	stamp := time.Now()
 	stamp2 := time.Now()
 	data, err := manager.Get("mock", "timestamp", "", "", "", "", "", "")

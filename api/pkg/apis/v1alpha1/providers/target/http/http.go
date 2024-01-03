@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -162,9 +163,16 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			}
 			if resp.StatusCode != http.StatusOK {
+				bodyBytes, err := io.ReadAll(resp.Body)
+				var message string
+				if err != nil {
+					message = err.Error()
+				} else {
+					message = string(bodyBytes)
+				}
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
-					Message: err.Error(),
+					Message: message,
 				}
 				err = errors.New("HTTP request didn't respond 200 OK")
 				sLog.Errorf("  P(HTTP Target): %v", err)

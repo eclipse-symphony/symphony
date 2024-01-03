@@ -8,6 +8,9 @@ package staging
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -26,7 +29,15 @@ func TestStagingTargetProviderConfigFromMapEmpty(t *testing.T) {
 	_, err := StagingProviderConfigFromMap(map[string]string{})
 	assert.NotNil(t, err)
 }
-
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "tiny",
+		"targetName": "tiny-edge",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
 func TestStagingTargetProviderGet(t *testing.T) {
 	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
 	// os.Setenv("SYMPHONY_API_USER", "admin")
@@ -70,7 +81,7 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components)) // To make this test work, you need a target with a single component
 }
-func TestKubectlTargetProviderApply(t *testing.T) {
+func TestStagingTargetProviderApply(t *testing.T) {
 	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
 	// os.Setenv("SYMPHONY_API_USER", "admin")
 	// os.Setenv("SYMPHONY_API_PASSWORD", "")
@@ -123,7 +134,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestKubectlTargetProviderRemove(t *testing.T) {
+func TestStagingTargetProviderRemove(t *testing.T) {
 	// os.Setenv("SYMPHONY_API_BASE_URL", "http://localhost:8080/v1alpha2/")
 	// os.Setenv("SYMPHONY_API_USER", "admin")
 	// os.Setenv("SYMPHONY_API_PASSWORD", "")
@@ -174,6 +185,240 @@ func TestKubectlTargetProviderRemove(t *testing.T) {
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
+}
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
+
+func TestApply(t *testing.T) {
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/catalogs/registry/test-target":
+			response = model.CatalogState{
+				Id: "abc",
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"components": []model.ComponentSpec{
+							{
+								Name: "name",
+								Type: "type",
+							},
+						},
+					},
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	assert.Nil(t, err)
+
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
+		},
+	}
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "name",
+		Type: "type",
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
+		Solution: model.SolutionSpec{
+			DisplayName: "name",
+			Scope:       "",
+			Components:  []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+func TestGet(t *testing.T) {
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/catalogs/registry/test-target":
+			response = model.CatalogState{
+				Id: "abc",
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"components": []model.ComponentSpec{
+							{
+								Name: "name",
+								Type: "type",
+							},
+						},
+					},
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	assert.Nil(t, err)
+
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
+		},
+	}
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "name",
+		Type: "type",
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
+		Solution: model.SolutionSpec{
+			DisplayName: "name",
+			Scope:       "",
+			Components:  []model.ComponentSpec{component},
+		},
+	}
+	step := []model.ComponentStep{
+		{
+			Action:    "update",
+			Component: component,
+		},
+	}
+	_, err = provider.Get(context.Background(), deployment, step)
+	assert.Nil(t, err)
+}
+
+func TestGetCatalogsFailed(t *testing.T) {
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/catalogs/registry/test-target":
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	assert.Nil(t, err)
+
+	provider.Context = &contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
+		},
+	}
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "name",
+		Type: "type",
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceSpec{
+			Name: "test",
+		},
+		Solution: model.SolutionSpec{
+			DisplayName: "name",
+			Scope:       "",
+			Components:  []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance

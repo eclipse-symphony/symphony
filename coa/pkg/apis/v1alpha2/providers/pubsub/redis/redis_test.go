@@ -68,6 +68,47 @@ func TestInit(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestInitWithMap(t *testing.T) {
+	provider := RedisPubSubProvider{}
+	err := provider.InitWithMap(
+		map[string]string{
+			"name": "test",
+			"host": "localhost:6379",
+		},
+	)
+	// assert.Nil(t, err) // Provider initialization succeeds if redis is running
+	err = provider.InitWithMap(
+		map[string]string{
+			"name": "test",
+		},
+	)
+	assert.NotNil(t, err)
+	err = provider.InitWithMap(
+		map[string]string{
+			"name":        "test",
+			"host":        "localhost:6379",
+			"requiresTLS": "abcd",
+		},
+	)
+	assert.NotNil(t, err)
+	err = provider.InitWithMap(
+		map[string]string{
+			"name":            "test",
+			"host":            "localhost:6379",
+			"numberOfWorkers": "abcd",
+		},
+	)
+	assert.NotNil(t, err)
+	err = provider.InitWithMap(
+		map[string]string{
+			"name":       "test",
+			"host":       "localhost:6379",
+			"queueDepth": "abcd",
+		},
+	)
+	assert.NotNil(t, err)
+}
+
 func TestBasicPubSub(t *testing.T) {
 	testRedis := os.Getenv("TEST_REDIS")
 	if testRedis == "" {
@@ -77,10 +118,12 @@ func TestBasicPubSub(t *testing.T) {
 	msg := ""
 	provider := RedisPubSubProvider{}
 	err := provider.Init(RedisPubSubProviderConfig{
-		Name:            "test",
-		Host:            "localhost:6379",
-		Password:        "",
-		NumberOfWorkers: 1,
+		Name:              "test",
+		Host:              "localhost:6379",
+		Password:          "",
+		NumberOfWorkers:   1,
+		ProcessingTimeout: 5,
+		RedeliverInterval: 5,
 	})
 	assert.Nil(t, err)
 	provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
@@ -220,8 +263,31 @@ func TestMultipleSubscriber(t *testing.T) {
 	assert.Equal(t, "TEST", msg2)
 }
 
-func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
+func TestSubscribePublish(t *testing.T) {
+	provider := RedisPubSubProvider{}
+	provider.Init(RedisPubSubProviderConfig{
+		Name:              "test",
+		Host:              "localhost:6379",
+		Password:          "",
+		NumberOfWorkers:   1,
+		ProcessingTimeout: 5,
+		RedeliverInterval: 5,
+	})
+	// assert.Nil(t, err) // Provider initialization succeeds if redis is running
 
+	// var msg string
+	// sig := make(chan int)
+	// provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
+	// 	msg = message.Body.(string)
+	// 	sig <- 1
+	// 	return nil
+	// })
+	// provider.Publish("test", v1alpha2.Event{Body: "TEST"})
+	// <-sig
+	// assert.Equal(t, "TEST", msg)
+}
+
+func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
 	configMap := map[string]string{
 		"name":              "test",
 		"host":              "localhost:6379",

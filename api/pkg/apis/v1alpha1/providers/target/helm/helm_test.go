@@ -8,12 +8,15 @@ package helm
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/rest"
 )
 
 // TestHelmTargetProviderConfigFromMapNil tests the HelmTargetProviderConfigFromMap function with nil input
@@ -33,6 +36,37 @@ func TestHelmTargetProviderInitEmptyConfig(t *testing.T) {
 	config := HelmTargetProviderConfig{}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
+	assert.NotNil(t, err)
+}
+
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":       "test",
+		"configType": "bytes",
+		"inCluster":  "false",
+		"configData": "data",
+		"context":    "context",
+	}
+	provider := HelmTargetProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+
+	configMap = map[string]string{
+		"name":       "test",
+		"configType": "bytes",
+		"inCluster":  "false",
+		"context":    "context",
+	}
+	err = provider.InitWithMap(configMap)
+	assert.NotNil(t, err)
+
+	configMap = map[string]string{
+		"name":       "test",
+		"configType": "wrongtype",
+		"inCluster":  "false",
+		"context":    "context",
+	}
+	err = provider.InitWithMap(configMap)
 	assert.NotNil(t, err)
 }
 
@@ -376,6 +410,98 @@ users:
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
+}
+
+func TestHelmTargetProviderUpdateFail(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+			"values": map[string]interface{}{
+				"CUSTOM_VISION_KEY": "BBB",
+				"CLUSTER_SECRET":    "test",
+				"CERTIFICATES":      []string{"a", "b"},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestHelmTargetProviderGetFail(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "bluefin-arc-extensions",
+				},
+			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "bluefin-arc-extensions",
+			},
+		},
+	})
+	assert.NotNil(t, err)
+}
+
+func TestDownloadFile(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+
+	err := downloadFile(ts.URL, "test")
+	assert.Nil(t, err)
+}
+
+func TestGetActionConfig(t *testing.T) {
+	config := &rest.Config{
+		Host:        "host",
+		BearerToken: "token",
+	}
+	_, err := getActionConfig(context.Background(), "default", config)
+	assert.Nil(t, err)
 }
 
 // TestConformanceSuite tests the HelmTargetProvider for conformance
