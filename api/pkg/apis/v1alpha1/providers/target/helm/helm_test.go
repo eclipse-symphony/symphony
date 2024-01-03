@@ -461,7 +461,7 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestHelmTargetProviderGetFail(t *testing.T) {
+func TestHelmTargetProviderGetEmpty(t *testing.T) {
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -482,7 +482,7 @@ func TestHelmTargetProviderGetFail(t *testing.T) {
 			},
 		},
 	})
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestDownloadFile(t *testing.T) {
