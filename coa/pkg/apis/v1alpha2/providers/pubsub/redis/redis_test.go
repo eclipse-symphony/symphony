@@ -265,7 +265,7 @@ func TestMultipleSubscriber(t *testing.T) {
 
 func TestSubscribePublish(t *testing.T) {
 	provider := RedisPubSubProvider{}
-	provider.Init(RedisPubSubProviderConfig{
+	err := provider.Init(RedisPubSubProviderConfig{
 		Name:              "test",
 		Host:              "localhost:6379",
 		Password:          "",
@@ -273,18 +273,18 @@ func TestSubscribePublish(t *testing.T) {
 		ProcessingTimeout: 5,
 		RedeliverInterval: 5,
 	})
-	// assert.Nil(t, err) // Provider initialization succeeds if redis is running
+	assert.Nil(t, err) // Provider initialization succeeds if redis is running
 
-	// var msg string
-	// sig := make(chan int)
-	// provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
-	// 	msg = message.Body.(string)
-	// 	sig <- 1
-	// 	return nil
-	// })
-	// provider.Publish("test", v1alpha2.Event{Body: "TEST"})
-	// <-sig
-	// assert.Equal(t, "TEST", msg)
+	var msg string
+	sig := make(chan int)
+	provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
+		msg = message.Body.(string)
+		sig <- 1
+		return nil
+	})
+	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
+	<-sig
+	assert.Equal(t, "TEST", msg)
 }
 
 func TestRedisPubSubProviderConfigFromMap(t *testing.T) {

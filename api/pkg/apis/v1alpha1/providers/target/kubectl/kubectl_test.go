@@ -48,8 +48,8 @@ func TestInitWithEmptyFile(t *testing.T) {
 		ConfigType: "path",
 	}
 	provider := KubectlTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.Init(config)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 
 // TestInitWithBadFile tests that passing a bad file to Init returns an error

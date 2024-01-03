@@ -46,7 +46,8 @@ func TestK8sTargetProviderInitWithMap(t *testing.T) {
 	provider := K8sTargetProvider{}
 	configMap := map[string]string{
 		"name": "name",
-	}err := provider.InitWithMap(configMap)
+	}
+	err := provider.InitWithMap(configMap)
 	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestMetadataToServiceNil(t *testing.T) {
@@ -67,8 +68,8 @@ func TestInitWithEmptyFile(t *testing.T) {
 		ConfigType: "path",
 	}
 	provider := K8sTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.Init(config)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestInitWithBadFile(t *testing.T) {
 	config := K8sTargetProviderConfig{
