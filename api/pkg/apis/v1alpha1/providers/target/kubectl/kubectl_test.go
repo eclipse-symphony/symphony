@@ -563,11 +563,6 @@ func TestConformanceSuite(t *testing.T) {
 }
 
 func TestKubectlTargetProviderApply(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
-	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -666,11 +661,6 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 }
 
 func TestKubectlTargetProviderGet(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
-	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
