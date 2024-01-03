@@ -46,8 +46,7 @@ func TestK8sTargetProviderInitWithMap(t *testing.T) {
 	provider := K8sTargetProvider{}
 	configMap := map[string]string{
 		"name": "name",
-	}
-	err := provider.InitWithMap(configMap)
+	}err := provider.InitWithMap(configMap)
 	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestMetadataToServiceNil(t *testing.T) {

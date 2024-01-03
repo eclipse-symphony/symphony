@@ -35,7 +35,7 @@ spec:
         version: "0.2.0-20230706.3-develop"
     type: helm.v3
   displayName: int-virtual-02
-  scope: alice-springs
+  scope: SCOPENAME
   topologies:
   - bindings:
     - config:
