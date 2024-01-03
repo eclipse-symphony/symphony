@@ -612,7 +612,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
 	component = model.ComponentSpec{
 		Name: "nginx",
@@ -657,7 +657,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestKubectlTargetProviderGet(t *testing.T) {
@@ -728,5 +728,5 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		},
 	}
 	_, err = provider.Get(context.Background(), deployment, reference)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
