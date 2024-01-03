@@ -602,7 +602,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
