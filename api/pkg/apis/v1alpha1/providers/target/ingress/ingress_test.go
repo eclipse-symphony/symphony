@@ -284,8 +284,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 
 	provider := IngressTargetProvider{}
 	err := provider.Init(config)
-	assert.NotNil(t, err)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 	client := fake.NewSimpleClientset()
 	provider.Client = client
 

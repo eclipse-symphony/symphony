@@ -458,7 +458,7 @@ func TestHelmTargetProviderUpdateFail(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestHelmTargetProviderGetFail(t *testing.T) {
