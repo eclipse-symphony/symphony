@@ -412,7 +412,7 @@ users:
 	assert.Equal(t, 1, len(components))
 }
 
-func TestHelmTargetProviderUpdateFail(t *testing.T) {
+func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -447,7 +447,7 @@ func TestHelmTargetProviderUpdateFail(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
