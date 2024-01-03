@@ -8,6 +8,8 @@ package http
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -113,6 +115,83 @@ func TestHttpTargetProviderIncorrectApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestHttpTargetProviderApplyWrongMethod(t *testing.T) {
+	config := HttpTargetProviderConfig{
+		Name: "test",
+	}
+	provider := HttpTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    "https://learn.microsoft.com/en-us/content-nav/azure.json?",
+			"http.method": "ABC",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+		Assignments: map[string]string{
+			"target-1": "{http-component}",
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestHttpTargetProviderApplyInvalidStatusCode(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}))
+	defer ts.Close()
+
+	config := HttpTargetProviderConfig{
+		Name: "test",
+	}
+	provider := HttpTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "http-component",
+		Properties: map[string]interface{}{
+			"http.url":    ts.URL,
+			"http.method": "GET",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+		Assignments: map[string]string{
+			"target-1": "{http-component}",
 		},
 	}
 	step := model.DeploymentStep{

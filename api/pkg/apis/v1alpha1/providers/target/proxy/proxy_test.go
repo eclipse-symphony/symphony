@@ -8,6 +8,9 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -175,6 +178,91 @@ func TestApply(t *testing.T) {
 		},
 	}
 	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":      "name",
+		"serverUrl": "127.0.0.0",
+	}
+	provider := ProxyUpdateProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
+
+func TestCallRestAPI(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+
+	provider := &ProxyUpdateProvider{}
+	err := provider.Init(ProxyUpdateProviderConfig{ServerURL: ts.URL + "/"})
+	assert.Nil(t, err)
+
+	_, err = provider.callRestAPI("", "GET", []byte{})
+	assert.Nil(t, err)
+}
+
+func TestProxyUpdateProviderApplyGet(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			componentSpecs := []model.ComponentSpec{
+				{
+					Name: "name",
+				},
+			}
+			jsonData, _ := json.Marshal(componentSpecs)
+			w.Write(jsonData)
+		} else {
+			w.Write([]byte("OK"))
+
+		}
+	}))
+	defer ts.Close()
+
+	provider := ProxyUpdateProvider{}
+	err := provider.Init(ProxyUpdateProviderConfig{
+		Name:      "proxy",
+		ServerURL: ts.URL + "/",
+	})
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "test",
+	}
+	deployment := model.DeploymentSpec{
+		Assignments: map[string]string{
+			"target1": "test",
+		},
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	components := []model.ComponentStep{
+		{
+			Action:    "update",
+			Component: component,
+		},
+	}
+	step := model.DeploymentStep{
+		Components: components,
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	_, err = provider.Get(context.Background(), deployment, components)
+	assert.Nil(t, err)
+
+	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
 				Action:    "delete",

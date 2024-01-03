@@ -16,6 +16,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInitWithMap(t *testing.T) {
+	configMap := map[string]string{
+		"name":                "name",
+		"ipAddress":           "0.0.0.0",
+		"winAppDeployCmdPath": "c:\\Program Files (x86)",
+		"pin":                 "pin",
+		"networkUser":         "user",
+		"networkPassword":     "",
+		"silent":              "true",
+	}
+	provider := Win10SideLoadProvider{}
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err)
+}
 func TestGetEmptyDesired(t *testing.T) {
 	testWin10 := os.Getenv("TEST_WIN10_SIDELOAD")
 	if testWin10 != "yes" {
@@ -62,6 +76,36 @@ func TestGetOneDesired(t *testing.T) {
 	})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
+}
+func TestNeedUpdate(t *testing.T) {
+	provider := Win10SideLoadProvider{}
+	err := provider.Init(Win10SideLoadProviderConfig{
+		Name: "win10sideload",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+	}
+	componentDesired := []model.ComponentSpec{component}
+	componentCurrent := []model.ComponentSpec{component}
+	res := provider.NeedsUpdate(context.Background(), componentDesired, componentCurrent)
+	assert.False(t, res)
+}
+func TestNeedRemove(t *testing.T) {
+	provider := Win10SideLoadProvider{}
+	err := provider.Init(Win10SideLoadProviderConfig{
+		Name: "win10sideload",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+	}
+	componentDesired := []model.ComponentSpec{component}
+	componentCurrent := []model.ComponentSpec{component}
+	res := provider.NeedsRemove(context.Background(), componentDesired, componentCurrent)
+	assert.True(t, res)
 }
 func TestRemove(t *testing.T) {
 	testWin10 := os.Getenv("TEST_WIN10_SIDELOAD")
@@ -127,6 +171,100 @@ func TestApply(t *testing.T) {
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
+}
+func TestApplyUpdateFailed(t *testing.T) {
+	provider := Win10SideLoadProvider{}
+	err := provider.Init(Win10SideLoadProviderConfig{
+		Name:                "win10sideload",
+		IPAddress:           "0.0.0.0",
+		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+		Pin:                 "pin",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+		Properties: map[string]interface{}{
+			"app.package.path": "C:\\",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+func TestApplySlientDelete(t *testing.T) {
+	provider := Win10SideLoadProvider{}
+	err := provider.Init(Win10SideLoadProviderConfig{
+		Name:                "win10sideload",
+		IPAddress:           "0.0.0.0",
+		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+		Silent:              true,
+		Pin:                 "pin",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+		Properties: map[string]interface{}{
+			"app.package.path": "C:\\",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "delete",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+func TestGetUnknownPath(t *testing.T) {
+	provider := Win10SideLoadProvider{}
+	err := provider.Init(Win10SideLoadProviderConfig{
+		Name:                "win10sideload",
+		IPAddress:           "0.0.0.0",
+		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+		Silent:              true,
+		Pin:                 "pin",
+	})
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "HomeHub_1.0.4.0_x64",
+		Properties: map[string]interface{}{
+			"app.package.path": "C:\\",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := []model.ComponentStep{{
+		Action:    "delete",
+		Component: component,
+	}}
+	_, err = provider.Get(context.Background(), deployment, step)
+	assert.NotNil(t, err)
 }
 func TestConformanceSuite(t *testing.T) {
 	provider := &Win10SideLoadProvider{}

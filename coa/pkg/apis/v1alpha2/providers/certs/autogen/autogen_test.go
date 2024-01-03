@@ -21,3 +21,12 @@ func TestCertGeneration(t *testing.T) {
 	_, _, err = provider.GetCert("localhost")
 	assert.Nil(t, err)
 }
+
+func TestID(t *testing.T) {
+	provider := AutoGenCertProvider{}
+	err := provider.Init(AutoGenCertProviderConfig{
+		Name: "test",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "test", provider.ID())
+}
