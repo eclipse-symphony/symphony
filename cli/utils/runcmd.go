@@ -7,10 +7,13 @@
 package utils
 
 import (
+	"archive/zip"
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -128,6 +131,17 @@ func RunCommand(message string, successMessage string, showOutput bool, name str
 	return strings.Join(output, " "), exeErr
 }
 
+func AddtoPath(des string) string {
+	path := os.Getenv("PATH")
+	pathlist := strings.Split(path, ";")
+	for _, p := range pathlist {
+		if strings.EqualFold(p, des) {
+			return path
+		}
+	}
+	return path + ";" + des
+}
+
 func CheckDocker(verbose bool) bool {
 	_, err := RunCommand("Checking Docker", "found", verbose, "docker", "info")
 	return err == nil
@@ -135,6 +149,11 @@ func CheckDocker(verbose bool) bool {
 
 func CheckKubectl(verbose bool) bool {
 	_, err := RunCommand("Checking kubectl", "found", verbose, "kubectl")
+	return err == nil
+}
+
+func CheckMinikube(verbose bool) bool {
+	_, err := RunCommand("Checking minikube", "found", verbose, "minikube", "version")
 	return err == nil
 }
 
@@ -249,6 +268,47 @@ func InstallDocker(verbose bool) bool {
 		return false
 	}
 	return true
+}
+
+func Unzip(src, dest string, isStructured bool) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+		var path string
+		if isStructured {
+			path = filepath.Join(dest, f.Name)
+		} else {
+			path = filepath.Join(dest, f.FileInfo().Name())
+		}
+		if f.FileInfo().IsDir() {
+			if isStructured {
+				os.MkdirAll(path, f.Mode())
+			}
+		} else {
+			f, err := os.OpenFile(
+				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 var Esc = "\x1b"
