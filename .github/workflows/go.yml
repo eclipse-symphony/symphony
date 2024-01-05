@@ -60,7 +60,11 @@ jobs:
       run: cd api && go build -o symphony-api
 
     - name: API Test
-      run: cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+      run: |
+        cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        export TEST_KUBECTL=yes
+        export TEST_MINIKUBE_ENABLED=yes
+        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
 
     - name: target-api-testcoverage-app
       run: |
