@@ -8,6 +8,7 @@ package k8s
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -43,12 +44,16 @@ func TestK8sTargetProviderConfigFromMap(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestK8sTargetProviderInitWithMap(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	provider := K8sTargetProvider{}
 	configMap := map[string]string{
 		"name": "name",
 	}
-	provider.InitWithMap(configMap)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.InitWithMap(configMap)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestMetadataToServiceNil(t *testing.T) {
 	s, e := metadataToService("", "", nil)
@@ -64,12 +69,16 @@ func TestInitWithBadConfigType(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestInitWithEmptyFile(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := K8sTargetProviderConfig{
 		ConfigType: "path",
 	}
 	provider := K8sTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.Init(config)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestInitWithBadFile(t *testing.T) {
 	config := K8sTargetProviderConfig{

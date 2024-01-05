@@ -8,6 +8,7 @@ package mqtt
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -17,6 +18,10 @@ import (
 )
 
 func TestMQTTEcho(t *testing.T) {
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	sig := make(chan int)
 	config := MQTTBindingConfig{
 		BrokerAddress: "tcp://20.118.146.198:1883",
