@@ -48,9 +48,10 @@ jobs:
         kubectl config view
 
     - name: Set up test environment variables
-      run: |
-        export TEST_KUBECTL=yes
-        export TEST_MINIKUBE_ENABLED=yes
+      run: echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
+      env:
+        TEST_KUBECTL: yes
+        TEST_MINIKUBE_ENABLED: yes
           
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
