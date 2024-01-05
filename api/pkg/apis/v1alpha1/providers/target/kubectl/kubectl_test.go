@@ -44,6 +44,10 @@ func TestInitWithBadConfigType(t *testing.T) {
 
 // TestInitWithEmptyFile tests that passing an empty file to Init returns an error
 func TestInitWithEmptyFile(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
 	config := KubectlTargetProviderConfig{
 		ConfigType: "path",
 	}
@@ -144,7 +148,6 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -563,6 +566,10 @@ func TestConformanceSuite(t *testing.T) {
 }
 
 func TestKubectlTargetProviderApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -571,7 +578,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
-	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	assert.Nil(t, err)
 	client := kfake.NewSimpleClientset()
 	provider.Client = client
 	dynamicClient := dfake.NewSimpleDynamicClient(runtime.NewScheme())
@@ -661,6 +668,10 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 }
 
 func TestKubectlTargetProviderGet(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",

@@ -8,6 +8,7 @@ package k8s
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
@@ -43,6 +44,10 @@ func TestK8sTargetProviderConfigFromMap(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestK8sTargetProviderInitWithMap(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	provider := K8sTargetProvider{}
 	configMap := map[string]string{
 		"name": "name",
@@ -64,6 +69,10 @@ func TestInitWithBadConfigType(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestInitWithEmptyFile(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := K8sTargetProviderConfig{
 		ConfigType: "path",
 	}

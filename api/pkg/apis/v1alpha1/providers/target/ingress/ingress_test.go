@@ -276,6 +276,10 @@ func TestIngressTargetProviderGet(t *testing.T) {
 }
 
 func TestIngressTargetProviderApplyGet(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := IngressTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
