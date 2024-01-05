@@ -34,12 +34,16 @@ func TestInitWithBadConfigType(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestInitWithEmptyFile(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := K8sStateProviderConfig{
 		ConfigType: "path",
 	}
 	provider := K8sStateProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.Init(config)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestInitWithBadFile(t *testing.T) {
 	config := K8sStateProviderConfig{

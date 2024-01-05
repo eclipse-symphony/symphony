@@ -412,7 +412,11 @@ users:
 	assert.Equal(t, 1, len(components))
 }
 
-func TestHelmTargetProviderUpdateFail(t *testing.T) {
+func TestHelmTargetProviderUpdateDelete(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -447,7 +451,7 @@ func TestHelmTargetProviderUpdateFail(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
@@ -458,10 +462,56 @@ func TestHelmTargetProviderUpdateFail(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+func TestHelmTargetProviderUpdateFailed(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "bluefin-arc-extensions",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "abc/def",
+				"name":    "bluefin-arc-extension",
+				"version": "0.1.1",
+			},
+			"values": map[string]interface{}{
+				"CUSTOM_VISION_KEY": "BBB",
+				"CLUSTER_SECRET":    "test",
+				"CERTIFICATES":      []string{"a", "b"},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
 }
 
-func TestHelmTargetProviderGetFail(t *testing.T) {
+func TestHelmTargetProviderGetEmpty(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -482,7 +532,7 @@ func TestHelmTargetProviderGetFail(t *testing.T) {
 			},
 		},
 	})
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestDownloadFile(t *testing.T) {

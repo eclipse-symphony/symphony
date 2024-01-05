@@ -13,6 +13,9 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      TEST_KUBECTL: yes
+      TEST_MINIKUBE_ENABLED: yes
     steps:
     - uses: actions/checkout@v3
 
@@ -30,7 +33,23 @@ jobs:
           
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
-          
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        kubectl version --client
+        kubectl config view
+
+    - name: Install minikube
+      run: | 
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/local/bin/
+        minikube start
+        kubectl config view
+
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
@@ -38,7 +57,9 @@ jobs:
       run: cd api && go build -o symphony-api
 
     - name: API Test
-      run: cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+      run: |
+        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
+        cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
     - name: target-api-testcoverage-app
       run: |
