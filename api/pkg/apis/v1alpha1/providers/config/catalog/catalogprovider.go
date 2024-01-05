@@ -88,7 +88,7 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	return ret, nil
 }
 func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (string, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password)
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, "")
 	if err != nil {
 		return "", err
 	}
@@ -101,7 +101,9 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	scope := m.getScopeFromContext(localcontext)
+
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
 	if err != nil {
 		return "", err
 	}
@@ -121,8 +123,18 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
 }
+
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	// get looger
+	logger := m.Context.Logger
+	logger.Info("ReadObject!!!!!", "object", object)
+	// log localcontext
+	logger.Info("ReadObject!!!!", "localcontext", localcontext)
+
+	scope := m.getScopeFromContext(localcontext)
+	logger.Info("ReadObject!!!!", "scope", scope)
+
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +158,16 @@ func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface
 	}
 	return ret, nil
 }
+
+func (m *CatalogConfigProvider) getScopeFromContext(localContext interface{}) string {
+	if localContext != nil {
+		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
+			return ltx.Scope
+		}
+	}
+	return ""
+}
+
 func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
@@ -159,6 +181,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				context.Value = ltx.Value
 				context.Properties = ltx.Properties
 				context.Component = ltx.Component
+				context.Scope = ltx.Scope
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
@@ -199,7 +222,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 	}
 }
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
 	if err != nil {
 		return err
 	}
@@ -208,7 +231,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
 	if err != nil {
 		return err
 	}
@@ -220,7 +243,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
-	catlog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catlog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
 	if err != nil {
 		return err
 	}

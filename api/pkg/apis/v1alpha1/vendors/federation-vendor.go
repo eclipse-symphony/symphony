@@ -318,6 +318,11 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		if count == "" {
 			count = "1"
 		}
+		scope, exist := request.Parameters["scope"]
+		if !exist {
+			scope = "default"
+		}
+
 		intCount, err := strconv.Atoi(count)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -343,7 +348,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 			if c.Action == "RUN" { //TODO: I don't really like this
 				jobs = append(jobs, c)
 			} else {
-				catalog, err := f.CatalogsManager.GetSpec(ctx, c.Id)
+				catalog, err := f.CatalogsManager.GetSpec(ctx, c.Id, scope)
 				if err != nil {
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State: v1alpha2.InternalError,

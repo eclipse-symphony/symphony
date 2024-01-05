@@ -100,7 +100,8 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
-		i.Context.SiteInfo.CurrentSite.Password)
+		i.Context.SiteInfo.CurrentSite.Password,
+		scope)
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
@@ -166,7 +167,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
-		i.Context.SiteInfo.CurrentSite.Password)
+		i.Context.SiteInfo.CurrentSite.Password,
+		scope)
+
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v", err)
 		return ret, err

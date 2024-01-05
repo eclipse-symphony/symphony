@@ -66,7 +66,7 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 				if catalog.ParentName != "" {
 					catalog.ParentName = fmt.Sprintf("%s-%s", catalog.SiteId, catalog.ParentName)
 				}
-				err := e.CatalogsManager.UpsertSpec(context.TODO(), name, catalog)
+				err := e.CatalogsManager.UpsertSpec(context.TODO(), name, catalog, "")
 				if err != nil {
 					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
 				}
@@ -115,6 +115,11 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 	defer span.End()
 
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
+
 	lLog.Info("V (Catalogs Vendor): onCheck")
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -127,7 +132,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 				Body:  []byte(err.Error()),
 			})
 		}
-		res, err := e.CatalogsManager.ValidateSpec(rCtx, campaign)
+		res, err := e.CatalogsManager.ValidateSpec(rCtx, campaign, scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -165,11 +170,16 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
 	switch request.Method {
 	case fasthttp.MethodGet:
+		scope, exist := request.Parameters["scope"]
+		if !exist {
+			scope = "default"
+		}
+
 		ctx, span := observability.StartSpan("onCatalogsGraph-GET", rCtx, nil)
 		template := request.Parameters["template"]
 		switch template {
 		case "config-chains":
-			chains, err := e.CatalogsManager.GetChains(ctx, "config")
+			chains, err := e.CatalogsManager.GetChains(ctx, "config", scope)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -184,7 +194,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 			})
 			return resp
 		case "asset-trees":
-			trees, err := e.CatalogsManager.GetTrees(ctx, "asset")
+			trees, err := e.CatalogsManager.GetTrees(ctx, "asset", scope)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -222,6 +232,11 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	defer span.End()
 
 	lLog.Info("V (Catalogs Vendor): onCatalogs")
+	scope, exist := request.Parameters["scope"]
+	if !exist {
+		scope = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogs-GET", pCtx, nil)
@@ -230,10 +245,10 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = e.CatalogsManager.ListSpec(ctx)
+			state, err = e.CatalogsManager.ListSpec(ctx, scope)
 			isArray = true
 		} else {
-			state, err = e.CatalogsManager.GetSpec(ctx, id)
+			state, err = e.CatalogsManager.GetSpec(ctx, id, scope)
 		}
 		if err != nil {
 			if !v1alpha2.IsNotFound(err) {
@@ -277,7 +292,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			})
 		}
 
-		err = e.CatalogsManager.UpsertSpec(ctx, id, campaign)
+		err = e.CatalogsManager.UpsertSpec(ctx, id, campaign, scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -290,7 +305,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := e.CatalogsManager.DeleteSpec(ctx, id)
+		err := e.CatalogsManager.DeleteSpec(ctx, id, scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

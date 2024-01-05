@@ -411,13 +411,14 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 }
 
 // Implmeement the IConfigProvider interface
-func (s *K8sStateProvider) Read(object string, field string) (string, error) {
+func (s *K8sStateProvider) Read(object string, field string, scope string) (string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
+			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -439,13 +440,14 @@ func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 	return "", v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 
-func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
+func (s *K8sStateProvider) ReadObject(object string, scope string) (map[string]string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
+			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -502,7 +504,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, scope 
 	}
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
-func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string) error {
+func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string, scope2 string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
