@@ -49,11 +49,8 @@ jobs:
 
     - name: Set up test environment variables
       run: |
-        echo "export TEST_KUBECTL=yes" >> $HOME/.bashrc
-        echo "export PATH=$PATH:$TEST_KUBECTL" >> $HOME/.bashrc
-        echo "export TEST_MINIKUBE_ENABLED=yes" >> $HOME/.bashrc
-        echo "export PATH=$PATH:$TEST_MINIKUBE_ENABLED" >> $HOME/.bashrc
-        source $HOME/.bashrc
+        export TEST_KUBECTL=yes
+        export TEST_MINIKUBE_ENABLED=yes
           
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
