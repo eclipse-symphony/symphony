@@ -1,3 +1,5 @@
+> **NOTE:** This repository has been moved to [https://github.com/eclipse-symphony/symphony](https://github.com/eclipse-symphony/symphony). Please make future contributions to the new repository. This repository will be archived and eventually retired.
+
 # Symphony
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
