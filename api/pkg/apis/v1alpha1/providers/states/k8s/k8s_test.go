@@ -34,6 +34,10 @@ func TestInitWithBadConfigType(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestInitWithEmptyFile(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := K8sStateProviderConfig{
 		ConfigType: "path",
 	}
