@@ -192,6 +192,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		context := s.VendorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = deployment
 		context.Component = ""
+		context.Scope = scope
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}
 

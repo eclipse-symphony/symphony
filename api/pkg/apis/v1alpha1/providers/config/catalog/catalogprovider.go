@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -156,11 +155,7 @@ func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface
 func (m *CatalogConfigProvider) getScopeFromContext(localContext interface{}) string {
 	if localContext != nil {
 		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
-			if ltx.DeploymentSpec != nil {
-				if deploymentSpec, ok := ltx.DeploymentSpec.(model.DeploymentSpec); ok {
-					return deploymentSpec.Instance.Scope
-				}
-			}
+			return ltx.Scope
 		}
 	}
 	return ""
@@ -179,6 +174,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				context.Value = ltx.Value
 				context.Properties = ltx.Properties
 				context.Component = ltx.Component
+				context.Scope = ltx.Scope
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
