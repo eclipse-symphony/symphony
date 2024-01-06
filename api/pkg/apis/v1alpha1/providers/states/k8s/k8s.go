@@ -504,7 +504,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, scope 
 	}
 	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
-func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string, scope2 string) error {
+func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
