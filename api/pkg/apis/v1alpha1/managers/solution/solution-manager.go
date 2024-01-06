@@ -191,7 +191,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
 		context := s.VendorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = deployment
-		context.Scope = scope
 		context.Component = ""
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}
