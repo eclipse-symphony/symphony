@@ -543,6 +543,7 @@ func TestDownloadFile(t *testing.T) {
 
 	err := downloadFile(ts.URL, "test")
 	assert.Nil(t, err)
+	_ = os.Remove("test")
 }
 
 func TestGetActionConfig(t *testing.T) {

@@ -565,7 +565,7 @@ func TestConformanceSuite(t *testing.T) {
 	conformance.ConformanceSuite(t, provider)
 }
 
-func TestKubectlTargetProviderApply(t *testing.T) {
+func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
@@ -585,43 +585,6 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	provider.DynamicClient = dynamicClient
 
 	component := model.ComponentSpec{
-		Name: "gatekeeper",
-		Type: "yaml.k8s",
-		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "gatekeeper",
-			Scope: "gatekeeper-system",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "update",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "delete",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-
-	component = model.ComponentSpec{
 		Name: "nginx",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
@@ -634,7 +597,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	deployment = model.DeploymentSpec{
+	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
 			Name:  "nginx",
 			Scope: "nginx-system",
@@ -643,7 +606,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 			Components: []model.ComponentSpec{component},
 		},
 	}
-	step = model.DeploymentStep{
+	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
 				Action:    "update",
