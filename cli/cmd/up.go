@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "0.45.32"
+const SymphonyAPIVersion = "0.47.1"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 const GITHUB_PAT = "CR_PAT"
 
@@ -287,16 +287,15 @@ func handleSymphony(norest bool) bool {
 	}
 
 	// check ghcr access token
-	if err := GhcrLogin(); err != nil {
-		return false
-	}
-	CR_PAT := os.Getenv(GITHUB_PAT)
+	//if err := GhcrLogin(); err != nil {
+	//	return false
+	//}
+	//CR_PAT := os.Getenv(GITHUB_PAT)
 	fmt.Printf("  Deploying Symphony API (Symphony), installServiceExt: %t\n", !norest)
-	pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
+	//pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
 	installServiceExt := fmt.Sprintf("installServiceExt=%t", !norest)
-	// debug line
-	// _, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting)
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	//_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 		return false

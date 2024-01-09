@@ -22,8 +22,8 @@ $SymphonyCliFileName = "maestro.exe"
 $SymphonyCliFilePath = "${SymphonyRoot}\${SymphonyCliFileName}"
 
 # GitHub Org and repo hosting Dapr CLI
-$GitHubOrg = "Haishi2016"
-$GitHubRepo = "Vault818"
+$GitHubOrg = "eclipse-symphony"
+$GitHubRepo = "symphony"
 
 # Set Github request authentication for basic authentication.
 if ($Env:GITHUB_USER) {
