@@ -149,6 +149,13 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	if err != nil {
 		return err
 	}
+	// if current.Status is not nil, update the status using new IsOnline, InstanceStatuses and TargetStatuses
+	// otherwise, only update LastReported as time.Now()
+	if current.Status != nil {
+		rStatus.IsOnline = current.Status.IsOnline
+		rStatus.InstanceStatuses = current.Status.InstanceStatuses
+		rStatus.TargetStatuses = current.Status.TargetStatuses
+	}
 	rStatus.LastReported = time.Now().UTC().Format(time.RFC3339)
 	dict["status"] = rStatus
 
