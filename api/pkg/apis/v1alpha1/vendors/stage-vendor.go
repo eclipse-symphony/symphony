@@ -73,6 +73,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return v1alpha2.NewCOAError(nil, "activations manager is not supplied", v1alpha2.MissingConfig)
 	}
 	s.Vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
+		log.Info("V (Stage): handling activation event")
 		var actData v1alpha2.ActivationData
 		jData, _ := json.Marshal(event.Body)
 		err := json.Unmarshal(jData, &actData)
@@ -81,10 +82,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), actData.Campaign)
 		if err != nil {
+			log.Error("V (Stage): unable to find campaign: %+v", err)
 			return err
 		}
 		activation, err := s.ActivationsManager.GetSpec(context.TODO(), actData.Activation)
 		if err != nil {
+			log.Error("V (Stage): unable to find activation: %+v", err)
 			return err
 		}
 

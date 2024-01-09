@@ -53,6 +53,8 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &SettingsVendor{}, nil
 	case "vendors.trails":
 		return &TrailsVendor{}, nil
+	case "vendors.backgroundjob":
+		return &BackgroundJobVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}
