@@ -114,14 +114,12 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	dict := target.Body.(map[string]interface{})
 
-	specCol := dict["spec"].(map[string]interface{})
-	var metadata map[string]string
-	if m, ok := specCol["metadata"]; ok {
-		jm, _ := json.Marshal(m)
-		json.Unmarshal(jm, &metadata)
-	}
+	specCol := dict["spec"].(model.TargetSpec)
 
 	delete(dict, "spec")
+	if dict["status"] == nil {
+		dict["status"] = make(map[string]interface{})
+	}
 	status := dict["status"]
 
 	j, _ := json.Marshal(status)
@@ -136,7 +134,9 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
+	if rProperties == nil {
+		rProperties = make(map[string]string)
+	}
 	for k, v := range current.Status {
 		rProperties[k] = v
 	}
@@ -157,7 +157,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	return model.TargetState{
 		Id:       current.Id,
-		Metadata: metadata,
+		Metadata: specCol.Metadata,
 		Status:   rProperties,
 	}, nil
 }
