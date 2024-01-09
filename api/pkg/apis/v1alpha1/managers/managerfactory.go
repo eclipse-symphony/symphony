@@ -69,6 +69,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &catalogs.CatalogsManager{}
 	case "managers.symphony.activations":
 		manager = &activations.ActivationsManager{}
+	case "managers.symphony.activationscleanup":
+		manager = &activations.ActivationsCleanupManager{}
 	case "managers.symphony.stage":
 		manager = &stage.StageManager{}
 	case "managers.symphony.configs":

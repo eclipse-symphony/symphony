@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -19,9 +20,12 @@ import (
 	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/azure/symphony/coa/pkg/logger"
 )
 
 var lock sync.Mutex
+
+var log = logger.NewLogger("coa.runtime")
 
 type ActivationsManager struct {
 	managers.Manager
@@ -183,7 +187,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
 	lock.Lock()
 	defer lock.Unlock()
 	getRequest := states.GetRequest{
@@ -200,6 +203,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	}
 	dict := entry.Body.(map[string]interface{})
 	delete(dict, "spec")
+	current.UpdateTime = time.Now().Format(time.RFC3339)
 	dict["status"] = current
 	entry.Body = dict
 	upsertRequest := states.UpsertRequest{
