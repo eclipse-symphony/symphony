@@ -109,9 +109,11 @@ var UpCmd = &cobra.Command{
 				fmt.Printf("  %sSymphony API:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+apiAddress+":8080/v1alpha2/greetings", utils.ColorReset())
 				fmt.Println()
 
-				fmt.Printf("  %sKeeping minikube tunnel for API use. Press CTRL + C to stop the tunnel and quit.%s\n", utils.ColorGreen(), utils.ColorReset())
-				fmt.Println()
-				tunnelCMD.Wait()
+				if k8sContext == "minikube" {
+					fmt.Printf("  %sKeeping minikube tunnel for API use. Press CTRL + C to stop the tunnel and quit.%s\n", utils.ColorGreen(), utils.ColorReset())
+					fmt.Println()
+					tunnelCMD.Wait()
+				}
 			}
 
 			// if portalType != "" {
@@ -394,20 +396,20 @@ func handleKubectl() bool {
 	return true
 }
 func handleK8sConnection() (string, bool) {
-	osName := runtime.GOOS
-	if strings.EqualFold(osName, "windows") {
-		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
-		path := utils.AddtoPath(des)
-		if err := os.Setenv("path", path); err != nil {
-			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return "", false
-		}
-	}
 	address, ok := utils.CheckK8sConnection(verbose)
 	if !ok {
 		input := utils.GetInput("kubectl is not connected to a Kubernetes cluster, what do you want to do?", []string{"Install a local cluster (Minukube)", "Connect to a remote cluster (AKS)"}, utils.Choice)
 		switch input {
 		case 0:
+			osName := runtime.GOOS
+			if strings.EqualFold(osName, "windows") {
+				var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
+				path := utils.AddtoPath(des)
+				if err := os.Setenv("path", path); err != nil {
+					fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
+					return "", false
+				}
+			}
 			ok := utils.CheckMinikube(false)
 			if ok {
 				_, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
@@ -426,16 +428,6 @@ func handleK8sConnection() (string, bool) {
 		default:
 			fmt.Printf("\n%s  Can't connect to a Kubernetes cluster. Please configure your kubectl context to a valid Kubernetes cluster.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return "", false
-		}
-	} else {
-		ok := utils.CheckMinikube(false)
-		if ok {
-			return "minikube", true
-		} else {
-			if !installMinikube() {
-				return "", false
-			}
-			return "minikube", true
 		}
 	}
 	return address, true
