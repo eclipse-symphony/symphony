@@ -135,7 +135,9 @@ var UpCmd = &cobra.Command{
 			// 	fmt.Printf("  %sSymphony portal:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+portalAddress+"/", utils.ColorReset())
 			// }
 
-			fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			if noRestApi {
+				fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			}
 			fmt.Println()
 
 		}
