@@ -2,7 +2,8 @@ name: Release
 
 on:
   workflow_dispatch:
-permissions: write-all
+permissions:
+  packages: write
 env:
   ContainerRegistry: "ghcr.io"
   ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
@@ -28,11 +29,11 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.ContainerRegistry }}
-          username: "USERNAME"
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Helm Registry
-        run: helm registry login ${{ env.ContainerRegistry }} -u USERNAME --password ${{ secrets.GITHUB_TOKEN }}
+        run: helm registry login ${{ env.ContainerRegistry }} -u ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
