@@ -1,7 +1,7 @@
 # Symphony
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![build](https://github.com/Azure/symphony/actions/workflows/go.yml/badge.svg)
+![build](https://github.com/eclipse-symphony/symphony/actions/workflows/go.yml/badge.svg)
 
 _(last edit: 4/11/2023)_
 
