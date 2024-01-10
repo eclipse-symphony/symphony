@@ -6,7 +6,7 @@ permissions:
   packages: write
 env:
   ContainerRegistry: "ghcr.io"
-  ContainerRegistryRepo: "ghcr.io/eclipse-symphony/symphony"
+  ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
 
 jobs:
   build:
