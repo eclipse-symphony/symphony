@@ -12,7 +12,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
   - name: backend-v1
     type: container
     metadata:
@@ -21,7 +21,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
   - name: ingress
     type: ingress
     metadata:

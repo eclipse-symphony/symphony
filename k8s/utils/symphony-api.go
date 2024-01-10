@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	symphony "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils" //TODO: Eventually, most logic here should be moved into this
+	symphony "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils" //TODO: Eventually, most logic here should be moved into this
 )
 
 const (

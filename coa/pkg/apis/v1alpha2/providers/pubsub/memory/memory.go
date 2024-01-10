@@ -9,9 +9,9 @@ package memory
 import (
 	"encoding/json"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type InMemoryPubSubProvider struct {

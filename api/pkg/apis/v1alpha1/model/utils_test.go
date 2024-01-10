@@ -1092,7 +1092,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 			Name: "symphony-agent",
 			Properties: map[string]interface{}{
 				"container.createOptions": "",
-				ContainerImage:            "ghcr.io/azure/symphony/symphony-agent:0.39.9",
+				ContainerImage:            "ghcr.io/eclipse-symphony/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
 				"container.type":          "docker",
 				"container.version":       "1.0",
@@ -1110,7 +1110,7 @@ func TestFullComponentSpecCover(t *testing.T) {
 			Name: "symphony-agent",
 			Properties: map[string]interface{}{
 				"container.createOptions": "",
-				ContainerImage:            "ghcr.io/azure/symphony/symphony-agent:0.39.9",
+				ContainerImage:            "ghcr.io/eclipse-symphony/symphony-agent:0.39.9",
 				"container.restartPolicy": "always",
 				"container.type":          "docker",
 				"container.version":       "1.0",

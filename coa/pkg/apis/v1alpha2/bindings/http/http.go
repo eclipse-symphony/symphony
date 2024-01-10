@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"strings"
 
-	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs"
-	autogen "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
-	localfile "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
+	autogen "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
+	localfile "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	routing "github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 )
 
 func UnmarshalDuration(duration string) (time.Duration, error) {

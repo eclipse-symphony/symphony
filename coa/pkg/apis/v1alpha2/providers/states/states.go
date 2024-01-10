@@ -9,8 +9,8 @@ package states
 import (
 	"context"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/yalp/jsonpath"
 	//"encoding/json"
 )

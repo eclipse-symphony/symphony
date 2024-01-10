@@ -12,14 +12,14 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
