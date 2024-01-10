@@ -106,12 +106,12 @@ jobs:
       
       - name: Push symphony api images
         run: |
-          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphonhy/symphony-api:${{ steps.increment_version.outputs.version }}
           docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
 
       - name: Push symphony k8s images
         run: |
-          docker tag ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker tag ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
           docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
 
       - name: Push symphony helm package
