@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  workflow_dispatch:
+env:
+  ContainerRegistry: "ghcr.io"
+  ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y make gcc
+
+      - name: Install Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ContainerRegistry }}
+          username: "USERNAME"
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Helm Registry
+        run: helm registry login ${{ env.ContainerRegistry }} -u USERNAME --password ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19  # Replace with your desired Go version
+
+      - name: Install Kubebuilder
+        run: |
+          curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
+          chmod +x kubebuilder 
+          sudo mv kubebuilder /usr/local/bin/
+
+      - name: Install Mage
+        run: |
+          cd ..
+          git clone https://github.com/magefile/mage
+          cd mage
+          go run bootstrap.go
+          cd ..
+
+
+      - name: Increment Version
+        id: increment_version
+        run: |
+          version=$(cat .github/version/versions.txt)
+          IFS='.' read -ra VERSION_PARTS <<< "$version"
+          VERSION_PARTS[2]=$((VERSION_PARTS[2] + 1))
+          new_version="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
+          echo $new_version > .github/version/versions.txt
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+      
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" -a
+
+      - name: Build Symphony Api
+        run: |
+          docker build -t symphonyapi . -f api/Dockerfile
+      
+      - name: Build Symphony k8s
+        run: | 
+          cd k8s
+          mage dockerBuild
+
+      - name: Replace version in cli/cmd/up.go
+        run: sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" cli/cmd/up.go
+
+      - name: Build maestro
+        run: |
+          cd cli
+          mage generatePackages /home/runner/maestro
+          cd ..
+
+      - name: Replace version in packages/helm/values.yaml
+        run: |
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/Chart.yaml
+
+      - name: Build Helm
+        run: |
+          cd k8s
+          mage helmTemplate
+          cd ../packages/helm
+          helm package symphony
+      
+      - name: Push symphony api images
+        run: |
+          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony/symphony-api:${{ steps.increment_version.outputs.version }}
+
+      - name: Push symphony k8s images
+        run: |
+          docker tag ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
+
+      - name: Push symphony helm package
+        run: |
+          cd packages/helm
+          helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/symphony/helm
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: ${{ steps.increment_version.outputs.version }}
+          release_name: Release ${{ steps.increment_version.outputs.version }}
+          draft: false
+          prerelease: false
+      - name: Upload windows mastro packages
+        id: upload_mastro_windows_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: /home/runner/maestro/maestro_windows_amd64.zip
+          asset_name: maestro_windows_amd64.zip
+          asset_content_type: application/gzip
+      - name: Upload linux mastro packages
+        id: upload_mastro_linux_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: /home/runner/maestro/maestro_linux_amd64.tar.gz
+          asset_name: maestro_linux_amd64.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload mac mastro packages
+        id: upload_mastro_mac_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: /home/runner/maestro/maestro_darwin_amd64.tar.gz
+          asset_name: maestro_darwin_amd64.tar.gz
+          asset_content_type: application/gzip

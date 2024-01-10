@@ -2,11 +2,11 @@ fullnameOverride: symphony
 symphonyImage:
   repository: ghcr.io/azure/symphony/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "{VERSION}"
 paiImage:
   repository: ghcr.io/azure/symphony/symphony-api
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "{VERSION}"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: true
 global:
