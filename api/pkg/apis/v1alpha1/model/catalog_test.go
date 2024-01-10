@@ -9,7 +9,7 @@ package model
 import (
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 

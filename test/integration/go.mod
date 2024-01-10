@@ -2,9 +2,9 @@ module dev.azure.com/msazure/One/_git/symphony.git/test/integration
 
 go 1.20
 
-replace github.com/azure/symphony/coa => ../../coa
+replace github.com/eclipse-symphony/symphony/coa => ../../coa
 
-replace github.com/azure/symphony/api => ../../api
+replace github.com/eclipse-symphony/symphony/api => ../../api
 
 require (
 	github.com/princjef/mageutil v1.0.0
@@ -24,8 +24,8 @@ require (
 	github.com/Masterminds/squirrel v1.5.3 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
-	github.com/azure/symphony/api v0.0.0-00010101000000-000000000000 // indirect
-	github.com/azure/symphony/coa v0.0.0 // indirect
+	github.com/eclipse-symphony/symphony/api v0.0.0-00010101000000-000000000000 // indirect
+	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect

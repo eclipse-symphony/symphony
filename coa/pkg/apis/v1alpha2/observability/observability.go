@@ -12,13 +12,13 @@ import (
 	"bytes"
 	"context"
 
-	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	exporters "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/exporters"
+	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	exporters "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/exporters"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"go.opentelemetry.io/otel/attribute"
 	resource "go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"

@@ -12,17 +12,17 @@ import (
 	"sync"
 	"time"
 
-	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	bindings "github.com/azure/symphony/coa/pkg/apis/v1alpha2/bindings"
-	http "github.com/azure/symphony/coa/pkg/apis/v1alpha2/bindings/http"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/bindings/mqtt"
-	mf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	pf "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providerfactory"
-	pv "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/coa/pkg/logger"
+	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	bindings "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings"
+	http "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/http"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/mqtt"
+	mf "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	pf "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providerfactory"
+	pv "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var log = logger.NewLogger("coa.runtime")

@@ -9,7 +9,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/spf13/cobra"
 )
 

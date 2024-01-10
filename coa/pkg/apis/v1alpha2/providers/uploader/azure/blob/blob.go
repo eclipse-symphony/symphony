@@ -13,10 +13,10 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type AzureBlobUploaderConfig struct {

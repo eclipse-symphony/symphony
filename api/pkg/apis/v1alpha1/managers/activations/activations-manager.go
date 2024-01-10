@@ -13,14 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var lock sync.Mutex

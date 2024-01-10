@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type PropertyDesc struct {

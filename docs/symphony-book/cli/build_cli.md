@@ -45,21 +45,21 @@ _(last edit: 10/24/2023)_
    rm maestro_darwin_amd64.tar.gz
 
    # copy new binary files, configuration files and scripts
-   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api .
-   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api.exe .
-   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api-mac .
-   cp ../projects/go/src/github.com/azure/symphony/api/symphony-api-no-k8s.json .
-   cp ../projects/go/src/github.com/azure/symphony/cli/maestro .
-   cp ../projects/go/src/github.com/azure/symphony/cli/maestro.exe .
-   cp ../projects/go/src/github.com/azure/symphony/cli/maestro-mac .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/api/symphony-api .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/api/symphony-api.exe .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/api/symphony-api-mac .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/api/symphony-api-no-k8s.json .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/cli/maestro .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/cli/maestro.exe .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/cli/maestro-mac .
    
    # Copy over samples
-   cp ../projects/go/src/github.com/azure/symphony/docs/samples/samples.json .
+   cp ../projects/go/src/github.com/eclipse-symphony/symphony/docs/samples/samples.json .
    mkdir -p ./k8s
    mkdir -p ./iot-edge
-   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/k8s/hello-world/ ./k8s/
-   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/k8s/staged/ ./k8s/
-   cp -r ../projects/go/src/github.com/azure/symphony/docs/samples/iot-edge/simulated-temperature-sensor/ ./iot-edge/
+   cp -r ../projects/go/src/github.com/eclipse-symphony/symphony/docs/samples/k8s/hello-world/ ./k8s/
+   cp -r ../projects/go/src/github.com/eclipse-symphony/symphony/docs/samples/k8s/staged/ ./k8s/
+   cp -r ../projects/go/src/github.com/eclipse-symphony/symphony/docs/samples/iot-edge/simulated-temperature-sensor/ ./iot-edge/
 
    # package Linux
    tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge
