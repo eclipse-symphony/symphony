@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
@@ -20,9 +20,9 @@ import (
 
 	provisioningstates "gopls-workspace/utils/models"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"

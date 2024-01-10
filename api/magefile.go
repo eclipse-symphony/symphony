@@ -12,7 +12,7 @@ import (
 	"os"
 
 	//mage:import
-	_ "github.com/azure/symphony/packages/mage"
+	_ "github.com/eclipse-symphony/symphony/packages/mage"
 	"github.com/princjef/mageutil/shellcmd"
 )
 

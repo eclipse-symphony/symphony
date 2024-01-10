@@ -25,13 +25,12 @@ Meanwhile, in a parallel universe, Zonic Cars is having a team meeting in their 
 ### On Linux/Mac
 
 ```bash
-wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
+wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
 ```
 ### On Windows
 ```bash
-powershell -Command "iwr -useb https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.ps1 | iex"
+powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
 ```
-> NOTE: The Haishi2016 repo is a temporary parking repo, which will be replaced before release.
 
 **George:** Once you have maestro installed, you can launch Symphony in standalone mode by:
 ```

@@ -16,7 +16,7 @@ spec:
   - name: app-container
     type: container
     properties:
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"      
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"      
       env.MY_CONFIG: "${{$config(config-obj, config-key)}}" 
 ```
 
@@ -40,7 +40,7 @@ spec:
     metadata:
       pod.volumes: "[{\"name\":\"app-config\",\"configMap\":{\"name\":\"app-config\"}}]" 
     properties:
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"      
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"      
       container.volumeMounts: "[{\"name\":\"app-config\",\"mountPath\":\"/app/config\"}]"
     dependencies:
     - app-config

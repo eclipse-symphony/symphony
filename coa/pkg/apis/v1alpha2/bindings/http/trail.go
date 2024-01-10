@@ -7,7 +7,7 @@
 package http
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/valyala/fasthttp"
 )
 

@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/cli/config"
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/cli/config"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "0.45.32"
+const SymphonyAPIVersion = "0.47.1"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 const GITHUB_PAT = "CR_PAT"
 
@@ -109,9 +109,11 @@ var UpCmd = &cobra.Command{
 				fmt.Printf("  %sSymphony API:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+apiAddress+":8080/v1alpha2/greetings", utils.ColorReset())
 				fmt.Println()
 
-				fmt.Printf("  %sKeeping minikube tunnel for API use. Press CTRL + C to stop the tunnel and quit.%s\n", utils.ColorGreen(), utils.ColorReset())
-				fmt.Println()
-				tunnelCMD.Wait()
+				if k8sContext == "minikube" {
+					fmt.Printf("  %sKeeping minikube tunnel for API use. Press CTRL + C to stop the tunnel and quit.%s\n", utils.ColorGreen(), utils.ColorReset())
+					fmt.Println()
+					tunnelCMD.Wait()
+				}
 			}
 
 			// if portalType != "" {
@@ -133,7 +135,9 @@ var UpCmd = &cobra.Command{
 			// 	fmt.Printf("  %sSymphony portal:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+portalAddress+"/", utils.ColorReset())
 			// }
 
-			fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			if noRestApi {
+				fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			}
 			fmt.Println()
 
 		}
@@ -287,16 +291,15 @@ func handleSymphony(norest bool) bool {
 	}
 
 	// check ghcr access token
-	if err := GhcrLogin(); err != nil {
-		return false
-	}
-	CR_PAT := os.Getenv(GITHUB_PAT)
+	//if err := GhcrLogin(); err != nil {
+	//	return false
+	//}
+	//CR_PAT := os.Getenv(GITHUB_PAT)
 	fmt.Printf("  Deploying Symphony API (Symphony), installServiceExt: %t\n", !norest)
-	pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
+	//pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
 	installServiceExt := fmt.Sprintf("installServiceExt=%t", !norest)
-	// debug line
-	// _, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting)
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	//_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 		return false
@@ -395,20 +398,20 @@ func handleKubectl() bool {
 	return true
 }
 func handleK8sConnection() (string, bool) {
-	osName := runtime.GOOS
-	if strings.EqualFold(osName, "windows") {
-		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
-		path := utils.AddtoPath(des)
-		if err := os.Setenv("path", path); err != nil {
-			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return "", false
-		}
-	}
 	address, ok := utils.CheckK8sConnection(verbose)
 	if !ok {
 		input := utils.GetInput("kubectl is not connected to a Kubernetes cluster, what do you want to do?", []string{"Install a local cluster (Minukube)", "Connect to a remote cluster (AKS)"}, utils.Choice)
 		switch input {
 		case 0:
+			osName := runtime.GOOS
+			if strings.EqualFold(osName, "windows") {
+				var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
+				path := utils.AddtoPath(des)
+				if err := os.Setenv("path", path); err != nil {
+					fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
+					return "", false
+				}
+			}
 			ok := utils.CheckMinikube(false)
 			if ok {
 				_, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
@@ -427,16 +430,6 @@ func handleK8sConnection() (string, bool) {
 		default:
 			fmt.Printf("\n%s  Can't connect to a Kubernetes cluster. Please configure your kubectl context to a valid Kubernetes cluster.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return "", false
-		}
-	} else {
-		ok := utils.CheckMinikube(false)
-		if ok {
-			return "minikube", true
-		} else {
-			if !installMinikube() {
-				return "", false
-			}
-			return "minikube", true
 		}
 	}
 	return address, true

@@ -26,7 +26,7 @@ var RootCmd = &cobra.Command{
    / /\/\ \ (_| |  __/\__ \ |_| | | (_) |
    \/    \/\__,_|\___||___/\__|_|  \___/ 
 
-   Jumpstart your Microsoft Edge Journey
+   Jumpstart your Edge Journey
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 	},

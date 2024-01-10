@@ -10,7 +10,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 

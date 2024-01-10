@@ -27,9 +27,6 @@ spec:
     - jsonPath: .status.status
       name: Status
       type: string
-    - jsonPath: .status.updateTime
-      name: Update Time
-      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -79,6 +76,8 @@ spec:
               status:
                 description: State represents a response state
                 type: integer
+              updateTime:
+                type: string
             required:
             - stage
             type: object

@@ -10,10 +10,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +28,7 @@ func TestFindAgentMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/azure/symphony/symphony-agent:0.38.0",
+					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony/symphony-agent:0.38.0",
 				},
 			},
 		},
@@ -41,7 +41,7 @@ func TestFindAgentNotMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/azure/symphony/symphony-api:0.38.0",
+					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony/symphony-api:0.38.0",
 				},
 			},
 		},

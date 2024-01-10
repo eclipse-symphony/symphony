@@ -5,7 +5,7 @@ _(last edit: 9/18/2023)_
 To install Symphony on your Kubernetes clusters using Helm 3, use `helm install`:
 
 ```bash
-helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.44.6 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.44.6 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 Or, if you already have the **symphony** repository cloned:
@@ -25,7 +25,7 @@ PASSWORD='{YOUR_GITHUB_PAT_TOKEN}'
 helm registry login ghcr.io --username $USER_NAME --password $PASSWORD
 
 # install using Helm chart
-helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.40.8 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.40.8 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 ## Update Symphony
@@ -33,7 +33,7 @@ helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.40.
 To update your existing Symphony release to a new version, use `helm upgrade`:
 
 ```bash
-helm upgrade --install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.45.31 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm upgrade --install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.45.31 --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 ## Customize Helm deployment

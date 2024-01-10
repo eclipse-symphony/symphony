@@ -26,16 +26,16 @@ A host configuration contains an `api` element that contains all the [vendors](.
 
 ## Symphony-API container
 
-By default, `ghcr.io/azure/symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONIFG` environment variable. For example, to change log level to `Error` while launching the container:
+By default, `ghcr.io/eclipse-symphony/symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONIFG` environment variable. For example, to change log level to `Error` while launching the container:
 
 ```bash
-docker run --rm -it -e LOG_LEVEL=Error ghcr.io/azure/symphony/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Error ghcr.io/eclipse-symphony/symphony/symphony-api:latest
 ```
 
 And to use a different configuration file:
 
 ```bash
-docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/config/symphony-api-dev.json ghcr.io/azure/symphony/symphony-api:latest
+docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/config/symphony-api-dev.json ghcr.io/eclipse-symphony/symphony/symphony-api:latest
 ```
 
 ## Scaling out the host

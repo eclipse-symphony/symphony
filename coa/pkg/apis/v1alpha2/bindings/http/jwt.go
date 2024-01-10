@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
