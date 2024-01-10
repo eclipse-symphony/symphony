@@ -106,18 +106,18 @@ jobs:
       
       - name: Push symphony api images
         run: |
-          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
 
       - name: Push symphony k8s images
         run: |
-          docker tag ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker tag ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
 
       - name: Push symphony helm package
         run: |
           cd packages/helm
-          helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/symphony/helm
+          helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
 
       - name: Push changes
         uses: ad-m/github-push-action@master
