@@ -19,9 +19,6 @@ import (
 func Build() error {
 	return shellcmd.Command("go build -o bin/symphony-api").Run()
 }
-func BuildAzure() error {
-	return shellcmd.Command("go build -o bin/symphony-api -tags=azure").Run()
-}
 
 // Runs both api unit tests as well as coa unit tests.
 func TestWithCoa() error {

@@ -2,11 +2,11 @@ fullnameOverride: symphony
 symphonyImage:
   repository: ghcr.io/eclipse-symphony/symphony/symphony-k8s
   pullPolicy: IfNotPresent
-  tag: "0.47.1"
+  tag: "{VERSION}"
 paiImage:
   repository: ghcr.io/eclipse-symphony/symphony/symphony-api
   pullPolicy: IfNotPresent
-  tag: "0.47.1"
+  tag: "{VERSION}"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: true
 global:
