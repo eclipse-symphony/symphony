@@ -7,8 +7,8 @@
 package v1
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	k8smodel "github.com/eclipse-symphony/symphony/k8s/apis/model/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -26,6 +26,7 @@ type ActivationStatus struct {
 	ErrorMessage         string               `json:"errorMessage,omitempty"`
 	IsActive             bool                 `json:"isActive,omitempty"`
 	ActivationGeneration string               `json:"activationGeneration,omitempty"`
+	UpdateTime           string               `json:"updateTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

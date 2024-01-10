@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/cli/config"
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/cli/config"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )

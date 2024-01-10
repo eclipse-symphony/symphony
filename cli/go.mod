@@ -1,15 +1,15 @@
-module github.com/azure/symphony/cli
+module github.com/eclipse-symphony/symphony/cli
 
 go 1.19
 
-replace github.com/azure/symphony/api => ../api
+replace github.com/eclipse-symphony/symphony/api => ../api
 
-replace github.com/azure/symphony/coa => ../coa
+replace github.com/eclipse-symphony/symphony/coa => ../coa
 
 require github.com/spf13/cobra v1.6.1
 
 require (
-	github.com/azure/symphony/coa v0.0.0 // indirect
+	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -22,7 +22,7 @@ require (
 require github.com/princjef/mageutil v1.0.0
 
 require (
-	github.com/azure/symphony/api v0.0.0
+	github.com/eclipse-symphony/symphony/api v0.0.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.4.2
 	github.com/mattn/go-runewidth v0.0.13 // indirect

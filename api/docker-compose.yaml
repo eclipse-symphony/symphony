@@ -6,7 +6,7 @@
 version: "3.4"
 services:
   api:
-    image: ghcr.io/azure/symphony/symphony-api
+    image: ghcr.io/eclipse-symphony/symphony/symphony-api
     build: 
       context: ../
       dockerfile: api/Dockerfile

@@ -9,7 +9,7 @@ package conformance
 import (
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
 	"github.com/stretchr/testify/assert"
 )
 

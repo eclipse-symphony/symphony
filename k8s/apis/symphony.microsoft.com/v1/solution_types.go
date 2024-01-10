@@ -7,7 +7,7 @@
 package v1
 
 import (
-	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
+	k8smodel "github.com/eclipse-symphony/symphony/k8s/apis/model/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

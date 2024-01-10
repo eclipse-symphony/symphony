@@ -7,9 +7,9 @@
 package contexts
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	logger "github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	logger "github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 type ManagerContext struct {

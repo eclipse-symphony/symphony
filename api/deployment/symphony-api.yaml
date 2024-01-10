@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: symphony-api
-        image: ghcr.io/azure/symphony/symphony-api:0.39.5
+        image: ghcr.io/eclipse-symphony/symphony/symphony-api:0.39.5
         ports:
         - containerPort: 8080        
       serviceAccountName: pai-sp

@@ -1,7 +1,7 @@
 # Symphony
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![build](https://github.com/Azure/symphony/actions/workflows/go.yml/badge.svg)
+![build](https://github.com/eclipse-symphony/symphony/actions/workflows/go.yml/badge.svg)
 
 _(last edit: 4/11/2023)_
 
@@ -41,11 +41,11 @@ There are several ways to get started with Symphony, including using the CLI too
 The easiest way to get started with Symphony is by using Symphony's CLI tool, called maestro. The CLI tool can be installed on **Linux**, **WSL**, and **Mac** using the following command:
 
 ```Bash
-wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
+wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
 ```
 For **Windows**, the following PowerShell command can be used:
 ```PowerShell
-powershell -Command "iwr -useb https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.ps1 | iex"
+powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
 ```
 After Symphony is installed, you can use `maestro` to try out sample scenarios.
 
@@ -56,14 +56,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version '0.45.32' --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony oci://ghcr.io/eclipse-symphony/symphony/helm/symphony --version '0.45.32' --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
 You can also install Symphony using Docker by running the following command:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 ghcr.io/azure/symphony/symphony-api:0.45.32
+docker run -d --name symphony-api -p 8080:8080 ghcr.io/eclipse-symphony/symphony/symphony-api:0.47.1
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:

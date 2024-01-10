@@ -9,8 +9,8 @@ package configs
 import (
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	memory "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/memoryconfig"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	memory "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/memoryconfig"
 	"github.com/stretchr/testify/assert"
 )
 
