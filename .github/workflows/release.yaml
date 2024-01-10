@@ -8,6 +8,7 @@ env:
 
 jobs:
   build:
+    if: github.actor == 'chgennar' || github.actor == 'juancooldude ' || github.actor == 'Haishi2016 ' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian' 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
