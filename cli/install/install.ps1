@@ -47,7 +47,7 @@ if ((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPa
 # Check if Dapr CLI is installed.
 if (Test-Path $SymphonyCliFilePath -PathType Leaf) {
     Write-Warning "Maestro is detected - $SymphonyCliFilePath"
-    Invoke-Expression "$SymphonyCliFilePath --version"
+    Invoke-Expression "$SymphonyCliFilePath version"
     Write-Output "Reinstalling Maestro..."
 }
 else {
