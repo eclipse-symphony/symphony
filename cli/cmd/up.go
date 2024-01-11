@@ -299,7 +299,7 @@ func handleSymphony(norest bool) bool {
 	//pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
 	installServiceExt := fmt.Sprintf("installServiceExt=%t", !norest)
 	//_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 		return false

@@ -31,7 +31,7 @@ import (
 const (
 	RELEASE_NAME           = "ecosystem"
 	LOCAL_HOST_URL         = "http://localhost"
-	OSS_CONTAINER_REGISTRY = "ghcr.io/eclipse-symphony/symphony"
+	OSS_CONTAINER_REGISTRY = "ghcr.io/eclipse-symphony"
 	NAMESPACE              = "default"
 	DOCKER_TAG             = "latest"
 	CHART_PATH             = "../../packages/helm/symphony"

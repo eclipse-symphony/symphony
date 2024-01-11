@@ -5,9 +5,9 @@
 ##
 symphonyImage:
   pullPolicy: Never
-  repository: ghcr.io/eclipse-symphony/symphony/symphony-k8s
+  repository: ghcr.io/eclipse-symphony/symphony-k8s
 paiImage:
   pullPolicy: Never
-  repository: ghcr.io/eclipse-symphony/symphony/symphony-api
+  repository: ghcr.io/eclipse-symphony/symphony-api
 installServiceExt: false
 imagePrivateRegistryUrl: ghcr.io

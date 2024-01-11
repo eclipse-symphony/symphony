@@ -28,7 +28,7 @@ func TestFindAgentMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony/symphony-agent:0.38.0",
+					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
 				},
 			},
 		},
@@ -41,7 +41,7 @@ func TestFindAgentNotMatch(t *testing.T) {
 			{
 				Name: "symphony-agent",
 				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony/symphony-api:0.38.0",
+					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-api:0.38.0",
 				},
 			},
 		},
