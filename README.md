@@ -27,9 +27,9 @@ With Symphony, users can benefit from a powerful and versatile platform that str
 
     Symphony's zero-friction adoption approach is another key feature that sets it apart from other solutions. Users can get started with Symphony using a single computer, and there is no need for special hardware, an Azure subscription, or Kubernetes to start experimenting with the solution. Additionally, the same Symphony artifacts used during testing and development can be carried over into production deployments, ensuring a smooth transition and reducing overall deployment time and costs.
 
-- **Azure powered and platform agnostic**
+- **Symphony is platform agnostic**
 
-    Symphony is powered by Azure and is platform-agnostic, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), Mon[Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/)itor, and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
+    Symphony was started by Microsoft as a platform-agnostic project, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), Mon[Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/)itor, and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
 
 ## Getting Started
 There are several ways to get started with Symphony, including using the CLI tool, Helm, Docker, or the symphony-api binary.
@@ -101,17 +101,15 @@ Symphony is an extensible system with the concept of providers. For each provide
 
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+This project welcomes contributions and suggestions.  
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+Eclipse Contributor Agreement
+Before your contribution can be accepted by the project team contributors must electronically sign the Eclipse Contributor Agreement (ECA).
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+http://www.eclipse.org/legal/ECA.php
+Commits that are provided by non-committers must have a Signed-off-by field in the footer indicating that the author is aware of the terms by which the contribution has been provided to the project. The non-committer must additionally have an Eclipse Foundation account and must have a signed Eclipse Contributor Agreement (ECA) on file.
+
+For more information, please see the Eclipse Committer Handbook: https://www.eclipse.org/projects/handbook/#resources-commit
 
 ## Trademarks
 
