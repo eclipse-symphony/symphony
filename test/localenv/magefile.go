@@ -381,11 +381,7 @@ func (Pull) All() error {
 
 // Pull symphony-k8s
 func (Pull) K8s() error {
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-
-	// Pull directly from ACR
+	// Pull directly from CR
 	return shellcmd.RunAll(pull(
 		"symphony-k8s",
 	)...)
@@ -393,11 +389,7 @@ func (Pull) K8s() error {
 
 // Pull symphony-api
 func (Pull) Api() error {
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-
-	// Pull directly from ACR
+	// Pull directly from CR
 	return shellcmd.RunAll(pull(
 		"symphony-api",
 	)...)
