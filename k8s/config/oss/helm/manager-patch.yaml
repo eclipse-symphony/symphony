@@ -19,8 +19,6 @@ spec:
       labels:
         control-plane: '{{ include "symphony.name" . }}-controller-manager'
     spec:
-      imagePullSecrets:
-      - name: '{{ include "symphony.fullname" . }}-regcred'
       containers:
       - image: "{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag }}"
         imagePullPolicy: "{{ .Values.symphonyImage.pullPolicy }}"

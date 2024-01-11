@@ -56,7 +56,7 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.45.32' --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.47.2'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
