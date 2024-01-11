@@ -123,7 +123,7 @@ docker run --rm -it -v /path/to/my-config.json:/configs -e CONFIG=/configs/symph
 For example, while under the `api` folder, you can launch latest Symphony API container with `docker run`:
 
 ```bash
-docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony/symphony-api:latest
+docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony-api:latest
 ```
 
 You can override the default logging level with a `LOG_LEVEL` environment variable. For example, to launch Symphony API with `Info` log level:
@@ -135,7 +135,7 @@ export LOG_LEVEL=Info
 # or, you can directly set the log level switch
 ./symphony-api -c ./symphony-api-no-k8s.json -l Info
 # or, running as container in console model
-docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony-api:latest
 ```
 
 ## 3. Build Symphony K8s binding container
@@ -156,8 +156,8 @@ docker push <Symphony-k8s image tag>
 # GitHub Container Registry
 TOKEN='{YOUR_GITHUB_PAT_TOKEN}'
 docker login ghcr.io --username USERNAME --password $TOKEN
-docker tag <Symphony-k8s image tag> ghcr.io/eclipse-symphony/symphony/symphony-k8s:latest
-docker push ghcr.io/eclipse-symphony/symphony/symphony-k8s:latest
+docker tag <Symphony-k8s image tag> ghcr.io/eclipse-symphony/symphony-k8s:latest
+docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
 ```
 
 ## 5. Update Helm chart (optional)
