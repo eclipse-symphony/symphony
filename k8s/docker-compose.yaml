@@ -6,7 +6,7 @@
 version: "3.4"
 services:
   manager:
-    image: ghcr.io/eclipse-symphony/symphony/symphony-k8s
+    image: ghcr.io/eclipse-symphony/symphony-k8s
     build:
       context: ../
       dockerfile: k8s/Dockerfile
