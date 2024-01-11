@@ -9,30 +9,22 @@ env:
 
 jobs:
   build:
-    if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
+#    if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y make gcc
+        run: |
+          sudo apt-get update && sudo apt-get install -y make gcc
+          sudo snap install yq
 
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 get_helm.sh
           ./get_helm.sh
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.ContainerRegistry }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Login to Helm Registry
-        run: helm registry login ${{ env.ContainerRegistry }} -u ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -66,12 +58,6 @@ jobs:
           new_version="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
-      
-      - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" -a
 
       - name: Build Symphony Api
         run: |
@@ -83,7 +69,9 @@ jobs:
           mage dockerBuild
 
       - name: Replace version in cli/cmd/up.go
-        run: sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" cli/cmd/up.go
+        run: |
+          version=$(cat .github/version/versions.txt)
+          sed -i "s/const SymphonyAPIVersion = .*/const SymphonyAPIVersion = \"$version\"/" cli/cmd/up.go
 
       - name: Build maestro
         run: |
@@ -93,8 +81,9 @@ jobs:
 
       - name: Replace version in packages/helm/values.yaml
         run: |
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/Chart.yaml
+          version=$(cat .github/version/versions.txt)
+          yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
+          yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
 
       - name: Build Helm
         run: |
@@ -102,65 +91,18 @@ jobs:
           mage helmTemplate
           cd ../packages/helm
           helm package symphony
-      
-      - name: Push symphony api images
-        run: |
-          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
 
-      - name: Push symphony k8s images
+      - name: Commit changes
         run: |
-          docker tag ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-
-      - name: Push symphony helm package
-        run: |
-          cd packages/helm
-          helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/version/versions.txt
+          git add packages/helm/symphony/Chart.yaml
+          git add cli/cmd/up.go
+          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}"  
 
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        with:
-          tag_name: ${{ steps.increment_version.outputs.version }}
-          release_name: Release ${{ steps.increment_version.outputs.version }}
-          draft: false
-          prerelease: false
-      - name: Upload windows mastro packages
-        id: upload_mastro_windows_package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: /home/runner/maestro/maestro_windows_amd64.zip
-          asset_name: maestro_windows_amd64.zip
-          asset_content_type: application/gzip
-      - name: Upload linux mastro packages
-        id: upload_mastro_linux_package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: /home/runner/maestro/maestro_linux_amd64.tar.gz
-          asset_name: maestro_linux_amd64.tar.gz
-          asset_content_type: application/gzip
-      - name: Upload mac mastro packages
-        id: upload_mastro_mac_package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: /home/runner/maestro/maestro_darwin_amd64.tar.gz
-          asset_name: maestro_darwin_amd64.tar.gz
-          asset_content_type: application/gzip
