@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "{VERSION}"
+const SymphonyAPIVersion = "0.47.2"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 const GITHUB_PAT = "CR_PAT"
 
@@ -401,17 +401,6 @@ func handleKubectl() bool {
 	return true
 }
 func handleK8sConnection() (string, bool) {
-	// We need to test and configure minikube path here because if when minikube is installed in this session,
-	// PATH environment cannot take effect util restarting a new session
-	osName := runtime.GOOS
-	if strings.EqualFold(osName, "windows") {
-		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
-		path := utils.AddtoPath(des)
-		if err := os.Setenv("path", path); err != nil {
-			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return "", false
-		}
-	}
 	address, ok := utils.CheckK8sConnection(verbose)
 	if !ok {
 		input := utils.GetInput("kubectl is not connected to a Kubernetes cluster, what do you want to do?", []string{"Install a local cluster (Minukube)", "Connect to a remote cluster (AKS)"}, utils.Choice)
