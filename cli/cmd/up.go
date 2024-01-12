@@ -93,9 +93,12 @@ var UpCmd = &cobra.Command{
 			}
 			var tunnelCMD *exec.Cmd
 			if !noRestApi {
-				tunnelCMD, err = handleMinikubeTunnel()
-				if err != nil {
-					return
+				// only start tunnel for minikube
+				if k8sContext == "minikube" {
+					tunnelCMD, err = handleMinikubeTunnel()
+					if err != nil {
+						return
+					}
 				}
 
 				ret, apiAddress := checkSymphonyAddress()
@@ -404,15 +407,6 @@ func handleK8sConnection() (string, bool) {
 		input := utils.GetInput("kubectl is not connected to a Kubernetes cluster, what do you want to do?", []string{"Install a local cluster (Minukube)", "Connect to a remote cluster (AKS)"}, utils.Choice)
 		switch input {
 		case 0:
-			osName := runtime.GOOS
-			if strings.EqualFold(osName, "windows") {
-				var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
-				path := utils.AddtoPath(des)
-				if err := os.Setenv("path", path); err != nil {
-					fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
-					return "", false
-				}
-			}
 			ok := utils.CheckMinikube(false)
 			if ok {
 				_, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
@@ -439,6 +433,11 @@ func setupK8sConnection() bool {
 	return true
 }
 func handleMinikubeTunnel() (*exec.Cmd, error) {
+	// ensure we can run minikube tunnel given users have a connected k8s context which is minikube K8S but not prepared by maestro
+	ok := utils.CheckMinikube(false)
+	if !ok {
+		installMinikube()
+	}
 	cmd := exec.Command("minikube", "tunnel")
 	err := cmd.Start()
 	if err != nil {
