@@ -103,7 +103,8 @@ Symphony is an extensible system with the concept of providers. For each provide
 
 This project welcomes contributions and suggestions.  
 
-Eclipse Contributor Agreement
+### Eclipse Contributor Agreement
+
 Before your contribution can be accepted by the project team contributors must electronically sign the Eclipse Contributor Agreement (ECA).
 
 http://www.eclipse.org/legal/ECA.php
