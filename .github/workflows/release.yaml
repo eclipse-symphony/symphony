@@ -16,7 +16,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y make gcc
+        run: |
+          sudo apt-get update && sudo apt-get install -y make gcc
+          sudo snap install yq
 
       - name: Install Helm
         run: |
@@ -66,16 +68,11 @@ jobs:
           new_version="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
-      
-      - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" -a
 
       - name: Build Symphony Api
         run: |
-          docker build -t symphonyapi . -f api/Dockerfile
+          cd api
+          mage dockerBuild
       
       - name: Build Symphony k8s
         run: | 
@@ -83,7 +80,9 @@ jobs:
           mage dockerBuild
 
       - name: Replace version in cli/cmd/up.go
-        run: sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" cli/cmd/up.go
+        run: |
+          version=$(cat .github/version/versions.txt)
+          sed -i "s/const SymphonyAPIVersion = .*/const SymphonyAPIVersion = \"$version\"/" cli/cmd/up.go
 
       - name: Build maestro
         run: |
@@ -93,8 +92,9 @@ jobs:
 
       - name: Replace version in packages/helm/values.yaml
         run: |
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/Chart.yaml
+          version=$(cat .github/version/versions.txt)
+          yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
+          yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
 
       - name: Build Helm
         run: |
@@ -105,18 +105,31 @@ jobs:
       
       - name: Push symphony api images
         run: |
-          docker tag symphonyapi ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
           docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api:latest
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:latest
 
       - name: Push symphony k8s images
         run: |
-          docker tag ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
           docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
 
       - name: Push symphony helm package
         run: |
           cd packages/helm
           helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/version/versions.txt
+          git add packages/helm/symphony/Chart.yaml
+          git add cli/cmd/up.go
+          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}"  
 
       - name: Push changes
         uses: ad-m/github-push-action@master

@@ -51,13 +51,8 @@ type License mg.Namespace
 
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
-	// Make sure users have PAT token for GitHub container registry configured
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-	CR_PAT := os.Getenv(GITHUB_PAT)
-	fmt.Printf("Deploying symphony to minikube, imagePullSecrets: %s\n", CR_PAT)
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s --set imagePullSecrets='%s'", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG, CR_PAT)
+	fmt.Printf("Deploying symphony to minikube\n")
+	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)
 	return shellcmd.Command(helmUpgrade).Run()
 }
 
@@ -377,10 +372,6 @@ func (Minikube) Dashboard() error {
 func (Pull) All() error {
 	defer logTime(time.Now(), "pull:all")
 
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-
 	// Pull directly from ACR
 	return shellcmd.RunAll(pull(
 		"symphony-k8s",
@@ -390,11 +381,7 @@ func (Pull) All() error {
 
 // Pull symphony-k8s
 func (Pull) K8s() error {
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-
-	// Pull directly from ACR
+	// Pull directly from CR
 	return shellcmd.RunAll(pull(
 		"symphony-k8s",
 	)...)
@@ -402,11 +389,7 @@ func (Pull) K8s() error {
 
 // Pull symphony-api
 func (Pull) Api() error {
-	if err := GhcrLogin(); err != nil {
-		return err
-	}
-
-	// Pull directly from ACR
+	// Pull directly from CR
 	return shellcmd.RunAll(pull(
 		"symphony-api",
 	)...)
