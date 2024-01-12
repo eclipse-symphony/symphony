@@ -238,7 +238,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	status := model.ActivationStatus{
 		Stage:        "",
 		NextStage:    "",
-		Outputs:      nil,
+		Outputs:      map[string]interface{}{},
 		Status:       v1alpha2.Untouched,
 		ErrorMessage: "",
 		IsActive:     true,
@@ -293,6 +293,11 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	}
 	status.Outputs = outputs
 	status.Outputs["__status"] = v1alpha2.OK
+	status.Outputs["__campaign"] = triggerData.Campaign
+	status.Outputs["__activation"] = triggerData.Activation
+	status.Outputs["__activationGeneration"] = triggerData.ActivationGeneration
+	status.Outputs["__stage"] = triggerData.Stage
+	status.Outputs["__site"] = s.VendorContext.SiteInfo.SiteId
 	status.Status = v1alpha2.Done
 	status.IsActive = false
 	return status
@@ -547,7 +552,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 		}
-
+		outputs["__campaign"] = triggerData.Campaign
+		outputs["__activation"] = triggerData.Activation
+		outputs["__activationGeneration"] = triggerData.ActivationGeneration
+		outputs["__stage"] = triggerData.Stage
+		outputs["__site"] = s.VendorContext.SiteInfo.SiteId
 		status.Outputs = outputs //TODO: This is newly added 10/3/2023, is this correct?
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
