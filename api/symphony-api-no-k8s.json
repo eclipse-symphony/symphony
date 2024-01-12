@@ -128,7 +128,7 @@
       {
         "type": "vendors.backgroundjob",
         "route": "backgroundjob",
-        "loopInterval": 60,
+        "loopInterval": 3600,
         "managers": [
           {
             "name": "activations-cleanup-manager",
