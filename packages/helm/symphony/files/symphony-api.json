@@ -139,8 +139,7 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state",
-              "cleanupInterval": "15"
+              "providers.state": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -156,7 +155,7 @@
       {
         "type": "vendors.backgroundjob",
         "route": "backgroundjob",
-        "loopInterval": 60,
+        "loopInterval": 3600,
         "managers": [
           {
             "name": "activations-cleanup-manager",
