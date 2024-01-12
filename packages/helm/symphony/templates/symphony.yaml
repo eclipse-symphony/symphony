@@ -2090,8 +2090,6 @@ spec:
           requests:
             cpu: 5m
             memory: 64Mi
-      imagePullSecrets:
-      - name: '{{ include "symphony.fullname" . }}-regcred'
       securityContext:
         runAsNonRoot: true
       serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'
