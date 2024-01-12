@@ -46,10 +46,6 @@ spec:
           value: {{ .Release.Namespace }}
         {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
       {{- end }}
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      - name: {{ include "symphony.fullname" . }}-regcred
-      {{- end }}
       volumes:
         - name: symphony-api-config
           configMap:
