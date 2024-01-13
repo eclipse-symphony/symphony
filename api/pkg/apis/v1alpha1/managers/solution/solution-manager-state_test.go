@@ -430,6 +430,7 @@ func TestMergeStateAddProvider(t *testing.T) {
 	state := MergeDeploymentStates(&state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 2, len(state.Targets))
+	assert.Equal(t, 5, len(state.TargetComponent))
 	assert.Equal(t, "instance", state.TargetComponent["a::T1"])
 	assert.Equal(t, "instance", state.TargetComponent["b::T1"])
 	assert.Equal(t, "instance", state.TargetComponent["c::T1"])
