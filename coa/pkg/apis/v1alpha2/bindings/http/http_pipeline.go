@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"os"
 
-	v1alpha2 "github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )

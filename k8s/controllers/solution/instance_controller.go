@@ -17,10 +17,10 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/utils"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	apimodel "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	provisioningstates "github.com/azure/symphony/k8s/utils/models"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	provisioningstates "github.com/eclipse-symphony/symphony/k8s/utils/models"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +34,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // InstanceReconciler reconciles a Instance object

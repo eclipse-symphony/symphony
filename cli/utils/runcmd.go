@@ -153,6 +153,15 @@ func CheckKubectl(verbose bool) bool {
 }
 
 func CheckMinikube(verbose bool) bool {
+	// on Windows, add the known Windows installation path to env:PATH to avoid minikube checking error
+	osName := runtime.GOOS
+	if strings.EqualFold(osName, "windows") {
+		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
+		path := AddtoPath(des)
+		if err := os.Setenv("path", path); err != nil {
+			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", ColorRed(), ColorReset())
+		}
+	}
 	_, err := RunCommand("Checking minikube", "found", verbose, "minikube", "version")
 	return err == nil
 }

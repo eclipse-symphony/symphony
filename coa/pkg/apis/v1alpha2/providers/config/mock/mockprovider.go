@@ -9,10 +9,10 @@ package mock
 import (
 	"encoding/json"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type MockConfigProviderConfig struct {

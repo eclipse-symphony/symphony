@@ -11,13 +11,13 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var log = logger.NewLogger("coa.runtime")

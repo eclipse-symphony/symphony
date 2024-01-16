@@ -29,7 +29,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
       container.volumeMounts: "[{\"name\":\"service-a-config\",\"mountPath\":\"/app/config\"}]"
       env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
       env.site1: "${{$config('site-config','site1')}}"
@@ -64,7 +64,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
       container.volumeMounts: "[{\"name\":\"service-b-config\",\"mountPath\":\"/app/config\"}]"
       env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
       env.site1: "${{$config('site-config','site1')}}"
@@ -81,7 +81,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
       env.line-a-1: "${{$config('line-a-config','line-a-1')}}"
       env.site1: "${{$config('site-config','site1')}}"
       env.l3-config: "${{$config('l3-config','l3-1')}}"

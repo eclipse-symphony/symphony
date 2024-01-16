@@ -8,15 +8,20 @@ package mqtt
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMQTTEcho(t *testing.T) {
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
 	sig := make(chan int)
 	config := MQTTBindingConfig{
 		BrokerAddress: "tcp://20.118.146.198:1883",

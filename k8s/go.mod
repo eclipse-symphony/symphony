@@ -2,19 +2,19 @@ module gopls-workspace
 
 go 1.20
 
-replace github.com/azure/symphony/api => ../api
+replace github.com/eclipse-symphony/symphony/api => ../api
 
-replace github.com/azure/symphony/coa => ../coa
+replace github.com/eclipse-symphony/symphony/coa => ../coa
 
-replace github.com/azure/symphony/k8s => ../k8s
+replace github.com/eclipse-symphony/symphony/k8s => ../k8s
 
-replace github.com/azure/symphony/packages/mage => ../packages/mage
+replace github.com/eclipse-symphony/symphony/packages/mage => ../packages/mage
 
 require (
-	github.com/azure/symphony/api v0.0.0
-	github.com/azure/symphony/coa v0.0.0
-	github.com/azure/symphony/k8s v0.0.0-20211006182710-0b9b3b2b0b0a
-	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
+	github.com/eclipse-symphony/symphony/api v0.0.0
+	github.com/eclipse-symphony/symphony/coa v0.0.0
+	github.com/eclipse-symphony/symphony/k8s v0.0.0-20211006182710-0b9b3b2b0b0a
+	github.com/eclipse-symphony/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/magefile/mage v1.15.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.1.4

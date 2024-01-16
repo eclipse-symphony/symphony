@@ -1,4 +1,4 @@
-module github.com/azure/symphony-k8s/akri/discover-job
+module github.com/eclipse-symphony-k8s/akri/discover-job
 
 go 1.16
 

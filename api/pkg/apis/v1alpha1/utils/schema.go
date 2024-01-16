@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strconv"
 
-	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type Rule struct {

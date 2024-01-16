@@ -35,7 +35,7 @@ function Header() {
                     <div className='text-white hidden sm:flex'>
                         <ul className='hidden sm:flex items-center'>
                             <li className={styles.navLink}>
-                                <Link href='http://github.com/azure/symphony'>
+                                <Link href='http://github.com/eclipse-symphony'>
                                     <span className="flex items-center gap-1">
                                         <FaGithub />
                                         <span>Symphony</span>

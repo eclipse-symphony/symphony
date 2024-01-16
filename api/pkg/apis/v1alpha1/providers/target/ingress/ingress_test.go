@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -276,6 +276,10 @@ func TestIngressTargetProviderGet(t *testing.T) {
 }
 
 func TestIngressTargetProviderApplyGet(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := IngressTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -284,8 +288,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 
 	provider := IngressTargetProvider{}
 	err := provider.Init(config)
-	assert.NotNil(t, err)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 	client := fake.NewSimpleClientset()
 	provider.Client = client
 

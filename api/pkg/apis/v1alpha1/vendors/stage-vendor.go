@@ -11,19 +11,19 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var sLog = logger.NewLogger("coa.runtime")
@@ -73,6 +73,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return v1alpha2.NewCOAError(nil, "activations manager is not supplied", v1alpha2.MissingConfig)
 	}
 	s.Vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
+		log.Info("V (Stage): handling activation event")
 		var actData v1alpha2.ActivationData
 		jData, _ := json.Marshal(event.Body)
 		err := json.Unmarshal(jData, &actData)
@@ -81,10 +82,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), actData.Campaign)
 		if err != nil {
+			log.Error("V (Stage): unable to find campaign: %+v", err)
 			return err
 		}
 		activation, err := s.ActivationsManager.GetSpec(context.TODO(), actData.Activation)
 		if err != nil {
+			log.Error("V (Stage): unable to find activation: %+v", err)
 			return err
 		}
 

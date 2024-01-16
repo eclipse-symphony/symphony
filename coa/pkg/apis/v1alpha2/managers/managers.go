@@ -7,18 +7,18 @@
 package managers
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 )
 
 type ProviderConfig struct {

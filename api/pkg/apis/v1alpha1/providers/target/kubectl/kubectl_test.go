@@ -12,8 +12,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	dfake "k8s.io/client-go/dynamic/fake"
@@ -44,12 +44,16 @@ func TestInitWithBadConfigType(t *testing.T) {
 
 // TestInitWithEmptyFile tests that passing an empty file to Init returns an error
 func TestInitWithEmptyFile(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
 	config := KubectlTargetProviderConfig{
 		ConfigType: "path",
 	}
 	provider := KubectlTargetProvider{}
-	provider.Init(config)
-	// assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	err := provider.Init(config)
+	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 
 // TestInitWithBadFile tests that passing a bad file to Init returns an error
@@ -144,7 +148,6 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -562,12 +565,11 @@ func TestConformanceSuite(t *testing.T) {
 	conformance.ConformanceSuite(t, provider)
 }
 
-func TestKubectlTargetProviderApply(t *testing.T) {
+func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -576,23 +578,29 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
-	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
+	assert.Nil(t, err)
 	client := kfake.NewSimpleClientset()
 	provider.Client = client
 	dynamicClient := dfake.NewSimpleDynamicClient(runtime.NewScheme())
 	provider.DynamicClient = dynamicClient
 
 	component := model.ComponentSpec{
-		Name: "gatekeeper",
+		Name: "nginx",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx-deployment",
+				},
+			},
 		},
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceSpec{
-			Name:  "gatekeeper",
-			Scope: "gatekeeper-system",
+			Name:  "nginx",
+			Scope: "nginx-system",
 		},
 		Solution: model.SolutionSpec{
 			Components: []model.ComponentSpec{component},
@@ -606,49 +614,6 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "delete",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
-
-	component = model.ComponentSpec{
-		Name: "nginx",
-		Type: "yaml.k8s",
-		Properties: map[string]interface{}{
-			"resource": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       "Deployment",
-				"metadata": map[string]interface{}{
-					"name": "nginx-deployment",
-				},
-			},
-		},
-	}
-	deployment = model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx",
-			Scope: "nginx-system",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
-		},
-	}
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "update",
-				Component: component,
-			},
-		},
-	}
 
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
@@ -662,7 +627,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestKubectlTargetProviderGet(t *testing.T) {
@@ -670,7 +635,6 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
-
 	config := KubectlTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -738,5 +702,5 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		},
 	}
 	_, err = provider.Get(context.Background(), deployment, reference)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }

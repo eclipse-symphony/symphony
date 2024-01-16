@@ -14,9 +14,9 @@ import (
 
 	"sort"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/cli/config"
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/cli/config"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )

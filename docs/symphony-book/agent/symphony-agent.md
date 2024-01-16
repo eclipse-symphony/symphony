@@ -6,7 +6,7 @@ A Symphony agent runs on a `target` and provides several services to Symphony pa
 * Probe and report on health of associated `device` objects.
 * Capture and upload camera images for camera `device` objects.
 
-A Symphony agent is a microservice that exposes an HTTP endpoint to Symphony payloads. We offer a Symphony container (`ghcr.io/azure/symphony/symphony-agent`) as well as a cross-platform binary that can be configured as a system daemon or service.
+A Symphony agent is a microservice that exposes an HTTP endpoint to Symphony payloads. We offer a Symphony container (`ghcr.io/eclipse-symphony/symphony-agent`) as well as a cross-platform binary that can be configured as a system daemon or service.
 
 ## Prepare for Symphony agent deployment
 

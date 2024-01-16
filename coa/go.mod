@@ -1,4 +1,4 @@
-module github.com/azure/symphony/coa
+module github.com/eclipse-symphony/symphony/coa
 
 go 1.19
 

@@ -12,7 +12,7 @@ spec:
   - name: symphony-agent
     properties:
       container.createOptions: '{"HostConfig":{"Binds":["/etc/iotedge/storage:/snapshots"],"LogConfig":{"Type":"json-file","Config":{"max-size":"10m","max-file":"10"}}}}'
-      container.image: ghcr.io/azure/symphony/symphony-agent:0.39.7
+      container.image: ghcr.io/eclipse-symphony/symphony-agent:0.39.7
       container.restartPolicy: always
       container.type: docker
       container.version: "1.0"

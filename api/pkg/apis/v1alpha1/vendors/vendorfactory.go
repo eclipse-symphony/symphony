@@ -7,7 +7,7 @@
 package vendors
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
 
 type SymphonyVendorFactory struct {
@@ -53,6 +53,8 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &SettingsVendor{}, nil
 	case "vendors.trails":
 		return &TrailsVendor{}, nil
+	case "vendors.backgroundjob":
+		return &BackgroundJobVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}
