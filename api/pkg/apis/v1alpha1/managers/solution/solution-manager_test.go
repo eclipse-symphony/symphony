@@ -245,6 +245,9 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
+	_, err = manager.GetSummary(context.Background(), "", "default")
+	assert.NotNil(t, err)
+
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 
@@ -256,6 +259,13 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, 2, len(state.TargetComponent))
 	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
 	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
+
+	_, err = manager.GetSummary(context.Background(), "", "default")
+	assert.Nil(t, err)
+
+	// Test reconcile idempotency
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
+	assert.Nil(t, err)
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
@@ -336,6 +346,10 @@ func TestMockGetTwoTargets(t *testing.T) {
 	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
 	assert.Equal(t, "mock", state.TargetComponent["a::T2"])
 	assert.Equal(t, "mock", state.TargetComponent["b::T2"])
+
+	// Test reconcile idempotency
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
+	assert.Nil(t, err)
 }
 func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	id := uuid.New().String()
@@ -413,9 +427,13 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	assert.Equal(t, 2, len(state.Components))
 	assert.Equal(t, "a", state.Components[0].Name)
 	assert.Equal(t, "b", state.Components[1].Name)
-	assert.Equal(t, 4, len(state.TargetComponent))
+	assert.Equal(t, 2, len(state.TargetComponent))
 	assert.Equal(t, "mock1", state.TargetComponent["a::T1"])
 	assert.Equal(t, "mock2", state.TargetComponent["b::T2"])
+
+	// Test reconcile idempotency
+	_, err = manager.Reconcile(context.Background(), deployment, false, "default")
+	assert.Nil(t, err)
 }
 func TestMockApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
@@ -508,4 +526,46 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
+}
+func TestMockApplyWithError(t *testing.T) {
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "a",
+					Type: "mock1",
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}",
+		},
+		Targets: map[string]model.TargetSpec{
+			"T1": {
+				Topologies: []model.TopologySpec{
+					{
+						Bindings: []model.BindingSpec{
+							{
+								Role:     "mock2",
+								Provider: "providers.target.mock",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock": targetProvider,
+		},
+		StateProvider: stateProvider,
+	}
+	summary, err := manager.Reconcile(context.Background(), deployment, false, "default")
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, summary.SuccessCount)
 }

@@ -130,6 +130,21 @@ func TestGetInstances(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 	assert.Equal(t, "OK", summary.TargetResults["T1"].Status)
+
+	resp = vendor.onApplyDeployment(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Body:    data,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+	var components []model.ComponentSpec
+	err = json.Unmarshal(resp.Body, &components)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(components))
+	assert.Equal(t, "a", components[0].Name)
+	assert.Equal(t, "mock", components[0].Type)
+	assert.Equal(t, "b", components[1].Name)
+	assert.Equal(t, "mock", components[1].Type)
 }
 func TestApply(t *testing.T) {
 	vendor := createVendor()
@@ -188,6 +203,7 @@ func TestReconcileDocker(t *testing.T) {
 	json.Unmarshal(resp.Body, &summary)
 	assert.False(t, summary.Skipped)
 }
+
 func TestReconcile(t *testing.T) {
 	var summary model.SummarySpec
 	vendor := createVendor()
