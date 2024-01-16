@@ -92,8 +92,16 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	return cache[m.Config.ID], nil
+	ret := make([]model.ComponentSpec, 0)
+	for _, c := range cache[m.Config.ID] {
+		for _, r := range references {
+			if c.Name == r.Component.Name {
+				ret = append(ret, c)
+				break
+			}
+		}
+	}
+	return ret, nil
 }
 func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(

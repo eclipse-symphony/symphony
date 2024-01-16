@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package campaigns
+package instances
 
 import (
 	"context"
@@ -15,22 +15,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// write test case to create a CampaignSpec using the manager
-func TestCreateGetDeleteCampaignSpec(t *testing.T) {
+// write test case to create a InstanceSpec using the manager
+func TestCreateGetDeleteInstancesSpec(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
-	manager := CampaignsManager{
+	manager := InstancesManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.CampaignSpec{})
+	err := manager.UpsertSpec(context.Background(), "test", model.InstanceSpec{}, "default")
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetSpec(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background())
+	specLists, err := manager.ListSpec(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
 	assert.Equal(t, "test", specLists[0].Id)
-	err = manager.DeleteSpec(context.Background(), "test")
+	err = manager.DeleteSpec(context.Background(), "test", "default")
 	assert.Nil(t, err)
+	spec, err = manager.GetSpec(context.Background(), "test", "default")
+	assert.NotNil(t, err)
 }
