@@ -11,15 +11,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/registry"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 type TargetsManager struct {
@@ -114,14 +114,12 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	dict := target.Body.(map[string]interface{})
 
-	specCol := dict["spec"].(map[string]interface{})
-	var metadata map[string]string
-	if m, ok := specCol["metadata"]; ok {
-		jm, _ := json.Marshal(m)
-		json.Unmarshal(jm, &metadata)
-	}
+	specCol := dict["spec"].(model.TargetSpec)
 
 	delete(dict, "spec")
+	if dict["status"] == nil {
+		dict["status"] = make(map[string]interface{})
+	}
 	status := dict["status"]
 
 	j, _ := json.Marshal(status)
@@ -136,7 +134,9 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
+	if rProperties == nil {
+		rProperties = make(map[string]string)
+	}
 	for k, v := range current.Status {
 		rProperties[k] = v
 	}
@@ -157,7 +157,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	return model.TargetState{
 		Id:       current.Id,
-		Metadata: metadata,
+		Metadata: specCol.Metadata,
 		Status:   rProperties,
 	}, nil
 }

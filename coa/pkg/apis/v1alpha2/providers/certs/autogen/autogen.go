@@ -9,9 +9,9 @@ package autogen
 import (
 	"encoding/json"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	fasthttp "github.com/valyala/fasthttp"
 )
 

@@ -6,7 +6,7 @@ You can run the Symphony API as a single Docker container with a configuration f
 
 ```bash
 # assuming you are under the repo root folder
-docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/azure/symphony/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony-api:latest
 ```
 
 > **Pre-release NOTE**: ```ghcr.io``` is a private repo. To access the repo, you need to follow [this](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry) to generate the PAT token 

@@ -13,8 +13,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
 )
@@ -543,6 +543,7 @@ func TestDownloadFile(t *testing.T) {
 
 	err := downloadFile(ts.URL, "test")
 	assert.Nil(t, err)
+	_ = os.Remove("test")
 }
 
 func TestGetActionConfig(t *testing.T) {

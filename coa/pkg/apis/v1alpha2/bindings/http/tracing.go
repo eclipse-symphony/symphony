@@ -14,9 +14,9 @@ import (
 	"net/textproto"
 	"strings"
 
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/logger"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"

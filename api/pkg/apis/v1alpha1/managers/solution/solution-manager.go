@@ -15,20 +15,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	sp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers"
-	tgt "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	config "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	secret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	sp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
+	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	config "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	secret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var log = logger.NewLogger("coa.runtime")
@@ -191,6 +191,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
 		context := s.VendorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = deployment
+		context.Value = deployment
 		context.Component = ""
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}

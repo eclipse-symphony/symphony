@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	refmock "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/mock"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	refmock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
 )
 

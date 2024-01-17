@@ -9,7 +9,7 @@ package solution
 import (
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -430,6 +430,7 @@ func TestMergeStateAddProvider(t *testing.T) {
 	state := MergeDeploymentStates(&state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 2, len(state.Targets))
+	assert.Equal(t, 5, len(state.TargetComponent))
 	assert.Equal(t, "instance", state.TargetComponent["a::T1"])
 	assert.Equal(t, "instance", state.TargetComponent["b::T1"])
 	assert.Equal(t, "instance", state.TargetComponent["c::T1"])

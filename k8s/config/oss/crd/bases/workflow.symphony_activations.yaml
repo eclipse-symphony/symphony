@@ -76,6 +76,8 @@ spec:
               status:
                 description: State represents a response state
                 type: integer
+              updateTime:
+                type: string
             required:
             - stage
             type: object

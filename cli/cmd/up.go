@@ -16,12 +16,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/cli/config"
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/cli/config"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/spf13/cobra"
 )
 
-const SymphonyAPIVersion = "0.45.32"
+// The version is auto updated by the release pipeline, do not change it manually
+const SymphonyAPIVersion = "0.47.2"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
 var (
@@ -92,9 +93,12 @@ var UpCmd = &cobra.Command{
 			}
 			var tunnelCMD *exec.Cmd
 			if !noRestApi {
-				tunnelCMD, err = handleMinikubeTunnel()
-				if err != nil {
-					return
+				// only start tunnel for minikube
+				if k8sContext == "minikube" {
+					tunnelCMD, err = handleMinikubeTunnel()
+					if err != nil {
+						return
+					}
 				}
 
 				ret, apiAddress := checkSymphonyAddress()
@@ -135,7 +139,9 @@ var UpCmd = &cobra.Command{
 			// 	fmt.Printf("  %sSymphony portal:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+portalAddress+"/", utils.ColorReset())
 			// }
 
-			fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			if noRestApi {
+				fmt.Printf("  %sREST API is turned off in no-rest-api Mode and you can interact with Symphony using kubectl.%s\n", utils.ColorYellow(), utils.ColorReset())
+			}
 			fmt.Println()
 
 		}
@@ -360,15 +366,6 @@ func handleKubectl() bool {
 	return true
 }
 func handleK8sConnection() (string, bool) {
-	osName := runtime.GOOS
-	if strings.EqualFold(osName, "windows") {
-		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
-		path := utils.AddtoPath(des)
-		if err := os.Setenv("path", path); err != nil {
-			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return "", false
-		}
-	}
 	address, ok := utils.CheckK8sConnection(verbose)
 	if !ok {
 		input := utils.GetInput("kubectl is not connected to a Kubernetes cluster, what do you want to do?", []string{"Install a local cluster (Minukube)", "Connect to a remote cluster (AKS)"}, utils.Choice)
@@ -393,16 +390,6 @@ func handleK8sConnection() (string, bool) {
 			fmt.Printf("\n%s  Can't connect to a Kubernetes cluster. Please configure your kubectl context to a valid Kubernetes cluster.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return "", false
 		}
-	} else {
-		ok := utils.CheckMinikube(false)
-		if ok {
-			return "minikube", true
-		} else {
-			if !installMinikube() {
-				return "", false
-			}
-			return "minikube", true
-		}
 	}
 	return address, true
 }
@@ -410,6 +397,11 @@ func setupK8sConnection() bool {
 	return true
 }
 func handleMinikubeTunnel() (*exec.Cmd, error) {
+	// ensure we can run minikube tunnel given users have a connected k8s context which is minikube K8S but not prepared by maestro
+	ok := utils.CheckMinikube(false)
+	if !ok {
+		installMinikube()
+	}
 	cmd := exec.Command("minikube", "tunnel")
 	err := cmd.Start()
 	if err != nil {

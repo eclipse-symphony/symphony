@@ -9,18 +9,14 @@ The easiest way to get started with Symphony is to use Maestro, Symphony's CLI t
 * Install on Linux/Mac
 
   ```bash
-  wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
+  wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
   ```
-  
-  > **Pre-release NOTE**: The ```Haishi2016``` repo is a temporary parking repo, which will be replaced before release.
 
 * Install on Windows
 
   ```bash
-  powershell -Command "iwr -useb https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.ps1 | iex"
+  powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
   ```
-
-  > **Pre-release NOTE**: The ```Haishi2016``` repo is a temporary parking repo, which will be replaced before release.
 
 ## 2. Set up Symphony API
 
@@ -30,7 +26,9 @@ Use `maestro up` to configure all dependencies and set up Symphony. If you alrea
 maestro up
 ```
 
-> **NOTE**: ```maestro up``` will try to install a [kind](https://kind.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
+> **NOTE**: ```maestro up``` will try to install a [Minikube](https://minikube.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
+
+> **NOTE**: you can choose to install Symphony in a different Kubernetes namespace with a ```-n <namespace>``` or ```--namespace <namespace>``` switch.
 
 ## 3. Browse and run samples
 

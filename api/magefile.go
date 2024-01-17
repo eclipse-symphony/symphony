@@ -12,15 +12,12 @@ import (
 	"os"
 
 	//mage:import
-	_ "github.com/azure/symphony/packages/mage"
+	_ "github.com/eclipse-symphony/symphony/packages/mage"
 	"github.com/princjef/mageutil/shellcmd"
 )
 
 func Build() error {
 	return shellcmd.Command("go build -o bin/symphony-api").Run()
-}
-func BuildAzure() error {
-	return shellcmd.Command("go build -o bin/symphony-api -tags=azure").Run()
 }
 
 // Runs both api unit tests as well as coa unit tests.

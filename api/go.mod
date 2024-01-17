@@ -1,13 +1,13 @@
-module github.com/azure/symphony/api
+module github.com/eclipse-symphony/symphony/api
 
 go 1.19
 
-replace github.com/azure/symphony/coa => ../coa
+replace github.com/eclipse-symphony/symphony/coa => ../coa
 
-replace github.com/azure/symphony/packages/mage => ../packages/mage
+replace github.com/eclipse-symphony/symphony/packages/mage => ../packages/mage
 
 require (
-	github.com/azure/symphony/coa v0.0.0
+	github.com/eclipse-symphony/symphony/coa v0.0.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.2
 	github.com/valyala/fasthttp v1.40.0
@@ -20,7 +20,7 @@ require (
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/extendedlocation/armextendedlocation v1.1.0-beta.2
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kubernetesconfiguration/armkubernetesconfiguration v1.1.1
-	github.com/azure/symphony/packages/mage v0.0.0-00010101000000-000000000000
+	github.com/eclipse-symphony/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/goccy/go-json v0.10.2
 	github.com/princjef/mageutil v1.0.0

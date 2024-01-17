@@ -81,6 +81,8 @@ spec:
               status:
                 description: State represents a response state
                 type: integer
+              updateTime:
+                type: string
             required:
             - stage
             type: object
@@ -2088,8 +2090,6 @@ spec:
           requests:
             cpu: 5m
             memory: 64Mi
-      imagePullSecrets:
-      - name: '{{ include "symphony.fullname" . }}-regcred'
       securityContext:
         runAsNonRoot: true
       serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'

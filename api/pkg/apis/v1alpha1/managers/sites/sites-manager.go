@@ -12,15 +12,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
 type SitesManager struct {
@@ -148,6 +148,13 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return err
+	}
+	// if current.Status is not nil, update the status using new IsOnline, InstanceStatuses and TargetStatuses
+	// otherwise, only update LastReported as time.Now()
+	if current.Status != nil {
+		rStatus.IsOnline = current.Status.IsOnline
+		rStatus.InstanceStatuses = current.Status.InstanceStatuses
+		rStatus.TargetStatuses = current.Status.TargetStatuses
 	}
 	rStatus.LastReported = time.Now().UTC().Format(time.RFC3339)
 	dict["status"] = rStatus

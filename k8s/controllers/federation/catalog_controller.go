@@ -17,7 +17,7 @@ import (
 
 	federationv1 "gopls-workspace/apis/federation/v1"
 
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // CatalogReconciler reconciles a Site object

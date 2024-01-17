@@ -11,12 +11,12 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type MockTargetProviderConfig struct {
@@ -92,8 +92,16 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	return cache[m.Config.ID], nil
+	ret := make([]model.ComponentSpec, 0)
+	for _, c := range cache[m.Config.ID] {
+		for _, r := range references {
+			if c.Name == r.Component.Name {
+				ret = append(ret, c)
+				break
+			}
+		}
+	}
+	return ret, nil
 }
 func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(

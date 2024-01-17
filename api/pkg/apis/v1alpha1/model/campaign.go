@@ -10,7 +10,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type CampaignState struct {
@@ -77,6 +77,7 @@ type ActivationStatus struct {
 	ErrorMessage         string                 `json:"errorMessage,omitempty"`
 	IsActive             bool                   `json:"isActive,omitempty"`
 	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
+	UpdateTime           string                 `json:"updateTime,omitempty"`
 }
 
 type ActivationSpec struct {

@@ -7,7 +7,7 @@
 package v1
 
 import (
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

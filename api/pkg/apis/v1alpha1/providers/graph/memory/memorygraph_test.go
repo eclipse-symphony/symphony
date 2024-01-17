@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
