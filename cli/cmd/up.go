@@ -24,7 +24,6 @@ import (
 // The version is auto updated by the release pipeline, do not change it manually
 const SymphonyAPIVersion = "0.47.2"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
-const GITHUB_PAT = "CR_PAT"
 
 var (
 	symphonyVersion string
@@ -42,6 +41,7 @@ var (
 	clientSecret        string
 	customVisionRP      string
 	customVisionAccount string
+	namespace           string
 )
 
 var UpCmd = &cobra.Command{
@@ -149,11 +149,12 @@ var UpCmd = &cobra.Command{
 }
 
 func init() {
-	//UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", KANPortalVersion, "Symphony Portal version")
+	UpCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes namespace")
 	UpCmd.Flags().StringVarP(&symphonyVersion, "symphony-version", "s", SymphonyAPIVersion, "Symphony API version")
-	//UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
 	UpCmd.Flags().BoolVar(&noK8s, "no-k8s", false, "Launch in standalone mode (no Kubernetes)")
 	UpCmd.Flags().BoolVar(&noRestApi, "no-rest-api", false, "Doesn't expose Symphony API, interact with k8s.")
+	//UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", KANPortalVersion, "Symphony Portal version")
+	//UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
 	// UpCmd.Flags().StringVarP(&storageRP, "storage-resource-group", "", "", "Azure Storage account resource group")
 	// UpCmd.Flags().StringVarP(&storageAccount, "storage-account", "", "", "Azure Storage account")
 	// UpCmd.Flags().StringVarP(&storageContainer, "storage-container", "", "", "Azure Storage container")
@@ -197,12 +198,8 @@ func init() {
 func checkSymphonyAddress() (bool, string) {
 	count := 0
 	for {
-		str, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", "default", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
-		if err != nil {
-			fmt.Printf("\n%s  Failed to check public Symphony API address.%s\n\n", utils.ColorRed(), utils.ColorReset())
-			return false, ""
-		}
-		if str != "" {
+		str, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", namespace, "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+		if err == nil && str != "" {
 			return true, str
 		}
 		count += 1
@@ -249,29 +246,6 @@ func checkSymphonyAddress() (bool, string) {
 // 	return true
 // }
 
-// Log into ghcr, prompts if login failed.
-func GhcrLogin() error {
-	for i := 0; i < 3; i++ {
-		github_pat := os.Getenv(GITHUB_PAT)
-		if github_pat == "" {
-			fmt.Println("  Please input your GitHub PAT token:")
-			fmt.Scanln(&github_pat)
-			os.Setenv(GITHUB_PAT, github_pat)
-		}
-		cmd := exec.Command("docker", "login", "ghcr.io", "-u", "USERNAME", "--password", github_pat)
-		_, err := cmd.Output()
-		if err != nil {
-			if i == 3 {
-				return err
-			}
-		} else {
-			return nil
-		}
-	}
-
-	return nil
-}
-
 func handleSymphony(norest bool) bool {
 	str, _ := utils.RunCommand("Checking Symphony API (Symphony)", "done", verbose, "helm", "list", "-q", "-l", "name=symphony")
 
@@ -294,23 +268,13 @@ func handleSymphony(norest bool) bool {
 		}
 	}
 
-	// check ghcr access token
-	//if err := GhcrLogin(); err != nil {
-	//	return false
-	//}
-	//CR_PAT := os.Getenv(GITHUB_PAT)
 	fmt.Printf("  Deploying Symphony API (Symphony), installServiceExt: %t\n", !norest)
-	//pullImageSecretsSetting := fmt.Sprintf("imagePullSecrets='%s'", CR_PAT)
 	installServiceExt := fmt.Sprintf("installServiceExt=%t", !norest)
-	//_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", pullImageSecretsSetting, "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt)
+	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt, "--namespace", namespace)
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 		return false
 	}
-	// if verbose {
-	// 	fmt.Printf("\n%s  WARNING: existing Symphony deployment is found. To install new version, use p4ectl remove to remove it first.%s\n\n", utils.ColorYellow(), utils.ColorReset())
-	// }
 	return true
 }
 
