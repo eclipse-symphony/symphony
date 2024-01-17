@@ -32,7 +32,7 @@ When a child control plane launches, it automatically connects with the parent a
 When installing Symphony with Helm, you can set the site id as well as the parent site URL/credentials using `--set` switches, for example:
 
 ```bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.47.2 --set siteId=tokyo --set parent.url=http://<parent's symphony-service-ext IP>:8080/v1alpha2/
+helm install symphony oci://ghcr.io/azure/symphony/helm/symphony --version 0.45.31 --set siteId=tokyo --set parent.url=http://<parent's symphony-service-ext IP>:8080/v1alpha2/ --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
 ```
 
 If a child is successfully connected to a parent site, you should see the site registration from the parent's context with:

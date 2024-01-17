@@ -61,7 +61,7 @@ Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes 
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/eclipse-symphony.git
+git clone https://github.com/Azure/symphony.git
 ```
 
 ## 2. Build and run Symphony binary for local dev/test
@@ -123,7 +123,7 @@ docker run --rm -it -v /path/to/my-config.json:/configs -e CONFIG=/configs/symph
 For example, while under the `api` folder, you can launch latest Symphony API container with `docker run`:
 
 ```bash
-docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony-api:latest
+docker run --rm -it -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 You can override the default logging level with a `LOG_LEVEL` environment variable. For example, to launch Symphony API with `Info` log level:
@@ -135,7 +135,7 @@ export LOG_LEVEL=Info
 # or, you can directly set the log level switch
 ./symphony-api -c ./symphony-api-no-k8s.json -l Info
 # or, running as container in console model
-docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/eclipse-symphony/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Info -v ./api:/configs -e CONFIG=/configs/symphony-api-no-k8s.json ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 ## 3. Build Symphony K8s binding container
@@ -156,8 +156,8 @@ docker push <Symphony-k8s image tag>
 # GitHub Container Registry
 TOKEN='{YOUR_GITHUB_PAT_TOKEN}'
 docker login ghcr.io --username USERNAME --password $TOKEN
-docker tag <Symphony-k8s image tag> ghcr.io/eclipse-symphony/symphony-k8s:latest
-docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
+docker tag <Symphony-k8s image tag> ghcr.io/azure/symphony/symphony-k8s:latest
+docker push ghcr.io/azure/symphony/symphony-k8s:latest
 ```
 
 ## 5. Update Helm chart (optional)
@@ -185,7 +185,7 @@ USER_NAME="USERNAME"
 TOKEN='{YOUR_GITHUB_PAT_TOKEN}'
 helm registry login ghcr.io --username $USER_NAME --password $PASSWORD
 # push image
-helm push symphony-0.43.1.tgz oci://ghcr.io/eclipse-symphony/helm
+helm push symphony-0.43.1.tgz oci://ghcr.io/azure/symphony/helm
 ```
 
 ## 6. Build Symphony agent container (optional)
@@ -205,7 +205,7 @@ To run an agent locally, use Docker:
 docker run -p 8088:8088 -e SYMPHONY_URL=http://localhost:8080/v1alpha2/agent/references hbai/symphony-agent:0.1.22
 ```
 
-For more information, see [Symphony agent](../agent/agent.md).
+For more information, see [Symphony agent](../agent/_overview.md).
 
 ## 7. Build Symphony Agent binary (optional)
 
@@ -222,7 +222,7 @@ To run agent binary, use a sample `symphony-agent.json` file under the `symphony
 ./symphony-agent -c ./symphony-agent.json -l Debug
 ```
 
-For more information, see [Symphony agent](../agent/agent.md).
+For more information, see [Symphony agent](../agent/_overview.md).
 
 ## 8. Build Symphony CLI (maestro)
 

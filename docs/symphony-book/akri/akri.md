@@ -9,9 +9,9 @@ cd ../../samples/akri-discover-job/
 # build binary
 go build -o discover-job
 # build container
-docker build -t ghcr.io/eclipse-symphony/symphony-akri:<version> -f ./Dockerfile.microsoft .
+docker build -t ghcr.io/azure/symphony/symphony-akri:<version> -f ./Dockerfile.microsoft .
 # push container
-docker push ghcr.io/eclipse-symphony/symphony-akri:<version>
+docker push ghcr.io/azure/symphony/symphony-akri:<version>
 ```
 
 ## Configure Akri on a K8s cluster
@@ -24,7 +24,7 @@ helm repo add akri-helm-charts https://project-akri.github.io/akri/
 helm template akri akri-helm-charts/akri \
     --set onvif.configuration.enabled=true \
     --set onvif.discovery.enabled=true
-    --set onvif.configuration.brokerPod.image.repository="ghcr.io/eclipse-symphony/symphony-akri" \
+    --set onvif.configuration.brokerPod.image.repository="ghcr.io/azure/symphony/symphony-akri" \
     --set rbac.enabled=false \
     --set controller.enabled=false \
     --set agent.enabled=false \ 

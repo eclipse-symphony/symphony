@@ -2,7 +2,7 @@
 
 _(last edit: 4/12/2023)_
 
-Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/overview.md) and bind them to one or multiple [bindings](../bindings/overview.md).
+Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/overview.md) and bind them to one or multiple [bindings](../bindings/_overview.md).
 
 ## Host configurations
 
@@ -22,20 +22,20 @@ Under the `api` folder of the `symphony` repo, you can find a bunch of `*.json` 
 * `symphony-script-proxy.json`: A sample proxy deployment with a script provider.
 * `symphony-win-proxy.json`: A sample proxy deployment with a Windows 10 sideload provider.
 
-A host configuration contains an `api` element that contains all the [vendors](../vendors/overview.md) to be loaded; and a "bindings" element that contains all the [bindings](../bindings/overview.md) to be enabled for this host.
+A host configuration contains an `api` element that contains all the [vendors](../vendors/overview.md) to be loaded; and a "bindings" element that contains all the [bindings](../bindings/_overview.md) to be enabled for this host.
 
 ## Symphony-API container
 
-By default, `ghcr.io/eclipse-symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONIFG` environment variable. For example, to change log level to `Error` while launching the container:
+By default, `ghcr.io/azure/symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONIFG` environment variable. For example, to change log level to `Error` while launching the container:
 
 ```bash
-docker run --rm -it -e LOG_LEVEL=Error ghcr.io/eclipse-symphony/symphony-api:latest
+docker run --rm -it -e LOG_LEVEL=Error ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 And to use a different configuration file:
 
 ```bash
-docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/config/symphony-api-dev.json ghcr.io/eclipse-symphony/symphony-api:latest
+docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/config/symphony-api-dev.json ghcr.io/azure/symphony/symphony-api:latest
 ```
 
 ## Scaling out the host

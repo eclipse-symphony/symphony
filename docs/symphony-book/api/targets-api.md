@@ -68,7 +68,7 @@
   |Parameter| Value|
   |--------|--------|
   | `{target name}` | name of the target |
-  | `[<with-binding>]` | (option) add a [role binding](../target-management/target-management.md#role-bindings). Currently supported binding is `staging`, which binds container operations to a [staging provider](../providers/staging_provider.md)|
+  | `[<with-binding>]` | (option) add a [role binding](../concepts/unified-object-model/target.md#role-bindings). Currently supported binding is `staging`, which binds container operations to a [staging provider](../providers/staging_provider.md)|
 
 * **Headers:**
 

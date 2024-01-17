@@ -8,7 +8,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Object managers
 
-  For each object type in the [UOM](../uom/uom.md), there's a corresponding manager, named after the object type in plural form, including:
+  For each object type in the [UOM](../concepts/unified-object-model/_overview.md), there's a corresponding manager, named after the object type in plural form, including:
 
   * Devices manager
   * Instances manager
@@ -31,7 +31,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Target manager
 
-  A target manager is mostly used by a Symphony agent (that runs on a target machine) to monitor associated [devices](../uom/device.md).
+  A target manager is mostly used by a Symphony agent (that runs on a target machine) to monitor associated [devices](../concepts/unified-object-model/device.md).
 
 * Users manager
 

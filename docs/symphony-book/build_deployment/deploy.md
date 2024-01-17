@@ -6,19 +6,19 @@ Choose your preferred tool for deploying Symphony:
 
 * **Maestro**: Maestro is Symphony’s CLI that allows you to bootstrap Symphony with your Kubernetes clusters, or to run latest Symphony build in standalone mode. It also allows you to quickly deploy sample scenarios using prebuilt samples. It’s a great tool to get started with Symphony quickly!
 
-  [Use Symphony with the Maestro CLI tool](../quick_start/quick_start_maestro.md).
+  [Use Symphony with the Maestro CLI tool](../get-started/quick_start_maestro.md).
 
 * **Helm**: You can deploy Symphony to a Kubernetes cluster using Helm 3.
 
-  [Use Symphony on Kubernetes clusters with Helm](../quick_start/quick_start_helm.md)
+  [Use Symphony on Kubernetes clusters with Helm](../get-started/quick_start_helm.md)
 
 * **Docker**: You can run Symphony API in standalone mode as a Docker container.
 
-  [Use Symphony in a Docker container](../quick_start/quick_start_docker.md)
+  [Use Symphony in a Docker container](../get-started/quick_start_docker.md)
 
 * **Binary**: You can build Symphony from a binary.
 
-  [Use Symphony as a binary](../quick_start/quick_start_binary.md)
+  [Use Symphony as a binary](../get-started/quick_start_binary.md)
 
 > **NOTE**: You can find various Symphony API configuration files under the `api` folder of the Symphony repo. For more information, see [host configurations](../hosts/overview.md).
 
@@ -44,4 +44,4 @@ If you host vendors on multiple processes or containers, you need to ensure that
 
 > **NOTE**: By default, Symphony deploys a Redis pod as its pub/sub backbone.
 
-Symphony is extensible to support additional state stores and pub/sub message buses through its [providers](../providers/overview.md) mechanism.
+Symphony is extensible to support additional state stores and pub/sub message buses through its [providers](../providers/_overview.md) mechanism.

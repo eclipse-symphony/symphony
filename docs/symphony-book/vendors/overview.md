@@ -22,7 +22,7 @@ Vendors are configured as part of the [host configuration file](../hosts/overvie
 
 The previous configuration snippet defines a `vendors.echo` vendor to be loaded and configured on the `greetings` route. Once this vendor is loaded, you can access it via `http(s)://<server-address>:<server-port>/v1alpha2/greetings`.
 
-A more complex vendor usually loads a number of [managers](../managers/overview.md), each in turn loads one or more [providers](../providers/overview.md). For example, the following configuration snippet defines a `vendors.targets` vendor, which loads a `managers.symphony.targets` manager, which loads a `providers.state.k8s` provider:
+A more complex vendor usually loads a number of [managers](../managers/overview.md), each in turn loads one or more [providers](../providers/_overview.md). For example, the following configuration snippet defines a `vendors.targets` vendor, which loads a `managers.symphony.targets` manager, which loads a `providers.state.k8s` provider:
 
 ```json
 {

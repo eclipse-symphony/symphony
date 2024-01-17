@@ -14,7 +14,7 @@ The job vendor subscribes to a `job` topic, which contains reconciliation reques
 }
 ```
 
-Upon receiving a job, the job vendor creates a [deployment](../uom/deployment.md) object and sends the object to the Symphony solution vendor.
+Upon receiving a job, the job vendor creates a [deployment](../concepts/unified-object-model/deployment.md) object and sends the object to the Symphony solution vendor.
 
 The job vendor can also be configured to trigger periodical reconciliation jobs by enabling the `poll.enabled` property of the `managers.symphony.jobs`:
 

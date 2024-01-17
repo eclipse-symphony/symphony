@@ -36,24 +36,24 @@ Symphony aims to deploy and manage secured, hardware-accelerated intelligent edg
 
 First, install Symphony on your device using one of the following methods:
 
-* [Use Symphony with the Maestro cross-platform CLI tool](./symphony-book/quick_start/quick_start_maestro.md)
+* [Use Symphony with the Maestro cross-platform CLI tool](./symphony-book/get-started/quick_start_maestro.md)
 
-* [Use Symphony on a Kubernetes cluster with Helm](./symphony-book/quick_start/quick_start_helm.md)
+* [Use Symphony on a Kubernetes cluster with Helm](./symphony-book/get-started/quick_start_helm.md)
 
-* [Use Symphony as a self-contained binary](./symphony-book/quick_start/quick_start_binary.md)
+* [Use Symphony as a self-contained binary](./symphony-book/get-started/quick_start_binary.md)
 
 Then, try one of the quickstart scenarios that use Symphony to deploy a sample solution:
 
 | Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requires Docker | Requires RTSP Camera |
 |--------|--------|--------|--------|--------|--------|
-| [Deploy a Prometheus server to a K8s cluster](./symphony-book/quick_start/deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
-| [Deploy a Redis container with standalone Symphony](./symphony-book/quick_start/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
-| [Deploy a simulated temperature sensor Solution to an Azure IoT Edge device](./symphony-book/quick_start/deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
-| [Manage RTSP cameras connected to a gateway](./symphony-book/quick_start/manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |
+| [Deploy a Prometheus server to a K8s cluster](./symphony-book/get-started/deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
+| [Deploy a Redis container with standalone Symphony](./symphony-book/get-started/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
+| [Deploy a simulated temperature sensor Solution to an Azure IoT Edge device](./symphony-book/get-started/deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
+| [Manage RTSP cameras connected to a gateway](./symphony-book/get-started/manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |
 
 ## Concepts
 
-* [Overview](./symphony-book/concepts/overview.md)
+* [Overview](./symphony-book/concepts/_overview.md)
 * [Information graph](./symphony-book/concepts/information_graph.md)
 * [State seeking](./symphony-book/concepts/state_seeking.md)
 * [Workflows](./symphony-book/concepts/workflows.md)
@@ -64,7 +64,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Deploy Symphony to a single site](./symphony-book/build_deployment/deploy.md)
 * [Deploy Symphony to multiple sites](./symphony-book/build_deployment/multisite-deploy.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshooting.md)
-* [Model applications](./symphony-book/solution-management/solution-management.md)
+* [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
 
 ## Advanced scenarios
 
@@ -74,13 +74,13 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 ## Contribute to Symphony
 
 * [Developer guide](./symphony-book/dev-guide/getting-started.md)
-* [API reference](./symphony-book/api/api.md)
+* [API reference](./symphony-book/api/_overview.md)
 
 ## Additional topics
 
-* [Symphony agent](./symphony-book/agent/agent.md)
+* [Symphony agent](./symphony-book/agent/_overview.md)
 * [Symphony portal](./symphony-book/portals/overview.md)
-* [Symphony expressions](./symphony-book/uom/property-expressions.md)
+* [Symphony expressions](./symphony-book/concepts/unified-object-model/property-expressions.md)
 
 ## Supported technologies
 

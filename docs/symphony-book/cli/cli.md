@@ -9,13 +9,13 @@ Maestro is a cross-platform CLI for you to interact with your Symphony control p
 ### Linux/Mac
 
 ```bash
-wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
+wget -q https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.sh -O - | /bin/bash
 ```
 
 ### Windows
 
 ```cmd
-powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
+powershell -Command "iwr -useb https://raw.githubusercontent.com/Haishi2016/Vault818/master/cli/install/install.ps1 | iex"
 ```
 
 ## Install Symphony
