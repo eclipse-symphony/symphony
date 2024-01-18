@@ -7,7 +7,7 @@ Symphony can run as a standalone binary with zero external dependencies. You can
 Clone the Symphony repo:
 
 ```bash
-git clone https://github.com/eclipse-symphony
+git clone https://github.com/eclipse-symphony/symphony.git
 ```
 
 Build the Symphony API binary:
