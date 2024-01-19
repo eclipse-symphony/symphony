@@ -192,9 +192,11 @@ var RunCmd = &cobra.Command{
 							action.Args[i] = strings.ReplaceAll(action.Args[i], "$(1)", strings.Trim(xArg, `'"`))
 						}
 					}
-					xArg, err = utils.RunCommand("", "", false, action.Command, action.Args...)
+					errOutput := ""
+					xArg, errOutput, err = utils.RunCommandWithRetry("", "", verbose, debug, action.Command, action.Args...)
 					if err != nil {
 						fmt.Printf("\n%s  Failed to execute post deployment script: %s %s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+						fmt.Printf("\n%s  Detailed Messages: %s %s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 						return
 					}
 				}
