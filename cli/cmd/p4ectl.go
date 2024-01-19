@@ -15,6 +15,7 @@ import (
 
 var (
 	verbose bool
+	debug   bool
 )
 var RootCmd = &cobra.Command{
 	Use:   "maestro",
@@ -41,4 +42,5 @@ func Execute(versiong string) {
 
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Display verbose tracing info.")
+	RootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Turn off retry for debugging.")
 }
