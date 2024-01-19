@@ -95,9 +95,9 @@ func RunCommandWithRetry(message string, successMessage string, showOutput bool,
 	retryErr := backoff.Retry(func() error {
 		retryCount++
 		if retryCount > 1 {
-			fmt.Printf("\r  %s%s%s ...%s %d %s%s \n", ColorReset(), message, ColorYellow(), "retrying", retryCount, "round", ColorReset())
+			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "trying", ColorReset())
 		}
-		output, errOutput, err = RunCommand(message, successMessage, showOutput, name, args...)
+		output, errOutput, err = runCommandHelper(message, successMessage, showOutput, true, name, args...)
 		return err
 	}, b)
 
@@ -110,7 +110,7 @@ func RunCommandWithRetry(message string, successMessage string, showOutput bool,
 	}
 }
 
-func RunCommand(message string, successMessage string, showOutput bool, name string, args ...string) (string, string, error) {
+func runCommandHelper(message string, successMessage string, showOutput bool, skipFailurePrompt bool, name string, args ...string) (string, string, error) {
 	cmd := exec.Command(name, args...)
 	output := []string{}
 	errOutput := []string{}
@@ -157,7 +157,9 @@ func RunCommand(message string, successMessage string, showOutput bool, name str
 	if exeErr == nil {
 		fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorGreen(), successMessage, ColorReset())
 	} else {
-		fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "failed", ColorReset())
+		if !skipFailurePrompt {
+			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "failed", ColorReset())
+		}
 	}
 
 	if showOutput {
@@ -170,6 +172,10 @@ func RunCommand(message string, successMessage string, showOutput bool, name str
 	}
 	showCursor()
 	return strings.Join(output, " "), strings.Join(errOutput, "\n"), exeErr
+}
+
+func RunCommand(message string, successMessage string, showOutput bool, name string, args ...string) (string, string, error) {
+	return runCommandHelper(message, successMessage, showOutput, false, name, args...)
 }
 
 func AddtoPath(des string) string {
