@@ -21,13 +21,13 @@ import (
 )
 
 func TestDoubleIni(t *testing.T) {
-	testMQTT := os.Getenv("TEST_MQTT")
+	testMQTT := os.Getenv("TEST_MQTT_LOCAL_ENABLED")
 	if testMQTT == "" {
 		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://127.0.0.1:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -40,13 +40,13 @@ func TestDoubleIni(t *testing.T) {
 }
 
 func TestInitWithMap(t *testing.T) {
-	testMQTT := os.Getenv("TEST_MQTT")
+	testMQTT := os.Getenv("TEST_MQTT_LOCAL_ENABLED")
 	if testMQTT == "" {
 		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
 	}
 	configMap := map[string]string{
 		"name":          "me",
-		"brokerAddress": "tcp://20.118.146.198:1883",
+		"brokerAddress": "tcp://127.0.0.1:1883",
 		"clientID":      "coa-test2",
 		"requestTopic":  "coa-request",
 		"responseTopic": "coa-response",
@@ -57,7 +57,7 @@ func TestInitWithMap(t *testing.T) {
 }
 
 func TestInitWithMapInvalidConfig(t *testing.T) {
-	testMQTT := os.Getenv("TEST_MQTT")
+	testMQTT := os.Getenv("TEST_MQTT_LOCAL_ENABLED")
 	if testMQTT == "" {
 		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
 	}
@@ -70,14 +70,14 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":          "me",
-		"brokerAddress": "tcp://20.118.146.198:1883",
+		"brokerAddress": "tcp://127.0.0.1:1883",
 	}
 	err = provider.InitWithMap(configMap)
 	assert.NotNil(t, err)
 
 	configMap = map[string]string{
 		"name":          "me",
-		"brokerAddress": "tcp://20.118.146.198:1883",
+		"brokerAddress": "tcp://127.0.0.1:1883",
 		"clientID":      "coa-test2",
 	}
 	err = provider.InitWithMap(configMap)
@@ -85,7 +85,7 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":          "me",
-		"brokerAddress": "tcp://20.118.146.198:1883",
+		"brokerAddress": "tcp://127.0.0.1:1883",
 		"clientID":      "coa-test2",
 		"requestTopic":  "coa-request",
 	}
@@ -94,7 +94,7 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":           "me",
-		"brokerAddress":  "tcp://20.118.146.198:1883",
+		"brokerAddress":  "tcp://127.0.0.1:1883",
 		"clientID":       "coa-test2",
 		"requestTopic":   "coa-request",
 		"responseTopic":  "coa-response",
@@ -105,7 +105,7 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":             "me",
-		"brokerAddress":    "tcp://20.118.146.198:1883",
+		"brokerAddress":    "tcp://127.0.0.1:1883",
 		"clientID":         "coa-test2",
 		"requestTopic":     "coa-request",
 		"responseTopic":    "coa-response",
@@ -117,7 +117,7 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":               "me",
-		"brokerAddress":      "tcp://20.118.146.198:1883",
+		"brokerAddress":      "tcp://127.0.0.1:1883",
 		"clientID":           "coa-test2",
 		"requestTopic":       "coa-request",
 		"responseTopic":      "coa-response",
@@ -129,7 +129,7 @@ func TestInitWithMapInvalidConfig(t *testing.T) {
 
 	configMap = map[string]string{
 		"name":               "me",
-		"brokerAddress":      "tcp://20.118.146.198:1883",
+		"brokerAddress":      "tcp://127.0.0.1:1883",
 		"clientID":           "coa-test2",
 		"requestTopic":       "coa-request",
 		"responseTopic":      "coa-response",
@@ -148,7 +148,7 @@ func TestGet(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://127.0.0.1:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -240,7 +240,7 @@ func TestApply(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://127.0.0.1:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -467,10 +467,67 @@ func TestGetApply(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestLocalApplyGet(t *testing.T) {
+	testMQTT := os.Getenv("TEST_MQTT_LOCAL_ENABLED")
+	if testMQTT == "" {
+		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+	}
+	config := MQTTTargetProviderConfig{
+		Name:           "me",
+		BrokerAddress:  "tcp://127.0.0.1:1883",
+		ClientID:       "coa-test2",
+		RequestTopic:   "coa-request",
+		ResponseTopic:  "coa-response",
+		TimeoutSeconds: 8,
+	}
+	provider := MQTTTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
+	opts.SetKeepAlive(2 * time.Second)
+	opts.SetPingTimeout(1 * time.Second)
+
+	c := gmqtt.NewClient(opts)
+	if token := c.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var response v1alpha2.COAResponse
+		response.State = v1alpha2.OK
+		response.Metadata = make(map[string]string)
+		var request v1alpha2.COARequest
+		json.Unmarshal(msg.Payload(), &request)
+		if request.Method == "GET" {
+			response.Metadata["call-context"] = "TargetProvider-Get"
+			ret := make([]model.ComponentSpec, 0)
+			data, _ := json.Marshal(ret)
+			response.State = v1alpha2.OK
+			response.Body = data
+		} else {
+			response.Metadata["call-context"] = "TargetProvider-Apply"
+			response.State = v1alpha2.OK
+		}
+		data, _ := json.Marshal(response)
+		token := c.Publish(config.ResponseTopic, 0, false, data)
+		token.Wait()
+	}); token.Wait() && token.Error() != nil {
+		if token.Error().Error() != "subscription exists" {
+			panic(token.Error())
+		}
+	}
+
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false)
+	assert.Nil(t, err)
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(arr))
+}
+
 func TestInitFailed(t *testing.T) {
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://127.0.0.1:1883",
+		BrokerAddress: "tcp://8.8.8.8:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",

@@ -22,8 +22,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/oliveagle/jsonpath"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type ReferenceManager struct {
 	managers.Manager
@@ -39,9 +42,9 @@ type CachedItem struct {
 }
 
 func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
+		log.Errorf("M (Reference): failed to initialize manager %+v", err)
 		return err
 	}
 
@@ -49,6 +52,7 @@ func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers
 	if err == nil {
 		s.StateProvider = stateProvider
 	} else {
+		log.Errorf("M (Reference): failed to get state provider %+v", err)
 		return err
 	}
 
@@ -56,12 +60,14 @@ func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers
 	if err == nil {
 		s.Reporter = reportProvider
 	} else {
+		log.Errorf("M (Reference): failed to get reporter %+v", err)
 		return err
 	}
 
 	ctx := contexts.ManagerContext{}
 	err = ctx.Init(context, nil)
 	if err != nil {
+		log.Errorf("M (Reference): failed to initialize manager context %+v", err)
 		return err
 	}
 
@@ -88,51 +94,63 @@ func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers
 }
 
 func (s *ReferenceManager) GetExt(refType string, namespace string, id1 string, group1 string, kind1 string, version1 string, id2 string, group2 string, kind2 string, version2 string, iteration string, alias string) ([]byte, error) {
+	log.Infof("M (Reference): GetExt id1 - %s, id2 - %s, group2 - %s", id1, id2, group2)
+
 	if group2 != "download" {
 		data1, err := s.Get(refType, id1, namespace, group1, kind1, version1, "", "")
 		if err != nil {
+			log.Errorf("M (Reference): failed to get %s: %+v", id1, err)
 			return nil, err
 		}
 		data2, err := s.Get(refType, id2, namespace, group2, kind2, version2, "", "")
 		if err != nil {
+			log.Errorf("M (Reference): failed to get %s: %+v", id2, err)
 			return nil, err
 		}
 		return fillParameters(data1, data2, id1, alias)
 	} else {
 		data1, err := s.Get(refType, id1, namespace, group1, kind1, version1, "", "")
 		if err != nil {
+			log.Errorf("M (Reference): failed to get %s: %+v", id1, err)
 			return nil, err
 		}
 		obj := make(map[string]interface{}, 0)
 		err = json.Unmarshal(data1, &obj)
 		if err != nil {
+			log.Errorf("M (Reference): failed to unmarshall %s object: %+v", id1, err)
 			return nil, err
 		}
 		var specData []byte
 		if v, ok := obj["spec"]; ok {
 			specData, err = json.Marshal(v)
 			if err != nil {
+				log.Errorf("M (Reference): failed to unmarshall %s spec: %+v", id1, err)
 				return nil, err
 			}
 		} else {
+			log.Errorf("M (Reference): %s spec property not found", id1)
 			return nil, v1alpha2.NewCOAError(nil, "resolved object doesn't contain a 'spec' property", v1alpha2.InternalError)
 		}
 
 		model := model.ModelSpec{}
 		err = json.Unmarshal(specData, &model)
 		if err != nil {
+			log.Errorf("M (Reference): failed to unmarshall %s object spec: %+v", id1, err)
 			return nil, err
 		}
 		modelType := safeRead("model.type", model.Properties)
 		if modelType != "customvision" {
+			log.Errorf("M (Reference): failed to unmarshall %s object spec:", id1)
 			return nil, v1alpha2.NewCOAError(nil, "only 'customvision' model type is supported", v1alpha2.InternalError)
 		}
 		modelProject := safeRead("model.project", model.Properties)
 		if modelProject == "" {
+			log.Errorf("M (Reference): failed to read %s model.project property", id1)
 			return nil, v1alpha2.NewCOAError(nil, "property 'model.project' is not found", v1alpha2.InternalError)
 		}
 		modelEndpoint := safeRead("model.endpoint", model.Properties)
 		if modelEndpoint == "" {
+			log.Errorf("M (Reference): failed to read %s model.endpoint property", id1)
 			return nil, v1alpha2.NewCOAError(nil, "property 'model.endpoint' is not found", v1alpha2.InternalError)
 		}
 		modelVersions := make(map[string]string)
@@ -142,6 +160,7 @@ func (s *ReferenceManager) GetExt(refType string, namespace string, id1 string, 
 			}
 		}
 		if len(modelVersions) == 0 {
+			log.Errorf("M (Reference): failed to read %s model.version property", id1)
 			return nil, v1alpha2.NewCOAError(nil, "no model version are found", v1alpha2.InternalError)
 		}
 		selection := ""
@@ -153,11 +172,13 @@ func (s *ReferenceManager) GetExt(refType string, namespace string, id1 string, 
 			}
 		}
 		if selection == "" {
+			log.Errorf("M (Reference): failed to read %s model.version property", id1)
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("requested version 'model.version.%s' is not found", iteration), v1alpha2.InternalError)
 		}
 
 		downloadData, err := s.Get("v1alpha2.CustomVision", modelProject, modelEndpoint, kind2, version2, selection, "", "")
 		if err != nil {
+			log.Errorf("M (Reference): failed to get %s: %+v", modelProject, err)
 			return nil, err
 		}
 		return downloadData, nil
@@ -191,6 +212,9 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 	} else {
 		entityId = fmt.Sprintf("%s-%s-%s-%s-%s-%s", refType, id, namespace, group, kind, version)
 	}
+
+	log.Infof("M (Reference): Get entityId- %s", entityId)
+
 	entity, err := s.StateProvider.Get(context.TODO(), states.GetRequest{
 		ID: entityId,
 	})
@@ -239,7 +263,6 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 	})
 	refData, _ := json.Marshal(ref)
 	return refData, nil
-
 }
 
 func (s *ReferenceManager) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrite bool) error {

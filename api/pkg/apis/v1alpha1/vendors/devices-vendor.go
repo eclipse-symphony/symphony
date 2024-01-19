@@ -75,8 +75,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		"method": "onDevices",
 	})
 	defer span.End()
-
-	tLog.Info("~ Devices Manager ~ : onDevices")
+	tLog.Infof("V (Devices): onDevices %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -92,6 +91,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			state, err = c.DevicesManager.GetSpec(ctx, id)
 		}
 		if err != nil {
+			log.Errorf("V (Devices): failed to get device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -115,6 +115,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		err := json.Unmarshal(request.Body, &device)
 		if err != nil {
+			log.Errorf("V (Devices): failed to unmarshall request body, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -123,6 +124,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		err = c.DevicesManager.UpsertSpec(ctx, id, device)
 		if err != nil {
+			log.Errorf("V (Devices): failed to upsert device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -136,6 +138,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		id := request.Parameters["__name"]
 		err := c.DevicesManager.DeleteSpec(ctx, id)
 		if err != nil {
+			log.Errorf("V (Devices): failed to delete device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -145,6 +148,8 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			State: v1alpha2.OK,
 		})
 	}
+
+	log.Infof("V (Devices): onDevices returns MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

@@ -94,10 +94,11 @@ func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("~~~ Win 10 Sideload Provider ~~~ : Init()")
+	sLog.Info(" P (Win10Sideload Target): Init()")
 
 	updateConfig, err := toWin10SideLoadProviderConfig(config)
 	if err != nil {
+		sLog.Errorf(" P (Win10Sideload Target): expected Win10SideLoadProviderConfig - %+v", err)
 		err = errors.New("expected Win10SideLoadProviderConfig")
 		return err
 	}
@@ -121,7 +122,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof(" P (Win10Sideload Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	params := make([]string, 0)
 	params = append(params, "list")
@@ -135,6 +136,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	out, err := exec.Command(i.Config.WinAppDeployCmdPath, params...).Output()
 
 	if err != nil {
+		sLog.Errorf(" P (Win10Sideload Target): failed to run deploy cmd %s, error: %+v, traceId: %s", i.Config.WinAppDeployCmdPath, err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	str := string(out)
@@ -170,11 +172,12 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof(" P (Win10Sideload Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.Errorf(" P (Win10Sideload Target): failed to validate components, error: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	if isDryRun {
@@ -201,6 +204,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
 				err = cmd.Run()
 				if err != nil {
+					sLog.Errorf(" P (Win10Sideload Target): failed to install application %s, error: %+v, traceId: %s", path, err, span.SpanContext().TraceID().String())
 					ret[component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
@@ -243,6 +247,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
 				err = cmd.Run()
 				if err != nil {
+					sLog.Errorf(" P (Win10Sideload Target): failed to uninstall application %s, error: %+v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 					if i.Config.Silent {
 						return ret, nil
 					} else {

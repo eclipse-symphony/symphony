@@ -16,10 +16,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type DevicesManager struct {
 	managers.Manager
@@ -29,10 +32,12 @@ type DevicesManager struct {
 func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
+		log.Errorf("M (Devices): failed to initialize manager %+v", err)
 		return err
 	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
 	if err == nil {
+		log.Errorf("M (Devices): failed to get state provider %+v", err)
 		s.StateProvider = stateprovider
 	} else {
 		return err
@@ -46,6 +51,7 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("M (Devices): DeleteSpec name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -56,7 +62,11 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "devices",
 		},
 	})
-	return err
+	if err != nil {
+		log.Errorf("M (Devices):failed to delete state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		return err
+	}
+	return nil
 }
 
 func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
@@ -65,6 +75,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("M (Devices): UpsertSpec name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -88,6 +99,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		log.Errorf("M (Devices): failed to update state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return err
 	}
 	return nil
@@ -99,6 +111,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("M (Devices): ListSpec, traceId: %s", span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
@@ -109,6 +122,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
+		log.Errorf("M (Devices): failed to list state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.DeviceState, 0)
@@ -116,6 +130,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 		var rt model.DeviceState
 		rt, err = getDeviceState(t.ID, t.Body)
 		if err != nil {
+			log.Errorf("M (Devices): ListSpec failed to get device state %s, error: %v, traceId: %s", t.ID, err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -146,6 +161,7 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("M (Devices): GetSpec id %s, traceId: %s", id, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -157,11 +173,13 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		log.Errorf("M (Devices): failed to get state %s, error: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
 	}
 
 	ret, err := getDeviceState(id, target.Body)
 	if err != nil {
+		log.Errorf("M (Devices): GetSpec failed to get device state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
 	}
 	return ret, nil

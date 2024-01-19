@@ -114,7 +114,8 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		"method": "onRegistry",
 	})
 	defer span.End()
-	tLog.Info("V (Targets) : onRegistry")
+	log.Infof("V (Targets): onRegistry %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
 	scope, exist := request.Parameters["scope"]
 	if !exist {
 		scope = "default"
@@ -159,6 +160,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		var target model.TargetSpec
 		err := json.Unmarshal(request.Body, &target)
 		if err != nil {
+			log.Errorf("V (Targets): onRegistry failed to unmarshall request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -207,6 +209,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		}
 		err = c.TargetsManager.UpsertSpec(ctx, id, scope, target)
 		if err != nil {
+			log.Errorf("V (Targets): onRegistry failed to upsert spec, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -249,6 +252,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		} else {
 			err := c.TargetsManager.DeleteSpec(ctx, id, scope)
 			if err != nil {
+				log.Errorf("V (Targets): onRegistry failed to delete spec, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -259,6 +263,8 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			State: v1alpha2.OK,
 		})
 	}
+
+	log.Infof("V (Targets): onRegistry returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -273,10 +279,12 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		"method": "onBootstrap",
 	})
 	defer span.End()
+	log.Infof("V (Targets): onBootstrap %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	var authRequest AuthRequest
 	err := json.Unmarshal(request.Body, &authRequest)
 	if err != nil || authRequest.UserName != "symphony-test" {
+		log.Error("V (Targets): onBootstrap returned Unauthorized, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.Unauthorized,
 			Body:  []byte(err.Error()),
@@ -300,6 +308,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, _ := token.SignedString(mySigningKey)
 
+	log.Info("V (Targets): onBootstrap succeeded, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        []byte(`{"accessToken":"` + ss + `", "tokenType": "Bearer"}`),
@@ -314,6 +323,8 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		"method": "onStatus",
 	})
 	defer span.End()
+	log.Infof("V (Targets): onStatus %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
 	scope, exist := request.Parameters["scope"]
 	if !exist {
 		scope = "default"
@@ -350,12 +361,15 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 
 	if err != nil {
+		log.Errorf("V (Targets): onStatus failed to report state, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		})
 	}
 	jData, _ := json.Marshal(state)
+
+	log.Info("V (Targets): onStatus succeeded, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        jData,
@@ -370,12 +384,15 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		"method": "onDownload",
 	})
 	defer span.End()
+	log.Infof("V (Targets): onDownload %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
 	scope, exist := request.Parameters["scope"]
 	if !exist {
 		scope = "default"
 	}
 	state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"], scope)
 	if err != nil {
+		log.Errorf("V (Targets): onDownload failed to get target spec, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -383,6 +400,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	}
 	jData, err := utils.FormatObject(state, false, request.Parameters["path"], request.Parameters["__doc-type"])
 	if err != nil {
+		log.Errorf("V (Targets): onDownload failed to format target object, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -398,6 +416,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		resp.ContentType = "application/text"
 	}
 
+	log.Info("V (Targets): onDownload succeeded, traceId: %s", span.SpanContext().TraceID().String())
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
@@ -407,6 +426,8 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		"method": "onHeartBeat",
 	})
 	defer span.End()
+	log.Infof("V (Targets): onHeartBeat %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
 	scope, exist := request.Parameters["scope"]
 	if !exist {
 		scope = "default"
@@ -425,12 +446,14 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 
 	if err != nil {
+		log.Errorf("V (Targets): failed to report state, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		})
 	}
 
+	log.Info("V (Targets): onHeartBeat succeeded, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        []byte(`{}`),

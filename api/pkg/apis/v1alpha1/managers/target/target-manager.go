@@ -51,11 +51,11 @@ type DeviceSpec struct {
 }
 
 func (s *TargetManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-
 	probeProvider, err := managers.GetProbeProvider(config, providers)
 	if err == nil {
 		s.ProbeProvider = probeProvider
 	} else {
+		log.Errorf("M (Target): failed to get probe provider %+v", err)
 		return err
 	}
 
@@ -63,6 +63,7 @@ func (s *TargetManager) Init(context *contexts.VendorContext, config managers.Ma
 	if err == nil {
 		s.ReferenceProvider = referenceProvider
 	} else {
+		log.Errorf("M (Target): failed to get reference provider %+v", err)
 		return err
 	}
 
@@ -70,6 +71,7 @@ func (s *TargetManager) Init(context *contexts.VendorContext, config managers.Ma
 	if err == nil {
 		s.UploaderProvider = uploaderProvider
 	} else {
+		log.Errorf("M (Target): failed to get upload provider %+v", err)
 		return err
 	}
 
@@ -77,6 +79,7 @@ func (s *TargetManager) Init(context *contexts.VendorContext, config managers.Ma
 	if err == nil {
 		s.Reporter = reporterProvider
 	} else {
+		log.Errorf("M (Target): failed to get reporter %+v", err)
 		return err
 	}
 
@@ -97,6 +100,7 @@ func (s *TargetManager) Enabled() bool {
 }
 func (s *TargetManager) Poll() []error {
 	target := s.ReferenceProvider.TargetID()
+	log.Infof("M (Target): Poll target- %s", target)
 
 	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", model.FabricGroup, "devices", "v1", "v1alpha2.ReferenceK8sCRD")
 	if err != nil {
@@ -170,6 +174,8 @@ func (s *TargetManager) Poll() []error {
 	return errors
 }
 func (s *TargetManager) reportStatus(deviceName string, targetName string, snapshot string, targetStatus string, deviceStatus string, overwrite bool, errStr string) []error {
+	log.Infof("M (Target): reportStatus deviceName- %s, targetName - %s, snapshot -%s targetStatus -%s, deviceStatus -%s, overwrite -%s", deviceName, targetName, snapshot, targetStatus, deviceStatus, overwrite)
+
 	ret := make([]error, 0)
 	report := make(map[string]string)
 	report[targetName+".status"] = targetStatus
@@ -194,6 +200,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 		log.Debugf("failed to report target status: %s", err.Error())
 		ret = append(ret, err)
 	}
+
 	return ret
 }
 func (s *TargetManager) Reconcil() []error {

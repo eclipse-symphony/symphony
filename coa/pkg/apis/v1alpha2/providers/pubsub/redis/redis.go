@@ -152,6 +152,7 @@ func (i *RedisPubSubProvider) InitWithMap(properties map[string]string) error {
 func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	vConfig, err := toRedisPubSubProviderConfig(config)
 	if err != nil {
+		mLog.Debugf("  P (Redis PubSub): failed to parse provider config %+v", err)
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid redis pub-sub provider config", v1alpha2.BadConfig)
 	}
 	i.Config = vConfig
@@ -174,6 +175,7 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	}
 	client := redis.NewClient(options)
 	if _, err := client.Ping().Result(); err != nil {
+		mLog.Debugf("  P (Redis PubSub): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", i.Config.Host), v1alpha2.InternalError)
 	}
 	i.Client = client
