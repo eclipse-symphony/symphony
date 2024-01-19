@@ -1,6 +1,6 @@
 # Application Insight middleware
 
-The Application Insight middleware allows Symphony API consumption events to be collected to an Azure Monitor vtenant, which is identified by an instrumentation key defined in a `APP_INSIGHT_KEY` environment variable. For more information, see [Application Insights overview](https://learn.microsoft.com/eclipse-azure-monitor/app/app-insights-overview).
+The Application Insight middleware allows Symphony API consumption events to be collected to an Azure Monitor vtenant, which is identified by an instrumentation key defined in a `APP_INSIGHT_KEY` environment variable. For more information, see [Application Insights overview](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview).
 
 The Application Insight middleware is plugged into an [HTTP binding](../bindings/http-binding.md) via the binding’s [pipeline](../bindings/http-binding.md#pipeline) configuration, for example:
 

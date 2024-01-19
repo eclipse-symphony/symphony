@@ -5,7 +5,7 @@ _(last edit: 9/18/2023)_
 To install Symphony on your Kubernetes clusters using Helm 3, use `helm install`:
 
 ```bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.44.6
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.47.2
 ```
 
 Or, if you already have the **symphony** repository cloned:
@@ -25,7 +25,7 @@ PASSWORD='{YOUR_GITHUB_PAT_TOKEN}'
 helm registry login ghcr.io --username $USER_NAME --password $PASSWORD
 
 # install using Helm chart
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.40.8
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.47.2
 ```
 
 ## Update Symphony
@@ -33,7 +33,7 @@ helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.4
 To update your existing Symphony release to a new version, use `helm upgrade`:
 
 ```bash
-helm upgrade --install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.45.31
+helm upgrade --install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version 0.47.2
 ```
 
 ## Customize Helm deployment
@@ -56,4 +56,4 @@ Now that you have the Symphony API, try out one of the quick start scenarios:
 | [Deploy a Prometheus server to a K8s cluster](deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
 | [Deploy a Redis container with standalone Symphony](deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
 | [Deploy a simulated temperature sensor Solution to an Azure IoT Edge device](deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
-| [Manage RTSP cameras connected to a gateway](symphony-book/get-started/manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |
+| [Manage RTSP cameras connected to a gateway](manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |

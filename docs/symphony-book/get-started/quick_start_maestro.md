@@ -11,16 +11,12 @@ The easiest way to get started with Symphony is to use Maestro, Symphony's CLI t
   ```bash
   wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
   ```
-  
-  > **Pre-release NOTE**: The ```Haishi2016``` repo is a temporary parking repo, which will be replaced before release.
 
 * Install on Windows
 
   ```bash
   powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
   ```
-
-  > **Pre-release NOTE**: The ```Haishi2016``` repo is a temporary parking repo, which will be replaced before release.
 
 ## 2. Set up Symphony API
 
@@ -30,7 +26,9 @@ Use `maestro up` to configure all dependencies and set up Symphony. If you alrea
 maestro up
 ```
 
-> **NOTE**: ```maestro up``` will try to install a [kind](https://kind.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
+> **NOTE**: ```maestro up``` will try to install a [Minikube](https://minikube.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
+
+> **NOTE**: you can choose to install Symphony in a different Kubernetes namespace with a ```-n <namespace>``` or ```--namespace <namespace>``` switch.
 
 ## 3. Browse and run samples
 
@@ -61,4 +59,4 @@ Now that you have the Symphony API, try out one of the quick start scenarios:
 | [Deploy a Prometheus server to a K8s cluster](deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
 | [Deploy a Redis container with standalone Symphony](deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
 | [Deploy a simulated temperature sensor Solution to an Azure IoT Edge device](deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
-| [Manage RTSP cameras connected to a gateway](symphony-book/get-started/manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |
+| [Manage RTSP cameras connected to a gateway](manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |

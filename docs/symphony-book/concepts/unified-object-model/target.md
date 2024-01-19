@@ -1,10 +1,10 @@
 # Target
 
-A `target` in Symphony is an endpoint to which Symphony `components` can be deployed. A target can be a server, a PC, a mobile device, a cluster, or any other endpoints that support the Symphony [provider interface](../providers/provider_interface.md). When a target is registered, Symphony allows a full-stack description of all software components, policies, and configurations that are required on the target, and Symphony uses its state-seeking mechanism to make sure that the target is configured properly.
+A `target` in Symphony is an endpoint to which Symphony `components` can be deployed. A target can be a server, a PC, a mobile device, a cluster, or any other endpoints that support the Symphony [provider interface](../../providers/provider_interface.md). When a target is registered, Symphony allows a full-stack description of all software components, policies, and configurations that are required on the target, and Symphony uses its state-seeking mechanism to make sure that the target is configured properly.
 
 ![target](../images/target.png)
 
-Symphony ships a number of providers out-of-box to support various target types. And Symphony is extensible with either [native providers](../providers/_overview.md#provider-types) (that come with Symphony builds), [script providers](../providers/script_provider.md) or [standalone providers](../providers/standalone_providers.md) via a proxy.
+Symphony ships a number of providers out-of-box to support various target types. Any symphony is extensible with either [native providers](../../providers/_overview.md#provider-types) (that come with Symphony builds), [script providers](../../providers/script_provider.md), or [standalone providers](../../providers/standalone_providers.md)
 
 ## Components
 
@@ -36,7 +36,7 @@ components:
 
 ## Role bindings
 
-A component is bound to a [provider](../providers/target_provider.md) through a role binding by component type. For example, the following binding binds a `yaml.k8s` component type to a `providers.target.kubectl` provider.
+A component is bound to a [provider](../../providers/target_provider.md) through a role binding by component type. For example, the following binding binds a `yaml.k8s` component type to a `providers.target.kubectl` provider.
 
 ```yaml
 topologies:
@@ -49,4 +49,4 @@ topologies:
 
 ## Related topics
 
-* [Providers](../providers/_overview.md)
+* [Providers](../../providers/_overview.md)
