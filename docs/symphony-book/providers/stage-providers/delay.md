@@ -6,7 +6,7 @@ Delay stage provider sleeps for the given duration. It runs its `stageSelector` 
 
 | Field | Value |
 |-------|-------|
-| `delay` | an integer (in seconds) or a duration expression, such as `100` or `"4m20s"`
+| `delay` | An integer (in seconds) or a duration expression, such as `100` or `"4m20s"`
 
 ## Outputs
 
@@ -26,4 +26,3 @@ delay-stage:
     delay: "180s"
   stageSelector: "next-stage"
 ```
-

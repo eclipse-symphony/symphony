@@ -18,7 +18,7 @@ cd api
 go build -o ./symphony-api
 ```
 
-Launch Symphony with a [configuration file](../hosts/overview.md):
+Launch Symphony with a [configuration file](../hosts/_overview.md):
 
 ```bash
 ./symphony-api -c ./symphony-api-no-k8s.json -l Debug

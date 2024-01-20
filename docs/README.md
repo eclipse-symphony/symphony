@@ -63,7 +63,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 
 * [Deploy Symphony to a single site](./symphony-book/build_deployment/deploy.md)
 * [Deploy Symphony to multiple sites](./symphony-book/build_deployment/multisite-deploy.md)
-* [Troubleshoot](./symphony-book/dev-guide/troubleshooting.md)
+* [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
 * [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
 
 ## Advanced scenarios
@@ -73,13 +73,13 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 
 ## Contribute to Symphony
 
-* [Developer guide](./symphony-book/dev-guide/getting-started.md)
+* [Developer guide](./symphony-book/dev-guide/_overview.md)
 * [API reference](./symphony-book/api/_overview.md)
 
 ## Additional topics
 
 * [Symphony agent](./symphony-book/agent/_overview.md)
-* [Symphony portal](./symphony-book/portals/overview.md)
+* [Symphony portal](./symphony-book/portals/_overview.md)
 * [Symphony expressions](./symphony-book/concepts/unified-object-model/property-expressions.md)
 
 ## Supported technologies

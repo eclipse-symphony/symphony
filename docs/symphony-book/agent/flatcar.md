@@ -27,7 +27,7 @@
 
 1. Upload the `.raw` file to a GitHub release folder.
 
-   The ignition file under the repo uses a temporary GitHub release at `https://github.com/eclipse-symphony/symphony/releases/download/vtest/piccolo.raw`. To use a different GitHub repo, you'll need to update the ignite.ign file and update the source folder to the repo you want to use.
+   The ignition file under the repo uses a temporary GitHub release at `https://github.com/Haishi2016/Vault818/releases/download/vtest/piccolo.raw`. To use a different GitHub repo, you'll need to update the ignite.ign file and update the source folder to the repo you want to use.
 
 1. Download Flatcar image if needed.
 

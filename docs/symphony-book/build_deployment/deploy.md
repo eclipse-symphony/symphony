@@ -20,7 +20,7 @@ Choose your preferred tool for deploying Symphony:
 
   [Use Symphony as a binary](../get-started/quick_start_binary.md)
 
-> **NOTE**: You can find various Symphony API configuration files under the `api` folder of the Symphony repo. For more information, see [host configurations](../hosts/overview.md).
+> **NOTE**: You can find various Symphony API configuration files under the `api` folder of the Symphony repo. For more information, see [host configurations](../hosts/_overview.md).
 
 ## Deployment at scale
 
@@ -28,9 +28,9 @@ The default Symphony configuration uses in-memory state stores and pub/sub messa
 
 ### Scale out
 
-By default, all Symphony vendors are hosted on a single [host](../hosts/overview.md). If you need to scale these vendors independently, you can create multiple host configurations, each loading only the desired vendors, and run multiple host processes or containers in your environment. Because Symphony doesn't allow horizontal dependencies, you can slice up vendors into different topologies freely. However, for these vendors to communicate with each other through messaging, they need to share the same pub/sub message bus, such as a Redis cluster.
+By default, all Symphony vendors are hosted on a single [host](../hosts/_overview.md). If you need to scale these vendors independently, you can create multiple host configurations, each loading only the desired vendors, and run multiple host processes or containers in your environment. Because Symphony doesn't allow horizontal dependencies, you can slice up vendors into different topologies freely. However, for these vendors to communicate with each other through messaging, they need to share the same pub/sub message bus, such as a Redis cluster.
 
-Symphony's [job manager](../managers/overview.md) invokes Symphony's reconcile API on the solution vendor through HTTP. Make sure that your job manager is configured to talk to the solution vendor host FDN (or load-balancer FDN) instead of `localhost`.
+Symphony's [job manager](../managers/_overview.md) invokes Symphony's reconcile API on the solution vendor through HTTP. Make sure that your job manager is configured to talk to the solution vendor host FDN (or load-balancer FDN) instead of `localhost`.
 
 ### State stores
 

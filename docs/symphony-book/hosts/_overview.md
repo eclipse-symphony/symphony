@@ -2,11 +2,11 @@
 
 _(last edit: 4/12/2023)_
 
-Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/overview.md) and bind them to one or multiple [bindings](../bindings/_overview.md).
+Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/_overview.md) and bind them to one or multiple [bindings](../bindings/_overview.md).
 
 ## Host configurations
 
-Under the `api` folder of the `symphony` repo, you can find a bunch of `*.json` files – these are different configuration files for various Symphony roles and purposes. For example:
+Under the `api` folder of the `symphony` repo, several `*.json` files define the configurations for various Symphony roles and purposes. For example:
 
 * `symphony-agent.json`: This is the default configuration for a Symphony agent.
 * `symphony-api-dev-console-trace.json`: This is the same configuration as `symphony-api-dev.json`, plus a console exporter for [OpenTelemetry](https://opentelemetry.io/).
@@ -22,11 +22,11 @@ Under the `api` folder of the `symphony` repo, you can find a bunch of `*.json` 
 * `symphony-script-proxy.json`: A sample proxy deployment with a script provider.
 * `symphony-win-proxy.json`: A sample proxy deployment with a Windows 10 sideload provider.
 
-A host configuration contains an `api` element that contains all the [vendors](../vendors/overview.md) to be loaded; and a "bindings" element that contains all the [bindings](../bindings/_overview.md) to be enabled for this host.
+A host configuration contains an `api` element that contains all the vendors to be loaded and a `bindings` element that contains all the bindings to be enabled for this host.
 
 ## Symphony-API container
 
-By default, `ghcr.io/eclipse-symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONIFG` environment variable. For example, to change log level to `Error` while launching the container:
+By default, the `ghcr.io/eclipse-symphony/symphony-api` container is configured to load `symphony-api.json` with `Debug` log level (this may change in production container build). You can override log level with a `LOG_LEVEL` environment variable, and the configuration file with a `CONFIG` environment variable. For example, to change log level to `Error` while launching the container:
 
 ```bash
 docker run --rm -it -e LOG_LEVEL=Error ghcr.io/eclipse-symphony/symphony-api:latest
@@ -38,6 +38,6 @@ And to use a different configuration file:
 docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/config/symphony-api-dev.json ghcr.io/eclipse-symphony/symphony-api:latest
 ```
 
-## Scaling out the host
+## Scale out the host
 
 When you run multiple host instances behind a load balancer, and if you have [managers](../managers/overview.md) who use a state store, you need to choose a shared state store that is accessible by all instances. Symphony currently doesn't have a shared state store provider other than a HTTP state provider that can be configured together with sidecars like [Dapr](https://dapr.io/). It's expected some native shared state store provider (like Redis) will be added in future versions.

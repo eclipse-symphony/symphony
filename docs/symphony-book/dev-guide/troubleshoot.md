@@ -29,4 +29,4 @@ kubectl get target <target name> -o yaml
 
 ## Related topics
 
-* [Debug Symphony API](./debugging-api.md)
+* [Debug Symphony API](./debug-api.md)

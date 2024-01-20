@@ -26,9 +26,9 @@ Use `maestro up` to configure all dependencies and set up Symphony. If you alrea
 maestro up
 ```
 
-> **NOTE**: ```maestro up``` will try to install a [Minikube](https://minikube.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
+> **NOTE**: `maestro up` will try to install a [Minikube](https://minikube.sigs.k8s.io/) Kubernetes cluster on your machine, if you don't already have **kubectl** installed and configured.
 
-> **NOTE**: you can choose to install Symphony in a different Kubernetes namespace with a ```-n <namespace>``` or ```--namespace <namespace>``` switch.
+> **NOTE**: you can choose to install Symphony in a different Kubernetes namespace with a `-n <namespace>` or `--namespace <namespace>` switch.
 
 ## 3. Browse and run samples
 

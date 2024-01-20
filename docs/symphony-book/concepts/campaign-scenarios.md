@@ -2,7 +2,7 @@
 
 A [campaign](./unified-object-model/campaign.md) is a versatile type that can be used to implement many useful workflows. This section contains a few typical use cases of campaigns.
 
-For more information about how Symphony approaches workflows, see [Workflows](./workflows.md).
+For more information about how Symphony approaches workflows, see [Workflows](workflows.md).
 
 ## Canary deployment
 

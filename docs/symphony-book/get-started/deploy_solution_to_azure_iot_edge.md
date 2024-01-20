@@ -15,7 +15,7 @@ These steps create a new resource group, a new IoT Hub, and a new IoT Edge devic
 # install Azure IoT extension if needed
 az extension add --name azure-iot
 
-# create resource grouop
+# create resource group
 az group create --name <REPLACE_WITH_GROUP_NAME> --location westus2
 
 # create IoT Hub

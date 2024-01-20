@@ -1,4 +1,4 @@
-# Distributed Tracing
+# Distributed tracing
 
 Symphony supports automatic management plane distributed tracing through it’s [tracing middleware](../bindings/tracing.md).
 

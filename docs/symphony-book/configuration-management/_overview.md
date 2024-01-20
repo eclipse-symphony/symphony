@@ -16,5 +16,5 @@ Configurations can be injected into solution components as environment variables
 
 ## Related topics
 
-* [Define configurations](./defining-configurations.md)
-* [Serve configurations](./serving-configurations.md)
+* [Define configurations](./define-configurations.md)
+* [Serve configurations](./serve-configurations.md)

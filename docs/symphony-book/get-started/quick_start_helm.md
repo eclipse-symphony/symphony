@@ -15,7 +15,7 @@ cd <path>/symphony/packages/helm
 helm install symphony ./symphony
 ```
 
-If you need to install the Helm chart from a private ACR like ```ghcr.io```, you need to log in first:
+If you need to install the Helm chart from a private ACR like `ghcr.io`, you need to log in first:
 
 ```bash
 # login as necessary. Note once the repo is turned public no authentication is needed

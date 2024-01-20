@@ -8,7 +8,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Object managers
 
-  For each object type in the [UOM](../concepts/unified-object-model/_overview.md), there's a corresponding manager, named after the object type in plural form, including:
+  For each object type in the [unified object model](../concepts/unified-object-model/_overview.md), there's a corresponding manager named after the object type in plural form, including:
 
   * Devices manager
   * Instances manager
