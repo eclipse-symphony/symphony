@@ -83,7 +83,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 	})
 	defer span.End()
 
-	cLog.Info("V (Activations Vendor): onStatus")
+	vLog.Info("V (Activations Vendor): onStatus")
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onStatus-POST", pCtx, nil)
@@ -121,7 +121,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 	})
 	defer span.End()
 
-	cLog.Info("V (Activations Vendor): onActivations")
+	vLog.Info("V (Activations Vendor): onActivations")
 
 	switch request.Method {
 	case fasthttp.MethodGet:

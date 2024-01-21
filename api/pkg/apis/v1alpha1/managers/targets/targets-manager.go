@@ -112,9 +112,15 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		return model.TargetState{}, err
 	}
 
-	dict := target.Body.(map[string]interface{})
+	dict := map[string]interface{}{}
+	if target.Body != nil {
+		dict = target.Body.(map[string]interface{})
+	}
 
-	specCol := dict["spec"].(model.TargetSpec)
+	specCol := model.TargetSpec{}
+	if (dict["spec"] != nil) && (dict["spec"] != "") {
+		specCol = dict["spec"].(model.TargetSpec)
+	}
 
 	delete(dict, "spec")
 	if dict["status"] == nil {

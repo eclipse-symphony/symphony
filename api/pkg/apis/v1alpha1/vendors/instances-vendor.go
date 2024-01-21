@@ -77,7 +77,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 
-	tLog.Info("~ Instances Manager ~ : onInstances")
+	iLog.Info("~ Instances Manager ~ : onInstances")
 
 	switch request.Method {
 	case fasthttp.MethodGet:
