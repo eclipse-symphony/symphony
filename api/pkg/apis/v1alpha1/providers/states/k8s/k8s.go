@@ -189,8 +189,12 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		Resource: resource,
 	}
 
-	j, _ := json.Marshal(entry.Value.Body)
+	if entry.Value.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		return "", err
+	}
 
+	j, _ := json.Marshal(entry.Value.Body)
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
 		// TODO: check if not-found error
@@ -355,6 +359,11 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 		scope = "default"
 	}
 
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		return err
+	}
+
 	err = s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
 	if err != nil {
 		sLog.Errorf("  P (K8s State): failed to delete objects: %v", err)
@@ -385,6 +394,11 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		Group:    group,
 		Version:  version,
 		Resource: resource,
+	}
+
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		return states.StateEntry{}, err
 	}
 
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, request.ID, metav1.GetOptions{})
