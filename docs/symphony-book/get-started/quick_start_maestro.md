@@ -50,6 +50,15 @@ maestro up
   maestro samples remove <sample name>
   ```
 
+## Diagnostics
+
+* To get run verbose logs:
+  ```
+  Run maestro command with "--verbose"
+  ```
+
+<!-- Known Issues -->
+
 ## More topics
 
 Now that you have the Symphony API, try out one of the quick start scenarios:

@@ -7,8 +7,8 @@
 package queue
 
 type IQueueProvider interface {
-	Enqueue(stack string, element interface{}) error
-	Dequeue(stack string) (interface{}, error)
-	Peek(stack string) (interface{}, error)
-	Size(stack string) int
+	Enqueue(queue string, element interface{}) error
+	Dequeue(queue string) (interface{}, error)
+	Peek(queue string) (interface{}, error)
+	Size(queue string) int
 }

@@ -80,9 +80,10 @@ var UpCmd = &cobra.Command{
 			if !ret {
 				return
 			}
-			_, err := utils.RunCommand("Installing cert manager", "done", verbose, "kubectl", "apply", "-f", "https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml")
+			_, errOutput, err := utils.RunCommand("Installing cert manager", "done", verbose, "kubectl", "apply", "-f", "https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml")
 			if err != nil {
 				fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
+				fmt.Printf("\n%s  Detailed Messages: %s%s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 				return
 			}
 			if !handleHelm() {
@@ -174,7 +175,7 @@ func init() {
 // 	case "oss":
 // 		count := 0
 // 		for {
-// 			str, err := utils.RunCommand("Checking Symphony Portal address", "OK", verbose, "kubectl", "get", "svc", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+// 			str, _, err := utils.RunCommand("Checking Symphony Portal address", "OK", verbose, "kubectl", "get", "svc", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
 // 			if err != nil {
 // 				fmt.Printf("\n%s  Failed to check Symphony Portal address.%s\n\n", utils.ColorRed(), utils.ColorReset())
 // 				return false, ""
@@ -198,7 +199,7 @@ func init() {
 func checkSymphonyAddress() (bool, string) {
 	count := 0
 	for {
-		str, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", namespace, "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+		str, _, err := utils.RunCommand("Checking public Symphony API address", "", verbose, "kubectl", "get", "svc", "symphony-service-ext", "-n", namespace, "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
 		if err == nil && str != "" {
 			return true, str
 		}
@@ -214,10 +215,10 @@ func checkSymphonyAddress() (bool, string) {
 // func handlePortal(apiAddress string) bool {
 // 	switch strings.ToLower(portalType) {
 // 	case "oss":
-// 		str, _ := utils.RunCommand("Checking OSS portal", "done", verbose, "helm", "list", "-q", "-l", "name=voe")
+// 		str, _, _ := utils.RunCommand("Checking OSS portal", "done", verbose, "helm", "list", "-q", "-l", "name=voe")
 
 // 		if str != "voe" {
-// 			_, err := utils.RunCommand("Deploying OSS portal", "done", verbose, "helm", "upgrade", "--install", "voe", "oci://p4etest.azurecr.io/helm/voe", "--version", portalVersion,
+// 			_, _, err := utils.RunCommand("Deploying OSS portal", "done", verbose, "helm", "upgrade", "--install", "voe", "oci://p4etest.azurecr.io/helm/voe", "--version", portalVersion,
 // 				"--set", "storage.storageResourceGroup="+storageRP,
 // 				"--set", "storage.storageAccount="+storageAccount,
 // 				"--set", "storage.storageContainer="+storageContainer,
@@ -237,7 +238,7 @@ func checkSymphonyAddress() (bool, string) {
 // 		}
 // 		return true
 // 	case "samsung":
-// 		_, err := utils.RunCommand("Launching Samsung portal", "done", verbose, "docker", "run", "-dit", "--rm", "-p", "3000:3000", "-e", "NEXT_PUBLIC_BACKEND="+apiAddress, "dcp-symphony:1.0.2")
+// 		_, _, err := utils.RunCommand("Launching Samsung portal", "done", verbose, "docker", "run", "-dit", "--rm", "-p", "3000:3000", "-e", "NEXT_PUBLIC_BACKEND="+apiAddress, "dcp-symphony:1.0.2")
 // 		if err != nil {
 // 			fmt.Printf("\n%s  Failed to launch Samsung Portal.%s\n\n", utils.ColorRed(), utils.ColorReset())
 // 			return false
@@ -247,7 +248,7 @@ func checkSymphonyAddress() (bool, string) {
 // }
 
 func handleSymphony(norest bool) bool {
-	str, _ := utils.RunCommand("Checking Symphony API (Symphony)", "done", verbose, "helm", "list", "-q", "-l", "name=symphony")
+	str, _, _ := utils.RunCommand("Checking Symphony API (Symphony)", "done", verbose, "helm", "list", "-q", "-l", "name=symphony")
 
 	if str != "symphony" {
 
@@ -270,9 +271,10 @@ func handleSymphony(norest bool) bool {
 
 	fmt.Printf("  Deploying Symphony API (Symphony), installServiceExt: %t\n", !norest)
 	installServiceExt := fmt.Sprintf("installServiceExt=%t", !norest)
-	_, err := utils.RunCommand("Deploying Symphony API (Symphony)", "done", verbose, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/azure/symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt, "--namespace", namespace)
+	_, errOutput, err := utils.RunCommandWithRetry("Deploying Symphony API (Symphony)", "done", verbose, debug, "helm", "upgrade", "--install", "symphony", "oci://ghcr.io/eclipse-symphony/helm/symphony", "--version", symphonyVersion, "--set", "CUSTOM_VISION_KEY=dummy", "--set", "symphonyImage.pullPolicy=Always", "--set", "paiImage.pullPolicy=Always", "--set", installServiceExt, "--namespace", namespace)
 	if err != nil {
 		fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
+		fmt.Printf("\n%s  Detailed Messages: %s%s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 		return false
 	}
 	return true
@@ -302,23 +304,23 @@ func installHelm() bool {
 	ios := runtime.GOOS
 	switch ios {
 	case "darwin", "linux":
-		_, err := utils.RunCommand("Downloading Helm 3", "done", verbose, "curl", "-fsSL", "-o", "get_helm.sh", "https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3")
+		_, _, err := utils.RunCommand("Downloading Helm 3", "done", verbose, "curl", "-fsSL", "-o", "get_helm.sh", "https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download Helm 3.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Updating Helm 3 access", "done", false, "chmod", "+x", "./get_helm.sh")
+		_, _, err = utils.RunCommand("Updating Helm 3 access", "done", verbose, "chmod", "+x", "./get_helm.sh")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update Helm 3 access.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Installing Helm 3", "done", verbose, "./get_helm.sh")
+		_, _, err = utils.RunCommand("Installing Helm 3", "done", verbose, "./get_helm.sh")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install Helm 3.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
 	case "windows":
-		_, err := utils.RunCommand("Downloading Helm 3", "done", true, "curl", "-fsSL", "-o", "helm.zip", "https://get.helm.sh/helm-v3.13.2-windows-amd64.zip")
+		_, _, err := utils.RunCommand("Downloading Helm 3", "done", verbose, "curl", "-fsSL", "-o", "helm.zip", "https://get.helm.sh/helm-v3.13.2-windows-amd64.zip")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download Helm 3.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
@@ -336,7 +338,7 @@ func installHelm() bool {
 
 		path := utils.AddtoPath(des)
 		var command = fmt.Sprintf("[Environment]::SetEnvironmentVariable(\"Path\", \"%s\", \"Machine\")", path)
-		_, err = utils.RunCommand("Setting path for Helm 3", "done", true, "powershell", "-NoProfile", command)
+		_, _, err = utils.RunCommand("Setting path for Helm 3", "done", verbose, "powershell", "-NoProfile", command)
 		if err != nil {
 			fmt.Printf("\n%s  Failed to setting path for Helm 3.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
@@ -373,9 +375,10 @@ func handleK8sConnection() (string, bool) {
 		case 0:
 			ok := utils.CheckMinikube(false)
 			if ok {
-				_, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
+				_, errOutput, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
 				if err != nil {
 					fmt.Printf("\n%s  Failed to create Kubernetes cluster.%s\n\n", utils.ColorRed(), utils.ColorReset())
+					fmt.Printf("\n%s  Detailed Messages: %s%s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 					return "", false
 				}
 				return "minikube", true
@@ -411,9 +414,10 @@ func handleMinikubeTunnel() (*exec.Cmd, error) {
 	return cmd, nil
 }
 func createMinikubeCluster() (string, bool) {
-	_, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
+	_, errOutput, err := utils.RunCommand("Creating Kubernetes cluster", "done", verbose, "minikube", "start")
 	if err != nil {
 		fmt.Printf("\n%s  Failed to create Kubernetes cluster.%s\n\n", utils.ColorRed(), utils.ColorReset())
+		fmt.Printf("\n%s  Detailed Messages: %s%s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 		return "", false
 	}
 	return "minikube", true
@@ -425,7 +429,7 @@ func installMinikube() bool {
 	case "windows":
 		switch cpu {
 		case "amd64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "minikube.exe", "https://github.com/kubernetes/minikube/releases/download/v1.32.0/minikube-windows-amd64.exe")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "minikube.exe", "https://github.com/kubernetes/minikube/releases/download/v1.32.0/minikube-windows-amd64.exe")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
@@ -442,7 +446,7 @@ func installMinikube() bool {
 
 		var path = utils.AddtoPath(des)
 		var command = fmt.Sprintf("Copy-Item minikube.exe \"%s\\minikube.exe\";[Environment]::SetEnvironmentVariable(\"Path\", \"%s\", \"Machine\")", des, path)
-		_, err := utils.RunCommand("Setting path for minikube", "done", true, "powershell", "-NoProfile", command)
+		_, _, err := utils.RunCommand("Setting path for minikube", "done", verbose, "powershell", "-NoProfile", command)
 		if err != nil {
 			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
@@ -454,13 +458,13 @@ func installMinikube() bool {
 	case "darwin":
 		switch cpu {
 		case "amd64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-darwin-amd64")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-darwin-amd64")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
 			}
 		case "arm64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-darwin-arm64")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-darwin-arm64")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
@@ -469,12 +473,12 @@ func installMinikube() bool {
 			fmt.Printf("\n%s  Minikube doesn't support %s on %s%s\n\n", cpu, utils.ColorRed(), osName, utils.ColorReset())
 			return false
 		}
-		_, err := utils.RunCommand("Updating minikube access", "done", false, "chmod", "+x", "./minikube")
+		_, _, err := utils.RunCommand("Updating minikube access", "done", verbose, "chmod", "+x", "./minikube")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update minikube access.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Installing minikube", "done", false, "sudo", "install", "./minikube", "/usr/local/bin/minikube")
+		_, _, err = utils.RunCommand("Installing minikube", "done", verbose, "sudo", "install", "./minikube", "/usr/local/bin/minikube")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
@@ -482,31 +486,31 @@ func installMinikube() bool {
 	case "linux":
 		switch cpu {
 		case "amd64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-amd64")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-amd64")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
 			}
 		case "arm64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-arm64")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-arm64")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
 			}
 		case "arm":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-arm")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-arm")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
 			}
 		case "PPC64":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-ppc64le")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-ppc64le")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
 			}
 		case "S390X":
-			_, err := utils.RunCommand("Downloading minikube", "done", false, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-s390x")
+			_, _, err := utils.RunCommand("Downloading minikube", "done", verbose, "curl", "-Lo", "./minikube", "https://storage.googleapis.com/minikube/releases/v1.32.0/minikube-linux-s390x")
 			if err != nil {
 				fmt.Printf("\n%s  Failed to download minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				return false
@@ -515,12 +519,12 @@ func installMinikube() bool {
 			fmt.Printf("\n%s  Minikube doesn't support %s on %s%s\n\n", cpu, utils.ColorRed(), osName, utils.ColorReset())
 			return false
 		}
-		_, err := utils.RunCommand("Updating minikube access", "done", false, "chmod", "+x", "./minikube")
+		_, _, err := utils.RunCommand("Updating minikube access", "done", verbose, "chmod", "+x", "./minikube")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update minikube access.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Installing minikube", "done", false, "sudo", "install", "./minikube", "/usr/local/bin/minikube")
+		_, _, err = utils.RunCommand("Installing minikube", "done", verbose, "sudo", "install", "./minikube", "/usr/local/bin/minikube")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install minikube.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
@@ -535,39 +539,39 @@ func installKubectl() bool {
 	os := runtime.GOOS
 	switch os {
 	case "windows":
-		_, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.24.0/bin/windows/amd64/kubectl.exe")
+		_, _, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.24.0/bin/windows/amd64/kubectl.exe")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download kubectl.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
 	case "darwin":
-		_, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.25.2/bin/darwin/amd64/kubectl")
+		_, _, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.25.2/bin/darwin/amd64/kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download kubectl.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Updating kubectl access", "done", verbose, "chmod", "+x", "./kubectl")
+		_, _, err = utils.RunCommand("Updating kubectl access", "done", verbose, "chmod", "+x", "./kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update kubectl access.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Moving kubectl", "done", verbose, "sudo", "mv", "./kubectl", "/usr/local/bin/kubectl")
+		_, _, err = utils.RunCommand("Moving kubectl", "done", verbose, "sudo", "mv", "./kubectl", "/usr/local/bin/kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to move kubectl.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Updating kubectl access", "done", verbose, "sudo", "chown", "root:", "/usr/local/bin/kubectl")
+		_, _, err = utils.RunCommand("Updating kubectl access", "done", verbose, "sudo", "chown", "root:", "/usr/local/bin/kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update kubectl access.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
 	case "linux":
-		_, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.25.2/bin/linux/amd64/kubectl")
+		_, _, err := utils.RunCommand("Downloading kubectl", "done", verbose, "curl", "-LO", "https://dl.k8s.io/release/v1.25.2/bin/linux/amd64/kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download kubectl.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
 		}
-		_, err = utils.RunCommand("Installing kubectl", "done", verbose, "sudo", "install", "-o", "root", "-g", "root", "-m", "0755", "kubectl", "/usr/local/bin/kubectl")
+		_, _, err = utils.RunCommand("Installing kubectl", "done", verbose, "sudo", "install", "-o", "root", "-g", "root", "-m", "0755", "kubectl", "/usr/local/bin/kubectl")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install kubectl.%s\n\n", utils.ColorRed(), utils.ColorReset())
 			return false
