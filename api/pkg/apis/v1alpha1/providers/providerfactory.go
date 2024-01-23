@@ -581,6 +581,8 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
+					return provider, nil
 				case "providers.target.mock":
 					provider := &tgtmock.MockTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
