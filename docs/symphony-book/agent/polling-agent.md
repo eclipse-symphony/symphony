@@ -27,3 +27,4 @@ Piccolo is written in [Rust](https://www.rust-lang.org/).
 ## Related topics
 
 * [Piccolo on Flatcar](./flatcar.md)
+* [Piccolo end-to-end demo](./piccolo-wasm-e2e.md)

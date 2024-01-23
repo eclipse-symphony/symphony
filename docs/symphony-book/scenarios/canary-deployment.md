@@ -4,11 +4,11 @@ In this scenario, you deploy an application with a front end and a backend. As y
 
 ## Model the application
 
-You can model the application using a Symphony [solution](../uom/solution.md) object in several different ways:
+You can model the application using a Symphony [solution](../concepts/unified-object-model/solution.md) object in several different ways:
 
 * You can put the front-end, the backend (v1), as well as an ingress into the same solution definition as three components. When you need to roll out a new backend (v2), you patch the solution object to add a new backend (v2) component, and then add a canary ingress component to adjust traffic shape. During canary, you perform manual or automated validations and adjust the traffic shape by modifying the canary ingress definition.
 
-* If you consider that ingress is an infrastructure component, you can move the ingress component to be a [target](../uom/target.md) object, or a separate solution object, so that it can be managed separately.
+* If you consider that ingress is an infrastructure component, you can move the ingress component to be a [target](../concepts/unified-object-model/target.md) object, or a separate solution object, so that it can be managed separately.
 
 * If the front-end and the backend are managed by different teams, you can split them into different solutions.
 

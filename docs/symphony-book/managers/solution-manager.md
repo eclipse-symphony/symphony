@@ -2,13 +2,13 @@
 
 _(last edit: 6/28/2023)_
 
-Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../uom/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target_provider.md) to drive system states towards the desired state.
+Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target_provider.md) to drive system states towards the desired state.
 
 Solution manager is the only stateful component in the Symphony system. When you scale out solution manager, you need to configure your solution manager instances to use a shared state store.
 
 ## Deployment planning
 
-Because Symphony allows dependencies among [solution](../uom/solution.md) components, and supports mapping solution components to multiple [target](../uom/target.md) components, the solution manager goes through a planning process to make sure these components are applied in the desired order. This planning process builds an assignment matrix first, and then generates deployment steps. For example, a solution has three components `a`, `b` and `c`. Components `a` and `c` are Helm charts, and `b` is a container. The solution is to be deployed to two targets, `T1` and `T2`. Target `T1` is a Kubernetes cluster, and `T2` is a Docker container host. Also, in this case component `c` has a dependency on `b`. The assignment matrix looks like this:
+Because Symphony allows dependencies among [solution](../concepts/unified-object-model/solution.md) components, and supports mapping solution components to multiple [target](../concepts/unified-object-model/target.md) components, the solution manager goes through a planning process to make sure these components are applied in the desired order. This planning process builds an assignment matrix first, and then generates deployment steps. For example, a solution has three components `a`, `b` and `c`. Components `a` and `c` are Helm charts, and `b` is a container. The solution is to be deployed to two targets, `T1` and `T2`. Target `T1` is a Kubernetes cluster, and `T2` is a Docker container host. Also, in this case component `c` has a dependency on `b`. The assignment matrix looks like this:
 
 |  |T1|T2|
 |--|--|--|

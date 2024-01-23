@@ -47,7 +47,9 @@ The K8s provider maps a **ComponentSpec** to a `Deployment.Spec.Template.Spec.Co
 |`Properties["desired.<property>"]`|---|
 
 ## Namespace deletion
+
 The K8s target provider supports namespace deletion configuration. If a user-specified namespace is expected to be removed after all Symphony objects are deleted, `deleteEmptyNamespace` can be set to `true` as shown in the following Target spec.
+
 ```yaml
 topologies:
   - bindings:

@@ -55,7 +55,7 @@ spec:
     cv-skill.def.recording_duration: "34"
 ```
 
-When an application queries AI skill through [Symphony agent](../agent/agent.md), the following rules apply:
+When an application queries AI skill through [Symphony agent](../agent/_overview.md), the following rules apply:
 
 1. If the `instance` query parameter is missing, the default values from the skill definition are used.
 2. If the `alias` query parameter is missing, the `<AI skill name>.<parameter name>` overrides from the instance object are used.
@@ -64,4 +64,4 @@ When an application queries AI skill through [Symphony agent](../agent/agent.md)
 
 ## Query AI skills
 
-See [Symphony agent](../agent/agent.md) for details on how to query AI skills with parameter overwrites.
+See [Symphony agent](../agent/_overview.md) for details on how to query AI skills with parameter overwrites.

@@ -1,16 +1,16 @@
 # Scenario: Adaptive deployment
 
-In this scenario, you'll deploy a [solution](../uom/solution.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony automatically adapts the solution to fit with the corresponding platforms.
+In this scenario, you'll deploy a [solution](../concepts/unified-object-model/solution.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony automatically adapts the solution to fit with the corresponding platforms.
 
 ![adaptive](../images/adaptive.png)
 
 ## Prerequisites
 
-* An [Azure IoT Edge](https://azure.microsoft.com/ products/iot-edge/) device (see instructions [here](../quick_start/deploy_solution_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
+* An [Azure IoT Edge](https://azure.microsoft.com/ products/iot-edge/) device (see instructions [here](../get-started/deploy_solution_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
 
 ## 1. Register targets
 
-First, register your IoT Edge device as a [target](../uom/target.md):
+First, register your IoT Edge device as a [target](../concepts/unified-object-model/target.md):
 
 ```yaml
 apiVersion: fabric.symphony/v1
@@ -51,11 +51,11 @@ spec:
         inCluster: "true"   
 ```
 
-> **NOTE:** both targets are marked with a `group: demo` property, which you'll use as the target selector in your [instance](../uom/instance.md) object.
+> **NOTE:** both targets are marked with a `group: demo` property, which you'll use as the target selector in your [instance](../concepts/unified-object-model/instance.md) object.
 
 ## 2. Create a solution
 
-Create a simple [solution](../uom/solution.md) with a single component:
+Create a simple [solution](../concepts/unified-object-model/solution.md) with a single component:
 
 ```yaml
 apiVersion: solution.symphony/v1
@@ -81,7 +81,7 @@ spec:
 
 ## 3. Create an instance
 
-To deploy the solution to both targets, create an [instance](../uom/instance.md) object that applies the `redis-server` solution to the `demo` group of targets:
+To deploy the solution to both targets, create an [instance](../concepts/unified-object-model/instance.md) object that applies the `redis-server` solution to the `demo` group of targets:
 
 ```yaml
 apiVersion: solution.symphony/v1
