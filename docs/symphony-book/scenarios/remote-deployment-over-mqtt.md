@@ -7,7 +7,7 @@ In this scenario, you ensure that a specific process is running on a remote Wind
 In this scenario, you will:
 
 * Set up an MQTT broker, a Symphony control plane (running on Linux/Windows/Cloud, for instance), and a Windows target machine.
-* Submit a [target](../uom/target.md) definition to the Symphony control plane using its REST API. The Target specifies that a process called `notepad`  should be running on the target machine. This desired state is forwarded to the target Windows machine over MQTT. 
+* Submit a [target](../concepts/unified-object-model/target.md) definition to the Symphony control plane using its REST API. The Target specifies that a process called `notepad`  should be running on the target machine. This desired state is forwarded to the target Windows machine over MQTT. 
 * Configure a script provider on the target machine to perform the state seeking operations to ensure that `notepad` is running.
 
 Although this scenario is designed for a distributed environment, for simplicity we'll set up everything on a single Windows machine.
@@ -30,7 +30,7 @@ Although this scenario is designed for a distributed environment, for simplicity
 
 4. Copy the `symphony-powershell-over-mqtt.json` file under the `api` repo folder to the `c:\\demo` folder. This is the configuration file that you'll use to launch the Symphony agent. In a production environment, the Symphony agent can be configured as a Windows service that is automatically launched upon start.
 
-5. Copy the `symphony-api-no-k8s.json` file under the `api` repo folder to the `c:\\demo` folder. This is the configuration file that you'll use to launch the Symphony API. In a production environment, the Symphony API is likely to be deployed on a Kubernetes cluster such as ASK. For more information, see [build and deploy](../build_deployment/build_deployment.md) for more details.
+5. Copy the `symphony-api-no-k8s.json` file under the `api` repo folder to the `c:\\demo` folder. This is the configuration file that you'll use to launch the Symphony API. In a production environment, the Symphony API is likely to be deployed on a Kubernetes cluster such as ASK. For more information, see [build and deploy](../build_deployment/_overview.md) for more details.
 
 6. Copy the following PowerShell scripts from the `api/docs/samples/script-provider/` repo folder to the `c:\\demo` folder:
 
@@ -94,7 +94,7 @@ symphony-api.exe -c symphony-powershell-over-mqtt.json -l Debug
 
 ## 5. Define the Windows target
 
-Now, you are ready to submit a [target](../uom/target.md) definition to Symphony.
+Now, you are ready to submit a [target](../concepts/unified-object-model/target.md) definition to Symphony.
 
 1. Log in to the Symphony API.
 

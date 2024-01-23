@@ -16,4 +16,4 @@ This design allows AI vendors to bring in their AI graphs as an AI skill node of
 
 ## Related topics
 
-* [AI skill schema](../uom/ai-skill.md)
+* [AI skill schema](../concepts/unified-object-model/ai-skill.md)

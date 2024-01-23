@@ -33,7 +33,7 @@
                 "type": "providers.target.script",
                 "config": {
                   "name": "script",
-                  "scriptFolder": "../symphony-docs/samples/scenarios/nxp1170",
+                  "scriptFolder": "../docs/samples/scenarios/nxp1170",
 		              "applyScript": "apply.sh",
 		              "removeScript": "remove.sh",
                   "getScript": "get.sh",

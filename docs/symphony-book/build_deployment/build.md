@@ -61,7 +61,7 @@ Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes 
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/eclipse-symphony.git
+git clone https://github.com/eclipse-symphony/symphony.git
 ```
 
 ## 2. Build and run Symphony binary for local dev/test
@@ -205,7 +205,7 @@ To run an agent locally, use Docker:
 docker run -p 8088:8088 -e SYMPHONY_URL=http://localhost:8080/v1alpha2/agent/references hbai/symphony-agent:0.1.22
 ```
 
-For more information, see [Symphony agent](../agent/agent.md).
+For more information, see [Symphony agent](../agent/_overview.md).
 
 ## 7. Build Symphony Agent binary (optional)
 
@@ -222,7 +222,7 @@ To run agent binary, use a sample `symphony-agent.json` file under the `symphony
 ./symphony-agent -c ./symphony-agent.json -l Debug
 ```
 
-For more information, see [Symphony agent](../agent/agent.md).
+For more information, see [Symphony agent](../agent/_overview.md).
 
 ## 8. Build Symphony CLI (maestro)
 

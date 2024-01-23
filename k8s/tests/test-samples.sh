@@ -26,10 +26,10 @@ function adaptive_deployment {
     echo "*       Testing Adaptive Deployment    *"
     echo "****************************************"
     
-    kubectl create -f ../../symphony-docs/samples/scenarios/adaptive/iot-target.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/scenarios/adaptive/k8s-target.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/scenarios/adaptive/solution.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/scenarios/adaptive/instance.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/scenarios/adaptive/iot-target.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/scenarios/adaptive/k8s-target.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/scenarios/adaptive/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/scenarios/adaptive/instance.yaml &> /dev/null
 
     check_instance "my-instance" 2
 
@@ -44,9 +44,9 @@ function k8s_hello_world {
     echo "*       Testing K8s Hello World        *"
     echo "****************************************"
 
-    kubectl create -f ../../symphony-docs/samples/k8s/hello-world/target.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/k8s/hello-world/solution.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/k8s/hello-world/instance.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/k8s/hello-world/target.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/k8s/hello-world/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/k8s/hello-world/instance.yaml &> /dev/null
 
     check_instance "redis-instance" 1
 
@@ -60,10 +60,10 @@ function iot_simulated_sensor {
     echo "*  Testing IoT Edge Simulated Sensor   *"
     echo "****************************************"
 
-    kubectl create -f ../../symphony-docs/samples/iot-edge/simulated-temperature-sensor/target.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml &> /dev/null
-    kubectl create -f ../../symphony-docs/samples/iot-edge/simulated-temperature-sensor/instance-2.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/target.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/instance-2.yaml &> /dev/null
 
     check_instance "my-instance-1" 1
     check_instance "my-instance-2" 1
@@ -79,7 +79,7 @@ function k8s_symphony_agent {
     echo "*     Testing K8s Symphony Agent       *"
     echo "****************************************"
 
-    kubectl create -f ../../symphony-docs/samples/k8s/symphony-agent/target.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/k8s/symphony-agent/target.yaml &> /dev/null
 
     deployment=$(kubectl get deployment | grep target-runtime)
     svc=$(kubectl get svc | grep symphony-agent)

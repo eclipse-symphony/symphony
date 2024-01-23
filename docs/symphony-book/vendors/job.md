@@ -1,6 +1,12 @@
 # Job vendor
 
-The job vendor subscribes to a `job` topic, which contains reconciliation requests. The reconciliation request is a simple JSON payload with an `objectType` of either `instance` or `target`, an `id` of the object, and a desired action, which can be either `UPDATE` or `DELETE`. For example:
+The job vendor subscribes to a `job` topic, which contains reconciliation requests. The reconciliation request is a simple JSON payload with the following values:
+
+* An `objectType` of either `instance` or `target`
+* An `id` of the object
+* A desired `action`, which can be either `UPDATE` or `DELETE`.
+
+For example:
 
 ```json
 {
@@ -14,9 +20,9 @@ The job vendor subscribes to a `job` topic, which contains reconciliation reques
 }
 ```
 
-Upon receiving a job, the job vendor creates a [deployment](../uom/deployment.md) object and sends the object to the Symphony solution vendor.
+Upon receiving a job, the job vendor creates a [deployment](../concepts/unified-object-model/deployment.md) object and sends the object to the Symphony solution vendor.
 
-The job vendor can also be configured to trigger periodical reconciliation jobs by enabling the `poll.enabled` property of the `managers.symphony.jobs`:
+The job vendor can also trigger periodical reconciliation jobs by enabling the `poll.enabled` property of the `managers.symphony.jobs`:
 
 ```json
 {
