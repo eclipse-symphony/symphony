@@ -116,3 +116,43 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 }
+func TestCampaignsOnCampaignsFailure(t *testing.T) {
+	vendor := createCampaignsVendor()
+	campaignSpec := model.CampaignSpec{
+		Name: "campaign1",
+	}
+	data, _ := json.Marshal(campaignSpec)
+	resp := vendor.onCampaigns(v1alpha2.COARequest{
+		Method: fasthttp.MethodGet,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name": "campaign1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "entry 'campaign1' is not found", string(resp.Body))
+
+	resp = vendor.onCampaigns(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   []byte("bad data"),
+		Parameters: map[string]string{
+			"__name": "campaign1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "invalid character 'b' looking for beginning of value", string(resp.Body))
+
+	resp = vendor.onCampaigns(v1alpha2.COARequest{
+		Method: fasthttp.MethodDelete,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name": "campaign1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "entry 'campaign1' is not found", string(resp.Body))
+
+}

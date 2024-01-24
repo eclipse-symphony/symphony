@@ -61,6 +61,18 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "entry 'activation1' is not found", string(resp.Body))
+
+	resp = vendor.onStatus(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   []byte{},
+		Parameters: map[string]string{
+			"__name": "activation1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "unexpected end of JSON input", string(resp.Body))
 }
 func TestActivationsOnActivations(t *testing.T) {
 	vendor := createActivationsVendor()
@@ -81,12 +93,20 @@ func TestActivationsOnActivations(t *testing.T) {
 		succeededCount += 1
 		return nil
 	})
+	resp := vendor.onActivations(v1alpha2.COARequest{
+		Method: fasthttp.MethodGet,
+		Parameters: map[string]string{
+			"__name": "activation1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
 	activationSpec := model.ActivationSpec{
 		Name:     activationName,
 		Campaign: campaignName,
 	}
 	data, _ := json.Marshal(activationSpec)
-	resp := vendor.onActivations(v1alpha2.COARequest{
+	resp = vendor.onActivations(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
