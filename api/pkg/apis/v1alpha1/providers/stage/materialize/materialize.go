@@ -111,7 +111,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	objects := inputs["names"].([]interface{})
 	prefixedNames := make([]string, len(objects))
 	for i, object := range objects {
-		prefixedNames[i] = fmt.Sprintf("%s-%s", inputs["__origin"], object.(string))
+		if s, ok := inputs["__origin"]; ok {
+			prefixedNames[i] = fmt.Sprintf("%s-%s", s, object.(string))
+		} else {
+			prefixedNames[i] = object.(string)
+		}
 	}
 
 	catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
@@ -127,7 +131,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					objectScope = s.(string)
 				}
 				objectData, _ := json.Marshal(catalog.Spec.Properties["spec"]) //TODO: handle errors
-				name := strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", inputs["__origin"]))
+				name := catalog.Spec.Name
+				if s, ok := inputs["__origin"]; ok {
+					name = strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", s))
+				}
 				switch catalog.Spec.Type {
 				case "instance":
 					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope) //TODO: is using Spec.Name safe? Needs to support scopes

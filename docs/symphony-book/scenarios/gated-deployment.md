@@ -1,19 +1,39 @@
 # Gated deployment
 
-Symphony provides two different ways to implement gated deployment: through the **Stage** property of an [instance](../concepts/unified-object-model/instance.md) object, or through an HTTP web hook. The stage property can be used for manual control. The web hook can be used for either manual control or automated control (such as hooking into an automated approval process).
+In this scenario, application deployment is carried out only after a designated approver has approved the operation. The approval workflow is implemented as an [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview) workflow, which sends out an email to an approver with an Approval button and a Reject button. The approver approves the operation by clicking on the Approval button; otherwise, the deployment is blocked. 
 
-## Gated deployment through instance property
+## Generic flow
 
-A Symphony instance object has a **Stage** property that can be used to control different [stages](../instance-management/instance-management.md#stages) of a deployment. A special stage, **BLOCK**, can be used to block an instance from being deployed. When an instance object is created with the stage property set to BLOCK, the instance will not be deployed to targets until this property has been cleared or changed.
+1. Define your application as a Symphony `solution` object, your deployment target as a Symphony `target` object.
+2. Define your deployment topology as a Symphony `instance` object wrapped in a Symphony `catalog` object. 
+    > **Note:** We use a catalog object instead of an instance object here because an instance object represents a desired state, which will trigger Symphony state reconciliation. In this case, however, we don’t want the state reconciliation to be triggered before approval. Hence, we capture the “intention of the desired state” in a catalog object. The intention will be “materialized” into an instance object only after approval.
+3. Define your approval workflow as an Azure Logic Apps workflow.
+4. To coordinate the approval process, define a Symphony `campaign` object that calls out to the above workflow and then drives application deployment.
+5. Create an `activation` object to activate the campaign.
 
-## Gated deployment through web hook
+## Sample artifacts
+You can find sample artifacts in this repository under the `docs/samples/approval` folder:
+| Artifact | Purpose |
+|--------|--------|
+| [activation.yaml](../../samples/approval/activation.yaml) | Campaign activation |
+| [approval-logic-apps.json](../../samples/approval/approval-logic-apps.json) | Logic Apps approval workflow |
+| [campaign.yaml](../../samples/approval/campaign.yaml) | Campaign definition |
+| [instance-catalog.yaml](../../samples/approval/instance-catalog.yaml) | Instance definition (wrapped in a catalog) |
+| [solution.yaml](../../samples/approval/solution.yaml) | Solution definition |
+| [target.yaml](../../samples/approval/target.yaml) | Target definition |
 
-Symphony allows you to insert processing gates through web hooks during your instance deployments.
+The following diagram illustrates how the stages in the approval workflow are defined, with corresponding stage names in `campaign.yaml`.
 
-<!--
-For example, you can invoke an external approval process, as introduced in the [human approval](./human-approval.md) scenario. 
--->
+![campaign](../images/approval-flow.png)
 
-You can set up multiple gates in your instance. Each gate governs a set of components that set a [dependency](../concepts/unified-object-model/solution.md#depedencies) on the gate. If a gate is at the root of the dependency graph, the gate controls the deployment of all components.
+## Deployment steps
 
-A gate is “open” if the HTTP request returns 200. Otherwise, the gate is “closed” and will block the deployment from going further.
+1. Create Azure Logic Apps workflow. You can use `approval-logic-apps.json` as a reference. Once the workflow is created, copy the `Workflow URL` link from the workflow's overview page. The workflow is expected to return a 200 status code upon approval, and other codes (like 403) if the deployment is rejected.
+2. Create Symphony objects:
+    ```bash
+    kubectl apply -f solution.yaml
+    kubectl apply -f target.yaml
+    kubectl apply -f instance-catalog.yaml
+    kubectl apply -f campaign.yaml
+    ```
+    > **NOTE**: When you use your current Kubernetes cluster as the target, make sure you don't register the same cluster multiple times (as different targets).
