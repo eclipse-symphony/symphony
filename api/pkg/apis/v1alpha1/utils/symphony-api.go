@@ -502,6 +502,18 @@ func GetTargets(context context.Context, baseUrl string, user string, password s
 	return ret, nil
 }
 
+func SendVisualizationPacket(context context.Context, baseUrl string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	_, err = callRestAPI(context, baseUrl, "visualization", "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateSite(context context.Context, baseUrl string, site string, user string, password string, payload []byte) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {

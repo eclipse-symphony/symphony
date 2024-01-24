@@ -77,8 +77,6 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 
-	tLog.Info("~ Instances Manager ~ : onInstances")
-
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onInstances-GET", pCtx, nil)
