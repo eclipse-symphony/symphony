@@ -1,4 +1,4 @@
-> **NOTE:** This repository has been moved to [https://github.com/eclipse-symphony/symphony](https://github.com/eclipse-symphony/symphony). Please make future contributions to the new repository. This repository will be archived by **2/1/2024* and eventually retired.
+> **NOTE:** This repository has been moved to [https://github.com/eclipse-symphony/symphony](https://github.com/eclipse-symphony/symphony). Please make future contributions to the new repository. This repository will be archived by **2/1/2024** and eventually retired.
 
 # Symphony
 
