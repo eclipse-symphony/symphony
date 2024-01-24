@@ -759,77 +759,20 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 	}
 
 	for _, c := range components {
-		ports := make([]apiv1.ContainerPort, 0)
-		if v, ok := c.Properties["container.ports"].(string); ok && v != "" {
-			e := json.Unmarshal([]byte(v), &ports)
-			if e != nil {
-				return nil, e
-			}
+		container, err := createContainerSpec(c.Name, c.Properties, metadata)
+		if err != nil {
+			return nil, err
 		}
-		container := apiv1.Container{
-			Name:            c.Name,
-			Image:           c.Properties[model.ContainerImage].(string),
-			Ports:           ports,
-			ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(c.Properties, "container.imagePullPolicy", "Always")),
-		}
-		if v, ok := c.Properties["container.args"]; ok && v != "" {
-			args := make([]string, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &args)
-			if e != nil {
-				return nil, e
-			}
-			container.Args = args
-		}
-		if v, ok := c.Properties["container.commands"]; ok && v != "" {
-			cmds := make([]string, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &cmds)
-			if e != nil {
-				return nil, e
-			}
-			container.Command = cmds
-		}
-		if v, ok := c.Properties["container.resources"]; ok && v != "" {
-			res := apiv1.ResourceRequirements{}
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &res)
-			if e != nil {
-				return nil, e
-			}
-			container.Resources = res
-		}
-		if v, ok := c.Properties["container.volumeMounts"]; ok && v != "" {
-			mounts := make([]apiv1.VolumeMount, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &mounts)
-			if e != nil {
-				return nil, e
-			}
-			container.VolumeMounts = mounts
-		}
-		for k, v := range c.Properties {
-			// Transitioning from map[string]string to map[string]interface{}
-			// for now we'll assume that all relevant values are strings till we
-			// refactor the code to handle the new format
-			sv := fmt.Sprintf("%v", v)
-			if strings.HasPrefix(k, "env.") {
-				if container.Env == nil {
-					container.Env = make([]apiv1.EnvVar, 0)
+		deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, *container)
+		if len(c.Sidecars) > 0 {
+			for _, sidecar := range c.Sidecars {
+				container, err := createContainerSpec(sidecar.Name, sidecar.Properties, metadata)
+				if err != nil {
+					return nil, err
 				}
-				container.Env = append(container.Env, apiv1.EnvVar{
-					Name:  k[4:],
-					Value: sv,
-				})
+				deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, *container)
 			}
 		}
-		agentName := metadata[ENV_NAME]
-		if agentName != "" {
-			if container.Env == nil {
-				container.Env = make([]apiv1.EnvVar, 0)
-			}
-			container.Env = append(container.Env, apiv1.EnvVar{
-				Name:  ENV_NAME,
-				Value: agentName + ".default.svc.cluster.local", //agent is currently always installed under deault
-			})
-		}
-		deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, container)
 	}
 	if v, ok := metadata["deployment.imagePullSecrets"]; ok && v != "" {
 		secrets := make([]apiv1.LocalObjectReference, 0)
@@ -860,6 +803,80 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 	log.Debug(string(data))
 
 	return &deployment, nil
+}
+
+func createContainerSpec(name string, properties map[string]interface{}, metadata map[string]string) (*apiv1.Container, error) {
+	ports := make([]apiv1.ContainerPort, 0)
+	if v, ok := properties["container.ports"].(string); ok && v != "" {
+		e := json.Unmarshal([]byte(v), &ports)
+		if e != nil {
+			return nil, e
+		}
+	}
+	container := &apiv1.Container{
+		Name:            name,
+		Image:           properties[model.ContainerImage].(string),
+		Ports:           ports,
+		ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(properties, "container.imagePullPolicy", "Always")),
+	}
+	if v, ok := properties["container.args"]; ok && v != "" {
+		args := make([]string, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &args)
+		if e != nil {
+			return nil, e
+		}
+		container.Args = args
+	}
+	if v, ok := properties["container.commands"]; ok && v != "" {
+		cmds := make([]string, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &cmds)
+		if e != nil {
+			return nil, e
+		}
+		container.Command = cmds
+	}
+	if v, ok := properties["container.resources"]; ok && v != "" {
+		res := apiv1.ResourceRequirements{}
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &res)
+		if e != nil {
+			return nil, e
+		}
+		container.Resources = res
+	}
+	if v, ok := properties["container.volumeMounts"]; ok && v != "" {
+		mounts := make([]apiv1.VolumeMount, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &mounts)
+		if e != nil {
+			return nil, e
+		}
+		container.VolumeMounts = mounts
+	}
+	for k, v := range properties {
+		// Transitioning from map[string]string to map[string]interface{}
+		// for now we'll assume that all relevant values are strings till we
+		// refactor the code to handle the new format
+		sv := fmt.Sprintf("%v", v)
+		if strings.HasPrefix(k, "env.") {
+			if container.Env == nil {
+				container.Env = make([]apiv1.EnvVar, 0)
+			}
+			container.Env = append(container.Env, apiv1.EnvVar{
+				Name:  k[4:],
+				Value: sv,
+			})
+		}
+	}
+	agentName := metadata[ENV_NAME]
+	if agentName != "" {
+		if container.Env == nil {
+			container.Env = make([]apiv1.EnvVar, 0)
+		}
+		container.Env = append(container.Env, apiv1.EnvVar{
+			Name:  ENV_NAME,
+			Value: agentName + ".default.svc.cluster.local", //agent is currently always installed under deault
+		})
+	}
+	return container, nil
 }
 
 func createProjector(projector string) (IK8sProjector, error) {
