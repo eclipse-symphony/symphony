@@ -83,7 +83,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 	})
 	defer span.End()
 
-	cLog.Info("V (Activations Vendor): onStatus")
+	vLog.Infof("V (Activations Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onStatus-POST", pCtx, nil)
@@ -91,6 +91,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		var status model.ActivationStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -98,6 +99,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		err = c.ActivationsManager.ReportStatus(ctx, id, status)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -107,6 +109,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 			State: v1alpha2.OK,
 		})
 	}
+	vLog.Infof("V (Activations Vendor): onStatus failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -121,7 +124,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 	})
 	defer span.End()
 
-	cLog.Info("V (Activations Vendor): onActivations")
+	vLog.Infof("V (Activations Vendor): onActivations, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -137,6 +140,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			state, err = c.ActivationsManager.GetSpec(ctx, id)
 		}
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -160,6 +164,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		err := json.Unmarshal(request.Body, &activation)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -168,6 +173,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		err = c.ActivationsManager.UpsertSpec(ctx, id, activation)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -175,6 +181,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		}
 		entry, err := c.ActivationsManager.GetSpec(ctx, id)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -197,6 +204,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		id := request.Parameters["__name"]
 		err := c.ActivationsManager.DeleteSpec(ctx, id)
 		if err != nil {
+			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -206,6 +214,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			State: v1alpha2.OK,
 		})
 	}
+	vLog.Infof("V (Activations Vendor): onActivations failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

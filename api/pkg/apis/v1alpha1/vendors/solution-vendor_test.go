@@ -11,32 +11,70 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
+	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
 
-func createVendor() SolutionVendor {
-	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
-	stateProvider := &memorystate.MemoryStateProvider{}
+func createSolutionVendor() SolutionVendor {
+	stateProvider := memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
-	manager := solution.SolutionManager{
-		TargetProviders: map[string]target.ITargetProvider{
-			"mock": targetProvider,
+	configProvider := mockconfig.MockConfigProvider{}
+	configProvider.Init(mockconfig.MockConfigProviderConfig{})
+	secretProvider := mocksecret.MockSecretProvider{}
+	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
+	vendor := SolutionVendor{}
+	vendor.Init(vendors.VendorConfig{
+		Properties: map[string]string{
+			"test": "true",
 		},
-		StateProvider: stateProvider,
-	}
-	vendor := SolutionVendor{
-		SolutionManager: &manager,
-	}
+		Managers: []managers.ManagerConfig{
+			{
+				Name: "solution-manager",
+				Type: "managers.symphony.solution",
+				Properties: map[string]string{
+					"providers.state":  "mem-state",
+					"providers.config": "mock-config",
+					"providers.secret": "mock-secret",
+				},
+				Providers: map[string]managers.ProviderConfig{
+					"mem-state": {
+						Type:   "providers.state.memory",
+						Config: memorystate.MemoryStateProviderConfig{},
+					},
+					"mock-config": {
+						Type:   "providers.config.mock",
+						Config: mockconfig.MockConfigProviderConfig{},
+					},
+					"mock-secret": {
+						Type:   "providers.secret.mock",
+						Config: mocksecret.MockSecretProviderConfig{},
+					},
+				},
+			},
+		},
+	}, []managers.IManagerFactroy{
+		&sym_mgr.SymphonyManagerFactory{},
+	}, map[string]map[string]providers.IProvider{
+		"solution-manager": {
+			"mem-state":   &stateProvider,
+			"mock-config": &configProvider,
+			"mock-secret": &secretProvider,
+		},
+	}, nil)
 	return vendor
 }
 func createDockerDeployment(id string) model.DeploymentSpec {
@@ -115,8 +153,22 @@ func createDeployment2Mocks1Target(id string) model.DeploymentSpec {
 		},
 	}
 }
-func TestGetInstances(t *testing.T) {
-	vendor := createVendor()
+func TestSolutionEndpoints(t *testing.T) {
+	vendor := createSolutionVendor()
+	vendor.Route = "solution"
+	endpoints := vendor.GetEndpoints()
+	assert.Equal(t, 3, len(endpoints))
+}
+
+func TestSolutionInfo(t *testing.T) {
+	vendor := createSolutionVendor()
+	vendor.Version = "1.0"
+	info := vendor.GetInfo()
+	assert.NotNil(t, info)
+	assert.Equal(t, "1.0", info.Version)
+}
+func TestSolutionGetInstances(t *testing.T) {
+	vendor := createSolutionVendor()
 	deployment := createDeployment2Mocks1Target(uuid.New().String())
 	data, _ := json.Marshal(deployment)
 	resp := vendor.onApplyDeployment(v1alpha2.COARequest{
@@ -146,25 +198,45 @@ func TestGetInstances(t *testing.T) {
 	assert.Equal(t, "b", components[1].Name)
 	assert.Equal(t, "mock", components[1].Type)
 }
-func TestApply(t *testing.T) {
-	vendor := createVendor()
+func TestSolutionApply(t *testing.T) {
+	vendor := createSolutionVendor()
 	deployment := createDeployment2Mocks1Target(uuid.New().String())
 	data, _ := json.Marshal(deployment)
 	resp := vendor.onApplyDeployment(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Body:    data,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+	var components []model.ComponentSpec
+	err := json.Unmarshal(resp.Body, &components)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(components))
+	resp = vendor.onApplyDeployment(v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Body:    data,
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	var summary model.SummarySpec
-	err := json.Unmarshal(resp.Body, &summary)
+	err = json.Unmarshal(resp.Body, &summary)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 	assert.Equal(t, 1, summary.TargetCount)
 	assert.Equal(t, "OK", summary.TargetResults["T1"].Status)
+
+	resp = vendor.onApplyDeployment(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Body:    data,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+	err = json.Unmarshal(resp.Body, &components)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(components))
 }
-func TestRemove(t *testing.T) {
-	vendor := createVendor()
+func TestSolutionRemove(t *testing.T) {
+	vendor := createSolutionVendor()
 	deployment := createDeployment2Mocks1Target(uuid.New().String())
 	data, _ := json.Marshal(deployment)
 	resp := vendor.onApplyDeployment(v1alpha2.COARequest{
@@ -180,13 +252,13 @@ func TestRemove(t *testing.T) {
 	assert.Equal(t, 1, summary.TargetCount)
 	assert.Equal(t, false, summary.Skipped)
 }
-func TestReconcileDocker(t *testing.T) {
+func TestSolutionReconcileDocker(t *testing.T) {
 	testDocker := os.Getenv("TEST_DOCKER_RECONCILE")
 	if testDocker == "" {
 		t.Skip("Skipping because TEST_DOCKER_RECONCILE environment variable is not set")
 	}
 	var summary model.SummarySpec
-	vendor := createVendor()
+	vendor := createSolutionVendor()
 
 	// deploy
 	deployment := createDockerDeployment(uuid.New().String())
@@ -203,10 +275,9 @@ func TestReconcileDocker(t *testing.T) {
 	json.Unmarshal(resp.Body, &summary)
 	assert.False(t, summary.Skipped)
 }
-
-func TestReconcile(t *testing.T) {
+func TestSolutionReconcile(t *testing.T) {
 	var summary model.SummarySpec
-	vendor := createVendor()
+	vendor := createSolutionVendor()
 
 	// deploy
 	deployment := createDeployment2Mocks1Target(uuid.New().String())
@@ -270,4 +341,90 @@ func TestReconcile(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	json.Unmarshal(resp.Body, &summary)
 	assert.False(t, summary.Skipped)
+}
+func TestSolutionQueue(t *testing.T) {
+	vendor := createSolutionVendor()
+	resp := vendor.onQueue(v1alpha2.COARequest{
+		Method:     fasthttp.MethodGet,
+		Parameters: map[string]string{},
+		Context:    context.Background(),
+	})
+	assert.Equal(t, v1alpha2.BadRequest, resp.State)
+
+	resp = vendor.onQueue(v1alpha2.COARequest{
+		Method: fasthttp.MethodGet,
+		Parameters: map[string]string{
+			"instance": "instance1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
+
+}
+func TestSolutionQueueInstanceUpdate(t *testing.T) {
+	vendor := createSolutionVendor()
+	vendor.Context = &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendor.Context.Init(&pubSubProvider)
+	succeededCount := 0
+	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
+		var job v1alpha2.JobData
+		jData, _ := json.Marshal(event.Body)
+		err := json.Unmarshal(jData, &job)
+		assert.Nil(t, err)
+		assert.Equal(t, "instance", event.Metadata["objectType"])
+		assert.Equal(t, "scope1", event.Metadata["scope"])
+		assert.Equal(t, "instance1", job.Id)
+		assert.Equal(t, "UPDATE", job.Action)
+		succeededCount += 1
+		return nil
+	})
+	resp := vendor.onQueue(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Parameters: map[string]string{
+			"instance": "instance1",
+			"target":   "false",
+			"scope":    "scope1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+	// wait for the job to be processed
+	time.Sleep(time.Second)
+	assert.Equal(t, 1, succeededCount)
+}
+func TestSolutionQueueTargetUpdate(t *testing.T) {
+	vendor := createSolutionVendor()
+	vendor.Context = &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendor.Context.Init(&pubSubProvider)
+	succeededCount := 0
+	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
+		var job v1alpha2.JobData
+		jData, _ := json.Marshal(event.Body)
+		err := json.Unmarshal(jData, &job)
+		assert.Nil(t, err)
+		assert.Equal(t, "target", event.Metadata["objectType"])
+		assert.Equal(t, "scope1", event.Metadata["scope"])
+		assert.Equal(t, "target1", job.Id)
+		assert.Equal(t, "DELETE", job.Action)
+		succeededCount += 1
+		return nil
+	})
+	resp := vendor.onQueue(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Parameters: map[string]string{
+			"instance": "target1",
+			"target":   "true",
+			"scope":    "scope1",
+			"delete":   "true",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+	// wait for the job to be processed
+	time.Sleep(time.Second)
+	assert.Equal(t, 1, succeededCount)
 }

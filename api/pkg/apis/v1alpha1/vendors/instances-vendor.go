@@ -77,7 +77,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 
-	tLog.Info("~ Instances Manager ~ : onInstances")
+	iLog.Infof("V (Instances): onInstances, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -101,6 +101,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = c.InstancesManager.GetSpec(ctx, id, scope)
 		}
 		if err != nil {
+			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,6 +143,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			} else {
 				parts := strings.Split(target_selector, "=")
 				if len(parts) != 2 {
+					iLog.Infof("V (Instances): onInstances failed - invalid target selector format, traceId: %s", span.SpanContext().TraceID().String())
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State: v1alpha2.InternalError,
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
@@ -156,6 +158,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		} else {
 			err := json.Unmarshal(request.Body, &instance)
 			if err != nil {
+				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -164,6 +167,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		err := c.InstancesManager.UpsertSpec(ctx, id, instance, scope)
 		if err != nil {
+			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -209,6 +213,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		} else {
 			err := c.InstancesManager.DeleteSpec(ctx, id, scope)
 			if err != nil {
+				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -219,6 +224,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
+	iLog.Infof("V (Instances): onInstances failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
