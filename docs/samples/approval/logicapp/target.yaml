@@ -9,8 +9,4 @@ spec:
     - role: instance
       provider: providers.target.k8s
       config:
-        inCluster: "true"   
-    - role: gate
-      provider: providers.target.http
-      config:
-        name: gate
+        inCluster: "true"

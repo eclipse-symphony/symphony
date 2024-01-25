@@ -69,6 +69,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 ## Advanced scenarios
 
 * [Canary deployment](./symphony-book/scenarios/canary-deployment.md)
+* Gated deployment with [Azure Logic Apps](./symphony-book/scenarios/gated-deployment-logic-app.md) or [custom script](./symphony-book/scenarios/gated-deployment-script.md)
 * [Multi-site deployment](./symphony-book/scenarios/multisite-deployment.md)
 
 ## Contribute to Symphony
