@@ -1,0 +1,12 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: gated-k8s-target        
+spec:  
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"
