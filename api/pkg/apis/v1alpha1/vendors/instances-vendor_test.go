@@ -199,3 +199,12 @@ func TestInstancesTargetSelector(t *testing.T) {
 	assert.Equal(t, "instance1", instance.Id)
 	assert.Equal(t, "value1", instance.Spec.Target.Selector["property1"])
 }
+
+func TestInstancesWrongMethod(t *testing.T) {
+	vendor := createInstancesVendor()
+	resp := vendor.onInstances(v1alpha2.COARequest{
+		Method:  fasthttp.MethodPut,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+}

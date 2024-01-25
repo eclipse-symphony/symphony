@@ -111,21 +111,16 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
-	var ok bool
-	dict := map[string]interface{}{}
-	if target.Body != nil {
-		dict, ok = target.Body.(map[string]interface{})
-		if !ok {
-			return model.TargetState{}, fmt.Errorf("unable to cast target body to map[string]interface{}")
-		}
+
+	dict, ok := target.Body.(map[string]interface{})
+	if !ok {
+		return model.TargetState{}, fmt.Errorf("unable to cast target body to map[string]interface{}")
 	}
 
 	specCol := model.TargetSpec{}
-	if (dict["spec"] != nil) && (dict["spec"] != "") {
-		specCol, ok = dict["spec"].(model.TargetSpec)
-		if !ok {
-			return model.TargetState{}, fmt.Errorf("unable to cast target spec to model.TargetSpec")
-		}
+	specCol, ok = dict["spec"].(model.TargetSpec)
+	if !ok {
+		return model.TargetState{}, fmt.Errorf("unable to cast target spec to model.TargetSpec")
 	}
 
 	delete(dict, "spec")

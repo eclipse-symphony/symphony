@@ -166,3 +166,23 @@ func TestActivationsOnActivations(t *testing.T) {
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 }
+func TestActivationsWrongMethod(t *testing.T) {
+	vendor := createActivationsVendor()
+	resp := vendor.onActivations(v1alpha2.COARequest{
+		Method: fasthttp.MethodPut,
+		Parameters: map[string]string{
+			"__name": "activation1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+
+	resp = vendor.onStatus(v1alpha2.COARequest{
+		Method: fasthttp.MethodPut,
+		Parameters: map[string]string{
+			"__name": "activation1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+}

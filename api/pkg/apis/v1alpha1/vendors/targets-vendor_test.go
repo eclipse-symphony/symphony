@@ -200,18 +200,10 @@ func TestTargetsOnStatus(t *testing.T) {
 		},
 	}
 	data, _ = json.Marshal(dict)
-	resp = vendor.onStatus(v1alpha2.COARequest{
-		Method: fasthttp.MethodPost,
-		Body:   data,
-		Parameters: map[string]string{
-			"__name": "target1",
-		},
-		Context: context.Background(),
-	})
-	assert.Equal(t, v1alpha2.OK, resp.State)
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
+		Body:   data,
 		Parameters: map[string]string{
 			"__name": "target1",
 		},

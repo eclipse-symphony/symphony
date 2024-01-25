@@ -112,3 +112,11 @@ func TestJobsonHello(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, succeededCount)
 }
+func TestJobWrongMethod(t *testing.T) {
+	vendor := createJobVendor()
+	resp := vendor.onHello(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+}
