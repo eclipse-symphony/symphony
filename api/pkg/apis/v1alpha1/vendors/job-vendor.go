@@ -102,11 +102,13 @@ func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	})
 	defer span.End()
 
+	jLog.Infof("V (Job): onHello, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var activationData v1alpha2.ActivationData
 		err := json.Unmarshal(request.Body, &activationData)
 		if err != nil {
+			jLog.Errorf("V (Job): onHello failed - %s, traceId: %s", span.SpanContext().TraceID().String(), err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
 				Body:        []byte("{\"result\":\"400 - bad request\"}"),
@@ -120,6 +122,7 @@ func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 			State: v1alpha2.OK,
 		})
 	}
+	jLog.Errorf("V (Job): onHello failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
