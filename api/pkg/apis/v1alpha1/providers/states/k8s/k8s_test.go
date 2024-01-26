@@ -110,7 +110,6 @@ func TestUpsert(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "s123", id)
 }
-
 func TestList(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
@@ -132,6 +131,7 @@ func TestList(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -148,10 +148,21 @@ func TestList(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(entries))
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "s123", entries[0].ID)
+
+	assert.Nil(t, err)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]string{
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
 	assert.Equal(t, "s123", entries[0].ID)
 }
-
 func TestDelete(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
@@ -229,13 +240,19 @@ func TestGet(t *testing.T) {
 			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
-			"resource": "targetds",
+			"resource": "targets",
 		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "s123", item.ID)
 }
-func TestUpSertWithState(t *testing.T) {
+func TestUpsertWithState(t *testing.T) {
+	// target already exists
+	testUpsertWithState(t, "s123")
+	// target doesn't exist
+	testUpsertWithState(t, "s234")
+}
+func testUpsertWithState(t *testing.T, targetName string) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -248,12 +265,12 @@ func TestUpSertWithState(t *testing.T) {
 	assert.Nil(t, err)
 	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: "s234",
+			ID: targetName,
 			Body: map[string]interface{}{
 				"apiVersion": model.FabricGroup + "/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
-					"name": "s234",
+					"name": targetName,
 				},
 				"spec": model.TargetSpec{
 					Properties: map[string]string{
@@ -262,7 +279,8 @@ func TestUpSertWithState(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"properties": map[string]string{
-						"foo": "bar",
+						"foo":             "bar",
+						"provisionStatus": "",
 					},
 				},
 			},
@@ -276,9 +294,20 @@ func TestUpSertWithState(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "s234", id)
+	assert.Equal(t, targetName, id)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: targetName,
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
 }
-func TestUpSertWithStateOnly(t *testing.T) {
+func TestUpsertWithStateOnly(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -315,4 +344,15 @@ func TestUpSertWithStateOnly(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "s234", id)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "s234",
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
 }

@@ -18,6 +18,7 @@ jobs:
       TEST_MINIKUBE_ENABLED: yes
       TEST_MQTT_LOCAL_ENABLED: yes
       TEST_DOCKER_ENABLED: yes
+      TEST_K8S_STATE: yes
     steps:
     - uses: actions/checkout@v3
 
