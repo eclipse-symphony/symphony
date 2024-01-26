@@ -32,8 +32,13 @@ The following diagram illustrates how the stages in the approval workflow are de
 
 ## Deployment steps
 
-1. Create Azure Logic Apps workflow. You can use `approval-logic-apps.json` as a reference. Once the workflow is created, copy the `Workflow URL` link from the workflow's overview page. The workflow is expected to return a 200 status code upon approval, and other codes (like 403) if the deployment is rejected.
-2. Create Symphony objects:
+1. Create you approval script. A script returns a ```{"status":200}``` JSON payload approves the deployment; a script returns a ```{"status":403}``` or returns an error rejects the deployment. This script needs to be uploaded to a public URL that allows anoynoums download. 
+
+    > **NOTE**: A script returning a non-zero error code instead of `{“status”:403}` causes the campaign to fail. This has the same effect of a rejection in this case. But if you want to carry out additional steps – such as sending requestor a notification – your script needs to return a proper payload instead of throwing an error.
+
+2. Modify your `campaign.yaml` file to point to the correct `scriptFolder` and `script` file name you want to use.
+
+3. Create Symphony objects:
     ```bash
     kubectl apply -f solution.yaml
     kubectl apply -f target.yaml
@@ -41,13 +46,13 @@ The following diagram illustrates how the stages in the approval workflow are de
     kubectl apply -f campaign.yaml
     ```
     > **NOTE**: When you use your current Kubernetes cluster as the target, make sure you don't register the same cluster multiple times (as different targets).
-3. Activate the campaign:
+4. Activate the campaign:
     ```bash
     kubectl apply -f activation.yaml
     ```
-4. If your campaign is configured to use the ```mock-approve.sh``` script, the deployment is automatically approved. If your campaign is configured to use the ```mock-reject.sh``` script, the deployment is always rejected.
+5. If your campaign is configured to use the ```mock-approve.sh``` script, the deployment is automatically approved. If your campaign is configured to use the ```mock-reject.sh``` script, the deployment is always rejected.
     
-5. Observe the instance is created and the sample application (Prometheus server) deployed:
+6. Observe the instance is created and the sample application (Prometheus server) deployed:
     ```bash
     kubectl get instance  # the instance should be created and reconciled 
     NAME                        STATUS   TARGETS   DEPLOYED
@@ -58,7 +63,7 @@ The following diagram illustrates how the stages in the approval workflow are de
     gated-prometheus-instance   LoadBalancer   10.107.68.41     ...
     ...
     ```
-5. To clean up:
+7. To clean up:
     ```bash
     kubectl delete instance gated-prometheus-instance
     kubectl delete activation approval-activation
