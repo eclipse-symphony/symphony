@@ -16,10 +16,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type SkillsManager struct {
 	managers.Manager
@@ -43,6 +46,7 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	log.Debugf(" M (Skills): DeleteSpec, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
@@ -52,6 +56,9 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 			"resource": "skills",
 		},
 	})
+	if err != nil {
+		log.Debugf(" M (Skills): failed to DeleteSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+	}
 	return err
 }
 
@@ -62,6 +69,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	log.Debugf(" M (Skills): UpsertSpec, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -83,7 +91,11 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
-	return err
+	if err != nil {
+		log.Debugf(" M (Skills): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		return err
+	}
+	return nil
 }
 
 func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error) {
@@ -93,6 +105,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	log.Debugf(" M (Skills): ListSpec, traceId: %s", span.SpanContext().TraceID().String())
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
 			"version":  "v1",
@@ -102,6 +115,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	}
 	models, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
+		log.Debugf(" M (Skills): failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.SkillState, 0)
@@ -109,6 +123,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 		var rt model.SkillState
 		rt, err = getSkillState(t.ID, t.Body, t.ETag)
 		if err != nil {
+			log.Debugf(" M (Models): failed to getSkillState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -141,6 +156,7 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	log.Debugf(" M (Skills): GetSpec, name: %s, traceId: %s", id, span.SpanContext().TraceID().String())
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
@@ -151,11 +167,13 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	}
 	m, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		log.Debugf(" M (Skills): failed to GetSpec, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err
 	}
 
 	ret, err := getSkillState(id, m.Body, m.ETag)
 	if err != nil {
+		log.Debugf(" M (Skills): failed to getSkillState, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err
 	}
 	return ret, nil

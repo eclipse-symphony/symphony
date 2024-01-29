@@ -74,6 +74,8 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 }
 
 func getActivationState(id string, body interface{}, etag string) (model.ActivationState, error) {
+	lock.Lock()
+	defer lock.Unlock()
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
