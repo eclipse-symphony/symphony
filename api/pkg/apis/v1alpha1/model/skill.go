@@ -50,7 +50,8 @@ func (c SkillSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !SlicesEqual(c.Bindings, otherSkillSpec.Bindings) {
 		return false, nil
 	}
-	if !SlicesEqual(c.Edges, otherSkillSpec.Edges) {
+
+	if !SlicesEqual(ExtractReferenceSlice(c.Edges), ExtractReferenceSlice(otherSkillSpec.Edges)) {
 		return false, nil
 	}
 	return true, nil
