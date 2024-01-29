@@ -16,6 +16,8 @@ jobs:
     env:
       TEST_KUBECTL: yes
       TEST_MINIKUBE_ENABLED: yes
+      TEST_MQTT_LOCAL_ENABLED: yes
+      TEST_DOCKER_ENABLED: yes
     steps:
     - uses: actions/checkout@v3
 
@@ -34,6 +36,9 @@ jobs:
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
 
+    - name: Check docker version and images
+      run: docker --version && docker images
+
     - name: Install kubectl
       run: |
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -49,6 +54,13 @@ jobs:
         sudo mv minikube /usr/local/bin/
         minikube start
         kubectl config view
+    
+    - name: Install Mqtt
+      run: | 
+        sudo apt-get update
+        sudo apt-get install mosquitto mosquitto-clients
+        sudo service mosquitto start
+        sudo service mosquitto status
 
     - name: COA Test
       run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
