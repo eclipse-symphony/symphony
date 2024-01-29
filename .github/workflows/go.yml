@@ -27,6 +27,8 @@ jobs:
         
     - name: Set up custom GOPATH
       run: |
+        docker --version
+        docker images
         mkdir -p /home/runner/go
         echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
         echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
