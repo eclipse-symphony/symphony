@@ -51,7 +51,7 @@ jobs:
         kubectl config view
 
     - name: COA Test
-      run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+      run: cd coa && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
     - name: API Build
       run: cd api && go build -o symphony-api
@@ -59,11 +59,11 @@ jobs:
     - name: API Test
       run: |
         echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
-        cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        cd api && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
     - name: target-api-testcoverage-app
       run: |
-        cd api && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        cd api && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
       continue-on-error: true
@@ -71,7 +71,7 @@ jobs:
 
     - name: target-k8s-testcoverage-app
       run: |
-        cd k8s && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        cd k8s && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
       continue-on-error: true
@@ -79,7 +79,7 @@ jobs:
 
     - name: target-coa-testcoverage-app
       run: |
-        cd coa && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        cd coa && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
       continue-on-error: true
