@@ -110,9 +110,9 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		ctx, span := observability.StartSpan("onModels-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var device model.DeviceSpec
+		var model model.ModelSpec
 
-		err := json.Unmarshal(request.Body, &device)
+		err := json.Unmarshal(request.Body, &model)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -120,7 +120,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			})
 		}
 
-		err = c.ModelsManager.UpsertSpec(ctx, id, device)
+		err = c.ModelsManager.UpsertSpec(ctx, id, model)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
