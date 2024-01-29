@@ -146,49 +146,22 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestGet(t *testing.T) {
+func TestUpdateGetDelete(t *testing.T) {
+	testDockerProvider := os.Getenv("TEST_DOCKER_ENABLED")
+	if testDockerProvider == "" {
+		t.Skip("Skipping because TEST_DOCKER_PROVIDER enviornment variable is not set")
+	}
 	config := DockerTargetProviderConfig{}
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "redis:latest",
-					},
-				},
-			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: "update",
-			Component: model.ComponentSpec{
-				Name: "redis-test",
-				Type: "container",
-				Properties: map[string]interface{}{
-					model.ContainerImage: "redis:latest",
-					"env.REDIS_VERSION":  "7.0.12", // NOTE: Only environment variables passed in by the reference are returned.
-				},
-			},
-		},
-	})
-	assert.Nil(t, err)
-}
 
-func TestApply(t *testing.T) {
-	config := DockerTargetProviderConfig{}
-	provider := DockerTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
+	// Update
 	component := model.ComponentSpec{
-		Name: "redis-test",
+		Name: "alpine-test",
 		Type: "container",
 		Properties: map[string]interface{}{
-			model.ContainerImage: "redis:latest",
+			model.ContainerImage: "alpine:3.18",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -205,8 +178,37 @@ func TestApply(t *testing.T) {
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
+	// Get
+	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "alpine-test",
+					Type: "container",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "alpine:3.18",
+					},
+				},
+			},
+		},
+	}, []model.ComponentStep{
+		{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "alpine-test",
+				Type: "container",
+				Properties: map[string]interface{}{
+					model.ContainerImage: "alpine:3.18",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+
+	// Delete
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
@@ -215,6 +217,101 @@ func TestApply(t *testing.T) {
 			},
 		},
 	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+func TestApplyFailed(t *testing.T) {
+	testDockerProvider := os.Getenv("TEST_DOCKER_ENABLED")
+	if testDockerProvider == "" {
+		t.Skip("Skipping because TEST_DOCKER_PROVIDER enviornment variable is not set")
+	}
+	config := DockerTargetProviderConfig{}
+	provider := DockerTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	// invalid container image name
+	component := model.ComponentSpec{
+		Name: "",
+		Type: "container",
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+
+	// unknown container image
+	component = model.ComponentSpec{
+		Name: "abcd:latest",
+		Type: "container",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "abc:latest",
+		},
+	}
+	deployment = model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.NotNil(t, err)
+}
+
+func TestApplyAlreadyRunning(t *testing.T) {
+	testDockerProvider := os.Getenv("TEST_DOCKER_ENABLED")
+	if testDockerProvider == "" {
+		t.Skip("Skipping because TEST_DOCKER_PROVIDER enviornment variable is not set")
+	}
+	config := DockerTargetProviderConfig{}
+	provider := DockerTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	component := model.ComponentSpec{
+		Name: "alpine-test",
+		Type: "container",
+		Properties: map[string]interface{}{
+			model.ContainerImage: "alpine:3.18",
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Solution: model.SolutionSpec{
+			Components: []model.ComponentSpec{component},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	// already running
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }

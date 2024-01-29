@@ -112,9 +112,15 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		return model.TargetState{}, err
 	}
 
-	dict := target.Body.(map[string]interface{})
+	dict, ok := target.Body.(map[string]interface{})
+	if !ok {
+		return model.TargetState{}, fmt.Errorf("unable to cast target body to map[string]interface{}")
+	}
 
-	specCol := dict["spec"].(model.TargetSpec)
+	specCol, ok := dict["spec"].(model.TargetSpec)
+	if !ok {
+		return model.TargetState{}, fmt.Errorf("unable to cast target spec to model.TargetSpec")
+	}
 
 	delete(dict, "spec")
 	if dict["status"] == nil {
