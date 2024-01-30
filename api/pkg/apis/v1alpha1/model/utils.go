@@ -165,6 +165,14 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 	return true
 }
 
+func ExtractReferenceSlice[K IDeepEquals](a []K) []*K {
+	ret := make([]*K, 0)
+	for _, v := range a {
+		ret = append(ret, &v)
+	}
+	return ret
+}
+
 // SliceEuql compares two slices of IDeepEqual items, ignoring the order of items
 // It returns two if the two slices are exactly the same, otherwise it returns false
 func SlicesEqual[K IDeepEquals](a []K, b []K) bool {

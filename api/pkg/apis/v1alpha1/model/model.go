@@ -26,7 +26,7 @@ const (
 )
 
 func (c ModelSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherModelSpec, ok := other.(*ModelSpec)
+	otherModelSpec, ok := other.(ModelSpec)
 	if !ok {
 		return false, nil
 	}

@@ -1151,3 +1151,157 @@ func TestCollectPropertiesWithHierarchy(t *testing.T) {
 	assert.IsType(t, []interface{}{}, ret["def"].(map[string]interface{})["some"])
 	assert.Equal(t, int64(123), ret["def"].(map[string]interface{})["some"].([]interface{})[0].(map[string]interface{})["int"])
 }
+
+func TestExtractRawEnvFromProperties(t *testing.T) {
+	properties := map[string]interface{}{
+		"env.AZURE_CLIENT_ID":   "\\u003cSP App ID\\u003e",
+		"env.AZURE_TENANT_ID":   "\\u003cSP Tenant ID\\u003e",
+		"env.STORAGE_ACCOUNT":   "voestore",
+		"env.STORAGE_CONTAINER": "snapshots",
+		"env.SYMPHONY_URL":      "http://20.118.178.8:8080/v1alpha2/agent/references",
+		"env.TARGET_NAME":       "symphony-k8s-target",
+		"DUMMY_PROPERTY":        "dummy",
+	}
+	ret := ExtractRawEnvFromProperties(properties)
+	assert.Equal(t, "\\u003cSP App ID\\u003e", ret["env.AZURE_CLIENT_ID"])
+	assert.Equal(t, "\\u003cSP Tenant ID\\u003e", ret["env.AZURE_TENANT_ID"])
+	assert.Equal(t, "voestore", ret["env.STORAGE_ACCOUNT"])
+	assert.Equal(t, "snapshots", ret["env.STORAGE_CONTAINER"])
+	assert.Equal(t, "http://20.118.178.8:8080/v1alpha2/agent/references", ret["env.SYMPHONY_URL"])
+	assert.Equal(t, "symphony-k8s-target", ret["env.TARGET_NAME"])
+	assert.Equal(t, "", ret["DUMMY_PROPERTY"])
+}
+
+func TestCheckPropertyCompat(t *testing.T) {
+	assert.True(t, CheckPropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "B",
+		"E": "F",
+	}, "A", false))
+
+	assert.True(t, CheckPropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "A", true))
+
+	assert.False(t, CheckPropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "A", false))
+
+	assert.True(t, CheckPropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X", false))
+
+	assert.False(t, CheckPropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+		"X": "Y",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X", false))
+}
+
+func TestHasSameProperty(t *testing.T) {
+	// both has property and do case sensitive check - true
+	assert.True(t, HasSameProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, map[string]string{
+		"C": "D",
+		"A": "B",
+		"E": "F",
+	}, "A"))
+
+	// case sensitive check - false
+	assert.False(t, HasSameProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, map[string]string{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "A"))
+
+	// property both not found - true ("".equals(""))
+	assert.True(t, HasSameProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+	}, map[string]string{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X"))
+
+	// only one map has property - false
+	assert.False(t, HasSameProperty(map[string]string{
+		"A": "B",
+		"C": "D",
+		"X": "Y",
+	}, map[string]string{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X"))
+}
+
+func TestHasSamePropertyCompat(t *testing.T) {
+	// both has property and do case sensitive check - true
+	assert.True(t, HasSamePropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "B",
+		"E": "F",
+	}, "A"))
+
+	// case sensitive check - false
+	assert.False(t, HasSamePropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "A"))
+
+	// property both not found - true ("".equals(""))
+	assert.True(t, HasSamePropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X"))
+
+	// only one map has property - false
+	assert.False(t, HasSamePropertyCompat(map[string]interface{}{
+		"A": "B",
+		"C": "D",
+		"X": "Y",
+	}, map[string]interface{}{
+		"C": "D",
+		"A": "b",
+		"E": "F",
+	}, "X"))
+}

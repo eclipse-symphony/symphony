@@ -142,9 +142,6 @@ func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if len(c.Stages) != len(otherC.Stages) {
-		return false, nil
-	}
 	for i, stage := range c.Stages {
 		otherStage := otherC.Stages[i]
 

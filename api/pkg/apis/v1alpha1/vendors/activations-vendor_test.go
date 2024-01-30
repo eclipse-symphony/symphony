@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -83,6 +82,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	activationName := "activation1"
 	campaignName := "campaign1"
 	succeededCount := 0
+	sigs := make(chan bool)
 	vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
 		var activation v1alpha2.ActivationData
 		jData, _ := json.Marshal(event.Body)
@@ -91,6 +91,7 @@ func TestActivationsOnActivations(t *testing.T) {
 		assert.Equal(t, campaignName, activation.Campaign)
 		assert.Equal(t, activationName, activation.Activation)
 		succeededCount += 1
+		sigs <- true
 		return nil
 	})
 	resp := vendor.onActivations(v1alpha2.COARequest{
@@ -114,8 +115,8 @@ func TestActivationsOnActivations(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sigs
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	time.Sleep(time.Second)
 	assert.Equal(t, 1, succeededCount)
 
 	resp = vendor.onActivations(v1alpha2.COARequest{

@@ -330,6 +330,23 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
+func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
+	Target := TargetSpec{
+		DisplayName: "TargetName",
+		Scope:       "Default",
+		Components:  []ComponentSpec{{}},
+	}
+	other := TargetSpec{
+		DisplayName: "TargetName",
+		Scope:       "Default",
+		Components:  []ComponentSpec{{}},
+		Constraints: "Constraints",
+	}
+	res, err := Target.DeepEquals(other)
+	assert.Nil(t, err)
+	assert.False(t, res)
+}
+
 func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 	Target := TargetSpec{
 		DisplayName: "TargetName",
