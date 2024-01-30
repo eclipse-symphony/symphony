@@ -115,16 +115,21 @@ func (s *HttpStateProvider) Init(config providers.IProviderConfig) error {
 	}
 	s.Config = stateConfig
 	if s.Config.Url == "" {
-		return v1alpha2.NewCOAError(nil, "Http sate provider url is not set", v1alpha2.BadConfig)
+		return v1alpha2.NewCOAError(nil, "Http state provider url is not set", v1alpha2.BadConfig)
 	}
 	s.Data = make(map[string]interface{}, 0)
 	return nil
 }
 
 func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
+
 	client := &http.Client{}
 	rUrl := s.Config.Url
 	var err error
+	if entry.Value.ID == "" {
+		err = v1alpha2.NewCOAError(nil, "found invalid entry ID", v1alpha2.BadRequest)
+		return "", err
+	}
 	if s.Config.PostNameInPath {
 		rUrl, err = url.JoinPath(s.Config.Url, entry.Value.ID)
 	}
@@ -157,11 +162,15 @@ func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertReque
 }
 
 func (s *HttpStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	return nil, "", v1alpha2.NewCOAError(nil, "Http sate store list is not implemented", v1alpha2.NotImplemented)
+	return nil, "", v1alpha2.NewCOAError(nil, "Http state store list is not implemented", v1alpha2.NotImplemented)
 }
 
 func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
 	client := &http.Client{}
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return err
+	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
 	if err != nil {
 		return err
@@ -176,13 +185,16 @@ func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteReq
 	}
 	if resp.StatusCode >= 300 {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to delete from HTTP state store: [%d]", resp.StatusCode), v1alpha2.InternalError)
-
 	}
 	return nil
 }
 
 func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
 	client := &http.Client{}
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return states.StateEntry{}, err
+	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
 	if err != nil {
 		return states.StateEntry{}, err
