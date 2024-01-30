@@ -368,6 +368,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor.Context.Init(&pubSubProvider)
 	succeededCount := 0
+	sig := make(chan bool)
 	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
 		jData, _ := json.Marshal(event.Body)
@@ -378,6 +379,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 		assert.Equal(t, "instance1", job.Id)
 		assert.Equal(t, "UPDATE", job.Action)
 		succeededCount += 1
+		sig <- true
 		return nil
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
@@ -389,6 +391,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	// wait for the job to be processed
 	time.Sleep(time.Second)
@@ -400,6 +403,7 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 	pubSubProvider := memory.InMemoryPubSubProvider{}
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor.Context.Init(&pubSubProvider)
+	sig := make(chan bool)
 	succeededCount := 0
 	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -411,6 +415,7 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 		assert.Equal(t, "target1", job.Id)
 		assert.Equal(t, "DELETE", job.Action)
 		succeededCount += 1
+		sig <- true
 		return nil
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
@@ -423,6 +428,7 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	// wait for the job to be processed
 	time.Sleep(time.Second)

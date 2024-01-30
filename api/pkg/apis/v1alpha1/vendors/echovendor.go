@@ -7,6 +7,8 @@
 package vendors
 
 import (
+	"sync"
+
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -20,6 +22,7 @@ import (
 type EchoVendor struct {
 	vendors.Vendor
 	myMessages []string
+	lock       sync.Mutex
 }
 
 func (o *EchoVendor) GetInfo() vendors.VendorInfo {
@@ -30,10 +33,18 @@ func (o *EchoVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
+func (e *EchoVendor) GetMessages() []string {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	return e.myMessages
+}
+
 func (e *EchoVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	e.myMessages = make([]string, 0)
 	e.Vendor.Context.Subscribe("trace", func(topic string, event v1alpha2.Event) error {
+		e.lock.Lock()
+		defer e.lock.Unlock()
 		msg := event.Body.(string)
 		e.myMessages = append(e.myMessages, msg)
 		if len(e.myMessages) > 20 {
@@ -70,6 +81,8 @@ func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 
 	switch request.Method {
 	case fasthttp.MethodGet:
+		c.lock.Lock()
+		defer c.lock.Unlock()
 		message := "Hello from Symphony K8s control plane (S8C)"
 		if len(c.myMessages) > 0 {
 			for _, m := range c.myMessages {

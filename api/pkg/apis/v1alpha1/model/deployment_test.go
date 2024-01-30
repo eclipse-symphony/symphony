@@ -276,7 +276,7 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
 		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName1",
+			DisplayName: "SolutionDisplayName",
 		},
 		Instance: InstanceSpec{
 			Name: "InstanceName",
@@ -536,14 +536,90 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 	assert.Equal(t, 1, len(res))
 }
 
-func TestMapsEqual(t *testing.T) {
+func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
+	deployment1 := DeploymentSpec{
+		SolutionName: "SolutionName",
+		Solution: SolutionSpec{
+			DisplayName: "SolutionDisplayName",
+		},
+		Instance: InstanceSpec{
+			Name: "InstanceName",
+		},
+		Targets: map[string]TargetSpec{
+			"foo": {
+				DisplayName: "TargetName",
+			},
+		},
+		Devices: []DeviceSpec{{
+			DisplayName: "DeviceName",
+		}},
+		Assignments: map[string]string{
+			"foo": "bar",
+		},
+		ComponentStartIndex: 0,
+		ComponentEndIndex:   0,
+		ActiveTarget:        "ActiveTarget",
+	}
+	deployment2 := DeploymentSpec{
+		SolutionName: "SolutionName",
+		Solution: SolutionSpec{
+			DisplayName: "SolutionDisplayName",
+		},
+		Instance: InstanceSpec{
+			Name: "InstanceName",
+		},
+		Targets: map[string]TargetSpec{
+			"foo": {
+				DisplayName: "TargetName",
+			},
+		},
+		Devices: []DeviceSpec{{
+			DisplayName: "DeviceName",
+		}},
+		Assignments: map[string]string{
+			"foo": "bar1",
+		},
+		ComponentStartIndex: 0,
+		ComponentEndIndex:   0,
+		ActiveTarget:        "ActiveTarget",
+	}
+	res, err := deployment1.DeepEquals(deployment2)
+	assert.Nil(t, err)
+	assert.False(t, res)
+}
+
+func TestMapsEqualMap1Extra(t *testing.T) {
 	map1 := map[string]TargetSpec{
 		"foo": {
 			DisplayName: "TargetName",
 		},
 	}
+	map2 := map[string]TargetSpec{}
+	res := mapsEqual(map1, map2, nil)
+	assert.False(t, res)
+}
+
+func TestMapsNotEqualMap2Extra(t *testing.T) {
+	map1 := map[string]TargetSpec{}
 	map2 := map[string]TargetSpec{
-		"foo": {},
+		"foo": {
+			DisplayName: "TargetName",
+		},
+	}
+	res := mapsEqual(map1, map2, nil)
+	assert.False(t, res)
+}
+
+func TestMapsNotEqual(t *testing.T) {
+	map2 := map[string]TargetSpec{
+		"foo": {
+			DisplayName: "TargetName",
+		},
+	}
+	map1 := map[string]TargetSpec{
+		"foo": {
+			DisplayName: "TargetName1",
+		},
 	}
 	res := mapsEqual(map1, map2, nil)
 	assert.False(t, res)
