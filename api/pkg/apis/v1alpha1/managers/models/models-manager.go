@@ -59,7 +59,7 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 	})
 
 	if err != nil {
-		log.Debugf(" M (Models): failed to DeleteSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Models): failed to DeleteSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 	}
 	return err
 }
@@ -94,7 +94,7 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Debugf(" M (Models): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Models): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return err
 	}
 	return nil
@@ -117,7 +117,7 @@ func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error
 	}
 	models, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		log.Debugf(" M (Models): failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Models): failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.ModelState, 0)
@@ -125,7 +125,7 @@ func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error
 		var rt model.ModelState
 		rt, err = getModelState(t.ID, t.Body, t.ETag)
 		if err != nil {
-			log.Debugf(" M (Models): failed to getModelState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.Errorf(" M (Models): failed to getModelState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -169,13 +169,13 @@ func (t *ModelsManager) GetSpec(ctx context.Context, id string) (model.ModelStat
 	}
 	m, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Debugf(" M (Models): failed to GetSpec, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Models): failed to GetSpec, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.ModelState{}, err
 	}
 
 	ret, err := getModelState(id, m.Body, m.ETag)
 	if err != nil {
-		log.Debugf(" M (Models): failed to getModelState, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Models): failed to getModelState, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.ModelState{}, err
 	}
 	return ret, nil

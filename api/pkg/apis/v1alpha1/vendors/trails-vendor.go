@@ -72,7 +72,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onTrails",
 	})
 	defer span.End()
-	tLog.Info("V (Trails) : onTrails %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.Debugf("V (Trails) : onTrails %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodPost:

@@ -57,7 +57,7 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 		},
 	})
 	if err != nil {
-		log.Debugf(" M (Skills): failed to DeleteSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Skills): failed to DeleteSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 	}
 	return err
 }
@@ -92,7 +92,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Debugf(" M (Skills): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Skills): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return err
 	}
 	return nil
@@ -115,7 +115,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 	}
 	models, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		log.Debugf(" M (Skills): failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Skills): failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.SkillState, 0)
@@ -123,7 +123,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 		var rt model.SkillState
 		rt, err = getSkillState(t.ID, t.Body, t.ETag)
 		if err != nil {
-			log.Debugf(" M (Models): failed to getSkillState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.Errorf(" M (Models): failed to getSkillState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -167,13 +167,13 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	}
 	m, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Debugf(" M (Skills): failed to GetSpec, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Skills): failed to GetSpec, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err
 	}
 
 	ret, err := getSkillState(id, m.Body, m.ETag)
 	if err != nil {
-		log.Debugf(" M (Skills): failed to getSkillState, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Skills): failed to getSkillState, name: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err
 	}
 	return ret, nil

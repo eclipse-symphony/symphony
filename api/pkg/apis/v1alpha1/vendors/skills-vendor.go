@@ -75,7 +75,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onSkills",
 	})
 	defer span.End()
-	tLog.Info("V (Skills): onSkills, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	kLog.Debugf("V (Skills): onSkills, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -92,9 +92,9 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		}
 		if err != nil {
 			if isArray {
-				tLog.Errorf(" V (Skills): onSkills failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				kLog.Errorf(" V (Skills): onSkills failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			} else {
-				tLog.Errorf(" V (Skills): onSkills failed to GetSpec, id: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+				kLog.Errorf(" V (Skills): onSkills failed to GetSpec, id: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
 			}
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -119,7 +119,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err := json.Unmarshal(request.Body, &skill)
 		if err != nil {
-			tLog.Errorf("V (Skills): onSkills failed to pause skill from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+			kLog.Errorf("V (Skills): onSkills failed to pause skill from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -128,7 +128,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err = c.SkillsManager.UpsertSpec(ctx, id, skill)
 		if err != nil {
-			tLog.Errorf("V (Skills): onSkills failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+			kLog.Errorf("V (Skills): onSkills failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,7 +142,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		id := request.Parameters["__name"]
 		err := c.SkillsManager.DeleteSpec(ctx, id)
 		if err != nil {
-			tLog.Errorf("V (Skills): onSkills failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+			kLog.Errorf("V (Skills): onSkills failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -152,7 +152,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 			State: v1alpha2.OK,
 		})
 	}
-	tLog.Errorf("V (Skills): onSkills returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	kLog.Errorf("V (Skills): onSkills returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

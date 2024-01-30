@@ -75,7 +75,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onModels",
 	})
 	defer span.End()
-	tLog.Info("V (Models): onDevices")
+	tLog.Debugf("V (Models): onModels, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -91,6 +91,11 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			state, err = c.ModelsManager.GetSpec(ctx, id)
 		}
 		if err != nil {
+			if isArray {
+				tLog.Errorf(" V (Models): onModels failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			} else {
+				tLog.Errorf(" V (Models): onModels failed to GetSpec, id: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+			}
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -114,6 +119,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err := json.Unmarshal(request.Body, &model)
 		if err != nil {
+			tLog.Errorf("V (Models): onModels failed to pause model from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -122,6 +128,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err = c.ModelsManager.UpsertSpec(ctx, id, model)
 		if err != nil {
+			tLog.Errorf("V (Models): onModels failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -135,6 +142,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		id := request.Parameters["__name"]
 		err := c.ModelsManager.DeleteSpec(ctx, id)
 		if err != nil {
+			tLog.Errorf("V (Models): onModels failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -144,6 +152,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			State: v1alpha2.OK,
 		})
 	}
+	tLog.Errorf("V (Models): onModels returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
