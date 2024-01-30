@@ -190,7 +190,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	}
 
 	if entry.Value.ID == "" {
-		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
 		return "", err
 	}
 
@@ -360,7 +360,7 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	}
 
 	if request.ID == "" {
-		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
 		return err
 	}
 
@@ -397,7 +397,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	}
 
 	if request.ID == "" {
-		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
 		return states.StateEntry{}, err
 	}
 

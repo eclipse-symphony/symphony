@@ -127,7 +127,7 @@ func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertReque
 	rUrl := s.Config.Url
 	var err error
 	if entry.Value.ID == "" {
-		err = v1alpha2.NewCOAError(nil, "found invalid entry ID", v1alpha2.InternalError)
+		err = v1alpha2.NewCOAError(nil, "found invalid entry ID", v1alpha2.BadRequest)
 		return "", err
 	}
 	if s.Config.PostNameInPath {
@@ -168,7 +168,7 @@ func (s *HttpStateProvider) List(ctx context.Context, request states.ListRequest
 func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
 	client := &http.Client{}
 	if request.ID == "" {
-		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
 		return err
 	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
@@ -192,7 +192,7 @@ func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteReq
 func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
 	client := &http.Client{}
 	if request.ID == "" {
-		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.InternalError)
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
 		return states.StateEntry{}, err
 	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
