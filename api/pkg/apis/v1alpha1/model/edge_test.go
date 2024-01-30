@@ -39,10 +39,10 @@ func TestConnectionSpecMatchOneEmpty(t *testing.T) {
 }
 
 func TestConnectionSpecNodeNotMatch(t *testing.T) {
-	conn1 := &ConnectionSpec{
+	conn1 := ConnectionSpec{
 		Node: "node1",
 	}
-	conn2 := &ConnectionSpec{
+	conn2 := ConnectionSpec{
 		Node: "node2",
 	}
 	res, err := conn1.DeepEquals(conn2)
@@ -51,10 +51,10 @@ func TestConnectionSpecNodeNotMatch(t *testing.T) {
 }
 
 func TestConnectionSpecRouteNotMatch(t *testing.T) {
-	conn1 := &ConnectionSpec{
+	conn1 := ConnectionSpec{
 		Route: "route1",
 	}
-	conn2 := &ConnectionSpec{
+	conn2 := ConnectionSpec{
 		Route: "route2",
 	}
 	res, err := conn1.DeepEquals(conn2)
@@ -63,11 +63,11 @@ func TestConnectionSpecRouteNotMatch(t *testing.T) {
 }
 
 func TestConnectionSpecEqual(t *testing.T) {
-	conn1 := &ConnectionSpec{
+	conn1 := ConnectionSpec{
 		Node:  "node",
 		Route: "route",
 	}
-	conn2 := &ConnectionSpec{
+	conn2 := ConnectionSpec{
 		Node:  "node",
 		Route: "route",
 	}
@@ -77,12 +77,12 @@ func TestConnectionSpecEqual(t *testing.T) {
 }
 
 func TestEdgeSpecSourceNotMatch(t *testing.T) {
-	edge1 := &EdgeSpec{
+	edge1 := EdgeSpec{
 		Source: ConnectionSpec{
 			Node: "node1",
 		},
 	}
-	edge2 := &EdgeSpec{
+	edge2 := EdgeSpec{
 		Source: ConnectionSpec{
 			Node: "node2",
 		},
@@ -93,12 +93,12 @@ func TestEdgeSpecSourceNotMatch(t *testing.T) {
 }
 
 func TestEdgeSpecTargetNotMatch(t *testing.T) {
-	edge1 := &EdgeSpec{
+	edge1 := EdgeSpec{
 		Target: ConnectionSpec{
 			Node: "node1",
 		},
 	}
-	edge2 := &EdgeSpec{
+	edge2 := EdgeSpec{
 		Target: ConnectionSpec{
 			Node: "node2",
 		},
@@ -109,7 +109,7 @@ func TestEdgeSpecTargetNotMatch(t *testing.T) {
 }
 
 func TestEdgeSpecEqual(t *testing.T) {
-	edge1 := &EdgeSpec{
+	edge1 := EdgeSpec{
 		Source: ConnectionSpec{
 			Node:  "node1",
 			Route: "route1",
@@ -119,7 +119,7 @@ func TestEdgeSpecEqual(t *testing.T) {
 			Route: "route1",
 		},
 	}
-	edge2 := &EdgeSpec{
+	edge2 := EdgeSpec{
 		Source: ConnectionSpec{
 			Node:  "node1",
 			Route: "route1",
@@ -155,14 +155,14 @@ func TestEdgeArrayEqual(t *testing.T) {
 			Route: "route",
 		},
 	}
-	res, err := e1.DeepEquals(&e2)
+	res, err := e1.DeepEquals(e2)
 	assert.Nil(t, err)
 	assert.True(t, res)
 
-	es1 := make([]*EdgeSpec, 0)
-	es1 = append(es1, &e1)
-	es2 := make([]*EdgeSpec, 0)
-	es2 = append(es2, &e2)
+	es1 := make([]EdgeSpec, 0)
+	es1 = append(es1, e1)
+	es2 := make([]EdgeSpec, 0)
+	es2 = append(es2, e2)
 	res = SlicesEqual(es1, es2)
 	assert.True(t, res)
 }

@@ -175,7 +175,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	var m1State model.ModelState
 	err = json.Unmarshal(resp.Body, &m1State)
 	assert.Nil(t, err)
-	equal, err := m1.DeepEquals(m1State.Spec)
+	equal, err := m1.DeepEquals(*m1State.Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
@@ -190,7 +190,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &modelsState)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(modelsState))
-	equal, err = m1.DeepEquals(modelsState[0].Spec)
+	equal, err = m1.DeepEquals(*modelsState[0].Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 

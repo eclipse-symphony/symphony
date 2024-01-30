@@ -13,7 +13,7 @@ import (
 )
 
 func TestSkillMatch(t *testing.T) {
-	s1 := &SkillSpec{
+	s1 := SkillSpec{
 		DisplayName: "skill",
 		Parameters: map[string]string{
 			"foo": "bar",
@@ -49,7 +49,7 @@ func TestSkillMatch(t *testing.T) {
 		},
 	}
 
-	s2 := &SkillSpec{
+	s2 := SkillSpec{
 		DisplayName: "skill",
 		Parameters: map[string]string{
 			"foo": "bar",
@@ -91,7 +91,7 @@ func TestSkillMatch(t *testing.T) {
 }
 
 func TestSkillNotMatch(t *testing.T) {
-	s1 := &SkillSpec{
+	s1 := SkillSpec{
 		DisplayName: "skill",
 	}
 
@@ -101,7 +101,7 @@ func TestSkillNotMatch(t *testing.T) {
 	assert.False(t, equal)
 
 	// not match different display name
-	s2 := &SkillSpec{
+	s2 := SkillSpec{
 		DisplayName: "skill2",
 	}
 	equal, err = s1.DeepEquals(s2)

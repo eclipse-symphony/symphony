@@ -13,7 +13,7 @@ import (
 )
 
 func TestModelEqual(t *testing.T) {
-	model1 := &ModelSpec{
+	model1 := ModelSpec{
 		DisplayName: "model",
 		Properties: map[string]string{
 			"foo": "bar",
@@ -29,7 +29,7 @@ func TestModelEqual(t *testing.T) {
 			},
 		},
 	}
-	model2 := &ModelSpec{
+	model2 := ModelSpec{
 		DisplayName: "model",
 		Properties: map[string]string{
 			"foo": "bar",
@@ -53,7 +53,7 @@ func TestModelEqual(t *testing.T) {
 
 func TestModelNotEqual(t *testing.T) {
 	// Test empty
-	model1 := &ModelSpec{
+	model1 := ModelSpec{
 		DisplayName: "model",
 	}
 	equal, err := model1.DeepEquals(nil)
@@ -61,7 +61,7 @@ func TestModelNotEqual(t *testing.T) {
 	assert.False(t, equal)
 
 	// Test DisplayName not equal
-	model2 := &ModelSpec{
+	model2 := ModelSpec{
 		DisplayName: "model2",
 	}
 	equal, err = model1.DeepEquals(model2)
