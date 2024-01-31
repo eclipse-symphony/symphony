@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -87,8 +88,8 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	ret.Password = password
 	return ret, nil
 }
-func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (string, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, "")
+func (m *CatalogConfigProvider) unwindOverrides(override string, field string, scope string) (string, error) {
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, scope)
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +97,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string) (
 		return v.(string), nil
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(catalog.Spec.ParentName, field)
+		return m.unwindOverrides(catalog.Spec.ParentName, field, scope)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
@@ -113,7 +114,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field)
+		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, scope)
 		if err != nil {
 			return "", err
 		} else {
@@ -214,8 +215,11 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		return val, nil
 	}
 }
+
+// TODO: IConfigProvider interface methods shoukd be enhanced to accept scope as a parameter
+// so we can get rid of getCatalogInDefaultNamespace
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
+	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return err
 	}
@@ -224,7 +228,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
+	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return err
 	}
@@ -236,7 +240,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
-	catlog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, "")
+	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
 		return err
 	}
@@ -249,4 +253,8 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
 	return utils.DeleteCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+}
+
+func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
+	return utils.GetCatalog(context, baseUrl, catalog, user, password, "")
 }
