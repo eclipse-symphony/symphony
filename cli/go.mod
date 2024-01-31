@@ -9,6 +9,7 @@ replace github.com/eclipse-symphony/symphony/coa => ../coa
 require github.com/spf13/cobra v1.6.1
 
 require (
+	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect

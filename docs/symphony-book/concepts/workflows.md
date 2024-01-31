@@ -14,11 +14,10 @@ Comparing to some other workflow engines, Symphony has the following features sp
 
 ## Activation and events
 
-
 A campaign can be activated by creating the corresponding *activation* object. Unless explicitly disabled, a campaign can be activated multiple times in parallel. Each activation object maintains its own state and context. Symphony uses an event-based approach to drive the activation objects. And it allows steps in a campaign to be executed remotely on a different Symphony control plane.
 
 After a stage's execution, the campaign enters a dormant state, awaiting an incoming event to awaken and activate the next stage.
 
-## Topics
+## Related topics
 
-* [Workflow management](../campaign-management/overview.md)
+* [Campaign scenarios](./campaign-scenarios.md)

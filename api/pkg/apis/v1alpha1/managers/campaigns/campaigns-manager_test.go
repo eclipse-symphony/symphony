@@ -27,6 +27,10 @@ func TestCreateGetDeleteCampaignSpec(t *testing.T) {
 	spec, err := manager.GetSpec(context.Background(), "test")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
+	specLists, err := manager.ListSpec(context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(specLists))
+	assert.Equal(t, "test", specLists[0].Id)
 	err = manager.DeleteSpec(context.Background(), "test")
 	assert.Nil(t, err)
 }

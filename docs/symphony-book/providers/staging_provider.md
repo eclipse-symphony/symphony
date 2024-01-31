@@ -1,6 +1,6 @@
 # Staging provider
 
-Staging provider allows [components](../uom/solution.md#componentspec) to be recorded on an [Target](../uom/target.md) object without being deployed to the actual target. This allows components to be **staged** and retrieved later, such as by a polling agent. 
+Staging provider allows [components](../concepts/unified-object-model/solution.md#componentspec) to be recorded on an [Target](../concepts/unified-object-model/target.md) object without being deployed to the actual target. This allows components to be **staged** and retrieved later, such as by a polling agent. 
 
 ## Provider configuration
 

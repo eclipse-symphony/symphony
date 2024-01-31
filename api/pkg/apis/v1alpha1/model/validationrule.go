@@ -74,7 +74,7 @@ func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec)
 			}
 		} else {
 			if c.IsComponentName {
-				if !compareStrings(old.Name, new.Name, c.IgnoreCase, c.SkipIfMissing) {
+				if !compareStrings(old.Name, new.Name, c.IgnoreCase, c.PrefixMatch) {
 					return true
 				}
 			} else {
@@ -125,6 +125,8 @@ func compareProperties(c PropertyDesc, old ComponentSpec, new ComponentSpec, key
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}
+		} else if !c.SkipIfMissing {
+			return true
 		}
 	} else {
 		if !c.SkipIfMissing {
@@ -140,6 +142,8 @@ func compareMetadata(c PropertyDesc, old ComponentSpec, new ComponentSpec, key s
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}
+		} else if !c.SkipIfMissing {
+			return true
 		}
 	} else {
 		if !c.SkipIfMissing {

@@ -66,9 +66,9 @@ Symphony REST API defines a few roles:
 
 * **Administrator**: Full access to all Symphony APIs
 * **Reader**: - Read-only access to Symphony APIs
-* **Solution creator**: CRUD on [solutions](../uom/solution.md) only
-* **Target manager**: CRUD on [targets](../uom/target.md) only
-* **Operator**: CRUD on [instances](../uom/instance.md) only
+* **Solution creator**: CRUD on [solutions](../concepts/unified-object-model/solution.md) only
+* **Target manager**: CRUD on [targets](../concepts/unified-object-model/target.md) only
+* **Operator**: CRUD on [instances](../concepts/unified-object-model/instance.md) only
 
 Symphony's JWT handler allows you to map claim values into the above roles. For example, the following mapping rule maps an `admin` user to the `administrator` role. When integrated with an external identity provider (IdP) such as Microsoft Entra ID, you probably want to configure such mappings based on the Microsoft Entra ID token you expect (such as looking for embedded application roles).
 

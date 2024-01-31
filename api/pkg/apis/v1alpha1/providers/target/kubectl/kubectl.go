@@ -446,6 +446,10 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 
+	if namespace == "" || namespace == "default" {
+		return nil
+	}
+
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {
 		return nil

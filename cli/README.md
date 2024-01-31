@@ -49,7 +49,7 @@ mage generatePackages /home/usr/assemble
 
 1. Edit your release to include the three **.gz** files from the previous step:
 
-   ![CLI release](../docs/symphony-book//images/cli-release.png)
+   ![CLI release](../docs/symphony-book/images/cli-release.png)
 
 1. Check `symphony/cli/install/install.sh` and `symphony/cli/install/install.ps1` to a public repository. Users will be instructed to use scripts from this repo for the one-command experience, for example:
 

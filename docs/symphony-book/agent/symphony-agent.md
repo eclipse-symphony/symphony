@@ -75,7 +75,7 @@ export TARGET_NAME=<target name> #the name of the Target object representing the
 
 ## Get object reference
 
-You can get Symphony object specs, such as AI [skill](../uom/ai-skill.md) and [solution](../uom/solution.md), through the Symphony agent:
+You can get Symphony object specs, such as AI [skill](../concepts/unified-object-model/ai-skill.md) and [solution](../concepts/unified-object-model/solution.md), through the Symphony agent:
 
 * **Route**: `http://<Symphony agent endpoint>:8088/v1alpha2/agent/references`
 * **Method**: GET

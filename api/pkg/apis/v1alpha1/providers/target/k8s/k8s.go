@@ -202,6 +202,9 @@ func toK8sTargetProviderConfig(config providers.IProviderConfig) (K8sTargetProvi
 }
 
 func (i *K8sTargetProvider) getDeployment(ctx context.Context, scope string, name string) ([]model.ComponentSpec, error) {
+	if scope == "" {
+		scope = "default"
+	}
 	deployment, err := i.Client.AppsV1().Deployments(scope).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -301,6 +304,10 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	return components, nil
 }
 func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, serviceName string) error {
+	if scope == "" {
+		scope = "default"
+	}
+
 	svc, err := i.Client.CoreV1().Services(scope).Get(ctx, serviceName, metav1.GetOptions{})
 	if err == nil && svc != nil {
 		foregroundDeletion := metav1.DeletePropagationForeground
@@ -314,6 +321,10 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, ser
 	return nil
 }
 func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, name string) error {
+	if scope == "" {
+		scope = "default"
+	}
+
 	foregroundDeletion := metav1.DeletePropagationForeground
 	err := i.Client.AppsV1().Deployments(scope).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 	if err != nil {
@@ -328,6 +339,10 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, r
 	_, err := i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
 	if err != nil {
 		return err
+	}
+
+	if scope == "" || scope == "default" {
+		return nil
 	}
 
 	resourceCount := make(map[string]int)
@@ -400,6 +415,9 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, r
 	return nil
 }
 func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) error {
+	if scope == "" || scope == "default" {
+		return nil
+	}
 	_, err := i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -418,6 +436,10 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) e
 	return nil
 }
 func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, scope string, name string, deployment *v1.Deployment) error {
+	if scope == "" {
+		scope = "default"
+	}
+
 	existing, err := i.Client.AppsV1().Deployments(scope).Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
@@ -434,6 +456,10 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, scope string, 
 	return nil
 }
 func (i *K8sTargetProvider) upsertService(ctx context.Context, scope string, name string, service *apiv1.Service) error {
+	if scope == "" {
+		scope = "default"
+	}
+
 	existing, err := i.Client.CoreV1().Services(scope).Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
@@ -452,6 +478,10 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, scope string, nam
 func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Span, scope string, name string, metadata map[string]string, components []model.ComponentSpec, projector IK8sProjector, instanceName string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	if scope == "" {
+		scope = "default"
+	}
 
 	deployment, err := componentsToDeployment(scope, name, metadata, components, instanceName)
 	if projector != nil {
@@ -686,6 +716,10 @@ func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, er
 func metadataToService(scope string, name string, metadata map[string]string) (*apiv1.Service, error) {
 	if len(metadata) == 0 {
 		return nil, nil
+	}
+
+	if scope == "" {
+		scope = "default"
 	}
 
 	servicePorts := make([]apiv1.ServicePort, 0)

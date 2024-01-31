@@ -31,7 +31,7 @@ type SkillPackageSpec struct {
 }
 
 func (c SkillSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherSkillSpec, ok := other.(*SkillSpec)
+	otherSkillSpec, ok := other.(SkillSpec)
 	if !ok {
 		return false, nil
 	}
@@ -50,6 +50,7 @@ func (c SkillSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !SlicesEqual(c.Bindings, otherSkillSpec.Bindings) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Edges, otherSkillSpec.Edges) {
 		return false, nil
 	}

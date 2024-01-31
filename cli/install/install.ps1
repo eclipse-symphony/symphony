@@ -58,7 +58,7 @@ else {
 Write-Output "Creating $SymphonyRoot directory"
 New-Item -ErrorAction Ignore -Path $SymphonyRoot -ItemType "directory"
 if (!(Test-Path $SymphonyRoot -PathType Container)) {
-    Write-Warning "Please visit https://github.com/eclipse-symphony-docs/ for instructions on how to install without admin rights."
+    Write-Warning "Please visit https://github.com/eclipse-symphony/symphony/tree/main/docs/ for instructions on how to install without admin rights."
     throw "Cannot create $SymphonyRoot"
 }
 

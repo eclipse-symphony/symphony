@@ -24,8 +24,8 @@ Symphony runs as a single process in standalone mode. To launch Symphony in stan
 ./symphony-api -c ~/symphony-api-no-k8s.json -l Debug
 ```
 
-Once launched, you can access Symphony's [REST API](../api/api.md) using any web clients.
+Once launched, you can access Symphony's [REST API](../api/_overview.md) using any web clients.
 
 ## Next steps
 
-* [Quick start - launch a Redis container with standalone Symphony](../quick_start/deploy_redis_no_k8s.md)
+* [Quick start - launch a Redis container with standalone Symphony](../get-started/deploy_redis_no_k8s.md)

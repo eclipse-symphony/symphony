@@ -45,7 +45,9 @@ func ReadInt32(col map[string]string, key string, defaultVal int32) int32 {
 		if e != nil {
 			return defaultVal
 		}
-		return i.(int32)
+		if i, iok := i.(int32); iok {
+			return i
+		}
 	}
 	return defaultVal
 }
@@ -55,7 +57,12 @@ func GetString(col map[string]string, key string) (string, error) {
 		if e != nil {
 			return "", e
 		}
-		return i.(string), nil
+		s, sok := i.(string)
+		if sok {
+			return s, nil
+		} else {
+			return "", fmt.Errorf("value of %s is not a string", key)
+		}
 	}
 	return "", fmt.Errorf("key %s is not found", key)
 }
@@ -66,7 +73,10 @@ func ReadStringFromMapCompat(col map[string]interface{}, key string, defaultVal 
 		if e != nil {
 			return defaultVal
 		}
-		return i.(string)
+		s, sok := i.(string)
+		if sok {
+			return s
+		}
 	}
 	return defaultVal
 }
@@ -77,7 +87,10 @@ func ReadString(col map[string]string, key string, defaultVal string) string {
 		if e != nil {
 			return defaultVal
 		}
-		return i.(string)
+		s, sok := i.(string)
+		if sok {
+			return s
+		}
 	}
 	return defaultVal
 }

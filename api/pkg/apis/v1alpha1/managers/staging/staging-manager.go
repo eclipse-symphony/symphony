@@ -153,15 +153,15 @@ func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.Jo
 	items := []v1alpha2.JobData{}
 	itemCount := 0
 	for {
-		stackElement, err := s.QueueProvider.Dequeue(site)
+		queueElement, err := s.QueueProvider.Dequeue(site)
 		if err != nil {
 			return nil, err
 		}
-		if job, ok := stackElement.(v1alpha2.JobData); ok {
+		if job, ok := queueElement.(v1alpha2.JobData); ok {
 			items = append(items, job)
 			itemCount++
 		} else {
-			s.QueueProvider.Enqueue(site, stackElement)
+			s.QueueProvider.Enqueue(site, queueElement)
 		}
 		if itemCount == count || s.QueueProvider.Size(site) == 0 {
 			break
