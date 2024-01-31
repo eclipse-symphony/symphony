@@ -89,11 +89,11 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
+		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 
@@ -168,7 +168,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
@@ -179,6 +179,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.Errorf("  P (Docker Target): failed to validate components: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	if isDryRun {
@@ -190,7 +191,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
+		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return ret, err
 	}
 
@@ -204,7 +205,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Helm Target): component doesn't have container.image property")
+				sLog.Errorf("  P (Helm Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 
@@ -229,7 +230,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 				if err != nil {
 					if !client.IsErrNotFound(err) {
-						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
+						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return ret, err
 					}
 				}
@@ -239,7 +240,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
@@ -265,7 +266,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 				hostConfig = &container.HostConfig{
@@ -279,7 +280,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+				sLog.Errorf("  P (Docker Target): failed to create container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 
@@ -288,7 +289,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
+				sLog.Errorf("  P (Docker Target): failed to start container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 			ret[component.Component.Name] = model.ComponentResultSpec{
@@ -299,14 +300,14 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
 			err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
+					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
