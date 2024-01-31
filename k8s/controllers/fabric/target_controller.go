@@ -81,6 +81,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err != nil && !v1alpha2.IsNotFound(err) {
 			uErr := r.updateTargetStatusToReconciling(target, err)
 			if uErr != nil {
+				log.Error(uErr, "failed to update target status to reconciling")
 				return ctrl.Result{}, uErr
 			}
 			return ctrl.Result{}, err
@@ -94,6 +95,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if generationMatch && time.Since(summary.Time) <= time.Duration(60)*time.Second { //TODO: this is 60 second interval. Make if configurable?
 			err = r.updateTargetStatus(target, summary.Summary)
 			if err != nil {
+				log.Error(err, "failed to update target status")
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
@@ -103,6 +105,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			if err != nil {
 				uErr := r.updateTargetStatusToReconciling(target, err)
 				if uErr != nil {
+					log.Error(uErr, "failed to update target status to reconciling")
 					return ctrl.Result{}, uErr
 				}
 				return ctrl.Result{}, err
@@ -117,6 +120,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			if !generationMatch {
 				err = r.updateTargetStatusToReconciling(target, nil)
 				if err != nil {
+					log.Error(err, "failed to update target status to reconciling")
 					return ctrl.Result{}, err
 				}
 			}
@@ -131,6 +135,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			if err != nil {
 				uErr := r.updateTargetStatusToReconciling(target, err)
 				if uErr != nil {
+					log.Error(uErr, "failed to update target status to reconciling")
 					return ctrl.Result{}, uErr
 				}
 				return ctrl.Result{}, err
@@ -149,6 +154,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 						break loop
 					}
 					if err != nil && !v1alpha2.IsNotFound(err) {
+						log.Error(err, "failed to get target summary")
 						break loop
 					}
 				}
@@ -158,6 +164,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// provider to pick up.
 			controllerutil.RemoveFinalizer(target, myFinalizerName)
 			if err := r.Update(ctx, target); err != nil {
+				log.Error(err, "failed to remove finalizer")
 				return ctrl.Result{}, err
 			}
 		}

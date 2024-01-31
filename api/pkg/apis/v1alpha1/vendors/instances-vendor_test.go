@@ -80,6 +80,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		"useJobManager": "true",
 	}
 	succeededCount := 0
+	sig := make(chan bool)
 	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
 		jData, _ := json.Marshal(event.Body)
@@ -89,6 +90,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		assert.Equal(t, "instance1", job.Id)
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		succeededCount += 1
+		sig <- true
 		return nil
 	})
 	instanceSpec := model.InstanceSpec{}
@@ -103,6 +105,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
@@ -138,6 +141,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	time.Sleep(time.Second)
 	assert.Equal(t, 2, succeededCount)

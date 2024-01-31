@@ -65,6 +65,7 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 	// parameter checks
 	stateConfig, err := toMemoryStateProviderConfig(config)
 	if err != nil {
+		sLog.Errorf("  P (Memory State): failed to parse provider config %+v", err)
 		return errors.New("expected MemoryStateProviderConfig")
 	}
 	s.Config = stateConfig
@@ -79,6 +80,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
+	sLog.Debugf("  P (Memory State): upsert states %s, traceId: %s", entry.Value.ID, span.SpanContext().TraceID().String())
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -96,6 +98,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	if _, ok := entry.Value.Body.(map[string]interface{}); ok {
 		mapRef := entry.Value.Body.(map[string]interface{})
 		if mapRef["status"] != nil && mapRef["spec"] == nil {
+
 			dataRef := s.Data[entry.Value.ID]
 			if dataRef != nil {
 				mapRef["spec"] = dataRef.(states.StateEntry).Body.(map[string]interface{})["spec"]
@@ -118,7 +121,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debug("  P (Memory State): list states")
+	sLog.Debugf("  P (Memory State): list states, traceId: %s", span.SpanContext().TraceID().String())
 
 	var entities []states.StateEntry
 	for _, v := range s.Data {
@@ -130,6 +133,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 			entities = append(entities, vE)
 		} else {
 			err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return entities, "", err
 		}
 	}
@@ -146,10 +150,11 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debug("  P (Memory State): delete state")
+	sLog.Debug("  P (Memory State): delete state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
 
 	if _, ok := s.Data[request.ID]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
+		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
 		return err
 	}
 	delete(s.Data, request.ID)
@@ -166,7 +171,7 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debug("  P (Memory State): get state")
+	sLog.Debug("  P (Memory State): get state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
 
 	if v, ok := s.Data[request.ID]; ok {
 		vE, ok := v.(states.StateEntry)
@@ -175,10 +180,12 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 			return vE, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
 			return states.StateEntry{}, err
 		}
 	}
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
+	sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
 	return states.StateEntry{}, err
 }
 

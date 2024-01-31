@@ -18,7 +18,7 @@ type (
 )
 
 func (c ConnectionSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherSpec, ok := other.(*ConnectionSpec)
+	otherSpec, ok := other.(ConnectionSpec)
 	if !ok {
 		return false, nil
 	}
@@ -31,18 +31,18 @@ func (c ConnectionSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 func (c EdgeSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherSpec, ok := other.(*EdgeSpec)
+	otherSpec, ok := other.(EdgeSpec)
 	if !ok {
 		return false, nil
 	}
-	equal, err := c.Source.DeepEquals(&otherSpec.Source)
+	equal, err := c.Source.DeepEquals(otherSpec.Source)
 	if err != nil {
 		return false, err
 	}
 	if !equal {
 		return false, nil
 	}
-	equal, err = c.Target.DeepEquals(&otherSpec.Target)
+	equal, err = c.Target.DeepEquals(otherSpec.Target)
 	if err != nil {
 		return false, err
 	}

@@ -14,10 +14,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TrailsManager struct {
 	managers.Manager
@@ -39,12 +42,13 @@ func (s *TrailsManager) Init(context *contexts.VendorContext, config managers.Ma
 }
 
 func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) error {
-	ctx, span := observability.StartSpan("Sync Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Trails Manager", ctx, &map[string]string{
 		"method": "Append",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	log.Debugf(" M (Trails): append Trails, trails count: %d, traceId: %s", len(trails), span.SpanContext().TraceID().String())
 	errMessage := ""
 	for _, p := range s.LedgerProviders {
 		err = p.Append(ctx, trails)
@@ -54,7 +58,9 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 	}
 	if errMessage != "" {
 		err := v1alpha2.NewCOAError(nil, errMessage, v1alpha2.InternalError)
+		log.Errorf(" M (Trails): failed to append trails: error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err
 	}
+	log.Debugf(" M (Trails): append trails successfully, traceId: %s", span.SpanContext().SpanID().String())
 	return nil
 }

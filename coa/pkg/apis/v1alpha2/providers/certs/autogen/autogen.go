@@ -12,8 +12,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	fasthttp "github.com/valyala/fasthttp"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type AutoGenCertProviderConfig struct {
 	Name string `json:"name"`
@@ -31,6 +34,7 @@ func (s *AutoGenCertProvider) SetContext(ctx contexts.ManagerContext) {
 func (w *AutoGenCertProvider) Init(config providers.IProviderConfig) error {
 	certConfig, err := toAutoGenCertProviderConfig(config)
 	if err != nil {
+		log.Errorf("  P (Autogen): failed to parse provider config %+v", err)
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid cert generation provider config", v1alpha2.InvalidArgument)
 	}
 	w.Config = certConfig
