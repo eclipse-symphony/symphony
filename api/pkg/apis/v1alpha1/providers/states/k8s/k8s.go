@@ -189,8 +189,12 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		Resource: resource,
 	}
 
-	j, _ := json.Marshal(entry.Value.Body)
+	if entry.Value.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return "", err
+	}
 
+	j, _ := json.Marshal(entry.Value.Body)
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
 		// TODO: check if not-found error
@@ -355,6 +359,11 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 		scope = "default"
 	}
 
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return err
+	}
+
 	err = s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
 	if err != nil {
 		sLog.Errorf("  P (K8s State): failed to delete objects: %v", err)
@@ -387,6 +396,11 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		Resource: resource,
 	}
 
+	if request.ID == "" {
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return states.StateEntry{}, err
+	}
+
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, request.ID, metav1.GetOptions{})
 	if err != nil {
 		coaError := v1alpha2.NewCOAError(err, "failed to get object", v1alpha2.InternalError)
@@ -411,14 +425,13 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 }
 
 // Implmeement the IConfigProvider interface
-func (s *K8sStateProvider) Read(object string, field string, scope string) (string, error) {
+func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
-			"scope":    scope,
 		},
 	})
 	if err != nil {
@@ -440,14 +453,13 @@ func (s *K8sStateProvider) Read(object string, field string, scope string) (stri
 	return "", v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
 }
 
-func (s *K8sStateProvider) ReadObject(object string, scope string) (map[string]string, error) {
+func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
 		Metadata: map[string]string{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
-			"scope":    scope,
 		},
 	})
 	if err != nil {
