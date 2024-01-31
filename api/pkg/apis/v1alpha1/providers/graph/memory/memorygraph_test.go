@@ -124,6 +124,20 @@ func TestGetSet(t *testing.T) {
 	assert.Equal(t, 5, len(res.Nodes))
 }
 
+func TestGetSets(t *testing.T) {
+	provider := MemoryGraphProvider{}
+	err := provider.Init(MemoryGraphProviderConfig{})
+	assert.Nil(t, err)
+
+	testNodes := []v1alpha2.INode{}
+	testNodes = append(testNodes, createSimpleSet("parent", 5)...)
+	provider.SetData(testNodes)
+
+	res, err := provider.GetSets(context.Background(), graph.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 5, len(res.Sets["parent"].Nodes))
+}
+
 func TestGetTree(t *testing.T) {
 	provider := MemoryGraphProvider{}
 	err := provider.Init(MemoryGraphProviderConfig{})
@@ -136,6 +150,20 @@ func TestGetTree(t *testing.T) {
 	res, err := provider.GetTree(context.Background(), graph.GetRequest{Name: "root"})
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(res.Nodes))
+}
+
+func TestGetTrees(t *testing.T) {
+	provider := MemoryGraphProvider{}
+	err := provider.Init(MemoryGraphProviderConfig{})
+	assert.Nil(t, err)
+
+	testNodes := []v1alpha2.INode{}
+	testNodes = append(testNodes, createSimpleBinaryTree("root", 3)...)
+	provider.SetData(testNodes)
+
+	res, err := provider.GetTrees(context.Background(), graph.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 7, len(res.Sets["root"].Nodes))
 }
 
 func TestGetChain(t *testing.T) {
@@ -181,5 +209,28 @@ func TestGetChains(t *testing.T) {
 	assert.Equal(t, 2, len(res.Sets))
 	assert.Equal(t, 3, len(res.Sets["root"].Nodes))
 	assert.Equal(t, 5, len(res.Sets["root2"].Nodes))
+}
 
+func TestGetGraph(t *testing.T) {
+	provider := MemoryGraphProvider{}
+	err := provider.Init(MemoryGraphProviderConfig{})
+	assert.Nil(t, err)
+
+	res, err := provider.GetGraph(context.Background(), graph.GetRequest{})
+	COAE, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.NotImplemented, COAE.State)
+	assert.Empty(t, res.Nodes)
+}
+
+func TestGetGraphs(t *testing.T) {
+	provider := MemoryGraphProvider{}
+	err := provider.Init(MemoryGraphProviderConfig{})
+	assert.Nil(t, err)
+
+	res, err := provider.GetGraphs(context.Background(), graph.ListRequest{})
+	COAE, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.NotImplemented, COAE.State)
+	assert.Empty(t, res.Graphs)
 }
