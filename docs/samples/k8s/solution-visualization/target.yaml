@@ -10,3 +10,4 @@ spec:
       provider: providers.target.k8s
       config:
         inCluster: "true"   
+        deploymentStrategy: "services"

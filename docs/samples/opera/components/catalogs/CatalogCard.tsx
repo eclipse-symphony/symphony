@@ -3,7 +3,7 @@
 import {Card, CardHeader, CardBody, CardFooter, Divider, Link, Image} from '@nextui-org/react';
 import { CatalogState } from '../../app/types';
 import PropertyTable from '../PropertyTable';
-import SolutionCard from '../SolutionCard';
+import SolutionSpecCard from '../SolutionSpecCard';
 import { FcSettings, FcTemplate } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 
@@ -36,10 +36,7 @@ function CatalogCard(props: CatalogCardProps) {
                     <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}><FaGithub />{catalog.spec.objectRef.address}</div>                    
                 )}
                 {catalog.spec.type === 'solution' && (
-                    <SolutionCard solution={{
-                        id: catalog.spec.name,
-                        spec: catalog.spec.properties['spec']
-                    }} />
+                    <SolutionSpecCard solution={catalog.spec.properties['spec']} />
                 )}
             </CardBody>
             <Divider/>

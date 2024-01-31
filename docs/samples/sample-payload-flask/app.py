@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+import requests
 import os
 
 app = Flask(__name__, static_folder='/')
@@ -7,6 +8,22 @@ app = Flask(__name__, static_folder='/')
 def index():
     env_vars = os.environ
     return render_template('index.html', env_vars=env_vars)
+
+@app.route('/topology', methods=['POST'])
+def topology():
+    signal = request.form.get('signal')
+    target = request.form.get('target')
+    symphony_solution = os.environ.get('SYMPHONY_SOLUTION', 'default')
+    symphony_component = os.environ.get('SYMPHONY_COMPONENT', 'component-a')
+    data = {
+        'from': symphony_component,
+        'to': target,
+        'solution': symphony_solution,
+        'data': signal
+    }
+    url = 'http://localhost:8088/v1alpha2/vis-client/'
+    response = requests.post(url, json=data)
+    return 'OK'
 
 @app.route('/file/<path:file_path>')
 def show_file(file_path):
