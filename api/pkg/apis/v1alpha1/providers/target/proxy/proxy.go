@@ -127,13 +127,13 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 	data, _ := json.Marshal(deployment)
 	payload, err := i.callRestAPI("instances", "GET", data)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): failed to get instances: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (Proxy Target): failed to get instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(payload, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): failed to unmarshall get response: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (Proxy Target): failed to unmarshall get response: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 
 		_, err = i.callRestAPI("instances", "POST", data)
 		if err != nil {
-			sLog.Errorf("  P (Proxy Target): failed to post instances: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (Proxy Target): failed to post instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}
@@ -176,7 +176,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		data, _ := json.Marshal(deployment)
 		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {
-			sLog.Errorf("  P (Proxy Target): failed to delete instances: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (Proxy Target): failed to delete instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}

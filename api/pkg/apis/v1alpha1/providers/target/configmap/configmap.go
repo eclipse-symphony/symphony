@@ -219,7 +219,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 				sLog.Infof("  P (ConfigMap Target): resource not found: %s, traceId: %s", err, span.SpanContext().TraceID().String())
 				continue
 			}
-			sLog.Errorf("  P (ConfigMap Target): failed to read object: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (ConfigMap Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		component.Component.Properties = make(map[string]interface{})
@@ -285,7 +285,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				i.ensureNamespace(ctx, deployment.Instance.Scope)
 				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Scope)
 				if err != nil {
-					sLog.Errorf("  P (ConfigMap Target): failed to apply configmap: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+					sLog.Errorf("  P (ConfigMap Target): failed to apply configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
@@ -297,7 +297,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 			if component.Type == "config" {
 				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Scope)
 				if err != nil {
-					sLog.Errorf("  P (ConfigMap Target): failed to delete configmap: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+					sLog.Errorf("  P (ConfigMap Target): failed to delete configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
@@ -335,11 +335,11 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 			},
 		}, metav1.CreateOptions{})
 		if err != nil {
-			sLog.Errorf("  P (ConfigMap Target): failed to create namespace: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (ConfigMap Target): failed to create namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return err
 		}
 	} else {
-		sLog.Errorf("  P (ConfigMap Target): failed to get namespace: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (ConfigMap Target): failed to get namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err
 	}
 
@@ -378,7 +378,7 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 	err = i.Client.CoreV1().ConfigMaps(scope).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Errorf("  P (Kubectl Target): failed to delete configmap: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (Kubectl Target): failed to delete configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return err
 		}
 	}
@@ -404,12 +404,12 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 			sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
 			_, err = i.Client.CoreV1().ConfigMaps(scope).Create(ctx, config, metav1.CreateOptions{})
 			if err != nil {
-				sLog.Errorf("  P (ConfigMap Target): failed to create configmap: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.Errorf("  P (ConfigMap Target): failed to create configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return err
 			}
 			return nil
 		}
-		sLog.Errorf("  P (ConfigMap Target): failed to read object: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (ConfigMap Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err
 	}
 
@@ -417,7 +417,7 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 
 	_, err = i.Client.CoreV1().ConfigMaps(scope).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): failed to update configmap: +%v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (ConfigMap Target): failed to update configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err
 	}
 	return nil
