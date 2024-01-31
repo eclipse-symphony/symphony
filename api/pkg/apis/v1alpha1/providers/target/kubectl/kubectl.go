@@ -150,7 +150,7 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (Kubectl Target):  %+v", err)
+					sLog.Errorf("  P (Kubectl Target): failed to get RESTconfg: %+v", err)
 					return err
 				}
 			} else {
@@ -165,25 +165,25 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (Kubectl Target): %+v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to get the cluster config: %+v", err)
 		return err
 	}
 
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Kubectl Target): %+v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to create a new clientset: %+v", err)
 		return err
 	}
 
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Kubectl Target): %+v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to create a dynamic client: %+v", err)
 		return err
 	}
 
 	i.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Kubectl Target): %+v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to create a discovery client: %+v", err)
 		return err
 	}
 
@@ -214,7 +214,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
@@ -226,17 +226,17 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				case dataBytes, ok := <-chanMes:
 					if !ok {
 						err = errors.New("failed to receive from data channel")
-						sLog.Error("  P (Kubectl Target): +%v", err)
+						sLog.Errorf("  P (Kubectl Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return nil, err
 					}
 
 					_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 					if err != nil {
 						if kerrors.IsNotFound(err) {
-							sLog.Infof("  P (Kubectl Target): resource not found: %s", err)
+							sLog.Infof("  P (Kubectl Target): resource not found: %s, traceId: %s", err, span.SpanContext().TraceID().String())
 							continue
 						}
-						sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+						sLog.Errorf("  P (Kubectl Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return nil, err
 					}
 
@@ -246,14 +246,14 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				case err, ok := <-chanErr:
 					if !ok {
 						err = errors.New("failed to receive from error channel")
-						sLog.Error("  P (Kubectl Target): +%v", err)
+						sLog.Errorf("  P (Kubectl Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return nil, err
 					}
 
 					if err == io.EOF {
 						stop = true
 					} else {
-						sLog.Error("  P (Kubectl Target): failed to apply Yaml: +%v", err)
+						sLog.Errorf("  P (Kubectl Target): failed to apply Yaml: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return nil, err
 					}
 				}
@@ -262,17 +262,17 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 			var dataBytes []byte
 			dataBytes, err = json.Marshal(component.Component.Properties["resource"])
 			if err != nil {
-				sLog.Error("  P (Kubectl Target): failed to get deployment bytes from component: +%v", err)
+				sLog.Errorf("  P (Kubectl Target): failed to get deployment bytes from component: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return nil, err
 			}
 
 			_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
-					sLog.Infof("  P (Kubectl Target): resource not found: %s", err)
+					sLog.Infof("  P (Kubectl Target): resource not found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 					continue
 				}
-				sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+				sLog.Errorf("  P (Kubectl Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return nil, err
 			}
 
@@ -280,7 +280,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 		} else {
 			err = errors.New("component doesn't have yaml or resource property")
-			sLog.Error("  P (Kubectl Target): component doesn't have yaml or resource property")
+			sLog.Errorf("  P (Kubectl Target): component doesn't have yaml or resource property, traceId: %s", span.SpanContext().TraceID().String())
 			return nil, err
 		}
 	}
@@ -299,11 +299,12 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.Errorf("  P (Kubectl Target): failed to validate components, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	if isDryRun {
@@ -323,28 +324,28 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						case dataBytes, ok := <-chanMes:
 							if !ok {
 								err = errors.New("failed to receive from data channel")
-								sLog.Error("  P (Kubectl Target):  +%v", err)
+								sLog.Errorf("  P (Kubectl Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 							i.ensureNamespace(ctx, deployment.Instance.Scope)
 							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 							if err != nil {
-								sLog.Error("  P (Kubectl Target):  failed to apply Yaml: +%v", err)
+								sLog.Errorf("  P (Kubectl Target):  failed to apply Yaml: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 						case err, ok := <-chanErr:
 							if !ok {
 								err = errors.New("failed to receive from error channel")
-								sLog.Error("  P (Kubectl Target):  +%v", err)
+								sLog.Errorf("  P (Kubectl Target): %+v, traceId: %s, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 							if err == io.EOF {
 								stop = true
 							} else {
-								sLog.Error("  P (Kubectl Target):  failed to apply Yaml: +%v", err)
+								sLog.Errorf("  P (Kubectl Target):  failed to apply Yaml: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 						}
@@ -353,20 +354,20 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					var dataBytes []byte
 					dataBytes, err = json.Marshal(component.Properties["resource"])
 					if err != nil {
-						sLog.Error("  P (Kubectl Target): failed to convert resource data to bytes: +%v", err)
+						sLog.Errorf("  P (Kubectl Target): failed to convert resource data to bytes: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return ret, err
 					}
 
 					i.ensureNamespace(ctx, deployment.Instance.Scope)
 					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 					if err != nil {
-						sLog.Error("  P (Kubectl Target):  failed to apply custom resource: +%v", err)
+						sLog.Errorf("  P (Kubectl Target):  failed to apply custom resource: %+v, traceId: %s", err, err, span.SpanContext().TraceID().String())
 						return ret, err
 					}
 
 				} else {
 					err = errors.New("component doesn't have yaml property or resource property")
-					sLog.Error("  P (Kubectl Target):  component doesn't have yaml property or resource property")
+					sLog.Errorf("  P (Kubectl Target):  component doesn't have yaml property or resource property, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
@@ -384,27 +385,27 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						case dataBytes, ok := <-chanMes:
 							if !ok {
 								err = errors.New("failed to receive from data channel")
-								sLog.Error("  P (Kubectl Target):  +%v", err)
+								sLog.Errorf("  P (Kubectl Target):  %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 							err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 							if err != nil {
-								sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+								sLog.Errorf("  P (Kubectl Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 						case err, ok := <-chanErr:
 							if !ok {
 								err = errors.New("failed to receive from error channel")
-								sLog.Error("  P (Kubectl Target): +%v", err)
+								sLog.Errorf("  P (Kubectl Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 
 							if err == io.EOF {
 								stop = true
 							} else {
-								sLog.Error("  P (Kubectl Target): failed to remove resource: +%v", err)
+								sLog.Errorf("  P (Kubectl Target): failed to remove resource: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
 							}
 						}
@@ -413,19 +414,19 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					var dataBytes []byte
 					dataBytes, err = json.Marshal(component.Properties["resource"])
 					if err != nil {
-						sLog.Error("  P (Kubectl Target): failed to convert resource data to bytes: +%v", err)
+						sLog.Errorf("  P (Kubectl Target): failed to convert resource data to bytes: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return ret, err
 					}
 
 					err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
 					if err != nil {
-						sLog.Error("  P (Kubectl Target): failed to delete custom resource: +%v", err)
+						sLog.Errorf("  P (Kubectl Target): failed to delete custom resource: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return ret, err
 					}
 
 				} else {
 					err = errors.New("component doesn't have yaml property or resource property")
-					sLog.Error("  P (Kubectl Target): component doesn't have yaml property or resource property")
+					sLog.Errorf("  P (Kubectl Target): component doesn't have yaml property or resource property, traceId: %s", span.SpanContext().TraceID().String())
 					return ret, err
 				}
 			}
@@ -445,6 +446,7 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	sLog.Infof("  P (Kubectl Target): ensureNamespace %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
 	if namespace == "" || namespace == "default" {
 		return nil
@@ -462,12 +464,12 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 			},
 		}, metav1.CreateOptions{})
 		if err != nil {
-			sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to create namespace: +%v", err)
+			sLog.Errorf("  P (Kubectl Target): failed to create namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return err
 		}
 
 	} else {
-		sLog.Error("~~~ Kubectl Target Provider ~~~ : failed to get namespace: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to get namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err
 	}
 
@@ -562,13 +564,13 @@ func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope str
 func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes []byte, scope string) (*unstructured.Unstructured, error) {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return nil, err
 	}
 
 	obj, err = dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to read object: %+v", err)
 		return nil, err
 	}
 
@@ -579,14 +581,14 @@ func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes
 func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return err
 	}
 
 	err = dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("  P (Kubectl Target): failed to delete Yaml: +%v", err)
+			sLog.Errorf("  P (Kubectl Target): failed to delete Yaml: %+v", err)
 			return err
 		}
 	}
@@ -598,7 +600,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
 	if err != nil {
-		sLog.Error("  P (Kubectl Target): failed to build a new dynamic client: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return err
 	}
 
@@ -606,13 +608,13 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 	existing, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("  P (Kubectl Target): failed to read object: +%v", err)
+			sLog.Errorf("  P (Kubectl Target): failed to read object: %+v", err)
 			return err
 		}
 		// Create the object
 		_, err = dr.Create(ctx, obj, metav1.CreateOptions{})
 		if err != nil {
-			sLog.Error("  P (Kubectl Target): failed to create Yaml: +%v", err)
+			sLog.Errorf("  P (Kubectl Target): failed to create Yaml: %+v", err)
 			return err
 		}
 		return nil
@@ -622,7 +624,7 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 	obj.SetResourceVersion(existing.GetResourceVersion())
 	_, err = dr.Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
-		sLog.Error("  P (Kubectl Target): failed to apply Yaml: +%v", err)
+		sLog.Errorf("  P (Kubectl Target): failed to apply Yaml: %+v", err)
 		return err
 	}
 

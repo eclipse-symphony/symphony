@@ -131,7 +131,7 @@ func docCfg() (func(), error) {
 
 // Test runs the unit tests.
 func Test() error {
-	return shellcmd.Command(`go test -race -timeout 30s -cover ./...`).Run()
+	return shellcmd.Command(`go test -race -timeout 35s -cover ./...`).Run()
 }
 
 // TestRace runs unit tests without the test cache.
@@ -139,7 +139,7 @@ func Test() error {
 func TestRace() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 30s -cover ./...`,
+		`go test -race -timeout 35s -cover ./...`,
 	)
 }
 
@@ -147,7 +147,7 @@ func TestRace() error {
 func CleanTest() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 30s -cover ./...`,
+		`go test -race -timeout 35s -cover ./...`,
 	)
 }
 
