@@ -36,8 +36,10 @@ jobs:
           
     - name: Set up Repo path
       run: |
+        echo "Current path is ${{ github.workspace }}"
         echo "export REPO_PATH=\"${{ github.workspace }}\"" >> $HOME/.bashrc
         source $HOME/.bashrc
+        cat $HOME/.bashrc
 
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
