@@ -381,7 +381,7 @@ func checkTargetCRDApplied() error {
 	_, err := runKubectl("get", "crd", "targets.fabric.symphony")
 	if err != nil {
 		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
-		ProjectPath := os.Getenv("REPO_PATH")
+		ProjectPath := os.Getenv("REPOPATH")
 		targetYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/fabric.symphony_targets.yaml"
 		if _, err := os.Stat(targetYamlPath); err != nil {
 			return err

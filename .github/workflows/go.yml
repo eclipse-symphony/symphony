@@ -33,13 +33,6 @@ jobs:
         echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
         echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
         source $HOME/.bashrc
-          
-    - name: Set up Repo path
-      run: |
-        echo "Current path is ${{ github.workspace }}"
-        echo "export REPO_PATH=\"${{ github.workspace }}\"" >> $HOME/.bashrc
-        source $HOME/.bashrc
-        cat $HOME/.bashrc
 
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
@@ -79,7 +72,8 @@ jobs:
     - name: API Test
       run: |
         echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE"
-        echo "Repo path: $REPO_PATH"
+        export REPOPATH="${{ github.workspace }}"
+        echo "REPOPATH=$REPOPATH"
         cd api && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
     - name: target-api-testcoverage-app
