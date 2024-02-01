@@ -144,7 +144,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if err != nil {
 				return nil, false, err
 			}
-		} else {
+		} else if action == "create" {
 			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectScope)
 			if err != nil {
 				return nil, false, err
@@ -157,13 +157,21 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					return nil, false, err
 				}
 				if summary.Summary.SuccessCount == summary.Summary.TargetCount {
-					break
+					outputs["objectType"] = objectType
+					outputs["objectName"] = objectName
+					return outputs, false, nil
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
 			return nil, false, err
+		} else {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.InternalError)
+			return nil, false, err
 		}
+	default:
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
+		return nil, false, err
 	}
 	outputs["objectType"] = objectType
 	outputs["objectName"] = objectName
