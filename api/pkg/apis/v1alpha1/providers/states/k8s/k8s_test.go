@@ -10,7 +10,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -77,8 +79,10 @@ func TestUpsert(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -110,14 +114,15 @@ func TestUpsert(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "s123", id)
 }
-
 func TestList(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -132,6 +137,7 @@ func TestList(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
@@ -148,17 +154,30 @@ func TestList(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(entries))
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "s123", entries[0].ID)
+
+	assert.Nil(t, err)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]string{
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
 	assert.Equal(t, "s123", entries[0].ID)
 }
-
 func TestDelete(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -192,8 +211,10 @@ func TestGet(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -229,31 +250,39 @@ func TestGet(t *testing.T) {
 			"scope":    "default",
 			"group":    model.FabricGroup,
 			"version":  "v1",
-			"resource": "targetds",
+			"resource": "targets",
 		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "s123", item.ID)
 }
-func TestUpSertWithState(t *testing.T) {
+func TestUpsertWithState(t *testing.T) {
+	// target already exists
+	testUpsertWithState(t, "s123")
+	// target doesn't exist
+	testUpsertWithState(t, "s234")
+}
+func testUpsertWithState(t *testing.T, targetName string) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
 	assert.Nil(t, err)
 	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: "s234",
+			ID: targetName,
 			Body: map[string]interface{}{
 				"apiVersion": model.FabricGroup + "/v1",
 				"kind":       "Target",
 				"metadata": map[string]interface{}{
-					"name": "s234",
+					"name": targetName,
 				},
 				"spec": model.TargetSpec{
 					Properties: map[string]string{
@@ -262,7 +291,8 @@ func TestUpSertWithState(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"properties": map[string]string{
-						"foo": "bar",
+						"foo":             "bar",
+						"provisionStatus": "",
 					},
 				},
 			},
@@ -276,15 +306,28 @@ func TestUpSertWithState(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "s234", id)
+	assert.Equal(t, targetName, id)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: targetName,
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
 }
-func TestUpSertWithStateOnly(t *testing.T) {
+func TestUpsertWithStateOnly(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -315,4 +358,40 @@ func TestUpSertWithStateOnly(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "s234", id)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "s234",
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+}
+
+func runKubectl(args ...string) ([]byte, error) {
+	cmd := exec.Command("kubectl", args...)
+	return cmd.Output()
+}
+
+func checkTargetCRDApplied() error {
+	// Check that the CRD is applied
+	_, err := runKubectl("get", "crd", "targets.fabric.symphony")
+	if err != nil {
+		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
+		ProjectPath := os.Getenv("REPOPATH")
+		targetYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/fabric.symphony_targets.yaml"
+		if _, err := os.Stat(targetYamlPath); err != nil {
+			return err
+		}
+		_, err = runKubectl("apply", "-f", targetYamlPath)
+		if err != nil {
+			return err
+		}
+		// Wait for the CRD to be applied
+		time.Sleep(10 * time.Second)
+	}
+	return nil
 }
