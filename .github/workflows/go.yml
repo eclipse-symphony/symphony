@@ -76,7 +76,8 @@ jobs:
 
     - name: API Test
       run: |
-        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
+        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE"
+        echo "Repo path: $REPO_PATH"
         cd api && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
     - name: target-api-testcoverage-app
