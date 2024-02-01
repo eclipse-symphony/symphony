@@ -2,13 +2,11 @@ fullnameOverride: symphony
 symphonyImage:
   repository: ghcr.io/eclipse-symphony/symphony-k8s
   pullPolicy: IfNotPresent
-  # The version is auto updated by the release pipeline, do not change it manually. If Schema changes, please update the release pipeline file, release.yaml.
-  tag: "0.47.4"
+  tag: "{VERSION}"
 paiImage:
   repository: ghcr.io/eclipse-symphony/symphony-api
   pullPolicy: IfNotPresent
-  # The version is auto updated by the release pipeline, do not change it manually. If Schema changes, please update the release pipeline file, release.yaml.
-  tag: "0.47.4"
+  tag: "{VERSION}"
 CUSTOM_VISION_KEY: "AAAA"
 installServiceExt: true
 global:
@@ -29,7 +27,7 @@ redis:
   image: redis/redis-stack-server:latest
   port: 6379
 parent:
-  url:
+  url: 
   username: admin
   password:
 siteId: hq

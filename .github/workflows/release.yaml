@@ -90,13 +90,12 @@ jobs:
           mage generatePackages /home/runner/maestro
           cd ..
 
-      - name: Replace version in packages/helm/values.yaml and packages/helm/Chart.yaml
+      - name: Replace version in packages/helm/values.yaml
         run: |
           version=$(cat .github/version/versions.txt)
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
-          yq eval -i ".symphonyImage.tag = \"$version\"" packages/helm/symphony/values.yaml
-          yq eval -i ".paiImage.tag = \"$version\"" packages/helm/symphony/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
           
       - name: Build Helm
         run: |

@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// The version is auto updated by the release pipeline, do not change it manually. If next line changes, please update the release pipeline, release.yaml as well.
+// The version is auto updated by the release pipeline, do not change it manually
 const SymphonyAPIVersion = "0.47.4"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
