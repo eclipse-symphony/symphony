@@ -10,7 +10,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -77,8 +79,10 @@ func TestUpsert(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -115,8 +119,10 @@ func TestList(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -168,8 +174,10 @@ func TestDelete(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -203,8 +211,10 @@ func TestGet(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -257,8 +267,10 @@ func testUpsertWithState(t *testing.T, targetName string) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -312,8 +324,10 @@ func TestUpsertWithStateOnly(t *testing.T) {
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err := provider.Init(K8sStateProviderConfig{
+	err = provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -355,4 +369,29 @@ func TestUpsertWithStateOnly(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
+}
+
+func runKubectl(args ...string) ([]byte, error) {
+	cmd := exec.Command("kubectl", args...)
+	return cmd.Output()
+}
+
+func checkTargetCRDApplied() error {
+	// Check that the CRD is applied
+	_, err := runKubectl("get", "crd", "targets.fabric.symphony")
+	if err != nil {
+		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
+		ProjectPath := os.Getenv("REPO_PATH")
+		targetYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/fabric.symphony_targets.yaml"
+		if _, err := os.Stat(targetYamlPath); err != nil {
+			return err
+		}
+		_, err = runKubectl("apply", "-f", targetYamlPath)
+		if err != nil {
+			return err
+		}
+		// Wait for the CRD to be applied
+		time.Sleep(10 * time.Second)
+	}
+	return nil
 }
