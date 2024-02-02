@@ -1,8 +1,15 @@
 {
   "siteInfo": {
-    "siteId": "symphony-agent",
+    "siteId": "symphony-agent"
   },
   "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
     "vendors": [
       {
         "type": "vendors.echo",
