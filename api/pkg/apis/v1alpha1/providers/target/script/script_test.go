@@ -62,7 +62,7 @@ func TestInitWithMap(t *testing.T) {
 		"needsUpdate":   "mock-needsupdate.sh",
 		"needsRemove":   "mock-needsremove.sh",
 		"stagingFolder": "./staging",
-		"scriptFolder":  "https://demopolicies.blob.core.windows.net/gatekeeper",
+		"scriptFolder":  "https://unittestscripts.blob.core.windows.net/script",
 		"applyScript":   "mock-apply.sh",
 		"removeScript":  "mock-remove.sh",
 		"getScript":     "mock-get.sh",
