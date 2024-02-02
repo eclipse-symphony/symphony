@@ -51,6 +51,12 @@ type DeviceSpec struct {
 }
 
 func (s *TargetManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(context, config, providers)
+	if err != nil {
+		log.Errorf(" M (Target): failed to initialize manager %+v", err)
+		return err
+	}
+
 	probeProvider, err := managers.GetProbeProvider(config, providers)
 	if err == nil {
 		s.ProbeProvider = probeProvider
