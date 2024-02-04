@@ -21,7 +21,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -198,11 +197,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	j, _ := json.Marshal(entry.Value.Body)
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
-		notfound := errors.IsNotFound(err)
-		if !notfound {
-			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
-			return "", err
-		}
+		// TODO: check if not-found error
 		template := model.ReadProperty(entry.Metadata, "template", &model.ValueInjections{
 			TargetId:     entry.Value.ID,
 			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
@@ -252,24 +247,21 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			}
 		}
 		if v, ok := dict["status"]; ok {
-			statusMap := v.(map[string]interface{})
-			if p, ok := statusMap["properties"]; ok {
-				status := &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": group + "/" + version,
-						"kind":       "Status",
-						"metadata": map[string]interface{}{
-							"name": entry.Value.ID,
-						},
-						"properties": p.(map[string]interface{}),
+			status := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": group + "/" + version,
+					"kind":       "Status",
+					"metadata": map[string]interface{}{
+						"name": entry.Value.ID,
 					},
-				}
-				status.SetResourceVersion(item.GetResourceVersion())
-				_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(ctx, status, v1.UpdateOptions{})
-				if err != nil {
-					sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
-					return "", err
-				}
+					"status": v.(map[string]interface{}),
+				},
+			}
+			status.SetResourceVersion(item.GetResourceVersion())
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(ctx, status, v1.UpdateOptions{})
+			if err != nil {
+				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
+				return "", err
 			}
 		}
 	}
