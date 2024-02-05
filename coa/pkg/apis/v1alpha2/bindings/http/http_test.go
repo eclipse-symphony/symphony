@@ -137,6 +137,9 @@ func TestHTTPEcho(t *testing.T) {
 	err := binding.Launch(config, endpoints, nil)
 	assert.Nil(t, err)
 
+	// wait for http server startup
+	time.Sleep(5 * time.Second)
+
 	testHttpRequestHelper(context.Background(), t, fasthttp.MethodGet, "http://localhost:8080/v1/greetings", nil, 200, "Hi there!!")
 
 	// query args
@@ -352,6 +355,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 	err = binding.Launch(config, endpoints, pubsub)
 	assert.Nil(t, err)
 
+	// wait for http server startup
 	time.Sleep(5 * time.Second)
 
 	client := &http.Client{}
