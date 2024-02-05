@@ -193,15 +193,15 @@ func GetUploaderProvider(config ManagerConfig, providers map[string]providers.IP
 func GetReferenceProvider(config ManagerConfig, providers map[string]providers.IProvider) (reference.IReferenceProvider, error) {
 	referenceProviderName, ok := config.Properties[v1alpha2.ProvidersReference]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "uploader provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "reference provider is not configured", v1alpha2.MissingConfig)
 	}
 	provider, ok := providers[referenceProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "uploader provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "reference provider is not supplied", v1alpha2.MissingConfig)
 	}
 	referenceProvider, ok := provider.(reference.IReferenceProvider)
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a uploader provider", v1alpha2.BadConfig)
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a reference provider", v1alpha2.BadConfig)
 	}
 	return referenceProvider, nil
 }
