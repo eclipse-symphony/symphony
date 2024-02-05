@@ -28,15 +28,23 @@ func initClient(properties map[string]interface{}) {
 		instrumentationKey = "0be0a36e-6e0a-4544-a453-a237fd25cf64"
 	}
 	telemetryConfig := appinsights.NewTelemetryConfiguration(instrumentationKey)
+	telemetryConfig.MaxBatchSize = 8192
 	if batchSize, ok := properties["maxBatchSize"]; ok {
-		telemetryConfig.MaxBatchSize = int(batchSize.(float64))
-	} else {
-		telemetryConfig.MaxBatchSize = 8192
+		if batchSizeFloat, fok := batchSize.(float64); fok {
+			telemetryConfig.MaxBatchSize = int(batchSizeFloat)
+		}
+		if batchSizeInt, iok := batchSize.(int); iok {
+			telemetryConfig.MaxBatchSize = batchSizeInt
+		}
 	}
-	if batchInterval, ok := properties["maxBatchInterval"]; ok {
-		telemetryConfig.MaxBatchInterval = time.Duration(int(batchInterval.(float64))) * time.Second
-	} else {
-		telemetryConfig.MaxBatchInterval = 2 * time.Second
+	telemetryConfig.MaxBatchInterval = 2 * time.Second
+	if batchInterval, ok := properties["maxBatchIntervalSeconds"]; ok {
+		if batchIntervalFloat, fok := batchInterval.(float64); fok {
+			telemetryConfig.MaxBatchInterval = time.Duration(int(batchIntervalFloat)) * time.Second
+		}
+		if batchIntervalInt, iok := batchInterval.(int); iok {
+			telemetryConfig.MaxBatchInterval = time.Duration(batchIntervalInt) * time.Second
+		}
 	}
 	client = appinsights.NewTelemetryClientFromConfig(telemetryConfig)
 	initialized = true
