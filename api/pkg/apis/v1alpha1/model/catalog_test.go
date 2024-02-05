@@ -61,7 +61,7 @@ func TestCatalogMatchOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := catalog1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a CatalogSpec type")
+	assert.EqualError(t, err, "parameter is not a CatalogSpec type")
 	assert.False(t, res)
 }
 

@@ -41,7 +41,7 @@ func TestDeviceMatchOneEmpty(t *testing.T) {
 		DisplayName: "displayName",
 	}
 	res, err := device1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a DeviceSpec type")
+	assert.EqualError(t, err, "parameter is not a DeviceSpec type")
 	assert.False(t, res)
 }
 

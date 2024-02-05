@@ -152,7 +152,7 @@ func TestComponentDeepEqualEmpty(t *testing.T) {
 		Name: "symphony-agent",
 	}
 	res, err := component1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a ComponentSpec type")
+	assert.EqualError(t, err, "parameter is not a ComponentSpec type")
 	assert.False(t, res)
 }
 
