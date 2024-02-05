@@ -182,20 +182,31 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	var state model.SiteState
-	json.Unmarshal(request.Body, &state)
+	tLog.Info("V (Federation): OnStatus")
+	switch request.Method {
+	case fasthttp.MethodPost:
+		var state model.SiteState
+		json.Unmarshal(request.Body, &state)
 
-	err := c.SitesManager.ReportState(pCtx, state)
+		err := c.SitesManager.ReportState(pCtx, state)
 
-	if err != nil {
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-			State: v1alpha2.InternalError,
-			Body:  []byte(err.Error()),
+			State: v1alpha2.OK,
 		})
 	}
-	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-		State: v1alpha2.OK,
-	})
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
 }
 
 func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {
@@ -219,10 +230,17 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = f.SitesManager.GetSpec(ctx, id)
 		}
 		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
+			if v1alpha2.IsNotFound(err) {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.NotFound,
+					Body:  []byte(err.Error()),
+				})
+			} else {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
