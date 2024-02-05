@@ -9,7 +9,7 @@ In this scenario, application deployment is carried out only after an approval s
     > **Note:** We use a catalog object instead of an instance object here because an instance object represents a desired state, which will trigger Symphony state reconciliation. In this case, however, we don’t want the state reconciliation to be triggered before approval. Hence, we capture the “intention of the desired state” in a catalog object. The intention will be “materialized” into an instance object only after approval.
 3. Define your approval script and upload to a public storage location (such as Azure Blob Storage). A script returns a ```{"status":200}``` JSON payloads approves the deployment; a script returns a ```{"status":403}``` or returns an error rejects the deployment.
 
-    > **NOTE:** There's a sample ```mock-reject.sh``` script and a ```mock-approval.sh``` script at ```https://demopolicies.blob.core.windows.net/scripts```.
+    > **NOTE:** There's a sample ```mock-reject.sh``` script and a ```mock-approve.sh``` script at ```https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/approval/script```.
 
 4. To coordinate the approval process, define a Symphony `campaign` object that calls out to the above script and then drives application deployment.
 5. Create an `activation` object to activate the campaign.

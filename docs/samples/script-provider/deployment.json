@@ -48,7 +48,7 @@
            "applyScript": "mock-apply.sh",
            "getScript": "mock-get.sh",
            "removeScript": "mock-remove.sh",
-           "scriptFolder": "https://demopolicies.blob.core.windows.net/gatekeeper"
+           "scriptFolder": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider"
           }
          }
         ]

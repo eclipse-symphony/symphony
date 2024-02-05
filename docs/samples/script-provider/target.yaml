@@ -11,4 +11,4 @@ spec:
         applyScript: "mock-apply.sh"   
         removeScript: "mock-remove.sh"
         getScript: "mock-get.sh"
-        scriptFolder: "https://demopolicies.blob.core.windows.net/gatekeeper"
+        scriptFolder: "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider"
