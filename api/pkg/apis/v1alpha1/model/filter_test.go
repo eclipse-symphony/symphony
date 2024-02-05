@@ -128,6 +128,6 @@ func TestFilterEqualOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := filter1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a FilterSpec type")
+	assert.EqualError(t, err, "parameter is not a FilterSpec type")
 	assert.False(t, res)
 }

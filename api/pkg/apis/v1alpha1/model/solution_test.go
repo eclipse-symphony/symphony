@@ -37,7 +37,7 @@ func TestSolutionDeepEqualsOneEmpty(t *testing.T) {
 		Components:  []ComponentSpec{{}},
 	}
 	res, err := solution.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a SolutionSpec type")
+	assert.EqualError(t, err, "parameter is not a SolutionSpec type")
 	assert.False(t, res)
 }
 

@@ -62,7 +62,7 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 		ForceRedeploy: false,
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetSpec type")
+	assert.EqualError(t, err, "parameter is not a TargetSpec type")
 	assert.False(t, res)
 }
 

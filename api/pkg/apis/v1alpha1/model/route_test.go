@@ -311,6 +311,6 @@ func TestRouteMatchOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := route1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a RouteSpec type")
+	assert.EqualError(t, err, "parameter is not a RouteSpec type")
 	assert.False(t, res)
 }

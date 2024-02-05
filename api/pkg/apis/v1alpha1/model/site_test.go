@@ -72,6 +72,6 @@ func TestSiteEqualNil(t *testing.T) {
 		},
 	}
 	res, err := s1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a SiteSpec type")
+	assert.EqualError(t, err, "parameter is not a SiteSpec type")
 	assert.False(t, res)
 }
