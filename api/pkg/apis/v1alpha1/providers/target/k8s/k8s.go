@@ -220,6 +220,9 @@ func (i *K8sTargetProvider) getDeployment(ctx context.Context, scope string, nam
 	return components, nil
 }
 func (i *K8sTargetProvider) fillServiceMeta(ctx context.Context, scope string, name string, component model.ComponentSpec) error {
+	if scope == "" {
+		scope = "default"
+	}
 	svc, err := i.Client.CoreV1().Services(scope).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -673,45 +676,75 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	return ret, nil
 }
 func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, error) {
-	components := make([]model.ComponentSpec, len(deployment.Spec.Template.Spec.Containers))
-	for i, c := range deployment.Spec.Template.Spec.Containers {
-		component := model.ComponentSpec{
-			Name:       c.Name,
-			Properties: make(map[string]interface{}),
+	components := make([]model.ComponentSpec, 0)
+	for _, c := range deployment.Spec.Template.Spec.Containers {
+		key := fmt.Sprintf("%s.sidecar_of", c.Name)
+		if deployment.Spec.Template.ObjectMeta.Labels[key] != "" {
+			// Skip sidecar containers for now
+			continue
 		}
-		component.Properties[model.ContainerImage] = c.Image
-		policy := string(c.ImagePullPolicy)
-		if policy != "" {
-			component.Properties["container.imagePullPolicy"] = policy
-		}
-		if len(c.Ports) > 0 {
-			ports, _ := json.Marshal(c.Ports)
-			component.Properties["container.ports"] = string(ports)
-		}
-		if len(c.Args) > 0 {
-			args, _ := json.Marshal(c.Args)
-			component.Properties["container.args"] = string(args)
-		}
-		if len(c.Command) > 0 {
-			commands, _ := json.Marshal(c.Command)
-			component.Properties["container.commands"] = string(commands)
-		}
-		resources, _ := json.Marshal(c.Resources)
-		if string(resources) != "{}" {
-			component.Properties["container.resources"] = string(resources)
-		}
-		if len(c.VolumeMounts) > 0 {
-			volumeMounts, _ := json.Marshal(c.VolumeMounts)
-			component.Properties["container.volumeMounts"] = string(volumeMounts)
-		}
-		if len(c.Env) > 0 {
-			for _, e := range c.Env {
-				component.Properties["env."+e.Name] = e.Value
+		component := makeComponentSpec(c)
+		components = append(components, component)
+	}
+
+	for _, c := range deployment.Spec.Template.Spec.Containers {
+		key := fmt.Sprintf("%s.sidecar_of", c.Name)
+		componentName := deployment.Spec.Template.ObjectMeta.Labels[key]
+		if componentName != "" {
+			for i, component := range components {
+				if component.Name == componentName {
+					sidecar := makeComponentSpec(c)
+					components[i].Sidecars = append(components[i].Sidecars, convertComponentSpecToSidecar(sidecar))
+				}
 			}
 		}
-		components[i] = component
 	}
 	return components, nil
+}
+func convertComponentSpecToSidecar(c model.ComponentSpec) model.SidecarSpec {
+	sidecar := model.SidecarSpec{
+		Name:       c.Name,
+		Type:       c.Type,
+		Properties: c.Properties,
+	}
+	return sidecar
+}
+func makeComponentSpec(c apiv1.Container) model.ComponentSpec {
+	component := model.ComponentSpec{
+		Name:       c.Name,
+		Properties: make(map[string]interface{}),
+	}
+	component.Properties[model.ContainerImage] = c.Image
+	policy := string(c.ImagePullPolicy)
+	if policy != "" {
+		component.Properties["container.imagePullPolicy"] = policy
+	}
+	if len(c.Ports) > 0 {
+		ports, _ := json.Marshal(c.Ports)
+		component.Properties["container.ports"] = string(ports)
+	}
+	if len(c.Args) > 0 {
+		args, _ := json.Marshal(c.Args)
+		component.Properties["container.args"] = string(args)
+	}
+	if len(c.Command) > 0 {
+		commands, _ := json.Marshal(c.Command)
+		component.Properties["container.commands"] = string(commands)
+	}
+	resources, _ := json.Marshal(c.Resources)
+	if string(resources) != "{}" {
+		component.Properties["container.resources"] = string(resources)
+	}
+	if len(c.VolumeMounts) > 0 {
+		volumeMounts, _ := json.Marshal(c.VolumeMounts)
+		component.Properties["container.volumeMounts"] = string(volumeMounts)
+	}
+	if len(c.Env) > 0 {
+		for _, e := range c.Env {
+			component.Properties["env."+e.Name] = e.Value
+		}
+	}
+	return component
 }
 func metadataToService(scope string, name string, metadata map[string]string) (*apiv1.Service, error) {
 	if len(metadata) == 0 {
@@ -804,6 +837,11 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 				if err != nil {
 					return nil, err
 				}
+				if deployment.Spec.Template.ObjectMeta.Labels == nil {
+					deployment.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+				}
+				key := fmt.Sprintf("%s.sidecar_of", sidecar.Name)
+				deployment.Spec.Template.ObjectMeta.Labels[key] = c.Name
 				deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, *container)
 			}
 		}

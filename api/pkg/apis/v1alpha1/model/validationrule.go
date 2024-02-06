@@ -104,6 +104,7 @@ func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec)
 			}
 		}
 	}
+	//TODO: compare sidecars
 	return false
 }
 func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {

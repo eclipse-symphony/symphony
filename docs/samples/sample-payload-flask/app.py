@@ -21,7 +21,7 @@ def topology():
         'solution': symphony_solution,
         'data': signal
     }
-    url = 'http://localhost:8088/v1alpha2/vis-client/'
+    url = 'http://localhost:8088/v1alpha2/vis-client'
     response = requests.post(url, json=data)
     return 'OK'
 
