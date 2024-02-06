@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInit(t *testing.T) {
+	queue := MemoryQueueProvider{}
+	err := queue.InitWithMap(map[string]string{
+		"name": "test",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "test", queue.ID())
+}
 func TestPush(t *testing.T) {
 	queue := MemoryQueueProvider{}
 	err := queue.Init(MemoryQueueProviderConfig{})
