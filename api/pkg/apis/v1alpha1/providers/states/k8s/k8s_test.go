@@ -75,7 +75,7 @@ func TestInitWithBadData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestUpsert(t *testing.T) {
+func TestActivationUpsert(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -115,7 +115,7 @@ func TestUpsert(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "a1", id)
 }
-func TestList(t *testing.T) {
+func TestActivationList(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -170,7 +170,7 @@ func TestList(t *testing.T) {
 	assert.Equal(t, 1, len(entries))
 	assert.Equal(t, "a1", entries[0].ID)
 }
-func TestDelete(t *testing.T) {
+func TestActivationDelete(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -207,7 +207,7 @@ func TestDelete(t *testing.T) {
 	})
 	assert.Nil(t, err)
 }
-func TestGet(t *testing.T) {
+func TestActivationGet(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -258,7 +258,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "a1", item.ID)
 }
 
-func TestUpsertWithState(t *testing.T) {
+func TestActivationUpsertWithState(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -332,7 +332,7 @@ func TestUpsertWithState(t *testing.T) {
 	})
 	assert.Nil(t, err)
 }
-func TestUpsertWithStateOnly(t *testing.T) {
+func TestActivationUpsertWithStateOnly(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -407,4 +407,292 @@ func checkActivationCRDApplied() error {
 		time.Sleep(10 * time.Second)
 	}
 	return nil
+}
+
+func checkTargetCRDApplied() error {
+	// Check that the CRD is applied
+	_, err := runKubectl("get", "crd", "targets.fabric.symphony")
+	if err != nil {
+		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
+		ProjectPath := os.Getenv("REPOPATH")
+		activationYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/fabric.symphony_targets.yaml"
+		if _, err := os.Stat(activationYamlPath); err != nil {
+			return err
+		}
+		_, err = runKubectl("apply", "-f", activationYamlPath)
+		if err != nil {
+			return err
+		}
+		// Wait for the CRD to be applied
+		time.Sleep(10 * time.Second)
+	}
+	return nil
+}
+
+func TestTargetUpsert(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s123",
+			Body: map[string]interface{}{
+				"apiVersion": model.FabricGroup + "/v1",
+				"kind":       "Target",
+				"metadata": map[string]interface{}{
+					"name": "s123",
+				},
+				"spec": model.TargetSpec{
+					Properties: map[string]string{
+						"foo": "bar2",
+					},
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "s123", id)
+}
+
+func TestTargetList(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s123",
+			Body: model.TargetSpec{
+				Properties: map[string]string{
+					"foo": "bar2",
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "s123", entries[0].ID)
+}
+
+func TestTargetDelete(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s123",
+		},
+		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "s123",
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+}
+func TestTargetGet(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s123",
+			Body: map[string]interface{}{
+				"apiVersion": model.FabricGroup + "/v1",
+				"kind":       "Target",
+				"metadata": map[string]interface{}{
+					"name": "s123",
+				},
+				"spec": model.TargetSpec{
+					Properties: map[string]string{
+						"foo": "bar2",
+					},
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	item, err := provider.Get(context.Background(), states.GetRequest{
+		ID: "s123",
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "s123", item.ID)
+}
+func TestTargetUpSertWithState(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s234",
+			Body: map[string]interface{}{
+				"apiVersion": model.FabricGroup + "/v1",
+				"kind":       "Target",
+				"metadata": map[string]interface{}{
+					"name": "s234",
+				},
+				"spec": model.TargetSpec{
+					Properties: map[string]string{
+						"foo": "bar2",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "s234", id)
+}
+func TestTargetUpSertWithStateOnly(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkTargetCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "s234",
+			Body: map[string]interface{}{
+				"apiVersion": model.FabricGroup,
+				"kind":       "Target",
+				"metadata": map[string]interface{}{
+					"name": "s234",
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]string{
+						"foo": "bar2",
+					},
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	// Target update status will fail since ProvisioningStatus is not set
+	assert.NotNil(t, err)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "s234",
+		Metadata: map[string]string{
+			"scope":    "default",
+			"group":    model.FabricGroup,
+			"version":  "v1",
+			"resource": "targets",
+		},
+	})
+	assert.Nil(t, err)
 }
