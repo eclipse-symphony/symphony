@@ -535,16 +535,27 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 	}
 	return nil
 }
-func (*K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+func (i *K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
-			{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+		AllowSidecar: i.Config.DeploymentStrategy == SERVICES,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+			},
+		},
+		SidecarValidationRule: model.ComponentValidationRule{
+			RequiredProperties: []string{model.ContainerImage},
+			OptionalProperties: []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+			},
 		},
 	}
 }

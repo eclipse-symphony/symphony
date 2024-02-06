@@ -477,14 +477,17 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 // GetValidationRule returns validation rule for the provider
 func (*KubectlTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{"yaml", "resource"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{
-				Name: "*", //react to all property changes
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{"yaml", "resource"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*", //react to all property changes
+				},
 			},
 		},
 	}

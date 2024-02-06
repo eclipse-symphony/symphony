@@ -22,7 +22,7 @@ This sample uses a few pre-built sample container images. You can use the follow
 
 * **Sample visualization sidecar**
   
-    Pre-built image: `ghcr.io/eclipse-symphony/samples/visualization-sidecar:latest`
+    Pre-built image: `hbai/visualization-sidecar:latest`
 
     Build from source: (under repo root folder)
     ```bash
@@ -33,7 +33,7 @@ This sample uses a few pre-built sample container images. You can use the follow
     ```
 * **Sample Flask app**
 
-    Pre-built image: `ghcr.io/eclipse-symphony/samples/sample-flask-app:latest`
+    Pre-built image: `hbai/sample-flask-app:latest`
 
     Build from source: (under repo root folder)
     ```bash
@@ -41,10 +41,41 @@ This sample uses a few pre-built sample container images. You can use the follow
     docker build -t <flas app image tag> .
     ```
 ## Deployment steps
-1. Create Symphony objects:
+1. Update `solution.yaml` to use Docker images from your selected repository.
+
+2. Create Symphony objects:
     ```bash
     kubectl apply -f solution.yaml
     kubectl apply -f target.yaml
     kubectl apply -f instance.yaml     
     ```
     > **NOTE**: When you use your current Kubernetes cluster as the target, make sure you don't register the same cluster multiple times (as different targets).
+
+3. Once `flask-a` service is running, user a browser to navigate to `http://<flask-a service IP>:5000`. 
+
+    > **NOTE:** If you are using minikube locally, you need to use `kubectl port-forward` to enable access to the service.
+4. On the sample web page, scroll down to the **Send Topology Signal** section. Enter a text message in the **Signal** field and a target component name in the **Target** field. Then, click on the **Send Topology Signal** button.
+    ![Send Topology](../images/send-topology.png)
+
+    > **NOTE:** In this case, the sample sidecar is passive. This means an app needs to proactively calls its endpoint to send topology information. In theory, a different sidecar implemenation can attempt to automatically intercept network and send topology information.
+
+5. Observe the `catalog` that gets populated in Symphony:
+    ```bash
+    kubectl get catalog
+
+    NAME                                     AGE
+    sample-visualization-solution-topology   13m
+    ```
+
+    This catalog contains the topology information collected by the visualization sidecar, such as:
+    ```yaml
+    properties:
+    flask-a:
+      flask-b:
+        data: Hello, World!!!!!
+        from: flask-a
+        solution: sample-visualization-solution
+        to: flask-b
+    ```
+
+    A UX can use this information to build up the live solution topology view.
