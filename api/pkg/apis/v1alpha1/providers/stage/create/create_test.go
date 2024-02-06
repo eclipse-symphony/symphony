@@ -8,9 +8,13 @@ package create
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,4 +46,248 @@ func TestDeployInstance(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", outputs["status"])
+}
+
+func TestCreateInitFromVendorMap(t *testing.T) {
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	config, err := SymphonyStageProviderConfigFromMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", config.BaseUrl)
+	assert.Equal(t, "admin", config.User)
+	assert.Equal(t, "", config.Password)
+	assert.Equal(t, 1, config.WaitInterval)
+	assert.Equal(t, 3, config.WaitCount)
+	err = provider.InitWithMap(input)
+	assert.Nil(t, err)
+
+	input = map[string]string{}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl": "",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl": "http://symphony-service:8080/v1alpha2/",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl": "http://symphony-service:8080/v1alpha2/",
+		"user":    "",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl": "http://symphony-service:8080/v1alpha2/",
+		"user":    "admin",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl":    "http://symphony-service:8080/v1alpha2/",
+		"user":       "admin",
+		"password":   "",
+		"wait.count": "abc",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
+		"user":          "admin",
+		"password":      "",
+		"wait.count":    "15",
+		"wait.interval": "abc",
+	}
+	config, err = SymphonyStageProviderConfigFromMap(input)
+	assert.NotNil(t, err)
+}
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
+
+func TestCreateProcessCreate(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       ts.URL + "/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	instance := model.InstanceSpec{
+		DisplayName: "instance1",
+	}
+	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "instance",
+		"objectName": "instance1",
+		"action":     "create",
+		"object":     instance,
+	})
+	assert.Nil(t, err)
+}
+
+func TestCreateProcessCreateFailedCase(t *testing.T) {
+	ts := InitializeMockSymphonyAPIFailedCase()
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       ts.URL + "/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	instance := model.InstanceSpec{
+		DisplayName: "instance1",
+	}
+	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "instance",
+		"objectName": "instance1",
+		"action":     "create",
+		"object":     instance,
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Instance creation failed:")
+}
+
+func TestCreateProcessRemove(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       ts.URL + "/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	instance := model.InstanceSpec{
+		DisplayName: "instance1",
+	}
+	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "instance",
+		"objectName": "instance1",
+		"action":     "remove",
+		"object":     instance,
+	})
+	assert.Nil(t, err)
+}
+
+func TestCreateProcessUnsupported(t *testing.T) {
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "instance",
+		"objectName": "instance1",
+		"action":     "upsert",
+		"object": model.InstanceSpec{
+			DisplayName: "instance1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unsupported action:")
+
+	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "solution",
+		"objectName": "solution1",
+		"action":     "delete",
+		"object":     model.SolutionSpec{},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unsupported object type:")
+
+}
+
+func InitializeMockSymphonyAPI() *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/instances/instance1":
+			response = model.InstanceState{
+				Id: "instance1",
+				Spec: &model.InstanceSpec{
+					Name: "instance1",
+				},
+				Status: map[string]string{},
+			}
+		case "/solution/queue":
+			response = model.SummaryResult{
+				Summary: model.SummarySpec{
+					TargetCount:  1,
+					SuccessCount: 1,
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	return ts
+}
+
+func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/instances/instance1":
+			response = model.InstanceState{
+				Id: "instance1",
+				Spec: &model.InstanceSpec{
+					Name: "instance1",
+				},
+				Status: map[string]string{},
+			}
+		case "/solution/queue":
+			response = model.SummaryResult{
+				Summary: model.SummarySpec{
+					TargetCount:  2,
+					SuccessCount: 1,
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	return ts
 }

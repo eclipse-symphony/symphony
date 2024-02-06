@@ -61,11 +61,11 @@ func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P(HTTP Target): Init()")
+	sLog.Info("  P (HTTP Target): Init()")
 
 	updateConfig, err := toHttpTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P(HTTP Target): expected HttpTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -88,7 +88,7 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P(HTTP Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (HTTP Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 	return nil, nil
@@ -101,7 +101,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P(HTTP Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (HTTP Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.Name,
@@ -112,6 +112,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.Errorf("  P (HTTP Target): failed to validate components: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	if isDryRun {
@@ -132,7 +133,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P(HTTP Target): %v", err)
+				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 			if method == "" {
@@ -146,7 +147,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P(HTTP Target): %v", err)
+				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 			request.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -159,7 +160,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P(HTTP Target): %v", err)
+				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 			if resp.StatusCode != http.StatusOK {
@@ -175,7 +176,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Message: message,
 				}
 				err = errors.New("HTTP request didn't respond 200 OK")
-				sLog.Errorf("  P(HTTP Target): %v", err)
+				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 		}

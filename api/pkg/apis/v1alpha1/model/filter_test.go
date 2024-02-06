@@ -116,3 +116,18 @@ func TestFilterTypeMultiParameters(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
+
+func TestFilterEqualOneEmpty(t *testing.T) {
+	filter1 := FilterSpec{
+		Direction: "direction1",
+		Type:      "typ1",
+		Parameters: map[string]string{
+			"foo":     "bar",
+			"another": "value",
+			"third":   "value3",
+		},
+	}
+	res, err := filter1.DeepEquals(nil)
+	assert.EqualError(t, err, "parameter is not a FilterSpec type")
+	assert.False(t, res)
+}

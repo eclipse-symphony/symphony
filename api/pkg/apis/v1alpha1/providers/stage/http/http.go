@@ -106,21 +106,21 @@ func MockStageProviderConfigFromMap(properties map[string]string) (HttpStageProv
 		if err != nil {
 			return ret, err
 		}
-		ret.SuccessCodes = codes
+		ret.WaitSuccessCodes = codes
 	}
 	if v, ok := properties["wait.start"]; ok {
 		codes, err := readIntArray(v)
 		if err != nil {
 			return ret, err
 		}
-		ret.SuccessCodes = codes
+		ret.WaitStartCodes = codes
 	}
 	if v, ok := properties["wait.fail"]; ok {
 		codes, err := readIntArray(v)
 		if err != nil {
 			return ret, err
 		}
-		ret.SuccessCodes = codes
+		ret.WaitFailedCodes = codes
 	}
 	if v, ok := properties["wait.url"]; ok {
 		ret.WaitUrl = v

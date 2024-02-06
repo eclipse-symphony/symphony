@@ -72,7 +72,7 @@ func TestInitWithBadData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestUpSert(t *testing.T) {
+func TestUpsert(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")

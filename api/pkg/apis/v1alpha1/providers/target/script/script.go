@@ -105,6 +105,7 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 
 	updateConfig, err := toScriptProviderConfig(config)
 	if err != nil {
+		sLog.Errorf("  P (Script Target): expected ScriptProviderConfig - %+v", err)
 		err = errors.New("expected ScriptProviderConfig")
 		return err
 	}
@@ -113,19 +114,21 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		err = downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.Errorf("  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
 			return err
 		}
 		err = downloadFile(i.Config.ScriptFolder, i.Config.RemoveScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.Errorf("  P (Script Target): failed to download remove script %s, error: %+v", i.Config.RemoveScript, err)
 			return err
 		}
 		err = downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.Errorf("  P (Script Target): failed to download get script %s, error: %+v", i.Config.GetScript, err)
 			return err
 		}
 	}
 
-	err = nil
 	return nil
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
@@ -169,7 +172,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Script Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	id := uuid.New().String()
 	input := id + ".json"
@@ -196,10 +199,10 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	}
 
 	o, err := i.runCommand(scriptAbs, abs, abs_ref)
-	sLog.Debugf("  P (Script Target): get script output: %s", o)
+	sLog.Debugf("  P (Script Target): get script output: %s, traceId: %s", o, span.SpanContext().TraceID().String())
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to run get script: %+v", err)
+		sLog.Errorf("  P (Script Target): failed to run get script: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 
@@ -208,7 +211,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	data, err := ioutil.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.Errorf("  P (Script Target): failed to read output file: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 
@@ -219,7 +222,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	return ret, nil
@@ -269,7 +272,7 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 	data, err := ioutil.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		sLog.Errorf("  P (Script Target): failed to pread output file: %+v", err)
 		return nil, err
 	}
 
@@ -291,7 +294,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.Infof("  P (Script Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
@@ -308,7 +311,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		var retU map[string]model.ComponentResultSpec
 		retU, err = i.runScriptOnComponents(deployment, components, false)
 		if err != nil {
-			sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
+			sLog.Errorf("  P (Script Target): failed to run apply script: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		for k, v := range retU {
@@ -320,7 +323,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		var retU map[string]model.ComponentResultSpec
 		retU, err = i.runScriptOnComponents(deployment, components, true)
 		if err != nil {
-			sLog.Errorf("  P (Script Target): failed to run remove script: %+v", err)
+			sLog.Errorf("  P (Script Target): failed to run remove script: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		for k, v := range retU {

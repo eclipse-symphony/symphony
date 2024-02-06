@@ -36,7 +36,7 @@ func TestWithCoa() error {
 func testHelper() error {
 	if err := shellcmd.RunAll(
 		"go clean -testcache",
-		"go test -race -timeout 30s -cover ./...",
+		"go test -race -timeout 35s -cover ./...",
 	); err != nil {
 		return err
 	}

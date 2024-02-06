@@ -73,7 +73,7 @@ func TestStagingTargetProviderGet(t *testing.T) {
 				Name: "policies",
 				Type: "yaml.k8s",
 				Properties: map[string]interface{}{
-					"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+					"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 				},
 			},
 		},
@@ -109,7 +109,7 @@ func TestStagingTargetProviderApply(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -162,7 +162,7 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{

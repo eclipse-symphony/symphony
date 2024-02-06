@@ -365,7 +365,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -526,7 +526,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -653,7 +653,7 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{

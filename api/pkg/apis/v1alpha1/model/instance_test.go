@@ -77,7 +77,7 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := Instance.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a InstanceSpec type")
+	assert.EqualError(t, err, "parameter is not a InstanceSpec type")
 	assert.False(t, res)
 }
 
@@ -470,7 +470,7 @@ func TestTargetSelectorDeepEqualsOneEmpty(t *testing.T) {
 		Name: "TargetName",
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetSelector type")
+	assert.EqualError(t, err, "parameter is not a TargetSelector type")
 	assert.False(t, res)
 }
 
@@ -497,7 +497,7 @@ func TestPipelineSpecDeepEqualsOneEmpty(t *testing.T) {
 		Name: "PipelineName",
 	}
 	res, err := Pipeline.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a PipelineSpec type")
+	assert.EqualError(t, err, "parameter is not a PipelineSpec type")
 	assert.False(t, res)
 }
 
@@ -546,7 +546,7 @@ func TestTopologySpecDeepEqualsOneEmpty(t *testing.T) {
 		Device: "DeviceName",
 	}
 	res, err := Topology.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TopologySpec type")
+	assert.EqualError(t, err, "parameter is not a TopologySpec type")
 	assert.False(t, res)
 }
 

@@ -12,7 +12,10 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type InMemoryPubSubProvider struct {
 	Config      InMemoryPubSubConfig               `json:"config"`
@@ -43,6 +46,7 @@ func (s *InMemoryPubSubProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *InMemoryPubSubProvider) InitWithMap(properties map[string]string) error {
 	config, err := InMemoryPubSubConfigFromMap(properties)
 	if err != nil {
+		log.Errorf("  P (Memory PubSub): failed to parse provider config from map %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -51,6 +55,7 @@ func (i *InMemoryPubSubProvider) InitWithMap(properties map[string]string) error
 func (i *InMemoryPubSubProvider) Init(config providers.IProviderConfig) error {
 	vConfig, err := toInMemoryPubSubConfig(config)
 	if err != nil {
+		log.Errorf("  P (Memory PubSub): failed to parse provider config %+v", err)
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid in-memory pub-sub provider config", v1alpha2.BadConfig)
 	}
 	i.Config = vConfig

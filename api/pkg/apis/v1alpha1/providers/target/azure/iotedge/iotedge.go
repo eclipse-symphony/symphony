@@ -167,11 +167,11 @@ func (i *IoTEdgeTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P(IoT Edge Target): Init()")
+	sLog.Info("  P (IoT Edge Target): Init()")
 
 	updateConfig, err := toIoTEdgeTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P(IoT Edge Target): expected IoTEdgeTargetProviderConfig: %+v", err)
+		sLog.Errorf("  P (IoT Edge Target): expected IoTEdgeTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -185,17 +185,17 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P(IoT Edge Target): getting components")
+	sLog.Infof("  P (IoT Edge Target): getting components: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
 
 	hubTwin, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
-		sLog.Error("  P(IoT Edge Target): +%v", err)
+		sLog.Errorf("  P (IoT Edge Target): failed to get edgeHub module twin: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 
 	modules, err := i.getIoTEdgeModules(ctx)
 	if err != nil {
-		sLog.Error("  P(IoT Edge Target): +%v", err)
+		sLog.Errorf("  P (IoT Edge Target): failed to get modules: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	components := make([]model.ComponentSpec, 0)
@@ -204,13 +204,13 @@ func (i *IoTEdgeTargetProvider) Get(ctx context.Context, deployment model.Deploy
 			var twin ModuleTwin
 			twin, err = i.getIoTEdgeModuleTwin(ctx, k)
 			if err != nil {
-				sLog.Error("  P(IoT Edge Target): +%v", err)
+				sLog.Errorf("  P (IoT Edge Target): failed to get %s module: %+v, traceId: %s", k, err, span.SpanContext().TraceID().String())
 				return nil, err
 			}
 			var component model.ComponentSpec
 			component, err = toComponent(hubTwin, twin, deployment.Instance.Name, m)
 			if err != nil {
-				sLog.Error("  P(IoT Edge Target): +%v", err)
+				sLog.Errorf("  P (IoT Edge Target):failed to parse %s twin to component %+v, traceId: %s", k, err, span.SpanContext().TraceID().String())
 				return nil, err
 			}
 			components = append(components, component)
@@ -227,7 +227,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P(IoT Edge Target): applying components")
+	sLog.Infof("  P (IoT Edge Target): applying components, traceId: %s", span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -243,13 +243,13 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	edgeAgent, err := i.getIoTEdgeModuleTwin(ctx, "$edgeAgent")
 	if err != nil {
-		sLog.Errorf("  P(IoT Edge Target): +%v", err)
+		sLog.Errorf("  P (IoT Edge Target): failed to get edgeAgent moduel twin: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return ret, err
 	}
 
 	edgeHub, err := i.getIoTEdgeModuleTwin(ctx, "$edgeHub")
 	if err != nil {
-		sLog.Errorf("  P(IoT Edge Target): +%v", err)
+		sLog.Errorf("  P (IoT Edge Target): failed to get edgeHub module twin: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return ret, err
 	}
 
@@ -263,7 +263,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				Message: e.Error(),
 			}
 			err = e
-			sLog.Errorf("  P(IoT Edge Target): +%v", err)
+			sLog.Errorf("  P (IoT Edge Target): failed to parse %s component to module: %+v, traceId: %s", a.Name, err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 		modules[a.Name] = module
@@ -271,7 +271,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if len(modules) > 0 {
 		err = i.deployToIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
-			sLog.Errorf("  P(IoT Edge Target): +%v", err)
+			sLog.Errorf("  P (IoT Edge Target): failed to deploy to IoT edge: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}
@@ -285,6 +285,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				Status:  v1alpha2.DeleteFailed,
 				Message: e.Error(),
 			}
+			sLog.Errorf("  P (IoT Edge Target): failed to parse %s component to module: %+v, traceId: %s", a.Name, err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 		modules[a.Name] = module
@@ -292,6 +293,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if len(modules) > 0 {
 		err = i.remvoefromIoTEdge(ctx, deployment.Instance.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
+			sLog.Errorf("  P (IoT Edge Target): failed to remove from IoT edge: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}

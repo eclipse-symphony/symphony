@@ -62,7 +62,7 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 		ForceRedeploy: false,
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetSpec type")
+	assert.EqualError(t, err, "parameter is not a TargetSpec type")
 	assert.False(t, res)
 }
 
@@ -324,6 +324,23 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Device: "DeviceName1",
 		}},
 		ForceRedeploy: false,
+	}
+	res, err := Target.DeepEquals(other)
+	assert.Nil(t, err)
+	assert.False(t, res)
+}
+
+func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
+	Target := TargetSpec{
+		DisplayName: "TargetName",
+		Scope:       "Default",
+		Components:  []ComponentSpec{{}},
+	}
+	other := TargetSpec{
+		DisplayName: "TargetName",
+		Scope:       "Default",
+		Components:  []ComponentSpec{{}},
+		Constraints: "Constraints",
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)

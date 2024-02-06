@@ -162,6 +162,8 @@ func compareProperties(c PropertyDesc, old map[string]interface{}, new map[strin
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}
+		} else if !c.SkipIfMissing {
+			return true
 		}
 	} else {
 		if !c.SkipIfMissing {
