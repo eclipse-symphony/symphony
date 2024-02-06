@@ -31,7 +31,7 @@ jobs:
       run: |
         mkdir -p /home/runner/go
         echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
-        echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
+        echo "export PATH=\$path:\$GOPATH/bin" >> $HOME/.bashrc
         source $HOME/.bashrc
 
     - name: Install make
@@ -76,32 +76,68 @@ jobs:
         echo "REPOPATH=$REPOPATH"
         cd api && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
 
-    - name: target-api-testcoverage-app
+    - name: Calculate coverage for api tests
+      id: target-api-testcoverage-app
       run: |
         cd api && go test -race -coverprofile=coverage.out ./...
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
         go tool cover -html=coverage.out -o coverage-api.html 
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
       continue-on-error: true
       if: always()
+    - name: target-api-testcoverage-app-badge
+      uses: RubbaBoy/BYOB@v1.3.0
+      with:
+        name: target-api-testcoverage-app
+        label: TestCoverage
+        color: ${{ steps.target-api-testcoverage-app.outcome == 'cancelled' && 'yellow' || steps.target-api-testcoverage-app.outcome == 'skipped' && 'gray' || steps.target-api-testcoverage-app.outputs.coverage >= 70 && 'green' || steps.target-api-testcoverage-app.outputs.coverage >= 50 && 'orange' || steps.target-api-testcoverage-app.outputs.coverage < 50 && 'red' }}
+        status: ${{ steps.target-api-testcoverage-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-api-testcoverage-app.outcome == 'skipped' && 'SKIPPED' || steps.target-api-testcoverage-app.outputs.coverage }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        path: "/go-shields.json"
+      continue-on-error: true
 
-    - name: target-k8s-testcoverage-app
+    - name: Calculate coverage for k8s tests
+      id: target-k8s-testcoverage-app
       run: |
         cd k8s && go test -race -coverprofile=coverage.out ./...
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
         go tool cover -html=coverage.out -o coverage-k8s.html 
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
       continue-on-error: true
       if: always()
+    - name: target-k8s-testcoverage-app-badge
+      uses: RubbaBoy/BYOB@v1.3.0
+      with:
+        name: target-k8s-testcoverage-app
+        label: TestCoverage
+        color: ${{ steps.target-k8s-testcoverage-app.outcome == 'cancelled' && 'yellow' || steps.target-k8s-testcoverage-app.outcome == 'skipped' && 'gray' || steps.target-k8s-testcoverage-app.outputs.coverage >= 70 && 'green' || steps.target-k8s-testcoverage-app.outputs.coverage >= 50 && 'orange' || steps.target-k8s-testcoverage-app.outputs.coverage < 50 && 'red' }}
+        status: ${{ steps.target-k8s-testcoverage-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-k8s-testcoverage-app.outcome == 'skipped' && 'SKIPPED' || steps.target-k8s-testcoverage-app.outputs.coverage }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        path: "/go-shields.json"
+      continue-on-error: true
 
-    - name: target-coa-testcoverage-app
+    - name: Calculate coverage for coa tests
+      id: target-coa-testcoverage-app
       run: |
         cd coa && go test -race -coverprofile=coverage.out ./...
         COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
         echo "coverage=$COVERAGE"
         go tool cover -html=coverage.out -o coverage-coa.html 
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
       continue-on-error: true
       if: always()
+    - name: target-coa-testcoverage-app-badge
+      uses: RubbaBoy/BYOB@v1.3.0
+      with:
+        name: target-coa-testcoverage-app
+        label: TestCoverage
+        color: ${{ steps.target-coa-testcoverage-app.outcome == 'cancelled' && 'yellow' || steps.target-coa-testcoverage-app.outcome == 'skipped' && 'gray' || steps.target-coa-testcoverage-app.outputs.coverage >= 70 && 'green' || steps.target-coa-testcoverage-app.outputs.coverage >= 50 && 'orange' || steps.target-coa-testcoverage-app.outputs.coverage < 50 && 'red' }}
+        status: ${{ steps.target-coa-testcoverage-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-coa-testcoverage-app.outcome == 'skipped' && 'SKIPPED' || steps.target-coa-testcoverage-app.outputs.coverage }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        path: "/go-shields.json"
+      continue-on-error: true
 
     - name: Upload test assets
       uses: actions/upload-artifact@v2
