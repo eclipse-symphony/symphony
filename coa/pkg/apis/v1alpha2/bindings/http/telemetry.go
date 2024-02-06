@@ -24,9 +24,6 @@ var initialized bool
 
 func initClient(properties map[string]interface{}) {
 	instrumentationKey := os.Getenv("APP_INSIGHT_KEY")
-	if instrumentationKey == "" {
-		instrumentationKey = "0be0a36e-6e0a-4544-a453-a237fd25cf64"
-	}
 	telemetryConfig := appinsights.NewTelemetryConfiguration(instrumentationKey)
 	telemetryConfig.MaxBatchSize = 8192
 	if batchSize, ok := properties["maxBatchSize"]; ok {
