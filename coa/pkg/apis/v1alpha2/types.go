@@ -98,6 +98,12 @@ func (s State) String() string {
 		return "Updated"
 	case Deleted:
 		return "Deleted"
+	case Running:
+		return "Running"
+	case Paused:
+		return "Paused"
+	case Done:
+		return "Done"
 	case Delayed:
 		return "Delayed"
 	case Untouched:
