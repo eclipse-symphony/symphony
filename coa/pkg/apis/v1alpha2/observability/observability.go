@@ -9,7 +9,6 @@ package observability
 import (
 	"fmt"
 
-	"bytes"
 	"context"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -48,7 +47,7 @@ type SamplerConfig struct {
 type Observability struct {
 	Tracer         trace.Tracer
 	TracerProvider trace.TracerProvider
-	Buffer         *bytes.Buffer
+	Buffer         *v1alpha2.SafeBuffer // should be a thread safe buffer
 }
 
 func StartSpan(name string, ctx context.Context, attributes *map[string]string) (context.Context, trace.Span) {
