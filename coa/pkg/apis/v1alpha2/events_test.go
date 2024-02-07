@@ -13,6 +13,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestScheduleErrorTimeZone(t *testing.T) {
+	schedule := ScheduleSpec{
+		Date: "2020-01-01",
+		Time: "12:00:00PM",
+		Zone: "XXX",
+	}
+	_, err := schedule.GetTime()
+	assert.NotNil(t, err)
+}
+
 func TestScheduleTimeZone(t *testing.T) {
 	schedule := ScheduleSpec{
 		Date: "2020-01-01",
