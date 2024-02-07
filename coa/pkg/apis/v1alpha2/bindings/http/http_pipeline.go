@@ -38,6 +38,11 @@ func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvid
 		case "middleware.http.telemetry":
 			enableAppInsight := os.Getenv("ENABLE_APP_INSIGHT")
 			c.Properties["enabled"] = enableAppInsight == "true"
+			if c.Properties["enabled"] == true {
+				if os.Getenv("APP_INSIGHT_KEY") == "" {
+					return ret, v1alpha2.NewCOAError(nil, "APP_INSIGHT_KEY is not set", v1alpha2.BadConfig)
+				}
+			}
 			c.Properties["client"] = uuid.New().String()
 			telemetry := Telemetry{Properties: c.Properties}
 			ret.Handlers = append(ret.Handlers, telemetry.Telemetry)
