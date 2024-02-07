@@ -89,7 +89,7 @@ func detectChanges(properties []PropertyDesc, oldName string, newName string, ol
 			}
 		} else {
 			if p.IsComponentName {
-				if !compareStrings(oldName, newName, p.IgnoreCase, p.SkipIfMissing) {
+				if !compareStrings(oldName, newName, p.IgnoreCase, p.PrefixMatch) {
 					return true
 				}
 			} else {

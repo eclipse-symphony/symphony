@@ -179,6 +179,10 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogSpec) (model.Catalog
 					for ik, iv := range vd {
 						ed[ik] = iv
 					}
+				} else if ed, ok := ev.(map[string]model.Packet); ok {
+					for ik, iv := range vd {
+						ed[ik] = iv
+					}
 				} else {
 					return model.CatalogSpec{}, fmt.Errorf("cannot merge catalogs, existing property %s is not a map[string]interface{}", k)
 				}
