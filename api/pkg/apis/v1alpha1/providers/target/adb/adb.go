@@ -89,6 +89,11 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	if deployment.Instance.Spec == nil {
+		err = errors.New("deployment instance spec is nil")
+		aLog.Errorf("  P (Android ADB): failed to get deployment, error: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		return nil, err
+	}
 	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)

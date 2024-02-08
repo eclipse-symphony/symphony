@@ -59,10 +59,12 @@ func TestGetOneDesired(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "HomeHub_1.0.4.0_x64",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "HomeHub_1.0.4.0_x64",
+					},
 				},
 			},
 		},
@@ -123,8 +125,10 @@ func TestRemove(t *testing.T) {
 		Name: "HomeHub_1.0.4.0_x64",
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -157,8 +161,10 @@ func TestApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -189,8 +195,13 @@ func TestApplyUpdateFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -222,8 +233,13 @@ func TestApplySlientDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -255,8 +271,13 @@ func TestGetUnknownPath(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := []model.ComponentStep{{

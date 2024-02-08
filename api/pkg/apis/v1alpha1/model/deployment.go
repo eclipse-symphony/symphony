@@ -8,7 +8,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 
 	go_slices "golang.org/x/exp/slices"
 )
@@ -27,6 +26,9 @@ type DeploymentSpec struct {
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
+	if d.Solution.Spec == nil {
+		return nil
+	}
 	components := d.Solution.Spec.Components
 	if d.ComponentStartIndex >= 0 && d.ComponentEndIndex >= 0 && d.ComponentEndIndex > d.ComponentStartIndex {
 		components = components[d.ComponentStartIndex:d.ComponentEndIndex]
@@ -41,7 +43,6 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.SolutionName != otherC.SolutionName {
-		fmt.Println(">>>>>>>>1")
 		return false, nil
 	}
 
@@ -51,7 +52,6 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if !equal {
-		fmt.Println(">>>>>>>>2")
 		return false, nil
 	}
 
@@ -61,37 +61,30 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if !equal {
-		fmt.Println(">>>>>>>>3")
 		return false, nil
 	}
 
 	if !mapsEqual(c.Targets, otherC.Targets, nil) {
-		fmt.Println(">>>>>>>>4")
 		return false, nil
 	}
 
 	if !SlicesEqual(c.Devices, otherC.Devices) {
-		fmt.Println(">>>>>>>>5")
 		return false, nil
 	}
 
 	if !StringMapsEqual(c.Assignments, otherC.Assignments, nil) {
-		fmt.Println(">>>>>>>>6")
 		return false, nil
 	}
 
 	if c.ComponentStartIndex != otherC.ComponentStartIndex {
-		fmt.Println(">>>>>>>>7")
 		return false, nil
 	}
 
 	if c.ComponentEndIndex != otherC.ComponentEndIndex {
-		fmt.Println(">>>>>>>>8")
 		return false, nil
 	}
 
 	if c.ActiveTarget != otherC.ActiveTarget {
-		fmt.Println(">>>>>>>>9")
 		return false, nil
 	}
 

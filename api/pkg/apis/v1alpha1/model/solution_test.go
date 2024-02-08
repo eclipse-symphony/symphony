@@ -44,7 +44,7 @@ func TestSolutionDeepEqualsOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := solution.DeepEquals(nil)
-	assert.EqualError(t, err, "parameter is not a SolutionSpec type")
+	assert.EqualError(t, err, "parameter is not a SolutionState type")
 	assert.False(t, res)
 }
 

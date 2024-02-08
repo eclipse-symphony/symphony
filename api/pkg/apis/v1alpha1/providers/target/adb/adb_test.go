@@ -200,7 +200,11 @@ func TestGetFailed(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 	assert.Nil(t, err)
 
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
@@ -244,6 +248,9 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},

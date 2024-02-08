@@ -527,7 +527,6 @@ func CreateTarget(context context.Context, baseUrl string, target string, user s
 	if err != nil {
 		return err
 	}
-	log.Info(">>>>>CreateTarget Succeed: " + target + " " + scope)
 	return nil
 }
 

@@ -79,15 +79,19 @@ func createSolutionVendor() SolutionVendor {
 }
 func createDockerDeployment(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "instance-docker",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "instance-docker",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "coma",
-					Properties: map[string]interface{}{
-						"container.image": "redis",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "coma",
+						Properties: map[string]interface{}{
+							"container.image": "redis",
+						},
 					},
 				},
 			},
@@ -95,16 +99,18 @@ func createDockerDeployment(id string) model.DeploymentSpec {
 		Assignments: map[string]string{
 			"docker": "{coma}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"docker": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "instance",
-								Provider: "providers.target.docker",
-								Config: map[string]string{
-									"name": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "instance",
+									Provider: "providers.target.docker",
+									Config: map[string]string{
+										"name": id,
+									},
 								},
 							},
 						},
@@ -116,34 +122,40 @@ func createDockerDeployment(id string) model.DeploymentSpec {
 }
 func createDeployment2Mocks1Target(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "instance1",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "instance1",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock",
-				},
-				{
-					Name: "b",
-					Type: "mock",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -302,7 +314,7 @@ func TestSolutionReconcile(t *testing.T) {
 	assert.True(t, summary.Skipped)
 
 	//now update the deployment and add one more component
-	deployment.Solution.Components = append(deployment.Solution.Components, model.ComponentSpec{Name: "c", Type: "mock"})
+	deployment.Solution.Spec.Components = append(deployment.Solution.Spec.Components, model.ComponentSpec{Name: "c", Type: "mock"})
 	deployment.Assignments["T1"] = "{a}{b}{c}"
 	data, _ = json.Marshal(deployment)
 
@@ -328,7 +340,7 @@ func TestSolutionReconcile(t *testing.T) {
 	assert.True(t, summary.Skipped)
 
 	//now update again to remove the first component
-	deployment.Solution.Components = deployment.Solution.Components[1:]
+	deployment.Solution.Spec.Components = deployment.Solution.Spec.Components[1:]
 	deployment.Assignments["T1"] = "{b}{c}"
 	data, _ = json.Marshal(deployment)
 

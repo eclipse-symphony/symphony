@@ -68,7 +68,7 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.EqualError(t, err, "parameter is not a TargetSpec type")
+	assert.EqualError(t, err, "parameter is not a TargetState type")
 	assert.False(t, res)
 }
 

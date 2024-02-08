@@ -75,16 +75,18 @@ func createTargetsVendor() TargetsVendor {
 }
 func TestTargetsOnRegistry(t *testing.T) {
 	vendor := createTargetsVendor()
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},
@@ -164,16 +166,18 @@ func TestTargetsOnBootstrap(t *testing.T) {
 func TestTargetsOnStatus(t *testing.T) {
 	vendor := createTargetsVendor()
 
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},
@@ -217,16 +221,18 @@ func TestTargetsOnStatus(t *testing.T) {
 func TestTargetsOnHeartbeats(t *testing.T) {
 	vendor := createTargetsVendor()
 
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},

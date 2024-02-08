@@ -84,15 +84,8 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, scope str
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: name,
-			Body: map[string]interface{}{
-				"apiVersion": model.FabricGroup + "/v1",
-				"kind":       "Target",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": body,
-			},
+			ID:   name,
+			Body: body,
 			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]string{

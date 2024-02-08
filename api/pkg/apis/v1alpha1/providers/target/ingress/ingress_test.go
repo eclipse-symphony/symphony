@@ -148,12 +148,16 @@ func TestIngressTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "test-ingress",
+		Instance: model.InstanceState{
 			Scope: "ingresses",
+			Spec: &model.InstanceSpec{
+				Name: "test-ingress",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -213,12 +217,16 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "test-ingress",
+		Instance: model.InstanceState{
 			Scope: "ingresses",
+			Spec: &model.InstanceSpec{
+				Name: "test-ingress",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -253,12 +261,16 @@ func TestIngressTargetProviderGet(t *testing.T) {
 		Type: "ingresses",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "ingress-test",
+		Instance: model.InstanceState{
 			Scope: "ingresses",
+			Spec: &model.InstanceSpec{
+				Name: "ingress-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -323,12 +335,16 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "test-ingress",
+		Instance: model.InstanceState{
 			Scope: "ingresses",
+			Spec: &model.InstanceSpec{
+				Name: "test-ingress",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{

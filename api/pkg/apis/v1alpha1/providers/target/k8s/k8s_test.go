@@ -330,9 +330,11 @@ func TestDeployment(t *testing.T) {
 	assert.Nil(t, err)
 
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
+		Instance: model.InstanceState{
 			Scope: "default",
-			Name:  "name",
+			Spec: &model.InstanceSpec{
+				Name: "name",
+			},
 		},
 	}
 	_, err = provider.Get(context.Background(), deployment, []model.ComponentStep{})
@@ -365,16 +367,20 @@ func TestDeployment(t *testing.T) {
 	assert.Nil(t, err)
 
 	deployment = model.DeploymentSpec{
-		Instance: model.InstanceSpec{
+		Instance: model.InstanceState{
 			Scope: "default",
-			Name:  "name",
+			Spec: &model.InstanceSpec{
+				Name: "name",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name:       "name",
-					Properties: map[string]interface{}{},
-					Metadata:   map[string]string{},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name:       "name",
+						Properties: map[string]interface{}{},
+						Metadata:   map[string]string{},
+					},
 				},
 			},
 		},
@@ -452,8 +458,13 @@ func TestApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: desired,
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: desired,
+			},
 		},
 		ComponentStartIndex: 0,
 		ComponentEndIndex:   1,

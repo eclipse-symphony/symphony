@@ -83,7 +83,7 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 		},
 	}
 	res, err := Instance.DeepEquals(nil)
-	assert.EqualError(t, err, "parameter is not a InstanceSpec type")
+	assert.EqualError(t, err, "parameter is not a InstanceState type")
 	assert.False(t, res)
 }
 

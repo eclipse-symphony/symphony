@@ -329,7 +329,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
-	require.Equal(t, "default", targetsRes[0].Spec.Scope)
+	require.Equal(t, "default", targetsRes[0].Scope)
 	require.Equal(t, "1", targetsRes[0].Status["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status["status"])
 
@@ -337,7 +337,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
-	require.Equal(t, "default", targetRes.Spec.Scope)
+	require.Equal(t, "default", targetRes.Scope)
 	require.Equal(t, "1", targetRes.Status["targets"])
 	require.Equal(t, "OK", targetRes.Status["status"])
 
@@ -469,14 +469,14 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
-		Id: "someTargetName",
+		Id:    "someTargetName",
+		Scope: "targetScope",
+		Metadata: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
-			Scope:       "targetScope",
-			Metadata: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
 			Components: []model.ComponentSpec{
 				{
 					Name: "componentName1",
@@ -500,48 +500,14 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 
 	require.Equal(t, model.DeploymentSpec{
 		SolutionName: "target-runtime-someTargetName",
-		Solution: model.SolutionSpec{
-			DisplayName: "target-runtime-someTargetName",
-			Scope:       "targetScope",
+		Solution: model.SolutionState{
+			Scope: "targetScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 			},
-			Components: []model.ComponentSpec{
-				{
-					Name: "componentName1",
-					Type: "componentType1",
-					Metadata: map[string]string{
-						"key1": "value1",
-						"key2": "value2",
-					},
-				},
-				{
-					Name: "componentName2",
-					Type: "componentType2",
-				},
-			},
-		},
-		Instance: model.InstanceSpec{
-			Name:        "target-runtime-someTargetName",
-			DisplayName: "target-runtime-someTargetName",
-			Scope:       "targetScope",
-			Solution:    "target-runtime-someTargetName",
-			Target: model.TargetSelector{
-				Name: "someTargetName",
-			},
-		},
-		Targets: map[string]model.TargetSpec{
-			"someTargetName": {
-				DisplayName: "someDisplayName",
-				Scope:       "targetScope",
-				Metadata: map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-				},
-				Properties: map[string]string{
-					"OS": "windows",
-				},
+			Spec: &model.SolutionSpec{
+				DisplayName: "target-runtime-someTargetName",
 				Components: []model.ComponentSpec{
 					{
 						Name: "componentName1",
@@ -556,7 +522,48 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 						Type: "componentType2",
 					},
 				},
-				ForceRedeploy: false,
+			},
+		},
+		Instance: model.InstanceState{
+			Scope: "targetScope",
+			Spec: &model.InstanceSpec{
+				Name:        "target-runtime-someTargetName",
+				DisplayName: "target-runtime-someTargetName",
+				Solution:    "target-runtime-someTargetName",
+				Target: model.TargetSelector{
+					Name: "someTargetName",
+				},
+			},
+		},
+		Targets: map[string]model.TargetState{
+			"someTargetName": {
+				Id:    "someTargetName",
+				Scope: "targetScope",
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
+				Spec: &model.TargetSpec{
+					DisplayName: "someDisplayName",
+					Properties: map[string]string{
+						"OS": "windows",
+					},
+					Components: []model.ComponentSpec{
+						{
+							Name: "componentName1",
+							Type: "componentType1",
+							Metadata: map[string]string{
+								"key1": "value1",
+								"key2": "value2",
+							},
+						},
+						{
+							Name: "componentName2",
+							Type: "componentType2",
+						},
+					},
+					ForceRedeploy: false,
+				},
 			},
 		},
 		Assignments: map[string]string{
@@ -567,7 +574,8 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 
 func TestCreateSymphonyDeployment(t *testing.T) {
 	res, err := CreateSymphonyDeployment(model.InstanceState{
-		Id: "someOtherId",
+		Id:    "someOtherId",
+		Scope: "instanceScope",
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -575,19 +583,18 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					"OS": "windows",
 				},
 			},
-			Scope: "instanceScope",
 		},
 		Status: map[string]string{},
 	}, model.SolutionState{
-		Id: "someOtherId",
+		Id:    "someOtherId",
+		Scope: "solutionsScope",
+		Metadata: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+			"key3": "value3",
+		},
 		Spec: &model.SolutionSpec{
 			DisplayName: "someDisplayName",
-			Scope:       "solutionsScope",
-			Metadata: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
 			Components: []model.ComponentSpec{
 				{
 					Name: "componentName1",
@@ -611,11 +618,11 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				"key2": "value2",
 				"key3": "value3",
 			},
+			Scope: "targetScope",
 			Spec: &model.TargetSpec{
 				Properties: map[string]string{
 					"company": "microsoft",
 				},
-				Scope: "targetScope",
 			},
 		},
 	}, []model.DeviceState{
@@ -633,48 +640,63 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 
 	require.Equal(t, model.DeploymentSpec{
 		SolutionName: "someOtherId",
-		Solution: model.SolutionSpec{
-			DisplayName: "someDisplayName",
-			Scope:       "solutionsScope",
+		Solution: model.SolutionState{
+			Id:    "someOtherId",
+			Scope: "solutionsScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 				"key3": "value3",
 			},
-			Components: []model.ComponentSpec{
-				{
-					Name: "componentName1",
-					Type: "componentType1",
-				},
-				{
-					Name: "componentName2",
-					Type: "componentType2",
-					Metadata: map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+			Spec: &model.SolutionSpec{
+				DisplayName: "someDisplayName",
+				Components: []model.ComponentSpec{
+					{
+						Name: "componentName1",
+						Type: "componentType1",
+					},
+					{
+						Name: "componentName2",
+						Type: "componentType2",
+						Metadata: map[string]string{
+							"key1": "value1",
+							"key2": "value2",
+						},
 					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Name:        "someOtherId",
-			DisplayName: "",
-			Scope:       "instanceScope",
-			Solution:    "",
-			Target: model.TargetSelector{
-				Name: "someTargetName",
-				Selector: map[string]string{
-					"OS": "windows",
+		Instance: model.InstanceState{
+			Id:    "someOtherId",
+			Scope: "instanceScope",
+			Spec: &model.InstanceSpec{
+				Name:        "someOtherId",
+				DisplayName: "",
+				Solution:    "",
+				Target: model.TargetSelector{
+					Name: "someTargetName",
+					Selector: map[string]string{
+						"OS": "windows",
+					},
 				},
 			},
+			Status: map[string]string{},
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"someTargetName1": {
+				Id:    "someTargetName1",
 				Scope: "targetScope",
-				Properties: map[string]string{
-					"company": "microsoft",
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
 				},
-				ForceRedeploy: false,
+				Spec: &model.TargetSpec{
+					Properties: map[string]string{
+						"company": "microsoft",
+					},
+					ForceRedeploy: false,
+				},
 			},
 		},
 		Assignments: map[string]string{
@@ -697,20 +719,26 @@ func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {
 			Name:        "componentName3",
 			Constraints: "${{$equal($property(OS),unix)}}",
 		},
-	}, map[string]model.TargetSpec{
+	}, map[string]model.TargetState{
 		"target1": {
-			Properties: map[string]string{
-				"OS": "windows",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "windows",
+				},
 			},
 		},
 		"target2": {
-			Properties: map[string]string{
-				"OS": "linux",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "linux",
+				},
 			},
 		},
 		"target3": {
-			Properties: map[string]string{
-				"OS": "unix",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "unix",
+				},
 			},
 		},
 	})
