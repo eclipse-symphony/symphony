@@ -131,10 +131,10 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			if !exist {
 				scope = ""
 			}
-			state, err = c.TargetsManager.ListSpec(ctx, scope)
+			state, err = c.TargetsManager.ListState(ctx, scope)
 			isArray = true
 		} else {
-			state, err = c.TargetsManager.GetSpec(ctx, id, scope)
+			state, err = c.TargetsManager.GetState(ctx, id, scope)
 		}
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -157,7 +157,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 		binding := request.Parameters["with-binding"]
-		var target model.TargetSpec
+		var target model.TargetState
 		err := json.Unmarshal(request.Body, &target)
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -168,12 +168,12 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		}
 		if binding != "" {
 			if binding == "staging" {
-				target.ForceRedeploy = true
-				if target.Topologies == nil {
-					target.Topologies = make([]model.TopologySpec, 0)
+				target.Spec.ForceRedeploy = true
+				if target.Spec.Topologies == nil {
+					target.Spec.Topologies = make([]model.TopologySpec, 0)
 				}
 				found := false
-				for _, t := range target.Topologies {
+				for _, t := range target.Spec.Topologies {
 					if t.Bindings != nil {
 						for _, b := range t.Bindings {
 							if b.Role == "instance" && b.Provider == "providers.target.staging" {
@@ -192,13 +192,13 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 							"targetName": id,
 						},
 					}
-					if len(target.Topologies) == 0 {
-						target.Topologies = append(target.Topologies, model.TopologySpec{})
+					if len(target.Spec.Topologies) == 0 {
+						target.Spec.Topologies = append(target.Spec.Topologies, model.TopologySpec{})
 					}
-					if target.Topologies[len(target.Topologies)-1].Bindings == nil {
-						target.Topologies[len(target.Topologies)-1].Bindings = make([]model.BindingSpec, 0)
+					if target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings == nil {
+						target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = make([]model.BindingSpec, 0)
 					}
-					target.Topologies[len(target.Topologies)-1].Bindings = append(target.Topologies[len(target.Topologies)-1].Bindings, newb)
+					target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = append(target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings, newb)
 				}
 			} else {
 				tLog.Infof("V (Targets) : onRegistry failed - invalid binding, traceId: %s", span.SpanContext().TraceID().String())
@@ -208,7 +208,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				})
 			}
 		}
-		err = c.TargetsManager.UpsertSpec(ctx, id, scope, target)
+		err = c.TargetsManager.UpsertState(ctx, id, scope, target)
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -411,7 +411,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		if !exist {
 			scope = "default"
 		}
-		state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"], scope)
+		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], scope)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

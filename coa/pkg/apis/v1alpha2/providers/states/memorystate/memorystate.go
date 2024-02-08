@@ -94,17 +94,33 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	}
 	entry.Value.ETag = tag
 
-	// This hack is to simulate k8s upsert behavior
-	if _, ok := entry.Value.Body.(map[string]interface{}); ok {
-		mapRef := entry.Value.Body.(map[string]interface{})
-		if mapRef["status"] != nil && mapRef["spec"] == nil {
-
-			dataRef := s.Data[entry.Value.ID]
-			if dataRef != nil {
-				mapRef["spec"] = dataRef.(states.StateEntry).Body.(map[string]interface{})["spec"]
-			}
-			entry.Value.Body = mapRef
+	if entry.Options.UpdateStateOnly {
+		existing, ok := s.Data[entry.Value.ID]
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", entry.Value.ID), v1alpha2.NotFound)
+			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			return "", err
 		}
+		existingEntry, ok := existing.(states.StateEntry)
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", entry.Value.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			return "", err
+		}
+
+		mapRef := existingEntry.Body.(map[string]interface{})
+		var mapType map[string]interface{}
+		jBody, _ := json.Marshal(entry.Value.Body)
+		json.Unmarshal(jBody, &mapType)
+
+		if mapRef["status"] == nil {
+			mapRef["status"] = make(map[string]interface{})
+		}
+		for k, v := range mapType["status"].(map[string]interface{}) {
+			mapRef["status"].(map[string]interface{})[k] = v
+		}
+
+		entry.Value.Body = mapRef
 	}
 
 	s.Data[entry.Value.ID] = entry.Value

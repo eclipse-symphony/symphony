@@ -133,13 +133,6 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.Metadata != nil {
-		in, out := &in.Metadata, &out.Metadata
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	in.Target.DeepCopyInto(&out.Target)
 	if in.Topologies != nil {
 		in, out := &in.Topologies, &out.Topologies

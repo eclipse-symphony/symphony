@@ -399,7 +399,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password, scope)
+					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Spec.Name, user, password, scope)
 				}
 			}
 		case "target":

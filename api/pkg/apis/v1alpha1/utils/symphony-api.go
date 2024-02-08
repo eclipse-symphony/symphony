@@ -566,16 +566,18 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
 	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
-	scope := target.Spec.Scope
+	scope := target.Scope
 
 	ret := model.DeploymentSpec{}
-	solution := model.SolutionSpec{
-		DisplayName: key,
-		Scope:       scope,
-		Components:  make([]model.ComponentSpec, 0),
-		Metadata:    make(map[string]string, 0),
+	solution := model.SolutionState{
+		Scope:    scope,
+		Metadata: make(map[string]string, 0),
+		Spec: &model.SolutionSpec{
+			DisplayName: key,
+			Components:  make([]model.ComponentSpec, 0),
+		},
 	}
-	for k, v := range target.Spec.Metadata {
+	for k, v := range target.Metadata {
 		solution.Metadata[k] = v
 	}
 
@@ -587,26 +589,21 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 		if err != nil {
 			return ret, err
 		}
-		solution.Components = append(solution.Components, c)
+		solution.Spec.Components = append(solution.Spec.Components, c)
 	}
 
-	targets := make(map[string]model.TargetSpec)
-	var t model.TargetSpec
-	data, _ := json.Marshal(target.Spec)
-	err := json.Unmarshal(data, &t)
-	if err != nil {
-		return ret, err
-	}
+	targets := make(map[string]model.TargetState)
+	targets[target.Id] = target
 
-	targets[target.Id] = t
-
-	instance := model.InstanceSpec{
-		Name:        key,
-		DisplayName: key,
-		Scope:       scope,
-		Solution:    key,
-		Target: model.TargetSelector{
-			Name: target.Id,
+	instance := model.InstanceState{
+		Scope: scope,
+		Spec: &model.InstanceSpec{
+			Name:        key,
+			DisplayName: key,
+			Solution:    key,
+			Target: model.TargetSelector{
+				Name: target.Id,
+			},
 		},
 	}
 
@@ -614,7 +611,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -630,31 +627,20 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{}
 	ret.Generation = instance.Spec.Generation
-	// convert instance
-	sInstance := instance.Spec
-
-	sInstance.Name = instance.Id
-	sInstance.Scope = instance.Spec.Scope
-
-	// convert solution
-	sSolution := solution.Spec
-
-	sSolution.DisplayName = solution.Spec.DisplayName
-	sSolution.Scope = solution.Spec.Scope
 
 	// convert targets
-	sTargets := make(map[string]model.TargetSpec)
+	sTargets := make(map[string]model.TargetState)
 	for _, t := range targets {
-		sTargets[t.Id] = *t.Spec
+		sTargets[t.Id] = t
 	}
 
 	//TODO: handle devices
-	ret.Solution = *sSolution
+	ret.Solution = solution
 	ret.Targets = sTargets
-	ret.Instance = *sInstance
+	ret.Instance = instance
 	ret.SolutionName = solution.Id
 
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -667,7 +653,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	return ret, nil
 }
 
-func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetSpec) (map[string]string, error) {
+func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
@@ -676,7 +662,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Spec.Properties})
 				if err != nil {
 					return ret, err
 				}

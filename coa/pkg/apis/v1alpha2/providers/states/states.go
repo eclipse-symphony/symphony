@@ -47,8 +47,9 @@ type DeleteRequest struct {
 	Options  DeleteOption      `json:"options,omitempty"`
 }
 type UpsertOption struct {
-	Concurrency string `json:"concurrency,omitempty"` //first-write, last-write
-	Consistency string `json:"consistency"`           //eventual, strong
+	Concurrency     string `json:"concurrency,omitempty"` //first-write, last-write
+	Consistency     string `json:"consistency"`           //eventual, strong
+	UpdateStateOnly bool   `json:"updateStateOnly,omitempty"`
 }
 type UpsertRequest struct {
 	Value    StateEntry        `json:"value"`

@@ -40,7 +40,7 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *InstancesManager) DeleteSpec(ctx context.Context, name string, scope string) error {
+func (t *InstancesManager) DeleteState(ctx context.Context, name string, scope string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -59,25 +59,34 @@ func (t *InstancesManager) DeleteSpec(ctx context.Context, name string, scope st
 	return err
 }
 
-func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec, scope string) error {
+func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState, scope string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	for k, v := range state.Metadata {
+		metadata[k] = v
+	}
+	body := map[string]interface{}{
+		"apiVersion": model.SolutionGroup + "/v1",
+		"kind":       "Instance",
+		"metadata":   metadata,
+		"spec":       state.Spec,
+	}
+	generation := ""
+	if state.Spec != nil {
+		generation = state.Spec.Generation
+	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: name,
-			Body: map[string]interface{}{
-				"apiVersion": model.SolutionGroup + "/v1",
-				"kind":       "Instance",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
-			},
-			ETag: spec.Generation,
+			ID:   name,
+			Body: body,
+			ETag: generation,
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
@@ -94,7 +103,7 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return nil
 }
 
-func (t *InstancesManager) ListSpec(ctx context.Context, scope string) ([]model.InstanceState, error) {
+func (t *InstancesManager) ListState(ctx context.Context, scope string) ([]model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -168,7 +177,7 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 	return state, nil
 }
 
-func (t *InstancesManager) GetSpec(ctx context.Context, id string, scope string) (model.InstanceState, error) {
+func (t *InstancesManager) GetState(ctx context.Context, id string, scope string) (model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})

@@ -231,456 +231,458 @@ func TestCreateProvider(t *testing.T) {
 }
 
 func TestCreateProviderForTargetRole(t *testing.T) {
-	targetSpec := model.TargetSpec{
-		DisplayName: "target",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "memorystate",
-						Provider: "providers.state.memory",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "k8sstate",
-						Provider: "providers.state.k8s",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "k8scatalog",
-						Provider: "providers.config.k8scatalog",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "httpstate",
-						Provider: "providers.state.http",
-						Config: map[string]string{
-							"url": "http://localhost:3500/v1.0/state/statestore",
+	targetState := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "memorystate",
+							Provider: "providers.state.memory",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "k8sref",
-						Provider: "providers.reference.k8s",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "cvref",
-						Provider: "providers.reference.customvision",
-						Config: map[string]string{
-							"key": "fakekey",
+						{
+							Role:     "k8sstate",
+							Provider: "providers.state.k8s",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "httpref",
-						Provider: "providers.reference.http",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "mockledger",
-						Provider: "providers.ledger.mock",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "counter",
-						Provider: "providers.stage.counter",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "k8s",
-						Provider: "providers.target.k8s",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "docker",
-						Provider: "providers.target.docker",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "ingress",
-						Provider: "providers.target.ingress",
-						Config: map[string]string{
-							"configType": "path",
+						{
+							Role:     "k8scatalog",
+							Provider: "providers.config.k8scatalog",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "kubectl",
-						Provider: "providers.target.kubectl",
-						Config: map[string]string{
-							"configType": "path",
+						{
+							Role:     "httpstate",
+							Provider: "providers.state.http",
+							Config: map[string]string{
+								"url": "http://localhost:3500/v1.0/state/statestore",
+							},
 						},
-					},
-					{
-						Role:     "staging",
-						Provider: "providers.target.staging",
-						Config: map[string]string{
-							"targetName": "target1",
+						{
+							Role:     "k8sref",
+							Provider: "providers.reference.k8s",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "script",
-						Provider: "providers.target.script",
-						Config: map[string]string{
-							"applyScript":  "mock-apply.sh",
-							"removeScript": "mock-remove.sh",
-							"getScript":    "mock-get.sh",
-							"scriptFolder": "",
+						{
+							Role:     "cvref",
+							Provider: "providers.reference.customvision",
+							Config: map[string]string{
+								"key": "fakekey",
+							},
 						},
-					},
-					{
-						Role:     "http",
-						Provider: "providers.target.http",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "win10sideload",
-						Provider: "providers.target.win10.sideload",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "adb",
-						Provider: "providers.target.adb",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "proxy",
-						Provider: "providers.target.proxy",
-						Config: map[string]string{
-							"name":      "proxy",
-							"serverUrl": "",
+						{
+							Role:     "httpref",
+							Provider: "providers.reference.http",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "configmap",
-						Provider: "providers.target.configmap",
-						Config: map[string]string{
-							"configType": "path",
+						{
+							Role:     "mockledger",
+							Provider: "providers.ledger.mock",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "azureiotedge",
-						Provider: "providers.target.azure.iotedge",
-						Config: map[string]string{
-							"name":       "iot-edge",
-							"keyName":    "iothubowner",
-							"key":        "fakekey",
-							"iotHub":     "fakenet",
-							"apiVersion": "fakeversion",
-							"deviceName": "s8c-vm",
+						{
+							Role:     "counter",
+							Provider: "providers.stage.counter",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "azureadu",
-						Provider: "providers.target.azure.adu",
-						Config: map[string]string{
-							"name":               "adu",
-							"tenantId":           "faketenant",
-							"clientId":           "fakeclient",
-							"clientSecret":       "fakesecret",
-							"aduAccountEndpoint": "fakeendpoint",
-							"aduAccountInstance": "fakeinstance",
-							"aduGroup":           "fakegroup",
+						{
+							Role:     "k8s",
+							Provider: "providers.target.k8s",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "mockconfig",
-						Provider: "providers.config.mock",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "catalogconfig",
-						Provider: "providers.config.catalog",
-						Config: map[string]string{
-							"baseUrl":  "fakeuri",
-							"user":     "fake",
-							"password": "",
+						{
+							Role:     "docker",
+							Provider: "providers.target.docker",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "mocksecret",
-						Provider: "providers.secret.mock",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "memoryqueue",
-						Provider: "providers.queue.memory",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "memorygraph",
-						Provider: "providers.graph.memory",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "mockstage",
-						Provider: "providers.stage.mock",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "httpstage",
-						Provider: "providers.stage.http",
-						Config: map[string]string{
-							"url":    "fakeurl",
-							"method": "GET",
+						{
+							Role:     "ingress",
+							Provider: "providers.target.ingress",
+							Config: map[string]string{
+								"configType": "path",
+							},
 						},
-					},
-					{
-						Role:     "createstage",
-						Provider: "providers.stage.create",
-						Config: map[string]string{
-							"baseUrl":       "fakeUrl",
-							"user":          "admin",
-							"password":      "",
-							"wait.count":    "1",
-							"wait.interval": "1",
+						{
+							Role:     "kubectl",
+							Provider: "providers.target.kubectl",
+							Config: map[string]string{
+								"configType": "path",
+							},
 						},
-					},
-					{
-						Role:     "scriptstage",
-						Provider: "providers.stage.script",
-						Config: map[string]string{
-							"script": "",
+						{
+							Role:     "staging",
+							Provider: "providers.target.staging",
+							Config: map[string]string{
+								"targetName": "target1",
+							},
 						},
-					},
-					{
-						Role:     "patchstage",
-						Provider: "providers.stage.patch",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "script",
+							Provider: "providers.target.script",
+							Config: map[string]string{
+								"applyScript":  "mock-apply.sh",
+								"removeScript": "mock-remove.sh",
+								"getScript":    "mock-get.sh",
+								"scriptFolder": "",
+							},
 						},
-					},
-					{
-						Role:     "liststage",
-						Provider: "providers.stage.list",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "http",
+							Provider: "providers.target.http",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "remotestage",
-						Provider: "providers.stage.remote",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "win10sideload",
+							Provider: "providers.target.win10.sideload",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "waitstage",
-						Provider: "providers.stage.wait",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "adb",
+							Provider: "providers.target.adb",
+							Config:   map[string]string{},
 						},
-					},
-					{
-						Role:     "delaystage",
-						Provider: "providers.stage.delay",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "proxy",
+							Provider: "providers.target.proxy",
+							Config: map[string]string{
+								"name":      "proxy",
+								"serverUrl": "",
+							},
 						},
-					},
-					{
-						Role:     "materializestage",
-						Provider: "providers.stage.materialize",
-						Config: map[string]string{
-							"baseUrl":  "fakeUrl",
-							"user":     "admin",
-							"password": "",
+						{
+							Role:     "configmap",
+							Provider: "providers.target.configmap",
+							Config: map[string]string{
+								"configType": "path",
+							},
 						},
-					},
-					{
-						Role:     "mempubsub",
-						Provider: "providers.pubsub.memory",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "httpreporter",
-						Provider: "providers.reporter.http",
-						Config:   map[string]string{},
-					},
-					{
-						Role:     "k8sreporter",
-						Provider: "providers.reporter.k8s",
-						Config:   map[string]string{},
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "azureiotedge",
+							Provider: "providers.target.azure.iotedge",
+							Config: map[string]string{
+								"name":       "iot-edge",
+								"keyName":    "iothubowner",
+								"key":        "fakekey",
+								"iotHub":     "fakenet",
+								"apiVersion": "fakeversion",
+								"deviceName": "s8c-vm",
+							},
+						},
+						{
+							Role:     "azureadu",
+							Provider: "providers.target.azure.adu",
+							Config: map[string]string{
+								"name":               "adu",
+								"tenantId":           "faketenant",
+								"clientId":           "fakeclient",
+								"clientSecret":       "fakesecret",
+								"aduAccountEndpoint": "fakeendpoint",
+								"aduAccountInstance": "fakeinstance",
+								"aduGroup":           "fakegroup",
+							},
+						},
+						{
+							Role:     "mockconfig",
+							Provider: "providers.config.mock",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "catalogconfig",
+							Provider: "providers.config.catalog",
+							Config: map[string]string{
+								"baseUrl":  "fakeuri",
+								"user":     "fake",
+								"password": "",
+							},
+						},
+						{
+							Role:     "mocksecret",
+							Provider: "providers.secret.mock",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "memoryqueue",
+							Provider: "providers.queue.memory",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "memorygraph",
+							Provider: "providers.graph.memory",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "mockstage",
+							Provider: "providers.stage.mock",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "httpstage",
+							Provider: "providers.stage.http",
+							Config: map[string]string{
+								"url":    "fakeurl",
+								"method": "GET",
+							},
+						},
+						{
+							Role:     "createstage",
+							Provider: "providers.stage.create",
+							Config: map[string]string{
+								"baseUrl":       "fakeUrl",
+								"user":          "admin",
+								"password":      "",
+								"wait.count":    "1",
+								"wait.interval": "1",
+							},
+						},
+						{
+							Role:     "scriptstage",
+							Provider: "providers.stage.script",
+							Config: map[string]string{
+								"script": "",
+							},
+						},
+						{
+							Role:     "patchstage",
+							Provider: "providers.stage.patch",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "liststage",
+							Provider: "providers.stage.list",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "remotestage",
+							Provider: "providers.stage.remote",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "waitstage",
+							Provider: "providers.stage.wait",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "delaystage",
+							Provider: "providers.stage.delay",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "materializestage",
+							Provider: "providers.stage.materialize",
+							Config: map[string]string{
+								"baseUrl":  "fakeUrl",
+								"user":     "admin",
+								"password": "",
+							},
+						},
+						{
+							Role:     "mempubsub",
+							Provider: "providers.pubsub.memory",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "httpreporter",
+							Provider: "providers.reporter.http",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "k8sreporter",
+							Provider: "providers.reporter.k8s",
+							Config:   map[string]string{},
+						},
 					},
 				},
 			},
 		},
 	}
 
-	provider, err := CreateProviderForTargetRole(nil, "memorystate", targetSpec, nil)
+	provider, err := CreateProviderForTargetRole(nil, "memorystate", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memorystate.MemoryStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sstate", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "k8sstate", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8scatalog", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "k8scatalog", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "httpstate", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "httpstate", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpstate.HttpStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sref", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "k8sref", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*k8sref.K8sReferenceProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "cvref", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "cvref", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*cvref.CustomVisionReferenceProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "httpref", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "httpref", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpref.HTTPReferenceProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mockledger", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mockledger", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mockledger.MockLedgerProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "counter", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "counter", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*counter.CounterStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8s", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "k8s", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*k8s.K8sTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "docker", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "docker", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*docker.DockerTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "ingress", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "ingress", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*ingress.IngressTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "kubectl", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "kubectl", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*kubectl.KubectlTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "staging", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "staging", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*staging.StagingTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "script", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "script", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*script.ScriptProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "http", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "http", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*targethttp.HttpTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "win10sideload", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "win10sideload", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*sideload.Win10SideLoadProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "adb", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "adb", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*adb.AdbProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "proxy", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "proxy", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*proxy.ProxyUpdateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "configmap", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "configmap", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*configmap.ConfigMapTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mock", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mock", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*tgtmock.MockTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "azureiotedge", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "azureiotedge", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*iotedge.IoTEdgeTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "azureadu", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "azureadu", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*adu.ADUTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mockconfig", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mockconfig", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mockconfig.MockConfigProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "catalogconfig", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "catalogconfig", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*catalogconfig.CatalogConfigProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mocksecret", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mocksecret", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mocksecret.MockSecretProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "memoryqueue", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "memoryqueue", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memoryqueue.MemoryQueueProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "memorygraph", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "memorygraph", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memorygraph.MemoryGraphProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mockstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mockstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mockstage.MockStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "httpstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "httpstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpstage.HttpStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "createstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "createstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*symphonystage.CreateStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "scriptstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "scriptstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*scriptstage.ScriptStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "patchstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "patchstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*patchstage.PatchStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "liststage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "liststage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*liststage.ListStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "remotestage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "remotestage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*remotestage.RemoteStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "waitstage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "waitstage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*waitstage.WaitStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "delaystage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "delaystage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*delaystage.DelayStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "materializestage", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "materializestage", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*materialize.MaterializeStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "mempubsub", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "mempubsub", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mempubsub.InMemoryPubSubProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "httpreporter", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "httpreporter", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpreporter.HTTPReporter))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sreporter", targetSpec, nil)
+	provider, err = CreateProviderForTargetRole(nil, "k8sreporter", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*k8sreporter.K8sReporter))
 }

@@ -132,7 +132,7 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ADU Target Provider): getting components: %s - %s, traceId: %s", dep.Instance.Scope, dep.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ADU Target Provider): getting components: %s - %s, traceId: %s", dep.Instance.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
 	deployment, err := i.getDeployment()
 	if err != nil {
 		sLog.Errorf("  P (ADU Target Provider): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -187,7 +187,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ADU Update): applying components: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ADU Update): applying components: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)

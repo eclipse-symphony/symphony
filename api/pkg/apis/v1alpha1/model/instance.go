@@ -12,10 +12,11 @@ type (
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
-		Id     string            `json:"id"`
-		Scope  string            `json:"scope"`
-		Spec   *InstanceSpec     `json:"spec,omitempty"`
-		Status map[string]string `json:"status,omitempty"`
+		Id       string            `json:"id"`
+		Scope    string            `json:"scope"`
+		Spec     *InstanceSpec     `json:"spec,omitempty"`
+		Status   map[string]string `json:"status,omitempty"`
+		Metadata map[string]string `json:"metadata,omitempty"`
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
@@ -23,9 +24,7 @@ type (
 	InstanceSpec struct {
 		Name        string                       `json:"name"`
 		DisplayName string                       `json:"displayName,omitempty"`
-		Scope       string                       `json:"scope,omitempty"`
 		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string            `json:"metadata,omitempty"`
 		Solution    string                       `json:"solution"`
 		Target      TargetSelector               `json:"target,omitempty"`
 		Topologies  []TopologySpec               `json:"topologies,omitempty"`
@@ -125,10 +124,6 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if c.Scope != otherC.Scope {
-		return false, nil
-	}
-
 	// TODO: These are not compared in current version. Metadata is usually not considred part of the state so
 	// it's reasonable not to compare. The parameters (same arguments apply to arguments below) are dynamic so
 	// comparision is unpredictable. Should we not compare the arguments as well? Or, should we get rid of the
@@ -162,6 +157,32 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c InstanceState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(InstanceState)
+	if !ok {
+		return false, errors.New("parameter is not a InstanceState type")
+	}
+
+	if c.Id != otherC.Id {
+		return false, nil
+	}
+
+	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+		return false, nil
+	}
+
+	equal, err := c.Spec.DeepEquals(otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

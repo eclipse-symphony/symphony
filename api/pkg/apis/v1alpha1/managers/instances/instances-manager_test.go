@@ -16,23 +16,23 @@ import (
 )
 
 // write test case to create a InstanceSpec using the manager
-func TestCreateGetDeleteInstancesSpec(t *testing.T) {
+func TestCreateGetDeleteInstancesState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.InstanceSpec{}, "default")
+	err := manager.UpsertState(context.Background(), "test", model.InstanceState{}, "default")
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test", "default")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background(), "default")
+	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
 	assert.Equal(t, "test", specLists[0].Id)
-	err = manager.DeleteSpec(context.Background(), "test", "default")
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	spec, err = manager.GetSpec(context.Background(), "test", "default")
+	spec, err = manager.GetState(context.Background(), "test", "default")
 	assert.NotNil(t, err)
 }

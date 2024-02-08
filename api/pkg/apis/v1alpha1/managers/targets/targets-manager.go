@@ -62,12 +62,25 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope stri
 	return err
 }
 
-func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, scope string, spec model.TargetSpec) error {
+func (t *TargetsManager) UpsertState(ctx context.Context, name string, scope string, state model.TargetState) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	for k, v := range state.Metadata {
+		metadata[k] = v
+	}
+	body := map[string]interface{}{
+		"apiVersion": model.FabricGroup + "/v1",
+		"kind":       "Target",
+		"metadata":   metadata,
+		"spec":       state.Spec,
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -78,9 +91,9 @@ func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, scope stri
 				"metadata": map[string]interface{}{
 					"name": name,
 				},
-				"spec": spec,
+				"spec": body,
 			},
-			ETag: spec.Generation,
+			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]string{
 			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
@@ -112,62 +125,38 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		return model.TargetState{}, err
 	}
 
-	dict, ok := target.Body.(map[string]interface{})
-	if !ok {
-		return model.TargetState{}, fmt.Errorf("unable to cast target body to map[string]interface{}")
-	}
-
-	specCol, ok := dict["spec"].(model.TargetSpec)
-	if !ok {
-		return model.TargetState{}, fmt.Errorf("unable to cast target spec to model.TargetSpec")
-	}
-
-	delete(dict, "spec")
-	if dict["status"] == nil {
-		dict["status"] = make(map[string]interface{})
-	}
-	status := dict["status"]
-
-	j, _ := json.Marshal(status)
-	var rStatus map[string]interface{}
-	err = json.Unmarshal(j, &rStatus)
+	var targetState model.TargetState
+	bytes, _ := json.Marshal(target.Body)
+	err = json.Unmarshal(bytes, &targetState)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
-	if err != nil {
-		return model.TargetState{}, err
-	}
-	if rProperties == nil {
-		rProperties = make(map[string]string)
-	}
+
 	for k, v := range current.Status {
-		rProperties[k] = v
+		if targetState.Status == nil {
+			targetState.Status = make(map[string]string)
+		}
+		targetState.Status[k] = v
 	}
 
-	dict["status"].(map[string]interface{})["properties"] = rProperties
-
-	target.Body = dict
+	target.Body = targetState
 
 	updateRequest := states.UpsertRequest{
 		Value:    target,
 		Metadata: current.Metadata,
+		Options: states.UpsertOption{
+			UpdateStateOnly: true,
+		},
 	}
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
-	return model.TargetState{
-		Id:       current.Id,
-		Metadata: specCol.Metadata,
-		Status:   rProperties,
-	}, nil
+	return targetState, nil
 }
-func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.TargetState, error) {
+func (t *TargetsManager) ListState(ctx context.Context, scope string) ([]model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -199,6 +188,9 @@ func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.Ta
 }
 
 func getTargetState(id string, body interface{}, etag string) (model.TargetState, error) {
+	if v, ok := body.(model.TargetState); ok {
+		return v, nil
+	}
 	dict := body.(map[string]interface{})
 	spec := dict["spec"]
 	status := dict["status"]
@@ -211,17 +203,12 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 	}
 
 	j, _ = json.Marshal(status)
-	var rStatus map[string]interface{}
+	var rStatus map[string]string
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
-	if err != nil {
-		return model.TargetState{}, err
-	}
+
 	rSpec.Generation = etag
 
 	scope, exist := dict["scope"]
@@ -236,12 +223,12 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		Id:     id,
 		Scope:  s,
 		Spec:   &rSpec,
-		Status: rProperties,
+		Status: rStatus,
 	}
 	return state, nil
 }
 
-func (t *TargetsManager) GetSpec(ctx context.Context, id string, scope string) (model.TargetState, error) {
+func (t *TargetsManager) GetState(ctx context.Context, id string, scope string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})

@@ -16,24 +16,26 @@ import (
 )
 
 // write test case to create a TargetSpec using the manager
-func TestCreateGetDeleteTargetsSpec(t *testing.T) {
+func TestCreateGetDeleteTargetsState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := TargetsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", "default", model.TargetSpec{})
+	err := manager.UpsertState(context.Background(), "test", "default", model.TargetState{
+		Spec: &model.TargetSpec{},
+	})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test", "default")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background(), "default")
+	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
 	assert.Equal(t, "test", specLists[0].Id)
 	err = manager.DeleteSpec(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	spec, err = manager.GetSpec(context.Background(), "test", "default")
+	spec, err = manager.GetState(context.Background(), "test", "default")
 	assert.NotNil(t, err)
 }
 
@@ -43,16 +45,21 @@ func TestUpdateTargetStatus(t *testing.T) {
 	manager := TargetsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", "default", model.TargetSpec{})
+	err := manager.UpsertState(context.Background(), "test", "default", model.TargetState{
+		Id:   "test",
+		Spec: &model.TargetSpec{},
+	})
 	assert.Nil(t, err)
+
 	var state model.TargetState
+
 	state.Id = "test"
 	state.Scope = "default"
 	state.Status = map[string]string{"label": "test"}
 	_, err = manager.ReportState(context.Background(), state)
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test", "default")
+	state, err = manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
-	assert.Equal(t, "test", spec.Status["label"])
+	assert.Equal(t, "test", state.Id)
+	assert.Equal(t, "test", state.Status["label"])
 }

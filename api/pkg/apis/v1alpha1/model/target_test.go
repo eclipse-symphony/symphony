@@ -13,33 +13,37 @@ import (
 )
 
 func TestTargetDeepEquals(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -47,19 +51,21 @@ func TestTargetDeepEquals(t *testing.T) {
 }
 
 func TestTargetDeepEqualsOneEmpty(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(nil)
 	assert.EqualError(t, err, "parameter is not a TargetSpec type")
@@ -67,33 +73,37 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 }
 
 func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName1",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName1",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -101,33 +111,37 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default1",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default1",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -135,33 +149,37 @@ func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo1": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo1": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -169,33 +187,37 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar1"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar1"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -203,25 +225,29 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Components:  []ComponentSpec{{}},
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Components:  []ComponentSpec{{}},
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo1": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo1": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -229,33 +255,37 @@ func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar1"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar1"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -263,33 +293,37 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName1",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName1",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -297,33 +331,37 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName1",
-		}},
-		ForceRedeploy: false,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName1",
+			}},
+			ForceRedeploy: false,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -331,16 +369,20 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Components:  []ComponentSpec{{}},
+	Target := TargetState{
+		Scope: "Default",
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Components:  []ComponentSpec{{}},
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Components:  []ComponentSpec{{}},
-		Constraints: "Constraints",
+	other := TargetState{
+		Scope: "Default",
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Components:  []ComponentSpec{{}},
+			Constraints: "Constraints",
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)
@@ -348,33 +390,37 @@ func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
 }
 
 func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
-	Target := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: false,
+	Target := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: false,
+		},
 	}
-	other := TargetSpec{
-		DisplayName: "TargetName",
-		Scope:       "Default",
-		Metadata:    map[string]string{"foo": "bar"},
-		Properties:  map[string]string{"foo": "bar"},
-		Components: []ComponentSpec{{
-			Name: "ComponentName",
-		}},
-		Constraints: "",
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		ForceRedeploy: true,
+	other := TargetState{
+		Scope:    "Default",
+		Metadata: map[string]string{"foo": "bar"},
+		Spec: &TargetSpec{
+			DisplayName: "TargetName",
+			Properties:  map[string]string{"foo": "bar"},
+			Components: []ComponentSpec{{
+				Name: "ComponentName",
+			}},
+			Constraints: "",
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			ForceRedeploy: true,
+		},
 	}
 	res, err := Target.DeepEquals(other)
 	assert.Nil(t, err)

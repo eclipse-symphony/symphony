@@ -172,7 +172,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.Name, remove, stopCh)
+	go s.sendHeartbeat(deployment.Instance.Spec.Name, remove, stopCh)
 
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
@@ -207,7 +207,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 	}
 
-	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Name, scope)
+	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Spec.Name, scope)
 	currentDesiredState, err := NewDeploymentState(deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
@@ -325,7 +325,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	// TODO: delete the state if the mergedState is empty (doesn't have any ComponentTarget assignements)
 	s.StateProvider.Upsert(iCtx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: deployment.Instance.Name,
+			ID: deployment.Instance.Spec.Name,
 			Body: SolutionManagerDeploymentState{
 				Spec:  deployment,
 				State: mergedState,
@@ -348,7 +348,7 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.Name),
+			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.Spec.Name),
 			Body: model.SummaryResult{
 				Summary:    summary,
 				Generation: deployment.Generation,
@@ -460,8 +460,8 @@ func (s *SolutionManager) Poll() []error {
 func (s *SolutionManager) Reconcil() []error {
 	return nil
 }
-func findAgent(target model.TargetSpec) string {
-	for _, c := range target.Components {
+func findAgent(target model.TargetState) string {
+	for _, c := range target.Spec.Components {
 		if v, ok := c.Properties[model.ContainerImage]; ok {
 			if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
 				return c.Name

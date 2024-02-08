@@ -89,7 +89,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 
@@ -132,7 +132,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 

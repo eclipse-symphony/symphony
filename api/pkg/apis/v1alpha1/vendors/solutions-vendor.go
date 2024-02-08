@@ -92,10 +92,10 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			if !exist {
 				scope = ""
 			}
-			state, err = c.SolutionsManager.ListSpec(ctx, scope)
+			state, err = c.SolutionsManager.ListState(ctx, scope)
 			isArray = true
 		} else {
-			state, err = c.SolutionsManager.GetSpec(ctx, id, scope)
+			state, err = c.SolutionsManager.GetState(ctx, id, scope)
 		}
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -122,17 +122,20 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]
 
-		var solution model.SolutionSpec
+		var solution model.SolutionState
 
 		if embed_type != "" && embed_component != "" && embed_property != "" {
-			solution = model.SolutionSpec{
-				DisplayName: id,
-				Components: []model.ComponentSpec{
-					{
-						Name: embed_component,
-						Type: embed_type,
-						Properties: map[string]interface{}{
-							embed_property: string(request.Body),
+			solution = model.SolutionState{
+				Id: id,
+				Spec: &model.SolutionSpec{
+					DisplayName: id,
+					Components: []model.ComponentSpec{
+						{
+							Name: embed_component,
+							Type: embed_type,
+							Properties: map[string]interface{}{
+								embed_property: string(request.Body),
+							},
 						},
 					},
 				},
@@ -147,7 +150,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			}
 		}
-		err := c.SolutionsManager.UpsertSpec(ctx, id, solution, scope)
+		err := c.SolutionsManager.UpsertState(ctx, id, solution, scope)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -177,7 +180,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.SolutionsManager.DeleteSpec(ctx, id, scope)
+		err := c.SolutionsManager.DeleteState(ctx, id, scope)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

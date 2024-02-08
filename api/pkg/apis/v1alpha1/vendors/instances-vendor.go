@@ -95,10 +95,10 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			if !exist {
 				scope = ""
 			}
-			state, err = c.InstancesManager.ListSpec(ctx, scope)
+			state, err = c.InstancesManager.ListState(ctx, scope)
 			isArray = true
 		} else {
-			state, err = c.InstancesManager.GetSpec(ctx, id, scope)
+			state, err = c.InstancesManager.GetState(ctx, id, scope)
 		}
 		if err != nil {
 			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -128,16 +128,19 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		if !exist {
 			scope = "default"
 		}
-		var instance model.InstanceSpec
+		var instance model.InstanceState
 
 		if solution != "" && (target != "" || target_selector != "") {
-			instance = model.InstanceSpec{
-				DisplayName: id,
-				Name:        id,
-				Solution:    solution,
+			instance = model.InstanceState{
+				Id: id,
+				Spec: &model.InstanceSpec{
+					DisplayName: id,
+					Name:        id,
+					Solution:    solution,
+				},
 			}
 			if target != "" {
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Name: target,
 				}
 			} else {
@@ -149,7 +152,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},
@@ -165,7 +168,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			}
 		}
-		err := c.InstancesManager.UpsertSpec(ctx, id, instance, scope)
+		err := c.InstancesManager.UpsertState(ctx, id, instance, scope)
 		if err != nil {
 			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -211,7 +214,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				State: v1alpha2.OK,
 			})
 		} else {
-			err := c.InstancesManager.DeleteSpec(ctx, id, scope)
+			err := c.InstancesManager.DeleteState(ctx, id, scope)
 			if err != nil {
 				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

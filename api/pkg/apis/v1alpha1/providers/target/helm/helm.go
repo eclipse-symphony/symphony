@@ -239,7 +239,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 	i.ListClient.Deployed = true
 	var results []*release.Release
 	results, err = i.ListClient.Run()
@@ -318,7 +318,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)

@@ -13,41 +13,45 @@ import (
 )
 
 func TestInstanceDeepEquals(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
 	}
 	res, err := Instance.DeepEquals(other)
 	assert.Nil(t, err)
@@ -55,25 +59,27 @@ func TestInstanceDeepEquals(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(nil)
@@ -82,46 +88,50 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName1",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName1",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -130,46 +140,50 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName1",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName1",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -178,46 +192,50 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default1",
+	other := InstanceState{
+		Scope: "Default1",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -226,94 +244,102 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName1",
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName1",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		}}
-
+	}
 	res, err := Instance.DeepEquals(other)
 	assert.Nil(t, err)
 	assert.False(t, res)
 }
 
 func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName1",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName1",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -322,46 +348,50 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName1",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName1",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -370,46 +400,50 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo1": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo1": {"foo": "bar"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -418,46 +452,50 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 }
 
 func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	Instance := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo": "bar"},
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
+	other := InstanceState{
+		Scope: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo1": "bar1"},
+		Spec: &InstanceSpec{
+			Name:        "InstanceName",
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Arguments: map[string]map[string]string{
+				"foo": {"foo1": "bar1"},
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)

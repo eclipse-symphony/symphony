@@ -21,8 +21,6 @@ type (
 	// TargetSpec defines the spec property of the TargetState
 	TargetSpec struct {
 		DisplayName   string            `json:"displayName,omitempty"`
-		Scope         string            `json:"scope,omitempty"`
-		Metadata      map[string]string `json:"metadata,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
 		Constraints   string            `json:"constraints,omitempty"`
@@ -44,14 +42,6 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if c.Scope != otherC.Scope {
-		return false, nil
-	}
-
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
-		return false, nil
-	}
-
 	if !StringMapsEqual(c.Properties, otherC.Properties, nil) {
 		return false, nil
 	}
@@ -70,6 +60,32 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	if c.ForceRedeploy != otherC.ForceRedeploy {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetState)
+	if !ok {
+		return false, errors.New("parameter is not a TargetState type")
+	}
+
+	if c.Id != otherC.Id {
+		return false, nil
+	}
+
+	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+		return false, nil
+	}
+
+	equal, err := c.Spec.DeepEquals(otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

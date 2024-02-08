@@ -86,7 +86,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -98,7 +98,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	catalog, err := utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password)
 
@@ -138,7 +138,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -164,7 +164,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog, err = utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil && !v1alpha2.IsNotFound(err) {
@@ -173,7 +173,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	if catalog.Spec == nil {
-		catalog.Id = deployment.Instance.Name + "-" + i.Config.TargetName
+		catalog.Id = deployment.Instance.Spec.Name + "-" + i.Config.TargetName
 		catalog.Spec = &model.CatalogSpec{
 			SiteId: i.Context.SiteInfo.SiteId,
 			Type:   "staged",
@@ -252,7 +252,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	err = utils.UpsertCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password, jData)
 	if err != nil {
