@@ -62,7 +62,7 @@ func TestInitWithMap(t *testing.T) {
 		"needsUpdate":   "mock-needsupdate.sh",
 		"needsRemove":   "mock-needsremove.sh",
 		"stagingFolder": "./staging",
-		"scriptFolder":  "https://demopolicies.blob.core.windows.net/gatekeeper",
+		"scriptFolder":  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 		"applyScript":   "mock-apply.sh",
 		"removeScript":  "mock-remove.sh",
 		"getScript":     "mock-get.sh",
@@ -177,7 +177,7 @@ func TestGetScriptFromUrl(t *testing.T) {
 		ApplyScript:   "mock-apply.sh",
 		RemoveScript:  "mock-remove.sh",
 		StagingFolder: "./staging",
-		ScriptFolder:  "https://demopolicies.blob.core.windows.net/gatekeeper",
+		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 	})
 	assert.Nil(t, err)
 }

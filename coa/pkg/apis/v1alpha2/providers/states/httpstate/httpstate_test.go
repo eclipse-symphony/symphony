@@ -64,7 +64,7 @@ func TestInitWithMapWithError(t *testing.T) {
 			"postAsArray":       "This is causing an Error :)",
 		},
 	)
-	assert.Error(t, err, "invalid bool value in the 'postAsArray' setting of Http state provider")
+	assert.EqualError(t, err, "invalid bool value in the 'postAsArray' setting of Http state provider (strconv.ParseBool: parsing \"This is causing an Error :)\": invalid syntax)")
 }
 
 func TestID(t *testing.T) {

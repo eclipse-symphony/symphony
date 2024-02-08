@@ -15,6 +15,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHttpInitWithMap(t *testing.T) {
+	provider := HttpStageProvider{}
+	input := map[string]string{
+		"name":          "test",
+		"url":           "https://www.bing.com",
+		"method":        "GET",
+		"successCodes":  "200, 202",
+		"wait.start":    "200",
+		"wait.fail":     "404",
+		"wait.success":  "200",
+		"wait.url":      "https://www.bing.com",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, []int{200, 202}, provider.Config.SuccessCodes)
+}
+
+func TestHttpProcessOverrideConfig(t *testing.T) {
+	provider := HttpStageProvider{}
+	input := map[string]string{
+		"name":          "test",
+		"url":           "https://www.bing.com",
+		"method":        "GET",
+		"successCodes":  "200, 202",
+		"wait.start":    "200",
+		"wait.fail":     "404",
+		"wait.success":  "200",
+		"wait.url":      "https://www.bing.com",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"wait.fail": []int{500},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, 200, outputs["status"])
+	assert.NotNil(t, outputs["body"])
+	assert.Equal(t, []int{500}, provider.Config.WaitFailedCodes)
+	assert.Equal(t, []int{200}, provider.Config.WaitStartCodes)
+}
 func TestPingBing(t *testing.T) {
 	provider := HttpStageProvider{}
 	err := provider.Init(HttpStageProviderConfig{

@@ -66,7 +66,7 @@ func TestCampaignMatchOneEmpty(t *testing.T) {
 		Name: "name",
 	}
 	res, err := campaign1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a CampaignSpec type")
+	assert.EqualError(t, err, "parameter is not a CampaignSpec type")
 	assert.False(t, res)
 }
 
@@ -261,7 +261,7 @@ func TestStageMatchOneEmpty(t *testing.T) {
 		Name: "name",
 	}
 	res, err := stage1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a StageSpec type")
+	assert.EqualError(t, err, "parameter is not a StageSpec type")
 	assert.False(t, res)
 }
 
@@ -270,7 +270,7 @@ func TestActivationMatchOneEmpty(t *testing.T) {
 		Name: "name",
 	}
 	res, err := activation1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a ActivationSpec type")
+	assert.EqualError(t, err, "parameter is not a ActivationSpec type")
 	assert.False(t, res)
 }
 

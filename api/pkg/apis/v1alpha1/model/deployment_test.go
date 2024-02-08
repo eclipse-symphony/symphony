@@ -89,7 +89,7 @@ func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	res, err := deployment1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a DeploymentSpec type")
+	assert.EqualError(t, err, "parameter is not a DeploymentSpec type")
 	assert.False(t, res)
 }
 

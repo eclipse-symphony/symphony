@@ -9,6 +9,7 @@ package list
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -149,6 +150,10 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		} else {
 			outputs["items"] = filteredSites
 		}
+	default:
+		log.Errorf("  P (List Processor): unsupported object type: %s", objectType)
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
+		return nil, false, err
 	}
 	outputs["objectType"] = objectType
 	return outputs, false, nil
