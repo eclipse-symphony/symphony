@@ -83,7 +83,7 @@ func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	equal, err := c.Spec.DeepEquals(otherC.Spec)
+	equal, err := c.Spec.DeepEquals(*otherC.Spec)
 	if err != nil || !equal {
 		return equal, err
 	}
