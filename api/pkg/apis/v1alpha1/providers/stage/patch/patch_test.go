@@ -21,8 +21,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testSolution = model.SolutionSpec{
+var testSolution = model.SolutionState{
 	Scope: "default",
+	Spec:  &model.SolutionSpec{},
 }
 
 func TestPatchSolution(t *testing.T) {
@@ -161,8 +162,9 @@ func TestPatchProcessInline(t *testing.T) {
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-	testSolution = model.SolutionSpec{
+	testSolution = model.SolutionState{
 		Scope: "default",
+		Spec:  &model.SolutionSpec{},
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
@@ -180,13 +182,13 @@ func TestPatchProcessInline(t *testing.T) {
 		"patchAction": "add",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "ebpf-module", testSolution.Components[0].Name)
-	assert.Equal(t, "ebpf", testSolution.Components[0].Type)
+	assert.Equal(t, "ebpf-module", testSolution.Spec.Components[0].Name)
+	assert.Equal(t, "ebpf", testSolution.Spec.Components[0].Type)
 	assert.Equal(t, map[string]interface{}{
 		"ebpf.url":   "https://github.com/Haishi2016/Vault818/releases/download/vtest/hello.bpf.o",
 		"ebpf.name":  "hello",
 		"ebpf.event": "xdp",
-	}, testSolution.Components[0].Properties)
+	}, testSolution.Spec.Components[0].Properties)
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
@@ -204,7 +206,7 @@ func TestPatchProcessInline(t *testing.T) {
 		"patchAction": "remove",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(testSolution.Components))
+	assert.Equal(t, 0, len(testSolution.Spec.Components))
 }
 
 func TestPatchProcessCatalog(t *testing.T) {
@@ -222,8 +224,9 @@ func TestPatchProcessCatalog(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	testSolution = model.SolutionSpec{
+	testSolution = model.SolutionState{
 		Scope: "default",
+		Spec:  &model.SolutionSpec{},
 	}
 	// Step 1: first add component to solution spec
 	provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -258,8 +261,8 @@ func TestPatchProcessCatalog(t *testing.T) {
 		"subKey":       "adapter",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "ebpf-module", testSolution.Components[0].Name)
-	assert.Equal(t, "ebpf", testSolution.Components[0].Type)
+	assert.Equal(t, "ebpf-module", testSolution.Spec.Components[0].Name)
+	assert.Equal(t, "ebpf", testSolution.Spec.Components[0].Type)
 	assert.Equal(t, map[string]interface{}{
 		"ebpf.url":   "https://github.com/Haishi2016/Vault818/releases/download/vtest/hello.bpf.o",
 		"ebpf.name":  "hello",
@@ -268,7 +271,7 @@ func TestPatchProcessCatalog(t *testing.T) {
 			"adapter": []interface{}{map[string]interface{}{"testkey": "0", "testdict": []interface{}{"1"}, "testmap": map[string]interface{}{}}},
 			"scope":   []interface{}{},
 		},
-	}, testSolution.Components[0].Properties)
+	}, testSolution.Spec.Components[0].Properties)
 
 }
 
@@ -287,16 +290,16 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 			if r.Method == "GET" {
 				response = model.SolutionState{
 					Id:   "solution1",
-					Spec: &testSolution,
+					Spec: testSolution.Spec,
 				}
 			} else {
 				body, _ := io.ReadAll(r.Body)
-				newSpec := model.SolutionSpec{}
+				newSpec := model.SolutionState{}
 				json.Unmarshal(body, &newSpec)
 				testSolution = newSpec
 				response = model.SolutionState{
 					Id:   "solution1",
-					Spec: &testSolution,
+					Spec: testSolution.Spec,
 				}
 			}
 		case "/catalogs/registry/catalog1":

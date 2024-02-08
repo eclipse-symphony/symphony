@@ -234,6 +234,9 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 		if componentName == "" {
 			componentSpec := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			if solution.Spec.Components == nil {
+				solution.Spec.Components = make([]model.ComponentSpec, 0)
+			}
 			for i, c := range solution.Spec.Components {
 				if c.Name == componentSpec.Name {
 					if patchAction == "remove" {
@@ -332,7 +335,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			}
 		}
 		if udpated {
-			jData, _ := json.Marshal(solution.Spec)
+			jData, _ := json.Marshal(solution)
 			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectScope)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)

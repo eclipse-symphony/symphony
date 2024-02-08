@@ -50,8 +50,10 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 	}
 
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: desired,
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: desired,
+			},
 		},
 		ComponentStartIndex: 0,
 		ComponentEndIndex:   1,
@@ -94,8 +96,10 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 			desired[0].Properties[property] = "dummy property"
 		}
 		deployment := model.DeploymentSpec{
-			Solution: model.SolutionSpec{
-				Components: desired,
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: desired,
+				},
 			},
 			ComponentStartIndex: 0,
 			ComponentEndIndex:   1,
