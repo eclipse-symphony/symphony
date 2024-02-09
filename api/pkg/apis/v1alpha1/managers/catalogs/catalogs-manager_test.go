@@ -67,7 +67,7 @@ func CreateSimpleChain(root string, length int, CTManager CatalogsManager, catal
 
 	catalog.Name = root
 	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func CreateSimpleChain(root string, length int, CTManager CatalogsManager, catal
 		tmp := catalog.Name
 		catalog.Name = fmt.Sprintf("%s-%d", root, i)
 		catalog.ParentName = tmp
-		err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+		err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 	}
 	catalog.Name = fmt.Sprintf("%s-%d", root, 0)
 	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 			parentIndex := (count - 1) / 2
 			catalog.Name = fmt.Sprintf("%s-%d", root, count)
 			catalog.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+			err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func TestUpsertAndGet(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -132,7 +132,7 @@ func TestUpsertAndGet(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.GetSpec(context.Background(), catalogSpec.Name)
+	val, err := manager.GetSpec(context.Background(), catalogSpec.Name, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, catalogSpec, *val.Spec)
 }
@@ -141,7 +141,7 @@ func TestList(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -153,7 +153,7 @@ func TestList(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.ListSpec(context.Background())
+	val, err := manager.ListSpec(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(val))
 	assert.Equal(t, catalogSpec, *val[0].Spec)
@@ -163,7 +163,7 @@ func TestDelete(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -175,14 +175,14 @@ func TestDelete(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.GetSpec(context.Background(), catalogSpec.Name)
+	val, err := manager.GetSpec(context.Background(), catalogSpec.Name, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, catalogSpec, *val.Spec)
 
-	err = manager.DeleteSpec(context.Background(), catalogSpec.Name)
+	err = manager.DeleteSpec(context.Background(), catalogSpec.Name, "default")
 	assert.Nil(t, err)
 
-	val, err = manager.GetSpec(context.Background(), catalogSpec.Name)
+	val, err = manager.GetSpec(context.Background(), catalogSpec.Name, "default")
 	assert.NotNil(t, err)
 	assert.Empty(t, val)
 }
@@ -193,10 +193,10 @@ func TestGetChains(t *testing.T) {
 
 	err = CreateSimpleChain("root", 4, manager, catalogSpec)
 	assert.Nil(t, err)
-	err = manager.setProviderDataIfNecessary(context.Background())
+	err = manager.setProviderDataIfNecessary(context.Background(), "default")
 	assert.Nil(t, err)
 
-	val, err := manager.GetChains(context.Background(), catalogSpec.Type)
+	val, err := manager.GetChains(context.Background(), catalogSpec.Type, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(val["root"]))
 }
@@ -207,10 +207,10 @@ func TestGetTrees(t *testing.T) {
 
 	err = CreateSimpleBinaryTree("root", 3, manager, catalogSpec)
 	assert.Nil(t, err)
-	err = manager.setProviderDataIfNecessary(context.Background())
+	err = manager.setProviderDataIfNecessary(context.Background(), "default")
 	assert.Nil(t, err)
 
-	val, err := manager.GetTrees(context.Background(), catalogSpec.Type)
+	val, err := manager.GetTrees(context.Background(), catalogSpec.Type, "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(val["root-0"]))
 }
@@ -231,7 +231,7 @@ func TestSchemaCheck(t *testing.T) {
 	}
 	catalogSpec.Name = "EmailCheckSchema"
 	catalogSpec.ParentName = ""
-	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
 	assert.Nil(t, err)
 
 	catalogSpec.Name = "Email"
@@ -242,7 +242,7 @@ func TestSchemaCheck(t *testing.T) {
 		"email": "This is an invalid email",
 	}
 
-	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = manager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "schema validation error"))
 }
