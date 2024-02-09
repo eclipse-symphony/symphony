@@ -46,7 +46,7 @@ func CreateSimpleChain(root string, length int, CTManager *catalogs.CatalogsMana
 
 	catalog.Name = root
 	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func CreateSimpleChain(root string, length int, CTManager *catalogs.CatalogsMana
 		tmp := catalog.Name
 		catalog.Name = fmt.Sprintf("%s-%d", root, i)
 		catalog.ParentName = tmp
-		err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+		err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager *catalogs.Catalogs
 	}
 	catalog.Name = fmt.Sprintf("%s-%d", root, 0)
 	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager *catalogs.Catalogs
 			parentIndex := (count - 1) / 2
 			catalog.Name = fmt.Sprintf("%s-%d", root, count)
 			catalog.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+			err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog, "default")
 			if err != nil {
 				return err
 			}
