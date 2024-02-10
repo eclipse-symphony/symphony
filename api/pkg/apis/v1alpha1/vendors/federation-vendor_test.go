@@ -384,7 +384,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		ParentName: "parent1",
 		Generation: "1",
 	}
-	err = vendor.CatalogsManager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec, "default")
+	err = vendor.CatalogsManager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
 	assert.Nil(t, err)
 	vendor.Context.PubsubProvider.Publish("catalog", v1alpha2.Event{
 		Metadata: map[string]string{
