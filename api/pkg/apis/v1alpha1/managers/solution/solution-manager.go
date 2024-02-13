@@ -260,7 +260,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			override = v
 		}
 		var provider providers.IProvider
-		provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
+		targetSpec := s.getTargetSpecForStep(step, deployment, previousDesiredState)
+		provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
 		if err != nil {
 			summary.SummaryMessage = "failed to create provider:" + err.Error()
 			log.Errorf(" M (Solution): failed to create provider: %+v", err)
@@ -322,19 +323,28 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState.ClearAllRemoved()
 
-	// TODO: delete the state if the mergedState is empty (doesn't have any ComponentTarget assignements)
-	s.StateProvider.Upsert(iCtx, states.UpsertRequest{
-		Value: states.StateEntry{
+	if len(mergedState.TargetComponent) == 0 {
+		log.Infof(" M (Solution): no assigned components to manage, deleting state")
+		s.StateProvider.Delete(iCtx, states.DeleteRequest{
 			ID: deployment.Instance.Name,
-			Body: SolutionManagerDeploymentState{
-				Spec:  deployment,
-				State: mergedState,
+			Metadata: map[string]string{
+				"scope": scope,
 			},
-		},
-		Metadata: map[string]string{
-			"scope": scope,
-		},
-	})
+		})
+	} else {
+		s.StateProvider.Upsert(iCtx, states.UpsertRequest{
+			Value: states.StateEntry{
+				ID: deployment.Instance.Name,
+				Body: SolutionManagerDeploymentState{
+					Spec:  deployment,
+					State: mergedState,
+				},
+			},
+			Metadata: map[string]string{
+				"scope": scope,
+			},
+		})
+	}
 
 	summary.Skipped = !someStepsRan
 	if summary.Skipped {
@@ -344,6 +354,19 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	s.saveSummary(iCtx, deployment, summary, scope)
 	return summary, nil
 }
+
+// The dployment spec may have changed, so the previous target is not in the new deployment anymore
+func (s *SolutionManager) getTargetSpecForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDeploymentState *SolutionManagerDeploymentState) model.TargetSpec {
+	//first find the target spec in the deployment
+	targetSpec, ok := deployment.Targets[step.Target]
+	if !ok {
+		if previousDeploymentState != nil {
+			targetSpec = previousDeploymentState.Spec.Targets[step.Target]
+		}
+	}
+	return targetSpec
+}
+
 func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, scope string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
