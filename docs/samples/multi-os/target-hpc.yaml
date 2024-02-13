@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: hpc
+spec:
+  properties:
+    location: "hpc"
+    scenario: "multi-os"
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"    
+    - role: win.uwp
+      provider: providers.target.proxy
+      config:
+        name: proxy
+        serverUrl: "http://192.168.50.205:8090/"

@@ -1,0 +1,21 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: ecu     
+spec:  
+  forceRedeploy: true
+  properties:
+    location: "ecu"
+    scenario: "multi-os"
+  topologies:
+  - bindings:
+    - role: wasm
+      provider: providers.target.staging
+      config:
+        inCluster: "true"   
+        targetName: tiny-edge
+    - role: ebpf
+      provider: providers.target.staging
+      config:
+        inCluster: "true"   
+        targetName: tiny-edge
