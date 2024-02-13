@@ -322,15 +322,18 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{"container.resources"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
-			{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{"container.resources"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
+				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+			},
 		},
 	}
 }

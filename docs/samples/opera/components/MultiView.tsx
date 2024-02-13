@@ -1,15 +1,22 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 'use client';
 
-import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button, DropdownItem, DropdownTrigger, Dropdown, DropdownMenu} from "@nextui-org/react";
+import {Navbar, NavbarContent, NavbarItem, Link, Button, DropdownItem, DropdownTrigger, Dropdown, DropdownMenu} from "@nextui-org/react";
 import {FiMenu} from 'react-icons/fi';
-import { FiPlus } from 'react-icons/fi';
+import {FiPlus} from 'react-icons/fi';
 import {Tabs, Tab} from "@nextui-org/react";
-import { PiCards } from 'react-icons/pi';
-import { PiTable } from 'react-icons/pi';
-import { PiMapTrifold } from 'react-icons/pi';
-import { useState } from 'react';
+import {PiCards} from 'react-icons/pi';
+import {PiTable} from 'react-icons/pi';
+import {PiMapTrifold} from 'react-icons/pi';
+import {useState} from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
 import SiteCardList from "./sites/SiteCardList";
+import SolutionCardList from "./solutions/SolutionCardList";
 import SiteMap from "./sites/SiteMap";
 import AssetList from "./assets/AssetList";
 import GraphTable from "./graph/GraphTable";
@@ -41,12 +48,15 @@ function MultiView(props: MultiViewProps) {
     const { params } = props;
     const [selected, setSelected] = useState("");
     const [selectedColumn, setSelectedColumn] = useState("");
+
     function handleSelectionChange(key: any) {
         setSelected(key.toString());
     }
+    
     function handleColumnSelectionChange(key: any) {
         setSelectedColumn(key.toString());
     }
+
     return (
         <div>
             <Navbar isBordered className="top_navbar">
@@ -54,7 +64,8 @@ function MultiView(props: MultiViewProps) {
                     <Dropdown>
                         <NavbarItem>
                             <DropdownTrigger>
-                                <Button disableRipple className="p-0 bg-transparent data-[hover=true]:bg-transparent text-2xl" radius="sm" variant="light">                          
+                                <Button disableRipple className="p-0 bg-transparent data-[hover=true]:bg-transparent text-2xl" 
+                                        radius="sm" variant="light">                          
                                     <FiMenu />      
                                 </Button>
                             </DropdownTrigger>
@@ -117,6 +128,7 @@ function MultiView(props: MultiViewProps) {
                                     <span>{view}</span>
                                     </div>}>
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
+                            {view === 'cards' && params.type === 'solutions' && <SolutionCardList solutions={params.items}  />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                             {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}

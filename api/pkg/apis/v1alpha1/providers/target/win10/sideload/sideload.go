@@ -289,13 +289,16 @@ func (i *Win10SideLoadProvider) NeedsRemove(ctx context.Context, desired []model
 
 func (*Win10SideLoadProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: "", IsComponentName: true, IgnoreCase: true, PrefixMatch: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: "", IsComponentName: true, IgnoreCase: true, PrefixMatch: true},
+			},
 		},
 	}
 }

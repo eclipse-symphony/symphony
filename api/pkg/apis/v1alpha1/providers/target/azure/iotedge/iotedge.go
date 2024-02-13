@@ -302,19 +302,22 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 }
 func (*IoTEdgeTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage, "container.version", "container.type"},
-		OptionalProperties:    []string{"container.restartPolicy", "container.createOptions", "env.*"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: "container.restartPolicy", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.createOptions", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.version", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.type", IgnoreCase: false, SkipIfMissing: true},
-			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: true},
-			{Name: "desired.*", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "env.*", IgnoreCase: false, SkipIfMissing: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage, "container.version", "container.type"},
+			OptionalProperties:    []string{"container.restartPolicy", "container.createOptions", "env.*"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: "container.restartPolicy", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.createOptions", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.version", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.type", IgnoreCase: false, SkipIfMissing: true},
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: true},
+				{Name: "desired.*", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "env.*", IgnoreCase: false, SkipIfMissing: true},
+			},
 		},
 	}
 }

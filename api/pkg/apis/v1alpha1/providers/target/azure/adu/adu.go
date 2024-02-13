@@ -312,10 +312,13 @@ func (i *ADUTargetProvider) applyDeployment(deployment azureutils.ADUDeployment)
 }
 func (*ADUTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }
