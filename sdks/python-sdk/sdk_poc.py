@@ -69,19 +69,11 @@ class RouteSpec:
     type: str = ""
 
 @dataclass
-class ConstraintSpec:
-    key: str = ""
-    qualifier: str = ""
-    operator: str = ""
-    value: str = ""
-    values: List[str] = None
-
-@dataclass
 class ComponentSpec:
     name: str = ""   
     type: str = ""
     routes: List[RouteSpec] = None
-    constraints: List[ConstraintSpec] = None
+    constraints: str = ""
     properties: Dict[str, str] = None
     depedencies: List[str] = None
     skills: List[str] = None
@@ -101,7 +93,7 @@ class SolutionSpec:
 class TargetSpec:
     properties: Dict[str, str] = None
     components: List[ComponentSpec] = None
-    constraints: List[ConstraintSpec] = None
+    constraints: str = ""
     topologies: List[TopologySpec] = None
     scope: str = ""
     displayName: str = ""
