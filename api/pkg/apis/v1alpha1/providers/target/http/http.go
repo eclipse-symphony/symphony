@@ -185,10 +185,13 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 }
 func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"http.url"},
-		OptionalProperties:    []string{"http.method", "http.body"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"http.url"},
+			OptionalProperties:    []string{"http.method", "http.body"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }

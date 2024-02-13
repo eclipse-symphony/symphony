@@ -15,12 +15,14 @@ import (
 func TestValidate(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		RequiredComponentType: "requiredComponentType",
-		RequiredProperties: []string{
-			"requiredProperties1",
-		},
-		RequiredMetadata: []string{
-			"RequiredMetadata1",
+		ComponentValidationRule: ComponentValidationRule{
+			RequiredComponentType: "requiredComponentType",
+			RequiredProperties: []string{
+				"requiredProperties1",
+			},
+			RequiredMetadata: []string{
+				"RequiredMetadata1",
+			},
 		},
 	}
 	components := []ComponentSpec{
@@ -41,9 +43,11 @@ func TestValidate(t *testing.T) {
 func TestIsChangedWildcard(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name: "*",
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name: "*",
+				},
 			},
 		},
 	}
@@ -66,22 +70,24 @@ func TestIsChangedWildcard(t *testing.T) {
 func TestValidateNil(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		RequiredComponentType: "requiredComponentType",
-		RequiredProperties: []string{
-			"requiredProperties1",
-			"requiredProperties2",
-		},
-		OptionalProperties: []string{
-			"optionalProperties1",
-			"optionalProperties2",
-		},
-		RequiredMetadata: []string{
-			"RequiredMetadata1",
-			"RequiredMetadata2",
-		},
-		OptionalMetadata: []string{
-			"OptionalMetadata1",
-			"OptionalMetadata2",
+		ComponentValidationRule: ComponentValidationRule{
+			RequiredComponentType: "requiredComponentType",
+			RequiredProperties: []string{
+				"requiredProperties1",
+				"requiredProperties2",
+			},
+			OptionalProperties: []string{
+				"optionalProperties1",
+				"optionalProperties2",
+			},
+			RequiredMetadata: []string{
+				"RequiredMetadata1",
+				"RequiredMetadata2",
+			},
+			OptionalMetadata: []string{
+				"OptionalMetadata1",
+				"OptionalMetadata2",
+			},
 		},
 	}
 
@@ -92,22 +98,24 @@ func TestValidateNil(t *testing.T) {
 func TestValidateCOA(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		RequiredComponentType: "requiredComponentType",
-		RequiredProperties: []string{
-			"requiredProperties1",
-			"requiredProperties2",
-		},
-		OptionalProperties: []string{
-			"optionalProperties1",
-			"optionalProperties2",
-		},
-		RequiredMetadata: []string{
-			"RequiredMetadata1",
-			"RequiredMetadata2",
-		},
-		OptionalMetadata: []string{
-			"OptionalMetadata1",
-			"OptionalMetadata2",
+		ComponentValidationRule: ComponentValidationRule{
+			RequiredComponentType: "requiredComponentType",
+			RequiredProperties: []string{
+				"requiredProperties1",
+				"requiredProperties2",
+			},
+			OptionalProperties: []string{
+				"optionalProperties1",
+				"optionalProperties2",
+			},
+			RequiredMetadata: []string{
+				"RequiredMetadata1",
+				"RequiredMetadata2",
+			},
+			OptionalMetadata: []string{
+				"OptionalMetadata1",
+				"OptionalMetadata2",
+			},
 		},
 	}
 
@@ -127,10 +135,12 @@ func TestValidateCOA(t *testing.T) {
 func TestValidateMetadata(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		RequiredComponentType: "requiredComponentType",
-		RequiredMetadata: []string{
-			"RequiredMetadata1",
-			"RequiredMetadata2",
+		ComponentValidationRule: ComponentValidationRule{
+			RequiredComponentType: "requiredComponentType",
+			RequiredMetadata: []string{
+				"RequiredMetadata1",
+				"RequiredMetadata2",
+			},
 		},
 	}
 
@@ -165,12 +175,15 @@ func TestValidateComponentType(t *testing.T) {
 func TestValidateInputs(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		RequiredComponentType: "requiredComponentType",
-		RequiredProperties: []string{
-			"requiredProperties1",
-		},
-		RequiredMetadata: []string{
-			"RequiredMetadata1",
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			RequiredComponentType: "requiredComponentType",
+			RequiredProperties: []string{
+				"requiredProperties1",
+			},
+			RequiredMetadata: []string{
+				"RequiredMetadata1",
+			},
 		},
 	}
 	inputs := map[string]interface{}{
@@ -189,9 +202,12 @@ func TestValidateInputs(t *testing.T) {
 func TestIsComponentChangedNoWildcard(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name: "a",
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name: "a",
+				},
 			},
 		},
 	}
@@ -215,11 +231,14 @@ func TestIsComponentChangedNoWildcard(t *testing.T) {
 func TestIsComponentChanged_ChangeComponentNameIgnoreCase(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:            "a",
-				IsComponentName: true,
-				IgnoreCase:      true,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:            "a",
+					IsComponentName: true,
+					IgnoreCase:      true,
+				},
 			},
 		},
 	}
@@ -237,10 +256,13 @@ func TestIsComponentChanged_ChangeComponentNameIgnoreCase(t *testing.T) {
 func TestIsComponentChanged_ChangeComponentNameNoIgnoreCase(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:            "a",
-				IsComponentName: true,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:            "a",
+					IsComponentName: true,
+				},
 			},
 		},
 	}
@@ -258,9 +280,12 @@ func TestIsComponentChanged_ChangeComponentNameNoIgnoreCase(t *testing.T) {
 func TestIsComponentChangedNoWildcard_Metadata(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionMetadata: []PropertyDesc{
-			{
-				Name: "a",
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name: "a",
+				},
 			},
 		},
 	}
@@ -284,9 +309,12 @@ func TestIsComponentChangedNoWildcard_Metadata(t *testing.T) {
 func TestIsChangedWildcard_Metadata(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionMetadata: []PropertyDesc{
-			{
-				Name: "*",
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name: "*",
+				},
 			},
 		},
 	}
@@ -310,10 +338,13 @@ func TestIsChangedWildcard_Metadata(t *testing.T) {
 func TestComponentIsChanged_SkipMissingProperty(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: true,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: true,
+				},
 			},
 		},
 	}
@@ -334,10 +365,13 @@ func TestComponentIsChanged_SkipMissingProperty(t *testing.T) {
 func TestComponentIsChanged_SkipMissingMetadata(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionMetadata: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: true,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: true,
+				},
 			},
 		},
 	}
@@ -359,10 +393,13 @@ func TestComponentIsChanged_SkipMissingMetadata(t *testing.T) {
 func TestComponentIsChanged_MissingPropertyNotInOld(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: false,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: false,
+				},
 			},
 		},
 	}
@@ -384,10 +421,13 @@ func TestComponentIsChanged_MissingPropertyNotInOld(t *testing.T) {
 func TestComponentIsChanged_MissingMetadataNotInOld(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionMetadata: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: false,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: false,
+				},
 			},
 		},
 	}
@@ -409,10 +449,13 @@ func TestComponentIsChanged_MissingMetadataNotInOld(t *testing.T) {
 func TestComponentIsChanged_MissingProperty(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: false,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: false,
+				},
 			},
 		},
 	}
@@ -434,10 +477,13 @@ func TestComponentIsChanged_MissingProperty(t *testing.T) {
 func TestComponentIsChanged_MissingMetadata(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionMetadata: []PropertyDesc{
-			{
-				Name:          "a",
-				SkipIfMissing: false,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "a",
+					SkipIfMissing: false,
+				},
 			},
 		},
 	}
@@ -459,11 +505,14 @@ func TestComponentIsChanged_MissingMetadata(t *testing.T) {
 func TestComponentIsChanged_ComponentNameHasPrefix(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
-		ChangeDetectionProperties: []PropertyDesc{
-			{
-				Name:            "a",
-				PrefixMatch:     true,
-				IsComponentName: true,
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name:            "a",
+					PrefixMatch:     true,
+					IsComponentName: true,
+				},
 			},
 		},
 	}
@@ -476,4 +525,143 @@ func TestComponentIsChanged_ComponentNameHasPrefix(t *testing.T) {
 
 	changed := validationRule.IsComponentChanged(old, new)
 	assert.False(t, changed)
+}
+func TestValidateSidecar(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: true,
+		SidecarValidationRule: ComponentValidationRule{
+			RequiredProperties: []string{
+				"requiredProperties1",
+			},
+		},
+	}
+	components := []ComponentSpec{
+		{
+			Sidecars: []SidecarSpec{
+				{
+					Type: "sidecar",
+					Properties: map[string]interface{}{
+						"requiredProperties1": "requiredProperties1",
+					},
+				},
+			},
+		},
+	}
+	equal := validationRule.Validate(components)
+	assert.Nil(t, equal)
+}
+func TestValidateSidecarOneMiss(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: true,
+		SidecarValidationRule: ComponentValidationRule{
+			RequiredProperties: []string{
+				"requiredProperties1",
+			},
+		},
+	}
+	components := []ComponentSpec{
+		{
+			Sidecars: []SidecarSpec{
+				{
+					Type: "sidecar",
+					Name: "sidecar1",
+					Properties: map[string]interface{}{
+						"requiredProperties1": "requiredProperties1",
+					},
+				},
+				{
+					Type: "sidecar",
+					Name: "sidecar2",
+					Properties: map[string]interface{}{
+						"requiredProperties2": "requiredProperties2",
+					},
+				},
+			},
+		},
+	}
+	equal := validationRule.Validate(components)
+	assert.Errorf(t, equal, "required sidecar property 'requiredProperties1' is missing in sidecar sidecar2")
+}
+
+func TestCheckSidecarEnvVarNoChange(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: true,
+		SidecarValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name: "env.*",
+				},
+			},
+		},
+	}
+	components1 := ComponentSpec{
+		Sidecars: []SidecarSpec{
+			{
+				Type: "sidecar",
+				Name: "sidecar1",
+				Properties: map[string]interface{}{
+					"env.foo1": "bar1",
+					"env.foo2": "bar2",
+				},
+			},
+		},
+	}
+	components2 := ComponentSpec{
+		Sidecars: []SidecarSpec{
+			{
+				Type: "sidecar",
+				Name: "sidecar1",
+				Properties: map[string]interface{}{
+					"env.foo1": "bar1",
+					"env.foo2": "bar2",
+				},
+			},
+		},
+	}
+
+	equal := validationRule.IsComponentChanged(components1, components2)
+	assert.False(t, equal)
+}
+func TestCheckSidecarEnvVarChange(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: true,
+		SidecarValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{
+					Name: "env.*",
+				},
+			},
+		},
+	}
+	components1 := ComponentSpec{
+		Sidecars: []SidecarSpec{
+			{
+				Type: "sidecar",
+				Name: "sidecar1",
+				Properties: map[string]interface{}{
+					"env.foo1": "bar1",
+					"env.foo2": "bar2",
+				},
+			},
+		},
+	}
+	components2 := ComponentSpec{
+		Sidecars: []SidecarSpec{
+			{
+				Type: "sidecar",
+				Name: "sidecar1",
+				Properties: map[string]interface{}{
+					"env.foo1": "bar1",
+					"env.foo2": "bar3",
+				},
+			},
+		},
+	}
+
+	equal := validationRule.IsComponentChanged(components1, components2)
+	assert.True(t, equal)
 }

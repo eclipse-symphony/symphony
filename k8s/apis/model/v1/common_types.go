@@ -11,6 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// +kubebuilder:object:generate=true
+type SidecarSpec struct {
+	Name string `json:"name,omitempty"`
+	Type string `json:"type,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Properties runtime.RawExtension `json:"properties,omitempty"`
+}
+
 // Defines a desired runtime component
 // +kubebuilder:object:generate=true
 type ComponentSpec struct {
@@ -24,6 +33,7 @@ type ComponentSpec struct {
 	Constraints  string               `json:"constraints,omitempty"`
 	Dependencies []string             `json:"dependencies,omitempty"`
 	Skills       []string             `json:"skills,omitempty"`
+	Sidecars     []SidecarSpec        `json:"sidecars,omitempty"`
 }
 
 // Defines the desired state of Target

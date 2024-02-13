@@ -87,6 +87,12 @@ func (v *Vendor) RunLoop(interval time.Duration) error {
 func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	v.Context = &contexts.VendorContext{}
 	v.Context.SiteInfo = config.SiteInfo
+
+	// see issue #79 - the following needs to be updated to use Symphony expression
+	v.Context.SiteInfo.CurrentSite.BaseUrl = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.BaseUrl)
+	v.Context.SiteInfo.CurrentSite.Username = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.Username)
+	v.Context.SiteInfo.CurrentSite.Password = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.Password)
+
 	err := v.Context.Init(pubsubProvider)
 	if err != nil {
 		return err

@@ -278,13 +278,16 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 // GetValidationRule returns the validation rule for this provider
 func (*HelmTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"chart"},
-		OptionalProperties:    []string{"values"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: "chart", IgnoreCase: false, SkipIfMissing: true}, //TODO: deep change detection on interface{}
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"chart"},
+			OptionalProperties:    []string{"values"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: "chart", IgnoreCase: false, SkipIfMissing: true}, //TODO: deep change detection on interface{}
+			},
 		},
 	}
 }

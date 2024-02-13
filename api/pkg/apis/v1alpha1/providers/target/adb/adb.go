@@ -199,10 +199,13 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 
 func (*AdbProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.AppPackage, model.AppImage},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.AppPackage, model.AppImage},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }

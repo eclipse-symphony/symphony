@@ -535,6 +535,32 @@
             }
           }
         ]
+      },
+      {
+        "type": "vendors.visualization",
+        "route": "visualization",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
       }
     ]
   },
