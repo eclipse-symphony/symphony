@@ -387,7 +387,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 		err := json.Unmarshal(jData, &job)
 		assert.Nil(t, err)
 		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["scope"])
+		assert.Equal(t, "scope1", event.Metadata["namespace"])
 		assert.Equal(t, "instance1", job.Id)
 		assert.Equal(t, "UPDATE", job.Action)
 		succeededCount += 1
@@ -397,9 +397,9 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Parameters: map[string]string{
-			"instance": "instance1",
-			"target":   "false",
-			"scope":    "scope1",
+			"instance":  "instance1",
+			"target":    "false",
+			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})
@@ -423,7 +423,7 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 		err := json.Unmarshal(jData, &job)
 		assert.Nil(t, err)
 		assert.Equal(t, "target", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["scope"])
+		assert.Equal(t, "scope1", event.Metadata["namespace"])
 		assert.Equal(t, "target1", job.Id)
 		assert.Equal(t, "DELETE", job.Action)
 		succeededCount += 1
@@ -433,10 +433,10 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Parameters: map[string]string{
-			"instance": "target1",
-			"target":   "true",
-			"scope":    "scope1",
-			"delete":   "true",
+			"instance":  "target1",
+			"target":    "true",
+			"namespace": "scope1",
+			"delete":    "true",
 		},
 		Context: context.Background(),
 	})

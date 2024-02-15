@@ -94,7 +94,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 		aLog.Errorf("  P (Android ADB): failed to get deployment, error: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
-	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 
@@ -137,7 +137,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 
@@ -204,10 +204,13 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 
 func (*AdbProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.AppPackage, model.AppImage},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.AppPackage, model.AppImage},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }

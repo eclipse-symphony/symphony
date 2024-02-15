@@ -51,7 +51,7 @@ export interface ObjectRef {
     group: string;
     version: string;
     kind: string;
-    scope: string;
+    namespace: string;
     address: string;
     generation: string;
     metadata: Record<string, string>;
@@ -78,26 +78,54 @@ export interface CatalogState {
     status: CatalogStatus;
 }
 
-export interface GroupInfo {
-    catalogs: Catalog[];
-    title: string;
-    type: string;
+export interface SolutionState {
+    id: string; 
+    namespace: string;
+    spec: SolutionSpec;
+}
+
+export interface SolutionSpec {
+    displayName: string;
+    components: ComponentSpec[];
+    metadata: Record<string, string>;    
 }
 
 export interface ComponentSpec {
     name: string;
     type: string;
     properties: Record<string, any>;
+    metadata: Record<string, string>;
+    parameters: Record<string, string>;
+    routes: RouteSpec[];
+    constraints: string;
+    depedencies: string[];
+    skills: string[];
+    sidecars: SidecarSpec[];
 }
 
-export interface SolutionSpec {
-    displayName: string;
-    components: ComponentSpec[];
+export interface RouteSpec {
+    route: string;
+    type: string;
+    properties: Record<string, string>;
+    filters: filterSpec[];
 }
 
-export interface Solution {
-    id: string;
-    spec: SolutionSpec;
+export interface filterSpec {
+    direction: string;
+    type: string;
+    parameters: Record<string, string>;
+}
+
+export interface SidecarSpec {
+    name: string;
+    type: string;
+    properties: Record<string, any>;
+}
+
+export interface GroupInfo {
+    catalogs: Catalog[];
+    title: string;
+    type: string;
 }
 
 export interface ActivationSpec {

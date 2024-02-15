@@ -1175,6 +1175,18 @@ spec:
                         - type
                         type: object
                       type: array
+                    sidecars:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          properties:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type:
+                            type: string
+                        type: object
+                      type: array
                     skills:
                       items:
                         type: string
@@ -1314,6 +1326,18 @@ spec:
                         required:
                         - route
                         - type
+                        type: object
+                      type: array
+                    sidecars:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          properties:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type:
+                            type: string
                         type: object
                       type: array
                     skills:

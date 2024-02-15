@@ -51,10 +51,10 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.AIGroup,
-			"version":  "v1",
-			"resource": "models",
+			"namespace": "",
+			"group":     model.AIGroup,
+			"version":   "v1",
+			"resource":  "models",
 		},
 	})
 
@@ -85,11 +85,11 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Model", "metadata": {"name": "${{$model()}}"}}`, model.AIGroup),
-			"scope":    "",
-			"group":    model.AIGroup,
-			"version":  "v1",
-			"resource": "models",
+			"template":  fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Model", "metadata": {"name": "${{$model()}}"}}`, model.AIGroup),
+			"namespace": "",
+			"group":     model.AIGroup,
+			"version":   "v1",
+			"resource":  "models",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

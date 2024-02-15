@@ -165,7 +165,7 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "gatekeeper-system",
+			Namespace: "gatekeeper-system",
 			Spec: &model.InstanceSpec{
 				Name: "gatekeeper",
 			},
@@ -243,9 +243,9 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "default",
 			Spec: &model.InstanceSpec{
-				Name: "nginx-deployment",
+				Name:  "nginx-deployment",
+				Scope: "default",
 			},
 		},
 		Solution: model.SolutionState{
@@ -627,9 +627,9 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "nginx-system",
 			Spec: &model.InstanceSpec{
-				Name: "nginx",
+				Scope: "nginx-system",
+				Name:  "nginx",
 			},
 		},
 		Solution: model.SolutionState{
@@ -724,9 +724,9 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 	}
 	deployment = model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "nginx-system",
 			Spec: &model.InstanceSpec{
-				Name: "nginx",
+				Name:  "nginx",
+				Scope: "nginx-system",
 			},
 		},
 		Solution: model.SolutionState{

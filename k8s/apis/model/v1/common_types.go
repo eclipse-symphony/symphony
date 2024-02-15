@@ -11,6 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// +kubebuilder:object:generate=true
+type SidecarSpec struct {
+	Name string `json:"name,omitempty"`
+	Type string `json:"type,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Properties runtime.RawExtension `json:"properties,omitempty"`
+}
+
 // Defines a desired runtime component
 // +kubebuilder:object:generate=true
 type ComponentSpec struct {
@@ -24,6 +33,7 @@ type ComponentSpec struct {
 	Constraints  string               `json:"constraints,omitempty"`
 	Dependencies []string             `json:"dependencies,omitempty"`
 	Skills       []string             `json:"skills,omitempty"`
+	Sidecars     []SidecarSpec        `json:"sidecars,omitempty"`
 }
 
 // Defines the desired state of Target
@@ -36,7 +46,6 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Scope         string               `json:"scope,omitempty"`
 	// Defines the version of a particular resource
 	Version    string `json:"version,omitempty"`
 	Generation string `json:"generation,omitempty"`
@@ -45,7 +54,6 @@ type TargetSpec struct {
 // +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
-	Scope       string            `json:"scope,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 	Components  []ComponentSpec   `json:"components,omitempty"`
 	// Defines the version of a particular resource

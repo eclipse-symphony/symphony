@@ -138,7 +138,7 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		return nil, err
 	}
 
-	sLog.Infof("  P (ADU Target): getting components: %s - %s, traceId: %s", dep.Instance.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ADU Target): getting components: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
 	deployment, err := i.getDeployment()
 	if err != nil {
 		sLog.Errorf("  P (ADU Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -193,7 +193,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ADU Target): applying components: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ADU Target): applying components: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -318,10 +318,13 @@ func (i *ADUTargetProvider) applyDeployment(deployment azureutils.ADUDeployment)
 }
 func (*ADUTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }

@@ -56,10 +56,10 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "devices",
+			"namespace": "",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "devices",
 		},
 	})
 	if err != nil {
@@ -90,11 +90,11 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
-			"scope":    "",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "devices",
+			"template":  fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
+			"namespace": "",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "devices",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

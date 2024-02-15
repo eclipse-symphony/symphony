@@ -37,9 +37,9 @@ func TestMockTargetProviderApply(t *testing.T) {
 
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "default",
 			Spec: &model.InstanceSpec{
-				Name: "name",
+				Scope: "default",
+				Name:  "name",
 			},
 		},
 	}

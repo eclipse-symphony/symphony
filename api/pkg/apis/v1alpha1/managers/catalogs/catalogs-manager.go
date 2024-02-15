@@ -161,11 +161,11 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-			"scope":    "",
-			"group":    model.FederationGroup,
-			"version":  "v1",
-			"resource": "catalogs",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
+			"namespace": "",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -196,10 +196,10 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.FederationGroup,
-			"version":  "v1",
-			"resource": "catalogs",
+			"namespace": "",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
 		},
 	})
 	return err

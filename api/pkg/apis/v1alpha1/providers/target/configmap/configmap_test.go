@@ -155,7 +155,7 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "configs",
+			Namespace: "configs",
 			Spec: &model.InstanceSpec{
 				Name: "config-test",
 			},
@@ -206,7 +206,7 @@ func TestConfigMapTargetProviderDekete(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "configs",
+			Namespace: "configs",
 			Spec: &model.InstanceSpec{
 				Name: "config-test",
 			},
@@ -250,7 +250,7 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "configs",
+			Namespace: "configs",
 			Spec: &model.InstanceSpec{
 				Name: "config-test",
 			},
@@ -299,7 +299,7 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "configs",
+			Namespace: "configs",
 			Spec: &model.InstanceSpec{
 				Name: "config-test",
 			},

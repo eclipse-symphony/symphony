@@ -140,6 +140,9 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -171,6 +174,9 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
@@ -216,6 +222,9 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -282,6 +291,9 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -322,6 +334,9 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -452,6 +467,9 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -507,6 +525,9 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -535,6 +556,9 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{

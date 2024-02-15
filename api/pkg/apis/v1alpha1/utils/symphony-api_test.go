@@ -329,7 +329,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
-	require.Equal(t, "default", targetsRes[0].Scope)
+	require.Equal(t, "default", targetsRes[0].Namespace)
 	require.Equal(t, "1", targetsRes[0].Status["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status["status"])
 
@@ -337,7 +337,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
-	require.Equal(t, "default", targetRes.Scope)
+	require.Equal(t, "default", targetRes.Namespace)
 	require.Equal(t, "1", targetRes.Status["targets"])
 	require.Equal(t, "OK", targetRes.Status["status"])
 
@@ -469,8 +469,8 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
-		Id:    "someTargetName",
-		Scope: "targetScope",
+		Id:        "someTargetName",
+		Namespace: "targetScope",
 		Metadata: map[string]string{
 			"key1": "value1",
 			"key2": "value2",
@@ -498,10 +498,10 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, model.DeploymentSpec{
+	ret, err := res.DeepEquals(model.DeploymentSpec{
 		SolutionName: "target-runtime-someTargetName",
 		Solution: model.SolutionState{
-			Scope: "targetScope",
+			Namespace: "targetScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -525,8 +525,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Scope: "targetScope",
+			Namespace: "targetScope",
 			Spec: &model.InstanceSpec{
+				Scope:       "targetScope",
 				Name:        "target-runtime-someTargetName",
 				DisplayName: "target-runtime-someTargetName",
 				Solution:    "target-runtime-someTargetName",
@@ -537,8 +538,8 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		},
 		Targets: map[string]model.TargetState{
 			"someTargetName": {
-				Id:    "someTargetName",
-				Scope: "targetScope",
+				Id:        "someTargetName",
+				Namespace: "targetScope",
 				Metadata: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -569,13 +570,15 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Assignments: map[string]string{
 			"someTargetName": "{componentName1}{componentName2}",
 		},
-	}, res)
+	})
+	require.NoError(t, err)
+	require.True(t, ret)
 }
 
 func TestCreateSymphonyDeployment(t *testing.T) {
 	res, err := CreateSymphonyDeployment(model.InstanceState{
-		Id:    "someOtherId",
-		Scope: "instanceScope",
+		Id:        "someOtherId",
+		Namespace: "instanceScope",
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -586,8 +589,8 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		},
 		Status: map[string]string{},
 	}, model.SolutionState{
-		Id:    "someOtherId",
-		Scope: "solutionsScope",
+		Id:        "someOtherId",
+		Namespace: "solutionsScope",
 		Metadata: map[string]string{
 			"key1": "value1",
 			"key2": "value2",
@@ -618,7 +621,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				"key2": "value2",
 				"key3": "value3",
 			},
-			Scope: "targetScope",
+			Namespace: "targetScope",
 			Spec: &model.TargetSpec{
 				Properties: map[string]string{
 					"company": "microsoft",
@@ -638,11 +641,11 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, model.DeploymentSpec{
+	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
 		SolutionName: "someOtherId",
 		Solution: model.SolutionState{
-			Id:    "someOtherId",
-			Scope: "solutionsScope",
+			Id:        "someOtherId",
+			Namespace: "solutionsScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -667,10 +670,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Id:    "someOtherId",
-			Scope: "instanceScope",
+			Id:        "someOtherId",
+			Namespace: "instanceScope",
 			Spec: &model.InstanceSpec{
-				Name:        "someOtherId",
 				DisplayName: "",
 				Solution:    "",
 				Target: model.TargetSelector{
@@ -684,8 +686,8 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		},
 		Targets: map[string]model.TargetState{
 			"someTargetName1": {
-				Id:    "someTargetName1",
-				Scope: "targetScope",
+				Id:        "someTargetName1",
+				Namespace: "targetScope",
 				Metadata: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -702,7 +704,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		Assignments: map[string]string{
 			"someTargetName1": "{componentName1}{componentName2}",
 		},
-	}, res)
+	})
+	require.NoError(t, err)
+	require.True(t, ret)
 }
 
 func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {

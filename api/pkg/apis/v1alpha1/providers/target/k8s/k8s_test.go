@@ -331,7 +331,7 @@ func TestDeployment(t *testing.T) {
 
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "default",
+			Namespace: "default",
 			Spec: &model.InstanceSpec{
 				Name: "name",
 			},
@@ -368,7 +368,7 @@ func TestDeployment(t *testing.T) {
 
 	deployment = model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Scope: "default",
+			Namespace: "default",
 			Spec: &model.InstanceSpec{
 				Name: "name",
 			},

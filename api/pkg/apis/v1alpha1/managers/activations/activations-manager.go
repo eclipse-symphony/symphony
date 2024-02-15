@@ -119,11 +119,11 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 			ETag: spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -143,10 +143,10 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+			"namespace": "",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
 		},
 	})
 	return err

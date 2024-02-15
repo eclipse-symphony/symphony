@@ -121,7 +121,7 @@ func TestStagingTargetProviderApply(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Scope: "",
+			Namespace: "",
 			Spec: &model.SolutionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
@@ -178,7 +178,7 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Scope: "",
+			Namespace: "",
 			Spec: &model.SolutionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
@@ -265,7 +265,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Scope: "",
+			Namespace: "",
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
@@ -357,7 +357,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Scope: "",
+			Namespace: "",
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
@@ -424,7 +424,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Scope: "",
+			Namespace: "",
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},

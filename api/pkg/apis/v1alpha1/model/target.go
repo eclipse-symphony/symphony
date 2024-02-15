@@ -11,11 +11,11 @@ import "errors"
 type (
 	// TargetState defines the current state of the target
 	TargetState struct {
-		Id       string            `json:"id"`
-		Scope    string            `json:"scope,omitempty"`
-		Metadata map[string]string `json:"metadata,omitempty"`
-		Status   map[string]string `json:"status,omitempty"`
-		Spec     *TargetSpec       `json:"spec,omitempty"`
+		Id        string            `json:"id"`
+		Namespace string            `json:"namespace,omitempty"`
+		Metadata  map[string]string `json:"metadata,omitempty"`
+		Status    map[string]string `json:"status,omitempty"`
+		Spec      *TargetSpec       `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
@@ -75,7 +75,7 @@ func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if c.Scope != otherC.Scope {
+	if c.Namespace != otherC.Namespace {
 		return false, nil
 	}
 

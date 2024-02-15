@@ -223,19 +223,19 @@ func toK8sTargetProviderConfig(config providers.IProviderConfig) (K8sTargetProvi
 	return ret, err
 }
 
-func (i *K8sTargetProvider) getDeployment(ctx context.Context, scope string, name string) ([]model.ComponentSpec, error) {
+func (i *K8sTargetProvider) getDeployment(ctx context.Context, namespace string, name string) ([]model.ComponentSpec, error) {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "getDeployment",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): getDeployment scope - %s, name - %s, traceId: %s", scope, name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): getDeployment scope - %s, name - %s, traceId: %s", namespace, name, span.SpanContext().TraceID().String())
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	deployment, err := i.Client.AppsV1().Deployments(scope).Get(ctx, name, metav1.GetOptions{})
+	deployment, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			return nil, nil
@@ -250,8 +250,11 @@ func (i *K8sTargetProvider) getDeployment(ctx context.Context, scope string, nam
 	}
 	return components, nil
 }
-func (i *K8sTargetProvider) fillServiceMeta(ctx context.Context, scope string, name string, component model.ComponentSpec) error {
-	svc, err := i.Client.CoreV1().Services(scope).Get(ctx, name, metav1.GetOptions{})
+func (i *K8sTargetProvider) fillServiceMeta(ctx context.Context, namespace string, name string, component model.ComponentSpec) error {
+	if namespace == "" {
+		namespace = "default"
+	}
+	svc, err := i.Client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			return nil
@@ -281,20 +284,20 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s, traceId: %s", dep.Instance.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	var components []model.ComponentSpec
 
 	switch i.Config.DeploymentStrategy {
 	case "", SINGLE_POD:
-		components, err = i.getDeployment(ctx, dep.Instance.Scope, dep.Instance.Spec.Name)
+		components, err = i.getDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to get - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return nil, err
 		}
 	case SERVICES, SERVICES_NS:
 		components = make([]model.ComponentSpec, 0)
-		scope := dep.Instance.Scope
+		scope := dep.Instance.Spec.Scope
 		if i.Config.DeploymentStrategy == SERVICES_NS {
 			scope = dep.Instance.Spec.Name
 		}
@@ -335,22 +338,22 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 
 	return components, nil
 }
-func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, serviceName string) error {
+func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string, serviceName string) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "removeService",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): removeService scope - %s, serviceName - %s", scope, serviceName)
+	log.Infof("  P (K8s Target Provider): removeService namespace - %s, serviceName - %s", namespace, serviceName)
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	svc, err := i.Client.CoreV1().Services(scope).Get(ctx, serviceName, metav1.GetOptions{})
+	svc, err := i.Client.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err == nil && svc != nil {
 		foregroundDeletion := metav1.DeletePropagationForeground
-		err = i.Client.CoreV1().Services(scope).Delete(ctx, serviceName, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
+		err = i.Client.CoreV1().Services(namespace).Delete(ctx, serviceName, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 		if err != nil {
 			if !k8s_errors.IsNotFound(err) {
 				return err
@@ -359,20 +362,20 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, scope string, ser
 	}
 	return nil
 }
-func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, name string) error {
+func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace string, name string) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "removeDeployment",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): removeDeployment scope - %s, name - %s", scope, name)
+	log.Infof("  P (K8s Target Provider): removeDeployment namespace - %s, name - %s", namespace, name)
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
 	foregroundDeletion := metav1.DeletePropagationForeground
-	err = i.Client.AppsV1().Deployments(scope).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
+	err = i.Client.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return err
@@ -381,20 +384,20 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, scope string, 
 
 	return nil
 }
-func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, retryCount int, retryIntervalInSec int) error {
+func (i *K8sTargetProvider) removeNamespace(ctx context.Context, namespace string, retryCount int, retryIntervalInSec int) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "removeNamespace",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): removeNamespace scope - %s, traceId: %s", scope, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): removeNamespace namespace - %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
-	_, err = i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
+	_, err = i.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	if scope == "" || scope == "default" {
+	if namespace == "" || namespace == "default" {
 		return nil
 	}
 
@@ -402,7 +405,7 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, r
 	count := 0
 	for {
 		count++
-		podList, _ := i.Client.CoreV1().Pods(scope).List(ctx, metav1.ListOptions{})
+		podList, _ := i.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -414,37 +417,37 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, r
 		time.Sleep(time.Second * time.Duration(retryIntervalInSec))
 	}
 
-	deploymentList, err := i.Client.AppsV1().Deployments(scope).List(ctx, metav1.ListOptions{})
+	deploymentList, err := i.Client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	resourceCount["deployment"] = len(deploymentList.Items)
 
-	serviceList, err := i.Client.CoreV1().Services(scope).List(ctx, metav1.ListOptions{})
+	serviceList, err := i.Client.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	resourceCount["service"] = len(serviceList.Items)
 
-	replicasetList, err := i.Client.AppsV1().ReplicaSets(scope).List(ctx, metav1.ListOptions{})
+	replicasetList, err := i.Client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	resourceCount["replicaset"] = len(replicasetList.Items)
 
-	statefulsetList, err := i.Client.AppsV1().StatefulSets(scope).List(ctx, metav1.ListOptions{})
+	statefulsetList, err := i.Client.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	resourceCount["statefulset"] = len(statefulsetList.Items)
 
-	daemonsetList, err := i.Client.AppsV1().DaemonSets(scope).List(ctx, metav1.ListOptions{})
+	daemonsetList, err := i.Client.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	resourceCount["daemonset"] = len(daemonsetList.Items)
 
-	jobList, err := i.Client.BatchV1().Jobs(scope).List(ctx, metav1.ListOptions{})
+	jobList, err := i.Client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -453,38 +456,38 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, scope string, r
 	isEmpty := true
 	for resource, count := range resourceCount {
 		if count != 0 {
-			log.Debugf("  P (K8s Target Provider): failed to delete %s namespace as resource %s is not empty", scope, resource)
+			log.Debugf("  P (K8s Target Provider): failed to delete %s namespace as resource %s is not empty", namespace, resource)
 			isEmpty = false
 			break
 		}
 	}
 
 	if isEmpty {
-		err = i.Client.CoreV1().Namespaces().Delete(ctx, scope, metav1.DeleteOptions{})
+		err = i.Client.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) error {
+func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace string) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "createNamespace",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): removeDeployment scope - %s", scope)
+	log.Infof("  P (K8s Target Provider): removeDeployment namespace - %s", namespace)
 
-	if scope == "" || scope == "default" {
+	if namespace == "" || namespace == "default" {
 		return nil
 	}
-	_, err = i.Client.CoreV1().Namespaces().Get(ctx, scope, metav1.GetOptions{})
+	_, err = i.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			_, err = i.Client.CoreV1().Namespaces().Create(ctx, &apiv1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: scope,
+					Name: namespace,
 				},
 			}, metav1.CreateOptions{})
 			if err != nil {
@@ -496,72 +499,72 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, scope string) e
 	}
 	return nil
 }
-func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, scope string, name string, deployment *v1.Deployment) error {
+func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace string, name string, deployment *v1.Deployment) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "upsertDeployment",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): upsertDeployment scope - %s, name - %s, traceId: %s", scope, name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): upsertDeployment namespace - %s, name - %s, traceId: %s", namespace, name, span.SpanContext().TraceID().String())
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	existing, err := i.Client.AppsV1().Deployments(scope).Get(ctx, name, metav1.GetOptions{})
+	existing, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
 	}
 	if k8s_errors.IsNotFound(err) {
-		_, err = i.Client.AppsV1().Deployments(scope).Create(ctx, deployment, metav1.CreateOptions{})
+		_, err = i.Client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	} else {
 		deployment.ResourceVersion = existing.ResourceVersion
-		_, err = i.Client.AppsV1().Deployments(scope).Update(ctx, deployment, metav1.UpdateOptions{})
+		_, err = i.Client.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
 	}
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (i *K8sTargetProvider) upsertService(ctx context.Context, scope string, name string, service *apiv1.Service) error {
+func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string, name string, service *apiv1.Service) error {
 	_, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "upsertService",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): upsertService scope - %s, name - %s, traceId: %s", scope, name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): upsertService namespace - %s, name - %s, traceId: %s", namespace, name, span.SpanContext().TraceID().String())
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	existing, err := i.Client.CoreV1().Services(scope).Get(ctx, name, metav1.GetOptions{})
+	existing, err := i.Client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
 	}
 	if k8s_errors.IsNotFound(err) {
-		_, err = i.Client.CoreV1().Services(scope).Create(ctx, service, metav1.CreateOptions{})
+		_, err = i.Client.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	} else {
 		service.ResourceVersion = existing.ResourceVersion
-		_, err = i.Client.CoreV1().Services(scope).Update(ctx, service, metav1.UpdateOptions{})
+		_, err = i.Client.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 	}
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Span, scope string, name string, metadata map[string]string, components []model.ComponentSpec, projector IK8sProjector, instanceName string) error {
+func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Span, namespace string, name string, metadata map[string]string, components []model.ComponentSpec, projector IK8sProjector, instanceName string) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): deployComponents scope - %s, name - %s, traceId: %s", scope, name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): deployComponents namespace - %s, name - %s, traceId: %s", namespace, name, span.SpanContext().TraceID().String())
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	deployment, err := componentsToDeployment(scope, name, metadata, components, instanceName)
+	deployment, err := componentsToDeployment(namespace, name, metadata, components, instanceName)
 	if projector != nil {
-		err = projector.ProjectDeployment(scope, name, metadata, components, deployment)
+		err = projector.ProjectDeployment(namespace, name, metadata, components, deployment)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to project deployment: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return err
@@ -571,13 +574,13 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 		log.Debugf("  P (K8s Target Provider): failed to apply: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 		return err
 	}
-	service, err := metadataToService(scope, name, metadata)
+	service, err := metadataToService(namespace, name, metadata)
 	if err != nil {
 		log.Debugf("  P (K8s Target Provider): failed to apply (convert): %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 		return err
 	}
 	if projector != nil {
-		err = projector.ProjectService(scope, name, metadata, service)
+		err = projector.ProjectService(namespace, name, metadata, service)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to project service: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return err
@@ -585,14 +588,14 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 	}
 
 	log.Debug("  P (K8s Target Provider): checking namespace")
-	err = i.createNamespace(ctx, scope)
+	err = i.createNamespace(ctx, namespace)
 	if err != nil {
 		log.Debugf("  P (K8s Target Provider): failed to create namespace: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 		return err
 	}
 
 	log.Debug("  P (K8s Target Provider): creating deployment")
-	err = i.upsertDeployment(ctx, scope, name, deployment)
+	err = i.upsertDeployment(ctx, namespace, name, deployment)
 	if err != nil {
 		log.Debugf("  P (K8s Target Provider): failed to apply (API): %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 		return err
@@ -600,7 +603,7 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 
 	if service != nil {
 		log.Debug("  P (K8s Target Provider): creating service")
-		err = i.upsertService(ctx, scope, service.Name, service)
+		err = i.upsertService(ctx, namespace, service.Name, service)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to apply (service): %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return err
@@ -608,16 +611,27 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, span trace.Spa
 	}
 	return nil
 }
-func (*K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
+func (i *K8sTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
-			{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+		AllowSidecar: i.Config.DeploymentStrategy == SERVICES,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+			},
+		},
+		SidecarValidationRule: model.ComponentValidationRule{
+			RequiredProperties: []string{model.ContainerImage},
+			OptionalProperties: []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
+			},
 		},
 	}
 }
@@ -628,7 +642,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s, traceId: %s", dep.Instance.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -652,7 +666,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	case "", SINGLE_POD:
 		updated := step.GetUpdatedComponents()
 		if len(updated) > 0 {
-			err = i.deployComponents(ctx, span, dep.Instance.Scope, dep.Instance.Spec.Name, dep.Instance.Metadata, components, projector, dep.Instance.Spec.Name)
+			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.Spec.Name, dep.Instance.Metadata, components, projector, dep.Instance.Spec.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return ret, err
@@ -664,18 +678,18 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			if v, ok := dep.Instance.Metadata["service.name"]; ok && v != "" {
 				serviceName = v
 			}
-			err = i.removeService(ctx, dep.Instance.Scope, serviceName)
+			err = i.removeService(ctx, dep.Instance.Spec.Scope, serviceName)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to remove service: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return ret, err
 			}
-			err = i.removeDeployment(ctx, dep.Instance.Scope, dep.Instance.Spec.Name)
+			err = i.removeDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to remove deployment: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return ret, err
 			}
 			if i.Config.DeleteEmptyNamespace {
-				err = i.removeNamespace(ctx, dep.Instance.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
+				err = i.removeNamespace(ctx, dep.Instance.Spec.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
 				if err != nil {
 					log.Debugf("  P (K8s Target Provider): failed to remove namespace: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				}
@@ -684,7 +698,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	case SERVICES, SERVICES_NS:
 		updated := step.GetUpdatedComponents()
 		if len(updated) > 0 {
-			scope := dep.Instance.Scope
+			scope := dep.Instance.Spec.Scope
 			if i.Config.DeploymentStrategy == SERVICES_NS {
 				scope = dep.Instance.Spec.Name
 			}
@@ -706,7 +720,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		}
 		deleted := step.GetDeletedComponents()
 		if len(deleted) > 0 {
-			scope := dep.Instance.Scope
+			scope := dep.Instance.Spec.Scope
 			if i.Config.DeploymentStrategy == SERVICES_NS {
 				scope = dep.Instance.Spec.Name
 			}
@@ -736,7 +750,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					return ret, err
 				}
 				if i.Config.DeleteEmptyNamespace {
-					err = i.removeNamespace(ctx, dep.Instance.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
+					err = i.removeNamespace(ctx, dep.Instance.Spec.Scope, i.Config.RetryCount, i.Config.RetryIntervalInSec)
 					if err != nil {
 						log.Debugf("P (K8s Target Provider): failed to remove namespace: %s, traceId: %", err.Error(), span.SpanContext().TraceID().String())
 					}
@@ -749,53 +763,83 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	return ret, nil
 }
 func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, error) {
-	components := make([]model.ComponentSpec, len(deployment.Spec.Template.Spec.Containers))
-	for i, c := range deployment.Spec.Template.Spec.Containers {
-		component := model.ComponentSpec{
-			Name:       c.Name,
-			Properties: make(map[string]interface{}),
+	components := make([]model.ComponentSpec, 0)
+	for _, c := range deployment.Spec.Template.Spec.Containers {
+		key := fmt.Sprintf("%s.sidecar_of", c.Name)
+		if deployment.Spec.Template.ObjectMeta.Labels[key] != "" {
+			// Skip sidecar containers for now
+			continue
 		}
-		component.Properties[model.ContainerImage] = c.Image
-		policy := string(c.ImagePullPolicy)
-		if policy != "" {
-			component.Properties["container.imagePullPolicy"] = policy
-		}
-		if len(c.Ports) > 0 {
-			ports, _ := json.Marshal(c.Ports)
-			component.Properties["container.ports"] = string(ports)
-		}
-		if len(c.Args) > 0 {
-			args, _ := json.Marshal(c.Args)
-			component.Properties["container.args"] = string(args)
-		}
-		if len(c.Command) > 0 {
-			commands, _ := json.Marshal(c.Command)
-			component.Properties["container.commands"] = string(commands)
-		}
-		resources, _ := json.Marshal(c.Resources)
-		if string(resources) != "{}" {
-			component.Properties["container.resources"] = string(resources)
-		}
-		if len(c.VolumeMounts) > 0 {
-			volumeMounts, _ := json.Marshal(c.VolumeMounts)
-			component.Properties["container.volumeMounts"] = string(volumeMounts)
-		}
-		if len(c.Env) > 0 {
-			for _, e := range c.Env {
-				component.Properties["env."+e.Name] = e.Value
+		component := makeComponentSpec(c)
+		components = append(components, component)
+	}
+
+	for _, c := range deployment.Spec.Template.Spec.Containers {
+		key := fmt.Sprintf("%s.sidecar_of", c.Name)
+		componentName := deployment.Spec.Template.ObjectMeta.Labels[key]
+		if componentName != "" {
+			for i, component := range components {
+				if component.Name == componentName {
+					sidecar := makeComponentSpec(c)
+					components[i].Sidecars = append(components[i].Sidecars, convertComponentSpecToSidecar(sidecar))
+				}
 			}
 		}
-		components[i] = component
 	}
 	return components, nil
 }
-func metadataToService(scope string, name string, metadata map[string]string) (*apiv1.Service, error) {
+func convertComponentSpecToSidecar(c model.ComponentSpec) model.SidecarSpec {
+	sidecar := model.SidecarSpec{
+		Name:       c.Name,
+		Type:       c.Type,
+		Properties: c.Properties,
+	}
+	return sidecar
+}
+func makeComponentSpec(c apiv1.Container) model.ComponentSpec {
+	component := model.ComponentSpec{
+		Name:       c.Name,
+		Properties: make(map[string]interface{}),
+	}
+	component.Properties[model.ContainerImage] = c.Image
+	policy := string(c.ImagePullPolicy)
+	if policy != "" {
+		component.Properties["container.imagePullPolicy"] = policy
+	}
+	if len(c.Ports) > 0 {
+		ports, _ := json.Marshal(c.Ports)
+		component.Properties["container.ports"] = string(ports)
+	}
+	if len(c.Args) > 0 {
+		args, _ := json.Marshal(c.Args)
+		component.Properties["container.args"] = string(args)
+	}
+	if len(c.Command) > 0 {
+		commands, _ := json.Marshal(c.Command)
+		component.Properties["container.commands"] = string(commands)
+	}
+	resources, _ := json.Marshal(c.Resources)
+	if string(resources) != "{}" {
+		component.Properties["container.resources"] = string(resources)
+	}
+	if len(c.VolumeMounts) > 0 {
+		volumeMounts, _ := json.Marshal(c.VolumeMounts)
+		component.Properties["container.volumeMounts"] = string(volumeMounts)
+	}
+	if len(c.Env) > 0 {
+		for _, e := range c.Env {
+			component.Properties["env."+e.Name] = e.Value
+		}
+	}
+	return component
+}
+func metadataToService(namespace string, name string, metadata map[string]string) (*apiv1.Service, error) {
 	if len(metadata) == 0 {
 		return nil, nil
 	}
 
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
 
 	servicePorts := make([]apiv1.ServicePort, 0)
@@ -817,7 +861,7 @@ func metadataToService(scope string, name string, metadata map[string]string) (*
 	service := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: scope,
+			Namespace: namespace,
 			Labels: map[string]string{
 				"app": name,
 			},
@@ -869,77 +913,25 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 	}
 
 	for _, c := range components {
-		ports := make([]apiv1.ContainerPort, 0)
-		if v, ok := c.Properties["container.ports"].(string); ok && v != "" {
-			e := json.Unmarshal([]byte(v), &ports)
-			if e != nil {
-				return nil, e
-			}
+		container, err := createContainerSpec(c.Name, c.Properties, metadata)
+		if err != nil {
+			return nil, err
 		}
-		container := apiv1.Container{
-			Name:            c.Name,
-			Image:           c.Properties[model.ContainerImage].(string),
-			Ports:           ports,
-			ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(c.Properties, "container.imagePullPolicy", "Always")),
-		}
-		if v, ok := c.Properties["container.args"]; ok && v != "" {
-			args := make([]string, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &args)
-			if e != nil {
-				return nil, e
-			}
-			container.Args = args
-		}
-		if v, ok := c.Properties["container.commands"]; ok && v != "" {
-			cmds := make([]string, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &cmds)
-			if e != nil {
-				return nil, e
-			}
-			container.Command = cmds
-		}
-		if v, ok := c.Properties["container.resources"]; ok && v != "" {
-			res := apiv1.ResourceRequirements{}
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &res)
-			if e != nil {
-				return nil, e
-			}
-			container.Resources = res
-		}
-		if v, ok := c.Properties["container.volumeMounts"]; ok && v != "" {
-			mounts := make([]apiv1.VolumeMount, 0)
-			e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &mounts)
-			if e != nil {
-				return nil, e
-			}
-			container.VolumeMounts = mounts
-		}
-		for k, v := range c.Properties {
-			// Transitioning from map[string]string to map[string]interface{}
-			// for now we'll assume that all relevant values are strings till we
-			// refactor the code to handle the new format
-			sv := fmt.Sprintf("%v", v)
-			if strings.HasPrefix(k, "env.") {
-				if container.Env == nil {
-					container.Env = make([]apiv1.EnvVar, 0)
+		deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, *container)
+		if len(c.Sidecars) > 0 {
+			for _, sidecar := range c.Sidecars {
+				container, err := createContainerSpec(sidecar.Name, sidecar.Properties, metadata)
+				if err != nil {
+					return nil, err
 				}
-				container.Env = append(container.Env, apiv1.EnvVar{
-					Name:  k[4:],
-					Value: sv,
-				})
+				if deployment.Spec.Template.ObjectMeta.Labels == nil {
+					deployment.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+				}
+				key := fmt.Sprintf("%s.sidecar_of", sidecar.Name)
+				deployment.Spec.Template.ObjectMeta.Labels[key] = c.Name
+				deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, *container)
 			}
 		}
-		agentName := metadata[ENV_NAME]
-		if agentName != "" {
-			if container.Env == nil {
-				container.Env = make([]apiv1.EnvVar, 0)
-			}
-			container.Env = append(container.Env, apiv1.EnvVar{
-				Name:  ENV_NAME,
-				Value: agentName + ".default.svc.cluster.local", //agent is currently always installed under deault
-			})
-		}
-		deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, container)
 	}
 	if v, ok := metadata["deployment.imagePullSecrets"]; ok && v != "" {
 		secrets := make([]apiv1.LocalObjectReference, 0)
@@ -970,6 +962,80 @@ func componentsToDeployment(scope string, name string, metadata map[string]strin
 	log.Debug(string(data))
 
 	return &deployment, nil
+}
+
+func createContainerSpec(name string, properties map[string]interface{}, metadata map[string]string) (*apiv1.Container, error) {
+	ports := make([]apiv1.ContainerPort, 0)
+	if v, ok := properties["container.ports"].(string); ok && v != "" {
+		e := json.Unmarshal([]byte(v), &ports)
+		if e != nil {
+			return nil, e
+		}
+	}
+	container := &apiv1.Container{
+		Name:            name,
+		Image:           properties[model.ContainerImage].(string),
+		Ports:           ports,
+		ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(properties, "container.imagePullPolicy", "Always")),
+	}
+	if v, ok := properties["container.args"]; ok && v != "" {
+		args := make([]string, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &args)
+		if e != nil {
+			return nil, e
+		}
+		container.Args = args
+	}
+	if v, ok := properties["container.commands"]; ok && v != "" {
+		cmds := make([]string, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &cmds)
+		if e != nil {
+			return nil, e
+		}
+		container.Command = cmds
+	}
+	if v, ok := properties["container.resources"]; ok && v != "" {
+		res := apiv1.ResourceRequirements{}
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &res)
+		if e != nil {
+			return nil, e
+		}
+		container.Resources = res
+	}
+	if v, ok := properties["container.volumeMounts"]; ok && v != "" {
+		mounts := make([]apiv1.VolumeMount, 0)
+		e := json.Unmarshal([]byte(fmt.Sprintf("%v", v)), &mounts)
+		if e != nil {
+			return nil, e
+		}
+		container.VolumeMounts = mounts
+	}
+	for k, v := range properties {
+		// Transitioning from map[string]string to map[string]interface{}
+		// for now we'll assume that all relevant values are strings till we
+		// refactor the code to handle the new format
+		sv := fmt.Sprintf("%v", v)
+		if strings.HasPrefix(k, "env.") {
+			if container.Env == nil {
+				container.Env = make([]apiv1.EnvVar, 0)
+			}
+			container.Env = append(container.Env, apiv1.EnvVar{
+				Name:  k[4:],
+				Value: sv,
+			})
+		}
+	}
+	agentName := metadata[ENV_NAME]
+	if agentName != "" {
+		if container.Env == nil {
+			container.Env = make([]apiv1.EnvVar, 0)
+		}
+		container.Env = append(container.Env, apiv1.EnvVar{
+			Name:  ENV_NAME,
+			Value: agentName + ".default.svc.cluster.local", //agent is currently always installed under deault
+		})
+	}
+	return container, nil
 }
 
 func createProjector(projector string) (IK8sProjector, error) {

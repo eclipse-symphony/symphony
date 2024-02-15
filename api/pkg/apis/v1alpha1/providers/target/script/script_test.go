@@ -91,8 +91,9 @@ func TestGet(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Scope: "test-scope",
-			Spec:  &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, []model.ComponentStep{
 		{
@@ -125,8 +126,9 @@ func TestRemoveScript(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Scope: "test-scope",
-			Spec:  &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
@@ -159,8 +161,9 @@ func TestApplyScript(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Scope: "test-scope",
-			Spec:  &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{

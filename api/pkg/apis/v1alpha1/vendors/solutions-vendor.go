@@ -76,9 +76,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -88,14 +88,14 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			// Change namespace back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.SolutionsManager.ListState(ctx, scope)
+			state, err = c.SolutionsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.SolutionsManager.GetState(ctx, id, scope)
+			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -150,7 +150,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			}
 		}
-		err := c.SolutionsManager.UpsertState(ctx, id, solution, scope)
+		err := c.SolutionsManager.UpsertState(ctx, id, solution, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -171,7 +171,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				},
 			},
 			Metadata: map[string]string{
-				"scope": scope,
+				"namespace": namespace,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -180,7 +180,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.SolutionsManager.DeleteState(ctx, id, scope)
+		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

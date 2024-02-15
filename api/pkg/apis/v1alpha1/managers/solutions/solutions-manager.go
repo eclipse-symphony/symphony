@@ -40,7 +40,7 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *SolutionsManager) DeleteState(ctx context.Context, name string, scope string) error {
+func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -50,16 +50,16 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, scope s
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "solutions",
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "solutions",
 		},
 	})
 	return err
 }
 
-func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state model.SolutionState, scope string) error {
+func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state model.SolutionState, namespace string) error {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "UpsertState",
 	})
@@ -84,18 +84,18 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			Body: body,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "${{$solution()}}"}}`, model.SolutionGroup),
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "solutions",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "${{$solution()}}"}}`, model.SolutionGroup),
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "solutions",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
 
-func (t *SolutionsManager) ListState(ctx context.Context, scope string) ([]model.SolutionState, error) {
+func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]model.SolutionState, error) {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -104,10 +104,10 @@ func (t *SolutionsManager) ListState(ctx context.Context, scope string) ([]model
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "solutions",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "solutions",
+			"namespace": namespace,
 		},
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
@@ -136,23 +136,23 @@ func getSolutionState(id string, body interface{}) (model.SolutionState, error) 
 	if err != nil {
 		return model.SolutionState{}, err
 	}
-	scope, exist := dict["scope"]
+	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
 		s = "default"
 	} else {
-		s = scope.(string)
+		s = namespace.(string)
 	}
 
 	state := model.SolutionState{
-		Id:    id,
-		Scope: s,
-		Spec:  &rSpec,
+		Id:        id,
+		Namespace: s,
+		Spec:      &rSpec,
 	}
 	return state, nil
 }
 
-func (t *SolutionsManager) GetState(ctx context.Context, id string, scope string) (model.SolutionState, error) {
+func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionState, error) {
 	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -162,10 +162,10 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, scope string
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "solutions",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "solutions",
+			"namespace": namespace,
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

@@ -1,13 +1,13 @@
-import { Solution } from '../app/types';
+import { SolutionSpec } from '../app/types';
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} from "@nextui-org/react";
 import {FaDocker} from 'react-icons/fa';
 import {SiHelm} from 'react-icons/si';
 import {SiKubernetes} from 'react-icons/si';    
 import {SiWindows} from 'react-icons/si';
-interface SolutionCardProps {
-    solution: Solution;
+interface SolutionSpecCardProps {
+    solution: SolutionSpec;
 }
-function SolutionCard(props: SolutionCardProps) {
+function SolutionSpecCard(props: SolutionSpecCardProps) {
     const { solution } = props;
     return (
         <Table removeWrapper>
@@ -18,7 +18,7 @@ function SolutionCard(props: SolutionCardProps) {
                 <TableColumn>VERSION</TableColumn>        
             </TableHeader>
             <TableBody>
-                {solution.spec.components.map((component: any) => (
+                {solution.components.map((component: any) => (
                     <TableRow key={component.name}>
                         <TableCell>
                             {component.type === 'container' && (
@@ -73,4 +73,4 @@ function SolutionCard(props: SolutionCardProps) {
         </Table>
     );
 }
-export default SolutionCard;
+export default SolutionSpecCard;

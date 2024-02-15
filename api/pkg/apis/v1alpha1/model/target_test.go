@@ -14,8 +14,8 @@ import (
 
 func TestTargetDeepEquals(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -30,8 +30,8 @@ func TestTargetDeepEquals(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -52,8 +52,8 @@ func TestTargetDeepEquals(t *testing.T) {
 
 func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -74,8 +74,8 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 
 func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -90,8 +90,8 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName1",
 			Properties:  map[string]string{"foo": "bar"},
@@ -110,10 +110,10 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
+func TestTargetDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -128,8 +128,8 @@ func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default1",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default1",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -150,8 +150,8 @@ func TestTargetDeepEqualsScopeNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -166,8 +166,8 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo1": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo1": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -188,8 +188,8 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -204,8 +204,8 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar1"},
@@ -226,16 +226,16 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Components:  []ComponentSpec{{}},
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo1": "bar"},
@@ -256,8 +256,8 @@ func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -272,8 +272,8 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar1"},
@@ -294,8 +294,8 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -310,8 +310,8 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -332,8 +332,8 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -348,8 +348,8 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -370,14 +370,14 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope: "Default",
+		Namespace: "Default",
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Components:  []ComponentSpec{{}},
 		},
 	}
 	other := TargetState{
-		Scope: "Default",
+		Namespace: "Default",
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Components:  []ComponentSpec{{}},
@@ -391,8 +391,8 @@ func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 	Target := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},
@@ -407,8 +407,8 @@ func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 		},
 	}
 	other := TargetState{
-		Scope:    "Default",
-		Metadata: map[string]string{"foo": "bar"},
+		Namespace: "Default",
+		Metadata:  map[string]string{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Properties:  map[string]string{"foo": "bar"},

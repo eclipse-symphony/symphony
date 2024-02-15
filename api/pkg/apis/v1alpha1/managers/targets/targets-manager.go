@@ -43,7 +43,7 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	return nil
 }
 
-func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope string) error {
+func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -53,16 +53,16 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope stri
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+			"namespace": namespace,
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
 		},
 	})
 	return err
 }
 
-func (t *TargetsManager) UpsertState(ctx context.Context, name string, scope string, state model.TargetState) error {
+func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace string, state model.TargetState) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -89,18 +89,18 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, scope str
 			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    scope,
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": namespace,
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
 
-// Caller need to explicitly set scope in current.Metadata!
+// Caller need to explicitly set namespace in current.Metadata!
 func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetState) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ReportState",
@@ -149,7 +149,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	}
 	return targetState, nil
 }
-func (t *TargetsManager) ListState(ctx context.Context, scope string) ([]model.TargetState, error) {
+func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -158,10 +158,10 @@ func (t *TargetsManager) ListState(ctx context.Context, scope string) ([]model.T
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "targets",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": namespace,
 		},
 	}
 	targets, _, err := t.StateProvider.List(ctx, listRequest)
@@ -204,24 +204,24 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 
 	rSpec.Generation = etag
 
-	scope, exist := dict["scope"]
+	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
 		s = "default"
 	} else {
-		s = scope.(string)
+		s = namespace.(string)
 	}
 
 	state := model.TargetState{
-		Id:     id,
-		Scope:  s,
-		Spec:   &rSpec,
-		Status: rStatus,
+		Id:        id,
+		Namespace: s,
+		Spec:      &rSpec,
+		Status:    rStatus,
 	}
 	return state, nil
 }
 
-func (t *TargetsManager) GetState(ctx context.Context, id string, scope string) (model.TargetState, error) {
+func (t *TargetsManager) GetState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -231,10 +231,10 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, scope string) 
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "targets",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": namespace,
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

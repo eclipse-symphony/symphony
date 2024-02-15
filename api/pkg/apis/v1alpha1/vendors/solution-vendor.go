@@ -86,9 +86,9 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 
 	sLog.Infof("V (Solution): onQueue, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -104,7 +104,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		summary, err := c.SolutionManager.GetSummary(ctx, instance, scope)
+		summary, err := c.SolutionManager.GetSummary(ctx, instance, namespace)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.Infof("V (Solution): onQueue failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -150,7 +150,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		c.Vendor.Context.Publish("job", v1alpha2.Event{
 			Metadata: map[string]string{
 				"objectType": objType,
-				"scope":      scope,
+				"namespace":  namespace,
 			},
 			Body: v1alpha2.JobData{
 				Id:     instance,
@@ -177,9 +177,9 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 	defer span.End()
 
 	sLog.Infof("V (Solution): onReconcile, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -195,7 +195,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 		delete := request.Parameters["delete"]
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", scope)
+		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.Infof("V (Solution): onReconcile failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -225,9 +225,9 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 	defer span.End()
 
 	sLog.Infof("V (Solution): onApplyDeployment %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -242,7 +242,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 				Body:  []byte(err.Error()),
 			}
 		}
-		response := c.doDeploy(ctx, *deployment, scope)
+		response := c.doDeploy(ctx, *deployment, namespace)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("Get Components", request.Context, nil)
@@ -269,7 +269,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 				Body:  []byte(err.Error()),
 			}
 		}
-		response := c.doRemove(ctx, deployment, scope)
+		response := c.doRemove(ctx, deployment, namespace)
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
 	sLog.Infof("V (Solution): onApplyDeployment failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
@@ -308,13 +308,13 @@ func (c *SolutionVendor) doGet(ctx context.Context, deployment model.DeploymentS
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
 	return response
 }
-func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec, scope string) v1alpha2.COAResponse {
+func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.DeploymentSpec, namespace string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doDeploy",
 	})
 	defer span.End()
 	sLog.Infof("V (Solution): doDeploy, traceId: %s", span.SpanContext().TraceID().String())
-	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false, scope)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, false, namespace)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		sLog.Infof("V (Solution): doDeploy failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -333,14 +333,14 @@ func (c *SolutionVendor) doDeploy(ctx context.Context, deployment model.Deployme
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
 	return response
 }
-func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec, scope string) v1alpha2.COAResponse {
+func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.DeploymentSpec, namespace string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doRemove",
 	})
 	defer span.End()
 
 	sLog.Infof("V (Solution): doRemove, traceId: %s", span.SpanContext().TraceID().String())
-	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true, scope)
+	summary, err := c.SolutionManager.Reconcile(ctx, deployment, true, namespace)
 	data, _ := json.Marshal(summary)
 	if err != nil {
 		sLog.Infof("V (Solution): doRemove failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())

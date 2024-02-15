@@ -193,11 +193,11 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "${{$site()}}"}}`, model.FederationGroup),
-			"scope":    "",
-			"group":    model.FederationGroup,
-			"version":  "v1",
-			"resource": "sites",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "${{$site()}}"}}`, model.FederationGroup),
+			"namespace": "",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "sites",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -217,10 +217,10 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.FederationGroup,
-			"version":  "v1",
-			"resource": "sites",
+			"namespace": "",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "sites",
 		},
 	})
 

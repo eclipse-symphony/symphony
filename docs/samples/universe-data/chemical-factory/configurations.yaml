@@ -163,6 +163,6 @@ spec:
     kind: dummy
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar

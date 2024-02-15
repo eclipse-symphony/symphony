@@ -87,8 +87,8 @@ func TestSolutionsOnSolutions(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "solutions1",
-			"scope":  "scope1",
+			"__name":    "solutions1",
+			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})
@@ -97,8 +97,8 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "solutions1",
-			"scope":  "scope1",
+			"__name":    "solutions1",
+			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})
@@ -107,12 +107,12 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &solutions)
 	assert.Nil(t, err)
 	assert.Equal(t, "solutions1", solutions.Id)
-	assert.Equal(t, "default", solutions.Scope)
+	assert.Equal(t, "default", solutions.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"scope": "scope1",
+			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})
@@ -122,13 +122,13 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(solutionsList))
 	assert.Equal(t, "solutions1", solutionsList[0].Id)
-	assert.Equal(t, "default", solutionsList[0].Scope)
+	assert.Equal(t, "default", solutionsList[0].Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "solutions1",
-			"scope":  "scope1",
+			"__name":    "solutions1",
+			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})

@@ -22,8 +22,8 @@ import (
 )
 
 var testSolution = model.SolutionState{
-	Scope: "default",
-	Spec:  &model.SolutionSpec{},
+	Namespace: "default",
+	Spec:      &model.SolutionSpec{},
 }
 
 func TestPatchSolution(t *testing.T) {
@@ -163,8 +163,8 @@ func TestPatchProcessInline(t *testing.T) {
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
 	testSolution = model.SolutionState{
-		Scope: "default",
-		Spec:  &model.SolutionSpec{},
+		Namespace: "default",
+		Spec:      &model.SolutionSpec{},
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
@@ -225,8 +225,8 @@ func TestPatchProcessCatalog(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	testSolution = model.SolutionState{
-		Scope: "default",
-		Spec:  &model.SolutionSpec{},
+		Namespace: "default",
+		Spec:      &model.SolutionSpec{},
 	}
 	// Step 1: first add component to solution spec
 	provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -241,8 +241,8 @@ func TestPatchProcessCatalog(t *testing.T) {
 				"ebpf.name":  "hello",
 				"ebpf.event": "xdp",
 				"input": map[string]interface{}{
-					"adapter": []string{},
-					"scope":   []string{},
+					"adapter":   []string{},
+					"namespace": []string{},
 				},
 			},
 		},
@@ -268,8 +268,8 @@ func TestPatchProcessCatalog(t *testing.T) {
 		"ebpf.name":  "hello",
 		"ebpf.event": "xdp",
 		"input": map[string]interface{}{
-			"adapter": []interface{}{map[string]interface{}{"testkey": "0", "testdict": []interface{}{"1"}, "testmap": map[string]interface{}{}}},
-			"scope":   []interface{}{},
+			"adapter":   []interface{}{map[string]interface{}{"testkey": "0", "testdict": []interface{}{"1"}, "testmap": map[string]interface{}{}}},
+			"namespace": []interface{}{},
 		},
 	}, testSolution.Spec.Components[0].Properties)
 

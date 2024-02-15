@@ -104,11 +104,11 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			},
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "campaigns",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
+			"namespace": "",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -128,10 +128,10 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "campaigns",
+			"namespace": "",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
 		},
 	})
 	return err

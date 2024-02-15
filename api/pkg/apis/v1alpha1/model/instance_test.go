@@ -14,7 +14,7 @@ import (
 
 func TestInstanceDeepEquals(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -34,7 +34,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -60,7 +60,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 
 func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -89,7 +89,7 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 
 func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -112,7 +112,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -141,7 +141,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -164,7 +164,7 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -191,9 +191,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
+func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -216,7 +216,7 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default1",
+		Namespace: "Default1",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -245,7 +245,7 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -268,7 +268,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -297,7 +297,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -320,7 +320,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -349,7 +349,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 
 func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -372,7 +372,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -401,7 +401,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 
 func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -424,7 +424,7 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -453,7 +453,7 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 
 func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},
@@ -476,7 +476,7 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 		},
 	}
 	other := InstanceState{
-		Scope: "Default",
+		Namespace: "Default",
 		Metadata: map[string]string{
 			"foo": "bar",
 		},

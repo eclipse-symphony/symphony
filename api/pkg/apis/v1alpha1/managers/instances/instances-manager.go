@@ -40,7 +40,7 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *InstancesManager) DeleteState(ctx context.Context, name string, scope string) error {
+func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -50,16 +50,16 @@ func (t *InstancesManager) DeleteState(ctx context.Context, name string, scope s
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "instances",
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "instances",
 		},
 	})
 	return err
 }
 
-func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState, scope string) error {
+func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState, namespace string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -89,11 +89,11 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			ETag: generation,
 		},
 		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "instances",
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "instances",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -103,7 +103,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	return nil
 }
 
-func (t *InstancesManager) ListState(ctx context.Context, scope string) ([]model.InstanceState, error) {
+func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -112,10 +112,10 @@ func (t *InstancesManager) ListState(ctx context.Context, scope string) ([]model
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "instances",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "instances",
+			"namespace": namespace,
 		},
 	}
 	instances, _, err := t.StateProvider.List(ctx, listRequest)
@@ -160,24 +160,24 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 	}
 	rSpec.Generation = etag
 
-	scope, exist := dict["scope"]
+	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
 		s = "default"
 	} else {
-		s = scope.(string)
+		s = namespace.(string)
 	}
 
 	state := model.InstanceState{
-		Id:     id,
-		Scope:  s,
-		Spec:   &rSpec,
-		Status: rProperties,
+		Id:        id,
+		Namespace: s,
+		Spec:      &rSpec,
+		Status:    rProperties,
 	}
 	return state, nil
 }
 
-func (t *InstancesManager) GetState(ctx context.Context, id string, scope string) (model.InstanceState, error) {
+func (t *InstancesManager) GetState(ctx context.Context, id string, namespace string) (model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -187,10 +187,10 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, scope string
 	getRequest := states.GetRequest{
 		ID: id,
 		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "instances",
-			"scope":    scope,
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "instances",
+			"namespace": namespace,
 		},
 	}
 	instance, err := t.StateProvider.Get(ctx, getRequest)
