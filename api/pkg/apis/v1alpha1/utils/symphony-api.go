@@ -581,7 +581,9 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 
 	ret := model.DeploymentSpec{}
 	solution := model.SolutionState{
-		Metadata: make(map[string]string, 0),
+		Id:        key,
+		Namespace: target.Namespace,
+		Metadata:  make(map[string]string, 0),
 		Spec: &model.SolutionSpec{
 			DisplayName: key,
 			Components:  make([]model.ComponentSpec, 0),
@@ -606,6 +608,8 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	targets[target.Id] = target
 
 	instance := model.InstanceState{
+		Id:        key,
+		Namespace: target.Namespace,
 		Spec: &model.InstanceSpec{
 			Scope:       scope,
 			Name:        key,
@@ -649,6 +653,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.Targets = sTargets
 	ret.Instance = instance
 	ret.SolutionName = solution.Id
+	ret.Instance.Id = instance.Id
 	if ret.Instance.Spec.Name == "" {
 		ret.Instance.Spec.Name = ret.Instance.Id
 	}

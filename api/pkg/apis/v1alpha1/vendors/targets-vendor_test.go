@@ -206,7 +206,7 @@ func TestTargetsOnStatus(t *testing.T) {
 	data, _ = json.Marshal(dict)
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
-		Method: fasthttp.MethodPost,
+		Method: fasthttp.MethodPut,
 		Body:   data,
 		Parameters: map[string]string{
 			"__name": "target1",
@@ -216,7 +216,7 @@ func TestTargetsOnStatus(t *testing.T) {
 	var targetState model.TargetState
 	json.Unmarshal(resp.Body, &targetState)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "testvalue", targetState.Status["testkey"])
+	assert.Equal(t, "testvalue", targetState.Status.Properties["testkey"])
 }
 func TestTargetsOnHeartbeats(t *testing.T) {
 	vendor := createTargetsVendor()
@@ -270,7 +270,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	var targetState model.TargetState
 	json.Unmarshal(resp.Body, &targetState)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.NotNil(t, targetState.Status["ping"])
+	assert.NotNil(t, targetState.Status.Properties["ping"])
 }
 func TestTargetWrongMethod(t *testing.T) {
 	vendor := createTargetsVendor()
@@ -287,7 +287,7 @@ func TestTargetWrongMethod(t *testing.T) {
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
-		Method:  fasthttp.MethodPut,
+		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)

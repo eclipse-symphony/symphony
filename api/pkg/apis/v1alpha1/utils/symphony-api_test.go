@@ -330,16 +330,16 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
 	require.Equal(t, "default", targetsRes[0].Namespace)
-	require.Equal(t, "1", targetsRes[0].Status["targets"])
-	require.Equal(t, "OK", targetsRes[0].Status["status"])
+	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
+	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
 
 	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
 	require.Equal(t, "default", targetRes.Namespace)
-	require.Equal(t, "1", targetRes.Status["targets"])
-	require.Equal(t, "OK", targetRes.Status["status"])
+	require.Equal(t, "1", targetRes.Status.Properties["targets"])
+	require.Equal(t, "OK", targetRes.Status.Properties["status"])
 
 	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
@@ -469,14 +469,14 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
-		Id:        "someTargetName",
-		Namespace: "targetScope",
+		Id: "someTargetName",
 		Metadata: map[string]string{
 			"key1": "value1",
 			"key2": "value2",
 		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
+			Scope:       "targetScope",
 			Components: []model.ComponentSpec{
 				{
 					Name: "componentName1",
@@ -501,7 +501,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	ret, err := res.DeepEquals(model.DeploymentSpec{
 		SolutionName: "target-runtime-someTargetName",
 		Solution: model.SolutionState{
-			Namespace: "targetScope",
+			Id: "target-runtime-someTargetName",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
@@ -525,7 +525,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Namespace: "targetScope",
+			Id: "target-runtime-someTargetName",
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
 				Name:        "target-runtime-someTargetName",
@@ -538,14 +538,14 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		},
 		Targets: map[string]model.TargetState{
 			"someTargetName": {
-				Id:        "someTargetName",
-				Namespace: "targetScope",
+				Id: "someTargetName",
 				Metadata: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 				},
 				Spec: &model.TargetSpec{
 					DisplayName: "someDisplayName",
+					Scope:       "targetScope",
 					Properties: map[string]string{
 						"OS": "windows",
 					},
@@ -641,6 +641,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	jData, _ := json.Marshal(res)
+	t.Log(string(jData))
+
 	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
 		SolutionName: "someOtherId",
 		Solution: model.SolutionState{
@@ -673,8 +676,8 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			Id:        "someOtherId",
 			Namespace: "instanceScope",
 			Spec: &model.InstanceSpec{
-				DisplayName: "",
-				Solution:    "",
+				Name:     "someOtherId",
+				Solution: "",
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 					Selector: map[string]string{

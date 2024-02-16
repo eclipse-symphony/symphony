@@ -55,11 +55,15 @@ func TestUpdateTargetStatus(t *testing.T) {
 
 	state.Id = "test"
 	state.Namespace = "default"
-	state.Status = map[string]string{"label": "test"}
+	state.Status = model.TargetStatus{
+		Properties: map[string]string{
+			"label": "test",
+		},
+	}
 	_, err = manager.ReportState(context.Background(), state)
 	assert.Nil(t, err)
 	state, err = manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", state.Id)
-	assert.Equal(t, "test", state.Status["label"])
+	assert.Equal(t, "test", state.Status.Properties["label"])
 }
