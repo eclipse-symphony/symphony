@@ -149,6 +149,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
+			if solution.Id == "" {
+				solution.Id = id
+			}
 		}
 		err := c.SolutionsManager.UpsertState(ctx, id, solution, namespace)
 		if err != nil {

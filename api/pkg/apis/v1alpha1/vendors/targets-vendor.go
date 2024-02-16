@@ -77,7 +77,7 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler: o.onBootstrap,
 		},
 		{
-			Methods:    []string{fasthttp.MethodGet},
+			Methods:    []string{fasthttp.MethodPost},
 			Route:      route + "/ping",
 			Version:    o.Version,
 			Handler:    o.onHeartBeat,
@@ -165,6 +165,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
+		}
+		if target.Id == "" {
+			target.Id = id
 		}
 		if binding != "" {
 			if binding == "staging" {
@@ -336,7 +339,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 	tLog.Infof("V (Targets) : onStatus, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
-	case fasthttp.MethodPost:
+	case fasthttp.MethodPut:
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
 			namespace = "default"
@@ -369,7 +372,9 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 				"resource":  "targets",
 				"namespace": namespace,
 			},
-			Status: properties,
+			Status: model.TargetStatus{
+				Properties: properties,
+			},
 		})
 
 		if err != nil {
@@ -406,7 +411,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	tLog.Infof("V (Targets) : onDownload, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
-	case fasthttp.MethodPost:
+	case fasthttp.MethodGet:
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
 			namespace = "default"
@@ -470,8 +475,8 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 				"resource":  "targets",
 				"namespace": namespace,
 			},
-			Status: map[string]string{
-				"ping": time.Now().UTC().String(),
+			Status: model.TargetStatus{
+				LastModified: time.Now().Format(time.RFC3339),
 			},
 		})
 

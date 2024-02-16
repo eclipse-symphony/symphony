@@ -40,6 +40,7 @@ type ComponentSpec struct {
 // +kubebuilder:object:generate=true
 type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
+	Scope         string               `json:"scope,omitempty"`
 	Metadata      map[string]string    `json:"metadata,omitempty"`
 	Properties    map[string]string    `json:"properties,omitempty"`
 	Components    []ComponentSpec      `json:"components,omitempty"`

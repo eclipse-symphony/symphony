@@ -166,7 +166,7 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debug("  P (Memory State): delete state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
+	sLog.Debugf("  P (Memory State): delete state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
 
 	if _, ok := s.Data[request.ID]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
@@ -187,7 +187,7 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debug("  P (Memory State): get state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
+	sLog.Debugf("  P (Memory State): get state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
 
 	if v, ok := s.Data[request.ID]; ok {
 		vE, ok := v.(states.StateEntry)

@@ -78,6 +78,8 @@ spec:
                   - skill
                   type: object
                 type: array
+              scope:
+                type: string
               solution:
                 type: string
               target:

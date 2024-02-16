@@ -9,18 +9,24 @@ package model
 import "errors"
 
 type (
+	TargetStatus struct {
+		Properties         map[string]string  `json:"properties,omitempty"`
+		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+		LastModified       string             `json:"lastModified,omitempty"`
+	}
 	// TargetState defines the current state of the target
 	TargetState struct {
 		Id        string            `json:"id"`
 		Namespace string            `json:"namespace,omitempty"`
 		Metadata  map[string]string `json:"metadata,omitempty"`
-		Status    map[string]string `json:"status,omitempty"`
+		Status    TargetStatus      `json:"status,omitempty"`
 		Spec      *TargetSpec       `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
 	TargetSpec struct {
 		DisplayName   string            `json:"displayName,omitempty"`
+		Scope         string            `json:"scope,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
 		Constraints   string            `json:"constraints,omitempty"`
@@ -39,6 +45,10 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.DisplayName != otherC.DisplayName {
+		return false, nil
+	}
+
+	if c.Scope != otherC.Scope {
 		return false, nil
 	}
 

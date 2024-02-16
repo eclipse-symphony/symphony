@@ -577,12 +577,11 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
 	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
-	namespace := target.Namespace
+	scope := target.Spec.Scope
 
 	ret := model.DeploymentSpec{}
 	solution := model.SolutionState{
-		Namespace: namespace,
-		Metadata:  make(map[string]string, 0),
+		Metadata: make(map[string]string, 0),
 		Spec: &model.SolutionSpec{
 			DisplayName: key,
 			Components:  make([]model.ComponentSpec, 0),
@@ -607,9 +606,8 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	targets[target.Id] = target
 
 	instance := model.InstanceState{
-		Namespace: namespace,
 		Spec: &model.InstanceSpec{
-			Scope:       namespace,
+			Scope:       scope,
 			Name:        key,
 			DisplayName: key,
 			Solution:    key,
@@ -651,6 +649,9 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.Targets = sTargets
 	ret.Instance = instance
 	ret.SolutionName = solution.Id
+	if ret.Instance.Spec.Name == "" {
+		ret.Instance.Spec.Name = ret.Instance.Id
+	}
 
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {

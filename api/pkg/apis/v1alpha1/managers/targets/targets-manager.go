@@ -126,11 +126,11 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		return model.TargetState{}, err
 	}
 
-	for k, v := range current.Status {
-		if targetState.Status == nil {
-			targetState.Status = make(map[string]string)
+	for k, v := range current.Status.Properties {
+		if targetState.Status.Properties == nil {
+			targetState.Status.Properties = make(map[string]string)
 		}
-		targetState.Status[k] = v
+		targetState.Status.Properties[k] = v
 	}
 
 	target.Body = targetState
@@ -196,7 +196,7 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 	}
 
 	j, _ = json.Marshal(status)
-	var rStatus map[string]string
+	var rStatus model.TargetStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.TargetState{}, err

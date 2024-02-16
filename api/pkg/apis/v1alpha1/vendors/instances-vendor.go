@@ -166,6 +166,12 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
+			if instance.Id == "" {
+				instance.Id = id
+			}
+			if instance.Spec.Name == "" {
+				instance.Spec.Name = id
+			}
 		}
 		err := c.InstancesManager.UpsertState(ctx, id, instance, namespace)
 		if err != nil {

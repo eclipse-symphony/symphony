@@ -165,9 +165,9 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "gatekeeper-system",
 			Spec: &model.InstanceSpec{
-				Name: "gatekeeper",
+				Scope: "gatekeeper-system",
+				Name:  "gatekeeper",
 			},
 		},
 		Solution: model.SolutionState{

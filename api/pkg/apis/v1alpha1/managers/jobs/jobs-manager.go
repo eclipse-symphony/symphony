@@ -338,11 +338,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		}
 		switch objectType {
 		case "instance":
+			log.Debugf(" M (Job): handling instance job %s", job.Id)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
 			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password, namespace)
 			if err != nil {
+				log.Errorf(" M (Job): error getting instance %s: %s", instanceName, err.Error())
 				return err //TODO: instance is gone
 			}
 
@@ -375,6 +377,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var deployment model.DeploymentSpec
 			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
 			if err != nil {
+				log.Errorf(" M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
 			}
 
@@ -382,6 +385,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == "UPDATE" {
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
+					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
 				} else {
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
