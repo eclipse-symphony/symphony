@@ -583,7 +583,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	solution := model.SolutionState{
 		Id:        key,
 		Namespace: target.Namespace,
-		Metadata:  make(map[string]string, 0),
+		Metadata:  make(map[string]interface{}, 0),
 		Spec: &model.SolutionSpec{
 			DisplayName: key,
 			Components:  make([]model.ComponentSpec, 0),

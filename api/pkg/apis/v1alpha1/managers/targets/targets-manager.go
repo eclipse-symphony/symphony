@@ -52,7 +52,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.FabricGroup,
 			"version":   "v1",
@@ -88,7 +88,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace
 			Body: body,
 			ETag: state.Spec.Generation,
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
 			"namespace": namespace,
 			"group":     model.FabricGroup,
@@ -157,7 +157,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.FabricGroup,
 			"resource":  "targets",
@@ -230,7 +230,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.FabricGroup,
 			"resource":  "targets",

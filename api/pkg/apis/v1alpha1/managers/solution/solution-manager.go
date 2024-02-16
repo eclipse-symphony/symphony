@@ -92,7 +92,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 		},
 	})
@@ -121,7 +121,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 
 	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
 		ID: fmt.Sprintf("%s-%s", "summary", key),
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 		},
 	})
@@ -242,7 +242,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	col := api_utils.MergeCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
+	col := api_utils.MergeInterfaceCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
 	dep := deployment
 	dep.Instance.Metadata = col
 	someStepsRan := false
@@ -327,7 +327,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		log.Infof(" M (Solution): no assigned components to manage, deleting state")
 		s.StateProvider.Delete(iCtx, states.DeleteRequest{
 			ID: deployment.Instance.Spec.Name,
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"namespace": namespace,
 			},
 		})
@@ -340,7 +340,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 					State: mergedState,
 				},
 			},
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"namespace": namespace,
 			},
 		})
@@ -378,7 +378,7 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 				Time:       time.Now().UTC(),
 			},
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 		},
 	})

@@ -356,7 +356,7 @@ func TestMatchTargetsWithTargetName(t *testing.T) {
 		Status: map[string]string{},
 	}, []model.TargetState{{
 		Id: "someTargetName",
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"key": "value",
 		},
 		Spec: &model.TargetSpec{},
@@ -364,7 +364,7 @@ func TestMatchTargetsWithTargetName(t *testing.T) {
 
 	require.Equal(t, []model.TargetState{{
 		Id: "someTargetName",
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"key": "value",
 		},
 		Spec: &model.TargetSpec{},
@@ -470,7 +470,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
 		Id: "someTargetName",
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"key1": "value1",
 			"key2": "value2",
 		},
@@ -502,7 +502,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		SolutionName: "target-runtime-someTargetName",
 		Solution: model.SolutionState{
 			Id: "target-runtime-someTargetName",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"key1": "value1",
 				"key2": "value2",
 			},
@@ -539,7 +539,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Targets: map[string]model.TargetState{
 			"someTargetName": {
 				Id: "someTargetName",
-				Metadata: map[string]string{
+				Metadata: map[string]interface{}{
 					"key1": "value1",
 					"key2": "value2",
 				},
@@ -591,7 +591,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	}, model.SolutionState{
 		Id:        "someOtherId",
 		Namespace: "solutionsScope",
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"key1": "value1",
 			"key2": "value2",
 			"key3": "value3",
@@ -616,7 +616,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	}, []model.TargetState{
 		{
 			Id: "someTargetName1",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"key1": "value1",
 				"key2": "value2",
 				"key3": "value3",
@@ -649,7 +649,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		Solution: model.SolutionState{
 			Id:        "someOtherId",
 			Namespace: "solutionsScope",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"key1": "value1",
 				"key2": "value2",
 				"key3": "value3",
@@ -691,7 +691,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			"someTargetName1": {
 				Id:        "someTargetName1",
 				Namespace: "targetScope",
-				Metadata: map[string]string{
+				Metadata: map[string]interface{}{
 					"key1": "value1",
 					"key2": "value2",
 					"key3": "value3",

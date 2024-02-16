@@ -87,7 +87,7 @@ func (s *StagingManager) Poll() []error {
 		cacheId := siteId + "-" + catalog.Spec.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":  "v1",
 				"group":    model.FederationGroup,
 				"resource": "catalogs",
@@ -111,7 +111,7 @@ func (s *StagingManager) Poll() []error {
 				ID:   cacheId,
 				Body: catalog.Spec.Generation,
 			},
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":  "v1",
 				"group":    model.FederationGroup,
 				"resource": "catalogs",

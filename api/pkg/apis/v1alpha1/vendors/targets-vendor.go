@@ -366,7 +366,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 
 		state, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 			Id: request.Parameters["__name"],
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":   "v1",
 				"group":     model.FabricGroup,
 				"resource":  "targets",
@@ -469,7 +469,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		}
 		_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 			Id: request.Parameters["__name"],
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":   "v1",
 				"group":     model.FabricGroup,
 				"resource":  "targets",

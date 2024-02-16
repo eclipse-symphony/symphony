@@ -162,11 +162,15 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 		// TODO: this is a PoC of publishing trails when an object is updated
+		strCat := ""
+		if v, ok := solution.Metadata["catalog"]; ok {
+			strCat = v.(string)
+		}
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
 			Body: []v1alpha2.Trail{
 				{
 					Origin:  c.Vendor.Context.SiteInfo.SiteId,
-					Catalog: solution.Metadata["catalog"],
+					Catalog: strCat,
 					Type:    "solutions.solution.symphony/v1",
 					Properties: map[string]interface{}{
 						"spec": solution,

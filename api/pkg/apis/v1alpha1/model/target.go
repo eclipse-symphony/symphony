@@ -16,11 +16,11 @@ type (
 	}
 	// TargetState defines the current state of the target
 	TargetState struct {
-		Id        string            `json:"id"`
-		Namespace string            `json:"namespace,omitempty"`
-		Metadata  map[string]string `json:"metadata,omitempty"`
-		Status    TargetStatus      `json:"status,omitempty"`
-		Spec      *TargetSpec       `json:"spec,omitempty"`
+		Id        string                 `json:"id"`
+		Namespace string                 `json:"namespace,omitempty"`
+		Metadata  map[string]interface{} `json:"metadata,omitempty"`
+		Status    TargetStatus           `json:"status,omitempty"`
+		Spec      *TargetSpec            `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
@@ -89,7 +89,7 @@ func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
 		return false, nil
 	}
 

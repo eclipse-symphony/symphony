@@ -55,7 +55,7 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "activations",
@@ -118,7 +118,7 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 			},
 			ETag: spec.Generation,
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
 			"namespace": "",
 			"group":     model.WorkflowGroup,
@@ -142,7 +142,7 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": "",
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
@@ -160,7 +160,7 @@ func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationSt
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "activations",
@@ -191,7 +191,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	defer lock.Unlock()
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "activations",
@@ -208,7 +208,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	entry.Body = dict
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "activations",

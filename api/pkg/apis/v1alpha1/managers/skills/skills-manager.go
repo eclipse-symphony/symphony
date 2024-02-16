@@ -49,7 +49,7 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 	log.Debugf(" M (Skills): DeleteSpec, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": "",
 			"group":     model.AIGroup,
 			"version":   "v1",
@@ -82,7 +82,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 				"spec": spec,
 			},
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Skill", "metadata": {"name": "${{$skill()}}"}}`, model.AIGroup),
 			"namespace": "",
 			"group":     model.AIGroup,
@@ -107,7 +107,7 @@ func (t *SkillsManager) ListSpec(ctx context.Context) ([]model.SkillState, error
 
 	log.Debugf(" M (Skills): ListSpec, traceId: %s", span.SpanContext().TraceID().String())
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.AIGroup,
 			"resource": "skills",
@@ -159,7 +159,7 @@ func (t *SkillsManager) GetSpec(ctx context.Context, id string) (model.SkillStat
 	log.Debugf(" M (Skills): GetSpec, name: %s, traceId: %s", id, span.SpanContext().TraceID().String())
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.AIGroup,
 			"resource": "skills",

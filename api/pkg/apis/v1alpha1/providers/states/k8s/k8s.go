@@ -174,10 +174,10 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 
 	sLog.Info("  P (K8s State): upsert state")
 
-	namespace := model.ReadProperty(entry.Metadata, "namespace", nil)
-	group := model.ReadProperty(entry.Metadata, "group", nil)
-	version := model.ReadProperty(entry.Metadata, "version", nil)
-	resource := model.ReadProperty(entry.Metadata, "resource", nil)
+	namespace := model.ReadPropertyCompat(entry.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(entry.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(entry.Metadata, "resource", nil)
 
 	if namespace == "" {
 		namespace = "default"
@@ -198,7 +198,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
 		// TODO: check if not-found error
-		template := model.ReadProperty(entry.Metadata, "template", &model.ValueInjections{
+		template := model.ReadPropertyCompat(entry.Metadata, "template", &model.ValueInjections{
 			TargetId:     entry.Value.ID,
 			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
 			InstanceId:   entry.Value.ID,
@@ -292,10 +292,10 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 
 	sLog.Info("  P (K8s State): list state")
 
-	namespace := model.ReadProperty(request.Metadata, "namespace", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
 	var namespaces []string
 	if namespace == "" {
@@ -345,10 +345,10 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 
 	sLog.Info("  P (K8s State): delete state")
 
-	namespace := model.ReadProperty(request.Metadata, "namespace", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
@@ -381,10 +381,10 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 
 	sLog.Info("  P (K8s State): get state")
 
-	namespace := model.ReadProperty(request.Metadata, "namespace", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
 	if namespace == "" {
 		namespace = "default"
@@ -428,7 +428,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
@@ -456,7 +456,7 @@ func (s *K8sStateProvider) Read(object string, field string) (string, error) {
 func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
@@ -484,7 +484,7 @@ func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) 
 func (s *K8sStateProvider) Set(object string, field string, value string, namespace string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
@@ -501,7 +501,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, namesp
 			properties[field] = value
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
-				Metadata: map[string]string{
+				Metadata: map[string]interface{}{
 					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
@@ -519,7 +519,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, namesp
 func (s *K8sStateProvider) SetObject(object string, values map[string]string, namespace string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
@@ -538,7 +538,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string, na
 			}
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
-				Metadata: map[string]string{
+				Metadata: map[string]interface{}{
 					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
@@ -556,7 +556,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string, na
 func (s *K8sStateProvider) Remove(object string, field string, namespace string) error {
 	obj, err := s.Get(context.TODO(), states.GetRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
@@ -573,7 +573,7 @@ func (s *K8sStateProvider) Remove(object string, field string, namespace string)
 			delete(properties, field)
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
-				Metadata: map[string]string{
+				Metadata: map[string]interface{}{
 					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
@@ -591,7 +591,7 @@ func (s *K8sStateProvider) Remove(object string, field string, namespace string)
 func (s *K8sStateProvider) RemoveObject(object string, namespace string) error {
 	return s.Delete(context.TODO(), states.DeleteRequest{
 		ID: object,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.FederationGroup,
 			"version":   "v1",

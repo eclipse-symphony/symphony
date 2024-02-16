@@ -61,7 +61,7 @@ func (s *CatalogsManager) GetSpec(ctx context.Context, name string) (model.Catal
 
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",
@@ -160,7 +160,7 @@ func (m *CatalogsManager) UpsertSpec(ctx context.Context, name string, spec mode
 				"spec": spec,
 			},
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 			"namespace": "",
 			"group":     model.FederationGroup,
@@ -195,7 +195,7 @@ func (m *CatalogsManager) DeleteSpec(ctx context.Context, name string) error {
 	//TODO: publish DELETE event
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": "",
 			"group":     model.FederationGroup,
 			"version":   "v1",
@@ -213,7 +213,7 @@ func (t *CatalogsManager) ListSpec(ctx context.Context) ([]model.CatalogState, e
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "catalogs",

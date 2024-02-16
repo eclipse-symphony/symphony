@@ -49,7 +49,7 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "campaigns",
@@ -103,7 +103,7 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 				"spec": spec,
 			},
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
 			"namespace": "",
 			"group":     model.WorkflowGroup,
@@ -127,7 +127,7 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": "",
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
@@ -145,7 +145,7 @@ func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState,
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "campaigns",

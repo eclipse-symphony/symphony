@@ -8,6 +8,7 @@ package model
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	go_slices "golang.org/x/exp/slices"
@@ -33,6 +34,34 @@ type (
 		SiteId       string
 	}
 )
+
+func SimpleMapsEqual(a map[string]interface{}, b map[string]interface{}) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for k, v := range a {
+		if bv, ok := b[k]; ok {
+			if !reflect.DeepEqual(v, bv) {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+
+	for k, v := range b {
+		if av, ok := a[k]; ok {
+			if !reflect.DeepEqual(v, av) {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+
+	return true
+}
 
 // stringMapsEqual compares two string maps for equality
 func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKeys []string) bool {

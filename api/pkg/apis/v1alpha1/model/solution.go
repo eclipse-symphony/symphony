@@ -12,10 +12,10 @@ import (
 
 type (
 	SolutionState struct {
-		Id        string            `json:"id"`
-		Namespace string            `json:"namespace"`
-		Spec      *SolutionSpec     `json:"spec,omitempty"`
-		Metadata  map[string]string `json:"metadata,omitempty"`
+		Id        string                 `json:"id"`
+		Namespace string                 `json:"namespace"`
+		Spec      *SolutionSpec          `json:"spec,omitempty"`
+		Metadata  map[string]interface{} `json:"metadata,omitempty"`
 	}
 
 	SolutionSpec struct {
@@ -55,7 +55,7 @@ func (c SolutionState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
 		return false, nil
 	}
 

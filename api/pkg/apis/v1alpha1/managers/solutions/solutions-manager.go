@@ -49,7 +49,7 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespa
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
@@ -72,6 +72,8 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	for k, v := range state.Metadata {
 		metadata[k] = v
 	}
+	jMetadata, _ := json.Marshal(metadata)
+
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "Solution",
@@ -83,8 +85,8 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			ID:   name,
 			Body: body,
 		},
-		Metadata: map[string]string{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": {"name": "${{$solution()}}"}}`, model.SolutionGroup),
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": %s`, model.SolutionGroup, string(jMetadata)),
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
@@ -103,7 +105,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
 			"resource":  "solutions",
@@ -128,14 +130,16 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 
 func getSolutionState(id string, body interface{}) (model.SolutionState, error) {
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.SolutionSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
+	//read namespace
 	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
@@ -144,9 +148,20 @@ func getSolutionState(id string, body interface{}) (model.SolutionState, error) 
 		s = namespace.(string)
 	}
 
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata map[string]interface{}
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.SolutionState{}, err
+	}
+
+	//construct state
 	state := model.SolutionState{
 		Id:        id,
 		Namespace: s,
+		Metadata:  rMetadata,
 		Spec:      &rSpec,
 	}
 	return state, nil
@@ -161,7 +176,7 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
 			"resource":  "solutions",

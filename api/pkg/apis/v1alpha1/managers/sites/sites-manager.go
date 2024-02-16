@@ -52,7 +52,7 @@ func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteStat
 
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "sites",
@@ -106,14 +106,14 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	current.Metadata = map[string]string{
+	current.Metadata = map[string]interface{}{
 		"version":  "v1",
 		"group":    model.FederationGroup,
 		"resource": "sites",
 	}
 	getRequest := states.GetRequest{
 		ID: current.Id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "sites",
@@ -192,7 +192,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 				"spec": spec,
 			},
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "${{$site()}}"}}`, model.FederationGroup),
 			"namespace": "",
 			"group":     model.FederationGroup,
@@ -216,7 +216,7 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": "",
 			"group":     model.FederationGroup,
 			"version":   "v1",
@@ -235,7 +235,7 @@ func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) 
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FederationGroup,
 			"resource": "sites",

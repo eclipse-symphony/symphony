@@ -14,11 +14,11 @@ type (
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
-		Id        string            `json:"id"`
-		Namespace string            `json:"namespace"`
-		Spec      *InstanceSpec     `json:"spec,omitempty"`
-		Status    map[string]string `json:"status,omitempty"`
-		Metadata  map[string]string `json:"metadata,omitempty"`
+		Id        string                 `json:"id"`
+		Namespace string                 `json:"namespace"`
+		Spec      *InstanceSpec          `json:"spec,omitempty"`
+		Status    map[string]string      `json:"status,omitempty"`
+		Metadata  map[string]interface{} `json:"metadata,omitempty"`
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
@@ -183,7 +183,7 @@ func (c InstanceState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
+	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
 		return false, nil
 	}
 

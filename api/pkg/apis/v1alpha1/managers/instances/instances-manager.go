@@ -49,7 +49,7 @@ func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespa
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
@@ -88,7 +88,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			Body: body,
 			ETag: generation,
 		},
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
@@ -111,7 +111,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
 			"resource":  "instances",
@@ -186,7 +186,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
 			"resource":  "instances",
