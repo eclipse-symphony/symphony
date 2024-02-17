@@ -40,9 +40,9 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 }
 
 // GetCampaign retrieves a CampaignSpec object by name
-func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.CampaignState, error) {
+func (m *CampaignsManager) GetState(ctx context.Context, name string) (model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -69,27 +69,47 @@ func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.Camp
 
 func getCampaignState(id string, body interface{}) (model.CampaignState, error) {
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.CampaignSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
+
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata map[string]interface{}
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.CampaignState{}, err
+	}
+
 	state := model.CampaignState{
-		Id:   id,
-		Spec: &rSpec,
+		Id:       id,
+		Spec:     &rSpec,
+		Metadata: rMetadata,
 	}
 	return state, nil
 }
 
-func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec model.CampaignSpec) error {
+func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state model.CampaignState) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	for k, v := range state.Metadata {
+		metadata[k] = v
+	}
+	jMetadata, _ := json.Marshal(metadata)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -97,14 +117,12 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			Body: map[string]interface{}{
 				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Campaign",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   metadata,
+				"spec":       state.Spec,
 			},
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": %s}`, model.WorkflowGroup, string(jMetadata)),
 			"namespace": "",
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
@@ -118,9 +136,9 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return nil
 }
 
-func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
+func (m *CampaignsManager) DeleteState(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -137,9 +155,9 @@ func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState, error) {
+func (t *CampaignsManager) ListState(ctx context.Context) ([]model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)

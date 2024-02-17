@@ -85,10 +85,10 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.CampaignsManager.ListSpec(ctx)
+			state, err = c.CampaignsManager.ListState(ctx)
 			isArray = true
 		} else {
-			state, err = c.CampaignsManager.GetSpec(ctx, id)
+			state, err = c.CampaignsManager.GetState(ctx, id)
 		}
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -111,7 +111,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onCampaigns-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var campaign model.CampaignSpec
+		var campaign model.CampaignState
 
 		err := json.Unmarshal(request.Body, &campaign)
 		if err != nil {
@@ -122,7 +122,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 
-		err = c.CampaignsManager.UpsertSpec(ctx, id, campaign)
+		err = c.CampaignsManager.UpsertState(ctx, id, campaign)
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -136,7 +136,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.CampaignsManager.DeleteSpec(ctx, id)
+		err := c.CampaignsManager.DeleteState(ctx, id)
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

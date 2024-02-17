@@ -54,7 +54,7 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 
 func (s *CatalogsManager) GetState(ctx context.Context, name string) (model.CatalogState, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -150,7 +150,7 @@ func (m *CatalogsManager) ValidateState(ctx context.Context, state model.Catalog
 }
 func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state model.CatalogState) error {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -208,7 +208,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 
 func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -228,7 +228,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
 
 func (t *CatalogsManager) ListState(ctx context.Context) ([]model.CatalogState, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)

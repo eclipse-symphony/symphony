@@ -46,9 +46,9 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	return nil
 }
 
-func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.ActivationState, error) {
+func (m *ActivationsManager) GetState(ctx context.Context, name string) (model.ActivationState, error) {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -75,35 +75,59 @@ func (m *ActivationsManager) GetSpec(ctx context.Context, name string) (model.Ac
 
 func getActivationState(id string, body interface{}, etag string) (model.ActivationState, error) {
 	dict := body.(map[string]interface{})
+
+	//read spec
 	spec := dict["spec"]
-	status := dict["status"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.ActivationSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
+
+	//read status
+	status := dict["status"]
 	j, _ = json.Marshal(status)
 	var rStatus model.ActivationStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
+
 	rSpec.Generation = etag
+
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata map[string]interface{}
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.ActivationState{}, err
+	}
+
 	state := model.ActivationState{
-		Id:     id,
-		Spec:   &rSpec,
-		Status: &rStatus,
+		Id:       id,
+		Spec:     &rSpec,
+		Status:   &rStatus,
+		Metadata: rMetadata,
 	}
 	return state, nil
 }
 
-func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec model.ActivationSpec) error {
+func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state model.ActivationState) error {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	metadata := map[string]interface{}{
+		"name": name,
+	}
+	for k, v := range state.Metadata {
+		metadata[k] = v
+	}
+	jMetadata, _ := json.Marshal(metadata)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -111,15 +135,13 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 			Body: map[string]interface{}{
 				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Activation",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   metadata,
+				"spec":       state.Spec,
 			},
-			ETag: spec.Generation,
+			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": %s}`, model.WorkflowGroup, string(jMetadata)),
 			"namespace": "",
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
@@ -133,9 +155,9 @@ func (m *ActivationsManager) UpsertSpec(ctx context.Context, name string, spec m
 	return nil
 }
 
-func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error {
+func (m *ActivationsManager) DeleteState(ctx context.Context, name string) error {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -152,7 +174,7 @@ func (m *ActivationsManager) DeleteSpec(ctx context.Context, name string) error 
 	return err
 }
 
-func (t *ActivationsManager) ListSpec(ctx context.Context) ([]model.ActivationState, error) {
+func (t *ActivationsManager) ListState(ctx context.Context) ([]model.ActivationState, error) {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -201,17 +223,29 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	if err != nil {
 		return err
 	}
-	dict := entry.Body.(map[string]interface{})
-	delete(dict, "spec")
-	current.UpdateTime = time.Now().Format(time.RFC3339)
-	dict["status"] = current
-	entry.Body = dict
+
+	var activationState model.ActivationState
+	bytes, _ := json.Marshal(entry.Body)
+	err = json.Unmarshal(bytes, &activationState)
+	if err != nil {
+		observ_utils.CloseSpanWithError(span, &err)
+		return err
+	}
+
+	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
+	activationState.Status = &current
+
+	entry.Body = activationState
+
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
 		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.WorkflowGroup,
 			"resource": "activations",
+		},
+		Options: states.UpsertOption{
+			UpdateStateOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

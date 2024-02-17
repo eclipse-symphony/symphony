@@ -134,10 +134,10 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.ActivationsManager.ListSpec(ctx)
+			state, err = c.ActivationsManager.ListState(ctx)
 			isArray = true
 		} else {
-			state, err = c.ActivationsManager.GetSpec(ctx, id)
+			state, err = c.ActivationsManager.GetState(ctx, id)
 		}
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -160,7 +160,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		ctx, span := observability.StartSpan("onActivations-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var activation model.ActivationSpec
+		var activation model.ActivationState
 
 		err := json.Unmarshal(request.Body, &activation)
 		if err != nil {
@@ -171,7 +171,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		err = c.ActivationsManager.UpsertSpec(ctx, id, activation)
+		err = c.ActivationsManager.UpsertState(ctx, id, activation)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -179,7 +179,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-		entry, err := c.ActivationsManager.GetSpec(ctx, id)
+		entry, err := c.ActivationsManager.GetState(ctx, id)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -189,11 +189,11 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		}
 		c.Context.Publish("activation", v1alpha2.Event{
 			Body: v1alpha2.ActivationData{
-				Campaign:             activation.Campaign,
+				Campaign:             activation.Spec.Campaign,
 				ActivationGeneration: entry.Spec.Generation,
 				Activation:           id,
 				Stage:                "",
-				Inputs:               activation.Inputs,
+				Inputs:               activation.Spec.Inputs,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -202,7 +202,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onActivations-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.ActivationsManager.DeleteSpec(ctx, id)
+		err := c.ActivationsManager.DeleteState(ctx, id)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

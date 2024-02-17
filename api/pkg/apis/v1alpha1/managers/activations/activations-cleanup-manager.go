@@ -53,7 +53,7 @@ func (s *ActivationsCleanupManager) Enabled() bool {
 
 func (s *ActivationsCleanupManager) Poll() []error {
 	log.Info("M (Activation Cleanup): Polling activations")
-	activations, err := s.ActivationsManager.ListSpec(context.Background())
+	activations, err := s.ActivationsManager.ListState(context.Background())
 	if err != nil {
 		return []error{err}
 	}
@@ -85,7 +85,7 @@ func (s *ActivationsCleanupManager) Poll() []error {
 		duration := time.Since(updateTime)
 		if duration > time.Duration(s.RetentionInMinutes)*time.Minute {
 			log.Info("M (Activation Cleanup): Deleting activation " + activation.Id + " since it has completed for " + duration.String())
-			err = s.ActivationsManager.DeleteSpec(context.Background(), activation.Id)
+			err = s.ActivationsManager.DeleteState(context.Background(), activation.Id)
 			if err != nil {
 				ret = append(ret, err)
 			}

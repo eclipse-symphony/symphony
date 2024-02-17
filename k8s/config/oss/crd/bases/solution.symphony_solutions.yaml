@@ -110,10 +110,6 @@ spec:
                 type: array
               displayName:
                 type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
               version:
                 description: Defines the version of a particular resource
                 type: string

@@ -21,12 +21,12 @@ func TestCreateGetDeleteActivationSpec(t *testing.T) {
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.ActivationSpec{})
+	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	err = manager.DeleteSpec(context.Background(), "test")
+	err = manager.DeleteState(context.Background(), "test")
 	assert.Nil(t, err)
 }
 
@@ -41,15 +41,15 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 		ActivationsManager: manager,
 		RetentionInMinutes: 0,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.ActivationSpec{})
+	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
 	err = manager.ReportStatus(context.Background(), "test", model.ActivationStatus{Status: 9996})
 	assert.Nil(t, err)
 	errList := cleanupmanager.Poll()
 	assert.Empty(t, errList)
-	_, err = manager.GetSpec(context.Background(), "test")
+	_, err = manager.GetState(context.Background(), "test")
 	assert.NotNil(t, err)
 }

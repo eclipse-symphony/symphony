@@ -36,12 +36,11 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 		return err
 	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
-	if err == nil {
+	if err != nil {
 		log.Errorf(" M (Devices): failed to get state provider %+v", err)
-		s.StateProvider = stateprovider
-	} else {
 		return err
 	}
+	s.StateProvider = stateprovider
 	return nil
 }
 

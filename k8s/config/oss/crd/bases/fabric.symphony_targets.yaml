@@ -121,10 +121,6 @@ spec:
                 type: boolean
               generation:
                 type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
               properties:
                 additionalProperties:
                   type: string

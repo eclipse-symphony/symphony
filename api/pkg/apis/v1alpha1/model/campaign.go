@@ -14,15 +14,18 @@ import (
 )
 
 type CampaignState struct {
-	Id   string        `json:"id"`
-	Spec *CampaignSpec `json:"spec,omitempty"`
+	Id        string                 `json:"id"`
+	Namespace string                 `json:"namespace"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Spec      *CampaignSpec          `json:"spec,omitempty"`
 }
 
 type ActivationState struct {
-	Id       string            `json:"id"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Spec     *ActivationSpec   `json:"spec,omitempty"`
-	Status   *ActivationStatus `json:"status,omitempty"`
+	Id        string                 `json:"id"`
+	Namespace string                 `json:"namespace"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Spec      *ActivationSpec        `json:"spec,omitempty"`
+	Status    *ActivationStatus      `json:"status,omitempty"`
 }
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
@@ -112,6 +115,30 @@ func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	return true, nil
 }
+func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(CatalogState)
+	if !ok {
+		return false, errors.New("parameter is not a ActivationState type")
+	}
+
+	if c.Id != otherC.Id {
+		return false, nil
+	}
+
+	if c.Namespace != otherC.Namespace {
+		return false, nil
+	}
+
+	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
+		return false, nil
+	}
+
+	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+	return true, nil
+}
 
 type CampaignSpec struct {
 	Name        string               `json:"name,omitempty"`
@@ -150,5 +177,29 @@ func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		}
 	}
 
+	return true, nil
+}
+func (c CampaignState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(CatalogState)
+	if !ok {
+		return false, errors.New("parameter is not a CampaignState type")
+	}
+
+	if c.Id != otherC.Id {
+		return false, nil
+	}
+
+	if c.Namespace != otherC.Namespace {
+		return false, nil
+	}
+
+	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
+		return false, nil
+	}
+
+	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
 	return true, nil
 }
