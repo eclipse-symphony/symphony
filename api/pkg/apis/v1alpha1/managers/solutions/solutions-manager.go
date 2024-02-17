@@ -86,7 +86,7 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			Body: body,
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": %s`, model.SolutionGroup, string(jMetadata)),
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Solution", "metadata": %s}`, model.SolutionGroup, string(jMetadata)),
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",

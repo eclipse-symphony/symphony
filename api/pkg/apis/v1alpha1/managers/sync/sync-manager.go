@@ -57,10 +57,10 @@ func (s *SyncManager) Poll() []error {
 		for _, catalog := range batch.Catalogs {
 			s.Context.Publish("catalog-sync", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Type,
+					"objectType": catalog.Spec.Type,
 				},
 				Body: v1alpha2.JobData{
-					Id:     catalog.Name,
+					Id:     catalog.Spec.Name,
 					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},

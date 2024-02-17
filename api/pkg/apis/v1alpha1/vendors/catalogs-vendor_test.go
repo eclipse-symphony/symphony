@@ -23,52 +23,72 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var catalogSpec = model.CatalogSpec{
-	SiteId: "site1",
-	Name:   "name1",
-	Type:   "catalog",
-	Properties: map[string]interface{}{
-		"property1": "value1",
-		"property2": "value2",
-	},
-	Metadata: map[string]string{
+var catalogState = model.CatalogState{
+	Id: "name1",
+	Metadata: map[string]interface{}{
 		"metadata1": "value1",
 		"metadata2": "value2",
 	},
-	ParentName: "parent1",
-	Generation: "1",
+
+	Spec: &model.CatalogSpec{
+		SiteId: "site1",
+		Name:   "name1",
+		Type:   "catalog",
+		Properties: map[string]interface{}{
+			"property1": "value1",
+			"property2": "value2",
+		},
+		ParentName: "parent1",
+		Generation: "1",
+	},
 }
 
-func CreateSimpleChain(root string, length int, CTManager *catalogs.CatalogsManager, catalog model.CatalogSpec) error {
+func CreateSimpleChain(root string, length int, CTManager catalogs.CatalogsManager, catalog model.CatalogState) error {
 	if length < 1 {
 		return errors.New("Length can not be less than 1.")
 	}
 
-	catalog.Name = root
-	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+	var newCatalog model.CatalogState
+	jData, _ := json.Marshal(catalog)
+	json.Unmarshal(jData, &newCatalog)
+
+	newCatalog.Id = root
+	newCatalog.Spec.Name = root
+	newCatalog.Spec.ParentName = ""
+	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
 	if err != nil {
 		return err
 	}
 	for i := 1; i < length; i++ {
-		tmp := catalog.Name
-		catalog.Name = fmt.Sprintf("%s-%d", root, i)
-		catalog.ParentName = tmp
-		err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+		tmp := newCatalog.Spec.Name
+		var childCatalog model.CatalogState
+		jData, _ := json.Marshal(newCatalog)
+		json.Unmarshal(jData, &childCatalog)
+		childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, i)
+		childCatalog.Spec.ParentName = tmp
+		childCatalog.Id = childCatalog.Spec.Name
+		err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
 		if err != nil {
 			return err
 		}
+		newCatalog = childCatalog
 	}
 	return nil
 }
 
-func CreateSimpleBinaryTree(root string, depth int, CTManager *catalogs.CatalogsManager, catalog model.CatalogSpec) error {
+func CreateSimpleBinaryTree(root string, depth int, CTManager catalogs.CatalogsManager, catalog model.CatalogState) error {
 	if depth < 1 {
 		return errors.New("Depth can not be less than 1.")
 	}
-	catalog.Name = fmt.Sprintf("%s-%d", root, 0)
-	catalog.ParentName = ""
-	err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+
+	var newCatalog model.CatalogState
+	jData, _ := json.Marshal(catalog)
+	json.Unmarshal(jData, &newCatalog)
+
+	newCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, 0)
+	newCatalog.Id = newCatalog.Spec.Name
+	newCatalog.Spec.ParentName = ""
+	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
 	if err != nil {
 		return err
 	}
@@ -77,9 +97,13 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager *catalogs.Catalogs
 		levelSize := 1 << i
 		for j := 0; j < levelSize; j++ {
 			parentIndex := (count - 1) / 2
-			catalog.Name = fmt.Sprintf("%s-%d", root, count)
-			catalog.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertSpec(context.Background(), catalog.Name, catalog)
+			var childCatalog model.CatalogState
+			jData, _ := json.Marshal(newCatalog)
+			json.Unmarshal(jData, &childCatalog)
+			childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, count)
+			childCatalog.Id = childCatalog.Spec.Name
+			childCatalog.Spec.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
+			err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
 			if err != nil {
 				return err
 			}
@@ -141,7 +165,7 @@ func TestCatalogGetEndpoints(t *testing.T) {
 func TestCatalogOnCheck(t *testing.T) {
 	vendor := CatalogVendorInit()
 
-	b, err := json.Marshal(catalogSpec)
+	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -152,21 +176,23 @@ func TestCatalogOnCheck(t *testing.T) {
 	response := vendor.onCheck(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	var catalogSpec = model.CatalogSpec{
-		SiteId: "site1",
-		Type:   "catalog",
-		Properties: map[string]interface{}{
-			"property1": "value1",
-			"property2": "value2",
-		},
-		Metadata: map[string]string{
+	var catalogState = model.CatalogState{
+		Metadata: map[string]interface{}{
 			"metadata1": "value1",
 			"metadata2": "value2",
 		},
-		ParentName: "parent1",
-		Generation: "1",
+		Spec: &model.CatalogSpec{
+			SiteId: "site1",
+			Type:   "catalog",
+			Properties: map[string]interface{}{
+				"property1": "value1",
+				"property2": "value2",
+			},
+			ParentName: "parent1",
+			Generation: "1",
+		},
 	}
-	b, err = json.Marshal(catalogSpec)
+	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	// The check should fail. This is a bug
@@ -177,11 +203,11 @@ func TestCatalogOnCheck(t *testing.T) {
 	response = vendor.onCheck(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogSpec.Name = "test1"
-	catalogSpec.Metadata = map[string]string{
+	catalogState.Spec.Name = "test1"
+	catalogState.Metadata = map[string]interface{}{
 		"schema": "EmailCheckSchema",
 	}
-	b, err = json.Marshal(catalogSpec)
+	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	response = vendor.onCheck(*requestPost)
@@ -194,26 +220,28 @@ func TestCatalogOnCheck(t *testing.T) {
 			},
 		},
 	}
-	catalogSpec.Properties = map[string]interface{}{
+	catalogState.Spec.Properties = map[string]interface{}{
 		"spec": schema,
 	}
-	catalogSpec.Name = "EmailCheckSchema"
-	catalogSpec.ParentName = ""
-	catalogSpec.Metadata = nil
-	b, err = json.Marshal(catalogSpec)
+	catalogState.Spec.Name = "EmailCheckSchema"
+	catalogState.Id = catalogState.Spec.Name
+	catalogState.Spec.ParentName = ""
+	catalogState.Metadata = nil
+	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	requestPost.Parameters = map[string]string{
-		"__name": catalogSpec.Name,
+		"__name": catalogState.Id,
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	catalogSpec.Name = "test1"
-	catalogSpec.Metadata = map[string]string{
+	catalogState.Spec.Name = "test1"
+	catalogState.Id = catalogState.Spec.Name
+	catalogState.Metadata = map[string]interface{}{
 		"schema": "EmailCheckSchema",
 	}
-	b, err = json.Marshal(catalogSpec)
+	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	response = vendor.onCheck(*requestPost)
@@ -227,7 +255,7 @@ func TestCatalogOnCheckNotSupport(t *testing.T) {
 		Method:  fasthttp.MethodPatch,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": catalogSpec.Name,
+			"__name": catalogState.Id,
 		},
 	}
 
@@ -249,15 +277,16 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogSpec.Name = "test1"
-	b, err := json.Marshal(catalogSpec)
+	catalogState.Spec.Name = "test1"
+	catalogState.Id = catalogState.Spec.Name
+	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 		Body:    b,
 		Parameters: map[string]string{
-			"__name": catalogSpec.Name,
+			"__name": catalogState.Id,
 		},
 	}
 
@@ -270,7 +299,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	var summary model.CatalogState
 	err = json.Unmarshal(response.Body, &summary)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogSpec.Name, summary.Spec.Name)
+	assert.Equal(t, catalogState.Spec.Name, summary.Spec.Name)
 
 	requestGet.Parameters = nil
 	response = vendor.onCatalogs(*requestGet)
@@ -279,7 +308,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(summarys))
-	assert.Equal(t, catalogSpec.Name, summarys[0].Spec.Name)
+	assert.Equal(t, catalogState.Spec.Name, summarys[0].Spec.Name)
 }
 
 func TestCatalogOnCatalogsPost(t *testing.T) {
@@ -290,15 +319,16 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Context: context.Background(),
 		Body:    []byte("wrongObject"),
 		Parameters: map[string]string{
-			"__name": catalogSpec.Name,
+			"__name": catalogState.Spec.Name,
 		},
 	}
 
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogSpec.Name = "test1"
-	b, err := json.Marshal(catalogSpec)
+	catalogState.Spec.Name = "test1"
+	catalogState.Id = catalogState.Spec.Name
+	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	requestPost.Parameters = nil
@@ -306,7 +336,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 	assert.Equal(t, v1alpha2.BadRequest, response.State)
 
 	requestPost.Parameters = map[string]string{
-		"__name": catalogSpec.Name,
+		"__name": catalogState.Id,
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
@@ -323,7 +353,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 	var summarys model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogSpec.Name, summarys.Spec.Name)
+	assert.Equal(t, catalogState.Spec.Name, summarys.Spec.Name)
 }
 
 func TestCatalogOnCatalogsDelete(t *testing.T) {
@@ -333,19 +363,20 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": catalogSpec.Name,
+			"__name": catalogState.Id,
 		},
 	}
 
-	catalogSpec.Name = "test1"
-	b, err := json.Marshal(catalogSpec)
+	catalogState.Spec.Name = "test1"
+	catalogState.Id = catalogState.Spec.Name
+	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
 	requestPost.Parameters = map[string]string{
-		"__name": catalogSpec.Name,
+		"__name": catalogState.Id,
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
@@ -378,7 +409,7 @@ func TestCatalogOnCatalogsNotSupport(t *testing.T) {
 		Method:  fasthttp.MethodPatch,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": catalogSpec.Name,
+			"__name": catalogState.Id,
 		},
 	}
 
@@ -397,8 +428,8 @@ func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 		},
 	}
 
-	catalogSpec.Type = "config"
-	err := CreateSimpleChain("root", 4, vendor.CatalogsManager, catalogSpec)
+	catalogState.Spec.Type = "config"
+	err := CreateSimpleChain("root", 4, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
@@ -419,8 +450,8 @@ func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 		},
 	}
 
-	catalogSpec.Type = "asset"
-	err := CreateSimpleBinaryTree("root", 3, vendor.CatalogsManager, catalogSpec)
+	catalogState.Spec.Type = "asset"
+	err := CreateSimpleBinaryTree("root", 3, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
@@ -465,12 +496,12 @@ func TestCatalogSubscribe(t *testing.T) {
 
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{
 		Metadata: map[string]string{
-			"objectType": catalogSpec.Type,
+			"objectType": catalogState.Spec.Type,
 		},
 		Body: v1alpha2.JobData{
-			Id:     catalogSpec.Name,
+			Id:     catalogState.Id,
 			Action: "UPDATE",
-			Body:   catalogSpec,
+			Body:   catalogState,
 		},
 	})
 
@@ -478,7 +509,7 @@ func TestCatalogSubscribe(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": fmt.Sprintf("%s-%s", catalogSpec.SiteId, catalogSpec.Name),
+			"__name": fmt.Sprintf("%s-%s", catalogState.Spec.SiteId, catalogState.Spec.Name),
 		},
 	}
 	response := vendor.onCatalogs(*requestGet)

@@ -72,6 +72,8 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	for k, v := range state.Metadata {
 		metadata[k] = v
 	}
+	jMetadata, _ := json.Marshal(metadata)
+
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "Instance",
@@ -89,7 +91,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			ETag: generation,
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": %s`, model.SolutionGroup, string(jMetadata)),
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
@@ -136,9 +138,9 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 
 func getInstanceState(id string, body interface{}, etag string) (model.InstanceState, error) {
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-	status := dict["status"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.InstanceSpec
 	err := json.Unmarshal(j, &rSpec)
@@ -146,20 +148,18 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 		return model.InstanceState{}, err
 	}
 
+	//read status
+	status := dict["status"]
 	j, _ = json.Marshal(status)
-	var rStatus map[string]interface{}
+	var rStatus map[string]string
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
-	if err != nil {
-		return model.InstanceState{}, err
-	}
+
 	rSpec.Generation = etag
 
+	//read namespace
 	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
@@ -168,11 +168,21 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 		s = namespace.(string)
 	}
 
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata map[string]interface{}
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.InstanceState{}, err
+	}
+
 	state := model.InstanceState{
 		Id:        id,
 		Namespace: s,
 		Spec:      &rSpec,
-		Status:    rProperties,
+		Status:    rStatus,
+		Metadata:  rMetadata,
 	}
 	return state, nil
 }

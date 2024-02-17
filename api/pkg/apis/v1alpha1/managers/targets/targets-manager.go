@@ -75,6 +75,8 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace
 	for k, v := range state.Metadata {
 		metadata[k] = v
 	}
+	jMetadata, _ := json.Marshal(metadata)
+
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
 		"kind":       "Target",
@@ -89,7 +91,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace
 			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": %s}`, model.FabricGroup, string(jMetadata)),
 			"namespace": namespace,
 			"group":     model.FabricGroup,
 			"version":   "v1",
@@ -131,6 +133,9 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 			targetState.Status.Properties = make(map[string]string)
 		}
 		targetState.Status.Properties[k] = v
+	}
+	if current.Status.LastModified != "" {
+		targetState.Status.LastModified = current.Status.LastModified
 	}
 
 	target.Body = targetState
@@ -185,9 +190,9 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		return v, nil
 	}
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-	status := dict["status"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.TargetSpec
 	err := json.Unmarshal(j, &rSpec)
@@ -195,6 +200,8 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		return model.TargetState{}, err
 	}
 
+	//read status
+	status := dict["status"]
 	j, _ = json.Marshal(status)
 	var rStatus model.TargetStatus
 	err = json.Unmarshal(j, &rStatus)
@@ -204,6 +211,7 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 
 	rSpec.Generation = etag
 
+	//read namespace
 	namespace, exist := dict["namespace"]
 	var s string
 	if !exist {
@@ -212,11 +220,21 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		s = namespace.(string)
 	}
 
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata map[string]interface{}
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.TargetState{}, err
+	}
+
 	state := model.TargetState{
 		Id:        id,
 		Namespace: s,
 		Spec:      &rSpec,
 		Status:    rStatus,
+		Metadata:  rMetadata,
 	}
 	return state, nil
 }

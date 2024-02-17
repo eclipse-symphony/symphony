@@ -154,26 +154,26 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 	return resp
 }
 
-func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogSpec) error {
-	catalog.Name = name
-	existingCatalog, err := c.CatalogsManager.GetSpec(ctx, name)
+func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
+	catalog.Spec.Name = name
+	existingCatalog, err := c.CatalogsManager.GetState(ctx, name)
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
 			return err
 		}
-		return c.CatalogsManager.UpsertSpec(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, name, catalog)
 	} else {
-		catalog, err = mergeCatalogs(*existingCatalog.Spec, catalog)
+		catalog, err = mergeCatalogs(existingCatalog, catalog)
 		if err != nil {
 			return err
 		}
-		return c.CatalogsManager.UpsertSpec(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, name, catalog)
 	}
 }
-func mergeCatalogs(existingCatalog, newCatalog model.CatalogSpec) (model.CatalogSpec, error) {
+func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.CatalogState, error) {
 	mergedCatalog := existingCatalog
-	for k, v := range newCatalog.Properties {
-		if ev, ok := existingCatalog.Properties[k]; ok {
+	for k, v := range newCatalog.Spec.Properties {
+		if ev, ok := existingCatalog.Spec.Properties[k]; ok {
 			if vd, ok := v.(map[string]model.Packet); ok {
 				if ed, ok := ev.(map[string]interface{}); ok {
 					for ik, iv := range vd {
@@ -184,25 +184,27 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogSpec) (model.Catalog
 						ed[ik] = iv
 					}
 				} else {
-					return model.CatalogSpec{}, fmt.Errorf("cannot merge catalogs, existing property %s is not a map[string]interface{}", k)
+					return model.CatalogState{}, fmt.Errorf("cannot merge catalogs, existing property %s is not a map[string]interface{}", k)
 				}
 			} else {
-				return model.CatalogSpec{}, fmt.Errorf("cannot merge catalogs, new property %s is not a map[string]model.Packet", k)
+				return model.CatalogState{}, fmt.Errorf("cannot merge catalogs, new property %s is not a map[string]model.Packet", k)
 			}
 		} else {
-			mergedCatalog.Properties[k] = v
+			mergedCatalog.Spec.Properties[k] = v
 		}
 	}
 	return mergedCatalog, nil
 }
 
-func convertVisualizationPacketToCatalog(site string, packet model.Packet) (model.CatalogSpec, error) {
-	catalog := model.CatalogSpec{
-		SiteId: site,
-		Type:   "topology",
-		Properties: map[string]interface{}{
-			packet.From: map[string]model.Packet{
-				packet.To: packet,
+func convertVisualizationPacketToCatalog(site string, packet model.Packet) (model.CatalogState, error) {
+	catalog := model.CatalogState{
+		Spec: &model.CatalogSpec{
+			SiteId: site,
+			Type:   "topology",
+			Properties: map[string]interface{}{
+				packet.From: map[string]model.Packet{
+					packet.To: packet,
+				},
 			},
 		},
 	}
