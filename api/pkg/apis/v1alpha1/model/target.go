@@ -6,27 +6,29 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type (
 	TargetStatus struct {
 		Properties         map[string]string  `json:"properties,omitempty"`
 		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
-		LastModified       string             `json:"lastModified,omitempty"`
+		LastModified       time.Time          `json:"lastModified,omitempty"`
 	}
 	// TargetState defines the current state of the target
 	TargetState struct {
-		Id        string                 `json:"id"`
-		Namespace string                 `json:"namespace,omitempty"`
-		Metadata  map[string]interface{} `json:"metadata,omitempty"`
-		Status    TargetStatus           `json:"status,omitempty"`
-		Spec      *TargetSpec            `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta   `json:"metadata,omitempty"`
+		Status     TargetStatus `json:"status,omitempty"`
+		Spec       *TargetSpec  `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
 	TargetSpec struct {
 		DisplayName   string            `json:"displayName,omitempty"`
 		Scope         string            `json:"scope,omitempty"`
+		Metadata      map[string]string `json:"metadata,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
 		Constraints   string            `json:"constraints,omitempty"`
@@ -49,6 +51,10 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 		return false, nil
 	}
 
@@ -81,19 +87,12 @@ func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a TargetState type")
 	}
 
-	if c.Id != otherC.Id {
-		return false, nil
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
 	}
 
-	if c.Namespace != otherC.Namespace {
-		return false, nil
-	}
-
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
-	}
-
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
 	if err != nil || !equal {
 		return equal, err
 	}

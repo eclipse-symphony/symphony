@@ -108,16 +108,6 @@ func MergeCollection(col1 map[string]string, col2 map[string]string) map[string]
 	}
 	return ret
 }
-func MergeInterfaceCollection(col1 map[string]interface{}, col2 map[string]interface{}) map[string]interface{} {
-	ret := make(map[string]interface{})
-	for k, v := range col1 {
-		ret[k] = v
-	}
-	for k, v := range col2 {
-		ret[k] = v
-	}
-	return ret
-}
 func CollectStringMap(col map[string]string, prefix string) map[string]string {
 	ret := make(map[string]string)
 	for k := range col {

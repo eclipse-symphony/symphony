@@ -117,7 +117,9 @@ func TestCatalogNotMatch(t *testing.T) {
 
 func TestGetId(t *testing.T) {
 	catalog := CatalogState{
-		Id: "id",
+		ObjectMeta: ObjectMeta{
+			Name: "id",
+		},
 	}
 	assert.Equal(t, catalog.GetId(), "id")
 }
@@ -164,11 +166,11 @@ func TestGetType(t *testing.T) {
 
 func TestGetFrom(t *testing.T) {
 	catalog := CatalogState{
-		Metadata: map[string]interface{}{
-			"from": "from",
-		},
 		Spec: &CatalogSpec{
 			Type: "edge",
+			Metadata: map[string]string{
+				"from": "from",
+			},
 		},
 	}
 	assert.Equal(t, catalog.GetFrom(), "from")
@@ -179,11 +181,11 @@ func TestGetFrom(t *testing.T) {
 
 func TestGetTo(t *testing.T) {
 	catalog := CatalogState{
-		Metadata: map[string]interface{}{
-			"to": "to",
-		},
 		Spec: &CatalogSpec{
 			Type: "edge",
+			Metadata: map[string]string{
+				"to": "to",
+			},
 		},
 	}
 	assert.Equal(t, catalog.GetTo(), "to")

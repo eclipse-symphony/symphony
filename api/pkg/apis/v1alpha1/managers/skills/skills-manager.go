@@ -54,6 +54,7 @@ func (t *SkillsManager) DeleteSpec(ctx context.Context, name string) error {
 			"group":     model.AIGroup,
 			"version":   "v1",
 			"resource":  "skills",
+			"kind":      "Skill",
 		},
 	})
 	if err != nil {
@@ -88,6 +89,7 @@ func (t *SkillsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			"group":     model.AIGroup,
 			"version":   "v1",
 			"resource":  "skills",
+			"kind":      "Skill",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

@@ -256,7 +256,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	//updated
 	modules := make(map[string]Module)
 	for _, a := range components {
-		module, e := toModule(a, deployment.Instance.Spec.Name, deployment.Instance.Metadata[ENV_NAME].(string), step.Target)
+		module, e := toModule(a, deployment.Instance.Spec.Name, deployment.Instance.Spec.Metadata[ENV_NAME], step.Target)
 		if e != nil {
 			ret[a.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.UpdateFailed,
@@ -269,7 +269,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		modules[a.Name] = module
 	}
 	if len(modules) > 0 {
-		err = i.deployToIoTEdge(ctx, deployment.Instance.Spec.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
+		err = i.deployToIoTEdge(ctx, deployment.Instance.Spec.Name, deployment.Instance.Spec.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
 			sLog.Errorf("  P (IoT Edge Target): failed to deploy to IoT edge: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
@@ -279,7 +279,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	//delete
 	modules = make(map[string]Module)
 	for _, a := range components {
-		module, e := toModule(a, deployment.Instance.Spec.Name, deployment.Instance.Metadata[ENV_NAME].(string), step.Target)
+		module, e := toModule(a, deployment.Instance.Spec.Name, deployment.Instance.Spec.Metadata[ENV_NAME], step.Target)
 		if e != nil {
 			ret[a.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.DeleteFailed,
@@ -291,7 +291,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		modules[a.Name] = module
 	}
 	if len(modules) > 0 {
-		err = i.remvoefromIoTEdge(ctx, deployment.Instance.Spec.Name, deployment.Instance.Metadata, modules, edgeAgent, edgeHub)
+		err = i.remvoefromIoTEdge(ctx, deployment.Instance.Spec.Name, deployment.Instance.Spec.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
 			sLog.Errorf("  P (IoT Edge Target): failed to remove from IoT edge: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
@@ -587,7 +587,7 @@ func (i *IoTEdgeTargetProvider) getIoTEdgeModules(ctx context.Context) (map[stri
 	return ret, nil
 }
 
-func (i *IoTEdgeTargetProvider) remvoefromIoTEdge(ctx context.Context, name string, metadata map[string]interface{}, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
+func (i *IoTEdgeTargetProvider) remvoefromIoTEdge(ctx context.Context, name string, metadata map[string]string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
 	deployment := makeDefaultDeployment(metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
 	err := reduceDeployment(&deployment, name, modules, agentRef, hubRef)
 	if err != nil {
@@ -596,7 +596,7 @@ func (i *IoTEdgeTargetProvider) remvoefromIoTEdge(ctx context.Context, name stri
 	return i.applyIoTEdgeDeployment(ctx, deployment)
 }
 
-func (i *IoTEdgeTargetProvider) deployToIoTEdge(ctx context.Context, name string, metadata map[string]interface{}, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
+func (i *IoTEdgeTargetProvider) deployToIoTEdge(ctx context.Context, name string, metadata map[string]string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
 
 	deployment := makeDefaultDeployment(metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
 
@@ -809,7 +809,7 @@ func reduceDeployment(deployment *IoTEdgeDeployment, name string, modules map[st
 	return nil
 }
 
-func makeDefaultDeployment(metadata map[string]interface{}, edgeAgentVersion string, edgeHubVersion string) IoTEdgeDeployment {
+func makeDefaultDeployment(metadata map[string]string, edgeAgentVersion string, edgeHubVersion string) IoTEdgeDeployment {
 
 	deployment := IoTEdgeDeployment{
 		ModulesContent: map[string]ModuleState{
@@ -854,9 +854,9 @@ func makeDefaultDeployment(metadata map[string]interface{}, edgeAgentVersion str
 			},
 		},
 	}
-	if v, ok := metadata["$edgeAgent.registryCredentials"]; ok && strings.HasPrefix(v.(string), "[") && strings.HasSuffix(v.(string), "]") {
+	if v, ok := metadata["$edgeAgent.registryCredentials"]; ok && strings.HasPrefix(v, "[") && strings.HasSuffix(v, "]") {
 		credentials := make(map[string]RegistryCredential)
-		data := []byte(v.(string))
+		data := []byte(v)
 		err := json.Unmarshal(data, &credentials)
 		if err == nil {
 			(deployment.ModulesContent["$edgeAgent"].DesiredProperties["runtime"].(Runtime)).Settings["registryCredentials"] = credentials

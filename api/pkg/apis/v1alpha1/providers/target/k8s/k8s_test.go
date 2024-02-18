@@ -331,7 +331,9 @@ func TestDeployment(t *testing.T) {
 
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "default",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "default",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "name",
 			},
@@ -368,7 +370,9 @@ func TestDeployment(t *testing.T) {
 
 	deployment = model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "default",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "default",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "name",
 			},

@@ -8,17 +8,22 @@ package model
 
 import (
 	"errors"
+	"time"
 )
 
 type (
+	InstanceStatus struct {
+		// Important: Run "make" to regenerate code after modifying this file
+		Properties         map[string]string  `json:"properties,omitempty"`
+		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+		LastModified       time.Time          `json:"lastModified,omitempty"`
+	}
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
-		Id        string                 `json:"id"`
-		Namespace string                 `json:"namespace"`
-		Spec      *InstanceSpec          `json:"spec,omitempty"`
-		Status    map[string]string      `json:"status,omitempty"`
-		Metadata  map[string]interface{} `json:"metadata,omitempty"`
+		ObjectMeta ObjectMeta     `json:"metadata,omitempty"`
+		Spec       *InstanceSpec  `json:"spec,omitempty"`
+		Status     InstanceStatus `json:"status,omitempty"`
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
@@ -28,6 +33,7 @@ type (
 		DisplayName string                       `json:"displayName,omitempty"`
 		Scope       string                       `json:"scope,omitempty"`
 		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata    map[string]string            `json:"metadata,omitempty"`
 		Solution    string                       `json:"solution"`
 		Target      TargetSelector               `json:"target,omitempty"`
 		Topologies  []TopologySpec               `json:"topologies,omitempty"`
@@ -175,19 +181,12 @@ func (c InstanceState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a InstanceState type")
 	}
 
-	if c.Id != otherC.Id {
-		return false, nil
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
 	}
 
-	if c.Namespace != otherC.Namespace {
-		return false, nil
-	}
-
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
-	}
-
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
 	if err != nil || !equal {
 		return equal, err
 	}

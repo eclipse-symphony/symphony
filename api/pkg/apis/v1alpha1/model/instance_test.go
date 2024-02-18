@@ -14,9 +14,8 @@ import (
 
 func TestInstanceDeepEquals(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -31,12 +30,14 @@ func TestInstanceDeepEquals(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -51,6 +52,9 @@ func TestInstanceDeepEquals(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -60,9 +64,8 @@ func TestInstanceDeepEquals(t *testing.T) {
 
 func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -79,6 +82,9 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 			}},
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
+			},
+			Metadata: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
@@ -89,9 +95,8 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 
 func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -109,12 +114,14 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName1",
@@ -132,6 +139,9 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -141,9 +151,8 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -161,12 +170,14 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -184,6 +195,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -193,9 +207,8 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -212,13 +225,15 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			}},
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
+			},
+			Metadata: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default1",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default1",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -235,6 +250,9 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			}},
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
+			},
+			Metadata: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
@@ -245,9 +263,8 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -265,12 +282,14 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -288,6 +307,9 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -297,9 +319,8 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 
 func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -317,12 +338,14 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -340,6 +363,9 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -349,9 +375,8 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 
 func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -369,12 +394,14 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -392,6 +419,9 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -401,9 +431,8 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 
 func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -421,12 +450,14 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -444,6 +475,9 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo1": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -453,9 +487,8 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 
 func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 	Instance := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -473,12 +506,14 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			Arguments: map[string]map[string]string{
 				"foo": {"foo": "bar"},
 			},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	other := InstanceState{
-		Namespace: "Default",
-		Metadata: map[string]interface{}{
-			"foo": "bar",
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
 		},
 		Spec: &InstanceSpec{
 			Name:        "InstanceName",
@@ -495,6 +530,9 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			}},
 			Arguments: map[string]map[string]string{
 				"foo": {"foo1": "bar1"},
+			},
+			Metadata: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}

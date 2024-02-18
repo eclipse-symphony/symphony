@@ -115,7 +115,7 @@ func TestTargetsOnRegistry(t *testing.T) {
 	var targets model.TargetState
 	json.Unmarshal(resp.Body, &targets)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "target1", targets.Id)
+	assert.Equal(t, "target1", targets.ObjectMeta.Name)
 	assert.Equal(t, 1, len(targets.Spec.Topologies))
 
 	resp = vendor.onRegistry(v1alpha2.COARequest{

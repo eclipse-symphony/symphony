@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -57,30 +58,28 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	return err
 }
 
-func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace string, state model.TargetState) error {
+func (t *TargetsManager) UpsertState(ctx context.Context, name string, state model.TargetState) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	metadata := map[string]interface{}{
-		"name": name,
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
-	for k, v := range state.Metadata {
-		metadata[k] = v
-	}
-	jMetadata, _ := json.Marshal(metadata)
+	state.ObjectMeta.FixNames(name)
 
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
 		"kind":       "Target",
-		"metadata":   metadata,
+		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
 
@@ -90,14 +89,8 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, namespace
 			Body: body,
 			ETag: state.Spec.Generation,
 		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": %s}`, model.FabricGroup, string(jMetadata)),
-			"namespace": namespace,
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-		},
 	}
+
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
@@ -111,9 +104,9 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
-		ID:       current.Id,
-		Metadata: current.Metadata,
+		ID: current.ObjectMeta.Name,
 	}
+
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, &err)
@@ -134,15 +127,21 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		}
 		targetState.Status.Properties[k] = v
 	}
-	if current.Status.LastModified != "" {
+	if current.Status.LastModified.IsZero() {
 		targetState.Status.LastModified = current.Status.LastModified
 	}
 
 	target.Body = targetState
 
 	updateRequest := states.UpsertRequest{
-		Value:    target,
-		Metadata: current.Metadata,
+		Value: target,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": current.ObjectMeta.Namespace,
+			"kind":      "Target",
+		},
 		Options: states.UpsertOption{
 			UpdateStateOnly: true,
 		},
@@ -167,6 +166,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 			"group":     model.FabricGroup,
 			"resource":  "targets",
 			"namespace": namespace,
+			"kind":      "Target",
 		},
 	}
 	targets, _, err := t.StateProvider.List(ctx, listRequest)
@@ -211,31 +211,21 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 
 	rSpec.Generation = etag
 
-	//read namespace
-	namespace, exist := dict["namespace"]
-	var s string
-	if !exist {
-		s = "default"
-	} else {
-		s = namespace.(string)
-	}
-
 	//read metadata
 	metadata := dict["metadata"]
 	j, _ = json.Marshal(metadata)
-	var rMetadata map[string]interface{}
+	var rMetadata model.ObjectMeta
 	err = json.Unmarshal(j, &rMetadata)
 	if err != nil {
 		return model.TargetState{}, err
 	}
 
 	state := model.TargetState{
-		Id:        id,
-		Namespace: s,
-		Spec:      &rSpec,
-		Status:    rStatus,
-		Metadata:  rMetadata,
+		ObjectMeta: rMetadata,
+		Spec:       &rSpec,
+		Status:     rStatus,
 	}
+
 	return state, nil
 }
 
@@ -253,6 +243,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 			"group":     model.FabricGroup,
 			"resource":  "targets",
 			"namespace": namespace,
+			"kind":      "Target",
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

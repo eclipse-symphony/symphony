@@ -178,6 +178,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(entry.Metadata, "version", nil)
 	resource := model.ReadPropertyCompat(entry.Metadata, "resource", nil)
+	kind := model.ReadPropertyCompat(entry.Metadata, "Kind", nil)
 
 	if namespace == "" {
 		namespace = "default"
@@ -197,19 +198,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	j, _ := json.Marshal(entry.Value.Body)
 	item, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
-		// TODO: check if not-found error
-		template := model.ReadPropertyCompat(entry.Metadata, "template", &model.ValueInjections{
-			TargetId:     entry.Value.ID,
-			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
-			InstanceId:   entry.Value.ID,
-			ActivationId: entry.Value.ID,
-			CampaignId:   entry.Value.ID,
-			CatalogId:    entry.Value.ID,
-			DeviceId:     entry.Value.ID,
-			ModelId:      entry.Value.ID,
-			SkillId:      entry.Value.ID,
-			SiteId:       entry.Value.ID,
-		})
+		template := fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "%s", "metadata": {}}`, group, kind)
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
@@ -223,6 +212,18 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			return "", err
 		}
 		unc.Object["spec"] = dict["spec"]
+		metaJson, _ := json.Marshal(dict["metadata"])
+		var metadata metav1.ObjectMeta
+		err = json.Unmarshal(metaJson, &metadata)
+		if err != nil {
+			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
+			return "", err
+		}
+		unc.SetName(metadata.Name)
+		unc.SetNamespace(metadata.Namespace)
+		unc.SetLabels(metadata.Labels)
+		unc.SetAnnotations(metadata.Annotations)
+
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to create object: %v", err)
@@ -321,13 +322,19 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 		}
 		for _, v := range items.Items {
 			generation := v.GetGeneration()
+			metadata := model.ObjectMeta{
+				Name:        v.GetName(),
+				Namespace:   v.GetNamespace(),
+				Labels:      v.GetLabels(),
+				Annotations: v.GetAnnotations(),
+			}
 			entry := states.StateEntry{
 				ETag: strconv.FormatInt(generation, 10),
 				ID:   v.GetName(),
 				Body: map[string]interface{}{
-					"spec":      v.Object["spec"],
-					"status":    v.Object["status"],
-					"namespace": namespace,
+					"spec":     v.Object["spec"],
+					"status":   v.Object["status"],
+					"metadata": metadata,
 				},
 			}
 			entities = append(entities, entry)
@@ -412,13 +419,21 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		return states.StateEntry{}, coaError
 	}
 	generation := item.GetGeneration()
+
+	metadata := model.ObjectMeta{
+		Name:        item.GetName(),
+		Namespace:   item.GetNamespace(),
+		Labels:      item.GetLabels(),
+		Annotations: item.GetAnnotations(),
+	}
+
 	ret := states.StateEntry{
 		ID:   request.ID,
 		ETag: strconv.FormatInt(generation, 10),
 		Body: map[string]interface{}{
-			"spec":      item.Object["spec"],
-			"status":    item.Object["status"],
-			"namespace": namespace,
+			"spec":     item.Object["spec"],
+			"status":   item.Object["status"],
+			"metadata": metadata,
 		},
 	}
 	return ret, nil
@@ -489,6 +504,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, namesp
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
 			"namespace": namespace,
+			"kind":      "Catalog",
 		},
 	})
 	if err != nil {
@@ -507,6 +523,7 @@ func (s *K8sStateProvider) Set(object string, field string, value string, namesp
 					"group":     model.FederationGroup,
 					"version":   "v1",
 					"resource":  "catalogs",
+					"kind":      "Catalog",
 				},
 			})
 			return err
@@ -524,6 +541,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string, na
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
 			"namespace": namespace,
+			"kind":      "Catalog",
 		},
 	})
 	if err != nil {
@@ -544,6 +562,7 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string, na
 					"group":     model.FederationGroup,
 					"version":   "v1",
 					"resource":  "catalogs",
+					"kind":      "Catalog",
 				},
 			})
 			return err
@@ -561,6 +580,7 @@ func (s *K8sStateProvider) Remove(object string, field string, namespace string)
 			"group":     model.FederationGroup,
 			"resource":  "catalogs",
 			"namespace": namespace,
+			"kind":      "Catalog",
 		},
 	})
 	if err != nil {
@@ -579,6 +599,7 @@ func (s *K8sStateProvider) Remove(object string, field string, namespace string)
 					"group":     model.FederationGroup,
 					"version":   "v1",
 					"resource":  "catalogs",
+					"kind":      "Catalog",
 				},
 			})
 			return err
@@ -596,6 +617,7 @@ func (s *K8sStateProvider) RemoveObject(object string, namespace string) error {
 			"group":     model.FederationGroup,
 			"version":   "v1",
 			"resource":  "catalogs",
+			"kind":      "Catalog",
 		},
 	})
 }

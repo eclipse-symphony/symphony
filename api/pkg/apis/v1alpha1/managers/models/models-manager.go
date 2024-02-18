@@ -55,6 +55,7 @@ func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
 			"group":     model.AIGroup,
 			"version":   "v1",
 			"resource":  "models",
+			"kind":      "Model",
 		},
 	})
 
@@ -90,6 +91,7 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			"group":     model.AIGroup,
 			"version":   "v1",
 			"resource":  "models",
+			"kind":      "Model",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

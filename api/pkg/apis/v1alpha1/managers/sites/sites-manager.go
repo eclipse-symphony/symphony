@@ -198,6 +198,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 			"group":     model.FederationGroup,
 			"version":   "v1",
 			"resource":  "sites",
+			"kind":      "Site",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -221,6 +222,7 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 			"group":     model.FederationGroup,
 			"version":   "v1",
 			"resource":  "sites",
+			"kind":      "Site",
 		},
 	})
 

@@ -13,11 +13,9 @@ import (
 
 // TODO: all state objects should converge to this paradigm: id, spec and status
 type CatalogState struct {
-	Id        string                 `json:"id"`
-	Namespace string                 `json:"namespace"`
-	Spec      *CatalogSpec           `json:"spec,omitempty"`
-	Status    *CatalogStatus         `json:"status,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	ObjectMeta ObjectMeta     `json:"metadata,omitempty"`
+	Spec       *CatalogSpec   `json:"spec,omitempty"`
+	Status     *CatalogStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -36,6 +34,7 @@ type CatalogSpec struct {
 	SiteId     string                 `json:"siteId"`
 	Name       string                 `json:"name"`
 	Type       string                 `json:"type"`
+	Metadata   map[string]string      `json:"metadata,omitempty"`
 	Properties map[string]interface{} `json:"properties"`
 	ParentName string                 `json:"parentName,omitempty"`
 	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
@@ -81,28 +80,22 @@ func (c CatalogState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a CatalogState type")
 	}
 
-	if c.Id != otherC.Id {
-		return false, nil
-	}
-
-	if c.Namespace != otherC.Namespace {
-		return false, nil
-	}
-
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
-	}
-
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
 	if err != nil || !equal {
 		return equal, err
 	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+
 	return true, nil
 }
 
 // INode interface
 func (s CatalogState) GetId() string {
-	return s.Id
+	return s.ObjectMeta.Name
 }
 func (s CatalogState) GetParent() string {
 	if s.Spec != nil {
@@ -127,9 +120,9 @@ func (s CatalogState) GetProperties() map[string]interface{} {
 func (s CatalogState) GetFrom() string {
 	if s.Spec != nil {
 		if s.Spec.Type == "edge" {
-			if s.Metadata != nil {
-				if from, ok := s.Metadata["from"]; ok {
-					return from.(string)
+			if s.Spec.Metadata != nil {
+				if from, ok := s.Spec.Metadata["from"]; ok {
+					return from
 				}
 			}
 		}
@@ -140,9 +133,9 @@ func (s CatalogState) GetFrom() string {
 func (s CatalogState) GetTo() string {
 	if s.Spec != nil {
 		if s.Spec.Type == "edge" {
-			if s.Metadata != nil {
-				if to, ok := s.Metadata["to"]; ok {
-					return to.(string)
+			if s.Spec.Metadata != nil {
+				if to, ok := s.Spec.Metadata["to"]; ok {
+					return to
 				}
 			}
 		}

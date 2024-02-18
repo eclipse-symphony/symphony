@@ -104,17 +104,16 @@ func getCatalogState(id string, body interface{}, etag string) (model.CatalogSta
 	//read metadata
 	metadata := dict["metadata"]
 	j, _ = json.Marshal(metadata)
-	var rMetadata map[string]interface{}
+	var rMetadata model.ObjectMeta
 	err = json.Unmarshal(j, &rMetadata)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
 
 	state := model.CatalogState{
-		Id:       id,
-		Spec:     &rSpec,
-		Status:   &rStatus,
-		Metadata: rMetadata,
+		ObjectMeta: rMetadata,
+		Spec:       &rSpec,
+		Status:     &rStatus,
 	}
 	return state, nil
 }
@@ -125,9 +124,9 @@ func (m *CatalogsManager) ValidateState(ctx context.Context, state model.Catalog
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	if schemaName, ok := state.Metadata["schema"]; ok {
+	if schemaName, ok := state.Spec.Metadata["schema"]; ok {
 		var schema model.CatalogState
-		schema, err = m.GetState(ctx, schemaName.(string))
+		schema, err = m.GetState(ctx, schemaName)
 		if err != nil {
 			err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
 			return utils.SchemaResult{Valid: false}, err
@@ -155,13 +154,10 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	metadata := map[string]interface{}{
-		"name": name,
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
-	for k, v := range state.Metadata {
-		metadata[k] = v
-	}
-	jMetadata, _ := json.Marshal(metadata)
+	state.ObjectMeta.FixNames(name)
 
 	result, err := m.ValidateState(ctx, state)
 	if err != nil {
@@ -177,16 +173,9 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup + "/v1",
 				"kind":       "Catalog",
-				"metadata":   metadata,
+				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
-		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": %s}`, model.FederationGroup, string(jMetadata)),
-			"namespace": "",
-			"group":     model.FederationGroup,
-			"version":   "v1",
-			"resource":  "catalogs",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -221,6 +210,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
 			"group":     model.FederationGroup,
 			"version":   "v1",
 			"resource":  "catalogs",
+			"kind":      "Catalog",
 		},
 	})
 	return err

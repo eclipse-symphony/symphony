@@ -121,7 +121,9 @@ func TestStagingTargetProviderApply(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Namespace: "",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
@@ -178,7 +180,9 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Namespace: "",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
@@ -217,7 +221,9 @@ func TestApply(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/test-target":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
@@ -265,7 +271,9 @@ func TestApply(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Namespace: "",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
@@ -309,7 +317,9 @@ func TestGet(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/test-target":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
@@ -357,7 +367,9 @@ func TestGet(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Namespace: "",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
@@ -424,7 +436,9 @@ func TestGetCatalogsFailed(t *testing.T) {
 			},
 		},
 		Solution: model.SolutionState{
-			Namespace: "",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},

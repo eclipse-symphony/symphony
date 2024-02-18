@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -54,30 +55,28 @@ func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespa
 			"group":     model.SolutionGroup,
 			"version":   "v1",
 			"resource":  "instances",
+			"kind":      "Instance",
 		},
 	})
 	return err
 }
 
-func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState, namespace string) error {
+func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	metadata := map[string]interface{}{
-		"name": name,
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
-	for k, v := range state.Metadata {
-		metadata[k] = v
-	}
-	jMetadata, _ := json.Marshal(metadata)
+	state.ObjectMeta.FixNames(name)
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "Instance",
-		"metadata":   metadata,
+		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
 	generation := ""
@@ -89,13 +88,6 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			ID:   name,
 			Body: body,
 			ETag: generation,
-		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": %s`, model.SolutionGroup, string(jMetadata)),
-			"namespace": namespace,
-			"group":     model.SolutionGroup,
-			"version":   "v1",
-			"resource":  "instances",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -118,6 +110,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 			"group":     model.SolutionGroup,
 			"resource":  "instances",
 			"namespace": namespace,
+			"kind":      "Instance",
 		},
 	}
 	instances, _, err := t.StateProvider.List(ctx, listRequest)
@@ -151,7 +144,7 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 	//read status
 	status := dict["status"]
 	j, _ = json.Marshal(status)
-	var rStatus map[string]string
+	var rStatus model.InstanceStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.InstanceState{}, err
@@ -159,30 +152,19 @@ func getInstanceState(id string, body interface{}, etag string) (model.InstanceS
 
 	rSpec.Generation = etag
 
-	//read namespace
-	namespace, exist := dict["namespace"]
-	var s string
-	if !exist {
-		s = "default"
-	} else {
-		s = namespace.(string)
-	}
-
 	//read metadata
 	metadata := dict["metadata"]
 	j, _ = json.Marshal(metadata)
-	var rMetadata map[string]interface{}
+	var rMetadata model.ObjectMeta
 	err = json.Unmarshal(j, &rMetadata)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
 
 	state := model.InstanceState{
-		Id:        id,
-		Namespace: s,
-		Spec:      &rSpec,
-		Status:    rStatus,
-		Metadata:  rMetadata,
+		ObjectMeta: rMetadata,
+		Spec:       &rSpec,
+		Status:     rStatus,
 	}
 	return state, nil
 }
@@ -201,6 +183,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 			"group":     model.SolutionGroup,
 			"resource":  "instances",
 			"namespace": namespace,
+			"kind":      "Instance",
 		},
 	}
 	instance, err := t.StateProvider.Get(ctx, getRequest)

@@ -12,15 +12,14 @@ import (
 
 type (
 	SolutionState struct {
-		Id        string                 `json:"id"`
-		Namespace string                 `json:"namespace"`
-		Spec      *SolutionSpec          `json:"spec,omitempty"`
-		Metadata  map[string]interface{} `json:"metadata,omitempty"`
+		ObjectMeta ObjectMeta    `json:"metadata,omitempty"`
+		Spec       *SolutionSpec `json:"spec,omitempty"`
 	}
 
 	SolutionSpec struct {
-		DisplayName string          `json:"displayName,omitempty"`
-		Components  []ComponentSpec `json:"components,omitempty"`
+		DisplayName string            `json:"displayName,omitempty"`
+		Metadata    map[string]string `json:"metadata,omitempty"`
+		Components  []ComponentSpec   `json:"components,omitempty"`
 	}
 )
 
@@ -31,6 +30,10 @@ func (c SolutionSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.DisplayName != otherC.DisplayName {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 		return false, nil
 	}
 
@@ -47,19 +50,12 @@ func (c SolutionState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a SolutionState type")
 	}
 
-	if c.Id != otherC.Id {
-		return false, nil
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
 	}
 
-	if c.Namespace != otherC.Namespace {
-		return false, nil
-	}
-
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
-	}
-
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
 	if err != nil || !equal {
 		return equal, err
 	}

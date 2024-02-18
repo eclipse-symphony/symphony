@@ -40,6 +40,7 @@ type ComponentSpec struct {
 // +kubebuilder:object:generate=true
 type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
+	Metadata      map[string]string    `json:"metadata,omitempty"`
 	Scope         string               `json:"scope,omitempty"`
 	Properties    map[string]string    `json:"properties,omitempty"`
 	Components    []ComponentSpec      `json:"components,omitempty"`
@@ -53,8 +54,9 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type SolutionSpec struct {
-	DisplayName string          `json:"displayName,omitempty"`
-	Components  []ComponentSpec `json:"components,omitempty"`
+	DisplayName string            `json:"displayName,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+	Components  []ComponentSpec   `json:"components,omitempty"`
 	// Defines the version of a particular resource
 	Version string `json:"version,omitempty"`
 }

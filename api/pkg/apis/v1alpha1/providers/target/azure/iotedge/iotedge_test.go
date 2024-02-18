@@ -757,10 +757,10 @@ func TestGetIoTEdgeModules(t *testing.T) {
 	_, err = provider.getIoTEdgeModules(context.Background())
 	assert.NotNil(t, err)
 
-	err = provider.deployToIoTEdge(context.Background(), "default", map[string]interface{}{}, nil, twin, twin)
+	err = provider.deployToIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
 	assert.NotNil(t, err)
 
-	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]interface{}{}, nil, twin, twin)
+	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
 	assert.NotNil(t, err)
 }
 
@@ -797,10 +797,10 @@ func TestDeployRemove(t *testing.T) {
 		},
 	}
 
-	err = provider.deployToIoTEdge(context.Background(), "default", map[string]interface{}{}, nil, twin, twin)
+	err = provider.deployToIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
 	assert.NotNil(t, err)
 
-	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]interface{}{}, nil, twin, twin)
+	err = provider.remvoefromIoTEdge(context.Background(), "default", map[string]string{}, nil, twin, twin)
 	assert.NotNil(t, err)
 }
 

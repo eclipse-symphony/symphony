@@ -370,12 +370,9 @@ func TestFederationOnSyncGet(t *testing.T) {
 	}
 
 	var catalogState = model.CatalogState{
-		Id: "catalog1",
-		Metadata: map[string]interface{}{
-			"metadata1": "value1",
-			"metadata2": "value2",
+		ObjectMeta: model.ObjectMeta{
+			Name: "catalog1",
 		},
-
 		Spec: &model.CatalogSpec{
 			SiteId: vendor.Config.SiteInfo.SiteId,
 			Name:   "catalog1",
@@ -386,6 +383,10 @@ func TestFederationOnSyncGet(t *testing.T) {
 			},
 			ParentName: "parent1",
 			Generation: "1",
+			Metadata: map[string]string{
+				"metadata1": "value1",
+				"metadata2": "value2",
+			},
 		},
 	}
 	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
@@ -466,10 +467,8 @@ func TestFederationOnK8SHook(t *testing.T) {
 	vendor := federationVendorInit()
 
 	var catalogState = model.CatalogState{
-		Id: "catalog1",
-		Metadata: map[string]interface{}{
-			"metadata1": "value1",
-			"metadata2": "value2",
+		ObjectMeta: model.ObjectMeta{
+			Name: "catalog1",
 		},
 		Spec: &model.CatalogSpec{
 			SiteId: vendor.Config.SiteInfo.SiteId,
@@ -481,6 +480,10 @@ func TestFederationOnK8SHook(t *testing.T) {
 			},
 			ParentName: "parent1",
 			Generation: "1",
+			Metadata: map[string]string{
+				"metadata1": "value1",
+				"metadata2": "value2",
+			},
 		},
 	}
 

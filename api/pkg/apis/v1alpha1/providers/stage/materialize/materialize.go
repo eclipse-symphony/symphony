@@ -159,7 +159,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					creationCount++
 				default:
 					catalog.Spec.Name = name
-					catalog.Id = name
+					catalog.ObjectMeta.Name = name
 					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
 					objectData, _ := json.Marshal(catalog.Spec)
 					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)

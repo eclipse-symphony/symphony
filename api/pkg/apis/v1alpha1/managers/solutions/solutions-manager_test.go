@@ -22,15 +22,15 @@ func TestCreateGetDeleteSolutionsState(t *testing.T) {
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertState(context.Background(), "test", model.SolutionState{}, "default")
+	err := manager.UpsertState(context.Background(), "test", model.SolutionState{})
 	assert.Nil(t, err)
 	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
+	assert.Equal(t, "test", spec.ObjectMeta.Name)
 	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
-	assert.Equal(t, "test", specLists[0].Id)
+	assert.Equal(t, "test", specLists[0].ObjectMeta.Name)
 	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	spec, err = manager.GetState(context.Background(), "test", "default")

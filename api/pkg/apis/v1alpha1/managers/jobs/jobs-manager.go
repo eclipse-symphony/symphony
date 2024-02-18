@@ -86,7 +86,7 @@ func (s *JobsManager) pollObjects() []error {
 	for _, instance := range instances {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
-			ID: "i_" + instance.Id,
+			ID: "i_" + instance.ObjectMeta.Name,
 		})
 		needsPub := true
 		if err == nil {
@@ -104,7 +104,7 @@ func (s *JobsManager) pollObjects() []error {
 					"objectType": "instance",
 				},
 				Body: v1alpha2.JobData{
-					Id:     instance.Id,
+					Id:     instance.ObjectMeta.Name,
 					Action: "UPDATE",
 				},
 			})
@@ -118,7 +118,7 @@ func (s *JobsManager) pollObjects() []error {
 	for _, target := range targets {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
-			ID: "t_" + target.Id,
+			ID: "t_" + target.ObjectMeta.Name,
 		})
 		needsPub := true
 		if err == nil {
@@ -139,7 +139,7 @@ func (s *JobsManager) pollObjects() []error {
 					"objectType": "target",
 				},
 				Body: v1alpha2.JobData{
-					Id:     target.Id,
+					Id:     target.ObjectMeta.Name,
 					Action: "UPDATE",
 				},
 			})
@@ -348,15 +348,14 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err //TODO: instance is gone
 			}
 
-			if instance.Status == nil {
-				instance.Status = make(map[string]string)
-			}
-
 			//get solution
 			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, namespace)
 			if err != nil {
 				solution = model.SolutionState{
-					Id: instance.Spec.Solution,
+					ObjectMeta: model.ObjectMeta{
+						Name:      instance.Spec.Solution,
+						Namespace: namespace,
+					},
 					Spec: &model.SolutionSpec{
 						Components: make([]model.ComponentSpec, 0),
 					},
@@ -390,7 +389,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				} else {
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
-							ID: "i_" + instance.Id,
+							ID: "i_" + instance.ObjectMeta.Name,
 							Body: LastSuccessTime{
 								Time: time.Now().UTC(),
 							},

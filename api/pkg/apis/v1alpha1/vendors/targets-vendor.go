@@ -166,8 +166,8 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				Body:  []byte(err.Error()),
 			})
 		}
-		if target.Id == "" {
-			target.Id = id
+		if target.ObjectMeta.Name == "" {
+			target.ObjectMeta.Name = id
 		}
 		if binding != "" {
 			if binding == "staging" {
@@ -211,7 +211,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				})
 			}
 		}
-		err = c.TargetsManager.UpsertState(ctx, id, namespace, target)
+		err = c.TargetsManager.UpsertState(ctx, id, target)
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -365,12 +365,9 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		}
 
 		state, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
-			Id: request.Parameters["__name"],
-			Metadata: map[string]interface{}{
-				"version":   "v1",
-				"group":     model.FabricGroup,
-				"resource":  "targets",
-				"namespace": namespace,
+			ObjectMeta: model.ObjectMeta{
+				Name:      request.Parameters["__name"],
+				Namespace: namespace,
 			},
 			Status: model.TargetStatus{
 				Properties: properties,
@@ -468,15 +465,18 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 			namespace = "default"
 		}
 		_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
-			Id: request.Parameters["__name"],
-			Metadata: map[string]interface{}{
-				"version":   "v1",
-				"group":     model.FabricGroup,
-				"resource":  "targets",
-				"namespace": namespace,
+			ObjectMeta: model.ObjectMeta{
+				Name:      request.Parameters["__name"],
+				Namespace: namespace,
 			},
+			// Metadata: map[string]interface{}{ METACHECK!!!
+			// 	"version":   "v1",
+			// 	"group":     model.FabricGroup,
+			// 	"resource":  "targets",
+			// 	"namespace": namespace,
+			// },
 			Status: model.TargetStatus{
-				LastModified: time.Now().Format(time.RFC3339),
+				LastModified: time.Now().UTC(),
 			},
 		})
 

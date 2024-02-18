@@ -130,22 +130,28 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/instances/instance1":
 			response = model.InstanceState{
-				Id: "hq-instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-instance1",
+				},
 				Spec: &model.InstanceSpec{
 					Name: "hq-instance1",
 				},
-				Status: map[string]string{},
+				Status: model.InstanceStatus{},
 			}
 		case "/targets/registry/target1":
 			response = model.TargetState{
-				Id: "hq-target1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-target1",
+				},
 				Spec: &model.TargetSpec{
 					DisplayName: "hq-target1",
 				},
 			}
 		case "/solutions/solution1":
 			response = model.SolutionState{
-				Id: "hq-solution1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-solution1",
+				},
 				Spec: &model.SolutionSpec{
 					DisplayName: "hq-solution1",
 				},
@@ -153,7 +159,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/catalogs/registry":
 			response = []model.CatalogState{
 				{
-					Id: "targetcatalog",
+					ObjectMeta: model.ObjectMeta{
+						Name: "targetcatalog",
+					},
 					Spec: &model.CatalogSpec{
 						Type: "target",
 						Name: "hq-target1",
@@ -165,7 +173,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					},
 				},
 				{
-					Id: "instancecatalog",
+					ObjectMeta: model.ObjectMeta{
+						Name: "instancecatalog",
+					},
 					Spec: &model.CatalogSpec{
 						Type: "instance",
 						Name: "hq-instance1",
@@ -177,7 +187,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					},
 				},
 				{
-					Id: "solutioncatalog",
+					ObjectMeta: model.ObjectMeta{
+						Name: "solutioncatalog",
+					},
 					Spec: &model.CatalogSpec{
 						Type: "solution",
 						Name: "hq-solution1",
@@ -189,7 +201,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					},
 				},
 				{
-					Id: "catalog1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "catalog1",
+					},
 					Spec: &model.CatalogSpec{
 						Type: "catalog",
 						Name: "hq-catalog1",
@@ -203,7 +217,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 			}
 		case "catalogs/registry/catalog1":
 			response = model.CatalogState{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					Name: "catalog1",
 				},

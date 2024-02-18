@@ -149,7 +149,9 @@ func TestIngressTargetProviderApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "ingresses",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "ingresses",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "test-ingress",
 			},
@@ -218,7 +220,9 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "ingresses",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "ingresses",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "test-ingress",
 			},
@@ -262,7 +266,9 @@ func TestIngressTargetProviderGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "ingresses",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "ingresses",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "ingress-test",
 			},
@@ -336,7 +342,9 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Namespace: "ingresses",
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "ingresses",
+			},
 			Spec: &model.InstanceSpec{
 				Name: "test-ingress",
 			},

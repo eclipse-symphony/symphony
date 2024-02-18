@@ -14,19 +14,23 @@ import (
 
 func TestSolutionDeepEquals(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(other)
@@ -36,11 +40,13 @@ func TestSolutionDeepEquals(t *testing.T) {
 
 func TestSolutionDeepEqualsOneEmpty(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(nil)
@@ -50,19 +56,23 @@ func TestSolutionDeepEqualsOneEmpty(t *testing.T) {
 
 func TestSolutionDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName1",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(other)
@@ -72,19 +82,23 @@ func TestSolutionDeepEqualsDisplayNameNotMatch(t *testing.T) {
 
 func TestSolutionDeepEqualsNamespaceNotMatch(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default1",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default1",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(other)
@@ -94,19 +108,23 @@ func TestSolutionDeepEqualsNamespaceNotMatch(t *testing.T) {
 
 func TestSolutionDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo1": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo1": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(other)
@@ -116,19 +134,23 @@ func TestSolutionDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 
 func TestSolutionDeepEqualsMetadataValueNotMatch(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar1"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar1"},
 		},
 	}
 	res, err := solution.DeepEquals(other)
@@ -138,23 +160,27 @@ func TestSolutionDeepEqualsMetadataValueNotMatch(t *testing.T) {
 
 func TestSolutionDeepEqualsComponentNameNotMatch(t *testing.T) {
 	solution := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components: []ComponentSpec{{
 				Name: "ComponentName",
 			}},
+			Metadata: map[string]string{"foo": "bar"},
 		},
 	}
 	other := SolutionState{
-		Namespace: "Default",
-		Metadata:  map[string]interface{}{"foo": "bar"},
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+		},
 		Spec: &SolutionSpec{
 			DisplayName: "SolutionName",
 			Components: []ComponentSpec{{
 				Name: "ComponentName1",
 			}},
+			Metadata: map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := solution.DeepEquals(other)

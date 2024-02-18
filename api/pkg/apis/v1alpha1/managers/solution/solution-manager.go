@@ -242,9 +242,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	col := api_utils.MergeInterfaceCollection(deployment.Solution.Metadata, deployment.Instance.Metadata)
+	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
 	dep := deployment
-	dep.Instance.Metadata = col
+	dep.Instance.Spec.Metadata = col
 	someStepsRan := false
 
 	for _, step := range plan.Steps {

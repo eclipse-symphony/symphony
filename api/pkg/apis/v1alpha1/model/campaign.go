@@ -14,18 +14,16 @@ import (
 )
 
 type CampaignState struct {
-	Id        string                 `json:"id"`
-	Namespace string                 `json:"namespace"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-	Spec      *CampaignSpec          `json:"spec,omitempty"`
+	ObjectMeta ObjectMeta    `json:"metadata,omitempty"`
+	Spec       *CampaignSpec `json:"spec,omitempty"`
 }
 
 type ActivationState struct {
-	Id        string                 `json:"id"`
-	Namespace string                 `json:"namespace"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-	Spec      *ActivationSpec        `json:"spec,omitempty"`
-	Status    *ActivationStatus      `json:"status,omitempty"`
+	Id         string            `json:"id"`
+	Namespace  string            `json:"namespace"`
+	ObjectMeta ObjectMeta        `json:"metadata,omitempty"`
+	Spec       *ActivationSpec   `json:"spec,omitempty"`
+	Status     *ActivationStatus `json:"status,omitempty"`
 }
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
@@ -116,7 +114,7 @@ func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(CatalogState)
+	otherC, ok := other.(ActivationState)
 	if !ok {
 		return false, errors.New("parameter is not a ActivationState type")
 	}
@@ -129,11 +127,12 @@ func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
 	}
 
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
 	if err != nil || !equal {
 		return equal, err
 	}
@@ -180,26 +179,20 @@ func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 func (c CampaignState) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(CatalogState)
+	otherC, ok := other.(CampaignState)
 	if !ok {
 		return false, errors.New("parameter is not a CampaignState type")
 	}
 
-	if c.Id != otherC.Id {
-		return false, nil
-	}
-
-	if c.Namespace != otherC.Namespace {
-		return false, nil
-	}
-
-	if !SimpleMapsEqual(c.Metadata, otherC.Metadata) {
-		return false, nil
-	}
-
-	equal, err := c.Spec.DeepEquals(*otherC.Spec)
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
 	if err != nil || !equal {
 		return equal, err
 	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+
 	return true, nil
 }

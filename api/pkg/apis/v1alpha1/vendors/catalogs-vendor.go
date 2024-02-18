@@ -62,6 +62,7 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			err = json.Unmarshal(jData, &catalog)
 			if err == nil {
 				name := fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.Name)
+				catalog.ObjectMeta.Name = name
 				catalog.Spec.Name = name
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.ParentName)

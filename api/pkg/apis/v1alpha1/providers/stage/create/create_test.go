@@ -232,11 +232,13 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/instances/instance1":
 			response = model.InstanceState{
-				Id: "instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
 				Spec: &model.InstanceSpec{
 					Name: "instance1",
 				},
-				Status: map[string]string{},
+				Status: model.InstanceStatus{},
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{
@@ -265,11 +267,13 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 		switch r.URL.Path {
 		case "/instances/instance1":
 			response = model.InstanceState{
-				Id: "instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
 				Spec: &model.InstanceSpec{
 					Name: "instance1",
 				},
-				Status: map[string]string{},
+				Status: model.InstanceStatus{},
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{

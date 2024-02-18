@@ -22,11 +22,8 @@ import (
 
 var manager CatalogsManager
 var catalogState = model.CatalogState{
-	Id: "name1",
-	Metadata: map[string]interface{}{
-		"metadata1": "value1",
-		"metadata2": "value2",
-		"name":      "name1",
+	ObjectMeta: model.ObjectMeta{
+		Name: "name1",
 	},
 	Spec: &model.CatalogSpec{
 		SiteId: "site1",
@@ -38,6 +35,11 @@ var catalogState = model.CatalogState{
 		},
 		ParentName: "parent1",
 		Generation: "1",
+		Metadata: map[string]string{
+			"metadata1": "value1",
+			"metadata2": "value2",
+			"name":      "name1",
+		},
 	},
 }
 
@@ -73,7 +75,7 @@ func CreateSimpleChain(root string, length int, CTManager CatalogsManager, catal
 	jData, _ := json.Marshal(catalog)
 	json.Unmarshal(jData, &newCatalog)
 
-	newCatalog.Id = root
+	newCatalog.ObjectMeta.Name = root
 	newCatalog.Spec.Name = root
 	newCatalog.Spec.ParentName = ""
 	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
@@ -87,7 +89,7 @@ func CreateSimpleChain(root string, length int, CTManager CatalogsManager, catal
 		json.Unmarshal(jData, &childCatalog)
 		childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, i)
 		childCatalog.Spec.ParentName = tmp
-		childCatalog.Id = childCatalog.Spec.Name
+		childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
 		err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
 		if err != nil {
 			return err
@@ -107,7 +109,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 	json.Unmarshal(jData, &newCatalog)
 
 	newCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, 0)
-	newCatalog.Id = newCatalog.Spec.Name
+	newCatalog.ObjectMeta.Name = newCatalog.Spec.Name
 	newCatalog.Spec.ParentName = ""
 	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
 	if err != nil {
@@ -122,7 +124,7 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 			jData, _ := json.Marshal(newCatalog)
 			json.Unmarshal(jData, &childCatalog)
 			childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, count)
-			childCatalog.Id = childCatalog.Spec.Name
+			childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
 			childCatalog.Spec.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
 			err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
 			if err != nil {
@@ -267,12 +269,18 @@ func TestSchemaCheck(t *testing.T) {
 	}
 	catalogState.Spec.Name = "EmailCheckSchema"
 	catalogState.Spec.ParentName = ""
+	catalogState.ObjectMeta = model.ObjectMeta{
+		Name: "EmailCheckSchema",
+	}
 	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
 	assert.Nil(t, err)
 
 	catalogState.Spec.Name = "Email"
-	catalogState.Metadata = map[string]interface{}{
+	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
+	}
+	catalogState.ObjectMeta = model.ObjectMeta{
+		Name: "Email",
 	}
 	catalogState.Spec.Properties = map[string]interface{}{
 		"email": "This is an invalid email",

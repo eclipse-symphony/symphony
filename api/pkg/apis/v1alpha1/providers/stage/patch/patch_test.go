@@ -22,8 +22,10 @@ import (
 )
 
 var testSolution = model.SolutionState{
-	Namespace: "default",
-	Spec:      &model.SolutionSpec{},
+	ObjectMeta: model.ObjectMeta{
+		Namespace: "default",
+	},
+	Spec: &model.SolutionSpec{},
 }
 
 func TestPatchSolution(t *testing.T) {
@@ -163,8 +165,10 @@ func TestPatchProcessInline(t *testing.T) {
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
 	testSolution = model.SolutionState{
-		Namespace: "default",
-		Spec:      &model.SolutionSpec{},
+		ObjectMeta: model.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: &model.SolutionSpec{},
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
@@ -225,8 +229,10 @@ func TestPatchProcessCatalog(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	testSolution = model.SolutionState{
-		Namespace: "default",
-		Spec:      &model.SolutionSpec{},
+		ObjectMeta: model.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: &model.SolutionSpec{},
 	}
 	// Step 1: first add component to solution spec
 	provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -289,7 +295,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/solutions/solution1":
 			if r.Method == "GET" {
 				response = model.SolutionState{
-					Id:   "solution1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "solution1",
+					},
 					Spec: testSolution.Spec,
 				}
 			} else {
@@ -298,13 +306,17 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				json.Unmarshal(body, &newSpec)
 				testSolution = newSpec
 				response = model.SolutionState{
-					Id:   "solution1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "solution1",
+					},
 					Spec: testSolution.Spec,
 				}
 			}
 		case "/catalogs/registry/catalog1":
 			response = model.CatalogState{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					Type: "config",
 					Name: "catalog1",

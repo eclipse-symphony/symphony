@@ -59,6 +59,7 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "devices",
+			"kind":      "Device",
 		},
 	})
 	if err != nil {
@@ -94,6 +95,7 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "devices",
+			"kind":      "Device",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

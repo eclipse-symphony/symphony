@@ -110,6 +110,7 @@ func TestActivationUpsert(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -143,6 +144,7 @@ func TestActivationList(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -152,6 +154,7 @@ func TestActivationList(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -193,6 +196,7 @@ func TestActivationDelete(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -203,6 +207,7 @@ func TestActivationDelete(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -242,6 +247,7 @@ func TestActivationGet(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -252,6 +258,7 @@ func TestActivationGet(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -300,6 +307,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -312,6 +320,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 
@@ -328,6 +337,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -367,6 +377,7 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -379,6 +390,7 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -464,6 +476,7 @@ func TestTargetUpsert(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -497,6 +510,7 @@ func TestTargetList(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -506,6 +520,7 @@ func TestTargetList(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -536,6 +551,7 @@ func TestTargetDelete(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -546,6 +562,7 @@ func TestTargetDelete(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -585,6 +602,7 @@ func TestTargetGet(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -595,6 +613,7 @@ func TestTargetGet(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -640,6 +659,7 @@ func TestTargetUpSertWithState(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -680,6 +700,7 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	// Target update status will fail since ProvisioningStatus is not set
@@ -692,6 +713,7 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)

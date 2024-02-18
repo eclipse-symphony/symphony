@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -99,17 +100,17 @@ func getActivationState(id string, body interface{}, etag string) (model.Activat
 	//read metadata
 	metadata := dict["metadata"]
 	j, _ = json.Marshal(metadata)
-	var rMetadata map[string]interface{}
+	var rMetadata model.ObjectMeta
 	err = json.Unmarshal(j, &rMetadata)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
 
 	state := model.ActivationState{
-		Id:       id,
-		Spec:     &rSpec,
-		Status:   &rStatus,
-		Metadata: rMetadata,
+		Id:         id,
+		Spec:       &rSpec,
+		Status:     &rStatus,
+		ObjectMeta: rMetadata,
 	}
 	return state, nil
 }
@@ -121,13 +122,10 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	metadata := map[string]interface{}{
-		"name": name,
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
-	for k, v := range state.Metadata {
-		metadata[k] = v
-	}
-	jMetadata, _ := json.Marshal(metadata)
+	state.ObjectMeta.FixNames(name)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -135,17 +133,10 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 			Body: map[string]interface{}{
 				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Activation",
-				"metadata":   metadata,
+				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
 			ETag: state.Spec.Generation,
-		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": %s}`, model.WorkflowGroup, string(jMetadata)),
-			"namespace": "",
-			"group":     model.WorkflowGroup,
-			"version":   "v1",
-			"resource":  "activations",
 		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
@@ -169,6 +160,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string) error
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	return err

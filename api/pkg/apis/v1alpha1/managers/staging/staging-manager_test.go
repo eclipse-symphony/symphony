@@ -151,7 +151,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/catalogs/registry":
 			response = []model.CatalogState{{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					Name:       "catalog1",
 					SiteId:     "fake",

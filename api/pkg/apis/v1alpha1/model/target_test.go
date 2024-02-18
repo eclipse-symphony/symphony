@@ -14,7 +14,6 @@ import (
 
 func TestTargetDeepEquals(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -27,10 +26,10 @@ func TestTargetDeepEquals(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -43,6 +42,7 @@ func TestTargetDeepEquals(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -52,7 +52,6 @@ func TestTargetDeepEquals(t *testing.T) {
 
 func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -65,6 +64,7 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(nil)
@@ -74,7 +74,6 @@ func TestTargetDeepEqualsOneEmpty(t *testing.T) {
 
 func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -87,10 +86,10 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName1",
 			Scope:       "Default",
@@ -103,6 +102,7 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -112,7 +112,6 @@ func TestTargetDeepEqualsDisplayNameNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -125,10 +124,10 @@ func TestTargetDeepEqualsNamespaceNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default1",
@@ -141,6 +140,7 @@ func TestTargetDeepEqualsNamespaceNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -150,7 +150,6 @@ func TestTargetDeepEqualsNamespaceNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -163,10 +162,10 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo1": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -179,6 +178,7 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo3": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -188,7 +188,6 @@ func TestTargetDeepEqualsMetadataKeyNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -201,10 +200,10 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -217,6 +216,7 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -226,15 +226,14 @@ func TestTargetDeepEqualsMetadataValueNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
 			Components:  []ComponentSpec{{}},
+			Metadata:    map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -247,6 +246,7 @@ func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -256,7 +256,6 @@ func TestTargetDeepEqualsPropertiesKeyNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -269,10 +268,10 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -285,6 +284,7 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -294,7 +294,6 @@ func TestTargetDeepEqualsPropertiesValueNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -307,10 +306,10 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -323,6 +322,7 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -332,7 +332,6 @@ func TestTargetDeepEqualsComponentNameNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -345,10 +344,10 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -361,6 +360,7 @@ func TestTargetDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 				Device: "DeviceName1",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)
@@ -391,7 +391,6 @@ func TestTargetDeepEqualsConstraintsNotMatch(t *testing.T) {
 
 func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 	Target := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -404,10 +403,10 @@ func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: false,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	other := TargetState{
-		Metadata: map[string]interface{}{"foo": "bar"},
 		Spec: &TargetSpec{
 			DisplayName: "TargetName",
 			Scope:       "Default",
@@ -420,6 +419,7 @@ func TestTargetDeepEqualsForceRedeployNotMatch(t *testing.T) {
 				Device: "DeviceName",
 			}},
 			ForceRedeploy: true,
+			Metadata:      map[string]string{"foo": "bar"},
 		},
 	}
 	res, err := Target.DeepEquals(other)

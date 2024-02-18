@@ -119,7 +119,7 @@ func TestInstancesOnInstances(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.Id)
+	assert.Equal(t, "instance1", instance.ObjectMeta.Name)
 	assert.Equal(t, "target1", instance.Spec.Target.Name)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
@@ -131,7 +131,7 @@ func TestInstancesOnInstances(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	assert.Equal(t, 1, len(instances))
-	assert.Equal(t, "instance1", instances[0].Id)
+	assert.Equal(t, "instance1", instances[0].ObjectMeta.Name)
 	assert.Equal(t, "target1", instances[0].Spec.Target.Name)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
@@ -200,7 +200,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.Id)
+	assert.Equal(t, "instance1", instance.ObjectMeta.Name)
 	assert.Equal(t, "value1", instance.Spec.Target.Selector["property1"])
 }
 

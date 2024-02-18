@@ -164,8 +164,8 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, instanceName, instancesRes[0].Spec.DisplayName)
 	require.Equal(t, solutionName, instancesRes[0].Spec.Solution)
 	require.Equal(t, targetName, instancesRes[0].Spec.Target.Name)
-	require.Equal(t, "1", instancesRes[0].Status["targets"])
-	require.Equal(t, "OK", instancesRes[0].Status["status"])
+	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
+	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
 
 	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password, "default")
 	require.NoError(t, err)
@@ -173,8 +173,8 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
 	require.Equal(t, solutionName, instanceRes.Spec.Solution)
 	require.Equal(t, targetName, instanceRes.Spec.Target.Name)
-	require.Equal(t, "1", instanceRes.Status["targets"])
-	require.Equal(t, "OK", instanceRes.Status["status"])
+	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
+	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
 
 	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
 	require.NoError(t, err)
@@ -329,7 +329,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
-	require.Equal(t, "default", targetsRes[0].Namespace)
+	require.Equal(t, "default", targetsRes[0].ObjectMeta.Namespace)
 	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
 
@@ -337,7 +337,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
-	require.Equal(t, "default", targetRes.Namespace)
+	require.Equal(t, "default", targetRes.ObjectMeta.Namespace)
 	require.Equal(t, "1", targetRes.Status.Properties["targets"])
 	require.Equal(t, "OK", targetRes.Status.Properties["status"])
 
@@ -347,41 +347,53 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 
 func TestMatchTargetsWithTargetName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someTargetName",
-		Metadata: map[string]interface{}{
-			"key": "value",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
 		},
-		Spec: &model.TargetSpec{},
+		Spec: &model.TargetSpec{
+			Metadata: map[string]string{
+				"key": "value",
+			},
+		},
 	}})
 
 	require.Equal(t, []model.TargetState{{
-		Id: "someTargetName",
-		Metadata: map[string]interface{}{
-			"key": "value",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
 		},
-		Spec: &model.TargetSpec{},
+		Spec: &model.TargetSpec{
+			Metadata: map[string]string{
+				"key": "value",
+			},
+		},
 	}}, res)
 }
 
 func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id:   "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{},
 	}})
 
@@ -390,7 +402,9 @@ func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 
 func TestMatchTargetsWithSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -399,9 +413,11 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
 			Properties: map[string]string{
@@ -411,7 +427,9 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 	}})
 
 	require.Equal(t, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
 			Properties: map[string]string{
@@ -423,7 +441,9 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 
 func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -432,9 +452,11 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			Properties: map[string]string{
 				"OS": "linux",
@@ -445,7 +467,9 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	require.Equal(t, []model.TargetState{}, res)
 
 	res = MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -454,9 +478,11 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			Properties: map[string]string{
 				"company": "linux",
@@ -469,10 +495,8 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
-		Id: "someTargetName",
-		Metadata: map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
 		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
@@ -494,6 +518,10 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			Properties: map[string]string{
 				"OS": "windows",
 			},
+			Metadata: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
 		},
 	})
 	require.NoError(t, err)
@@ -501,10 +529,8 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	ret, err := res.DeepEquals(model.DeploymentSpec{
 		SolutionName: "target-runtime-someTargetName",
 		Solution: model.SolutionState{
-			Id: "target-runtime-someTargetName",
-			Metadata: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
+			ObjectMeta: model.ObjectMeta{
+				Name: "target-runtime-someTargetName",
 			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "target-runtime-someTargetName",
@@ -525,7 +551,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			},
 		},
 		Instance: model.InstanceState{
-			Id: "target-runtime-someTargetName",
+			ObjectMeta: model.ObjectMeta{
+				Name: "target-runtime-someTargetName",
+			},
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
 				Name:        "target-runtime-someTargetName",
@@ -538,10 +566,8 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		},
 		Targets: map[string]model.TargetState{
 			"someTargetName": {
-				Id: "someTargetName",
-				Metadata: map[string]interface{}{
-					"key1": "value1",
-					"key2": "value2",
+				ObjectMeta: model.ObjectMeta{
+					Name: "someTargetName",
 				},
 				Spec: &model.TargetSpec{
 					DisplayName: "someDisplayName",
@@ -564,6 +590,10 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 						},
 					},
 					ForceRedeploy: false,
+					Metadata: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+					},
 				},
 			},
 		},
@@ -577,8 +607,10 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 
 func TestCreateSymphonyDeployment(t *testing.T) {
 	res, err := CreateSymphonyDeployment(model.InstanceState{
-		Id:        "someOtherId",
-		Namespace: "instanceScope",
+		ObjectMeta: model.ObjectMeta{
+			Name:      "someOtherId",
+			Namespace: "instanceScope",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -587,14 +619,11 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, model.SolutionState{
-		Id:        "someOtherId",
-		Namespace: "solutionsScope",
-		Metadata: map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
-			"key3": "value3",
+		ObjectMeta: model.ObjectMeta{
+			Name:      "someOtherId",
+			Namespace: "solutionsScope",
 		},
 		Spec: &model.SolutionSpec{
 			DisplayName: "someDisplayName",
@@ -612,19 +641,26 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					},
 				},
 			},
-		},
-	}, []model.TargetState{
-		{
-			Id: "someTargetName1",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 				"key3": "value3",
 			},
-			Namespace: "targetScope",
+		},
+	}, []model.TargetState{
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someTargetName1",
+				Namespace: "targetScope",
+			},
 			Spec: &model.TargetSpec{
 				Properties: map[string]string{
 					"company": "microsoft",
+				},
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
 				},
 			},
 		},
@@ -647,12 +683,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
 		SolutionName: "someOtherId",
 		Solution: model.SolutionState{
-			Id:        "someOtherId",
-			Namespace: "solutionsScope",
-			Metadata: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someOtherId",
+				Namespace: "solutionsScope",
 			},
 			Spec: &model.SolutionSpec{
 				DisplayName: "someDisplayName",
@@ -670,11 +703,18 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 						},
 					},
 				},
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
 			},
 		},
 		Instance: model.InstanceState{
-			Id:        "someOtherId",
-			Namespace: "instanceScope",
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someOtherId",
+				Namespace: "instanceScope",
+			},
 			Spec: &model.InstanceSpec{
 				Name:     "someOtherId",
 				Solution: "",
@@ -685,22 +725,24 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					},
 				},
 			},
-			Status: map[string]string{},
+			Status: model.InstanceStatus{},
 		},
 		Targets: map[string]model.TargetState{
 			"someTargetName1": {
-				Id:        "someTargetName1",
-				Namespace: "targetScope",
-				Metadata: map[string]interface{}{
-					"key1": "value1",
-					"key2": "value2",
-					"key3": "value3",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "someTargetName1",
+					Namespace: "targetScope",
 				},
 				Spec: &model.TargetSpec{
 					Properties: map[string]string{
 						"company": "microsoft",
 					},
 					ForceRedeploy: false,
+					Metadata: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+						"key3": "value3",
+					},
 				},
 			},
 		},

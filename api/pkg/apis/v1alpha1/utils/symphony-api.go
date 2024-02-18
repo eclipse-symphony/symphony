@@ -546,8 +546,8 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			if matchString(instance.Spec.Target.Name, t.Id) {
-				ret[t.Id] = t
+			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -562,7 +562,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 			}
 
 			if fullMatch {
-				ret[t.Id] = t
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -576,21 +576,19 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 }
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
-	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
+	key := fmt.Sprintf("%s-%s", "target-runtime", target.ObjectMeta.Name)
 	scope := target.Spec.Scope
 
 	ret := model.DeploymentSpec{}
 	solution := model.SolutionState{
-		Id:        key,
-		Namespace: target.Namespace,
-		Metadata:  make(map[string]interface{}, 0),
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
 		Spec: &model.SolutionSpec{
 			DisplayName: key,
 			Components:  make([]model.ComponentSpec, 0),
 		},
-	}
-	for k, v := range target.Metadata {
-		solution.Metadata[k] = v
 	}
 
 	for _, component := range target.Spec.Components {
@@ -605,18 +603,20 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	}
 
 	targets := make(map[string]model.TargetState)
-	targets[target.Id] = target
+	targets[target.ObjectMeta.Name] = target
 
 	instance := model.InstanceState{
-		Id:        key,
-		Namespace: target.Namespace,
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
 		Spec: &model.InstanceSpec{
 			Scope:       scope,
 			Name:        key,
 			DisplayName: key,
 			Solution:    key,
 			Target: model.TargetSelector{
-				Name: target.Id,
+				Name: target.ObjectMeta.Name,
 			},
 		},
 	}
@@ -645,17 +645,17 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	// convert targets
 	sTargets := make(map[string]model.TargetState)
 	for _, t := range targets {
-		sTargets[t.Id] = t
+		sTargets[t.ObjectMeta.Name] = t
 	}
 
 	//TODO: handle devices
 	ret.Solution = solution
 	ret.Targets = sTargets
 	ret.Instance = instance
-	ret.SolutionName = solution.Id
-	ret.Instance.Id = instance.Id
+	ret.SolutionName = solution.ObjectMeta.Name
+	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
 	if ret.Instance.Spec.Name == "" {
-		ret.Instance.Spec.Name = ret.Instance.Id
+		ret.Instance.Spec.Name = ret.Instance.ObjectMeta.Name
 	}
 
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)

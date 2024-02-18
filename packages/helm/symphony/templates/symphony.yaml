@@ -443,6 +443,10 @@ spec:
                 type: string
               generation:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               name:
                 type: string
               parameters:
@@ -1198,6 +1202,10 @@ spec:
                 type: array
               displayName:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               version:
                 description: Defines the version of a particular resource
                 type: string
@@ -1351,6 +1359,10 @@ spec:
                 type: boolean
               generation:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               properties:
                 additionalProperties:
                   type: string

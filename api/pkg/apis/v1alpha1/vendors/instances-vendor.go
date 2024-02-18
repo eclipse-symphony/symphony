@@ -123,15 +123,14 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		solution := request.Parameters["solution"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
-		namespace, exist := request.Parameters["namespace"]
-		if !exist {
-			namespace = "default"
-		}
+
 		var instance model.InstanceState
 
 		if solution != "" && (target != "" || target_selector != "") {
 			instance = model.InstanceState{
-				Id: id,
+				ObjectMeta: model.ObjectMeta{
+					Name: id,
+				},
 				Spec: &model.InstanceSpec{
 					DisplayName: id,
 					Name:        id,
@@ -166,14 +165,14 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
-			if instance.Id == "" {
-				instance.Id = id
+			if instance.ObjectMeta.Name == "" {
+				instance.ObjectMeta.Name = id
 			}
 			if instance.Spec.Name == "" {
 				instance.Spec.Name = id
 			}
 		}
-		err := c.InstancesManager.UpsertState(ctx, id, instance, namespace)
+		err := c.InstancesManager.UpsertState(ctx, id, instance)
 		if err != nil {
 			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -185,7 +184,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "instance",
-					"namespace":  namespace,
+					"namespace":  instance.ObjectMeta.Namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,

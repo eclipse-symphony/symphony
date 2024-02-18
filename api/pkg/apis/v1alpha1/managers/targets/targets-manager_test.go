@@ -22,17 +22,17 @@ func TestCreateGetDeleteTargetsState(t *testing.T) {
 	manager := TargetsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertState(context.Background(), "test", "default", model.TargetState{
+	err := manager.UpsertState(context.Background(), "test", model.TargetState{
 		Spec: &model.TargetSpec{},
 	})
 	assert.Nil(t, err)
 	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
+	assert.Equal(t, "test", spec.ObjectMeta.Name)
 	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
-	assert.Equal(t, "test", specLists[0].Id)
+	assert.Equal(t, "test", specLists[0].ObjectMeta.Name)
 	err = manager.DeleteSpec(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	spec, err = manager.GetState(context.Background(), "test", "default")
@@ -45,16 +45,18 @@ func TestUpdateTargetStatus(t *testing.T) {
 	manager := TargetsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertState(context.Background(), "test", "default", model.TargetState{
-		Id:   "test",
+	err := manager.UpsertState(context.Background(), "test", model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
+		},
 		Spec: &model.TargetSpec{},
 	})
 	assert.Nil(t, err)
 
 	var state model.TargetState
 
-	state.Id = "test"
-	state.Namespace = "default"
+	state.ObjectMeta.Name = "test"
+	state.ObjectMeta.Namespace = "default"
 	state.Status = model.TargetStatus{
 		Properties: map[string]string{
 			"label": "test",
@@ -64,6 +66,6 @@ func TestUpdateTargetStatus(t *testing.T) {
 	assert.Nil(t, err)
 	state, err = manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", state.Id)
+	assert.Equal(t, "test", state.ObjectMeta.Name)
 	assert.Equal(t, "test", state.Status.Properties["label"])
 }

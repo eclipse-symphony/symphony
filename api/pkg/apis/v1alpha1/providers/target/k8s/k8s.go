@@ -666,13 +666,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	case "", SINGLE_POD:
 		updated := step.GetUpdatedComponents()
 		if len(updated) > 0 {
-			stringMeta := make(map[string]string)
-			if dep.Instance.Metadata != nil {
-				for k, v := range dep.Instance.Metadata {
-					stringMeta[k] = fmt.Sprintf("%v", v)
-				}
-			}
-			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.Spec.Name, stringMeta, components, projector, dep.Instance.Spec.Name)
+			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.Spec.Name, dep.Instance.Spec.Metadata, components, projector, dep.Instance.Spec.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return ret, err
@@ -681,8 +675,8 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		deleted := step.GetDeletedComponents()
 		if len(deleted) > 0 {
 			serviceName := dep.Instance.Spec.Name
-			if v, ok := dep.Instance.Metadata["service.name"]; ok && v != "" {
-				serviceName = v.(string)
+			if v, ok := dep.Instance.Spec.Metadata["service.name"]; ok && v != "" {
+				serviceName = v
 			}
 			err = i.removeService(ctx, dep.Instance.Spec.Scope, serviceName)
 			if err != nil {
@@ -709,12 +703,12 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				scope = dep.Instance.Spec.Name
 			}
 			for _, component := range components {
-				if dep.Instance.Metadata != nil {
-					if v, ok := dep.Instance.Metadata[ENV_NAME]; ok && v != "" {
+				if dep.Instance.Spec.Metadata != nil {
+					if v, ok := dep.Instance.Spec.Metadata[ENV_NAME]; ok && v != "" {
 						if component.Metadata == nil {
 							component.Metadata = make(map[string]string)
 						}
-						component.Metadata[ENV_NAME] = v.(string)
+						component.Metadata[ENV_NAME] = v
 					}
 				}
 				err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.Spec.Name)

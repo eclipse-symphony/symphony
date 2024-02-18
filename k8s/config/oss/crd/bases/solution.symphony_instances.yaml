@@ -55,6 +55,10 @@ spec:
                 type: string
               generation:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               name:
                 type: string
               parameters:

@@ -126,7 +126,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 
 		if embed_type != "" && embed_component != "" && embed_property != "" {
 			solution = model.SolutionState{
-				Id: id,
+				ObjectMeta: model.ObjectMeta{
+					Name: id,
+				},
 				Spec: &model.SolutionSpec{
 					DisplayName: id,
 					Components: []model.ComponentSpec{
@@ -149,11 +151,11 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
-			if solution.Id == "" {
-				solution.Id = id
+			if solution.ObjectMeta.Name == "" {
+				solution.ObjectMeta.Name = id
 			}
 		}
-		err := c.SolutionsManager.UpsertState(ctx, id, solution, namespace)
+		err := c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -163,8 +165,10 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		// TODO: this is a PoC of publishing trails when an object is updated
 		strCat := ""
-		if v, ok := solution.Metadata["catalog"]; ok {
-			strCat = v.(string)
+		if solution.Spec.Metadata != nil {
+			if v, ok := solution.Spec.Metadata["catalog"]; ok {
+				strCat = v
+			}
 		}
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
 			Body: []v1alpha2.Trail{
