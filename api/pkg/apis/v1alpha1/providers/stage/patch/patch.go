@@ -163,6 +163,10 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch patchSource {
 	case "", "catalog":
+		if componentName == "" {
+			sLog.Errorf("  P (Patch Stage): componentName is not specified for patching configuration from a catalog")
+			return nil, false, err
+		}
 		if v, ok := patchContent.(string); ok {
 			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
 
