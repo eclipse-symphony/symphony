@@ -104,12 +104,13 @@ func TestActivationUpsert(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -137,21 +138,23 @@ func TestActivationList(t *testing.T) {
 				Stage:    "s1",
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
 	entries, _, err := provider.List(context.Background(), states.ListRequest{
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -160,7 +163,7 @@ func TestActivationList(t *testing.T) {
 
 	assert.Nil(t, err)
 	entries, _, err = provider.List(context.Background(), states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"group":    model.WorkflowGroup,
 			"version":  "v1",
 			"resource": "activations",
@@ -187,22 +190,24 @@ func TestActivationDelete(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "a1",
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "a1",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -236,22 +241,24 @@ func TestActivationGet(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
 	item, err := provider.Get(context.Background(), states.GetRequest{
 		ID: "a1",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -294,12 +301,13 @@ func TestActivationUpsertWithState(t *testing.T) {
 				"status": dict,
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -307,11 +315,12 @@ func TestActivationUpsertWithState(t *testing.T) {
 
 	entry, err := provider.Get(context.Background(), states.GetRequest{
 		ID: "a1",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 
@@ -323,11 +332,12 @@ func TestActivationUpsertWithState(t *testing.T) {
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "a1",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -361,12 +371,13 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -374,11 +385,12 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "a2",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "activations",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
 		},
 	})
 	assert.Nil(t, err)
@@ -458,12 +470,13 @@ func TestTargetUpsert(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -492,20 +505,22 @@ func TestTargetList(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
 	entries, _, err := provider.List(context.Background(), states.ListRequest{
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -530,22 +545,24 @@ func TestTargetDelete(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "s123",
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "s123",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -579,22 +596,24 @@ func TestTargetGet(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
 	item, err := provider.Get(context.Background(), states.GetRequest{
 		ID: "s123",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -634,12 +653,13 @@ func TestTargetUpSertWithState(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)
@@ -674,12 +694,13 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 				},
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	// Target update status will fail since ProvisioningStatus is not set
@@ -687,11 +708,12 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "s234",
-		Metadata: map[string]string{
-			"scope":    "default",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	assert.Nil(t, err)

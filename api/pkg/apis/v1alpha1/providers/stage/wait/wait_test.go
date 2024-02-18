@@ -175,11 +175,13 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/instances":
 			response = []model.InstanceState{{
-				Id: "instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
 				Spec: &model.InstanceSpec{
 					Name: "hq-instance1",
 				},
-				Status: map[string]string{},
+				Status: model.InstanceStatus{},
 			}}
 		case "/federation/registry":
 			response = []model.SiteState{{
@@ -191,7 +193,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 			}}
 		case "/catalogs/registry":
 			response = []model.CatalogState{{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					Name: "hq-catalog1",
 				},

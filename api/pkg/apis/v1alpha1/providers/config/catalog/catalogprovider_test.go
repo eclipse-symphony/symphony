@@ -44,7 +44,9 @@ func TestRead(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/catalog1":
 			response = model.CatalogState{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					ParentName: "parent",
 					Properties: map[string]interface{}{
@@ -59,7 +61,9 @@ func TestRead(t *testing.T) {
 			}
 		case "/catalogs/registry/parent":
 			response = model.CatalogState{
-				Id: "parent",
+				ObjectMeta: model.ObjectMeta{
+					Name: "parent",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"parentAttribute": "This is father",
@@ -115,7 +119,9 @@ func TestReadObject(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/catalog1":
 			response = model.CatalogState{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
 					ParentName: "parent",
 					Properties: map[string]interface{}{
@@ -128,7 +134,9 @@ func TestReadObject(t *testing.T) {
 			}
 		case "/catalogs/registry/parent":
 			response = model.CatalogState{
-				Id: "parent",
+				ObjectMeta: model.ObjectMeta{
+					Name: "parent",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"parentAttribute": "This is father",
@@ -171,7 +179,9 @@ func TestSetandRemove(t *testing.T) {
 				response = nil
 			} else {
 				response = model.CatalogState{
-					Id: "catalog1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "catalog1",
+					},
 					Spec: &model.CatalogSpec{
 						ParentName: "parent",
 						Properties: map[string]interface{}{
@@ -227,7 +237,9 @@ func TestSetandRemoveObject(t *testing.T) {
 				response = nil
 			} else {
 				response = model.CatalogState{
-					Id: "catalog1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "catalog1",
+					},
 					Spec: &model.CatalogSpec{
 						ParentName: "parent",
 						Properties: map[string]interface{}{

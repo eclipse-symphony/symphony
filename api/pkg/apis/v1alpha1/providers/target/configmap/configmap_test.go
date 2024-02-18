@@ -154,12 +154,18 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -201,12 +207,18 @@ func TestConfigMapTargetProviderDekete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -241,12 +253,18 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 		Type: "config",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -286,12 +304,18 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{

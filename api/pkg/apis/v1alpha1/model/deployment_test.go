@@ -15,15 +15,21 @@ import (
 func TestDeploymentDeepEquals(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
-			"foo": {
-				DisplayName: "TargetName",
+		Targets: map[string]TargetState{
+			"foo": TargetState{
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -38,15 +44,21 @@ func TestDeploymentDeepEquals(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
-			"foo": {
-				DisplayName: "TargetName",
+		Targets: map[string]TargetState{
+			"foo": TargetState{
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -67,15 +79,21 @@ func TestDeploymentDeepEquals(t *testing.T) {
 func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
-			"foo": {
-				DisplayName: "TargetName",
+		Targets: map[string]TargetState{
+			"foo": TargetState{
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -96,15 +114,21 @@ func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -119,15 +143,21 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName1",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -148,15 +178,21 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -171,15 +207,21 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName1",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName1",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -200,15 +242,21 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -223,15 +271,21 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName1",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName1",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -252,15 +306,21 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -275,15 +335,21 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo1": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -304,15 +370,21 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -327,15 +399,21 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -356,15 +434,21 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -379,15 +463,21 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -408,15 +498,21 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -431,15 +527,21 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -460,15 +562,21 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -483,15 +591,21 @@ func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -522,13 +636,15 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 	deployment := DeploymentSpec{
 		ComponentStartIndex: 1,
 		ComponentEndIndex:   2,
-		Solution: SolutionSpec{
-			Components: []ComponentSpec{
-				{Name: "Component1"},
-				{Name: "Component2"},
-				{Name: "Component3"},
-				{Name: "Component4"},
-				{Name: "Component5"},
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				Components: []ComponentSpec{
+					{Name: "Component1"},
+					{Name: "Component2"},
+					{Name: "Component3"},
+					{Name: "Component4"},
+					{Name: "Component5"},
+				},
 			},
 		},
 	}
@@ -539,15 +655,21 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -562,15 +684,21 @@ func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 	}
 	deployment2 := DeploymentSpec{
 		SolutionName: "SolutionName",
-		Solution: SolutionSpec{
-			DisplayName: "SolutionDisplayName",
+		Solution: SolutionState{
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
 		},
-		Instance: InstanceSpec{
-			Name: "InstanceName",
+		Instance: InstanceState{
+			Spec: &InstanceSpec{
+				Name: "InstanceName",
+			},
 		},
-		Targets: map[string]TargetSpec{
+		Targets: map[string]TargetState{
 			"foo": {
-				DisplayName: "TargetName",
+				Spec: &TargetSpec{
+					DisplayName: "TargetName",
+				},
 			},
 		},
 		Devices: []DeviceSpec{{
@@ -589,21 +717,25 @@ func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 }
 
 func TestMapsEqualMap1Extra(t *testing.T) {
-	map1 := map[string]TargetSpec{
+	map1 := map[string]TargetState{
 		"foo": {
-			DisplayName: "TargetName",
+			Spec: &TargetSpec{
+				DisplayName: "TargetName",
+			},
 		},
 	}
-	map2 := map[string]TargetSpec{}
+	map2 := map[string]TargetState{}
 	res := mapsEqual(map1, map2, nil)
 	assert.False(t, res)
 }
 
 func TestMapsNotEqualMap2Extra(t *testing.T) {
-	map1 := map[string]TargetSpec{}
-	map2 := map[string]TargetSpec{
+	map1 := map[string]TargetState{}
+	map2 := map[string]TargetState{
 		"foo": {
-			DisplayName: "TargetName",
+			Spec: &TargetSpec{
+				DisplayName: "TargetName",
+			},
 		},
 	}
 	res := mapsEqual(map1, map2, nil)
@@ -611,14 +743,18 @@ func TestMapsNotEqualMap2Extra(t *testing.T) {
 }
 
 func TestMapsNotEqual(t *testing.T) {
-	map2 := map[string]TargetSpec{
+	map2 := map[string]TargetState{
 		"foo": {
-			DisplayName: "TargetName",
+			Spec: &TargetSpec{
+				DisplayName: "TargetName",
+			},
 		},
 	}
-	map1 := map[string]TargetSpec{
+	map1 := map[string]TargetState{
 		"foo": {
-			DisplayName: "TargetName1",
+			Spec: &TargetSpec{
+				DisplayName: "TargetName1",
+			},
 		},
 	}
 	res := mapsEqual(map1, map2, nil)

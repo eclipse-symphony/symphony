@@ -617,7 +617,11 @@ func TestGetFailed(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 	assert.NotNil(t, err)
 }
 
@@ -648,8 +652,10 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{

@@ -164,12 +164,16 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "gatekeeper",
-			Scope: "gatekeeper-system",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "gatekeeper-system",
+				Name:  "gatekeeper",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -238,12 +242,16 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx-deployment",
-			Scope: "default",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name:  "nginx-deployment",
+				Scope: "default",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -326,11 +334,15 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "gatekeeper",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "gatekeeper",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -369,11 +381,15 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "policies",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -411,11 +427,15 @@ func TestKubectlTargetProviderDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "gatekeeper",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "gatekeeper",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -487,11 +507,15 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "nginx-deployment",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "nginx-deployment",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -530,11 +554,15 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "policies",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -598,12 +626,16 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx",
-			Scope: "nginx-system",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "nginx-system",
+				Name:  "nginx",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -657,11 +689,15 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "policies",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	reference := []model.ComponentStep{
@@ -687,12 +723,16 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		},
 	}
 	deployment = model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx",
-			Scope: "nginx-system",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name:  "nginx",
+				Scope: "nginx-system",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	reference = []model.ComponentStep{

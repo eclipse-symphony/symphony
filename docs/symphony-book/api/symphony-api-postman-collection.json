@@ -26,7 +26,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"displayName\": \"{{SOLUTION_NAME}}\",\r\n    \"components\": [\r\n        {\r\n            \"name\": \"{{SOLUTION_NAME}}\",\r\n            \"type\": \"container\",\r\n            \"properties\": {\r\n                \"container.image\": \"redis:latest\"\r\n            }\r\n        }\r\n    ]\r\n}",
+							"raw": "{    \r\n    \"metadata\": {\r\n        \"labels\": {\r\n            \"label-2\": \"value-1\"\r\n        }\r\n    },\r\n    \"spec\":{\r\n        \"displayName\": \"{{SOLUTION_NAME}}\",\r\n        \"components\": [\r\n            {\r\n                \"name\": \"{{SOLUTION_NAME}}\",\r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis:latest\"\r\n                }\r\n            }\r\n        ],\r\n        \"metadata\": {\r\n            \"foo\": \"bar\"            \r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -275,35 +275,6 @@
 			"name": "Targets",
 			"item": [
 				{
-					"name": "List Targets",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "...",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/targets/registry",
-							"protocol": "http",
-							"host": [
-								"{{SYMPHONY_BASE_URL}}"
-							],
-							"path": [
-								"targets",
-								"registry"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Create Target",
 					"request": {
 						"auth": {
@@ -320,7 +291,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"displayName\": \"{{TARGET_NAME}}\",\r\n    \"topologies\": [\r\n        {\r\n            \"bindings\": [\r\n                {\r\n                    \"role\": \"instance\",\r\n                    \"provider\": \"providers.target.k8s\",\r\n                    \"config\": {\r\n                        \"inCluster\": \"true\",\r\n                        \"deploymentStrategy\": \"services\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"raw": "{\r\n    \"metadata\": {\r\n        \"labels\": {\r\n            \"foo\": \"bar\"\r\n        }\r\n    },\r\n    \"spec\": {\r\n        \"displayName\": \"{{TARGET_NAME}}\",\r\n        \"topologies\": [\r\n            {\r\n                \"bindings\": [\r\n                    {\r\n                        \"role\": \"instance\",\r\n                        \"provider\": \"providers.target.k8s\",\r\n                        \"config\": {\r\n                            \"inCluster\": \"{{TARGET_IN_CLUSTER}}\",\r\n                            \"deploymentStrategy\": \"services\"\r\n                        }\r\n                    }\r\n                ]\r\n            }\r\n        ]\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -533,7 +504,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"displayName\": \"{{TARGET_NAME}}\"    \r\n}",
+							"raw": "{ \r\n    \"spec\": {\r\n        \"displayName\": \"{{TARGET_NAME}}\"    \r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -695,9 +666,6 @@
 				},
 				{
 					"name": "Target heartbeat",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -709,7 +677,7 @@
 								}
 							]
 						},
-						"method": "GET",
+						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
@@ -796,7 +764,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"displayName\": \"{{INSTANCE_NAME}}\",\r\n    \"solution\": \"{{SOLUTION_NAME}}\",\r\n    \"target\": {\r\n        \"name\": \"{{TARGET_NAME}}\"\r\n    }\r\n}",
+							"raw": "{ \r\n    \"metadata\": {\r\n        \"labels\": {\r\n            \"foo\": \"bar\"\r\n        }        \r\n    },\r\n    \"spec\": {\r\n        \"name\": \"{{INSTANCE_NAME}}\",\r\n        \"displayName\": \"{{INSTANCE_NAME}}\",\r\n        \"solution\": \"{{SOLUTION_NAME}}\",\r\n        \"target\": {\r\n            \"name\": \"{{TARGET_NAME}}\"\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1038,7 +1006,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"metadata\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"spec\": {\r\n        \"siteId\": \"hq\",\r\n        \"name\": \"{{CATALOG_NAME}}\",\r\n        \"type\": \"asset\",\r\n        \"properties\": {\r\n            \"foo\": \"bar\"\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1280,7 +1248,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"bar\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"spec\": {\r\n        \"siteId\": \"hq\",\r\n        \"name\": \"{{CATALOG_NAME}}\",\r\n        \"type\": \"asset\",\r\n        \"properties\": {\r\n            \"foo\": \"bar\"\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1318,7 +1286,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"siteId\": \"hq\",\r\n    \"name\": \"{{CATALOG_NAME}}-2\",\r\n    \"type\": \"asset\",\r\n    \"properties\": {\r\n        \"foo\": \"new bar\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"spec\": {\r\n        \"siteId\": \"hq\",\r\n        \"name\": \"{{CATALOG_NAME}}-2\",\r\n        \"type\": \"asset\",\r\n        \"properties\": {\r\n            \"foo\": \"new bar\"\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1395,7 +1363,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"firstStage\": \"mock\",\r\n    \"selfDriving\": true,\r\n    \"stages\": {\r\n        \"mock\": {\r\n            \"name\": \"mock\",\r\n            \"provider\": \"providers.stage.mock\",\r\n            \"inputs\": {\r\n                 \"foo\": \"${{$output(mock,foo)}}\"\r\n            },\r\n            \"stageSelector\": \"${{$if($lt($output(mock,foo), 5), mock, '')}}\"\r\n        }\r\n    }\r\n}",
+							"raw": "{\r\n    \"metadata\": {\r\n        \"foo\": \"bar\"\r\n    },\r\n    \"spec\": {\r\n        \"firstStage\": \"mock\",\r\n        \"selfDriving\": true,\r\n        \"stages\": {\r\n            \"mock\": {\r\n                \"name\": \"mock\",\r\n                \"provider\": \"providers.stage.mock\",\r\n                \"inputs\": {\r\n                    \"foo\": \"${{$output(mock,foo)}}\"\r\n                },\r\n                \"stageSelector\": \"${{$if($lt($output(mock,foo), 5), mock, '')}}\"\r\n            }\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1608,7 +1576,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"raw": "{\r\n    \"spec\": {\r\n        \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n        \"name\": \"{{ACTIVATION_NAME}}\",\r\n        \"stage\": \"\",\r\n        \"inputs\": {\r\n            \"foo\": 0\r\n        }    \r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1952,6 +1920,74 @@
 							"path": [
 								"agent",
 								"config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List devices associated with a target",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{SYMPHONY_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?ref=v1alpha2.ReferenceK8sCRD&kind=devices&group=fabric.symphony&version=v1&label-selector=target-e0a94703-d1af-422f-8069-6b07d7a34976=true",
+							"protocol": "http",
+							"host": [
+								"{{SYMPHONY_BASE_URL}}"
+							],
+							"path": [
+								"agent",
+								"references"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{SOLUTION_NAME}}",
+									"disabled": true
+								},
+								{
+									"key": "ref",
+									"value": "v1alpha2.ReferenceK8sCRD"
+								},
+								{
+									"key": "kind",
+									"value": "devices"
+								},
+								{
+									"key": "group",
+									"value": "fabric.symphony"
+								},
+								{
+									"key": "version",
+									"value": "v1"
+								},
+								{
+									"key": "label-selector",
+									"value": "target-e0a94703-d1af-422f-8069-6b07d7a34976=true"
+								}
 							]
 						}
 					},
@@ -2913,7 +2949,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2954,7 +2990,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2992,7 +3028,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3030,7 +3066,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3068,7 +3104,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3115,7 +3151,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"components\": [\r\n            {\r\n                \"name\": \"redis\",                \r\n                \"type\": \"container\",\r\n                \"properties\": {\r\n                    \"container.image\": \"redis\"\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"topologies\": [\r\n                {\r\n                    \"bindings\": [\r\n                        {\r\n                            \"role\": \"instance\",\r\n                            \"provider\": \"providers.target.docker\",\r\n                            \"config\": {                                \r\n                            }\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3857,6 +3893,11 @@
 		{
 			"key": "SITE_NAME",
 			"value": "test-site",
+			"type": "string"
+		},
+		{
+			"key": "TARGET_IN_CLUSTER",
+			"value": "true",
 			"type": "string"
 		}
 	]

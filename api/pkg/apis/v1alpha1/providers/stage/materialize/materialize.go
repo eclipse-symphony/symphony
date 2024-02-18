@@ -126,9 +126,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
 			if catalog.Spec.Name == object {
-				objectScope := "default"
-				if s, ok := inputs["objectScope"]; ok {
-					objectScope = s.(string)
+				objectNamespace := "default"
+				if s, ok := inputs["objectNamespace"]; ok {
+					objectNamespace = s.(string)
 				}
 				objectData, _ := json.Marshal(catalog.Spec.Properties["spec"]) //TODO: handle errors
 				name := catalog.Spec.Name
@@ -137,21 +137,21 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				}
 				switch catalog.Spec.Type {
 				case "instance":
-					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "solution":
-					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope) //TODO: is using Spec.Name safe? Needs to support scopes
+					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace) //TODO: is using Spec.Name safe? Needs to support scopes
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "target":
-					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectScope)
+					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
@@ -159,7 +159,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					creationCount++
 				default:
 					catalog.Spec.Name = name
-					catalog.Id = name
+					catalog.ObjectMeta.Name = name
 					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
 					objectData, _ := json.Marshal(catalog.Spec)
 					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)

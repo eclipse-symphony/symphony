@@ -80,12 +80,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
-		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), actData.Campaign)
+		campaign, err := s.CampaignsManager.GetState(context.TODO(), actData.Campaign, actData.Namespace)
 		if err != nil {
 			log.Error("V (Stage): unable to find campaign: %+v", err)
 			return err
 		}
-		activation, err := s.ActivationsManager.GetSpec(context.TODO(), actData.Activation)
+		activation, err := s.ActivationsManager.GetState(context.TODO(), actData.Activation, actData.Namespace)
 		if err != nil {
 			log.Error("V (Stage): unable to find activation: %+v", err)
 			return err
@@ -127,7 +127,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				sLog.Errorf("V (Stage): failed to report error status: %v (%v)", status.ErrorMessage, err)
 			}
 		}
-		campaign, err := s.CampaignsManager.GetSpec(context.TODO(), triggerData.Campaign)
+		campaign, err := s.CampaignsManager.GetState(context.TODO(), triggerData.Campaign, triggerData.Namespace)
 		if err != nil {
 			status.Status = v1alpha2.BadRequest
 			status.ErrorMessage = err.Error()
@@ -184,7 +184,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		var status model.ActivationStatus
 		json.Unmarshal(jData, &status)
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
-			campaign, err := s.CampaignsManager.GetSpec(context.TODO(), status.Outputs["__campaign"].(string))
+			campaign, err := s.CampaignsManager.GetState(context.TODO(), status.Outputs["__campaign"].(string), status.Outputs["__namespace"].(string))
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to get campaign spec '%s': %v", status.Outputs["__campaign"].(string), err)
 				return err

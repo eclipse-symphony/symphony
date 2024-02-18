@@ -41,12 +41,12 @@ type ComponentSpec struct {
 type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
 	Metadata      map[string]string    `json:"metadata,omitempty"`
+	Scope         string               `json:"scope,omitempty"`
 	Properties    map[string]string    `json:"properties,omitempty"`
 	Components    []ComponentSpec      `json:"components,omitempty"`
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Scope         string               `json:"scope,omitempty"`
 	// Defines the version of a particular resource
 	Version    string `json:"version,omitempty"`
 	Generation string `json:"generation,omitempty"`
@@ -55,7 +55,6 @@ type TargetSpec struct {
 // +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
-	Scope       string            `json:"scope,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 	Components  []ComponentSpec   `json:"components,omitempty"`
 	// Defines the version of a particular resource
@@ -112,7 +111,6 @@ type CatalogSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties runtime.RawExtension `json:"properties"`
-	Metadata   map[string]string    `json:"metadata,omitempty"`
 	ParentName string               `json:"parentName,omitempty"`
 	ObjectRef  model.ObjectRef      `json:"objectRef,omitempty"`
 	Generation string               `json:"generation,omitempty"`

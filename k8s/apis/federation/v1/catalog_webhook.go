@@ -77,9 +77,10 @@ func (r *Catalog) validateCreateCatalog() error {
 }
 
 func (r *Catalog) checkSchema() error {
-	if schemaName, ok := r.Spec.Metadata["schema"]; ok {
+
+	if schemaName, ok := r.ObjectMeta.Annotations["schema"]; ok {
 		var catalogs CatalogList
-		err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.Namespace), client.MatchingFields{".spec.name": schemaName})
+		err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".spec.name": schemaName})
 		if err != nil || len(catalogs.Items) == 0 {
 			return err
 		}

@@ -51,7 +51,7 @@ export interface ObjectRef {
     group: string;
     version: string;
     kind: string;
-    scope: string;
+    namespace: string;
     address: string;
     generation: string;
     metadata: Record<string, string>;
@@ -80,15 +80,14 @@ export interface CatalogState {
 
 export interface SolutionState {
     id: string; 
-    scope: string;
+    namespace: string;
     spec: SolutionSpec;
 }
 
 export interface SolutionSpec {
     displayName: string;
     components: ComponentSpec[];
-    metadata: Record<string, string>;
-    scope: string;
+    metadata: Record<string, string>;    
 }
 
 export interface ComponentSpec {

@@ -56,7 +56,7 @@ type authResponse struct {
 
 var log = logger.NewLogger("coa.runtime")
 
-func GetInstancesForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
+func GetInstancesForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -75,13 +75,13 @@ func GetInstancesForAllScope(context context.Context, baseUrl string, user strin
 	return ret, nil
 }
 
-func GetInstances(context context.Context, baseUrl string, user string, password string, scope string) ([]model.InstanceState, error) {
+func GetInstances(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "instances?scope=" + scope
+	path := "instances?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -253,7 +253,7 @@ func ReportActivationStatus(context context.Context, baseUrl string, name string
 	}
 	return nil
 }
-func GetInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) (model.InstanceState, error) {
+func GetInstance(context context.Context, baseUrl string, instance string, user string, password string, namespace string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(context, baseUrl, user, password)
 
@@ -262,7 +262,7 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 	}
 
 	path := "instances/" + instance
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -287,14 +287,14 @@ func UpsertCatalog(context context.Context, baseUrl string, catalog string, user
 	return nil
 }
 
-func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte, scope string) error {
+func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
 	path := "instances/" + instance
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -315,13 +315,13 @@ func DeleteCatalog(context context.Context, baseUrl string, catalog string, user
 	return nil
 }
 
-func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) error {
+func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "instances/" + instance
-	path = path + "?direct=true&scope=" + scope
+	path = path + "?direct=true&namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -329,13 +329,13 @@ func DeleteInstance(context context.Context, baseUrl string, instance string, us
 	return nil
 }
 
-func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) error {
+func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "targets/registry/" + target
-	path = path + "?direct=true&scope=" + scope
+	path = path + "?direct=true&namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -343,7 +343,7 @@ func DeleteTarget(context context.Context, baseUrl string, target string, user s
 	return nil
 }
 
-func GetSolutionsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
+func GetSolutionsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -362,13 +362,13 @@ func GetSolutionsForAllScope(context context.Context, baseUrl string, user strin
 	return ret, nil
 }
 
-func GetSolutions(context context.Context, baseUrl string, user string, password string, scope string) ([]model.SolutionState, error) {
+func GetSolutions(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "solution" + "?scope=" + scope
+	path := "solution" + "?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -381,14 +381,14 @@ func GetSolutions(context context.Context, baseUrl string, user string, password
 	return ret, nil
 }
 
-func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) (model.SolutionState, error) {
+func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) (model.SolutionState, error) {
 	ret := model.SolutionState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 	path := "solutions/" + solution
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -401,13 +401,13 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	return ret, nil
 }
 
-func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
+func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "targets/registry/" + solution
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -415,13 +415,13 @@ func UpsertTarget(context context.Context, baseUrl string, solution string, user
 	return nil
 }
 
-func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
+func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "solutions/" + solution
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -429,13 +429,13 @@ func UpsertSolution(context context.Context, baseUrl string, solution string, us
 	return nil
 }
 
-func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) error {
+func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "solutions/" + solution
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -443,14 +443,14 @@ func DeleteSolution(context context.Context, baseUrl string, solution string, us
 	return nil
 }
 
-func GetTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) (model.TargetState, error) {
+func GetTarget(context context.Context, baseUrl string, target string, user string, password string, namespace string) (model.TargetState, error) {
 	ret := model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 	path := "targets/registry/" + target
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -463,7 +463,7 @@ func GetTarget(context context.Context, baseUrl string, target string, user stri
 	return ret, nil
 }
 
-func GetTargetsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
+func GetTargetsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -482,14 +482,14 @@ func GetTargetsForAllScope(context context.Context, baseUrl string, user string,
 	return ret, nil
 }
 
-func GetTargets(context context.Context, baseUrl string, user string, password string, scope string) ([]model.TargetState, error) {
+func GetTargets(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 	path := "targets/registry"
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -528,18 +528,17 @@ func UpdateSite(context context.Context, baseUrl string, site string, user strin
 	return nil
 }
 
-func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte, scope string) error {
+func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 	path := "targets/registry/" + target
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-	log.Info(">>>>>CreateTarget Succeed: " + target + " " + scope)
 	return nil
 }
 
@@ -547,8 +546,8 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			if matchString(instance.Spec.Target.Name, t.Id) {
-				ret[t.Id] = t
+			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -563,7 +562,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 			}
 
 			if fullMatch {
-				ret[t.Id] = t
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -577,18 +576,19 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 }
 
 func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
-	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
+	key := fmt.Sprintf("%s-%s", "target-runtime", target.ObjectMeta.Name)
 	scope := target.Spec.Scope
 
 	ret := model.DeploymentSpec{}
-	solution := model.SolutionSpec{
-		DisplayName: key,
-		Scope:       scope,
-		Components:  make([]model.ComponentSpec, 0),
-		Metadata:    make(map[string]string, 0),
-	}
-	for k, v := range target.Spec.Metadata {
-		solution.Metadata[k] = v
+	solution := model.SolutionState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
+		Spec: &model.SolutionSpec{
+			DisplayName: key,
+			Components:  make([]model.ComponentSpec, 0),
+		},
 	}
 
 	for _, component := range target.Spec.Components {
@@ -599,26 +599,25 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 		if err != nil {
 			return ret, err
 		}
-		solution.Components = append(solution.Components, c)
+		solution.Spec.Components = append(solution.Spec.Components, c)
 	}
 
-	targets := make(map[string]model.TargetSpec)
-	var t model.TargetSpec
-	data, _ := json.Marshal(target.Spec)
-	err := json.Unmarshal(data, &t)
-	if err != nil {
-		return ret, err
-	}
+	targets := make(map[string]model.TargetState)
+	targets[target.ObjectMeta.Name] = target
 
-	targets[target.Id] = t
-
-	instance := model.InstanceSpec{
-		Name:        key,
-		DisplayName: key,
-		Scope:       scope,
-		Solution:    key,
-		Target: model.TargetSelector{
-			Name: target.Id,
+	instance := model.InstanceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
+		Spec: &model.InstanceSpec{
+			Scope:       scope,
+			Name:        key,
+			DisplayName: key,
+			Solution:    key,
+			Target: model.TargetSelector{
+				Name: target.ObjectMeta.Name,
+			},
 		},
 	}
 
@@ -626,7 +625,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -642,31 +641,24 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{}
 	ret.Generation = instance.Spec.Generation
-	// convert instance
-	sInstance := instance.Spec
-
-	sInstance.Name = instance.Id
-	sInstance.Scope = instance.Spec.Scope
-
-	// convert solution
-	sSolution := solution.Spec
-
-	sSolution.DisplayName = solution.Spec.DisplayName
-	sSolution.Scope = solution.Spec.Scope
 
 	// convert targets
-	sTargets := make(map[string]model.TargetSpec)
+	sTargets := make(map[string]model.TargetState)
 	for _, t := range targets {
-		sTargets[t.Id] = *t.Spec
+		sTargets[t.ObjectMeta.Name] = t
 	}
 
 	//TODO: handle devices
-	ret.Solution = *sSolution
+	ret.Solution = solution
 	ret.Targets = sTargets
-	ret.Instance = *sInstance
-	ret.SolutionName = solution.Id
+	ret.Instance = instance
+	ret.SolutionName = solution.ObjectMeta.Name
+	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
+	if ret.Instance.Spec.Name == "" {
+		ret.Instance.Spec.Name = ret.Instance.ObjectMeta.Name
+	}
 
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -679,7 +671,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	return ret, nil
 }
 
-func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetSpec) (map[string]string, error) {
+func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
@@ -688,7 +680,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Spec.Properties})
 				if err != nil {
 					return ret, err
 				}
@@ -702,14 +694,14 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 
 	return ret, nil
 }
-func GetSummary(context context.Context, baseUrl string, user string, password string, id string, scope string) (model.SummaryResult, error) {
+func GetSummary(context context.Context, baseUrl string, user string, password string, id string, namespace string) (model.SummaryResult, error) {
 	result := model.SummaryResult{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return result, err
 	}
 	path := "solution/queue"
-	path = path + "?instance=" + id + "&scope=" + scope
+	path = path + "?instance=" + id + "&namespace=" + namespace
 	ret, err := callRestAPI(context, baseUrl, path, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return result, err
@@ -735,7 +727,7 @@ func CatalogHook(context context.Context, baseUrl string, user string, password 
 	return nil
 }
 
-func QueueJob(context context.Context, baseUrl string, user string, password string, id string, scope string, isDelete bool, isTarget bool) error {
+func QueueJob(context context.Context, baseUrl string, user string, password string, id string, namespace string, isDelete bool, isTarget bool) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
@@ -747,18 +739,18 @@ func QueueJob(context context.Context, baseUrl string, user string, password str
 	if isTarget {
 		path += "&target=true"
 	}
-	path = path + "&scope=" + scope
+	path = path + "&namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, scope string, isDelete bool) (model.SummarySpec, error) {
+func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, namespace string, isDelete bool) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
-	path := "solution/reconcile" + "?scope=" + scope
+	path := "solution/reconcile" + "?namespace=" + namespace
 	if isDelete {
 		path = path + "&delete=true"
 	}

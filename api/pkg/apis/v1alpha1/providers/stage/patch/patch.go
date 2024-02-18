@@ -221,12 +221,12 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
-		objectScope := stage.ReadInputString(inputs, "objectScope")
-		if objectScope == "" {
-			objectScope = "default"
+		objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
+		if objectNamespace == "" {
+			objectNamespace = "default"
 		}
 		var solution model.SolutionState
-		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectScope)
+		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
@@ -234,6 +234,9 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 		if componentName == "" {
 			componentSpec := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			if solution.Spec.Components == nil {
+				solution.Spec.Components = make([]model.ComponentSpec, 0)
+			}
 			for i, c := range solution.Spec.Components {
 				if c.Name == componentSpec.Name {
 					if patchAction == "remove" {
@@ -332,8 +335,8 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			}
 		}
 		if udpated {
-			jData, _ := json.Marshal(solution.Spec)
-			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectScope)
+			jData, _ := json.Marshal(solution)
+			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectNamespace)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
 				return nil, false, err

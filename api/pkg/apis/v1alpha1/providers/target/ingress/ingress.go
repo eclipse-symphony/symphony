@@ -209,12 +209,12 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Ingress Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		var obj *networkingv1.Ingress
-		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (Ingress Target): resource not found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -243,7 +243,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Ingress Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -262,7 +262,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				newIngress := &networkingv1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Scope,
+						Namespace: deployment.Instance.Spec.Scope,
 					},
 					Spec: networkingv1.IngressSpec{
 						Rules: make([]networkingv1.IngressRule, 0),
@@ -298,8 +298,8 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 				}
 
-				i.ensureNamespace(ctx, deployment.Instance.Scope)
-				err = i.applyIngress(ctx, newIngress, deployment.Instance.Scope)
+				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+				err = i.applyIngress(ctx, newIngress, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.Errorf("  P (Ingress Target): failed to apply ingress: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
@@ -311,7 +311,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if len(components) > 0 {
 		for _, component := range components {
 			if component.Type == "ingress" {
-				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Scope)
+				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.Errorf("  P (Ingress Target): failed to delete ingress: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
@@ -383,7 +383,7 @@ func (*IngressTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 }
 
 // deleteConfigMap deletes a configmap
-func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, scope string) error {
+func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, namespace string) error {
 	_, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx,
@@ -393,9 +393,9 @@ func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, 
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target): deleteIngress name %s, scope %s, traceId: %s", name, scope, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Ingress Target): deleteIngress name %s, namespace %s, traceId: %s", name, namespace, span.SpanContext().TraceID().String())
 
-	err = i.Client.NetworkingV1().Ingresses(scope).Delete(ctx, name, metav1.DeleteOptions{})
+	err = i.Client.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			sLog.Errorf("  P (Ingress Target): failed to delete ingress: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -406,7 +406,7 @@ func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, 
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *networkingv1.Ingress, scope string) error {
+func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *networkingv1.Ingress, namespace string) error {
 	_, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx,
@@ -416,13 +416,13 @@ func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *netwo
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target): applyIngress scope %s, name %s, traceId: %s", scope, ingress.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Ingress Target): applyIngress namespace %s, name %s, traceId: %s", namespace, ingress.Name, span.SpanContext().TraceID().String())
 
-	existingIngress, err := i.Client.NetworkingV1().Ingresses(scope).Get(ctx, ingress.Name, metav1.GetOptions{})
+	existingIngress, err := i.Client.NetworkingV1().Ingresses(namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			sLog.Infof("  P (Ingress Target): resource not found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
-			_, err = i.Client.NetworkingV1().Ingresses(scope).Create(ctx, ingress, metav1.CreateOptions{})
+			_, err = i.Client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
 			if err != nil {
 				sLog.Errorf("  P (Ingress Target): failed to create ingress: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return err
@@ -437,7 +437,7 @@ func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *netwo
 	if ingress.ObjectMeta.Annotations != nil {
 		existingIngress.ObjectMeta.Annotations = ingress.ObjectMeta.Annotations
 	}
-	_, err = i.Client.NetworkingV1().Ingresses(scope).Update(ctx, existingIngress, metav1.UpdateOptions{})
+	_, err = i.Client.NetworkingV1().Ingresses(namespace).Update(ctx, existingIngress, metav1.UpdateOptions{})
 	if err != nil {
 		sLog.Errorf("  P (Ingress Target): failed to update ingress: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err

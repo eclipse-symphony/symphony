@@ -76,9 +76,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -88,14 +88,14 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			// Change namespace back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.SolutionsManager.ListSpec(ctx, scope)
+			state, err = c.SolutionsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.SolutionsManager.GetSpec(ctx, id, scope)
+			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -122,17 +122,22 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]
 
-		var solution model.SolutionSpec
+		var solution model.SolutionState
 
 		if embed_type != "" && embed_component != "" && embed_property != "" {
-			solution = model.SolutionSpec{
-				DisplayName: id,
-				Components: []model.ComponentSpec{
-					{
-						Name: embed_component,
-						Type: embed_type,
-						Properties: map[string]interface{}{
-							embed_property: string(request.Body),
+			solution = model.SolutionState{
+				ObjectMeta: model.ObjectMeta{
+					Name: id,
+				},
+				Spec: &model.SolutionSpec{
+					DisplayName: id,
+					Components: []model.ComponentSpec{
+						{
+							Name: embed_component,
+							Type: embed_type,
+							Properties: map[string]interface{}{
+								embed_property: string(request.Body),
+							},
 						},
 					},
 				},
@@ -146,8 +151,11 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
+			if solution.ObjectMeta.Name == "" {
+				solution.ObjectMeta.Name = id
+			}
 		}
-		err := c.SolutionsManager.UpsertSpec(ctx, id, solution, scope)
+		err := c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -156,11 +164,17 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 		// TODO: this is a PoC of publishing trails when an object is updated
+		strCat := ""
+		if solution.Spec.Metadata != nil {
+			if v, ok := solution.Spec.Metadata["catalog"]; ok {
+				strCat = v
+			}
+		}
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
 			Body: []v1alpha2.Trail{
 				{
 					Origin:  c.Vendor.Context.SiteInfo.SiteId,
-					Catalog: solution.Metadata["catalog"],
+					Catalog: strCat,
 					Type:    "solutions.solution.symphony/v1",
 					Properties: map[string]interface{}{
 						"spec": solution,
@@ -168,7 +182,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				},
 			},
 			Metadata: map[string]string{
-				"scope": scope,
+				"namespace": namespace,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -177,7 +191,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.SolutionsManager.DeleteSpec(ctx, id, scope)
+		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

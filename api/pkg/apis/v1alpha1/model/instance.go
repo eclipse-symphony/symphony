@@ -6,16 +6,24 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type (
+	InstanceStatus struct {
+		// Important: Run "make" to regenerate code after modifying this file
+		Properties         map[string]string  `json:"properties,omitempty"`
+		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+		LastModified       time.Time          `json:"lastModified,omitempty"`
+	}
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
-		Id     string            `json:"id"`
-		Scope  string            `json:"scope"`
-		Spec   *InstanceSpec     `json:"spec,omitempty"`
-		Status map[string]string `json:"status,omitempty"`
+		ObjectMeta ObjectMeta     `json:"metadata,omitempty"`
+		Spec       *InstanceSpec  `json:"spec,omitempty"`
+		Status     InstanceStatus `json:"status,omitempty"`
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
@@ -164,5 +172,23 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
+	return true, nil
+}
+
+func (c InstanceState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(InstanceState)
+	if !ok {
+		return false, errors.New("parameter is not a InstanceState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
 	return true, nil
 }
