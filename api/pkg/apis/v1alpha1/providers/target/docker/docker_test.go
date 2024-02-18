@@ -55,6 +55,9 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -86,6 +89,9 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
@@ -134,6 +140,9 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -253,6 +262,9 @@ func TestApplyFailed(t *testing.T) {
 		Type: "container",
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -280,6 +292,9 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 	deployment = model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
@@ -316,6 +331,9 @@ func TestApplyAlreadyRunning(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
