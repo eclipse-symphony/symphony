@@ -8,6 +8,7 @@ package vendors
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -126,6 +127,11 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 	vLog.Infof("V (Activations Vendor): onActivations, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onActivations-GET", pCtx, nil)
@@ -134,10 +140,13 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.ActivationsManager.ListSpec(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.ActivationsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.ActivationsManager.GetSpec(ctx, id)
+			state, err = c.ActivationsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -160,7 +169,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		ctx, span := observability.StartSpan("onActivations-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var activation model.ActivationSpec
+		var activation model.ActivationState
 
 		err := json.Unmarshal(request.Body, &activation)
 		if err != nil {
@@ -171,7 +180,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		err = c.ActivationsManager.UpsertSpec(ctx, id, activation)
+		err = c.ActivationsManager.UpsertState(ctx, id, activation)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -179,7 +188,13 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-		entry, err := c.ActivationsManager.GetSpec(ctx, id)
+
+		// TODO: this sleep is a hack and is not guaranteed to always work. When REST API is used against a K8s state provider, creating the activation object triggers
+		// the activation controller to raise the activation event as well. This is a workaround to avoid duplicated events. A proper
+		// implemenation probably needs to leverage a distributed lock - such leverage a Redis lock.
+		time.Sleep(1 * time.Second)
+
+		entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -187,22 +202,24 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-		c.Context.Publish("activation", v1alpha2.Event{
-			Body: v1alpha2.ActivationData{
-				Campaign:             activation.Campaign,
-				ActivationGeneration: entry.Spec.Generation,
-				Activation:           id,
-				Stage:                "",
-				Inputs:               activation.Inputs,
-			},
-		})
+		if !entry.Status.IsActive {
+			c.Context.Publish("activation", v1alpha2.Event{
+				Body: v1alpha2.ActivationData{
+					Campaign:             activation.Spec.Campaign,
+					ActivationGeneration: entry.Spec.Generation,
+					Activation:           id,
+					Stage:                "",
+					Inputs:               activation.Spec.Inputs,
+				},
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onActivations-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.ActivationsManager.DeleteSpec(ctx, id)
+		err := c.ActivationsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

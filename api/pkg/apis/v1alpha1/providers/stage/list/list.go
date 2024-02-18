@@ -110,11 +110,11 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	switch objectType {
 	case "instance":
-		objectScope := "default"
-		if s, ok := inputs["objectScope"]; ok {
-			objectScope = s.(string)
+		objectNamespace := "default"
+		if s, ok := inputs["objectNamespace"]; ok {
+			objectNamespace = s.(string)
 		}
-		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectScope)
+		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err

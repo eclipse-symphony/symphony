@@ -29,7 +29,6 @@ type (
 
 	SolutionSpec struct {
 		DisplayName string            `yaml:"displayName,omitempty"`
-		Scope       string            `yaml:"scope,omitempty"`
 		Metadata    map[string]string `yaml:"metadata,omitempty"`
 		Components  []ComponentSpec   `yaml:"components,omitempty"`
 	}
@@ -44,7 +43,7 @@ type (
 
 	TargetSpec struct {
 		DisplayName string          `yaml:"displayName"`
-		Scope       string          `yaml:"scope"`
+		Scope       string          `yaml:"scope,omitempty"`
 		Components  []ComponentSpec `yaml:"components,omitempty"`
 		Topologies  []Topology      `yaml:"topologies"`
 	}
@@ -264,6 +263,7 @@ func addComponentsToSolution(data []byte, components []string) (Solution, error)
 		}
 	}
 	solution.Spec.Components = yamlComponents
+
 	return solution, nil
 }
 

@@ -63,8 +63,10 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
 	}, []model.ComponentStep{
 		{
@@ -113,13 +115,19 @@ func TestStagingTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "policies",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -166,13 +174,19 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "policies",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -207,7 +221,9 @@ func TestApply(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/test-target":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
@@ -249,13 +265,19 @@ func TestApply(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -295,7 +317,9 @@ func TestGet(t *testing.T) {
 		switch r.URL.Path {
 		case "/catalogs/registry/test-target":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
@@ -337,13 +361,19 @@ func TestGet(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := []model.ComponentStep{
@@ -400,13 +430,19 @@ func TestGetCatalogsFailed(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{

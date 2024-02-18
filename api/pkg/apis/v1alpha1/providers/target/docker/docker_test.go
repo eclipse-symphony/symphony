@@ -55,8 +55,13 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -84,13 +89,18 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "redis-test",
-					Type: "container",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "redis:latest",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "redis-test",
+						Type: "container",
+						Properties: map[string]interface{}{
+							model.ContainerImage: "redis:latest",
+						},
 					},
 				},
 			},
@@ -130,8 +140,13 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -165,8 +180,13 @@ func TestUpdateGetDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -182,13 +202,18 @@ func TestUpdateGetDelete(t *testing.T) {
 
 	// Get
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "alpine-test",
-					Type: "container",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "alpine:3.18",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "alpine-test",
+						Type: "container",
+						Properties: map[string]interface{}{
+							model.ContainerImage: "alpine:3.18",
+						},
 					},
 				},
 			},
@@ -237,8 +262,13 @@ func TestApplyFailed(t *testing.T) {
 		Type: "container",
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -262,8 +292,13 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 	deployment = model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step = model.DeploymentStep{
@@ -296,8 +331,13 @@ func TestApplyAlreadyRunning(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{

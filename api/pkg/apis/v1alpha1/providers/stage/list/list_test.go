@@ -76,8 +76,8 @@ func TestListProcessInstances(t *testing.T) {
 	instances, ok := outputs["items"].([]model.InstanceState)
 	assert.True(t, ok)
 	assert.Equal(t, 2, len(instances))
-	assert.Equal(t, "instance1", instances[0].Id)
-	assert.Equal(t, "instance2", instances[1].Id)
+	assert.Equal(t, "instance1", instances[0].ObjectMeta.Name)
+	assert.Equal(t, "instance2", instances[1].ObjectMeta.Name)
 
 	outputs, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
@@ -156,18 +156,22 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/instances":
 			response = []model.InstanceState{
 				{
-					Id: "instance1",
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+					},
 					Spec: &model.InstanceSpec{
 						Name: "instance1",
 					},
-					Status: map[string]string{},
+					Status: model.InstanceStatus{},
 				},
 				{
-					Id: "instance2",
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance2",
+					},
 					Spec: &model.InstanceSpec{
 						Name: "instance2",
 					},
-					Status: map[string]string{},
+					Status: model.InstanceStatus{},
 				}}
 		case "/federation/registry":
 			response = []model.SiteState{

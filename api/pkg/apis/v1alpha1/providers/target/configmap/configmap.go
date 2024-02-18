@@ -208,12 +208,12 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		var obj *corev1.ConfigMap
-		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.Infof("  P (ConfigMap Target): resource not found: %s, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -250,7 +250,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -270,7 +270,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				newConfigMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Scope,
+						Namespace: deployment.Instance.Spec.Scope,
 					},
 					Data: make(map[string]string),
 				}
@@ -282,8 +282,8 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 						newConfigMap.Data[key] = string(jData)
 					}
 				}
-				i.ensureNamespace(ctx, deployment.Instance.Scope)
-				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Scope)
+				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.Errorf("  P (ConfigMap Target): failed to apply configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
@@ -295,7 +295,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	if len(components) > 0 {
 		for _, component := range components {
 			if component.Type == "config" {
-				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Scope)
+				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.Errorf("  P (ConfigMap Target): failed to delete configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 					return ret, err
@@ -366,7 +366,7 @@ func (*ConfigMapTargetProvider) GetValidationRule(ctx context.Context) model.Val
 }
 
 // deleteConfigMap deletes a configmap
-func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name string, scope string) error {
+func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx,
@@ -376,9 +376,9 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (ConfigMap Target):  deleteConfigMap name %s, scope: %s, traceId: %s", name, scope, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target):  deleteConfigMap name %s, namespace: %s, traceId: %s", name, namespace, span.SpanContext().TraceID().String())
 
-	err = i.Client.CoreV1().ConfigMaps(scope).Delete(ctx, name, metav1.DeleteOptions{})
+	err = i.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			sLog.Errorf("  P (Kubectl Target): failed to delete configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -389,7 +389,7 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *corev1.ConfigMap, scope string) error {
+func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *corev1.ConfigMap, namespace string) error {
 	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx,
@@ -399,13 +399,13 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (ConfigMap Target):  applyConfigMap scope: %s, traceId: %s", scope, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target):  applyConfigMap namespace: %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
-	existingConfigMap, err := i.Client.CoreV1().ConfigMaps(scope).Get(ctx, config.Name, metav1.GetOptions{})
+	existingConfigMap, err := i.Client.CoreV1().ConfigMaps(namespace).Get(ctx, config.Name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
-			_, err = i.Client.CoreV1().ConfigMaps(scope).Create(ctx, config, metav1.CreateOptions{})
+			_, err = i.Client.CoreV1().ConfigMaps(namespace).Create(ctx, config, metav1.CreateOptions{})
 			if err != nil {
 				sLog.Errorf("  P (ConfigMap Target): failed to create configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return err
@@ -418,7 +418,7 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 
 	existingConfigMap.Data = config.Data
 
-	_, err = i.Client.CoreV1().ConfigMaps(scope).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
+	_, err = i.Client.CoreV1().ConfigMaps(namespace).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
 	if err != nil {
 		sLog.Errorf("  P (ConfigMap Target): failed to update configmap: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return err

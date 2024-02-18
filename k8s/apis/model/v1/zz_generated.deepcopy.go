@@ -57,13 +57,6 @@ func (in *CampaignSpec) DeepCopy() *CampaignSpec {
 func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 	*out = *in
 	in.Properties.DeepCopyInto(&out.Properties)
-	if in.Metadata != nil {
-		in, out := &in.Metadata, &out.Metadata
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	in.ObjectRef.DeepCopyInto(&out.ObjectRef)
 }
 

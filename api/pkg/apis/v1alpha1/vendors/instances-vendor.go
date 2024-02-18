@@ -82,9 +82,9 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onInstances-GET", pCtx, nil)
 		id := request.Parameters["__name"]
-		scope, exist := request.Parameters["scope"]
+		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			scope = "default"
+			namespace = "default"
 		}
 		var err error
 		var state interface{}
@@ -92,12 +92,12 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		if id == "" {
 			// Change partition back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.InstancesManager.ListSpec(ctx, scope)
+			state, err = c.InstancesManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.InstancesManager.GetSpec(ctx, id, scope)
+			state, err = c.InstancesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -123,20 +123,22 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		solution := request.Parameters["solution"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
-		scope, exist := request.Parameters["scope"]
-		if !exist {
-			scope = "default"
-		}
-		var instance model.InstanceSpec
+
+		var instance model.InstanceState
 
 		if solution != "" && (target != "" || target_selector != "") {
-			instance = model.InstanceSpec{
-				DisplayName: id,
-				Name:        id,
-				Solution:    solution,
+			instance = model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: id,
+				},
+				Spec: &model.InstanceSpec{
+					DisplayName: id,
+					Name:        id,
+					Solution:    solution,
+				},
 			}
 			if target != "" {
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Name: target,
 				}
 			} else {
@@ -148,7 +150,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},
@@ -163,8 +165,14 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 					Body:  []byte(err.Error()),
 				})
 			}
+			if instance.ObjectMeta.Name == "" {
+				instance.ObjectMeta.Name = id
+			}
+			if instance.Spec.Name == "" {
+				instance.Spec.Name = id
+			}
 		}
-		err := c.InstancesManager.UpsertSpec(ctx, id, instance, scope)
+		err := c.InstancesManager.UpsertState(ctx, id, instance)
 		if err != nil {
 			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -176,7 +184,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "instance",
-					"scope":      scope,
+					"namespace":  instance.ObjectMeta.Namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
@@ -191,15 +199,15 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onInstances-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
-		scope, exist := request.Parameters["scope"]
+		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			scope = "default"
+			namespace = "default"
 		}
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "instance",
-					"scope":      scope,
+					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
@@ -210,7 +218,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				State: v1alpha2.OK,
 			})
 		} else {
-			err := c.InstancesManager.DeleteSpec(ctx, id, scope)
+			err := c.InstancesManager.DeleteState(ctx, id, namespace)
 			if err != nil {
 				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

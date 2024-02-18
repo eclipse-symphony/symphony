@@ -36,10 +36,6 @@ spec:
             properties:
               generation:
                 type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
               name:
                 type: string
               objectRef:
@@ -58,7 +54,7 @@ spec:
                     type: object
                   name:
                     type: string
-                  scope:
+                  namespace:
                     type: string
                   siteId:
                     type: string
@@ -68,7 +64,7 @@ spec:
                 - group
                 - kind
                 - name
-                - scope
+                - namespace
                 - siteId
                 - version
                 type: object

@@ -140,8 +140,13 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -169,10 +174,15 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "bluefin-arc-extensions",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "bluefin-arc-extensions",
+					},
 				},
 			},
 		},
@@ -212,8 +222,13 @@ func TestHelmTargetProviderInstallNoOci(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -276,8 +291,13 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -314,8 +334,13 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -353,11 +378,15 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "symphony",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "symphony",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -438,8 +467,13 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -491,8 +525,13 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
@@ -517,10 +556,15 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "bluefin-arc-extensions",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "bluefin-arc-extensions",
+					},
 				},
 			},
 		},

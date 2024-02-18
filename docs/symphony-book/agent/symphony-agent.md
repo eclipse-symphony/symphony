@@ -91,7 +91,7 @@ You can get Symphony object specs, such as AI [skill](../concepts/unified-object
   | kind | Resource kind, like `skills`, `solutions` and `devices`|
   | label-selector | Label selector (optional), for example: `foo=bar`|
   | ref | Reference provider type. Use `v1alpha2.ReferenceK8sCRD` to query K8s objects |
-  | scope | Namespace, like `default`|
+  | namespace | Namespace, like `default`|
   | version | Resource version, like `v1`|
 
   **<sup>1</sup>**: This parameter is supposed to be used in `skill` queries only. When supplied, `skill` parameter values will be overridden by corresponding values (named as `<skill name>.<parameter name>`) in the `instance` object. In addition, if the `alias` parameter is specified, Symphony uses `<skill name>.<alias>.<parameter name>` to locate instance overrides instead. For more information, see [parameter management](../ai-management/parameter-management.md).
@@ -140,7 +140,7 @@ You can report object state through Symphony agent.
   | id | Resource name (optional)|
   | kind | Resource type, like `skills`, `solutions`, and `devices`|
   | overwrite | If set to true, the object state will be reset to reported properties. Otherwise, the reported properties are merged into existing state (optional, default = false) |
-  | scope | Namespace, like `default` |
+  | namespace | Namespace, like `default` |
   | version | resource version, like `v1` |
 
 * **Body**: A key-value pair collection of reported properties

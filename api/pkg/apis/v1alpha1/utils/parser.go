@@ -415,13 +415,13 @@ func readPropertyInterface(properties map[string]interface{}, key string) (inter
 }
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 
-	arguments := deployment.Instance.Arguments
+	arguments := deployment.Instance.Spec.Arguments
 	if ca, ok := arguments[component]; ok {
 		if a, ok := ca[key]; ok {
 			return a, nil
 		}
 	}
-	components := deployment.Solution.Components
+	components := deployment.Solution.Spec.Components
 	for _, c := range components {
 		if c.Name == component {
 			if v, ok := c.Parameters[key]; ok {
@@ -794,7 +794,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
-				return deploymentSpec.Instance.Name, nil
+				return deploymentSpec.Instance.Spec.Name, nil
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
@@ -1280,7 +1280,7 @@ func (p *ExpressionParser) function() (Node, error) {
 
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
-		for ic, c := range deploymentSpec.Solution.Components {
+		for ic, c := range deploymentSpec.Solution.Spec.Components {
 
 			val, err := evalProperties(context, c.Metadata)
 			if err != nil {
@@ -1295,7 +1295,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 				for k, v := range metadata {
 					stringMap[k] = fmt.Sprintf("%v", v)
 				}
-				deploymentSpec.Solution.Components[ic].Metadata = stringMap
+				deploymentSpec.Solution.Spec.Components[ic].Metadata = stringMap
 			}
 
 			val, err = evalProperties(context, c.Properties)
@@ -1306,7 +1306,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 			if !ok {
 				return deploymentSpec, fmt.Errorf("properties must be a map")
 			}
-			deploymentSpec.Solution.Components[ic].Properties = props
+			deploymentSpec.Solution.Spec.Components[ic].Properties = props
 		}
 		return deploymentSpec, nil
 	}

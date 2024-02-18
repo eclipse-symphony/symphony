@@ -88,7 +88,7 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (HTTP Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (HTTP Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 	return nil, nil
@@ -101,11 +101,11 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (HTTP Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (HTTP Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
+		InstanceId: deployment.Instance.Spec.Name,
+		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
 

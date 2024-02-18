@@ -78,7 +78,7 @@ func (s *JobsManager) pollObjects() []error {
 	if interval == 0 {
 		return nil
 	}
-	instances, err := utils.GetInstancesForAllScope(context, baseUrl, user, password)
+	instances, err := utils.GetInstancesForAllNamespaces(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -86,7 +86,7 @@ func (s *JobsManager) pollObjects() []error {
 	for _, instance := range instances {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
-			ID: "i_" + instance.Id,
+			ID: "i_" + instance.ObjectMeta.Name,
 		})
 		needsPub := true
 		if err == nil {
@@ -104,13 +104,13 @@ func (s *JobsManager) pollObjects() []error {
 					"objectType": "instance",
 				},
 				Body: v1alpha2.JobData{
-					Id:     instance.Id,
+					Id:     instance.ObjectMeta.Name,
 					Action: "UPDATE",
 				},
 			})
 		}
 	}
-	targets, err := utils.GetTargetsForAllScope(context, baseUrl, user, password)
+	targets, err := utils.GetTargetsForAllNamespaces(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -118,7 +118,7 @@ func (s *JobsManager) pollObjects() []error {
 	for _, target := range targets {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
-			ID: "t_" + target.Id,
+			ID: "t_" + target.ObjectMeta.Name,
 		})
 		needsPub := true
 		if err == nil {
@@ -139,7 +139,7 @@ func (s *JobsManager) pollObjects() []error {
 					"objectType": "target",
 				},
 				Body: v1alpha2.JobData{
-					Id:     target.Id,
+					Id:     target.ObjectMeta.Name,
 					Action: "UPDATE",
 				},
 			})
@@ -303,9 +303,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	scope := model.ReadProperty(event.Metadata, "scope", nil)
-	if scope == "" {
-		scope = "default"
+	namespace := model.ReadProperty(event.Metadata, "namespace", nil)
+	if namespace == "" {
+		namespace = "default"
 	}
 
 	if objectType, ok := event.Metadata["objectType"]; ok {
@@ -338,23 +338,24 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		}
 		switch objectType {
 		case "instance":
+			log.Debugf(" M (Job): handling instance job %s", job.Id)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password, scope)
+			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password, namespace)
 			if err != nil {
+				log.Errorf(" M (Job): error getting instance %s: %s", instanceName, err.Error())
 				return err //TODO: instance is gone
 			}
 
-			if instance.Status == nil {
-				instance.Status = make(map[string]string)
-			}
-
 			//get solution
-			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, scope)
+			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, namespace)
 			if err != nil {
 				solution = model.SolutionState{
-					Id: instance.Spec.Solution,
+					ObjectMeta: model.ObjectMeta{
+						Name:      instance.Spec.Solution,
+						Namespace: namespace,
+					},
 					Spec: &model.SolutionSpec{
 						Components: make([]model.ComponentSpec, 0),
 					},
@@ -363,7 +364,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = utils.GetTargets(ctx, baseUrl, user, password, scope)
+			targets, err = utils.GetTargets(ctx, baseUrl, user, password, namespace)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -375,18 +376,20 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var deployment model.DeploymentSpec
 			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
 			if err != nil {
+				log.Errorf(" M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
 			}
 
 			//call api
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
+					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
 				} else {
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
-							ID: "i_" + instance.Id,
+							ID: "i_" + instance.ObjectMeta.Name,
 							Body: LastSuccessTime{
 								Time: time.Now().UTC(),
 							},
@@ -395,16 +398,16 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Name, user, password, scope)
+					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Spec.Name, user, password, namespace)
 				}
 			}
 		case "target":
 			targetName := job.Id
-			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password, scope)
+			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password, namespace)
 			if err != nil {
 				return err
 			}
@@ -414,7 +417,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			if job.Action == "UPDATE" {
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, false)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
 					return err
 				} else {
@@ -430,11 +433,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == "DELETE" {
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, scope, true)
+				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password, scope)
+					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password, namespace)
 				}
 			}
 		}
