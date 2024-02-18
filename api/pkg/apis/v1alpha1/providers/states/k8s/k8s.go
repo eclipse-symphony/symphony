@@ -178,7 +178,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(entry.Metadata, "version", nil)
 	resource := model.ReadPropertyCompat(entry.Metadata, "resource", nil)
-	kind := model.ReadPropertyCompat(entry.Metadata, "Kind", nil)
+	kind := model.ReadPropertyCompat(entry.Metadata, "kind", nil)
 
 	if namespace == "" {
 		namespace = "default"
@@ -518,7 +518,6 @@ func (s *K8sStateProvider) Set(object string, field string, value string, namesp
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]interface{}{
-					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
 					"version":   "v1",
@@ -557,7 +556,6 @@ func (s *K8sStateProvider) SetObject(object string, values map[string]string, na
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]interface{}{
-					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
 					"version":   "v1",
@@ -594,7 +592,6 @@ func (s *K8sStateProvider) Remove(object string, field string, namespace string)
 			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
 				Value: obj,
 				Metadata: map[string]interface{}{
-					"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
 					"namespace": namespace,
 					"group":     model.FederationGroup,
 					"version":   "v1",
