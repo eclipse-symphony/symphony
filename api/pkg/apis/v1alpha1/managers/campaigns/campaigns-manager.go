@@ -41,7 +41,7 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 }
 
 // GetCampaign retrieves a CampaignSpec object by name
-func (m *CampaignsManager) GetState(ctx context.Context, name string) (model.CampaignState, error) {
+func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace string) (model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "GetState",
 	})
@@ -51,9 +51,11 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string) (model.Cam
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "campaigns",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": namespace,
+			"kind":      "Campaign",
 		},
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
@@ -119,13 +121,20 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 				"spec":       state.Spec,
 			},
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
+			"kind":      "Campaign",
+		},
 	}
 
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
 
-func (m *CampaignsManager) DeleteState(ctx context.Context, name string) error {
+func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "DeleteState",
 	})
@@ -135,7 +144,7 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string) error {
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"namespace": "",
+			"namespace": namespace,
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "campaigns",
@@ -145,7 +154,7 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *CampaignsManager) ListState(ctx context.Context) ([]model.CampaignState, error) {
+func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "ListState",
 	})
@@ -154,9 +163,11 @@ func (t *CampaignsManager) ListState(ctx context.Context) ([]model.CampaignState
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "campaigns",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": namespace,
+			"kind":      "Campaign",
 		},
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)

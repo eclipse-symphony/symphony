@@ -89,6 +89,13 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 			Body: body,
 			ETag: state.Spec.Generation,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
+		},
 	}
 
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -105,6 +112,12 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 
 	getRequest := states.GetRequest{
 		ID: current.ObjectMeta.Name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": current.ObjectMeta.Namespace,
+		},
 	}
 
 	target, err := t.StateProvider.Get(ctx, getRequest)
@@ -127,9 +140,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		}
 		targetState.Status.Properties[k] = v
 	}
-	if current.Status.LastModified.IsZero() {
-		targetState.Status.LastModified = current.Status.LastModified
-	}
+	targetState.Status.LastModified = current.Status.LastModified
 
 	target.Body = targetState
 

@@ -294,6 +294,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	status.Outputs = outputs
 	status.Outputs["__status"] = v1alpha2.OK
 	status.Outputs["__campaign"] = triggerData.Campaign
+	status.Outputs["__namespace"] = triggerData.Namespace
 	status.Outputs["__activation"] = triggerData.Activation
 	status.Outputs["__activationGeneration"] = triggerData.ActivationGeneration
 	status.Outputs["__stage"] = triggerData.Stage
@@ -401,6 +402,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		// inject default inputs
 		inputs["__campaign"] = triggerData.Campaign
+		inputs["__namespace"] = triggerData.Namespace
 		inputs["__activation"] = triggerData.Activation
 		inputs["__stage"] = triggerData.Stage
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
@@ -553,6 +555,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 		}
 		outputs["__campaign"] = triggerData.Campaign
+		outputs["__namespace"] = triggerData.Namespace
 		outputs["__activation"] = triggerData.Activation
 		outputs["__activationGeneration"] = triggerData.ActivationGeneration
 		outputs["__stage"] = triggerData.Stage

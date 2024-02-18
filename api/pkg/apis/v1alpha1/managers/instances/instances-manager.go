@@ -89,6 +89,13 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			Body: body,
 			ETag: generation,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "instances",
+			"kind":      "Instance",
+		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {

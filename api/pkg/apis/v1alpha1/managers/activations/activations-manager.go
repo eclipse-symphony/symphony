@@ -47,7 +47,7 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	return nil
 }
 
-func (m *ActivationsManager) GetState(ctx context.Context, name string) (model.ActivationState, error) {
+func (m *ActivationsManager) GetState(ctx context.Context, name string, namespace string) (model.ActivationState, error) {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "GetState",
 	})
@@ -57,9 +57,11 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string) (model.A
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "activations",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": namespace,
+			"kind":      "Activation",
 		},
 	}
 	entry, err := m.StateProvider.Get(ctx, getRequest)
@@ -138,6 +140,13 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 			},
 			ETag: state.Spec.Generation,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
+		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
@@ -146,7 +155,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	return nil
 }
 
-func (m *ActivationsManager) DeleteState(ctx context.Context, name string) error {
+func (m *ActivationsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "DeleteState",
 	})
@@ -156,7 +165,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string) error
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"namespace": "",
+			"namespace": namespace,
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "activations",
@@ -166,7 +175,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string) error
 	return err
 }
 
-func (t *ActivationsManager) ListState(ctx context.Context) ([]model.ActivationState, error) {
+func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([]model.ActivationState, error) {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -175,9 +184,11 @@ func (t *ActivationsManager) ListState(ctx context.Context) ([]model.ActivationS
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "activations",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": namespace,
+			"kind":      "Activation",
 		},
 	}
 	solutions, _, err := t.StateProvider.List(ctx, listRequest)
@@ -232,9 +243,11 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "activations",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": activationState.ObjectMeta.Namespace,
+			"kind":      "Activation",
 		},
 		Options: states.UpsertOption{
 			UpdateStateOnly: true,

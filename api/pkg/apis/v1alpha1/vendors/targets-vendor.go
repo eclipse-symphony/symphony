@@ -370,7 +370,8 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 				Namespace: namespace,
 			},
 			Status: model.TargetStatus{
-				Properties: properties,
+				Properties:   properties,
+				LastModified: time.Now().UTC(),
 			},
 		})
 
@@ -469,12 +470,6 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 				Name:      request.Parameters["__name"],
 				Namespace: namespace,
 			},
-			// Metadata: map[string]interface{}{ METACHECK!!!
-			// 	"version":   "v1",
-			// 	"group":     model.FabricGroup,
-			// 	"resource":  "targets",
-			// 	"namespace": namespace,
-			// },
 			Status: model.TargetStatus{
 				LastModified: time.Now().UTC(),
 			},

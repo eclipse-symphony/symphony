@@ -23,10 +23,10 @@ func TestCreateGetDeleteActivationSpec(t *testing.T) {
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
-	spec, err := manager.GetState(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	err = manager.DeleteState(context.Background(), "test")
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }
 
@@ -43,13 +43,13 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
-	spec, err := manager.GetState(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
 	err = manager.ReportStatus(context.Background(), "test", model.ActivationStatus{Status: 9996})
 	assert.Nil(t, err)
 	errList := cleanupmanager.Poll()
 	assert.Empty(t, errList)
-	_, err = manager.GetState(context.Background(), "test")
+	_, err = manager.GetState(context.Background(), "test", "default")
 	assert.NotNil(t, err)
 }

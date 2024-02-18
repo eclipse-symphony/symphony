@@ -77,6 +77,11 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	defer span.End()
 	cLog.Infof("V (Campaigns): onCampaigns, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCampaigns-GET", pCtx, nil)
@@ -85,10 +90,13 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.CampaignsManager.ListState(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.CampaignsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.CampaignsManager.GetState(ctx, id)
+			state, err = c.CampaignsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -136,7 +144,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.CampaignsManager.DeleteState(ctx, id)
+		err := c.CampaignsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

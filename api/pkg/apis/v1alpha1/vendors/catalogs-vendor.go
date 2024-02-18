@@ -164,13 +164,19 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	defer span.End()
 
 	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
+
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = ""
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogsGraph-GET", rCtx, nil)
 		template := request.Parameters["template"]
 		switch template {
 		case "config-chains":
-			chains, err := e.CatalogsManager.GetChains(ctx, "config")
+			chains, err := e.CatalogsManager.GetChains(ctx, "config", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -185,7 +191,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 			})
 			return resp
 		case "asset-trees":
-			trees, err := e.CatalogsManager.GetTrees(ctx, "asset")
+			trees, err := e.CatalogsManager.GetTrees(ctx, "asset", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -223,6 +229,12 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	defer span.End()
 
 	lLog.Info("V (Catalogs Vendor): onCatalogs")
+
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogs-GET", pCtx, nil)
@@ -231,10 +243,13 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = e.CatalogsManager.ListState(ctx)
+			if !namesapceSupplied {
+				namespace = ""
+			}
+			state, err = e.CatalogsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = e.CatalogsManager.GetState(ctx, id)
+			state, err = e.CatalogsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			if !v1alpha2.IsNotFound(err) {
@@ -291,7 +306,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := e.CatalogsManager.DeleteState(ctx, id)
+		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

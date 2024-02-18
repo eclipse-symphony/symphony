@@ -29,6 +29,7 @@ type JobData struct {
 }
 type ActivationData struct {
 	Campaign             string                            `json:"campaign"`
+	Namespace            string                            `json:"namespace,omitempty"`
 	Activation           string                            `json:"activation"`
 	ActivationGeneration string                            `json:"activationGeneration"`
 	Stage                string                            `json:"stage"`

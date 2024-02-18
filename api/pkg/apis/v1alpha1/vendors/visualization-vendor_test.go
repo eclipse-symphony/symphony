@@ -90,13 +90,13 @@ func TestHandleVisPacket(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, response.State)
-	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology")
+	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "solution-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology")
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "target-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology")
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "instance-1-topology", state.ObjectMeta.Name)
 }

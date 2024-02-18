@@ -84,6 +84,13 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			ID:   name,
 			Body: body,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "solutions",
+			"kind":      "Solution",
+		},
 	}
 
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)

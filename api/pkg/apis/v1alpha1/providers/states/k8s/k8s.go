@@ -238,6 +238,19 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
 			return "", err
 		}
+		if v, ok := dict["metadata"]; ok {
+			metaJson, _ := json.Marshal(v)
+			var metadata model.ObjectMeta
+			err = json.Unmarshal(metaJson, &metadata)
+			if err != nil {
+				sLog.Errorf("  P (K8s State): failed to unmarshal object metadata: %v", err)
+				return "", err
+			}
+			item.SetName(metadata.Name)
+			item.SetNamespace(metadata.Namespace)
+			item.SetLabels(metadata.Labels)
+			item.SetAnnotations(metadata.Annotations)
+		}
 		if v, ok := dict["spec"]; ok {
 			item.Object["spec"] = v
 

@@ -333,6 +333,10 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		ctx, span := observability.StartSpan("onSync-GET", pCtx, nil)
 		id := request.Parameters["__site"]
 		count := request.Parameters["count"]
+		namespace, exist := request.Parameters["namespace"]
+		if !exist {
+			namespace = "default"
+		}
 		if count == "" {
 			count = "1"
 		}
@@ -361,7 +365,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 			if c.Action == "RUN" { //TODO: I don't really like this
 				jobs = append(jobs, c)
 			} else {
-				catalog, err := f.CatalogsManager.GetState(ctx, c.Id)
+				catalog, err := f.CatalogsManager.GetState(ctx, c.Id, namespace)
 				if err != nil {
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State: v1alpha2.InternalError,

@@ -158,7 +158,7 @@ func TestUpsertAndGet(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.GetState(context.Background(), catalogState.Spec.Name)
+	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	equal, err := catalogState.DeepEquals(val)
 	assert.Nil(t, err)
@@ -181,7 +181,7 @@ func TestList(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.ListState(context.Background())
+	val, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(val))
 	equal, err := catalogState.DeepEquals(val[0])
@@ -205,16 +205,16 @@ func TestDelete(t *testing.T) {
 		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
 		return nil
 	})
-	val, err := manager.GetState(context.Background(), catalogState.Spec.Name)
+	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	equal, err := catalogState.DeepEquals(val)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
-	err = manager.DeleteState(context.Background(), catalogState.Spec.Name)
+	err = manager.DeleteState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	val, err = manager.GetState(context.Background(), catalogState.Spec.Name)
+	val, err = manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
 	assert.NotNil(t, err)
 	assert.Empty(t, val)
 }
@@ -225,16 +225,16 @@ func TestGetChains(t *testing.T) {
 
 	err = CreateSimpleChain("root", 4, manager, catalogState)
 	assert.Nil(t, err)
-	err = manager.setProviderDataIfNecessary(context.Background())
+	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	tk, err := manager.ListState(context.Background())
+	tk, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	for _, v := range tk {
 		fmt.Println(v.Spec.Name)
 	}
 
-	val, err := manager.GetChains(context.Background(), catalogState.Spec.Type)
+	val, err := manager.GetChains(context.Background(), catalogState.Spec.Type, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(val["root"]))
 }
@@ -245,10 +245,10 @@ func TestGetTrees(t *testing.T) {
 
 	err = CreateSimpleBinaryTree("root", 3, manager, catalogState)
 	assert.Nil(t, err)
-	err = manager.setProviderDataIfNecessary(context.Background())
+	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	val, err := manager.GetTrees(context.Background(), catalogState.Spec.Type)
+	val, err := manager.GetTrees(context.Background(), catalogState.Spec.Type, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(val["root-0"]))
 }

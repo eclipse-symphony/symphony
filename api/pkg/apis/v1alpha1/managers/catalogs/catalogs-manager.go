@@ -52,7 +52,7 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 	return nil
 }
 
-func (s *CatalogsManager) GetState(ctx context.Context, name string) (model.CatalogState, error) {
+func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace string) (model.CatalogState, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetState",
 	})
@@ -62,9 +62,11 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string) (model.Cata
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogs",
+			"namespace": namespace,
+			"kind":      "Catalog",
 		},
 	}
 	entry, err := s.StateProvider.Get(ctx, getRequest)
@@ -126,7 +128,7 @@ func (m *CatalogsManager) ValidateState(ctx context.Context, state model.Catalog
 
 	if schemaName, ok := state.Spec.Metadata["schema"]; ok {
 		var schema model.CatalogState
-		schema, err = m.GetState(ctx, schemaName)
+		schema, err = m.GetState(ctx, schemaName, state.ObjectMeta.Namespace)
 		if err != nil {
 			err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
 			return utils.SchemaResult{Valid: false}, err
@@ -177,6 +179,13 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				"spec":       state.Spec,
 			},
 		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
 	}
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
@@ -195,7 +204,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	return nil
 }
 
-func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
+func (m *CatalogsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "DeleteState",
 	})
@@ -206,7 +215,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"namespace": "",
+			"namespace": namespace,
 			"group":     model.FederationGroup,
 			"version":   "v1",
 			"resource":  "catalogs",
@@ -216,7 +225,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *CatalogsManager) ListState(ctx context.Context) ([]model.CatalogState, error) {
+func (t *CatalogsManager) ListState(ctx context.Context, namespace string) ([]model.CatalogState, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "ListState",
 	})
@@ -225,9 +234,11 @@ func (t *CatalogsManager) ListState(ctx context.Context) ([]model.CatalogState, 
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogs",
+			"namespace": namespace,
+			"kind":      "Catalog",
 		},
 	}
 	catalogs, _, err := t.StateProvider.List(ctx, listRequest)
@@ -245,9 +256,9 @@ func (t *CatalogsManager) ListState(ctx context.Context) ([]model.CatalogState, 
 	}
 	return ret, nil
 }
-func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context) error {
+func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context, namespace string) error {
 	if !g.GraphProvider.IsPure() {
-		catalogs, err := g.ListState(ctx)
+		catalogs, err := g.ListState(ctx, namespace)
 		if err != nil {
 			return err
 		}
@@ -262,7 +273,7 @@ func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context) error 
 	}
 	return nil
 }
-func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+func (g *CatalogsManager) GetChains(ctx context.Context, filter string, namespace string) (map[string][]v1alpha2.INode, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetChains",
 	})
@@ -270,7 +281,7 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[str
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Debug(" M (Graph): GetChains")
-	err = g.setProviderDataIfNecessary(ctx)
+	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +295,7 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string) (map[str
 	}
 	return res, nil
 }
-func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[string][]v1alpha2.INode, error) {
+func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace string) (map[string][]v1alpha2.INode, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "GetTrees",
 	})
@@ -292,7 +303,7 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string) (map[stri
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Debug(" M (Graph): GetTrees")
-	err = g.setProviderDataIfNecessary(ctx)
+	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
