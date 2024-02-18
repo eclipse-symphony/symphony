@@ -183,7 +183,11 @@ func TestGet(t *testing.T) {
 		}
 	}
 
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
@@ -228,7 +232,11 @@ func TestGetBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "BAD!!", err.Error())
@@ -272,7 +280,11 @@ func TestApply(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false) //TODO: this is probably broken: the step should contain at least a component
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false) //TODO: this is probably broken: the step should contain at least a component
 
 	assert.Nil(t, err)
 }
@@ -315,7 +327,11 @@ func TestApplyBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false) //TODO: this is probably broken - the step should contain at least one component
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false) //TODO: this is probably broken - the step should contain at least one component
 
 	assert.NotNil(t, err)
 }
@@ -359,7 +375,11 @@ func TestARemove(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false)
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false)
 	assert.Nil(t, err)
 }
 func TestARemoveBad(t *testing.T) {
@@ -401,7 +421,11 @@ func TestARemoveBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false) //TODO: this is probably broken, a step should have at least one component
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false) //TODO: this is probably broken, a step should have at least one component
 
 	assert.NotNil(t, err)
 }
@@ -455,7 +479,11 @@ func TestGetApply(t *testing.T) {
 		}
 	}
 
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
@@ -463,7 +491,11 @@ func TestGetApply(t *testing.T) {
 	err = provider.Init(config)
 	assert.Nil(t, err)
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false) //TODO: this is probably broken - a step should have at least one component
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false) //TODO: this is probably broken - a step should have at least one component
 	assert.Nil(t, err)
 }
 
@@ -517,9 +549,17 @@ func TestLocalApplyGet(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{}, model.DeploymentStep{}, false)
+	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, model.DeploymentStep{}, false)
 	assert.Nil(t, err)
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
 }
