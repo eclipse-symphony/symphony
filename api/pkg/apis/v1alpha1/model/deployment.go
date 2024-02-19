@@ -13,20 +13,23 @@ import (
 )
 
 type DeploymentSpec struct {
-	SolutionName        string                `json:"solutionName"`
-	Solution            SolutionSpec          `json:"solution"`
-	Instance            InstanceSpec          `json:"instance"`
-	Targets             map[string]TargetSpec `json:"targets"`
-	Devices             []DeviceSpec          `json:"devices,omitempty"`
-	Assignments         map[string]string     `json:"assignments,omitempty"`
-	ComponentStartIndex int                   `json:"componentStartIndex,omitempty"`
-	ComponentEndIndex   int                   `json:"componentEndIndex,omitempty"`
-	ActiveTarget        string                `json:"activeTarget,omitempty"`
-	Generation          string                `json:"generation,omitempty"`
+	SolutionName        string                 `json:"solutionName"`
+	Solution            SolutionState          `json:"solution"`
+	Instance            InstanceState          `json:"instance"`
+	Targets             map[string]TargetState `json:"targets"`
+	Devices             []DeviceSpec           `json:"devices,omitempty"`
+	Assignments         map[string]string      `json:"assignments,omitempty"`
+	ComponentStartIndex int                    `json:"componentStartIndex,omitempty"`
+	ComponentEndIndex   int                    `json:"componentEndIndex,omitempty"`
+	ActiveTarget        string                 `json:"activeTarget,omitempty"`
+	Generation          string                 `json:"generation,omitempty"`
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
-	components := d.Solution.Components
+	if d.Solution.Spec == nil {
+		return nil
+	}
+	components := d.Solution.Spec.Components
 	if d.ComponentStartIndex >= 0 && d.ComponentEndIndex >= 0 && d.ComponentEndIndex > d.ComponentStartIndex {
 		components = components[d.ComponentStartIndex:d.ComponentEndIndex]
 	}
@@ -88,7 +91,7 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
-func mapsEqual(a map[string]TargetSpec, b map[string]TargetSpec, ignoredMissingKeys []string) bool {
+func mapsEqual(a map[string]TargetState, b map[string]TargetState, ignoredMissingKeys []string) bool {
 	for k, v := range a {
 		if bv, ok := b[k]; ok {
 			equal, err := bv.DeepEquals(v)

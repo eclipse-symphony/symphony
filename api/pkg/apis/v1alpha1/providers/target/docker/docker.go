@@ -89,7 +89,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -168,11 +168,11 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
+		InstanceId: deployment.Instance.Spec.Name,
+		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
 
@@ -322,15 +322,18 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{"container.resources"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
-			{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{"container.resources"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
+				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+			},
 		},
 	}
 }

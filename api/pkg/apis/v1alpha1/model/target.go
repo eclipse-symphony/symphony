@@ -6,16 +6,22 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type (
+	TargetStatus struct {
+		Properties         map[string]string  `json:"properties,omitempty"`
+		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
+		LastModified       time.Time          `json:"lastModified,omitempty"`
+	}
 	// TargetState defines the current state of the target
 	TargetState struct {
-		Id       string            `json:"id"`
-		Scope    string            `json:"scope,omitempty"`
-		Metadata map[string]string `json:"metadata,omitempty"`
-		Status   map[string]string `json:"status,omitempty"`
-		Spec     *TargetSpec       `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta   `json:"metadata,omitempty"`
+		Status     TargetStatus `json:"status,omitempty"`
+		Spec       *TargetSpec  `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
@@ -70,6 +76,25 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	if c.ForceRedeploy != otherC.ForceRedeploy {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetState)
+	if !ok {
+		return false, errors.New("parameter is not a TargetState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

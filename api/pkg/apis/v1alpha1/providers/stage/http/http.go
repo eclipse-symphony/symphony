@@ -361,11 +361,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:        []string{},
-		OptionalProperties:        []string{"header.*", "body"},
-		RequiredComponentType:     "",
-		RequiredMetadata:          []string{},
-		OptionalMetadata:          []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:        []string{},
+			OptionalProperties:        []string{"header.*", "body"},
+			RequiredComponentType:     "",
+			RequiredMetadata:          []string{},
+			OptionalMetadata:          []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{},
+		},
 	}
 }

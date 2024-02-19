@@ -372,14 +372,14 @@ func (in *SiteStatus) DeepCopyInto(out *SiteStatus) {
 	*out = *in
 	if in.TargetStatuses != nil {
 		in, out := &in.TargetStatuses, &out.TargetStatuses
-		*out = make(map[string]TargetStatus, len(*in))
+		*out = make(map[string]SiteTargetStatus, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
 	}
 	if in.InstanceStatuses != nil {
 		in, out := &in.InstanceStatuses, &out.InstanceStatuses
-		*out = make(map[string]InstanceStatus, len(*in))
+		*out = make(map[string]SiteInstanceStatus, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

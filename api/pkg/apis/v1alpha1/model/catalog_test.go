@@ -117,7 +117,9 @@ func TestCatalogNotMatch(t *testing.T) {
 
 func TestGetId(t *testing.T) {
 	catalog := CatalogState{
-		Id: "id",
+		ObjectMeta: ObjectMeta{
+			Name: "id",
+		},
 	}
 	assert.Equal(t, catalog.GetId(), "id")
 }

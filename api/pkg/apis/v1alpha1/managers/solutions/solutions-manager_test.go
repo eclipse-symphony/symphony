@@ -16,23 +16,23 @@ import (
 )
 
 // write test case to create a SolutionSpec using the manager
-func TestCreateGetDeleteSolutionsSpec(t *testing.T) {
+func TestCreateGetDeleteSolutionsState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.SolutionSpec{}, "default")
+	err := manager.UpsertState(context.Background(), "test", model.SolutionState{})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test", "default")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background(), "default")
+	assert.Equal(t, "test", spec.ObjectMeta.Name)
+	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
-	assert.Equal(t, "test", specLists[0].Id)
-	err = manager.DeleteSpec(context.Background(), "test", "default")
+	assert.Equal(t, "test", specLists[0].ObjectMeta.Name)
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	spec, err = manager.GetSpec(context.Background(), "test", "default")
+	spec, err = manager.GetState(context.Background(), "test", "default")
 	assert.NotNil(t, err)
 }

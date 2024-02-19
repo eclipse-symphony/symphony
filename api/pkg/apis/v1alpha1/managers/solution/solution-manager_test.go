@@ -19,16 +19,20 @@ import (
 )
 
 func TestFindAgentEmpty(t *testing.T) {
-	agent := findAgent(model.TargetSpec{})
+	agent := findAgent(model.TargetState{
+		Spec: &model.TargetSpec{},
+	})
 	assert.Equal(t, "", agent)
 }
 func TestFindAgentMatch(t *testing.T) {
-	agent := findAgent(model.TargetSpec{
-		Components: []model.ComponentSpec{
-			{
-				Name: "symphony-agent",
-				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+	agent := findAgent(model.TargetState{
+		Spec: &model.TargetSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "symphony-agent",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+					},
 				},
 			},
 		},
@@ -36,12 +40,14 @@ func TestFindAgentMatch(t *testing.T) {
 	assert.Equal(t, "symphony-agent", agent)
 }
 func TestFindAgentNotMatch(t *testing.T) {
-	agent := findAgent(model.TargetSpec{
-		Components: []model.ComponentSpec{
-			{
-				Name: "symphony-agent",
-				Properties: map[string]interface{}{
-					model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-api:0.38.0",
+	agent := findAgent(model.TargetState{
+		Spec: &model.TargetSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name: "symphony-agent",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-api:0.38.0",
+					},
 				},
 			},
 		},
@@ -197,31 +203,38 @@ func TestSortByDepedenciesAllSelfReferences(t *testing.T) {
 func TestMockGet(t *testing.T) {
 	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock",
-				},
-				{
-					Name: "b",
-					Type: "mock",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -270,15 +283,22 @@ func TestMockGet(t *testing.T) {
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock",
-				},
-				{
-					Name: "b",
-					Type: "mock",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "instance",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
 				},
 			},
 		},
@@ -286,16 +306,18 @@ func TestMockGetTwoTargets(t *testing.T) {
 			"T1": "{a}{b}",
 			"T2": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -303,14 +325,16 @@ func TestMockGetTwoTargets(t *testing.T) {
 				},
 			},
 			"T2": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -354,15 +378,20 @@ func TestMockGetTwoTargets(t *testing.T) {
 func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock1",
-				},
-				{
-					Name: "b",
-					Type: "mock2",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock1",
+					},
+					{
+						Name: "b",
+						Type: "mock2",
+					},
 				},
 			},
 		},
@@ -370,16 +399,18 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			"T1": "{a}",
 			"T2": "{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock1",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock1",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -387,14 +418,16 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 				},
 			},
 			"T2": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock2",
-								Provider: "providers.target.mock",
-								Config: map[string]string{
-									"id": id,
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock2",
+									Provider: "providers.target.mock",
+									Config: map[string]string{
+										"id": id,
+									},
 								},
 							},
 						},
@@ -437,29 +470,36 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 }
 func TestMockApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock",
-				},
-				{
-					Name: "b",
-					Type: "mock",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
 							},
 						},
 					},
@@ -483,29 +523,36 @@ func TestMockApply(t *testing.T) {
 }
 func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock",
-				},
-				{
-					Name: "b",
-					Type: "mock",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock",
-								Provider: "providers.target.mock",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
 							},
 						},
 					},
@@ -529,25 +576,32 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 }
 func TestMockApplyWithError(t *testing.T) {
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock1",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock1",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock2",
-								Provider: "providers.target.mock",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock2",
+									Provider: "providers.target.mock",
+								},
 							},
 						},
 					},

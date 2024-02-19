@@ -214,7 +214,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
@@ -230,7 +230,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 						return nil, err
 					}
 
-					_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+					_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 					if err != nil {
 						if kerrors.IsNotFound(err) {
 							sLog.Infof("  P (Kubectl Target): resource not found: %s, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -266,7 +266,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				return nil, err
 			}
 
-			_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+			_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					sLog.Infof("  P (Kubectl Target): resource not found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -299,7 +299,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -328,8 +328,8 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 								return ret, err
 							}
 
-							i.ensureNamespace(ctx, deployment.Instance.Scope)
-							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+							i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 							if err != nil {
 								sLog.Errorf("  P (Kubectl Target):  failed to apply Yaml: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
@@ -358,8 +358,8 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						return ret, err
 					}
 
-					i.ensureNamespace(ctx, deployment.Instance.Scope)
-					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+					i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 					if err != nil {
 						sLog.Errorf("  P (Kubectl Target):  failed to apply custom resource: %+v, traceId: %s", err, err, span.SpanContext().TraceID().String())
 						return ret, err
@@ -389,7 +389,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 								return ret, err
 							}
 
-							err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+							err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 							if err != nil {
 								sLog.Errorf("  P (Kubectl Target): failed to read object: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								return ret, err
@@ -418,7 +418,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						return ret, err
 					}
 
-					err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Scope)
+					err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
 					if err != nil {
 						sLog.Errorf("  P (Kubectl Target): failed to delete custom resource: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 						return ret, err
@@ -479,14 +479,17 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 // GetValidationRule returns validation rule for the provider
 func (*KubectlTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{"yaml", "resource"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{
-				Name: "*", //react to all property changes
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{"yaml", "resource"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*", //react to all property changes
+				},
 			},
 		},
 	}
@@ -528,7 +531,7 @@ func readYaml(yaml string) (<-chan []byte, <-chan error) {
 }
 
 // BuildDynamicResourceClient builds a new dynamic client
-func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope string) (obj *unstructured.Unstructured, dr dynamic.ResourceInterface, err error) {
+func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, namespace string) (obj *unstructured.Unstructured, dr dynamic.ResourceInterface, err error) {
 	// Decode YAML manifest into unstructured.Unstructured
 	obj = &unstructured.Unstructured{}
 	_, gvk, err := decUnstructured.Decode(data, nil, obj)
@@ -550,8 +553,8 @@ func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope str
 	// Obtain REST interface for the GVR
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		// namespaced resources should specify the namespace
-		obj.SetNamespace(scope)
-		dr = i.DynamicClient.Resource(mapping.Resource).Namespace(scope)
+		obj.SetNamespace(namespace)
+		dr = i.DynamicClient.Resource(mapping.Resource).Namespace(namespace)
 	} else {
 		// for cluster-wide resources
 		dr = i.DynamicClient.Resource(mapping.Resource)
@@ -561,8 +564,8 @@ func (i KubectlTargetProvider) buildDynamicResourceClient(data []byte, scope str
 }
 
 // getCustomResource gets a custom resource from a byte array
-func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes []byte, scope string) (*unstructured.Unstructured, error) {
-	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
+func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes []byte, namespace string) (*unstructured.Unstructured, error) {
+	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return nil, err
@@ -578,8 +581,8 @@ func (i *KubectlTargetProvider) getCustomResource(ctx context.Context, dataBytes
 }
 
 // deleteCustomResource deletes a custom resource from a byte array
-func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
-	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
+func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBytes []byte, namespace string) error {
+	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return err
@@ -597,8 +600,8 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, scope string) error {
-	obj, dr, err := i.buildDynamicResourceClient(dataBytes, scope)
+func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, namespace string) error {
+	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
 		return err

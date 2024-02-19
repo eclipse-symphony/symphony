@@ -233,44 +233,53 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/instances/instance1":
 			response = model.InstanceState{
-				Id: "instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "instance1",
+					Namespace: "default",
+				},
 				Spec: &model.InstanceSpec{
 					Name:     "instance1",
 					Solution: "solution1",
-					Scope:    "default",
 				},
 			}
 		case "/instances":
 			response = []model.InstanceState{{
-				Id: "instance1",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "instance1",
+					Namespace: "default",
+				},
 				Spec: &model.InstanceSpec{
 					Name:     "instance1",
 					Solution: "solution1",
-					Scope:    "default",
 				},
 			}}
 		case "/targets/registry":
 			response = []model.TargetState{{
-				Id: "target1",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "target1",
+					Namespace: "default",
+				},
 				Spec: &model.TargetSpec{
 					DisplayName: "target1",
-					Scope:       "default",
 				},
 			}}
 		case "/targets/registry/target1":
 			response = model.TargetState{
-				Id: "target1",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "target1",
+					Namespace: "default",
+				},
 				Spec: &model.TargetSpec{
 					DisplayName: "target1",
-					Scope:       "default",
 				},
 			}
 		case "/solutions/solution1":
 			response = model.SolutionState{
-				Id: "solution1",
-				Spec: &model.SolutionSpec{
-					Scope: "default",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "solution1",
+					Namespace: "default",
 				},
+				Spec: &model.SolutionSpec{},
 			}
 		default:
 			response = AuthResponse{

@@ -9,7 +9,17 @@
 ##   docker build -f k8s/Dockerfile .
 ## Or build with docker-compose file of k8s
 
-FROM mcr.microsoft.com/devcontainers/go as builder
+FROM --platform=$BUILDPLATFORM golang:1.20.2-alpine AS builder
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV CGO_ENABLED=0
+
+# Install gcc, g++ and other necessary build tools
+RUN apk add --no-cache gcc musl-dev
 
 RUN go install github.com/magefile/mage@latest
 WORKDIR /
@@ -23,7 +33,6 @@ WORKDIR /k8s
 RUN CGO_ENABLED=1 mage generate operatorTest
 # Build
 RUN CGO_ENABLED=0 mage build
-
 FROM mcr.microsoft.com/mirror/docker/library/alpine:3.16 AS manager
 WORKDIR /
 COPY --from=builder /k8s/bin/manager .

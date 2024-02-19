@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![build](https://github.com/eclipse-symphony/symphony/actions/workflows/go.yml/badge.svg)
 
-_(last edit: 4/11/2023)_
+_(last edit: 02/02/2024)_
 
 Symphony is a powerful service orchestration engine that enables the organization of multiple intelligent edge services into a seamless, end-to-end experience. Its primary purpose is to address the inherent complexity of edge deployment by providing a set of technology-agnostic workflow APIs, which are designed to deliver a streamlined experience for users across all device profiles.
 
@@ -81,7 +81,7 @@ Symphony is an extensible system with the concept of providers. For each provide
 | ```providers.target.azure.adu``` |![](https://byob.yarr.is/Haishi2016/badges/target-adu-app)|
 | ```providers.target.azure.iotedge``` |![](https://byob.yarr.is/Haishi2016/badges/target-iotedge-app)|
 | ```providers.target.docker```|![](https://byob.yarr.is/Haishi2016/badges/target-docker-app)|
-| ```providers.target.heml```|![](https://byob.yarr.is/Haishi2016/badges/target-helm-app)|
+| ```providers.target.helm```|![](https://byob.yarr.is/Haishi2016/badges/target-helm-app)|
 | ```providers.target.http```|![](https://byob.yarr.is/Haishi2016/badges/target-http-app)|
 | ```providers.target.k8s``` |![](https://byob.yarr.is/Haishi2016/badges/target-k8s-app)|
 | ```providers.target.kubectl```|![](https://byob.yarr.is/Haishi2016/badges/target-kubectl-app)|

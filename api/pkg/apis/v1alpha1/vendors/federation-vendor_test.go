@@ -369,22 +369,27 @@ func TestFederationOnSyncGet(t *testing.T) {
 		}
 	}
 
-	var catalogSpec = model.CatalogSpec{
-		SiteId: vendor.Config.SiteInfo.SiteId,
-		Name:   "catalog1",
-		Type:   "catalog",
-		Properties: map[string]interface{}{
-			"property1": "value1",
-			"property2": "value2",
+	var catalogState = model.CatalogState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "catalog1",
 		},
-		Metadata: map[string]string{
-			"metadata1": "value1",
-			"metadata2": "value2",
+		Spec: &model.CatalogSpec{
+			SiteId: vendor.Config.SiteInfo.SiteId,
+			Name:   "catalog1",
+			Type:   "catalog",
+			Properties: map[string]interface{}{
+				"property1": "value1",
+				"property2": "value2",
+			},
+			ParentName: "parent1",
+			Generation: "1",
+			Metadata: map[string]string{
+				"metadata1": "value1",
+				"metadata2": "value2",
+			},
 		},
-		ParentName: "parent1",
-		Generation: "1",
 	}
-	err = vendor.CatalogsManager.UpsertSpec(context.Background(), catalogSpec.Name, catalogSpec)
+	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
 	assert.Nil(t, err)
 	vendor.Context.PubsubProvider.Publish("catalog", v1alpha2.Event{
 		Metadata: map[string]string{
@@ -410,7 +415,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		err = json.Unmarshal(response.Body, &summary)
 		assert.Nil(t, err)
 		if len(summary.Catalogs) == 1 {
-			assert.Equal(t, catalogSpec.Name, summary.Catalogs[0].Name)
+			assert.Equal(t, catalogState.Spec.Name, summary.Catalogs[0].Spec.Name)
 			break
 		} else {
 			time.Sleep(time.Second)
@@ -461,23 +466,28 @@ func TestFederationOnSyncGet(t *testing.T) {
 func TestFederationOnK8SHook(t *testing.T) {
 	vendor := federationVendorInit()
 
-	var catalogSpec = model.CatalogSpec{
-		SiteId: vendor.Config.SiteInfo.SiteId,
-		Name:   "catalog1",
-		Type:   "catalog",
-		Properties: map[string]interface{}{
-			"property1": "value1",
-			"property2": "value2",
+	var catalogState = model.CatalogState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "catalog1",
 		},
-		Metadata: map[string]string{
-			"metadata1": "value1",
-			"metadata2": "value2",
+		Spec: &model.CatalogSpec{
+			SiteId: vendor.Config.SiteInfo.SiteId,
+			Name:   "catalog1",
+			Type:   "catalog",
+			Properties: map[string]interface{}{
+				"property1": "value1",
+				"property2": "value2",
+			},
+			ParentName: "parent1",
+			Generation: "1",
+			Metadata: map[string]string{
+				"metadata1": "value1",
+				"metadata2": "value2",
+			},
 		},
-		ParentName: "parent1",
-		Generation: "1",
 	}
 
-	b, err := json.Marshal(catalogSpec)
+	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
