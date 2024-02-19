@@ -163,10 +163,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch patchSource {
 	case "", "catalog":
-		if componentName == "" {
-			sLog.Errorf("  P (Patch Stage): componentName is not specified for patching configuration from a catalog")
-			return nil, false, err
-		}
 		if v, ok := patchContent.(string); ok {
 			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
 
@@ -237,7 +233,12 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 
 		if componentName == "" {
-			componentSpec := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			componentSpec, ok := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			if !ok {
+				sLog.Errorf("  P (Patch Stage): catalog spec is not valid")
+				err = v1alpha2.NewCOAError(nil, "catalog spec is not valid", v1alpha2.BadConfig)
+				return nil, false, err
+			}
 			if solution.Spec.Components == nil {
 				solution.Spec.Components = make([]model.ComponentSpec, 0)
 			}
