@@ -122,7 +122,7 @@ func TestGetFailed(t *testing.T) {
 	}
 	steps := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -172,7 +172,7 @@ func TestApplyFailed(t *testing.T) {
 	}
 	components := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -185,7 +185,7 @@ func TestApplyFailed(t *testing.T) {
 
 	components = []model.ComponentStep{
 		{
-			Action:    "delete",
+			Action:    model.ComponentDelete,
 			Component: component,
 		},
 	}

@@ -337,7 +337,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	ret := step.PrepareResultMap()
 
 	for _, component := range step.Components {
-		if component.Action == "update" {
+		if component.Action == model.ComponentUpdate {
 			var helmProp *HelmProperty
 			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {

@@ -219,7 +219,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 			}
 			return ret, err
 		}
-		if c.Action == "update" {
+		if c.Action == model.ComponentUpdate {
 			deployment.GroupId = i.Config.ADUGroup
 			err = i.applyDeployment(deployment)
 			if err != nil {

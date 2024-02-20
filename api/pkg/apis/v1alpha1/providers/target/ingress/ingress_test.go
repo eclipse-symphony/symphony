@@ -165,7 +165,7 @@ func TestIngressTargetProviderApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -236,7 +236,7 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -282,7 +282,7 @@ func TestIngressTargetProviderGet(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -358,7 +358,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -370,7 +370,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 
 	reference := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -381,7 +381,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},

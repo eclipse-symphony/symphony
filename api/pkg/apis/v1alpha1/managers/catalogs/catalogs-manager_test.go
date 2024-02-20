@@ -155,7 +155,7 @@ func TestUpsertAndGet(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "catalog", event.Metadata["objectType"])
 		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
+		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
 	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
@@ -178,7 +178,7 @@ func TestList(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "catalog", event.Metadata["objectType"])
 		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
+		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
 	val, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace)
@@ -202,7 +202,7 @@ func TestDelete(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "catalog", event.Metadata["objectType"])
 		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
+		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
 	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)

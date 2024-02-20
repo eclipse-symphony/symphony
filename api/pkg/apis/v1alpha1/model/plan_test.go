@@ -60,7 +60,7 @@ func createSampleDeploymentPlan() DeploymentPlan {
 				IsFirst: true,
 				Components: []ComponentStep{
 					{
-						Action: "update",
+						Action: ComponentUpdate,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution",
 							Type: "instance",
@@ -85,7 +85,7 @@ func createSampleDeploymentPlanForDelete() DeploymentPlan {
 				IsFirst: true,
 				Components: []ComponentStep{
 					{
-						Action: "delete",
+						Action: ComponentDelete,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-d1",
 							Type: "instance-d1",
@@ -102,7 +102,7 @@ func createSampleDeploymentPlanForDelete() DeploymentPlan {
 				IsFirst: true,
 				Components: []ComponentStep{
 					{
-						Action: "delete",
+						Action: ComponentDelete,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-d2",
 							Type: "instance-d2",
@@ -127,7 +127,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 				IsFirst: true,
 				Components: []ComponentStep{
 					{
-						Action: "delete",
+						Action: ComponentDelete,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-d1",
 							Type: "instance",
@@ -137,7 +137,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 						},
 					},
 					{
-						Action: "update",
+						Action: ComponentUpdate,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-u1",
 							Type: "instance",
@@ -147,7 +147,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 						},
 					},
 					{
-						Action: "delete",
+						Action: ComponentDelete,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-d2",
 							Type: "instance",
@@ -157,7 +157,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 						},
 					},
 					{
-						Action: "update",
+						Action: ComponentUpdate,
 						Component: ComponentSpec{
 							Name: "sample-grpc-solution-u2",
 							Type: "instance",
@@ -178,7 +178,7 @@ func createSampleDeploymentStepWithUpdateComponent() DeploymentStep {
 		Target: "sample-grpc-target",
 		Components: []ComponentStep{
 			{
-				Action: "update",
+				Action: ComponentUpdate,
 				Component: ComponentSpec{
 					Name: "sample-grpc-solution",
 					Type: "instance",
@@ -199,7 +199,7 @@ func createSampleDeploymentStepWithDeleteComponent() DeploymentStep {
 		Target: "sample-grpc-target",
 		Components: []ComponentStep{
 			{
-				Action: "delete",
+				Action: ComponentDelete,
 				Component: ComponentSpec{
 					Name: "sample-grpc-solution",
 					Type: "instance",
@@ -253,7 +253,7 @@ func TestGetUpdatedComponentSteps(t *testing.T) {
 	s := createSampleDeploymentStepWithUpdateComponent()
 	components := s.GetUpdatedComponentSteps()
 	assert.Equal(t, len(components), 1)
-	assert.Equal(t, components[0].Action, "update")
+	assert.Equal(t, components[0].Action, ComponentUpdate)
 	assert.Equal(t, components[0].Component.Name, "sample-grpc-solution")
 	assert.Equal(t, components[0].Component.Type, "instance")
 	assert.Equal(t, components[0].Component.Properties["file.content"], "hello world")
@@ -333,7 +333,7 @@ func TestRevisedForDeletion(t *testing.T) {
 	p := createSampleDeploymentPlan()
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 1)
-	assert.Equal(t, p.Steps[0].Components[0].Action, "update")
+	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentUpdate)
 	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
@@ -342,12 +342,12 @@ func TestRevisedForDeletion(t *testing.T) {
 	p = createSampleDeploymentPlanForDelete()
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 2)
-	assert.Equal(t, p.Steps[0].Components[0].Action, "delete")
+	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentDelete)
 	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution-d2")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance-d2")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
 
-	assert.Equal(t, p.Steps[1].Components[0].Action, "delete")
+	assert.Equal(t, p.Steps[1].Components[0].Action, ComponentDelete)
 	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solution-d1")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Type, "instance-d1")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Properties["file.content"], "hello world")
@@ -358,22 +358,22 @@ func TestRevisedForDeletion(t *testing.T) {
 	p = createSampleDeploymentPlanForUpdateAndDelete()
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 2)
-	assert.Equal(t, p.Steps[0].Components[0].Action, "update")
+	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentUpdate)
 	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution-u1")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
 
-	assert.Equal(t, p.Steps[0].Components[1].Action, "update")
+	assert.Equal(t, p.Steps[0].Components[1].Action, ComponentUpdate)
 	assert.Equal(t, p.Steps[0].Components[1].Component.Name, "sample-grpc-solution-u2")
 	assert.Equal(t, p.Steps[0].Components[1].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[1].Component.Properties["file.content"], "hello world")
 
-	assert.Equal(t, p.Steps[1].Components[0].Action, "delete")
+	assert.Equal(t, p.Steps[1].Components[0].Action, ComponentDelete)
 	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solution-d2")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Properties["file.content"], "hello world")
 
-	assert.Equal(t, p.Steps[1].Components[1].Action, "delete")
+	assert.Equal(t, p.Steps[1].Components[1].Action, ComponentDelete)
 	assert.Equal(t, p.Steps[1].Components[1].Component.Name, "sample-grpc-solution-d1")
 	assert.Equal(t, p.Steps[1].Components[1].Component.Type, "instance")
 	assert.Equal(t, p.Steps[1].Components[1].Component.Properties["file.content"], "hello world")

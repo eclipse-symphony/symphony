@@ -661,7 +661,7 @@ func TestApplyFailed(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},

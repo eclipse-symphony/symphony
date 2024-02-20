@@ -362,7 +362,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		catalogs := make([]model.CatalogState, 0)
 		jobs := make([]v1alpha2.JobData, 0)
 		for _, c := range batch {
-			if c.Action == "RUN" { //TODO: I don't really like this
+			if c.Action == v1alpha2.JobRun { //TODO: I don't really like this
 				jobs = append(jobs, c)
 			} else {
 				catalog, err := f.CatalogsManager.GetState(ctx, c.Id, namespace)
@@ -434,7 +434,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 				},
 				Body: v1alpha2.JobData{
 					Id:     catalog.Name,
-					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
 			})

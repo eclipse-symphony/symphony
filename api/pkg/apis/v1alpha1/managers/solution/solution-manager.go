@@ -145,9 +145,9 @@ func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan stru
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	action := "update"
+	action := v1alpha2.HeartBeatUpdate
 	if remove {
-		action = "delete"
+		action = v1alpha2.HeartBeatDelete
 	}
 
 	for {
@@ -387,7 +387,7 @@ func (s *SolutionManager) canSkipStep(ctx context.Context, step model.Deployment
 
 	for _, newCom := range step.Components {
 		key := fmt.Sprintf("%s::%s", newCom.Component.Name, target)
-		if newCom.Action == "delete" {
+		if newCom.Action == model.ComponentDelete {
 			for _, c := range currentComponents {
 				if c.Name == newCom.Component.Name && state.TargetComponent[key] != "" {
 					return false // current component still exists, desired is to remove it. The step can't be skipped

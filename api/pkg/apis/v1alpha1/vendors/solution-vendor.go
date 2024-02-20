@@ -139,9 +139,9 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		action := "UPDATE"
+		action := v1alpha2.JobUpdate
 		if delete == "true" {
-			action = "DELETE"
+			action = v1alpha2.JobDelete
 		}
 		objType := "instance"
 		if target == "true" {

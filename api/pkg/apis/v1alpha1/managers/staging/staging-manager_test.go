@@ -52,7 +52,7 @@ func TestPoll(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
-	assert.Equal(t, "UPDATE", jobData.(v1alpha2.JobData).Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	item, err := stateProvider.Get(context.Background(), states.GetRequest{
 		ID: "fake-catalog1",
@@ -89,7 +89,7 @@ func TestHandleJobEvent(t *testing.T) {
 		},
 		Body: v1alpha2.JobData{
 			Id:     "catalog1",
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 		},
 	})
 	assert.Nil(t, err)
@@ -98,7 +98,7 @@ func TestHandleJobEvent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
-	assert.Equal(t, "UPDATE", jobData.(v1alpha2.JobData).Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	site, err := queueProvider.Dequeue("site-job-queue")
 	assert.Nil(t, err)
@@ -118,23 +118,23 @@ func TestGetABatchForSite(t *testing.T) {
 
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
 		Id:     "catalog1",
-		Action: "UPDATE",
+		Action: v1alpha2.JobUpdate,
 	})
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
 		Id:     "catalog2",
-		Action: "UPDATE",
+		Action: v1alpha2.JobUpdate,
 	})
 	jobs, err := manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "catalog1", jobs[0].Id)
-	assert.Equal(t, "UPDATE", jobs[0].Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 
 	jobs, err = manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "catalog2", jobs[0].Id)
-	assert.Equal(t, "UPDATE", jobs[0].Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 }
 
 type AuthResponse struct {

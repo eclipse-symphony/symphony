@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -139,12 +140,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			objectNamespace = "default"
 		}
 
-		if action == "remove" {
+		if strings.EqualFold(action, "remove") {
 			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
 			if err != nil {
 				return nil, false, err
 			}
-		} else if action == "create" {
+		} else if strings.EqualFold(action, "create") {
 			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectNamespace)
 			if err != nil {
 				return nil, false, err

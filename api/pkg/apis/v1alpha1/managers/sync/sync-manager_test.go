@@ -106,7 +106,7 @@ func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 				Jobs: []v1alpha2.JobData{
 					{
 						Id:     "job1",
-						Action: "UPDATE",
+						Action: v1alpha2.JobUpdate,
 					},
 				},
 				Catalogs: []model.CatalogState{
