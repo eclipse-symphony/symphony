@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,6 +39,11 @@ type CreateStageProvider struct {
 	Config  CreateStageProviderConfig
 	Context *contexts.ManagerContext
 }
+
+const (
+	RemoveAction = "remove"
+	CreateAction = "create"
+)
 
 func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
@@ -139,12 +145,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			objectNamespace = "default"
 		}
 
-		if action == "remove" {
+		if strings.EqualFold(action, RemoveAction) {
 			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
 			if err != nil {
 				return nil, false, err
 			}
-		} else if action == "create" {
+		} else if strings.EqualFold(action, CreateAction) {
 			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectNamespace)
 			if err != nil {
 				return nil, false, err

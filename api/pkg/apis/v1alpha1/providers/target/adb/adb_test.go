@@ -71,7 +71,7 @@ func TestGetOneDesired(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "MyApp",
 				Properties: map[string]interface{}{
@@ -109,7 +109,7 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "MyApp",
 				Properties: map[string]interface{}{
@@ -149,7 +149,7 @@ func TestApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -185,7 +185,7 @@ func TestRemove(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -222,7 +222,7 @@ func TestGetFailed(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "MyApp",
 				Properties: map[string]interface{}{
@@ -260,7 +260,7 @@ func TestApplyFailed(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -271,7 +271,7 @@ func TestApplyFailed(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},

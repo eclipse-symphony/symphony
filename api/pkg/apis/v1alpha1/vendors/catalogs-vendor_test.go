@@ -501,7 +501,7 @@ func TestCatalogSubscribe(t *testing.T) {
 		},
 		Body: v1alpha2.JobData{
 			Id:     catalogState.ObjectMeta.Name,
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 			Body:   catalogState,
 		},
 	})

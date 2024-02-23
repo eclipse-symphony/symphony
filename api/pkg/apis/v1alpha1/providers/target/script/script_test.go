@@ -97,7 +97,7 @@ func TestGet(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "com1",
 			},
@@ -133,7 +133,7 @@ func TestRemoveScript(t *testing.T) {
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},
@@ -168,7 +168,7 @@ func TestApplyScript(t *testing.T) {
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},

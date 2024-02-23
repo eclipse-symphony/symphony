@@ -477,7 +477,7 @@ func TestApply(t *testing.T) {
 	updateStep := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "test-1",
 					Properties: map[string]interface{}{
@@ -499,7 +499,7 @@ func TestApply(t *testing.T) {
 	deleteStep := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "test-1",
 					Properties: map[string]interface{}{

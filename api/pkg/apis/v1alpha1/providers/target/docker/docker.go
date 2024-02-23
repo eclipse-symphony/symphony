@@ -196,7 +196,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	}
 
 	for _, component := range step.Components {
-		if component.Action == "update" {
+		if component.Action == model.ComponentUpdate {
 			image := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
 			if image == "" {

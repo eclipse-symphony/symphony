@@ -70,7 +70,7 @@ func TestGetOneDesired(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "HomeHub_1.0.4.0_x64",
 			},
@@ -134,7 +134,7 @@ func TestRemove(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -170,7 +170,7 @@ func TestApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -207,7 +207,7 @@ func TestApplyUpdateFailed(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -245,7 +245,7 @@ func TestApplySlientDelete(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -281,7 +281,7 @@ func TestGetUnknownPath(t *testing.T) {
 		},
 	}
 	step := []model.ComponentStep{{
-		Action:    "delete",
+		Action:    model.ComponentDelete,
 		Component: component,
 	}}
 	_, err = provider.Get(context.Background(), deployment, step)

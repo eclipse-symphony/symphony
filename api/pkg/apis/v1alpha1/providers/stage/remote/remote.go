@@ -94,7 +94,7 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		},
 		Body: v1alpha2.JobData{
 			Id:     "",
-			Action: "RUN",
+			Action: v1alpha2.JobRun,
 			Body: v1alpha2.InputOutputData{
 				Inputs:  inputs,
 				Outputs: i.OutputContext,

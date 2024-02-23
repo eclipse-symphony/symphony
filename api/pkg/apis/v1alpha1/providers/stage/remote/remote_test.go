@@ -45,7 +45,7 @@ func TestRemoteProcess(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "child", event.Metadata["site"])
 		assert.Equal(t, "task", event.Metadata["objectType"])
-		assert.Equal(t, "RUN", job.Action)
+		assert.Equal(t, v1alpha2.JobRun, job.Action)
 		succeededCount += 1
 		sig <- true
 		return nil
