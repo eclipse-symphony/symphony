@@ -318,7 +318,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		},
 		Body: v1alpha2.JobData{
 			Id:     "job1",
-			Action: "RUN",
+			Action: v1alpha2.JobRun,
 		},
 	})
 	for i := 0; i < 30; i++ {
@@ -349,7 +349,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		},
 		Body: v1alpha2.JobData{
 			Id:     "catalog1",
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 		},
 	})
 	for i := 0; i < 30; i++ {
@@ -397,7 +397,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		},
 		Body: v1alpha2.JobData{
 			Id:     "catalog1",
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 		},
 	})
 	for i := 0; i < 30; i++ {

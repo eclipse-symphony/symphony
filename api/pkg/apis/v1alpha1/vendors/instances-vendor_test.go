@@ -88,7 +88,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "instance", event.Metadata["objectType"])
 		assert.Equal(t, "instance1", job.Id)
-		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
+		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		succeededCount += 1
 		sig <- true
 		return nil

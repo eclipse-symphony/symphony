@@ -61,7 +61,7 @@ func (s *SyncManager) Poll() []error {
 				},
 				Body: v1alpha2.JobData{
 					Id:     catalog.Spec.Name,
-					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
 			})

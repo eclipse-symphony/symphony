@@ -46,7 +46,7 @@ func TestMockTargetProviderApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},
@@ -58,7 +58,7 @@ func TestMockTargetProviderApply(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},

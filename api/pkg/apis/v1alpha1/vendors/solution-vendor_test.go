@@ -389,7 +389,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 		assert.Equal(t, "instance", event.Metadata["objectType"])
 		assert.Equal(t, "scope1", event.Metadata["namespace"])
 		assert.Equal(t, "instance1", job.Id)
-		assert.Equal(t, "UPDATE", job.Action)
+		assert.Equal(t, v1alpha2.JobUpdate, job.Action)
 		succeededCount += 1
 		sig <- true
 		return nil
@@ -425,7 +425,7 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 		assert.Equal(t, "target", event.Metadata["objectType"])
 		assert.Equal(t, "scope1", event.Metadata["namespace"])
 		assert.Equal(t, "target1", job.Id)
-		assert.Equal(t, "DELETE", job.Action)
+		assert.Equal(t, v1alpha2.JobDelete, job.Action)
 		succeededCount += 1
 		sig <- true
 		return nil

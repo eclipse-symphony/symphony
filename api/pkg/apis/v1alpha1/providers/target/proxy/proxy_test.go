@@ -69,7 +69,7 @@ func TestGet(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "HomeHub_1.0.4.0_x64",
 				Properties: map[string]interface{}{
@@ -133,7 +133,7 @@ func TestRemove(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -192,7 +192,7 @@ func TestApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -266,7 +266,7 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 	}
 	components := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -282,7 +282,7 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},

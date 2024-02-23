@@ -103,7 +103,7 @@ func (s *StagingManager) Poll() []error {
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
 			Id:     catalog.Spec.Name,
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{

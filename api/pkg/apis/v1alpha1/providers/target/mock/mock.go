@@ -124,7 +124,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		for i, _ := range cache[m.Config.ID] {
 			if cache[m.Config.ID][i].Name == c.Component.Name {
 				found = true
-				if c.Action == "delete" {
+				if c.Action == model.ComponentDelete {
 					cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
 				}
 				break

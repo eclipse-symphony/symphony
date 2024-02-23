@@ -26,9 +26,9 @@ func PlanForDeployment(deployment model.DeploymentSpec, state model.DeploymentSt
 				if role == "" {
 					role = "instance"
 				}
-				action := "update"
+				action := model.ComponentUpdate
 				if strings.HasPrefix(v, "-") {
-					action = "delete"
+					action = model.ComponentDelete
 				}
 				index := ret.FindLastTargetRole(t.Name, c.Type)
 				if index < 0 || !ret.CanAppendToStep(index, c) {

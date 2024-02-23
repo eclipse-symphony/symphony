@@ -227,7 +227,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "UPDATE",
+					Action: v1alpha2.JobUpdate,
 				},
 			})
 		}
@@ -247,7 +247,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "DELETE",
+					Action: v1alpha2.JobDelete,
 				},
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

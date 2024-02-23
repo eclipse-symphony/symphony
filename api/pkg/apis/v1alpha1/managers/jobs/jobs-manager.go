@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -105,7 +104,7 @@ func (s *JobsManager) pollObjects() []error {
 				},
 				Body: v1alpha2.JobData{
 					Id:     instance.ObjectMeta.Name,
-					Action: "UPDATE",
+					Action: v1alpha2.JobUpdate,
 				},
 			})
 		}
@@ -140,7 +139,7 @@ func (s *JobsManager) pollObjects() []error {
 				},
 				Body: v1alpha2.JobData{
 					Id:     target.ObjectMeta.Name,
-					Action: "UPDATE",
+					Action: v1alpha2.JobUpdate,
 				},
 			})
 		}
@@ -266,8 +265,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 		// heartbeat is too old
 		return nil
 	}
-	// job.Action is upper case and heartbeat.Action is lower case, use case insensitive comparison
-	if strings.EqualFold(job.Action, "delete") && strings.EqualFold(heartbeat.Action, "update") {
+
+	if job.Action == v1alpha2.JobDelete && heartbeat.Action == v1alpha2.HeartBeatUpdate {
 		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 		return err
 	}
@@ -381,7 +380,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 
 			//call api
-			if job.Action == "UPDATE" {
+			switch job.Action {
+			case v1alpha2.JobUpdate:
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
@@ -396,14 +396,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 						},
 					})
 				}
-			}
-			if job.Action == "DELETE" {
+			case v1alpha2.JobDelete:
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
 					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Spec.Name, user, password, namespace)
 				}
+			default:
+				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "target":
 			targetName := job.Id
@@ -416,7 +417,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if err != nil {
 				return err
 			}
-			if job.Action == "UPDATE" {
+			switch job.Action {
+			case v1alpha2.JobUpdate:
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
 					return err
@@ -431,14 +433,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 						},
 					})
 				}
-			}
-			if job.Action == "DELETE" {
+			case v1alpha2.JobDelete:
 				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
 					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password, namespace)
 				}
+			default:
+				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		}
 	}

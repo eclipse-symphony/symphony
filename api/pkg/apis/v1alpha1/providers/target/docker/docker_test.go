@@ -67,7 +67,7 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -107,7 +107,7 @@ func TestDockerTargetProviderGet(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "redis-test",
 				Type: "container",
@@ -152,7 +152,7 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -192,7 +192,7 @@ func TestUpdateGetDelete(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -220,7 +220,7 @@ func TestUpdateGetDelete(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "alpine-test",
 				Type: "container",
@@ -237,7 +237,7 @@ func TestUpdateGetDelete(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -274,7 +274,7 @@ func TestApplyFailed(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -304,7 +304,7 @@ func TestApplyFailed(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -343,7 +343,7 @@ func TestApplyAlreadyRunning(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
