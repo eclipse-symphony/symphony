@@ -37,11 +37,4 @@ type SummaryResult struct {
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 	s.TargetResults[target] = spec
-	count := 0
-	for _, r := range s.TargetResults {
-		if r.Status == "OK" {
-			count++
-		}
-	}
-	s.SuccessCount = count
 }

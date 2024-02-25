@@ -153,7 +153,7 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 	if !prefixMatch {
 		return ta == tb
 	} else {
-		return strings.HasPrefix(tb, ta)
+		return strings.HasPrefix(tb, ta) || strings.HasPrefix(ta, tb)
 	}
 }
 func compareProperties(c PropertyDesc, old map[string]interface{}, new map[string]interface{}, key string) bool {

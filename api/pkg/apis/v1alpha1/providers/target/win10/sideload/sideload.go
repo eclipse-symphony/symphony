@@ -155,7 +155,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 			for _, component := range desired {
 				if component.Name == mLine {
 					ret = append(ret, model.ComponentSpec{
-						Name: line,
+						Name: mLine,
 						Type: "win.uwp",
 					})
 				}
@@ -164,6 +164,37 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	}
 
 	return ret, nil
+}
+func (i *Win10SideLoadProvider) getPackageReferenceName(name string) string {
+
+	params := make([]string, 0)
+	params = append(params, "list")
+	params = append(params, "-ip")
+	params = append(params, i.Config.IPAddress)
+	if i.Config.Pin != "" {
+		params = append(params, "-pin")
+		params = append(params, i.Config.Pin)
+	}
+
+	out, err := exec.Command(i.Config.WinAppDeployCmdPath, params...).Output()
+
+	if err != nil {
+		sLog.Errorf("  P (Win10Sideload Target): failed to run deploy cmd %s, error: %+v", i.Config.WinAppDeployCmdPath, err)
+		return ""
+	}
+	str := string(out)
+	lines := strings.Split(str, "\r\n")
+
+	re := regexp.MustCompile(`^(\w+\.)+\w+$`)
+	for _, line := range lines {
+		if re.Match([]byte(line)) {
+			if strings.HasPrefix(line, name) {
+				return line
+			}
+		}
+	}
+
+	return ""
 }
 func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
@@ -220,6 +251,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+
 		for _, component := range components {
 			if component.Name != "" {
 				params := make([]string, 0)
@@ -234,13 +266,10 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 
 				name := component.Name
 
-				// TODO: this is broken due to the refactor, the current reference is no longer available
-				// for _, ref := range currentRef {
-				// 	if ref.Name == name || strings.HasPrefix(ref.Name, name) {
-				// 		name = ref.Name
-				// 		break
-				// 	}
-				// }
+				refName := i.getPackageReferenceName(name)
+				if refName != "" {
+					name = refName
+				}
 
 				params = append(params, name)
 

@@ -109,6 +109,9 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 	} else {
 		ret.PingTimeoutSeconds = 1
 	}
+	if ret.TimeoutSeconds <= 0 {
+		ret.TimeoutSeconds = 8
+	}
 	return ret, nil
 }
 
@@ -169,6 +172,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 			IsOK:  response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
 			State: response.State,
 		}
+
 		if !proxyResponse.IsOK {
 			proxyResponse.Payload = string(response.Body)
 		}
@@ -209,6 +213,9 @@ func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetPro
 		return ret, err
 	}
 	err = json.Unmarshal(data, &ret)
+	if ret.TimeoutSeconds <= 0 {
+		ret.TimeoutSeconds = 8
+	}
 	return ret, err
 }
 
@@ -236,7 +243,6 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		err = token.Error()
 		return nil, err
 	}
-
 	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-i.GetChan:
@@ -258,12 +264,12 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			return ret, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
-			sLog.Errorf("  P (MQTT Target): failed to get response - %s - %s, traceId: %s", err.Error(), fmt.Sprint(data), span.SpanContext().TraceID().String())
+			sLog.Errorf("  P (MQTT Target): failed to get response - %s - %s, traceId: %s", err.Error(), fmt.Sprint(string(data)), span.SpanContext().TraceID().String())
 			return nil, err
 		}
 	case <-timeout:
 		err = v1alpha2.NewCOAError(nil, "didn't get response to Get() call over MQTT", v1alpha2.InternalError)
-		sLog.Errorf("  P (MQTT Target): request timeout - %s - %s, traceId: %s", err.Error(), fmt.Sprint(data), span.SpanContext().TraceID().String())
+		sLog.Errorf("  P (MQTT Target): request timeout - %s - %s, traceId: %s", err.Error(), fmt.Sprint(string(data)), span.SpanContext().TraceID().String())
 		return nil, err
 	}
 }

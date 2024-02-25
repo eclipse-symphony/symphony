@@ -8,12 +8,12 @@ spec:
     type: container
     properties:
       container.image: "nginx"
-    constraints: ${{$equal($property(location), 'hpc')}}
+    constraints: ${{$equal($property(location), 'k8s')}}
   - name: HomeHub_1.0.9.0_x64
     type: win.uwp
     properties:
       app.package.path: "C:\\demo\\HomeHub.Package_1.0.9.0_Debug_Test\\HomeHub.Package_1.0.9.0_x64_Debug.appxbundle"
-    constraints: ${{$equal($property(location), 'hpc')}}
+    constraints: ${{$equal($property(location), 'pc')}}
   - name: wasm-module
     type: wasm
     properties:

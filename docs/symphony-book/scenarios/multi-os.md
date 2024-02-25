@@ -1,13 +1,16 @@
 # Multi-OS deployment
-This scenario deploys an application that spans Kubernetes, Windows, and bare-metal Linux. The application simulates a smart appliance that has a backend service, a Windows-based frontend, and a daemon on ECU operating sensors. This scenario can also be considered as a simplified SDV system, where core services running on a HPC cluster, an infotainment system running on a consumer-facing OS like Android or Windows, and some device drivers running on ECUs.
+
+_(last update: 2/24/2024)_
+
+This scenario deploys an application that spans Kubernetes, Windows, bare-metal Linux and RTOS. The application simulates a smart appliance that has a backend service, a Windows-based frontend, a driver on an ECU as well as a library on an RTOS device. This scenario can also be considered as a simplified SDV system, where core services run on a HPC cluster, an infotainment system runs on a consumer-facing OS like Android or Windows, and some device drivers run on ECUs.
+![multi-os](../images/multi-os.png)
+
 
 ## Generic flow
 
-1. Define your application as a Symphony `solution` object. This object contains three components: a Docker container that is to be deployed on Kubernetes, an UWP application package that is to be deployed to Windows, and a Web Assembly module that is to be deployed on a Flatcar VM.
-2. Define three deployment `target`s: Kubernetes cluster, Windows machine, and Flatcar VM.
-    > **NOTE**: You can set up the entire demo environment on a single Windows machine, with a Minikube cluster and a Flatcar VM running on the same machine.
-
-    In this scenario, the Windows machine is managed by a [proxy provider](../providers/http_proxy_provider.md) deployed on the Windows machine.
+1. Define your application as a Symphony `solution` object. This object contains four components: a Docker container that is to be deployed on Kubernetes, an UWP application package that is to be deployed to Windows, a Web Assembly module that is to be deployed on a Flatcar VM, and a ThreadX binary image that is to be deployed on a MIMXRT1170-EVK board.
+2. Define four deployment `target`s: Kubernetes cluster, Windows machine, Flatcar VM and RTOS.    
+    In this scenario, the Windows machine is managed by a [MQTT proxy provider](../providers/mqtt_proxy_provider.md) deployed on the Windows machine.
 3. Define an `instance` object that maps the above three components to corresponding targets.
 4. [OPTIONAL] Define a `campaign` that describes a worfklow. This workflow asks for a user's approval (via email) to inject an eBPF module to the Flatcar system during a specific time window for network profiling.
 5. [OPTIONAL] Defines an `activation` object that activates the above workflow.

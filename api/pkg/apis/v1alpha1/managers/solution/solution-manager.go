@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -45,6 +47,8 @@ type SolutionManager struct {
 	StateProvider   states.IStateProvider
 	ConfigProvider  config.IExtConfigProvider
 	SecretProvoider secret.ISecretProvider
+	IsTarget        bool
+	TargetName      string
 }
 
 type SolutionManagerDeploymentState struct {
@@ -84,6 +88,26 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		s.SecretProvoider = secretProvider
 	} else {
 		return err
+	}
+
+	if v, ok := config.Properties["isTarget"]; ok {
+		b, err := strconv.ParseBool(v)
+		if err == nil || b {
+			s.IsTarget = b
+		}
+	}
+
+	if v, ok := config.Properties["targetName"]; ok {
+		s.TargetName = v
+	}
+
+	if s.IsTarget {
+		if s.TargetName == "" {
+			s.TargetName = os.Getenv("SYMPHONY_TARGET_NAME")
+		}
+		if s.TargetName == "" {
+			return errors.New("target mode is set but target name is not set")
+		}
 	}
 
 	return nil
@@ -222,7 +246,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		s.saveSummary(iCtx, deployment, summary, namespace)
 		return summary, err
 	}
-
 	desiredState := currentDesiredState
 	if previousDesiredState != nil {
 		desiredState = MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
@@ -247,7 +270,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	dep.Instance.Spec.Metadata = col
 	someStepsRan := false
 
+	targetResult := make(map[string]int)
+
 	for _, step := range plan.Steps {
+		if s.IsTarget && step.Target != s.TargetName {
+			continue
+		}
 		dep.ActiveTarget = step.Target
 		agent := findAgent(deployment.Targets[step.Target])
 		if agent != "" {
@@ -272,6 +300,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
 			if s.canSkipStep(iCtx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+				targetResult[step.Target] = 1
 				continue
 			}
 		}
@@ -306,15 +335,23 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		for i := 0; i < retryCount; i++ {
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(iCtx, dep, step, false)
 			if stepError == nil {
+				targetResult[step.Target] = 1
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
 				break
 			} else {
+				targetResult[step.Target] = 0
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "Error", Message: stepError.Error(), ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
 				time.Sleep(5 * time.Second)                                                                                                                      //TODO: make this configurable?
 			}
 		}
 		if stepError != nil {
 			log.Errorf(" M (Solution): failed to execute deployment step: %+v", stepError)
+
+			successCount := 0
+			for _, v := range targetResult {
+				successCount += v
+			}
+			summary.SuccessCount = successCount
 			s.saveSummary(iCtx, deployment, summary, namespace)
 			err = stepError
 			return summary, err
@@ -351,6 +388,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		summary.SuccessCount = summary.TargetCount
 	}
 	summary.IsRemoval = remove
+
+	successCount := 0
+	for _, v := range targetResult {
+		successCount += v
+	}
+	summary.SuccessCount = successCount
 	s.saveSummary(iCtx, deployment, summary, namespace)
 	return summary, nil
 }
@@ -436,7 +479,11 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	ret = state
 	ret.TargetComponent = make(map[string]string)
 	retComponents := make([]model.ComponentSpec, 0)
+
 	for _, step := range plan.Steps {
+		if s.IsTarget && step.Target != s.TargetName {
+			continue
+		}
 		var override tgt.ITargetProvider
 		if v, ok := s.TargetProviders[step.Target]; ok {
 			override = v

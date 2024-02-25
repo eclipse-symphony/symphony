@@ -12,6 +12,13 @@ import json
 from waitress import serve
 
 @dataclass
+class ObjectMeta:
+    namespace: str = ""
+    name:  str = "" 
+    labels: Dict[str, str] = None
+    annotations: Dict[str, str] = None
+
+@dataclass
 class TargetSelector:
     name: str = ""
     selector: Dict[str, str] = None
@@ -88,6 +95,10 @@ class SolutionSpec:
     displayName: str = ""
     metadata: Dict[str,str] = None
     
+@dataclass
+class SolutionState:
+    metadata: ObjectMeta = None
+    spec: SolutionSpec = None
 
 @dataclass
 class TargetSpec:
@@ -99,7 +110,47 @@ class TargetSpec:
     displayName: str = ""
     metadata: Dict[str, str] = None
     forceRedeploy: bool = False
-    
+
+@dataclass
+class ComponentError:
+    code: str = ""
+    message: str = ""
+    target: str = ""    
+
+@dataclass
+class TargetError:
+    code: str = ""
+    message: str = ""
+    target: str = ""
+    details: Dict[str, ComponentError] = None
+
+@dataclass
+class ErrorType:
+    code: str = ""
+    message: str = ""
+    target: str = ""
+    details: Dict[str, TargetError] = None
+
+@dataclass
+class ProvisioningStatus:
+    operationId: str = ""
+    status: str = ""
+    failureCause: str = ""
+    logErrors: bool = False
+    error: ErrorType = None
+    output: Dict[str, str] = None
+
+@dataclass
+class TargetStatus:
+    properties: Dict[str, str] = None
+    provisioningStatus: ProvisioningStatus = None
+    lastModififed: str = ""
+
+@dataclass
+class TargetState:
+    metadata: ObjectMeta = None
+    spec: TargetSpec = None
+    status: TargetStatus = None
 
 @dataclass
 class DeviceSpec:
@@ -107,13 +158,12 @@ class DeviceSpec:
     bindings: List[BindingSpec] = None
     displayName: str = ""
     
-
 @dataclass
 class DeploymentSpec:
     solutionName: str = ""
-    solution: SolutionSpec = None
+    solution: SolutionState = None
     instance: InstanceSpec = None
-    targets: Dict[str, TargetSpec] = None
+    targets: Dict[str, TargetState] = None
     devices: List[DeviceSpec] = None
     assignments: Dict[str, str] = None
     componentStartIndex: int = -1
@@ -123,8 +173,8 @@ class DeploymentSpec:
     def get_components_slice(self) -> []:
         if self.solution != None:
             if self.componentStartIndex >= 0 and self.componentEndIndex >= 0 and self.componentEndIndex > self.componentStartIndex:
-                return self.solution.components[self.componentStartIndex: self.componentEndIndex]
-            return self.solution.components
+                return self.solution.spec.components[self.componentStartIndex: self.componentEndIndex]
+            return self.solution.spec.components
         return []
 
 @dataclass

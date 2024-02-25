@@ -150,17 +150,20 @@ func TestApply(t *testing.T) {
 	provider := Win10SideLoadProvider{}
 	err := provider.Init(Win10SideLoadProviderConfig{
 		Name:                "win10sideload",
-		IPAddress:           "192.168.50.55",
+		IPAddress:           "192.168.50.205",
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "HomeHub_1.0.4.0_x64",
+		Name: "HomeHub_1.0.9.0_x64",
 		Properties: map[string]interface{}{
-			"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+			"app.package.path": "C:\\demo\\HomeHub.Package_1.0.9.0_Debug_Test\\HomeHub.Package_1.0.9.0_x64_Debug.appxbundle",
 		},
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{component},
