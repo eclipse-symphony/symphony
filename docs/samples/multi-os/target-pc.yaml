@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: pc
+spec:
+  properties:
+    location: "pc"
+    scenario: "multi-os"
+  topologies:
+  - bindings: 
+    - role: win.uwp
+      provider: providers.target.mqtt
+      config:
+        name: proxy1
+        brokerAddress: "tcp://172.214.62.119:1883"
+        clientID: "test-cluster-1"
+        requestTopic: "coa-request"
+        responseTopic: "coa-response"
+        timeoutSeconds:  "30"

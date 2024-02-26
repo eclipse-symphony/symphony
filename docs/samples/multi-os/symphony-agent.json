@@ -1,0 +1,86 @@
+{
+  "siteInfo": {
+    "siteId": "symphony-agent"
+  },
+  "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.state": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret",
+              "isTarget": "true",
+              "targetName": "pc"  
+            },
+            "providers": {
+              "pc": {
+                "type": "providers.target.win10.sideload",
+                "config": {
+                  "name": "sideload",
+                  "ipAddress": "192.168.1.1",
+		              "winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+		              "silent": false,
+                  "pin": ""                  
+                }
+              },
+              "rtos": {
+                "type": "providers.target.script",
+                "config": {
+                  "name": "mxuxpresso",
+                  "applyScript": "apply.ps1",
+                  "removeScript": "remove.ps1",
+                  "getScript": "get.ps1",
+                  "scriptFolder": "c:\\demo\\scripts"
+                }
+              },
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "name": "mqtt",
+        "brokerAddress": "tcp://172.214.62.119:1883",
+        "clientID": "windows-pc",
+        "requestTopic": "coa-request",
+        "responseTopic": "coa-response",
+        "timeoutSeconds":  8
+      }
+    }
+  ]
+}

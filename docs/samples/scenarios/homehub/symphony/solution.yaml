@@ -11,4 +11,4 @@ spec:
   - name: HomeHub_1.0.7.0_x64
     type: win.uwp
     properties:
-      app.package.path: "E:\\HomeHub.Package_1.0.7.0_Debug_Test\\HomeHub.Package_1.0.7.0_x64_Debug.appxbundle"
+      app.package.path: "C:\\demo\\HomeHub.Package_1.0.7.0_Debug_Test\\HomeHub.Package_1.0.7.0_x64_Debug.appxbundle"
