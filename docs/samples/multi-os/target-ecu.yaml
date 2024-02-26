@@ -13,9 +13,9 @@ spec:
       provider: providers.target.staging
       config:
         inCluster: "true"   
-        targetName: tiny-edge
+        targetName: ecu
     - role: ebpf
       provider: providers.target.staging
       config:
         inCluster: "true"   
-        targetName: tiny-edge
+        targetName: ecu

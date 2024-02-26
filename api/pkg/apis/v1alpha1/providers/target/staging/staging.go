@@ -104,7 +104,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
-			sLog.Infof("  P (Staging Target): no staged artifact found, traceId: %s")
+			sLog.Infof("  P (Staging Target): no staged artifact found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, nil
 		}
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())

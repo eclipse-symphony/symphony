@@ -21,3 +21,8 @@ spec:
       wasm.runtime: "wasmedge"
       wasm.dir: "/:/sys/kernel/debug/tracing"
     constraints: ${{$equal($property(location), 'ecu')}}
+  - name: binary
+    type: bin
+    properties:
+      bin.name: "bubble_peripheral"      
+    constraints: ${{$equal($property(location), 'rtos')}}

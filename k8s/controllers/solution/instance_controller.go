@@ -94,7 +94,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if v, err := strconv.ParseInt(summary.Generation, 10, 64); err == nil {
 			generationMatch = v == instance.GetGeneration()
 		}
-
 		if generationMatch && time.Since(summary.Time) <= time.Duration(60)*time.Second { //TODO: this is 60 second interval. Make if configurable?
 			err = r.updateInstanceStatus(instance, summary.Summary)
 			if err != nil {
@@ -196,9 +195,10 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 	targetCount := strconv.Itoa(summary.TargetCount)
 	successCount := strconv.Itoa(summary.SuccessCount)
 	status := provisioningstates.Succeeded
-	if successCount != targetCount {
+	if !summary.AllAssignedDeployed {
 		status = provisioningstates.Failed
 	}
+
 	instance.Status.Properties["status"] = status
 	instance.Status.Properties["deployed"] = successCount
 	instance.Status.Properties["targets"] = targetCount
