@@ -126,25 +126,27 @@ func (m *CatalogsManager) ValidateState(ctx context.Context, state model.Catalog
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	if schemaName, ok := state.Spec.Metadata["schema"]; ok {
-		var schema model.CatalogState
-		schema, err = m.GetState(ctx, schemaName, state.ObjectMeta.Namespace)
-		if err != nil {
-			err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
-			return utils.SchemaResult{Valid: false}, err
-		}
-		if s, ok := schema.Spec.Properties["spec"]; ok {
-			var schemaObj utils.Schema
-			jData, _ := json.Marshal(s)
-			err = json.Unmarshal(jData, &schemaObj)
+	if state.Spec != nil && state.Spec.Metadata != nil {
+		if schemaName, ok := state.Spec.Metadata["schema"]; ok {
+			var schema model.CatalogState
+			schema, err = m.GetState(ctx, schemaName, state.ObjectMeta.Namespace)
 			if err != nil {
-				err = v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
 				return utils.SchemaResult{Valid: false}, err
 			}
-			return schemaObj.CheckProperties(state.Spec.Properties, nil)
-		} else {
-			err = v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
-			return utils.SchemaResult{Valid: false}, err
+			if s, ok := schema.Spec.Properties["spec"]; ok {
+				var schemaObj utils.Schema
+				jData, _ := json.Marshal(s)
+				err = json.Unmarshal(jData, &schemaObj)
+				if err != nil {
+					err = v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+					return utils.SchemaResult{Valid: false}, err
+				}
+				return schemaObj.CheckProperties(state.Spec.Properties, nil)
+			} else {
+				err = v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
+				return utils.SchemaResult{Valid: false}, err
+			}
 		}
 	}
 	return utils.SchemaResult{Valid: true}, nil

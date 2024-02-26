@@ -1,0 +1,15 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: k8s     
+spec:  
+  forceRedeploy: true
+  properties:
+    location: "k8s"
+    scenario: "multi-os"
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"           

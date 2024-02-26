@@ -29,5 +29,5 @@ func TestUpdateTargetResult(t *testing.T) {
 	s.UpdateTargetResult("target2", TargetResultSpec{
 		Status: "ERROR",
 	})
-	assert.Equal(t, 2, s.SuccessCount)
+	assert.Equal(t, 0, s.SuccessCount) //ver 0.48.1: UpdateTargetResult no longer updates success count
 }

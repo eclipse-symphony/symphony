@@ -20,6 +20,7 @@ type StateEntry struct {
 	Body interface{} `json:"body"`
 	ETag string      `json:"etag,omitempty"`
 }
+
 type IStateProvider interface {
 	Init(config providers.IProviderConfig) error
 	Upsert(context.Context, UpsertRequest) (string, error)

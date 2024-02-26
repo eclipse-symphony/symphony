@@ -104,7 +104,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
-			sLog.Infof("  P (Staging Target): no staged artifact found, traceId: %s")
+			sLog.Infof("  P (Staging Target): no staged artifact found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, nil
 		}
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -183,6 +183,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.Spec.Properties == nil {
 		catalog.Spec.Properties = make(map[string]interface{})
 	}
+	if catalog.Spec.Metadata == nil {
+		catalog.Spec.Metadata = make(map[string]string)
+	}
 
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
@@ -190,6 +193,16 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		err = json.Unmarshal(jData, &existing)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to unmarshall catalog components: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			return ret, err
+		}
+	}
+
+	var deleted []model.ComponentSpec
+	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
+		jData, _ := json.Marshal(v)
+		err = json.Unmarshal(jData, &deleted)
+		if err != nil {
+			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}
@@ -212,16 +225,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			if !found {
 				existing = append(existing, component)
 			}
-		}
-	}
-
-	var deleted []model.ComponentSpec
-	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
-		jData, _ := json.Marshal(v)
-		err = json.Unmarshal(jData, &deleted)
-		if err != nil {
-			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
-			return ret, err
+			for j, c := range deleted {
+				if c.Name == component.Name {
+					deleted = append(deleted[:j], deleted[j+1:]...)
+				}
+			}
 		}
 	}
 
@@ -248,7 +256,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	catalog.Spec.Properties["components"] = existing
 	catalog.Spec.Properties["removed-components"] = deleted
-	jData, _ := json.Marshal(catalog.Spec)
+	jData, _ := json.Marshal(catalog)
 	err = utils.UpsertCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
