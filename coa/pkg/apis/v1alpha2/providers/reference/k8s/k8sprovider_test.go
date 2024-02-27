@@ -15,9 +15,10 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -91,7 +92,7 @@ func TestK8sGet(t *testing.T) {
 	err := provider.InitWithMap(nil)
 	assert.Nil(t, err)
 	CreateTargetResource()
-	target, err := provider.Get("ut-target", "default", "fabric.symphony", "targets", "v1", "")
+	target, err := provider.Get("ut-secret", "default", "", "secrets", "v1", "")
 	assert.Nil(t, err)
 	assert.NotNil(t, target)
 }
@@ -107,7 +108,7 @@ func TestK8sList(t *testing.T) {
 	err = provider.Init(config)
 	assert.Nil(t, err)
 	CreateTargetResource()
-	targets, err := provider.List("", "", "default", "fabric.symphony", "targets", "v1", "")
+	targets, err := provider.List("", "", "default", "", "secrets", "v1", "")
 	tt := targets.([]interface{})
 	assert.Nil(t, err)
 	assert.GreaterOrEqual(t, len(tt), 1)
@@ -144,40 +145,26 @@ func CreateTargetResource() {
 		panic(err)
 	}
 
-	target := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "fabric.symphony/v1",
-			"kind":       "target",
-			"metadata": map[string]interface{}{
-				"name": "ut-target",
-			},
-			"spec": map[string]interface{}{
-				"forceRedeploy": true,
-				"topologies": []interface{}{
-					map[string]interface{}{
-						"bindings": []interface{}{
-							map[string]interface{}{
-								"role":     "instance",
-								"provider": "providers.target.k8s",
-								"config": map[string]interface{}{
-									"inCluster": "true",
-								},
-							},
-						},
-					},
-				},
-			},
+	gvr := corev1.SchemeGroupVersion.WithResource("secrets")
+	namespace := "default"
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ut-secret",
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"key": []byte("value"),
 		},
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "fabric.symphony",
-		Version:  "v1",
-		Resource: "targets",
+	unstructuredSecret, err := runtime.DefaultUnstructuredConverter.ToUnstructured(secret)
+	if err != nil {
+		panic(err)
 	}
 
-	_, err = dynamicClient.Resource(gvr).Namespace("default").Create(context.Background(), target, metav1.CreateOptions{})
-	if !strings.Contains(err.Error(), "is already taken") {
+	_, err = dynamicClient.Resource(gvr).Namespace(namespace).Create(context.Background(), &unstructured.Unstructured{Object: unstructuredSecret}, metav1.CreateOptions{})
+	if !strings.Contains(err.Error(), "already exists") {
 		panic(err)
 	}
 }
