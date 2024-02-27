@@ -164,7 +164,7 @@ func CreateTargetResource() {
 	}
 
 	_, err = dynamicClient.Resource(gvr).Namespace(namespace).Create(context.Background(), &unstructured.Unstructured{Object: unstructuredSecret}, metav1.CreateOptions{})
-	if !strings.Contains(err.Error(), "already exists") {
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		panic(err)
 	}
 }
