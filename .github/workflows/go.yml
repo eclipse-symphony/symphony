@@ -31,7 +31,7 @@ jobs:
       run: |
         mkdir -p /home/runner/go
         echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
-        echo "export PATH=\$path:\$GOPATH/bin" >> $HOME/.bashrc
+        echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
         source $HOME/.bashrc
 
     - name: Install make
