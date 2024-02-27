@@ -77,3 +77,22 @@ func TestMockReferenceProviderConfigFromMapEnvOverride(t *testing.T) {
 	assert.Equal(t, 1, len(config.Values))
 	assert.Equal(t, "real-value", config.Values["key1"])
 }
+
+func TestMockReferenceProvider_Clone(t *testing.T) {
+	provider := MockReferenceProvider{}
+	err := provider.Init(MockReferenceProviderConfig{})
+	assert.Nil(t, err)
+
+	clonedProvider, err := provider.Clone(nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, clonedProvider)
+
+	newConfig, err := MockReferenceProviderConfigFromMap(map[string]string{
+		"name": "$env:my-name",
+		"key1": "$env:my-value",
+	})
+	assert.Nil(t, err)
+	clonedProvider, err = provider.Clone(newConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, clonedProvider)
+}

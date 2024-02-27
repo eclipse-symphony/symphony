@@ -127,6 +127,8 @@ func TestCustomVisionReferenceProviderConfigFromMapEnvOverride(t *testing.T) {
 	assert.Equal(t, 55, config.RetryInterval)
 }
 
+// https://jessetest.cognitiveservices.azure.com/customvision/v3.3/Training/projects/0ade741f-cf53-4449-bdc2-e1b1f33a5a20/iterations/1ad3644a-eb5b-43f6-bf4a-8393fcfb547b/export?flavor=Linux&platform=DockerFile
+// 1483681c96874612b97a3c67baeaaef5
 func TestGet(t *testing.T) {
 	apiKey := os.Getenv("TEST_CV_API_KEY")
 	cvProject := os.Getenv("TEST_CV_PROJECT")
@@ -142,5 +144,6 @@ func TestGet(t *testing.T) {
 	assert.Nil(t, err)
 	obj, err := provider.Get(cvProject, cvEndpoint, "", "", cvIteration, "")
 	assert.Nil(t, err)
-	assert.True(t, strings.Contains(obj.(string), "blob.core.windows.net:443"))
+	exports := obj.([]Export)
+	assert.True(t, strings.Contains(exports[0].DownloadUri, "blob.core.windows.net:443"))
 }
