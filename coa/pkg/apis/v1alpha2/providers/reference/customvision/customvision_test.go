@@ -142,5 +142,6 @@ func TestGet(t *testing.T) {
 	assert.Nil(t, err)
 	obj, err := provider.Get(cvProject, cvEndpoint, "", "", cvIteration, "")
 	assert.Nil(t, err)
-	assert.True(t, strings.Contains(obj.(string), "blob.core.windows.net:443"))
+	exports := obj.([]Export)
+	assert.True(t, strings.Contains(exports[0].DownloadUri, "blob.core.windows.net:443"))
 }
