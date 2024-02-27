@@ -12,7 +12,7 @@ spec:
       provider: providers.target.mqtt
       config:
         name: proxy2
-        brokerAddress: "tcp://172.214.62.119:1883"
+        brokerAddress: "tcp://<MQTT broker address>:1883"
         clientID: "test-cluster-2"
         requestTopic: "coa-request2"
         responseTopic: "coa-response2"

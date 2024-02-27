@@ -29,7 +29,7 @@
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret",
               "isTarget": "true",
-              "targetName": "pc"  
+              "targetNames": "pc,rtos"  
             },
             "providers": {
               "pc": {
@@ -49,7 +49,8 @@
                   "applyScript": "apply.ps1",
                   "removeScript": "remove.ps1",
                   "getScript": "get.ps1",
-                  "scriptFolder": "c:\\demo\\scripts"
+                  "scriptFolder": "c:\\demo\\scripts",
+                  "scriptEngine": "powershell"
                 }
               },
               "mem-state": {
@@ -74,12 +75,23 @@
     {
       "type": "bindings.mqtt",
       "config": {
-        "name": "mqtt",
-        "brokerAddress": "tcp://172.214.62.119:1883",
+        "name": "mqtt-1",
+        "brokerAddress": "tcp://<MQTT broker address>:1883",
         "clientID": "windows-pc",
         "requestTopic": "coa-request",
         "responseTopic": "coa-response",
-        "timeoutSeconds":  8
+        "timeoutSeconds":  30
+      }
+    },
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "name": "mqtt-2",
+        "brokerAddress": "tcp://<MQTT broker address>:1883",
+        "clientID": "windows-gateway",
+        "requestTopic": "coa-request2",
+        "responseTopic": "coa-response2",
+        "timeoutSeconds":  30
       }
     }
   ]
