@@ -66,10 +66,12 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
 * [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
 
-## Advanced scenarios
+## Sample scenarios
 
+### Advanced
 * [Canary deployment](./symphony-book/scenarios/canary-deployment.md)
 * Gated deployment with [Azure Logic Apps](./symphony-book/scenarios/gated-deployment-logic-app.md) or [custom script](./symphony-book/scenarios/gated-deployment-script.md)
+* [Multi-OS deployment](./symphony-book/scenarios/multi-os.md)
 * [Multi-site deployment](./symphony-book/scenarios/multisite-deployment.md)
 
 ## Contribute to Symphony

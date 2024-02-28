@@ -15,7 +15,6 @@ Solution objects, `solution.solution.symphony`, define an intelligent edge solut
 | `Components`| `[]ComponentSpec` | A list of components |
 | `DisplayName` | `string` | A user friendly name |
 | `Metadata` | `map[string]string` | metadata |
-| `Scope` | `string` | A scope name, which usually maps to a namespace |
 
 ## ComponentSpec schema
 

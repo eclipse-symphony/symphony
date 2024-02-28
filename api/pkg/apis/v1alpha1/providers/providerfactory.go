@@ -359,8 +359,8 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
 
-func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, target model.TargetSpec, override cp.IProvider) (cp.IProvider, error) {
-	for _, topology := range target.Topologies {
+func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, target model.TargetState, override cp.IProvider) (cp.IProvider, error) {
+	for _, topology := range target.Spec.Topologies {
 		for _, binding := range topology.Bindings {
 			testRole := role
 			if role == "" || role == "container" {

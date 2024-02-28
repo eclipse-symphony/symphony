@@ -22,13 +22,22 @@ func (e Event) MarshalBinary() (data []byte, err error) {
 
 type EventHandler func(topic string, message Event) error
 
+type JobAction string
+
+const (
+	JobUpdate JobAction = "UPDATE"
+	JobDelete JobAction = "DELETE"
+	JobRun    JobAction = "RUN"
+)
+
 type JobData struct {
 	Id     string      `json:"id"`
-	Action string      `json:"action"`
+	Action JobAction   `json:"action"`
 	Body   interface{} `json:"body,omitempty"`
 }
 type ActivationData struct {
 	Campaign             string                            `json:"campaign"`
+	Namespace            string                            `json:"namespace,omitempty"`
 	Activation           string                            `json:"activation"`
 	ActivationGeneration string                            `json:"activationGeneration"`
 	Stage                string                            `json:"stage"`
@@ -40,10 +49,18 @@ type ActivationData struct {
 	Schedule             *ScheduleSpec                     `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`
 }
+
+type HeartBeatAction string
+
+const (
+	HeartBeatUpdate HeartBeatAction = "UPDATE"
+	HeartBeatDelete HeartBeatAction = "DELETE"
+)
+
 type HeartBeatData struct {
-	JobId  string    `json:"id"`
-	Action string    `json:"action"`
-	Time   time.Time `json:"time"`
+	JobId  string          `json:"id"`
+	Action HeartBeatAction `json:"action"`
+	Time   time.Time       `json:"time"`
 }
 type ScheduleSpec struct {
 	Date string `json:"date"`

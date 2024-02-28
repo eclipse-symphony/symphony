@@ -57,16 +57,17 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 		var job v1alpha2.JobData
 		err := json.Unmarshal(jData, &job)
 		if err == nil {
-			var catalog model.CatalogSpec
+			var catalog model.CatalogState
 			jData, _ = json.Marshal(job.Body)
 			err = json.Unmarshal(jData, &catalog)
 			if err == nil {
-				name := fmt.Sprintf("%s-%s", catalog.SiteId, catalog.Name)
-				catalog.Name = name
-				if catalog.ParentName != "" {
-					catalog.ParentName = fmt.Sprintf("%s-%s", catalog.SiteId, catalog.ParentName)
+				name := fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.Name)
+				catalog.ObjectMeta.Name = name
+				catalog.Spec.Name = name
+				if catalog.Spec.ParentName != "" {
+					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.ParentName)
 				}
-				err := e.CatalogsManager.UpsertSpec(context.TODO(), name, catalog)
+				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
 					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
 				}
@@ -118,7 +119,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	lLog.Info("V (Catalogs Vendor): onCheck")
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var campaign model.CatalogSpec
+		var campaign model.CatalogState
 
 		err := json.Unmarshal(request.Body, &campaign)
 		if err != nil {
@@ -127,7 +128,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 				Body:  []byte(err.Error()),
 			})
 		}
-		res, err := e.CatalogsManager.ValidateSpec(rCtx, campaign)
+		res, err := e.CatalogsManager.ValidateState(rCtx, campaign)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -163,13 +164,19 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	defer span.End()
 
 	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
+
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = ""
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogsGraph-GET", rCtx, nil)
 		template := request.Parameters["template"]
 		switch template {
 		case "config-chains":
-			chains, err := e.CatalogsManager.GetChains(ctx, "config")
+			chains, err := e.CatalogsManager.GetChains(ctx, "config", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -184,7 +191,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 			})
 			return resp
 		case "asset-trees":
-			trees, err := e.CatalogsManager.GetTrees(ctx, "asset")
+			trees, err := e.CatalogsManager.GetTrees(ctx, "asset", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -222,9 +229,10 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	defer span.End()
 
 	lLog.Info("V (Catalogs Vendor): onCatalogs")
-	scope, exist := request.Parameters["scope"]
-	if !exist {
-		scope = "default"
+
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = "default"
 	}
 
 	switch request.Method {
@@ -235,10 +243,13 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = e.CatalogsManager.ListSpec(ctx)
+			if !namesapceSupplied {
+				namespace = ""
+			}
+			state, err = e.CatalogsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = e.CatalogsManager.GetSpec(ctx, id, scope)
+			state, err = e.CatalogsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			if !v1alpha2.IsNotFound(err) {
@@ -272,7 +283,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 				Body:  []byte("missing catalog name"),
 			})
 		}
-		var campaign model.CatalogSpec
+		var campaign model.CatalogState
 
 		err := json.Unmarshal(request.Body, &campaign)
 		if err != nil {
@@ -282,7 +293,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			})
 		}
 
-		err = e.CatalogsManager.UpsertSpec(ctx, id, campaign)
+		err = e.CatalogsManager.UpsertState(ctx, id, campaign)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -295,7 +306,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := e.CatalogsManager.DeleteSpec(ctx, id)
+		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

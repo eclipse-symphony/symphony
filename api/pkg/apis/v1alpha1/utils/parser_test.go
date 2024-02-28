@@ -1251,8 +1251,10 @@ func TestConfigInExpression(t *testing.T) {
 
 	parser := NewParser("[{\"name\":\"port${{$config(line-config-$instance(), SERVICE_PORT)}}\",\"port\": ${{$config(line-config-$instance(), SERVICE_PORT)}},\"targetPort\":5000}]")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "instance1",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "instance1",
+			},
 		},
 	}})
 	assert.Nil(t, err)
@@ -1267,8 +1269,10 @@ func TestConfigObjectInExpression(t *testing.T) {
 
 	parser := NewParser("${{$config('<' + 'line-config-' + $instance() + '>', \"\")}}")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "instance1",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name: "instance1",
+			},
 		},
 	}})
 	assert.Nil(t, err)
@@ -1563,17 +1567,21 @@ func TestEvaulateInstance(t *testing.T) {
 	parser := NewParser("${{$instance()}}")
 	val, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Name: "instance-1",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Name: "instance-1",
+				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1588,13 +1596,15 @@ func TestEvaulateParamNoComponent(t *testing.T) {
 	_, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1607,17 +1617,21 @@ func TestEvaulateParamNoArgument(t *testing.T) {
 	parser := NewParser("${{$param(a)}}")
 	val, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1632,22 +1646,26 @@ func TestEvaulateParamArgumentOverride(t *testing.T) {
 	parser := NewParser("${{$param(a)}}")
 	val, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1662,22 +1680,26 @@ func TestEvaulateParamWrongComponentName(t *testing.T) {
 	parser := NewParser("${{$param(a)}}")
 	_, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1691,22 +1713,26 @@ func TestEvaulateParamMissing(t *testing.T) {
 	parser := NewParser("${{$param(d)}}")
 	_, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1720,22 +1746,26 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 	parser := NewParser("${{$param(a)+$param(c)}}")
 	val, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
 						},
 					},
 				},
@@ -1749,26 +1779,30 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 func TestEvaluateDeployment(t *testing.T) {
 	context := utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Properties: map[string]interface{}{
-							"foo": "${{$param(a)}}",
-							"bar": "${{$param(c) + ' ' + $param(a)}}",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
+							Properties: map[string]interface{}{
+								"foo": "${{$param(a)}}",
+								"bar": "${{$param(c) + ' ' + $param(a)}}",
+							},
 						},
 					},
 				},
@@ -1778,37 +1812,41 @@ func TestEvaluateDeployment(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
+	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Properties["bar"])
 }
 
 func TestEvaluateDeploymentMetadata(t *testing.T) {
 	context := utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Parameters: map[string]string{
-							"a": "b",
-							"c": "d",
-						},
-						Metadata: map[string]string{
-							"foo": "${{$param(a)}}",
-							"bar": "${{$param(c) + ' ' + $param(a)}}",
-						},
-						Properties: map[string]interface{}{
-							"foo": "${{$param(a)}}",
-							"bar": "${{$param(c) + ' ' + $param(a)}}",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Parameters: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
+							Metadata: map[string]string{
+								"foo": "${{$param(a)}}",
+								"bar": "${{$param(c) + ' ' + $param(a)}}",
+							},
+							Properties: map[string]interface{}{
+								"foo": "${{$param(a)}}",
+								"bar": "${{$param(c) + ' ' + $param(a)}}",
+							},
 						},
 					},
 				},
@@ -1818,10 +1856,10 @@ func TestEvaluateDeploymentMetadata(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", deployment.Solution.Components[0].Properties["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Properties["bar"])
-	assert.Equal(t, "new-value", deployment.Solution.Components[0].Metadata["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Components[0].Metadata["bar"])
+	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Metadata["foo"])
+	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Metadata["bar"])
 }
 func TestEvaluateDeploymentConfig(t *testing.T) {
 	configProvider := &mock.MockConfigProvider{}
@@ -1831,22 +1869,26 @@ func TestEvaluateDeploymentConfig(t *testing.T) {
 	context := utils.EvaluationContext{
 		ConfigProvider: configProvider,
 		DeploymentSpec: model.DeploymentSpec{
-			Instance: model.InstanceSpec{
-				Solution: "fake-solution",
-				Arguments: map[string]map[string]string{
-					"component-1": {
-						"a": "new-value",
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{
+					Solution: "fake-solution",
+					Arguments: map[string]map[string]string{
+						"component-1": {
+							"a": "new-value",
+						},
 					},
 				},
 			},
 			SolutionName: "fake-solution",
-			Solution: model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "component-1",
-						Properties: map[string]interface{}{
-							"foo": "${{$config(a,b)}}",
-							"bar": "${{$config(c,d)}}",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "component-1",
+							Properties: map[string]interface{}{
+								"foo": "${{$config(a,b)}}",
+								"bar": "${{$config(c,d)}}",
+							},
 						},
 					},
 				},
@@ -1856,8 +1898,8 @@ func TestEvaluateDeploymentConfig(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "a::b", deployment.Solution.Components[0].Properties["foo"])
-	assert.Equal(t, "c::d", deployment.Solution.Components[0].Properties["bar"])
+	assert.Equal(t, "a::b", deployment.Solution.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "c::d", deployment.Solution.Spec.Components[0].Properties["bar"])
 }
 func TestEqualNumbers(t *testing.T) {
 	parser := NewParser("${{$equal(123, 123)}}")

@@ -81,19 +81,23 @@ func TestGet(t *testing.T) {
 	})
 	require.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "com1",
 			},
@@ -112,20 +116,24 @@ func TestRemoveScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},
@@ -143,20 +151,24 @@ func TestApplyScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},

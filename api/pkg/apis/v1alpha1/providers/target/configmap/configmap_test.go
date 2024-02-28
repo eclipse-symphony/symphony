@@ -154,18 +154,24 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -201,18 +207,24 @@ func TestConfigMapTargetProviderDekete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -241,18 +253,24 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 		Type: "config",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -286,18 +304,24 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name: "config-test",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},

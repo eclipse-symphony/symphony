@@ -150,7 +150,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.AllAssignedDeployed {
 						break loop
 					}
 					if err != nil && !v1alpha2.IsNotFound(err) {
@@ -196,7 +196,7 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, summary
 	targetCount := strconv.Itoa(summary.TargetCount)
 	successCount := strconv.Itoa(summary.SuccessCount)
 	status := provisioningstates.Succeeded
-	if successCount != targetCount {
+	if !summary.AllAssignedDeployed {
 		status = provisioningstates.Failed
 	}
 	target.Status.Properties["status"] = status

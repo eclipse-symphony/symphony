@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -89,7 +91,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -168,11 +170,11 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
+		InstanceId: deployment.Instance.Spec.Name,
+		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
 
@@ -196,7 +198,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	}
 
 	for _, component := range step.Components {
-		if component.Action == "update" {
+		if component.Action == model.ComponentUpdate {
 			image := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
 			if image == "" {
@@ -215,16 +217,15 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				alreadyRunning = false
 			}
 
-			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
-			// reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
-			// if err != nil {
-			// 	observ_utils.CloseSpanWithError(span, &err)
-			// 	sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
-			// 	return err
-			// }
+			reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+			if err != nil {
+				observ_utils.CloseSpanWithError(span, &err)
+				sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
+				return ret, err
+			}
 
-			// defer reader.Close()
-			// io.Copy(os.Stdout, reader)
+			defer reader.Close()
+			io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
 				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
@@ -322,15 +323,18 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{"container.resources"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
-			{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{"container.resources"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
+				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+			},
 		},
 	}
 }

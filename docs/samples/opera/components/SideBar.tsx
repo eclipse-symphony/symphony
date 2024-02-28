@@ -43,7 +43,7 @@ function SideBar() {
         },
         {
             name: "Solutions",
-            href: "/coming-soon",
+            href: "/solutions",
             icon: HiOutlineTemplate,
         },
         {

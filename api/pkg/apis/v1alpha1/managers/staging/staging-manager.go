@@ -87,7 +87,7 @@ func (s *StagingManager) Poll() []error {
 		cacheId := siteId + "-" + catalog.Spec.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":  "v1",
 				"group":    model.FederationGroup,
 				"resource": "catalogs",
@@ -103,7 +103,7 @@ func (s *StagingManager) Poll() []error {
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
 			Id:     catalog.Spec.Name,
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
@@ -111,7 +111,7 @@ func (s *StagingManager) Poll() []error {
 				ID:   cacheId,
 				Body: catalog.Spec.Generation,
 			},
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"version":  "v1",
 				"group":    model.FederationGroup,
 				"resource": "catalogs",

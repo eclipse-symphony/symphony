@@ -32,7 +32,7 @@ pub struct ObjectRef {
     group: String,
     version: String,
     kind: String,
-    scope: String,
+    namespace: String,
 }
 #[derive(Serialize, Deserialize)]
 pub struct StagedProperties {
@@ -57,8 +57,15 @@ pub struct CatalogStatus {
     properties: Option<HashMap<String, String>>,
 }
 #[derive(Serialize, Deserialize)]
+pub struct ObjectMeta {
+    namespace: Option<String>,
+    name: Option<String>,
+    labels: Option<HashMap<String, String>>,
+    annotations: Option<HashMap<String, String>>,
+}
+#[derive(Serialize, Deserialize)]
 pub struct CatalogState {
-    id: String,
+    metadata: ObjectMeta,
     pub spec: CatalogSpec,
     status: Option<CatalogStatus>,
 }

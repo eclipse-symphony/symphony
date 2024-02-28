@@ -77,7 +77,7 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler: o.onBootstrap,
 		},
 		{
-			Methods:    []string{fasthttp.MethodGet},
+			Methods:    []string{fasthttp.MethodPost},
 			Route:      route + "/ping",
 			Version:    o.Version,
 			Handler:    o.onHeartBeat,
@@ -115,9 +115,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	})
 	defer span.End()
 	tLog.Infof("V (Targets) : onRegistry, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -127,14 +127,14 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		var state interface{}
 		isArray := false
 		if id == "" {
-			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			// Change namespace back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.TargetsManager.ListSpec(ctx, scope)
+			state, err = c.TargetsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.TargetsManager.GetSpec(ctx, id, scope)
+			state, err = c.TargetsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -157,7 +157,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 		binding := request.Parameters["with-binding"]
-		var target model.TargetSpec
+		var target model.TargetState
 		err := json.Unmarshal(request.Body, &target)
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -166,14 +166,17 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				Body:  []byte(err.Error()),
 			})
 		}
+		if target.ObjectMeta.Name == "" {
+			target.ObjectMeta.Name = id
+		}
 		if binding != "" {
 			if binding == "staging" {
-				target.ForceRedeploy = true
-				if target.Topologies == nil {
-					target.Topologies = make([]model.TopologySpec, 0)
+				target.Spec.ForceRedeploy = true
+				if target.Spec.Topologies == nil {
+					target.Spec.Topologies = make([]model.TopologySpec, 0)
 				}
 				found := false
-				for _, t := range target.Topologies {
+				for _, t := range target.Spec.Topologies {
 					if t.Bindings != nil {
 						for _, b := range t.Bindings {
 							if b.Role == "instance" && b.Provider == "providers.target.staging" {
@@ -192,13 +195,13 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 							"targetName": id,
 						},
 					}
-					if len(target.Topologies) == 0 {
-						target.Topologies = append(target.Topologies, model.TopologySpec{})
+					if len(target.Spec.Topologies) == 0 {
+						target.Spec.Topologies = append(target.Spec.Topologies, model.TopologySpec{})
 					}
-					if target.Topologies[len(target.Topologies)-1].Bindings == nil {
-						target.Topologies[len(target.Topologies)-1].Bindings = make([]model.BindingSpec, 0)
+					if target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings == nil {
+						target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = make([]model.BindingSpec, 0)
 					}
-					target.Topologies[len(target.Topologies)-1].Bindings = append(target.Topologies[len(target.Topologies)-1].Bindings, newb)
+					target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = append(target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings, newb)
 				}
 			} else {
 				tLog.Infof("V (Targets) : onRegistry failed - invalid binding, traceId: %s", span.SpanContext().TraceID().String())
@@ -208,7 +211,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				})
 			}
 		}
-		err = c.TargetsManager.UpsertSpec(ctx, id, scope, target)
+		err = c.TargetsManager.UpsertState(ctx, id, target)
 		if err != nil {
 			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -220,11 +223,11 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "target",
-					"scope":      scope,
+					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "UPDATE",
+					Action: v1alpha2.JobUpdate,
 				},
 			})
 		}
@@ -240,18 +243,18 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "target",
-					"scope":      scope,
+					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "DELETE",
+					Action: v1alpha2.JobDelete,
 				},
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.OK,
 			})
 		} else {
-			err := c.TargetsManager.DeleteSpec(ctx, id, scope)
+			err := c.TargetsManager.DeleteSpec(ctx, id, namespace)
 			if err != nil {
 				tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -336,10 +339,10 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 	tLog.Infof("V (Targets) : onStatus, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
-	case fasthttp.MethodPost:
-		scope, exist := request.Parameters["scope"]
+	case fasthttp.MethodPut:
+		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			scope = "default"
+			namespace = "default"
 		}
 		var dict map[string]interface{}
 		json.Unmarshal(request.Body, &dict)
@@ -362,14 +365,14 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		}
 
 		state, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
-			Id: request.Parameters["__name"],
-			Metadata: map[string]string{
-				"version":  "v1",
-				"group":    model.FabricGroup,
-				"resource": "targets",
-				"scope":    scope,
+			ObjectMeta: model.ObjectMeta{
+				Name:      request.Parameters["__name"],
+				Namespace: namespace,
 			},
-			Status: properties,
+			Status: model.TargetStatus{
+				Properties:   properties,
+				LastModified: time.Now().UTC(),
+			},
 		})
 
 		if err != nil {
@@ -406,12 +409,12 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	tLog.Infof("V (Targets) : onDownload, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
 	switch request.Method {
-	case fasthttp.MethodPost:
-		scope, exist := request.Parameters["scope"]
+	case fasthttp.MethodGet:
+		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			scope = "default"
+			namespace = "default"
 		}
-		state, err := c.TargetsManager.GetSpec(pCtx, request.Parameters["__name"], scope)
+		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -458,20 +461,17 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		scope, exist := request.Parameters["scope"]
+		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			scope = "default"
+			namespace = "default"
 		}
 		_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
-			Id: request.Parameters["__name"],
-			Metadata: map[string]string{
-				"version":  "v1",
-				"group":    model.FabricGroup,
-				"resource": "targets",
-				"scope":    scope,
+			ObjectMeta: model.ObjectMeta{
+				Name:      request.Parameters["__name"],
+				Namespace: namespace,
 			},
-			Status: map[string]string{
-				"ping": time.Now().UTC().String(),
+			Status: model.TargetStatus{
+				LastModified: time.Now().UTC(),
 			},
 		})
 

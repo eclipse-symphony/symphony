@@ -96,7 +96,7 @@ spec:
     kind: adr
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar
 ---
@@ -118,7 +118,7 @@ spec:
     kind: arc
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar
 ---
@@ -140,7 +140,7 @@ spec:
     kind: arc
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar
 ---
@@ -162,7 +162,7 @@ spec:
     kind: site
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar
 ---
@@ -184,7 +184,7 @@ spec:
     kind: iot-hub
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar
 ---

@@ -39,19 +39,24 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 
 	rule := p.GetValidationRule(context.Background())
 
-	for _, property := range rule.RequiredProperties {
+	for _, property := range rule.ComponentValidationRule.RequiredProperties {
 		desired[0].Properties[property] = "dummy property"
 		step.Components[0].Component.Properties[property] = "dummy property"
 	}
 
-	for _, metadata := range rule.RequiredMetadata {
+	for _, metadata := range rule.ComponentValidationRule.RequiredMetadata {
 		desired[0].Metadata[metadata] = "dummy metadata"
 		step.Components[0].Component.Metadata[metadata] = "dummy metadata"
 	}
 
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: desired,
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: desired,
+			},
 		},
 		ComponentStartIndex: 0,
 		ComponentEndIndex:   1,
@@ -83,19 +88,24 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 
 	rule := p.GetValidationRule(context.Background())
 
-	for _, metadata := range rule.RequiredMetadata {
+	for _, metadata := range rule.ComponentValidationRule.RequiredMetadata {
 		desired[0].Metadata[metadata] = "dummy metadata"
 	}
 
-	for i, _ := range rule.RequiredProperties {
-		desired[0].Properties = make(map[string]interface{}, len(rule.RequiredProperties)-1)
-		slice := append(append([]string{}, rule.RequiredProperties[:i]...), rule.RequiredProperties[i+1:]...)
+	for i, _ := range rule.ComponentValidationRule.RequiredProperties {
+		desired[0].Properties = make(map[string]interface{}, len(rule.ComponentValidationRule.RequiredProperties)-1)
+		slice := append(append([]string{}, rule.ComponentValidationRule.RequiredProperties[:i]...), rule.ComponentValidationRule.RequiredProperties[i+1:]...)
 		for _, property := range slice {
 			desired[0].Properties[property] = "dummy property"
 		}
 		deployment := model.DeploymentSpec{
-			Solution: model.SolutionSpec{
-				Components: desired,
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: desired,
+				},
 			},
 			ComponentStartIndex: 0,
 			ComponentEndIndex:   1,

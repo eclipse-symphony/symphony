@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,6 +39,11 @@ type CreateStageProvider struct {
 	Config  CreateStageProviderConfig
 	Context *contexts.ManagerContext
 }
+
+const (
+	RemoveAction = "remove"
+	CreateAction = "create"
+)
 
 func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
@@ -134,24 +140,24 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":
-		objectScope := stage.ReadInputString(inputs, "objectScope")
-		if objectScope == "" {
-			objectScope = "default"
+		objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
+		if objectNamespace == "" {
+			objectNamespace = "default"
 		}
 
-		if action == "remove" {
-			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectScope)
+		if strings.EqualFold(action, RemoveAction) {
+			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
 			if err != nil {
 				return nil, false, err
 			}
-		} else if action == "create" {
-			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectScope)
+		} else if strings.EqualFold(action, CreateAction) {
+			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectNamespace)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				var summary model.SummaryResult
-				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName, objectScope)
+				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName, objectNamespace)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err

@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -43,7 +44,7 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	return nil
 }
 
-func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope string) error {
+func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
@@ -52,49 +53,56 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, scope stri
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	})
 	return err
 }
 
-func (t *TargetsManager) UpsertSpec(ctx context.Context, name string, scope string, spec model.TargetSpec) error {
+func (t *TargetsManager) UpsertState(ctx context.Context, name string, state model.TargetState) error {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
+
+	body := map[string]interface{}{
+		"apiVersion": model.FabricGroup + "/v1",
+		"kind":       "Target",
+		"metadata":   state.ObjectMeta,
+		"spec":       state.Spec,
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: name,
-			Body: map[string]interface{}{
-				"apiVersion": model.FabricGroup + "/v1",
-				"kind":       "Target",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
-			},
-			ETag: spec.Generation,
+			ID:   name,
+			Body: body,
+			ETag: state.Spec.Generation,
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"scope":    scope,
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "targets",
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
 		},
 	}
+
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
 
-// Caller need to explicitly set scope in current.Metadata!
+// Caller need to explicitly set namespace in current.Metadata!
 func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetState) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ReportState",
@@ -103,71 +111,60 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	getRequest := states.GetRequest{
-		ID:       current.Id,
-		Metadata: current.Metadata,
+		ID: current.ObjectMeta.Name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": current.ObjectMeta.Namespace,
+		},
 	}
+
 	target, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
-	dict, ok := target.Body.(map[string]interface{})
-	if !ok {
-		return model.TargetState{}, fmt.Errorf("unable to cast target body to map[string]interface{}")
-	}
-
-	specCol, ok := dict["spec"].(model.TargetSpec)
-	if !ok {
-		return model.TargetState{}, fmt.Errorf("unable to cast target spec to model.TargetSpec")
-	}
-
-	delete(dict, "spec")
-	if dict["status"] == nil {
-		dict["status"] = make(map[string]interface{})
-	}
-	status := dict["status"]
-
-	j, _ := json.Marshal(status)
-	var rStatus map[string]interface{}
-	err = json.Unmarshal(j, &rStatus)
+	var targetState model.TargetState
+	bytes, _ := json.Marshal(target.Body)
+	err = json.Unmarshal(bytes, &targetState)
 	if err != nil {
+		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
-	if err != nil {
-		return model.TargetState{}, err
-	}
-	if rProperties == nil {
-		rProperties = make(map[string]string)
-	}
-	for k, v := range current.Status {
-		rProperties[k] = v
-	}
 
-	dict["status"].(map[string]interface{})["properties"] = rProperties
+	for k, v := range current.Status.Properties {
+		if targetState.Status.Properties == nil {
+			targetState.Status.Properties = make(map[string]string)
+		}
+		targetState.Status.Properties[k] = v
+	}
+	targetState.Status.LastModified = current.Status.LastModified
 
-	target.Body = dict
+	target.Body = targetState
 
 	updateRequest := states.UpsertRequest{
-		Value:    target,
-		Metadata: current.Metadata,
+		Value: target,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": current.ObjectMeta.Namespace,
+			"kind":      "Target",
+		},
+		Options: states.UpsertOption{
+			UpdateStateOnly: true,
+		},
 	}
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
-	return model.TargetState{
-		Id:       current.Id,
-		Metadata: specCol.Metadata,
-		Status:   rProperties,
-	}, nil
+	return targetState, nil
 }
-func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.TargetState, error) {
+func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
@@ -175,11 +172,12 @@ func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.Ta
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "targets",
-			"scope":    scope,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": namespace,
+			"kind":      "Target",
 		},
 	}
 	targets, _, err := t.StateProvider.List(ctx, listRequest)
@@ -199,10 +197,13 @@ func (t *TargetsManager) ListSpec(ctx context.Context, scope string) ([]model.Ta
 }
 
 func getTargetState(id string, body interface{}, etag string) (model.TargetState, error) {
+	if v, ok := body.(model.TargetState); ok {
+		return v, nil
+	}
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-	status := dict["status"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.TargetSpec
 	err := json.Unmarshal(j, &rSpec)
@@ -210,38 +211,36 @@ func getTargetState(id string, body interface{}, etag string) (model.TargetState
 		return model.TargetState{}, err
 	}
 
+	//read status
+	status := dict["status"]
 	j, _ = json.Marshal(status)
-	var rStatus map[string]interface{}
+	var rStatus model.TargetStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
+
+	rSpec.Generation = etag
+
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata model.ObjectMeta
+	err = json.Unmarshal(j, &rMetadata)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-	rSpec.Generation = etag
-
-	scope, exist := dict["scope"]
-	var s string
-	if !exist {
-		s = "default"
-	} else {
-		s = scope.(string)
-	}
 
 	state := model.TargetState{
-		Id:     id,
-		Scope:  s,
-		Spec:   &rSpec,
-		Status: rProperties,
+		ObjectMeta: rMetadata,
+		Spec:       &rSpec,
+		Status:     rStatus,
 	}
+
 	return state, nil
 }
 
-func (t *TargetsManager) GetSpec(ctx context.Context, id string, scope string) (model.TargetState, error) {
+func (t *TargetsManager) GetState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
@@ -250,11 +249,12 @@ func (t *TargetsManager) GetSpec(ctx context.Context, id string, scope string) (
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "targets",
-			"scope":    scope,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": namespace,
+			"kind":      "Target",
 		},
 	}
 	target, err := t.StateProvider.Get(ctx, getRequest)

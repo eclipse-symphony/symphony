@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: rtos
+spec:
+  properties:
+    location: "rtos"
+    scenario: "multi-os"
+  topologies:
+  - bindings: 
+    - role: bin
+      provider: providers.target.mqtt
+      config:
+        name: proxy2
+        brokerAddress: "tcp://<MQTT broker address>:1883"
+        clientID: "test-cluster-2"
+        requestTopic: "coa-request2"
+        responseTopic: "coa-response2"
+        timeoutSeconds:  "30"

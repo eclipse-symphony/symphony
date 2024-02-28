@@ -134,7 +134,7 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	defer span.End()
 	log.Infof("V (Agent): doGet with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
 
-	var scope = "default"
+	var namespace = "default"
 	var kind = ""
 	var ref = ""
 	var group = ""
@@ -148,8 +148,8 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var flavor = ""
 	var iteration = ""
 	var alias = ""
-	if v, ok := parameters["scope"]; ok {
-		scope = v
+	if v, ok := parameters["namespace"]; ok {
+		namespace = v
 	}
 	if v, ok := parameters["ref"]; ok {
 		ref = v
@@ -194,11 +194,11 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var data []byte
 	var err error
 	if instance != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, model.SolutionGroup, "instances", "v1", "", alias)
+		data, err = c.ReferenceManager.GetExt(ref, namespace, id, group, kind, version, instance, model.SolutionGroup, "instances", "v1", "", alias)
 	} else if lookup != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
+		data, err = c.ReferenceManager.GetExt(ref, namespace, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
 	} else {
-		data, err = c.ReferenceManager.Get(ref, id, scope, group, kind, version, labelSelector, fieldSelector)
+		data, err = c.ReferenceManager.Get(ref, id, namespace, group, kind, version, labelSelector, fieldSelector)
 	}
 	if err != nil {
 		log.Errorf("V (Agent): failed to get references, traceId: %s", span.SpanContext().TraceID().String())
@@ -263,14 +263,14 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 
 	log.Infof("V (Agent): doPost with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
 
-	var scope = "default"
+	var namespace = "default"
 	var kind = ""
 	var group = ""
 	var id = ""
 	var version = ""
 	var overwrite = false
-	if v, ok := parameters["scope"]; ok {
-		scope = v
+	if v, ok := parameters["namespace"]; ok {
+		namespace = v
 	}
 	if v, ok := parameters["kind"]; ok {
 		kind = v
@@ -296,7 +296,7 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 			Body:  []byte(err.Error()),
 		}
 	}
-	err = c.ReferenceManager.Report(id, scope, group, kind, version, properties, overwrite)
+	err = c.ReferenceManager.Report(id, namespace, group, kind, version, properties, overwrite)
 	if err != nil {
 		log.Errorf("V (Agent): failed to report status, traceId: %s", span.SpanContext().TraceID().String())
 		return v1alpha2.COAResponse{

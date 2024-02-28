@@ -102,11 +102,14 @@ func TestActivationsOnActivations(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	activationSpec := model.ActivationSpec{
-		Name:     activationName,
-		Campaign: campaignName,
+	activationState := model.ActivationState{
+		Id: activationName,
+		Spec: &model.ActivationSpec{
+			Name:     activationName,
+			Campaign: campaignName,
+		},
 	}
-	data, _ := json.Marshal(activationSpec)
+	data, _ := json.Marshal(activationState)
 	resp = vendor.onActivations(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Body:   data,

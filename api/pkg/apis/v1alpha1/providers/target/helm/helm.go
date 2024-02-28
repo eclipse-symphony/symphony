@@ -239,7 +239,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 	i.ListClient.Deployed = true
 	var results []*release.Release
 	results, err = i.ListClient.Run()
@@ -251,7 +251,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		for _, res := range results {
-			if (deployment.Instance.Scope == "" || res.Namespace == deployment.Instance.Scope) && res.Name == component.Component.Name {
+			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == component.Component.Name {
 				repo := ""
 				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM:") { //we use this special metadata tag to remember the chart URL
 					repo = res.Chart.Metadata.Tags[4:]
@@ -278,13 +278,16 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 // GetValidationRule returns the validation rule for this provider
 func (*HelmTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"chart"},
-		OptionalProperties:    []string{"values"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: "chart", IgnoreCase: false, SkipIfMissing: true}, //TODO: deep change detection on interface{}
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"chart"},
+			OptionalProperties:    []string{"values"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: "chart", IgnoreCase: false, SkipIfMissing: true}, //TODO: deep change detection on interface{}
+			},
 		},
 	}
 }
@@ -318,7 +321,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -334,7 +337,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	ret := step.PrepareResultMap()
 
 	for _, component := range step.Components {
-		if component.Action == "update" {
+		if component.Action == model.ComponentUpdate {
 			var helmProp *HelmProperty
 			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {
@@ -444,12 +447,12 @@ func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName strin
 }
 
 func (i *HelmTargetProvider) configureUpsertClients(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec) {
-	if deployment.Instance.Scope == "" {
+	if deployment.Instance.Spec.Scope == "" {
 		i.InstallClient.Namespace = DEFAULT_NAMESPACE
 		i.UpgradeClient.Namespace = DEFAULT_NAMESPACE
 	} else {
-		i.InstallClient.Namespace = deployment.Instance.Scope
-		i.UpgradeClient.Namespace = deployment.Instance.Scope
+		i.InstallClient.Namespace = deployment.Instance.Spec.Scope
+		i.UpgradeClient.Namespace = deployment.Instance.Spec.Scope
 	}
 
 	i.InstallClient.Wait = componentProps.Wait

@@ -149,7 +149,7 @@ func TestPostReference(t *testing.T) {
 
 	request.Method = fasthttp.MethodPost
 	request.Parameters = map[string]string{
-		"scope":     "test",
+		"namespace": "test",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",
@@ -194,7 +194,7 @@ func TestGetReference(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, res.State)
 
 	request.Parameters = map[string]string{
-		"scope":     "scope",
+		"namespace": "scope",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",

@@ -36,15 +36,17 @@ func TestMockTargetProviderApply(t *testing.T) {
 	assert.Nil(t, err)
 
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "name",
-			Scope: "default",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "default",
+				Name:  "name",
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},
@@ -56,7 +58,7 @@ func TestMockTargetProviderApply(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},

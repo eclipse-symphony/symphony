@@ -94,7 +94,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	var campaign model.CampaignState
 	err := json.Unmarshal(resp.Body, &campaign)
 	assert.Nil(t, err)
-	assert.Equal(t, "campaign1", campaign.Id)
+	assert.Equal(t, "campaign1", campaign.ObjectMeta.Name)
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -105,7 +105,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &campaigns)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(campaigns))
-	assert.Equal(t, "campaign1", campaigns[0].Id)
+	assert.Equal(t, "campaign1", campaigns[0].ObjectMeta.Name)
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,

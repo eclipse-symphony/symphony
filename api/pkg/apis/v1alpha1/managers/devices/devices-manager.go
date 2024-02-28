@@ -36,12 +36,11 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 		return err
 	}
 	stateprovider, err := managers.GetStateProvider(config, providers)
-	if err == nil {
+	if err != nil {
 		log.Errorf(" M (Devices): failed to get state provider %+v", err)
-		s.StateProvider = stateprovider
-	} else {
 		return err
 	}
+	s.StateProvider = stateprovider
 	return nil
 }
 
@@ -55,11 +54,12 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "devices",
+		Metadata: map[string]interface{}{
+			"namespace": "",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "devices",
+			"kind":      "Device",
 		},
 	})
 	if err != nil {
@@ -89,12 +89,13 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 				"spec": spec,
 			},
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
-			"scope":    "",
-			"group":    model.FabricGroup,
-			"version":  "v1",
-			"resource": "devices",
+		Metadata: map[string]interface{}{
+			"template":  fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
+			"namespace": "",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "devices",
+			"kind":      "Device",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -114,7 +115,7 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 	log.Infof(" M (Devices): ListSpec, traceId: %s", span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "devices",
@@ -165,7 +166,7 @@ func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceSt
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"version":  "v1",
 			"group":    model.FabricGroup,
 			"resource": "devices",

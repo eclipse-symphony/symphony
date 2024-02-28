@@ -21,5 +21,11 @@
             {% endfor %}
         </tbody>
     </table>
+    <h1>Send Topology Signal</h1>
+    <form action="/topology" method="post">
+        <label for="signal">Signal</label><input type="text" name="signal" id="signal" />
+        <label for="target">Target</label><input type="text" name="target" id="target" />
+        <input type="submit" value="Send Topology Signal" />
+    </form>
 </body>
 </html>

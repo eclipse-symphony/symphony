@@ -1,8 +1,3 @@
-##
-## Copyright (c) Microsoft Corporation.
-## Licensed under the MIT license.
-## SPDX-License-Identifier: MIT
-##
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -93,6 +88,18 @@ spec:
                         required:
                         - route
                         - type
+                        type: object
+                      type: array
+                    sidecars:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          properties:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type:
+                            type: string
                         type: object
                       type: array
                     skills:

@@ -22,15 +22,15 @@ func TestCreateGetDeleteCampaignSpec(t *testing.T) {
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.CampaignSpec{})
+	err := manager.UpsertState(context.Background(), "test", model.CampaignState{})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background())
+	assert.Equal(t, "test", spec.ObjectMeta.Name)
+	specLists, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
-	assert.Equal(t, "test", specLists[0].Id)
-	err = manager.DeleteSpec(context.Background(), "test")
+	assert.Equal(t, "test", specLists[0].ObjectMeta.Name)
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }

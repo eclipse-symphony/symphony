@@ -22,12 +22,13 @@ type TargetResultSpec struct {
 	ComponentResults map[string]ComponentResultSpec `json:"components,omitempty"`
 }
 type SummarySpec struct {
-	TargetCount    int                         `json:"targetCount"`
-	SuccessCount   int                         `json:"successCount"`
-	TargetResults  map[string]TargetResultSpec `json:"targets,omitempty"`
-	SummaryMessage string                      `json:"message,omitempty"`
-	Skipped        bool                        `json:"skipped"`
-	IsRemoval      bool                        `json:"isRemoval"`
+	TargetCount         int                         `json:"targetCount"`
+	SuccessCount        int                         `json:"successCount"`
+	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
+	SummaryMessage      string                      `json:"message,omitempty"`
+	Skipped             bool                        `json:"skipped"`
+	IsRemoval           bool                        `json:"isRemoval"`
+	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
 }
 type SummaryResult struct {
 	Summary    SummarySpec `json:"summary"`
@@ -37,11 +38,4 @@ type SummaryResult struct {
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 	s.TargetResults[target] = spec
-	count := 0
-	for _, r := range s.TargetResults {
-		if r.Status == "OK" {
-			count++
-		}
-	}
-	s.SuccessCount = count
 }

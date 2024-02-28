@@ -86,26 +86,26 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	scope := deployment.Instance.Scope
+	scope := deployment.Instance.Spec.Scope
 	if scope == "" {
 		scope = "default"
 	}
 	catalog, err := utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
 		"default")
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
-			sLog.Infof("  P (Staging Target): no staged artifact found, traceId: %s")
+			sLog.Infof("  P (Staging Target): no staged artifact found: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, nil
 		}
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -139,7 +139,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Scope, deployment.Instance.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -155,7 +155,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 	ret := step.PrepareResultMap()
 
-	scope := deployment.Instance.Scope
+	scope := deployment.Instance.Spec.Scope
 	if scope == "" {
 		scope = "default"
 	}
@@ -165,7 +165,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog, err = utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
 		"default")
@@ -176,15 +176,18 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	if catalog.Spec == nil {
-		catalog.Id = deployment.Instance.Name + "-" + i.Config.TargetName
+		catalog.ObjectMeta.Name = deployment.Instance.Spec.Name + "-" + i.Config.TargetName
 		catalog.Spec = &model.CatalogSpec{
 			SiteId: i.Context.SiteInfo.SiteId,
 			Type:   "staged",
-			Name:   catalog.Id,
+			Name:   catalog.ObjectMeta.Name,
 		}
 	}
 	if catalog.Spec.Properties == nil {
 		catalog.Spec.Properties = make(map[string]interface{})
+	}
+	if catalog.Spec.Metadata == nil {
+		catalog.Spec.Metadata = make(map[string]string)
 	}
 
 	var existing []model.ComponentSpec
@@ -193,6 +196,16 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		err = json.Unmarshal(jData, &existing)
 		if err != nil {
 			sLog.Errorf("  P (Staging Target): failed to unmarshall catalog components: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			return ret, err
+		}
+	}
+
+	var deleted []model.ComponentSpec
+	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
+		jData, _ := json.Marshal(v)
+		err = json.Unmarshal(jData, &deleted)
+		if err != nil {
+			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
 	}
@@ -215,16 +228,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			if !found {
 				existing = append(existing, component)
 			}
-		}
-	}
-
-	var deleted []model.ComponentSpec
-	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
-		jData, _ := json.Marshal(v)
-		err = json.Unmarshal(jData, &deleted)
-		if err != nil {
-			sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
-			return ret, err
+			for j, c := range deleted {
+				if c.Name == component.Name {
+					deleted = append(deleted[:j], deleted[j+1:]...)
+				}
+			}
 		}
 	}
 
@@ -251,11 +259,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	catalog.Spec.Properties["components"] = existing
 	catalog.Spec.Properties["removed-components"] = deleted
-	jData, _ := json.Marshal(catalog.Spec)
+	jData, _ := json.Marshal(catalog)
 	err = utils.UpsertCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Name+"-"+i.Config.TargetName,
+		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password, jData)
 	if err != nil {
@@ -266,10 +274,13 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 func (*StagingTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }
