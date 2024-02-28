@@ -88,8 +88,8 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	ret.Password = password
 	return ret, nil
 }
-func (m *CatalogConfigProvider) unwindOverrides(override string, field string, scope string) (string, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, scope)
+func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, namespace)
 	if err != nil {
 		return "", err
 	}
@@ -97,14 +97,14 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, s
 		return v.(string), nil
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(catalog.Spec.ParentName, field, scope)
+		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
-	scope := m.getNamespaceFromContext(localcontext)
+	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, namespace)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +114,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, scope)
+		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
 		if err != nil {
 			return "", err
 		} else {
@@ -126,9 +126,9 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 }
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
-	scope := m.getNamespaceFromContext(localcontext)
+	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
+	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 	}
 }
 
-// TODO: IConfigProvider interface methods shoukd be enhanced to accept scope as a parameter
+// TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
 // so we can get rid of getCatalogInDefaultNamespace
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
