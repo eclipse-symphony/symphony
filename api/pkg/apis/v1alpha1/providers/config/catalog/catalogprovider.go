@@ -217,7 +217,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 }
 
 // TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
-// so we can get rid of getCatalogInDefaultNamespace
+// so we can get rid of getCatalogInDefaultNamespace.
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
 	if err != nil {
