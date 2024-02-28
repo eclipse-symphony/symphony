@@ -145,7 +145,7 @@ func GetCatalogs(context context.Context, baseUrl string, user string, password 
 
 	return ret, nil
 }
-func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string, scope string) (model.CatalogState, error) {
+func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string, namespace string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -158,8 +158,8 @@ func GetCatalog(context context.Context, baseUrl string, catalog string, user st
 	}
 
 	path := "catalogs/registry/" + catalogName
-	if scope != "" {
-		path = path + "?scope=" + scope
+	if namespace != "" {
+		path = path + "?namespace=" + namespace
 	}
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {

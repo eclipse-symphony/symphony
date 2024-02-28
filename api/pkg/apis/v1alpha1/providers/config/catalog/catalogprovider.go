@@ -102,7 +102,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, s
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
-	scope := m.getScopeFromContext(localcontext)
+	scope := m.getNamespaceFromContext(localcontext)
 
 	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
 	if err != nil {
@@ -126,7 +126,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 }
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
-	scope := m.getScopeFromContext(localcontext)
+	scope := m.getNamespaceFromContext(localcontext)
 
 	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, scope)
 	if err != nil {
@@ -153,10 +153,10 @@ func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) getScopeFromContext(localContext interface{}) string {
+func (m *CatalogConfigProvider) getNamespaceFromContext(localContext interface{}) string {
 	if localContext != nil {
 		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
-			return ltx.Scope
+			return ltx.Namespace
 		}
 	}
 	return ""
@@ -175,7 +175,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				context.Value = ltx.Value
 				context.Properties = ltx.Properties
 				context.Component = ltx.Component
-				context.Scope = ltx.Scope
+				context.Namespace = ltx.Namespace
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
