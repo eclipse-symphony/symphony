@@ -158,13 +158,17 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		patchAction = "add"
 	}
 	udpated := false
+	objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
+	if objectNamespace == "" {
+		objectNamespace = "default"
+	}
 
 	var catalog model.CatalogState
 
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
-			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
+			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password, objectNamespace)
 
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
