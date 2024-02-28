@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -215,16 +217,15 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				alreadyRunning = false
 			}
 
-			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
-			// reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
-			// if err != nil {
-			// 	observ_utils.CloseSpanWithError(span, &err)
-			// 	sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
-			// 	return err
-			// }
+			reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+			if err != nil {
+				observ_utils.CloseSpanWithError(span, &err)
+				sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
+				return ret, err
+			}
 
-			// defer reader.Close()
-			// io.Copy(os.Stdout, reader)
+			defer reader.Close()
+			io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
 				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
