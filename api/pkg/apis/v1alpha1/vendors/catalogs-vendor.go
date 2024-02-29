@@ -60,12 +60,13 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			var catalog model.CatalogState
 			jData, _ = json.Marshal(job.Body)
 			err = json.Unmarshal(jData, &catalog)
+			origin := event.Metadata["origin"]
 			if err == nil {
-				name := fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.Name)
+				name := fmt.Sprintf("%s-%s", origin, catalog.Spec.Name)
 				catalog.ObjectMeta.Name = name
 				catalog.Spec.Name = name
 				if catalog.Spec.ParentName != "" {
-					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.ParentName)
+					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
 				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
