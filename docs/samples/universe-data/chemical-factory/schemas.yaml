@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: sample-schema
-spec:  
-  siteId: hq
+spec:
   type: schema
   properties:
     spec:

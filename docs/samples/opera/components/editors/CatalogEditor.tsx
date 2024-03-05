@@ -42,7 +42,6 @@ function CatalogEditor(props: CatalogEditorProps) {
         const formData = new FormData(event.currentTarget);
         const data = Object.fromEntries(formData.entries());
         const catalog = {
-            siteId : process.env.SYMPHONY_SITE,
             name: data.name,
             type: "config"
         };

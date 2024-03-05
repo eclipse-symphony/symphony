@@ -32,8 +32,7 @@ var catalogState = model.CatalogState{
 		Name: "name1",
 	},
 	Spec: &model.CatalogSpec{
-		SiteId: "site1",
-		Type:   "catalog",
+		Type: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",

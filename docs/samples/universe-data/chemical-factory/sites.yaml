@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: HQ
@@ -21,8 +20,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: tokyo
-spec:  
-  siteId: tokyo
+spec:
   type: asset
   properties:
     name: "東京"
@@ -40,8 +38,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: new-york
-spec:  
-  siteId: new-york
+spec:
   type: asset
   properties:
     name: "New York"
@@ -59,8 +56,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: munchen
-spec:  
-  siteId: munchen
+spec:
   type: asset
   properties:
     name: "München"
@@ -78,8 +74,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-adr
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "HQ Azure Device Registry"    
@@ -99,8 +94,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-arc-1
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "HQ Azure Arc Cluster 1"
@@ -120,8 +114,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-arc-2
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "HQ Azure Arc Cluster 2"
@@ -141,8 +134,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-doe-site
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "HQ DOE Site"
@@ -162,8 +154,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-iot-hub
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "HQ IoT Hub Tenant"
@@ -183,8 +174,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: area-1
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "Area 1"
@@ -194,8 +184,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: area-2
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "Area 2"
@@ -205,8 +194,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-1
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "Production Line 1"
@@ -216,8 +204,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-2
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "Production Line 2"

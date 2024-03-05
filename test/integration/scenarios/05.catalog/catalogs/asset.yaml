@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: asset
-spec:  
-  siteId: hq
+spec:
   type: asset
   properties:
     name: "東京"

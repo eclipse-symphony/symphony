@@ -7,8 +7,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: robot-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   properties:
     name: my-robot
