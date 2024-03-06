@@ -230,7 +230,7 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 
 func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error) {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
