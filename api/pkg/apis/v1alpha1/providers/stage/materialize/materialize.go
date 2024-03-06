@@ -161,7 +161,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					catalog.Spec.Name = name
 					catalog.ObjectMeta.Name = name
 					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
-					objectData, _ := json.Marshal(catalog.Spec)
+					objectData, _ := json.Marshal(catalog)
 					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
 						mLog.Errorf("Failed to create catalog %s: %s", name, err.Error())
