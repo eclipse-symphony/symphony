@@ -79,7 +79,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
 	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		sites, err := f.SitesManager.ListSpec(context.TODO())
+		sites, err := f.SitesManager.ListState(context.TODO())
 		if err != nil {
 			return err
 		}
@@ -224,10 +224,10 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = f.SitesManager.ListSpec(ctx)
+			state, err = f.SitesManager.ListState(ctx)
 			isArray = true
 		} else {
-			state, err = f.SitesManager.GetSpec(ctx, id)
+			state, err = f.SitesManager.GetState(ctx, id)
 		}
 		if err != nil {
 			if v1alpha2.IsNotFound(err) {
@@ -253,6 +253,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		return resp
 	case fasthttp.MethodPost:
+		// TODO: POST federation/registry need to pass SiteState as request body
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 

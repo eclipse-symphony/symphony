@@ -130,7 +130,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				if s, ok := inputs["objectNamespace"]; ok {
 					objectNamespace = s.(string)
 				}
-				objectData, _ := json.Marshal(catalog.Spec.Properties["spec"]) //TODO: handle errors
+				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 				name := catalog.Spec.Name
 				if s, ok := inputs["__origin"]; ok {
 					name = strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", s))
@@ -151,7 +151,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					creationCount++
 				case "target":
-					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace)
+					err = utils.CreateTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
