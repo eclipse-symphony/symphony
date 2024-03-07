@@ -11,8 +11,8 @@ import "errors"
 type (
 	// DeviceState defines the current state of the device
 	DeviceState struct {
-		Id   string      `json:"id"`
-		Spec *DeviceSpec `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta  `json:"metadata,omitempty"`
+		Spec       *DeviceSpec `json:"spec,omitempty"`
 	}
 	// DeviceSpec defines the spec properties of the DeviceState
 	// +kubebuilder:object:generate=true
@@ -39,6 +39,25 @@ func (c DeviceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	if !SlicesEqual(c.Bindings, otherC.Bindings) {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c DeviceState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(DeviceState)
+	if !ok {
+		return false, errors.New("parameter is not a DeviceState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil
