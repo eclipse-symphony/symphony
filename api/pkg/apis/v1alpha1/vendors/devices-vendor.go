@@ -77,6 +77,11 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 	defer span.End()
 	tLog.Infof("V (Devices): onDevices %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onDevices-GET", pCtx, nil)
@@ -85,10 +90,13 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.DevicesManager.ListSpec(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.DevicesManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.DevicesManager.GetSpec(ctx, id)
+			state, err = c.DevicesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			log.Errorf("V (Devices): failed to get device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -111,7 +119,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		ctx, span := observability.StartSpan("onDevices-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var device model.DeviceSpec
+		var device model.DeviceState
 
 		err := json.Unmarshal(request.Body, &device)
 		if err != nil {
@@ -122,7 +130,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 
-		err = c.DevicesManager.UpsertSpec(ctx, id, device)
+		err = c.DevicesManager.UpsertState(ctx, id, device)
 		if err != nil {
 			log.Errorf("V (Devices): failed to upsert device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -136,7 +144,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onDevices-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.DevicesManager.DeleteSpec(ctx, id)
+		err := c.DevicesManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			log.Errorf("V (Devices): failed to delete device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

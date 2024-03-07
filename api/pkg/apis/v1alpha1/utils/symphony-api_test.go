@@ -666,7 +666,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		},
 	}, []model.DeviceState{
 		{
-			Id: "someTargetName2",
+			ObjectMeta: model.ObjectMeta{
+				Name: "someTargetName2",
+			},
 			Spec: &model.DeviceSpec{
 				DisplayName: "someDeviceDisplayName",
 				Properties: map[string]string{

@@ -64,24 +64,29 @@ func TestUpsertAndDeleteSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.SkillSpec{
-		Parameters: map[string]string{
-			"a": "default-a",
-			"c": "default-c",
+	err = manager.UpsertState(context.Background(), "test", model.SkillState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Nodes: []model.NodeSpec{
-			{
-				Id: "1",
-				Configurations: map[string]string{
-					"v-a": "$param(a)",
-					"v-c": "$param(c)",
+		Spec: &model.SkillSpec{
+			Parameters: map[string]string{
+				"a": "default-a",
+				"c": "default-c",
+			},
+			Nodes: []model.NodeSpec{
+				{
+					Id: "1",
+					Configurations: map[string]string{
+						"v-a": "$param(a)",
+						"v-c": "$param(c)",
+					},
 				},
 			},
 		},
 	})
 	assert.Nil(t, err)
 
-	err = manager.DeleteSpec(context.Background(), "test")
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }
 
@@ -100,27 +105,32 @@ func TestUpsertAndListSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.SkillSpec{
-		Parameters: map[string]string{
-			"a": "default-a",
-			"c": "default-c",
+	err = manager.UpsertState(context.Background(), "test", model.SkillState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Nodes: []model.NodeSpec{
-			{
-				Id: "1",
-				Configurations: map[string]string{
-					"v-a": "$param(a)",
-					"v-c": "$param(c)",
+		Spec: &model.SkillSpec{
+			Parameters: map[string]string{
+				"a": "default-a",
+				"c": "default-c",
+			},
+			Nodes: []model.NodeSpec{
+				{
+					Id: "1",
+					Configurations: map[string]string{
+						"v-a": "$param(a)",
+						"v-c": "$param(c)",
+					},
 				},
 			},
 		},
 	})
 	assert.Nil(t, err)
 
-	skills, err := manager.ListSpec(context.Background())
+	skills, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(skills))
-	assert.Equal(t, "test", skills[0].Id)
+	assert.Equal(t, "test", skills[0].ObjectMeta.Name)
 	assert.Equal(t, "default-a", skills[0].Spec.Parameters["a"])
 	assert.Equal(t, "default-c", skills[0].Spec.Parameters["c"])
 }
@@ -140,26 +150,31 @@ func TestUpsertAndGetSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.SkillSpec{
-		Parameters: map[string]string{
-			"a": "default-a",
-			"c": "default-c",
+	err = manager.UpsertState(context.Background(), "test", model.SkillState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Nodes: []model.NodeSpec{
-			{
-				Id: "1",
-				Configurations: map[string]string{
-					"v-a": "$param(a)",
-					"v-c": "$param(c)",
+		Spec: &model.SkillSpec{
+			Parameters: map[string]string{
+				"a": "default-a",
+				"c": "default-c",
+			},
+			Nodes: []model.NodeSpec{
+				{
+					Id: "1",
+					Configurations: map[string]string{
+						"v-a": "$param(a)",
+						"v-c": "$param(c)",
+					},
 				},
 			},
 		},
 	})
 	assert.Nil(t, err)
 
-	skill, err := manager.GetSpec(context.Background(), "test")
+	skill, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", skill.Id)
+	assert.Equal(t, "test", skill.ObjectMeta.Name)
 	assert.Equal(t, "default-a", skill.Spec.Parameters["a"])
 	assert.Equal(t, "default-c", skill.Spec.Parameters["c"])
 }
