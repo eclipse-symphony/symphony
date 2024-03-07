@@ -32,6 +32,9 @@ In this example, the Symphony agent needs a service principal to access an Azure
    ```bash
    az storage account create --name <storage account name> --resource-group <resource group name> --location <location> --sku Standard_LRS
    az storage container create -n snapshots --account-name <storage account name>
+
+   # grant permission to access storage account
+   az role assignment create --assignee <service principal app id> --role "Storage Blob Data Owner" --scope /subscriptions/<subscription id>/resourceGroups/<resource group name>/providers/Microsoft.Storage/storageAccounts/<storage account name>
    ```
 
 3. If you plan to run Symphony agent as a process or a service, install [FFmpeg](https://ffmpeg.org/) on your target machine. You can skip this step if you plan to run Symphony agent as a container, which has FFmpeg pre-installed.
