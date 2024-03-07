@@ -128,18 +128,23 @@ func TestModelsVendorGetEndpoints(t *testing.T) {
 }
 
 func TestModelsVendorOnModels(t *testing.T) {
-	m1 := model.ModelSpec{
-		DisplayName: "model",
-		Properties: map[string]string{
-			"foo": "bar",
+	m1 := model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "model",
 		},
-		Constraints: "constraints",
-		Bindings: []model.BindingSpec{
-			{
-				Role:     "role",
-				Provider: "provider",
-				Config: map[string]string{
-					"foo": "bar",
+		Spec: &model.ModelSpec{
+			DisplayName: "model",
+			Properties: map[string]string{
+				"foo": "bar",
+			},
+			Constraints: "constraints",
+			Bindings: []model.BindingSpec{
+				{
+					Role:     "role",
+					Provider: "provider",
+					Config: map[string]string{
+						"foo": "bar",
+					},
 				},
 			},
 		},
@@ -155,7 +160,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": m1.DisplayName,
+			"__name": m1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}
@@ -166,7 +171,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	getReq := v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": m1.DisplayName,
+			"__name": m1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}
@@ -175,7 +180,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	var m1State model.ModelState
 	err = json.Unmarshal(resp.Body, &m1State)
 	assert.Nil(t, err)
-	equal, err := m1.DeepEquals(*m1State.Spec)
+	equal, err := m1.Spec.DeepEquals(*m1State.Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
@@ -190,7 +195,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &modelsState)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(modelsState))
-	equal, err = m1.DeepEquals(*modelsState[0].Spec)
+	equal, err = m1.Spec.DeepEquals(*modelsState[0].Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
@@ -198,7 +203,7 @@ func TestModelsVendorOnModels(t *testing.T) {
 	deleteReq := v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": m1.DisplayName,
+			"__name": m1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}
