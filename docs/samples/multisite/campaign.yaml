@@ -25,6 +25,7 @@ spec:
         operation: wait
         objectType: catalogs
         names:
+        - web-app-config
         - site-app
         - site-k8s-target
         - site-instance
@@ -36,6 +37,7 @@ spec:
       inputs:
         operation: materialize
         names:
+        - web-app-config
         - site-app
         - site-k8s-target
         - site-instance

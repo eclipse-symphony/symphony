@@ -13,8 +13,8 @@ spec:
         type: container
         metadata:
           service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
-          service.type: "LoadBalancer"      
+          service.type: "$config('web-app-config','serviceType')"
         properties:
           deployment.replicas: "#1"
           container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-          container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+          container.image: "$config('web-app-config','image')"
