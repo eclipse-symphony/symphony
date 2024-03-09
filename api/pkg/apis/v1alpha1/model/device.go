@@ -11,8 +11,9 @@ import "errors"
 type (
 	// DeviceState defines the current state of the device
 	DeviceState struct {
-		ObjectMeta ObjectMeta  `json:"metadata,omitempty"`
-		Spec       *DeviceSpec `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta        `json:"metadata,omitempty"`
+		Spec       *DeviceSpec       `json:"spec,omitempty"`
+		Status     map[string]string `json:"status,omitempty"`
 	}
 	// DeviceSpec defines the spec properties of the DeviceState
 	// +kubebuilder:object:generate=true
