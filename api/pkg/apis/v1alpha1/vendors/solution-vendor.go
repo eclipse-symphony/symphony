@@ -188,7 +188,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var deployment model.DeploymentSpec
 		err := json.Unmarshal(request.Body, &deployment)
 		if err != nil {
-			sLog.Infof("V (Solution): onReconcile failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			sLog.Infof("V (Solution): onReconcile failed POST - unmarshal request %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -204,7 +204,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
-			sLog.Infof("V (Solution): onReconcile failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			sLog.Infof("V (Solution): onReconcile failed POST - reconcile %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  data,

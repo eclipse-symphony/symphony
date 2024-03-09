@@ -207,6 +207,11 @@ func (Build) All() error {
 		return err
 	}
 
+	err = buildAgent()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -216,6 +221,10 @@ func (Build) Api() error {
 }
 func buildAPI() error {
 	return shellcmd.Command("docker compose -f ../../api/docker-compose.yaml build").Run() //oss
+}
+
+func buildAgent() error {
+	return shellcmd.Command("docker compose -f ../../api/docker-compose-agent.yaml build").Run() //oss
 }
 
 // Build k8s container
