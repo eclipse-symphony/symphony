@@ -168,7 +168,7 @@ func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
 	//read status
 	status := dict["status"]
 	j, _ = json.Marshal(status)
-	var rStatus map[string]string
+	var rStatus model.DeviceStatus
 	err = json.Unmarshal(j, &rStatus)
 	if err != nil {
 		return model.DeviceState{}, err
