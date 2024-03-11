@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -158,13 +159,17 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					creationCount++
 				default:
-					catalog.Spec.Name = name
-					catalog.ObjectMeta.Name = name
-					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
+					// Check wrapped catalog structure and extract wrapped catalog name
 					objectData, _ := json.Marshal(catalog.Spec.Properties)
-					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					var catalogState model.CatalogState
+					err = json.Unmarshal(objectData, &catalogState)
 					if err != nil {
-						mLog.Errorf("Failed to create catalog %s: %s", name, err.Error())
+						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
+					if err != nil {
+						mLog.Errorf("Failed to create catalog %s: %s", catalogState.Spec.Name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++

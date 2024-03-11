@@ -152,9 +152,16 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	objectType := inputs["objectType"].(string)
 	objects := inputs["names"].([]interface{})
 	prefixedNames := make([]string, len(objects))
-	for i, object := range objects {
-		prefixedNames[i] = fmt.Sprintf("%v-%v", inputs["__origin"], object)
+	if inputs["__origin"] == nil || inputs["__origin"] == "" {
+		for i, object := range objects {
+			prefixedNames[i] = fmt.Sprintf("%v", object)
+		}
+	} else {
+		for i, object := range objects {
+			prefixedNames[i] = fmt.Sprintf("%v-%v", inputs["__origin"], object)
+		}
 	}
+
 	log.Debugf("  P (Wait Processor): waiting for %v %v", objectType, prefixedNames)
 	counter := 0
 	namespace := "default"
