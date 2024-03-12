@@ -25,7 +25,7 @@ FROM ubuntu:latest
 RUN \
     set -x \
     && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates curl jq android-tools-adb \
+    && apt-get install -y openssl libssl-dev ca-certificates curl jq  android-tools-adb \
     && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
     && chmod +x get_helm.sh \
     && ./get_helm.sh \
@@ -33,9 +33,9 @@ RUN \
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO /zoneinfo.zip
 COPY --from=build /dist /
-ADD ./api/symphony-api.json /
-EXPOSE 8080
-EXPOSE 8081
+ADD ./api/symphony-k8s-proxy.json /
+EXPOSE 8088
+EXPOSE 8089
 ENV LOG_LEVEL Debug
-# ENV CONFIG /symphony-api.json
+ENV CONFIG /symphony-k8s-proxy.json
 CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL

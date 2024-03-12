@@ -1,0 +1,71 @@
+{
+  "siteInfo": {
+    "siteId": "symphony-proxy",
+    "currentSite": {
+      "baseUrl": "http://localhost:8088/v1alpha2/",
+      "username": "",
+      "password": ""
+    }
+  },
+  "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.target": "k8s",
+              "providers.state": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"  
+            },
+            "providers": {
+              "k8s": {
+                "type": "providers.target.k8s",
+                "config": {
+                  "inCluster": true                  
+                }
+              },
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8088
+      }
+    }
+  ]
+}

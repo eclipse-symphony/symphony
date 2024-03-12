@@ -178,3 +178,13 @@ jobs:
           asset_path: /home/runner/maestro/maestro_darwin_amd64.tar.gz
           asset_name: maestro_darwin_amd64.tar.gz
           asset_content_type: application/gzip
+      - name: Upload arm mastro packages
+        id: upload_mastro_arm_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: /home/runner/maestro/maestro_linux_arm.tar.gz
+          asset_name: maestro_linux_arm.tar.gz
+          asset_content_type: application/gzip

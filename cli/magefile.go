@@ -25,6 +25,7 @@ func BuildCli() error {
 		"go build -o maestro",
 		"GOOS=windows GOARCH=amd64 go build -o maestro.exe",
 		"GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
+		"GOOS=linux GOARCH=arm GOARM=7 go build -o maestro-arm",
 	); err != nil {
 		return err
 	}
@@ -45,6 +46,7 @@ func BuildApi() error {
 		shellcmd.Command("go build -o symphony-api"),
 		shellcmd.Command("GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
 		shellcmd.Command("GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("GOOS=linux GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
 	); err != nil {
 		return err
 	}
@@ -85,16 +87,20 @@ func GeneratePackages(des string) error {
 	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_darwin_amd64.tar.gz", des)); err != nil {
 		return err
 	}
-
+	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_linux_arm.tar.gz", des)); err != nil {
+		return err
+	}
 	// copy new binary files, configuration files and scripts
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro.exe %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s//cli/maestro-mac %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm %s", symphonyPath, des)),
 	); err != nil {
 		return err
 	}
@@ -150,6 +156,18 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("mv maestro-mac maestro")),
 		shellcmd.Command(fmt.Sprintf("mv symphony-api-mac symphony-api")),
 		shellcmd.Command(macComomand),
+	); err != nil {
+		return err
+	}
+
+	// Package ARM Linux
+	armLinuxCommand := fmt.Sprintf("tar -czvf maestro_linux_arm.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	if err := shellcmd.RunAll(
+		shellcmd.Command(fmt.Sprintf("rm maestro")),
+		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
+		shellcmd.Command(fmt.Sprintf("mv maestro-arm maestro")),
+		shellcmd.Command(fmt.Sprintf("mv symphony-api-arm symphony-api")),
+		shellcmd.Command(armLinuxCommand),
 	); err != nil {
 		return err
 	}
