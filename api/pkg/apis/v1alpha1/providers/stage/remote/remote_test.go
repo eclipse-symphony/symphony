@@ -59,5 +59,5 @@ func TestRemoteProcess(t *testing.T) {
 
 	_, _, err = provider.Process(context.Background(), ctx, map[string]interface{}{})
 	assert.NotNil(t, err)
-	assert.Equal(t, "no site found in inputs", err.Error())
+	assert.Equal(t, "Bad Request: no site found in inputs", err.Error())
 }

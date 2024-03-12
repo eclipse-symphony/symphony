@@ -32,8 +32,10 @@ const (
 
 type JobData struct {
 	Id     string      `json:"id"`
+	Scope  string      `json:"scope,omitempty"`
 	Action JobAction   `json:"action"`
 	Body   interface{} `json:"body,omitempty"`
+	Data   []byte      `json:"data"`
 }
 type ActivationData struct {
 	Campaign             string                            `json:"campaign"`
@@ -59,6 +61,7 @@ const (
 
 type HeartBeatData struct {
 	JobId  string          `json:"id"`
+	Scope  string          `json:"scope,omitempty"`
 	Action HeartBeatAction `json:"action"`
 	Time   time.Time       `json:"time"`
 }

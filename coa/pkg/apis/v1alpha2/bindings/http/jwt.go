@@ -10,11 +10,16 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
+	v1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type JWT struct {
@@ -22,12 +27,43 @@ type JWT struct {
 	VerifyKey   string                 `json:"verifyKey"`
 	MustHave    []string               `json:"mustHave,omitempty"`
 	MustMatch   map[string]interface{} `json:"mustMatch,omitempty"`
+	AuthServer  AuthServer             `json:"authServer,omitempty"`
 	verifyKey   *rsa.PublicKey
 	IgnorePaths []string          `json:"ignorePaths,omitempty"`
 	Roles       []ClaimRoleMap    `json:"roles,omitempty"`
 	EnableRBAC  bool              `json:"enableRBAC,omitempty"`
 	Policy      map[string]Policy `json:"policy,omitempty"`
 }
+
+// enum string for AuthServer
+type AuthServer string
+
+const (
+	// AuthServerKuberenetes means we are using kubernetes api server as auth server
+	AuthServerKuberenetes AuthServer = "kubernetes"
+)
+
+var (
+	symphonyAPIAddressBase       = os.Getenv("SYMPHONY_API_URL")
+	namespace                    = os.Getenv("POD_NAMESPACE")
+	apiServiceAccountName        = os.Getenv("SERVICE_ACCOUNT_NAME")
+	controllerServiceAccountName = os.Getenv("SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME")
+)
+
+func getApiServiceAccountUsername() (string, error) {
+	if namespace == "" || apiServiceAccountName == "" {
+		return "", v1alpha2.NewCOAError(nil, "Unable to retrieve environment variables for api service account", v1alpha2.InternalError)
+	}
+	return fmt.Sprintf("system:serviceaccount:%s:%s", namespace, apiServiceAccountName), nil
+}
+
+func getControllerServiceAccountUsername() (string, error) {
+	if namespace == "" || controllerServiceAccountName == "" {
+		return "", v1alpha2.NewCOAError(nil, "Unable to retrieve environment variables for controller service account", v1alpha2.InternalError)
+	}
+	return fmt.Sprintf("system:serviceaccount:%s:%s", namespace, controllerServiceAccountName), nil
+}
+
 type ClaimRoleMap struct {
 	Role  string `json:"role"`
 	Claim string `json:"claim"`
@@ -55,29 +91,38 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		if tokenStr == "" {
 			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 		} else {
-			_, roles, err := j.validateToken(tokenStr)
-			if err != nil {
-				ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
-			} else {
-				if j.EnableRBAC {
-					path := string(ctx.Path())
-					method := string(ctx.Method())
-					for _, role := range roles {
-						if v, ok := j.Policy[role]; ok {
-							for key, val := range v.Items {
-								if key == "*" || strings.HasPrefix(path, key) {
-									if val == "*" || strings.Contains(val, method) {
-										next(ctx)
-										return
-									}
-								}
-							}
-						}
-					}
+			if j.AuthServer == AuthServerKuberenetes {
+				err := j.validateServiceAccountToken(ctx, tokenStr)
+				if err != nil {
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				}
 				next(ctx)
+			} else {
+				_, roles, err := j.validateToken(tokenStr)
+				if err != nil {
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				} else {
+					if j.EnableRBAC {
+						path := string(ctx.Path())
+						method := string(ctx.Method())
+						for _, role := range roles {
+							if v, ok := j.Policy[role]; ok {
+								for key, val := range v.Items {
+									if key == "*" || strings.HasPrefix(path, key) {
+										if val == "*" || strings.Contains(val, method) {
+											next(ctx)
+											return
+										}
+									}
+								}
+							}
+						}
+						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+						return
+					}
+					next(ctx)
+				}
 			}
 		}
 	}
@@ -158,4 +203,50 @@ func (j *JWT) validateToken(tokenStr string) (map[string]interface{}, []string, 
 
 	}
 	return ret, roles, nil
+}
+func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr string) error {
+	clientset, err := getKubernetesClient()
+	if err != nil {
+		return v1alpha2.NewCOAError(err, "Could not initialize Kubernetes client", v1alpha2.InternalError)
+	}
+	tokenReview := &v1.TokenReview{
+		Spec: v1.TokenReviewSpec{
+			Token: tokenStr,
+			Audiences: []string{
+				symphonyAPIAddressBase,
+			},
+		},
+	}
+	result, err := clientset.AuthenticationV1().TokenReviews().Create(ctx, tokenReview, metav1.CreateOptions{})
+	if err != nil {
+		return v1alpha2.NewCOAError(err, "Token review using kubernetes api server failed.", v1alpha2.InternalError)
+	}
+	if !result.Status.Authenticated {
+		return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
+	} else {
+		apiUsername, err := getApiServiceAccountUsername()
+		if err != nil {
+			return err
+		}
+		controllerUsername, err := getControllerServiceAccountUsername()
+		if err != nil {
+			return err
+		}
+		if result.Status.User.Username != apiUsername && result.Status.User.Username != controllerUsername {
+			return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
+		}
+	}
+	return nil
+
+}
+func getKubernetesClient() (*kubernetes.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return clientset, nil
 }

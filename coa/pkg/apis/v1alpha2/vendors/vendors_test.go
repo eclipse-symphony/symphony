@@ -7,6 +7,7 @@
 package vendors
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -215,9 +216,9 @@ func TestRunLoop(t *testing.T) {
 	m, ok := v.Managers[0].(*MockManager)
 	assert.True(t, ok)
 	go func() {
-		v.RunLoop(1 * time.Second)
+		v.RunLoop(context.TODO(), 1*time.Second)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 	b1 := m.GetPollCnt() > 1
 	b2 := m.GetReconcilCnt() > 1
 	assert.True(t, b1)

@@ -7,6 +7,8 @@
 package managers
 
 import (
+	"context"
+
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -35,6 +37,7 @@ type ManagerConfig struct {
 
 type IManager interface {
 	Init(context *contexts.VendorContext, config ManagerConfig, providers map[string]providers.IProvider) error
+	v1alpha2.Terminable
 }
 
 type ISchedulable interface {
@@ -85,6 +88,11 @@ func GetQueueProvider(config ManagerConfig, providers map[string]providers.IProv
 	}
 	return queueProvider, nil
 }
+
+func (m *Manager) Shutdown(ctx context.Context) error {
+	return nil
+}
+
 func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]
 	if !ok {

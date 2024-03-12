@@ -9,6 +9,7 @@ package utils
 import (
 	"context"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -127,4 +128,17 @@ func CloseSpanWithError(span trace.Span, err *error) {
 		span.SetStatus(codes.Ok, "")
 	}
 	span.End()
+}
+
+// GetFunctionName returns the name of the function that called it
+func GetFunctionName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	function := runtime.FuncForPC(pc).Name()
+	slice := strings.Split(function, "/")
+	index := 0 // Default index in case len(slice) == 0
+	if len(slice) > 0 {
+		index = len(slice) - 1
+	}
+	funcName := slice[index]
+	return funcName
 }

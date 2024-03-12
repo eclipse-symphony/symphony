@@ -1,8 +1,11 @@
-module dev.azure.com/msazure/One/_git/symphony.git/packages/mage
+module github.com/eclipse-symphony/symphony/packages/mage
 
 go 1.20
 
-require github.com/princjef/mageutil v1.0.0
+require (
+	github.com/magefile/mage v1.15.0
+	github.com/princjef/mageutil v1.0.0
+)
 
 require (
 	github.com/VividCortex/ewma v1.1.1 // indirect

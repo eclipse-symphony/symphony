@@ -6,6 +6,8 @@
 
 package v1alpha2
 
+import "fmt"
+
 type COAError struct {
 	InnerError error
 	Message    string
@@ -13,11 +15,15 @@ type COAError struct {
 }
 
 func (e COAError) Error() string {
-	ret := e.Message
-	if e.InnerError != nil {
-		ret += " (" + e.InnerError.Error() + ")"
+	if e.Message != "" && e.InnerError != nil {
+		return fmt.Sprintf("%s: %s (caused by: %s)", e.State.String(), e.Message, e.InnerError.Error())
+	} else if e.Message != "" {
+		return fmt.Sprintf("%s: %s", e.State.String(), e.Message)
+	} else if e.InnerError != nil {
+		return e.InnerError.Error()
+	} else {
+		return ""
 	}
-	return ret
 }
 
 func FromError(err error) COAError {
@@ -48,6 +54,7 @@ func FromHTTPResponseCode(code int, body []byte) COAError {
 		State:   state,
 	}
 }
+
 func NewCOAError(err error, msg string, state State) COAError {
 	return COAError{
 		InnerError: err,

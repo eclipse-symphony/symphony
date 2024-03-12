@@ -7,9 +7,8 @@
 package vendors
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -30,7 +29,8 @@ type VendorConfig struct {
 }
 
 type IVendor interface {
-	RunLoop(interval time.Duration) error
+	v1alpha2.Terminable
+	RunLoop(ctx context.Context, interval time.Duration) error
 	Init(config VendorConfig, managers []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error
 	GetEndpoints() []v1alpha2.Endpoint
 	GetInfo() VendorInfo
@@ -62,24 +62,33 @@ type Vendor struct {
 func (v *Vendor) SetEvaluationContext(context *utils.EvaluationContext) {
 	v.Context.EvaluationContext = context
 }
-func (v *Vendor) RunLoop(interval time.Duration) error {
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt)
-	go func() {
-		<-signalChannel
-		fmt.Println("CLEANING UP")
-		os.Exit(0)
-	}()
-	for true {
-		for _, m := range v.Managers {
-			if c, ok := m.(managers.ISchedulable); ok {
-				if c.Enabled() {
-					c.Poll()     //TODO: report errors
-					c.Reconcil() //TODO: report errors
+
+func (v *Vendor) RunLoop(ctx context.Context, interval time.Duration) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			for _, m := range v.Managers {
+				if c, ok := m.(managers.ISchedulable); ok {
+					if c.Enabled() {
+						c.Poll()     //TODO: report errors
+						c.Reconcil() //TODO: report errors
+					}
 				}
 			}
 		}
-		time.Sleep(interval)
+	}
+}
+
+func (v *Vendor) Shutdown(ctx context.Context) error {
+	for _, m := range v.Managers {
+		err := m.Shutdown(ctx)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

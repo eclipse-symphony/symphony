@@ -462,10 +462,10 @@ func TestCatalogSpecFilter(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestCatalogLabelFilter(t *testing.T) {
-	// testK8s := os.Getenv("TEST_K8S_STATE")
-	// if testK8s == "" {
-	// 	t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
-	// }
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
 	// err := checkCatalogCRDApplied()
 	// assert.Nil(t, err)
 	provider := K8sStateProvider{}
