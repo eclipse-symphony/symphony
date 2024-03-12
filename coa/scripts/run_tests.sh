@@ -219,6 +219,7 @@ then
     echo
     pushd .
     cd ../../symphony-api
+    go mod vendor
     test_folder "./pkg/apis/v1alpha1/managers/reference"
     test_folder "./pkg/apis/v1alpha1/managers/solution"
     test_folder "./pkg/apis/v1alpha1/providers/states/k8s"
@@ -244,6 +245,7 @@ then
     echo
     pushd . 
     cd ../../symphony-k8s
+    go mod vendor
     exec 5>&1
     var=$(make test | tee /dev/fd/5)
     c1=$(echo "$var" | grep -c ' RUN') 

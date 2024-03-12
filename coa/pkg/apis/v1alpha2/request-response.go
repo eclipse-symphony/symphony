@@ -81,3 +81,12 @@ type Endpoint struct {
 	Handler    COAHandler
 	Parameters []string
 }
+
+func (e Endpoint) GetPath() string {
+	path := fmt.Sprintf("/%s/%s", e.Version, e.Route)
+	for _, p := range e.Parameters {
+		path += "/{" + p + "}"
+	}
+
+	return path
+}

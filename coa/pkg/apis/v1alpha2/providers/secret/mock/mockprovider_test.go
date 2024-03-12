@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/conformance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,4 +54,18 @@ func TestGet(t *testing.T) {
 	val, err := provider.Get("obj", "field")
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
+}
+
+func TestConformanceGetSecretNotFound(t *testing.T) {
+	provider := &MockSecretProvider{}
+	err := provider.Init(MockSecretProviderConfig{})
+	assert.Nil(t, err)
+	conformance.GetSecretNotFound(t, provider)
+}
+
+func TestConformanceSuite(t *testing.T) {
+	provider := &MockSecretProvider{}
+	err := provider.Init(MockSecretProviderConfig{})
+	assert.Nil(t, err)
+	conformance.ConformanceSuite(t, provider)
 }

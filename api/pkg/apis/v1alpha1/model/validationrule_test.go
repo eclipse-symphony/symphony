@@ -129,7 +129,7 @@ func TestValidateCOA(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "required property 'requiredProperties1' is missing")
+	assert.EqualError(t, equal, "Bad Request: required property 'requiredProperties1' is missing")
 }
 
 func TestValidateMetadata(t *testing.T) {
@@ -154,7 +154,7 @@ func TestValidateMetadata(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "required metadata 'RequiredMetadata1' is missing")
+	assert.EqualError(t, equal, "Bad Request: required metadata 'RequiredMetadata1' is missing")
 }
 
 func TestValidateComponentType(t *testing.T) {
@@ -169,7 +169,7 @@ func TestValidateComponentType(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "provider requires component type 'requiredComponentType', but 'requiredComponentType1' is found instead")
+	assert.EqualError(t, equal, "Bad Request: provider requires component type 'requiredComponentType', but 'requiredComponentType1' is found instead")
 }
 
 func TestValidateInputs(t *testing.T) {
@@ -196,7 +196,7 @@ func TestValidateInputs(t *testing.T) {
 		"requiredProperties": "requiredProperties",
 	}
 	equal = validationRule.ValidateInputs(inputs2)
-	assert.EqualError(t, equal, "required property 'requiredProperties1' is missing")
+	assert.EqualError(t, equal, "Bad Request: required property 'requiredProperties1' is missing")
 }
 
 func TestIsComponentChangedNoWildcard(t *testing.T) {
