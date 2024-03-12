@@ -60,7 +60,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "entry 'activation1' is not found", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'activation1' is not found", string(resp.Body))
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,

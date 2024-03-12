@@ -131,7 +131,7 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "entry 'campaign1' is not found", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'campaign1' is not found", string(resp.Body))
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -153,7 +153,7 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "entry 'campaign1' is not found", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'campaign1' is not found", string(resp.Body))
 }
 
 func TestCampaignsWrongMethod(t *testing.T) {

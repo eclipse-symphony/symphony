@@ -778,7 +778,7 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 			break
 		}
 		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
-		assert.Equal(t, "this_is_an_error", status.Outputs["__error"])
+		assert.Equal(t, "Bad Request: this_is_an_error", status.Outputs["__error"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 }

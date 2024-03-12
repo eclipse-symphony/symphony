@@ -106,6 +106,7 @@ func (m *CustomVisionReferenceProvider) ReferenceType() string {
 
 func (a *CustomVisionReferenceProvider) SetContext(context *contexts.ManagerContext) {
 	a.Context = context
+
 }
 
 func (m *CustomVisionReferenceProvider) Init(config providers.IProviderConfig) error {

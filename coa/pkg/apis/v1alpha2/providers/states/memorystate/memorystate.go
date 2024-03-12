@@ -43,6 +43,7 @@ type MemoryStateProvider struct {
 	Config  MemoryStateProviderConfig
 	Data    map[string]interface{}
 	Context *contexts.ManagerContext
+	mu      sync.RWMutex
 }
 
 func (s *MemoryStateProvider) ID() string {
@@ -74,8 +75,8 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	mLock.Lock()
-	defer mLock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Upsert",
@@ -129,8 +130,8 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 }
 
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	mLock.RLock()
-	defer mLock.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
@@ -158,8 +159,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 }
 
 func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	mLock.Lock()
-	defer mLock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
@@ -179,8 +180,8 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 }
 
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	mLock.RLock()
-	defer mLock.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
