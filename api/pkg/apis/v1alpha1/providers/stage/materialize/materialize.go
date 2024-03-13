@@ -140,16 +140,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					if instanceState.ObjectMeta.Name == "" {
-						// use the same name as catalog wrapping it if not provided
-						instanceState.ObjectMeta.Name = name
-					}
-					// stage inputs override objectMeta namespace
-					if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
-						instanceState.ObjectMeta.Namespace = s.(string)
-					} else if instanceState.ObjectMeta.Namespace == "" {
-						instanceState.ObjectMeta.Namespace = "default"
-					}
+					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(instanceState)
 					err = utils.CreateInstance(ctx, i.Config.BaseUrl, instanceState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, instanceState.ObjectMeta.Namespace)
 					if err != nil {
@@ -164,16 +155,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					if solutionState.ObjectMeta.Name == "" {
-						// use the same name as catalog wrapping it if not provided
-						solutionState.ObjectMeta.Name = name
-					}
-					// stage inputs override objectMeta namespace
-					if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
-						solutionState.ObjectMeta.Namespace = s.(string)
-					} else if solutionState.ObjectMeta.Namespace == "" {
-						solutionState.ObjectMeta.Namespace = "default"
-					}
+					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(solutionState)
 					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, solutionState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, solutionState.ObjectMeta.Namespace)
 					if err != nil {
@@ -188,16 +170,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal target state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					if targetState.ObjectMeta.Name == "" {
-						// use the same name as catalog wrapping it if not provided
-						targetState.ObjectMeta.Name = name
-					}
-					// stage inputs override objectMeta namespace
-					if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
-						targetState.ObjectMeta.Namespace = s.(string)
-					} else if targetState.ObjectMeta.Namespace == "" {
-						targetState.ObjectMeta.Namespace = "default"
-					}
+					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(targetState)
 					err = utils.CreateTarget(ctx, i.Config.BaseUrl, targetState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, targetState.ObjectMeta.Namespace)
 					if err != nil {
@@ -213,16 +186,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					if catalogState.ObjectMeta.Name == "" {
-						// use the same name as catalog wrapping it if not provided
-						catalogState.ObjectMeta.Name = name
-					}
-					// stage inputs override objectMeta namespace
-					if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
-						catalogState.ObjectMeta.Namespace = s.(string)
-					} else if catalogState.ObjectMeta.Namespace == "" {
-						catalogState.ObjectMeta.Namespace = "default"
-					}
+					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
 					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
@@ -239,4 +203,18 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		return outputs, false, err
 	}
 	return outputs, false, nil
+}
+
+func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}, catalogName string) model.ObjectMeta {
+	if objectMeta.Name == "" {
+		// use the same name as catalog wrapping it if not provided
+		objectMeta.Name = catalogName
+	}
+	// stage inputs override objectMeta namespace
+	if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
+		objectMeta.Namespace = s.(string)
+	} else if objectMeta.Namespace == "" {
+		objectMeta.Namespace = "default"
+	}
+	return objectMeta
 }
