@@ -369,7 +369,7 @@ func TestApply(t *testing.T) {
 		}},
 	}
 
-	ret, err := provider.Apply(context.Background(), deploymentSpec, stepSpec, false) //TODO: this is probably broken: the step should contain at least a component
+	ret, err := provider.Apply(context.Background(), deploymentSpec, stepSpec, false)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
