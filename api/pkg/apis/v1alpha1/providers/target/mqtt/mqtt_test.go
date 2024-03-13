@@ -244,14 +244,25 @@ func TestGetBad(t *testing.T) {
 func TestApply(t *testing.T) {
 	testMQTT := os.Getenv("TEST_MQTT")
 	if testMQTT == "" {
-		t.Skip("Skipping because TES_MQTT enviornment variable is not set")
+		t.Skip("Skipping because TEST_MQTT enviornment variable is not set")
 	}
+
+	const (
+		MQTTName          string = "me"
+		MQTTBrokerAddress string = "tcp://localhost:1883"
+		MQTTClientID      string = "coa-test2"
+		MQTTRequestTopic  string = "coa-request"
+		MQTTResponseTopic string = "coa-response"
+
+		TestTargetSuccessMessage string = "Success"
+	)
+
 	config := MQTTTargetProviderConfig{
-		Name:          "me",
-		BrokerAddress: "tcp://127.0.0.1:1883",
-		ClientID:      "coa-test2",
-		RequestTopic:  "coa-request",
-		ResponseTopic: "coa-response",
+		Name:          MQTTName,
+		BrokerAddress: MQTTBrokerAddress,
+		ClientID:      MQTTClientID,
+		RequestTopic:  MQTTRequestTopic,
+		ResponseTopic: MQTTResponseTopic,
 	}
 	provider := MQTTTargetProvider{}
 	err := provider.Init(config)
@@ -266,8 +277,27 @@ func TestApply(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		summarySpec := model.SummarySpec{
+			TargetCount:  1,
+			SuccessCount: 1,
+			TargetResults: map[string]model.TargetResultSpec{
+				"test-target": {
+					Status: v1alpha2.OK.String(),
+					ComponentResults: map[string]model.ComponentResultSpec{
+						"test-component": {
+							Status:  v1alpha2.Updated,
+							Message: TestTargetSuccessMessage,
+						},
+					},
+				},
+			},
+			Skipped:             false,
+			IsRemoval:           false,
+			AllAssignedDeployed: true,
+		}
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.OK
+		response.Body, _ = json.Marshal(summarySpec)
 		response.Metadata = make(map[string]string)
 		response.Metadata["call-context"] = "TargetProvider-Apply"
 		data, _ := json.Marshal(response)
@@ -280,13 +310,73 @@ func TestApply(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+	deploymentSpec := model.DeploymentSpec{
+		SolutionName: "test-solution",
+		Solution:     model.SolutionState{},
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Name:        "test-instance",
+				DisplayName: "test-instance",
+				Solution:    "test-solution",
+				Target: model.TargetSelector{
+					Name: "test-target",
+				},
+			},
 		},
-	}, model.DeploymentStep{}, false) //TODO: this is probably broken: the step should contain at least a component
+		Targets: map[string]model.TargetState{
+			"test-target": {
+				Spec: &model.TargetSpec{
+					DisplayName: "test-target",
+					Components: []model.ComponentSpec{
+						{
+							Name: "test-component",
+							Type: "test-component",
+						},
+					},
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "test-target",
+									Provider: "providers.target.mqtt",
+									Config: map[string]string{
+										"name":          MQTTName,
+										"brokerAddress": MQTTBrokerAddress,
+										"clientID":      MQTTClientID,
+										"requestTopic":  MQTTRequestTopic,
+										"responseTopic": MQTTResponseTopic,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"test-component": "{test-target}",
+		},
+	}
+
+	stepSpec := model.DeploymentStep{
+		Target: "test-target",
+		Components: []model.ComponentStep{{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "test-component",
+				Type: "test-component",
+			},
+		}},
+	}
+
+	ret, err := provider.Apply(context.Background(), deploymentSpec, stepSpec, false) //TODO: this is probably broken: the step should contain at least a component
 
 	assert.Nil(t, err)
+	assert.NotNil(t, ret)
+	assert.Equal(t, ret["test-component"].Status, v1alpha2.Untouched)
+	assert.Equal(t, ret["test-component"].Message, "")
+	assert.Equal(t, ret["test-target"].Status, v1alpha2.Updated)
+	assert.Equal(t, ret["test-target"].Message, TestTargetSuccessMessage)
 }
 func TestApplyBad(t *testing.T) {
 	testMQTT := os.Getenv("TEST_MQTT")
