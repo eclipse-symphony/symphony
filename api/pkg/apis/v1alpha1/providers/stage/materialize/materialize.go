@@ -140,6 +140,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
+					// If inner instace defines a display name, use it as the name
+					if instanceState.Spec.DisplayName != "" {
+						instanceState.ObjectMeta.Name = instanceState.Spec.DisplayName
+					}
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(instanceState)
 					err = utils.CreateInstance(ctx, i.Config.BaseUrl, instanceState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, instanceState.ObjectMeta.Namespace)
@@ -154,6 +158,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					if err != nil {
 						mLog.Errorf("Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
 						return outputs, false, err
+					}
+					// If inner solution defines a display name, use it as the name
+					if solutionState.Spec.DisplayName != "" {
+						solutionState.ObjectMeta.Name = solutionState.Spec.DisplayName
 					}
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(solutionState)
@@ -170,6 +178,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal target state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
+					// If inner target defines a display name, use it as the name
+					if targetState.Spec.DisplayName != "" {
+						targetState.ObjectMeta.Name = targetState.Spec.DisplayName
+					}
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(targetState)
 					err = utils.CreateTarget(ctx, i.Config.BaseUrl, targetState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, targetState.ObjectMeta.Namespace)
@@ -185,6 +197,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					if err != nil {
 						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
+					}
+					// If inner catalog defines a name, use it as the name
+					if catalogState.Spec.Name != "" {
+						catalogState.ObjectMeta.Name = catalogState.Spec.Name
 					}
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
