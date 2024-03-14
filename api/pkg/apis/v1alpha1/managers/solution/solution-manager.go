@@ -562,9 +562,13 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {
-	return false
+	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
+	if s.Config.Properties["poll.enabled"] == "true" && s.Config.Properties["poll.url"] != "" {
+		//symphonyUrl := fmt.Sprintf("%s/catalogs/registry", s.Config.Properties["poll.url"])
+		//_, err := utils.GetCatalogs(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"])
+	}
 	return nil
 }
 func (s *SolutionManager) Reconcil() []error {
