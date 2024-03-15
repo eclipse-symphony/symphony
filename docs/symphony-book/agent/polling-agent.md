@@ -1,30 +1,10 @@
-# Symphony polling agent (Piccolo)
+# Symphony polling agent
 
-_(last edit: 9/18/2023)_
+_(last edit: 3/14/2024)_
 
-Piccolo is a lightweight Symphony agent that can be installed on tiny edge devices. It’s about 4MB in size and requires about 430K memory at runtime. It connects back to Symphony control plane with an outbound HTTP/HTTPS connection and reconciles device state with the desired state from the control plane.
+Symphony polling agent connects to the Symphony control plane through a single outbound HTTPS connection. It reports target current states and retrieves the new desired states from the control plane. Then, it runs a local reconciliation process. The polling agent is used in conjunction with Staging Target provider, which stages the desired state on the control plane itself instead of pushing it out to the target. The polling agent periodically polls the control plane for updated desired states.
 
-Piccolo is written in [Rust](https://www.rust-lang.org/).
-
-## Build Piccolo binary
-
-* Build debug target
-
-  ```bash
-  # under the repo root folder
-  cd piccolo
-  cargo build
-  ```
-
-* Build release target
-
-  ```bash
-  # under the repo root folder
-  cd piccolo
-  cargo build --release
-  ```
 
 ## Related topics
 
-* [Piccolo on Flatcar](./flatcar.md)
-* [Piccolo end-to-end demo](./piccolo-wasm-e2e.md)
+* [Symphony lightweight polling agent (Piccolo)](./piccolo-agent.md)

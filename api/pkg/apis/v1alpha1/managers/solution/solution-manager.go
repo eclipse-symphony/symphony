@@ -565,9 +565,36 @@ func (s *SolutionManager) Enabled() bool {
 	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
-	if s.Config.Properties["poll.enabled"] == "true" && s.Config.Properties["poll.url"] != "" {
-		//symphonyUrl := fmt.Sprintf("%s/catalogs/registry", s.Config.Properties["poll.url"])
-		//_, err := utils.GetCatalogs(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"])
+	if s.Config.Properties["poll.enabled"] == "true" && s.Config.Properties["poll.url"] != "" && s.IsTarget {
+		symphonyUrl := fmt.Sprintf("%s/catalogs/registry", s.Config.Properties["poll.url"])
+		for _, target := range s.TargetNames {
+			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"], "label", "staged_target="+target)
+			if err != nil {
+				return []error{err}
+			}
+			for _, c := range catalogs {
+				if vs, ok := c.Spec.Properties["deployment"]; ok {
+					deployment := model.DeploymentSpec{}
+					jData, _ := json.Marshal(vs)
+					err = json.Unmarshal(jData, &deployment)
+					if err != nil {
+						return []error{err}
+					}
+					_, err := s.Reconcile(context.Background(), deployment, false, c.ObjectMeta.Namespace, target)
+					if err != nil {
+						return []error{err}
+					}
+					_, components, err := s.Get(context.Background(), deployment, target)
+					if err != nil {
+						return []error{err}
+					}
+					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"], deployment.Instance.Spec.Name+"-"+target, components)
+					if err != nil {
+						return []error{err}
+					}
+				}
+			}
+		}
 	}
 	return nil
 }

@@ -8,7 +8,7 @@ You can use a label filter to filter objects by object metadata labels. For exam
 ```json
 {
     "filterType": "label",
-    "filterValue": "foo==bar"
+    "filterValue": "foo==bar,foo2=bar2"
 }
 ```
 Label filter functions in the same way as [Kubernetes label selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/).

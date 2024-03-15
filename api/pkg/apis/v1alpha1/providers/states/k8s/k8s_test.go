@@ -462,14 +462,14 @@ func TestCatalogSpecFilter(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestCatalogLabelFilter(t *testing.T) {
-	testK8s := os.Getenv("TEST_K8S_STATE")
-	if testK8s == "" {
-		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
-	}
-	err := checkCatalogCRDApplied()
-	assert.Nil(t, err)
+	// testK8s := os.Getenv("TEST_K8S_STATE")
+	// if testK8s == "" {
+	// 	t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	// }
+	// err := checkCatalogCRDApplied()
+	// assert.Nil(t, err)
 	provider := K8sStateProvider{}
-	err = provider.Init(K8sStateProviderConfig{
+	err := provider.Init(K8sStateProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
 	})
@@ -483,7 +483,8 @@ func TestCatalogLabelFilter(t *testing.T) {
 				"metadata": map[string]interface{}{
 					"name": "c2",
 					"labels": map[string]interface{}{
-						"foo": "bar",
+						"foo":  "bar",
+						"foo2": "bar2",
 					},
 				},
 				"spec": model.CatalogSpec{
@@ -512,7 +513,7 @@ func TestCatalogLabelFilter(t *testing.T) {
 			"kind":      "Catalog",
 		},
 		FilterType:  "label",
-		FilterValue: `foo==bar`,
+		FilterValue: `foo=bar,foo2=bar2`,
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(entries))

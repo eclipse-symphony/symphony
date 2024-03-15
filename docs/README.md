@@ -65,6 +65,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Multi-cluster and multi-site management](./symphony-book/multi-site/_overview.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
 * [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
+* [Symphony agents](./symphony-book/agent/_overview.md)
 
 ## Sample scenarios
 
@@ -84,7 +85,6 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Providers](./symphony-book/providers/_overview.md)
 ## Additional topics
 
-* [Symphony agent](./symphony-book/agent/_overview.md)
 * [Symphony portal](./symphony-book/portals/_overview.md)
 * [Symphony expressions](./symphony-book/concepts/unified-object-model/property-expressions.md)
 

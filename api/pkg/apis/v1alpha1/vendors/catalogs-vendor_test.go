@@ -160,7 +160,7 @@ func TestCatalogGetEndpoints(t *testing.T) {
 	vendor := CatalogVendorInit()
 	endpoints := vendor.GetEndpoints()
 	assert.NotNil(t, endpoints)
-	assert.Equal(t, "catalogs/check", endpoints[len(endpoints)-1].Route)
+	assert.Equal(t, "catalogs/status", endpoints[len(endpoints)-1].Route)
 }
 
 func TestCatalogOnCheck(t *testing.T) {

@@ -146,6 +146,19 @@ func traceDownField(entity map[string]interface{}, filter string) (map[string]in
 	}
 }
 func simulateK8sFilter(entity map[string]interface{}, filter string) (bool, error) {
+	parts := strings.Split(filter, ",")
+	for _, part := range parts {
+		match, err := simulateK8sFilterSingleKey(entity, part)
+		if err != nil {
+			return false, err
+		}
+		if !match {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+func simulateK8sFilterSingleKey(entity map[string]interface{}, filter string) (bool, error) {
 	if strings.Index(filter, "!=") > 0 {
 		parts := strings.Split(filter, "!=")
 		if len(parts) == 2 {
@@ -155,6 +168,22 @@ func simulateK8sFilter(entity map[string]interface{}, filter string) (bool, erro
 			}
 			if dict[key] != nil {
 				if dict[key] != parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else if strings.Index(filter, "==") > 0 {
+		parts := strings.Split(filter, "==")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] == parts[1] {
 					return true, nil
 				}
 			}

@@ -534,3 +534,34 @@ func TestStatusFilter(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(entity))
 }
+
+func TestMultipleLabelsFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app":  "test",
+						"app2": "test2",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: `app==test,app2=test2`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
