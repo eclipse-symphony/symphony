@@ -299,7 +299,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			delete(col, ENV_NAME)
 		}
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -518,7 +522,11 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		deployment.ActiveTarget = step.Target
 
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -562,9 +570,50 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {
-	return false
+	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
+	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
+		symphonyUrl := s.Context.SiteInfo.ParentSite.BaseUrl
+		for _, target := range s.TargetNames {
+			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "label", "staged_target="+target)
+			if err != nil {
+				return []error{err}
+			}
+			for _, c := range catalogs {
+				if vs, ok := c.Spec.Properties["deployment"]; ok {
+					deployment := model.DeploymentSpec{}
+					jData, _ := json.Marshal(vs)
+					err = json.Unmarshal(jData, &deployment)
+					if err != nil {
+						return []error{err}
+					}
+					isRemove := false
+					if v, ok := c.Spec.Properties["staged"]; ok {
+						if vd, ok := v.(map[string]interface{}); ok {
+							if v, ok := vd["removed-components"]; ok && v != nil {
+								if len(v.([]interface{})) > 0 {
+									isRemove = true
+								}
+							}
+						}
+					}
+					_, err := s.Reconcile(context.Background(), deployment, isRemove, c.ObjectMeta.Namespace, target)
+					if err != nil {
+						return []error{err}
+					}
+					_, components, err := s.Get(context.Background(), deployment, target)
+					if err != nil {
+						return []error{err}
+					}
+					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, deployment.Instance.Spec.Name+"-"+target, components)
+					if err != nil {
+						return []error{err}
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 func (s *SolutionManager) Reconcil() []error {

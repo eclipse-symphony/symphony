@@ -112,7 +112,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		return nil, err
 	}
 
-	if spec, ok := catalog.Spec.Properties["components"]; ok {
+	if spec, ok := catalog.Spec.Properties["reported"]; ok {
 		var components []model.ComponentSpec
 		jData, _ := json.Marshal(spec)
 		err = json.Unmarshal(jData, &components)
@@ -131,9 +131,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		}
 		return ret, nil
 	}
-	err = v1alpha2.NewCOAError(nil, "staged artifact is not found as a 'spec' property", v1alpha2.NotFound)
-	sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
-	return nil, err
+	return nil, nil
 }
 func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
@@ -189,6 +187,14 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.Spec.Metadata == nil {
 		catalog.Spec.Metadata = make(map[string]string)
 	}
+	if catalog.ObjectMeta.Annotations == nil {
+		catalog.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	if catalog.ObjectMeta.Labels == nil {
+		catalog.ObjectMeta.Labels = make(map[string]string)
+	}
+	catalog.ObjectMeta.Labels["staged_target"] = i.Config.TargetName
 
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
@@ -257,8 +263,11 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	catalog.Spec.Properties["components"] = existing
-	catalog.Spec.Properties["removed-components"] = deleted
+	catalog.Spec.Properties["deployment"] = deployment
+	catalog.Spec.Properties["staged"] = map[string]interface{}{
+		"components":         existing,
+		"removed-components": deleted,
+	}
 	jData, _ := json.Marshal(catalog)
 	err = utils.UpsertCatalog(
 		ctx,
@@ -281,6 +290,11 @@ func (*StagingTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*",
+				},
+			},
 		},
 	}
 }

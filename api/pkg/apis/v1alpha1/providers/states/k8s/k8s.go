@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -328,12 +329,65 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 			Version:  version,
 			Resource: resource,
 		}
-		items, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).List(ctx, metav1.ListOptions{})
+		options := metav1.ListOptions{}
+		filterValue := ""
+		switch request.FilterType {
+		case "label":
+			labelSelector := request.FilterValue
+			options = metav1.ListOptions{
+				LabelSelector: labelSelector,
+			}
+		case "field":
+			fieldSelector := request.FilterValue
+			options = metav1.ListOptions{
+				FieldSelector: fieldSelector,
+			}
+		case "spec":
+			filterValue = request.FilterValue
+		case "status":
+			filterValue = request.FilterValue
+		case "":
+			//no filter
+		default:
+			sLog.Errorf("  P (K8s State): invalid filter type: %s", request.FilterType)
+			return nil, "", v1alpha2.NewCOAError(nil, "invalid filter type", v1alpha2.BadRequest)
+		}
+		items, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).List(ctx, options)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to list objects in namespace %s: %v ", namespace, err)
 			return nil, "", err
 		}
 		for _, v := range items.Items {
+
+			if filterValue != "" {
+				switch request.FilterType {
+				case "spec":
+					var dict map[string]interface{}
+					j, _ := json.Marshal(v.Object["spec"])
+					err = json.Unmarshal(j, &dict)
+					if err != nil {
+						sLog.Errorf("  P (K8s State): failed to unmarshal object spec: %v", err)
+						return nil, "", err
+					}
+					if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
+						continue
+					}
+				case "status":
+					if v.Object["status"] != nil {
+						var dict map[string]interface{}
+						j, _ := json.Marshal(v.Object["status"])
+						err = json.Unmarshal(j, &dict)
+						if err != nil {
+							sLog.Errorf("  P (K8s State): failed to unmarshal object spec: %v", err)
+							return nil, "", err
+						}
+						if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
+							continue
+						}
+					}
+				}
+			}
+
 			generation := v.GetGeneration()
 			metadata := model.ObjectMeta{
 				Name:        v.GetName(),
