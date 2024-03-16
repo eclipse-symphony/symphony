@@ -9,6 +9,7 @@ package host
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -56,6 +57,13 @@ type APIHost struct {
 	SharedPubSubProvider pv.IProvider
 }
 
+func overrideWithEnvVariable(value string, env string) string {
+	if os.Getenv(env) != "" {
+		return os.Getenv(env)
+	}
+	return value
+}
+
 func (h *APIHost) Launch(config HostConfig,
 	vendorFactories []vendors.IVendorFactory,
 	managerFactories []mf.IManagerFactroy,
@@ -66,6 +74,15 @@ func (h *APIHost) Launch(config HostConfig,
 	if config.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
 	}
+
+	config.SiteInfo.SiteId = overrideWithEnvVariable(config.SiteInfo.SiteId, "SYMPHONY_SITE_ID")
+	config.SiteInfo.CurrentSite.BaseUrl = overrideWithEnvVariable(config.SiteInfo.CurrentSite.BaseUrl, "SYMPHONY_API_BASE_URL")
+	config.SiteInfo.CurrentSite.Username = overrideWithEnvVariable(config.SiteInfo.CurrentSite.Username, "SYMPHONY_API_USER")
+	config.SiteInfo.CurrentSite.Password = overrideWithEnvVariable(config.SiteInfo.CurrentSite.Password, "SYMPHONY_API_PASSWORD")
+	config.SiteInfo.ParentSite.BaseUrl = overrideWithEnvVariable(config.SiteInfo.ParentSite.BaseUrl, "PARENT_SYMPHONY_API_BASE_URL")
+	config.SiteInfo.ParentSite.Username = overrideWithEnvVariable(config.SiteInfo.ParentSite.Username, "PARENT_SYMPHONY_API_USER")
+	config.SiteInfo.ParentSite.Password = overrideWithEnvVariable(config.SiteInfo.ParentSite.Password, "PARENT_SYMPHONY_API_PASSWORD")
+
 	for _, v := range config.API.Vendors {
 		v.SiteInfo = config.SiteInfo
 		created := false

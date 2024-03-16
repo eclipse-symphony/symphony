@@ -299,7 +299,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			delete(col, ENV_NAME)
 		}
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -518,7 +522,11 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		deployment.ActiveTarget = step.Target
 
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -565,10 +573,10 @@ func (s *SolutionManager) Enabled() bool {
 	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
-	if s.Config.Properties["poll.enabled"] == "true" && s.Config.Properties["poll.url"] != "" && s.IsTarget {
-		symphonyUrl := s.Config.Properties["poll.url"]
+	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
+		symphonyUrl := s.Context.SiteInfo.ParentSite.BaseUrl
 		for _, target := range s.TargetNames {
-			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"], "label", "staged_target="+target)
+			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "label", "staged_target="+target)
 			if err != nil {
 				return []error{err}
 			}
@@ -598,7 +606,7 @@ func (s *SolutionManager) Poll() []error {
 					if err != nil {
 						return []error{err}
 					}
-					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"], deployment.Instance.Spec.Name+"-"+target, components)
+					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, deployment.Instance.Spec.Name+"-"+target, components)
 					if err != nil {
 						return []error{err}
 					}
