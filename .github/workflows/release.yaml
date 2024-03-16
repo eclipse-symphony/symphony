@@ -97,6 +97,8 @@ jobs:
           version=$(cat .github/version/versions.txt)
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
+          yq eval -i ".version = \"$version\"" packages/helm/symphony-poll-agent/Chart.yaml
+          yq eval -i ".appVersion = \"$version\"" packages/helm/symphony-poll-agent/Chart.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony-poll-agent/values.yaml
           
