@@ -98,14 +98,14 @@ jobs:
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/poll-agent/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony-poll-agent/values.yaml
           
       - name: Build Helm
         run: |
           cd k8s
           mage helmTemplate
           cd ../packages/helm
-          helm package symphony
+          helm package symphony          
           helm package symphony-poll-agent
       
       - name: Push symphony api images
