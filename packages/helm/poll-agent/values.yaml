@@ -1,9 +1,0 @@
-agentImage:
-  repository: ghcr.io/eclipse-symphony/symphony-poll-agent
-  pullPolicy: IfNotPresent
-  tag: "{VERSION}"
-parentSite:
-  url: "http://localhost:8082/v1alpha2/"
-  user: "admin"
-  password: ""
-targetName: "poll-agent"
