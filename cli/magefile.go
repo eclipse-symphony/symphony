@@ -22,9 +22,9 @@ import (
 // Build maestro cli tools for Windows, Mac and Linux.
 func BuildCli() error {
 	if err := shellcmd.RunAll(
-		"go build -o maestro",
-		"GOOS=windows GOARCH=amd64 go build -o maestro.exe",
-		"GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
+		"CGO_ENABLED=0 go build -o maestro",
+		"CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o maestro.exe",
+		"CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
 	); err != nil {
 		return err
 	}
@@ -42,9 +42,9 @@ func BuildApi() error {
 		return err
 	}
 	if err := shellcmd.RunAll(
-		shellcmd.Command("go build -o symphony-api"),
-		shellcmd.Command("GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
-		shellcmd.Command("GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CGO_ENABLED=0 go build -o symphony-api"),
+		shellcmd.Command("CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
+		shellcmd.Command("CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
 	); err != nil {
 		return err
 	}
