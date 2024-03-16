@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symphony-poll-agent
+  labels:
+    app: symphony-poll-agent
+spec:
+  selector:
+    matchLabels:
+      app: symphony-poll-agent
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: symphony-poll-agent
+    spec:
+      containers:
+        - name: symphony-poll-agent
+          image: {{ .Values.agentImage.repository }}:{{ .Values.agentImage.tag }}
+          imagePullPolicy: {{ .Values.agentImage.pullPolicy }} 
+          env:
+            - name: "PARENT_SITE_URL"
+              value: {{ .Values.parentSite.url }}
+            - name: "PARENT_SITE_USER"
+              value: {{ .Values.parentSite.user }}
+            - name: "PARENT_SITE_PASSWORD"
+              value: {{ .Values.parentSite.password }}
+            - name: "TARGET_NAME"
+              value: {{ .Values.targetName }}

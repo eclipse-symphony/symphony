@@ -98,7 +98,7 @@ jobs:
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
-          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/poll-agent/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony-poll-agent/values.yaml
           
       - name: Build Helm
         run: |
