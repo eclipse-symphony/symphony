@@ -97,17 +97,19 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		}
 	}
 
+	targetNames := ""
+
 	if v, ok := config.Properties["targetNames"]; ok {
-		s.TargetNames = strings.Split(v, ",")
+		targetNames = v
+	}
+	sTargetName := os.Getenv("SYMPHONY_TARGET_NAME")
+	if sTargetName != "" {
+		targetNames = sTargetName
 	}
 
+	s.TargetNames = strings.Split(targetNames, ",")
+
 	if s.IsTarget {
-		if len(s.TargetNames) == 0 {
-			sTargetName := os.Getenv("SYMPHONY_TARGET_NAME")
-			if sTargetName != "" {
-				s.TargetNames = strings.Split(sTargetName, ",")
-			}
-		}
 		if len(s.TargetNames) == 0 {
 			return errors.New("target mode is set but target name is not set")
 		}
