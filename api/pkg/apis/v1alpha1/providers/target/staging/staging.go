@@ -263,7 +263,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	catalog.Spec.Properties["deoloyment"] = deployment
+	catalog.Spec.Properties["deployment"] = deployment
 	catalog.Spec.Properties["staged"] = map[string]interface{}{
 		"components":         existing,
 		"removed-components": deleted,
@@ -290,6 +290,11 @@ func (*StagingTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*",
+				},
+			},
 		},
 	}
 }

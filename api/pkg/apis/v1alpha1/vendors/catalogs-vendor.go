@@ -110,10 +110,11 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler: e.onCheck,
 		},
 		{
-			Methods: []string{fasthttp.MethodPost},
-			Route:   route + "/status",
-			Version: e.Version,
-			Handler: e.onStatus,
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/status",
+			Version:    e.Version,
+			Handler:    e.onStatus,
+			Parameters: []string{"name"},
 		},
 	}
 }

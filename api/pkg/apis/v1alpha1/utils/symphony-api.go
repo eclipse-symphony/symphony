@@ -147,7 +147,6 @@ func GetCatalogsWithFilter(context context.Context, baseUrl string, user string,
 	if err != nil {
 		return ret, err
 	}
-
 	path := "catalogs/registry"
 	if filterType != "" && filterValue != "" {
 		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
@@ -156,12 +155,10 @@ func GetCatalogsWithFilter(context context.Context, baseUrl string, user string,
 	if err != nil {
 		return ret, err
 	}
-
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
 func GetCatalogs(context context.Context, baseUrl string, user string, password string) ([]model.CatalogState, error) {

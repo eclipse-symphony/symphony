@@ -566,7 +566,7 @@ func (s *SolutionManager) Enabled() bool {
 }
 func (s *SolutionManager) Poll() []error {
 	if s.Config.Properties["poll.enabled"] == "true" && s.Config.Properties["poll.url"] != "" && s.IsTarget {
-		symphonyUrl := fmt.Sprintf("%s/catalogs/registry", s.Config.Properties["poll.url"])
+		symphonyUrl := s.Config.Properties["poll.url"]
 		for _, target := range s.TargetNames {
 			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Config.Properties["poll.user"], s.Config.Properties["poll.password"], "label", "staged_target="+target)
 			if err != nil {
@@ -580,7 +580,17 @@ func (s *SolutionManager) Poll() []error {
 					if err != nil {
 						return []error{err}
 					}
-					_, err := s.Reconcile(context.Background(), deployment, false, c.ObjectMeta.Namespace, target)
+					isRemove := false
+					if v, ok := c.Spec.Properties["staged"]; ok {
+						if vd, ok := v.(map[string]interface{}); ok {
+							if v, ok := vd["removed-components"]; ok && v != nil {
+								if len(v.([]interface{})) > 0 {
+									isRemove = true
+								}
+							}
+						}
+					}
+					_, err := s.Reconcile(context.Background(), deployment, isRemove, c.ObjectMeta.Namespace, target)
 					if err != nil {
 						return []error{err}
 					}
