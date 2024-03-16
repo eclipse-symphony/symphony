@@ -1,5 +1,5 @@
 apiVersion: v2
-name: poll-agent
+name: symphony-poll-agent
 description: A Helm chart for Symphony poll agent
 
 # A chart can be either an 'application' or a 'library' chart.
