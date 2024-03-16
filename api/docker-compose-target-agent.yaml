@@ -1,0 +1,12 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+version: "3.4"
+services:
+  api:
+    image: ghcr.io/eclipse-symphony/symphony-target-agent
+    build: 
+      context: ../
+      dockerfile: api/Dockerfile.target-agent

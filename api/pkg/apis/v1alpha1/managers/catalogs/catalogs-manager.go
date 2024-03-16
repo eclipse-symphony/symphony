@@ -171,6 +171,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 		err = v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
 		return err
 	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -227,7 +228,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string, namespac
 	return err
 }
 
-func (t *CatalogsManager) ListState(ctx context.Context, namespace string) ([]model.CatalogState, error) {
+func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filterType string, filterValue string) ([]model.CatalogState, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "ListState",
 	})
@@ -243,6 +244,8 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string) ([]mo
 			"kind":      "Catalog",
 		},
 	}
+	listRequest.FilterType = filterType
+	listRequest.FilterValue = filterValue
 	catalogs, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
@@ -260,7 +263,7 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string) ([]mo
 }
 func (g *CatalogsManager) setProviderDataIfNecessary(ctx context.Context, namespace string) error {
 	if !g.GraphProvider.IsPure() {
-		catalogs, err := g.ListState(ctx, namespace)
+		catalogs, err := g.ListState(ctx, namespace, "", "")
 		if err != nil {
 			return err
 		}
