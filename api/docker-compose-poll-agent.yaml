@@ -6,7 +6,7 @@
 version: "3.4"
 services:
   api:
-    image: ghcr.io/eclipse-symphony/symphony-agent
+    image: ghcr.io/eclipse-symphony/symphony-poll-agent
     build: 
       context: ../
-      dockerfile: api/Dockerfile.agent
+      dockerfile: api/Dockerfile.poll-agent

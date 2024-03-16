@@ -73,6 +73,8 @@ jobs:
         run: |
           cd api
           mage dockerBuild
+          mage dockerBuildTargetAgent
+          mage dockerBuildPollAgent
       
       - name: Build Symphony k8s
         run: | 
@@ -96,6 +98,7 @@ jobs:
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/poll-agent/values.yaml
           
       - name: Build Helm
         run: |
@@ -103,6 +106,7 @@ jobs:
           mage helmTemplate
           cd ../packages/helm
           helm package symphony
+          helm package symphony-poll-agent
       
       - name: Push symphony api images
         run: |
@@ -110,6 +114,14 @@ jobs:
           docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
           docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api:latest
           docker push ${{ env.ContainerRegistryRepo }}/symphony-api:latest
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
+          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
+          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
 
       - name: Push symphony k8s images
         run: |
@@ -122,6 +134,7 @@ jobs:
         run: |
           cd packages/helm
           helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
+          helm push symphony-poll-agent-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
 
       - name: Commit changes
         run: |

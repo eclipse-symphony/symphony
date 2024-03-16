@@ -50,37 +50,32 @@
               "helm.v3": {
                 "type": "providers.target.helm",
                 "config": {
-                  "inCluster": false,
-                  "configType": "path"                  
+                  "inCluster": true                  
                 }
               },
               "yaml.k8s": {
                 "type": "providers.target.kubectl",
                 "config": {
-                  "inCluster": false,
-                  "configType": "path"                                    
+                  "inCluster": true                  
                 }
               },
               "instance": {
                 "type": "providers.target.k8s",
                 "config": {
-                  "inCluster": false,
-                  "configType": "path",
+                  "inCluster": true,
                   "deploymentStrategy": "services"       
                 }
               },
               "configmap": {
                 "type": "providers.target.configmap",
                 "config": {
-                  "inCluster": false,
-                  "configType": "path"                                    
+                  "inCluster": true                  
                 }
               },
               "ingress": {
                 "type": "providers.target.ingress",
                 "config": {
-                  "inCluster": false,
-                  "configType": "path"                                    
+                  "inCluster": true                  
                 }
               },
               "mock-config": {
