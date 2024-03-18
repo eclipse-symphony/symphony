@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -127,7 +128,89 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 
 	return entry.Value.ID, nil
 }
-
+func traceDownField(entity map[string]interface{}, filter string) (map[string]interface{}, string, error) {
+	if !strings.Contains(filter, ".") {
+		return entity, filter, nil
+	}
+	parts := strings.Split(filter, ".")
+	if v, ok := entity[parts[0]]; ok {
+		var dict = make(map[string]interface{})
+		j, _ := json.Marshal(v)
+		err := json.Unmarshal(j, &dict)
+		if err != nil {
+			return nil, filter, err
+		}
+		return traceDownField(dict, strings.Join(parts[1:], "."))
+	} else {
+		return nil, filter, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+	}
+}
+func simulateK8sFilter(entity map[string]interface{}, filter string) (bool, error) {
+	parts := strings.Split(filter, ",")
+	for _, part := range parts {
+		match, err := simulateK8sFilterSingleKey(entity, part)
+		if err != nil {
+			return false, err
+		}
+		if !match {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+func simulateK8sFilterSingleKey(entity map[string]interface{}, filter string) (bool, error) {
+	if strings.Index(filter, "!=") > 0 {
+		parts := strings.Split(filter, "!=")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] != parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else if strings.Index(filter, "==") > 0 {
+		parts := strings.Split(filter, "==")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] == parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else if strings.Index(filter, "=") > 0 {
+		parts := strings.Split(filter, "=")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] == parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else {
+		return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+	}
+}
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	mLock.RLock()
 	defer mLock.RUnlock()
@@ -143,8 +226,61 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	for _, v := range s.Data {
 		vE, ok := v.(states.StateEntry)
 		if ok {
-			if request.Filter != "" {
-				//TODO: support filters in the future
+			if request.FilterType != "" && request.FilterValue != "" {
+				var dict map[string]interface{}
+				j, _ := json.Marshal(vE.Body)
+				err = json.Unmarshal(j, &dict)
+				if err != nil {
+					err = v1alpha2.NewCOAError(nil, "failed to unmarshal state entry", v1alpha2.InternalError)
+					sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+					return entities, "", err
+				}
+				switch request.FilterType {
+				case "label":
+					if dict["metadata"] != nil {
+						metadata, ok := dict["metadata"].(map[string]interface{})
+						if ok {
+							if metadata["labels"] != nil {
+								labels, ok := metadata["labels"].(map[string]interface{})
+								if ok {
+									match, err := simulateK8sFilter(labels, request.FilterValue)
+									if err != nil {
+										return entities, "", err
+									}
+									if !match {
+										continue
+									}
+								}
+							}
+						}
+					}
+				case "field":
+					match, err := simulateK8sFilter(dict, request.FilterValue)
+					if err != nil {
+						return entities, "", err
+					}
+					if !match {
+						continue
+					}
+				case "status":
+					if dict["status"] != nil {
+						status, ok := dict["status"].(map[string]interface{})
+						if ok {
+							if v, e := utils.JsonPathQuery(status, request.FilterValue); e != nil || v == nil {
+								continue
+							}
+						}
+					}
+				case "spec":
+					if dict["spec"] != nil {
+						spec, ok := dict["spec"].(map[string]interface{})
+						if ok {
+							if v, e := utils.JsonPathQuery(spec, request.FilterValue); e != nil || v == nil {
+								continue
+							}
+						}
+					}
+				}
 			}
 			entities = append(entities, vE)
 		} else {

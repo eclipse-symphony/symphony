@@ -194,9 +194,9 @@ If you plan to use Symphony Agent as a container, run the following commands to 
 
 ```bash
 cd api
-docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.agent --push .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.target-agent --push .
 # or to build for single platform
-docker build -t <Agent image tag> -f ./Dockerfile.agent .
+docker build -t <Agent image tag> -f ./Dockerfile.target-agent .
 ```
 
 To run an agent locally, use Docker:

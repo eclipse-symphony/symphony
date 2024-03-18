@@ -79,7 +79,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		var trails []v1alpha2.Trail
 		err := json.Unmarshal(request.Body, &trails)
 		if err != nil {
-			tLog.Errorf("V (Trails): onTrails failed to pause trails from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+			tLog.Errorf("V (Trails): onTrails failed to parse trails from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

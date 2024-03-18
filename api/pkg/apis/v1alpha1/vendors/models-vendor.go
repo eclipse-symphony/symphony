@@ -77,6 +77,11 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 	defer span.End()
 	tLog.Debugf("V (Models): onModels, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onModels-GET", pCtx, nil)
@@ -85,10 +90,13 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.ModelsManager.ListSpec(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.ModelsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.ModelsManager.GetSpec(ctx, id)
+			state, err = c.ModelsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			if isArray {
@@ -115,7 +123,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		ctx, span := observability.StartSpan("onModels-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var model model.ModelSpec
+		var model model.ModelState
 
 		err := json.Unmarshal(request.Body, &model)
 		if err != nil {
@@ -126,7 +134,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			})
 		}
 
-		err = c.ModelsManager.UpsertSpec(ctx, id, model)
+		err = c.ModelsManager.UpsertState(ctx, id, model)
 		if err != nil {
 			tLog.Errorf("V (Models): onModels failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -140,7 +148,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onModels-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.ModelsManager.DeleteSpec(ctx, id)
+		err := c.ModelsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			tLog.Errorf("V (Models): onModels failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

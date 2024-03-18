@@ -60,12 +60,13 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			var catalog model.CatalogState
 			jData, _ = json.Marshal(job.Body)
 			err = json.Unmarshal(jData, &catalog)
+			origin := event.Metadata["origin"]
 			if err == nil {
-				name := fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.Name)
+				name := fmt.Sprintf("%s-%s", origin, catalog.Spec.Name)
 				catalog.ObjectMeta.Name = name
 				catalog.Spec.Name = name
 				if catalog.Spec.ParentName != "" {
-					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", catalog.Spec.SiteId, catalog.Spec.ParentName)
+					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
 				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
@@ -108,7 +109,72 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Version: e.Version,
 			Handler: e.onCheck,
 		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/status",
+			Version:    e.Version,
+			Handler:    e.onStatus,
+			Parameters: []string{"name"},
+		},
 	}
+}
+func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
+		"method": "onStatus",
+	})
+	defer span.End()
+
+	lLog.Info("V (Catalogs Vendor): onStatus")
+
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = ""
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		var components []model.ComponentSpec
+		err := json.Unmarshal(request.Body, &components)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		id := request.Parameters["__name"]
+		if id == "" {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.BadRequest,
+				Body:  []byte("missing catalog name"),
+			})
+		}
+		existingCatalog, err := e.CatalogsManager.GetState(rCtx, id, namespace)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		existingCatalog.Spec.Properties["reported"] = components
+		err = e.CatalogsManager.UpsertState(rCtx, id, existingCatalog)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+		})
+
+	}
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
 }
 func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
@@ -246,7 +312,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			if !namesapceSupplied {
 				namespace = ""
 			}
-			state, err = e.CatalogsManager.ListState(ctx, namespace)
+			state, err = e.CatalogsManager.ListState(ctx, namespace, request.Parameters["filterType"], request.Parameters["filterValue"])
 			isArray = true
 		} else {
 			state, err = e.CatalogsManager.GetState(ctx, id, namespace)
@@ -283,9 +349,9 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 				Body:  []byte("missing catalog name"),
 			})
 		}
-		var campaign model.CatalogState
+		var catalog model.CatalogState
 
-		err := json.Unmarshal(request.Body, &campaign)
+		err := json.Unmarshal(request.Body, &catalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -293,7 +359,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			})
 		}
 
-		err = e.CatalogsManager.UpsertState(ctx, id, campaign)
+		err = e.CatalogsManager.UpsertState(ctx, id, catalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,

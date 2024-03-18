@@ -58,6 +58,7 @@ func (s *SyncManager) Poll() []error {
 			s.Context.Publish("catalog-sync", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": catalog.Spec.Type,
+					"origin":     batch.Origin,
 				},
 				Body: v1alpha2.JobData{
 					Id:     catalog.Spec.Name,

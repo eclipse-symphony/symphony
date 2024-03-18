@@ -322,10 +322,12 @@ func TestGet(t *testing.T) {
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"components": []model.ComponentSpec{
-							{
-								Name: "name",
-								Type: "type",
+						"staged": map[string]interface{}{
+							"components": []model.ComponentSpec{
+								{
+									Name: "name",
+									Type: "type",
+								},
 							},
 						},
 					},
