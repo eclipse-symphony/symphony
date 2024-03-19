@@ -1,0 +1,5 @@
+# External configuration data sources
+In addition to Symphony’s own configuration store, Symphony allows users to use external configuration data stores, such as their existing configuration databases or another configuration service. These configuration data stores are wrapped as Symphony configuration providers. And because Symphony allows multiple configuration providers to coexist, a user can use multiple data stores at the same time.
+This great flexibility allows Symphony to:
+1.	Meeting customers where they are. Customers don’t have to migrate their existing databases, on top of which many custom management experiences have been built. Instead, such investments are protected and only required information is indexed by Symphony to provide cross tool chain workflows.
+2.	Avoiding overloading the underlying platform. Neither Kubernetes nor ARM is designed to handle huge number of resources within a single tenant. Projecting every configuration object as platform resources could be forbidding. Supporting multiple data sources allows Symphony to easily overcome such platform limitations.

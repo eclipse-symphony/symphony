@@ -66,7 +66,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
 * [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
 * [Symphony agents](./symphony-book/agent/_overview.md)
-
+* [Configuration management](./symphony-book/configuration-management/_overview.md)
 ## Sample scenarios
 
 ### Advanced
