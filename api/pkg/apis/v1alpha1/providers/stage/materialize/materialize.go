@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -126,45 +127,86 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
 			if catalog.Spec.Name == object {
-				objectNamespace := "default"
-				if s, ok := inputs["objectNamespace"]; ok {
-					objectNamespace = s.(string)
-				}
-				objectData, _ := json.Marshal(catalog.Spec.Properties["spec"]) //TODO: handle errors
+				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 				name := catalog.Spec.Name
 				if s, ok := inputs["__origin"]; ok {
 					name = strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", s))
 				}
 				switch catalog.Spec.Type {
 				case "instance":
-					err = utils.CreateInstance(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace) //TODO: is using Spec.Name safe? Needs to support scopes
+					var instanceState model.InstanceState
+					err = json.Unmarshal(objectData, &instanceState)
+					if err != nil {
+						mLog.Errorf("Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					// If inner instace defines a display name, use it as the name
+					if instanceState.Spec.DisplayName != "" {
+						instanceState.ObjectMeta.Name = instanceState.Spec.DisplayName
+					}
+					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
+					objectData, _ := json.Marshal(instanceState)
+					err = utils.CreateInstance(ctx, i.Config.BaseUrl, instanceState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, instanceState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "solution":
-					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace) //TODO: is using Spec.Name safe? Needs to support scopes
+					var solutionState model.SolutionState
+					err = json.Unmarshal(objectData, &solutionState)
+					if err != nil {
+						mLog.Errorf("Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					// If inner solution defines a display name, use it as the name
+					if solutionState.Spec.DisplayName != "" {
+						solutionState.ObjectMeta.Name = solutionState.Spec.DisplayName
+					}
+					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
+					objectData, _ := json.Marshal(solutionState)
+					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, solutionState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, solutionState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				case "target":
-					err = utils.UpsertTarget(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData, objectNamespace)
+					var targetState model.TargetState
+					err = json.Unmarshal(objectData, &targetState)
+					if err != nil {
+						mLog.Errorf("Failed to unmarshal target state for catalog %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					// If inner target defines a display name, use it as the name
+					if targetState.Spec.DisplayName != "" {
+						targetState.ObjectMeta.Name = targetState.Spec.DisplayName
+					}
+					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
+					objectData, _ := json.Marshal(targetState)
+					err = utils.CreateTarget(ctx, i.Config.BaseUrl, targetState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, targetState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
 				default:
-					catalog.Spec.Name = name
-					catalog.ObjectMeta.Name = name
-					catalog.Spec.SiteId = i.Context.SiteInfo.SiteId
-					objectData, _ := json.Marshal(catalog.Spec)
-					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, name, i.Config.User, i.Config.Password, objectData)
+					// Check wrapped catalog structure and extract wrapped catalog name
+					var catalogState model.CatalogState
+					err = json.Unmarshal(objectData, &catalogState)
 					if err != nil {
-						mLog.Errorf("Failed to create catalog %s: %s", name, err.Error())
+						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
+						return outputs, false, err
+					}
+					// If inner catalog defines a name, use it as the name
+					if catalogState.Spec.Name != "" {
+						catalogState.ObjectMeta.Name = catalogState.Spec.Name
+					}
+					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
+					objectData, _ := json.Marshal(catalogState)
+					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
+					if err != nil {
+						mLog.Errorf("Failed to create catalog %s: %s", catalogState.Spec.Name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++
@@ -176,5 +218,19 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		err = v1alpha2.NewCOAError(nil, "failed to create all objects", v1alpha2.InternalError)
 		return outputs, false, err
 	}
-	return outputs, true, nil
+	return outputs, false, nil
+}
+
+func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}, catalogName string) model.ObjectMeta {
+	if objectMeta.Name == "" {
+		// use the same name as catalog wrapping it if not provided
+		objectMeta.Name = catalogName
+	}
+	// stage inputs override objectMeta namespace
+	if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
+		objectMeta.Namespace = s.(string)
+	} else if objectMeta.Namespace == "" {
+		objectMeta.Namespace = "default"
+	}
+	return objectMeta
 }

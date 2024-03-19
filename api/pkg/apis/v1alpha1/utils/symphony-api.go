@@ -424,20 +424,6 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	return ret, nil
 }
 
-func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
-	token, err := auth(context, baseUrl, user, password)
-	if err != nil {
-		return err
-	}
-	path := "targets/registry/" + url.QueryEscape(solution)
-	path = path + "?namespace=" + url.QueryEscape(namespace)
-	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {

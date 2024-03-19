@@ -224,7 +224,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 		return err
 	}
 	catalog.Spec.Properties[field] = value
-	data, _ := json.Marshal(catalog.Spec)
+	data, _ := json.Marshal(catalog)
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
@@ -236,7 +236,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 	for k, v := range value {
 		catalog.Spec.Properties[k] = v
 	}
-	data, _ := json.Marshal(catalog.Spec)
+	data, _ := json.Marshal(catalog)
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
@@ -248,7 +248,7 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 		return v1alpha2.NewCOAError(nil, "field not found", v1alpha2.NotFound)
 	}
 	delete(catlog.Spec.Properties, field)
-	data, _ := json.Marshal(catlog.Spec)
+	data, _ := json.Marshal(catlog)
 	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {

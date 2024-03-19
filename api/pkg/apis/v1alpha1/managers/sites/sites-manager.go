@@ -42,10 +42,9 @@ func (s *SitesManager) Init(context *contexts.VendorContext, config managers.Man
 	return nil
 }
 
-// GetCampaign retrieves a CampaignSpec object by name
-func (m *SitesManager) GetSpec(ctx context.Context, name string) (model.SiteState, error) {
+func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteState, error) {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -229,9 +228,9 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 	return err
 }
 
-func (t *SitesManager) ListSpec(ctx context.Context) ([]model.SiteState, error) {
+func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error) {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -268,7 +267,7 @@ func (s *SitesManager) Poll() []error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	thisSite, err := s.GetSpec(ctx, s.VendorContext.SiteInfo.SiteId)
+	thisSite, err := s.GetState(ctx, s.VendorContext.SiteInfo.SiteId)
 	if err != nil {
 		//TOOD: only ignore not found, and log the error
 		return nil
