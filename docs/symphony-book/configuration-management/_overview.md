@@ -44,6 +44,7 @@ Symphony doesn’t force customers to be modified how their applications behave 
 * [Componentization](./componentization.md)
 * [Inheritance](./inheritance.md)
 * [Contextualization and calculated configurations](./contextualization.md)
+* [Configuring shared components](./configuring-shared-components.md)
 
 ## At-scale management
 * [Schema reinforcement](./schema-reinforcement.md)
@@ -52,6 +53,7 @@ Symphony doesn’t force customers to be modified how their applications behave 
 * [Multi-site distribution](./multi-site-distribution.md)
 * [External configuration sources](./external-sources.md)
 * [Approvals, auditability and other workflows](./approval-and-workflows.md)
+* [Configuration management recommendations](./recommendations.md)
 
 ## Related topics
 
