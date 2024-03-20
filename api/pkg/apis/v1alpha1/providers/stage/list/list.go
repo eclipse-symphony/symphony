@@ -150,6 +150,22 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		} else {
 			outputs["items"] = filteredSites
 		}
+	case "catalogs":
+		var catalogs []model.CatalogState
+		catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		if err != nil {
+			log.Errorf("  P (List Processor): failed to get catalogs: %v", err)
+			return nil, false, err
+		}
+		if namesOnly {
+			names := make([]string, 0)
+			for _, catalog := range catalogs {
+				names = append(names, catalog.Spec.Name)
+			}
+			outputs["items"] = names
+		} else {
+			outputs["items"] = catalogs
+		}
 	default:
 		log.Errorf("  P (List Processor): unsupported object type: %s", objectType)
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)

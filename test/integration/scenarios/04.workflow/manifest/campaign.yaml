@@ -1,0 +1,44 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: 04campaign
+spec:  
+  firstStage: wait
+  stages:
+    wait:
+      name: wait
+      provider: providers.stage.wait
+      stageSelector: list
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: catalogs
+        names:
+        - site-catalog
+        - site-app
+        - site-k8s-target
+        - site-instance
+    list:
+      name: list
+      provider: providers.stage.list
+      stageSelector: deploy
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: catalogs
+        namesOnly: true
+    deploy:
+      name: deploy
+      provider: providers.stage.materialize
+      stageSelector: ""
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        names: "${{$output(list,items)}}"
+  selfDriving: true
