@@ -338,8 +338,8 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{
-				Name:  "test-instance",
-				Scope: "test-scope",
+				Name:  "test-instance-iu",
+				Scope: "test-scope-iu",
 			},
 		},
 		Solution: model.SolutionState{
@@ -351,7 +351,7 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -426,8 +426,8 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{
-				Name:  "test-instance",
-				Scope: "test-scope",
+				Name:  "test-instance-spa",
+				Scope: "test-scope-spa",
 			},
 		},
 		Solution: model.SolutionState{
@@ -439,7 +439,7 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
