@@ -82,7 +82,7 @@ type (
 		DiscoveryClient *discovery.DiscoveryClient
 		Mapper          *restmapper.DeferredDiscoveryRESTMapper
 		RESTConfig      *rest.Config
-		MetaPpulator    metahelper.MetaPopulator
+		MetaPopulator   metahelper.MetaPopulator
 	}
 
 	// StatusProbe is the expected resource status property
@@ -186,6 +186,13 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	if err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to create a discovery client: %+v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create discovery client", providerName), v1alpha2.InitFailed)
+		return err
+	}
+
+	i.MetaPopulator, err = metahelper.NewMetaPopulator(metahelper.WithDefaultPopulators())
+	if err != nil {
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create meta populator", providerName), v1alpha2.InitFailed)
+		sLog.Error(err)
 		return err
 	}
 
@@ -1046,7 +1053,7 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 			return err
 		}
 
-		if err = i.MetaPpulator.PopulateMeta(obj, instance); err != nil {
+		if err = i.MetaPopulator.PopulateMeta(obj, instance); err != nil {
 			sLog.Errorf("  P (Kubectl Target): failed to populate meta: +%v", err)
 			return err
 		}
@@ -1060,7 +1067,7 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		return nil
 	}
 
-	if err = i.MetaPpulator.PopulateMeta(obj, instance); err != nil {
+	if err = i.MetaPopulator.PopulateMeta(obj, instance); err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to populate meta: +%v", err)
 		return err
 	}

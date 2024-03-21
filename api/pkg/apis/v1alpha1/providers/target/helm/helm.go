@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
@@ -191,6 +192,9 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 
 func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace string) (*action.Configuration, error) {
 	var actionConfig *action.Configuration
+	if namespace == "" {
+		namespace = constants.DefaultScope
+	}
 	sLog.Debugf("  P (Helm Target): creating action config for namespace %s", namespace)
 	var err error
 	if i.Config.InCluster {
@@ -668,7 +672,11 @@ func pullOCIChart(repo, version string) (*registry.PullResult, error) {
 func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Install {
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
-	installClient.Namespace = deployment.Instance.Spec.Scope
+	if deployment.Instance.Spec.Scope == "" {
+		installClient.Namespace = constants.DefaultScope
+	} else {
+		installClient.Namespace = deployment.Instance.Spec.Scope
+	}
 	installClient.Wait = componentProps.Wait
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
@@ -681,7 +689,11 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Upgrade {
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
-	upgradeClient.Namespace = deployment.Instance.Spec.Scope
+	if deployment.Instance.Spec.Scope == "" {
+		upgradeClient.Namespace = constants.DefaultScope
+	} else {
+		upgradeClient.Namespace = deployment.Instance.Spec.Scope
+	}
 	upgradeClient.ResetValues = true
 	upgradeClient.Install = true
 	upgradeClient.PostRenderer = postRenderer
