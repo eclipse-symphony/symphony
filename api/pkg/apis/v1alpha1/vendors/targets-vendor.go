@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -117,7 +118,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	tLog.Infof("V (Targets) : onRegistry, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		namespace = "default"
+		namespace = constants.DefaultScope
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -228,6 +229,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				Body: v1alpha2.JobData{
 					Id:     id,
 					Action: v1alpha2.JobUpdate,
+					Scope:  namespace,
 				},
 			})
 		}
@@ -248,6 +250,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				Body: v1alpha2.JobData{
 					Id:     id,
 					Action: v1alpha2.JobDelete,
+					Scope:  namespace,
 				},
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -342,7 +345,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 	case fasthttp.MethodPut:
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			namespace = "default"
+			namespace = constants.DefaultScope
 		}
 		var dict map[string]interface{}
 		json.Unmarshal(request.Body, &dict)
@@ -412,7 +415,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	case fasthttp.MethodGet:
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			namespace = "default"
+			namespace = constants.DefaultScope
 		}
 		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], namespace)
 		if err != nil {
@@ -463,7 +466,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 	case fasthttp.MethodPost:
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			namespace = "default"
+			namespace = constants.DefaultScope
 		}
 		_, err := c.TargetsManager.ReportState(pCtx, model.TargetState{
 			ObjectMeta: model.ObjectMeta{

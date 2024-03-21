@@ -20,15 +20,8 @@ type PropertyDesc struct {
 	SkipIfMissing   bool   `json:"skipIfMissing,omitempty"`
 	PrefixMatch     bool   `json:"prefixMatch,omitempty"`
 	IsComponentName bool   `json:"isComponentName,omitempty"`
-}
-type ComponentValidationRule struct {
-	RequiredComponentType     string         `json:"requiredType"`
-	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
-	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
-	RequiredProperties        []string       `json:"requiredProperties"`
-	OptionalProperties        []string       `json:"optionalProperties"`
-	RequiredMetadata          []string       `json:"requiredMetadata"`
-	OptionalMetadata          []string       `json:"optionalMetadata"`
+	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
+	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
 type ValidationRule struct {
 	RequiredComponentType   string                  `json:"requiredType"`
@@ -41,6 +34,15 @@ type ValidationRule struct {
 	ScopeIsolation bool `json:"supportScopes,omitempty"`
 	// a provider that supports instance isolation can deploy multiple instances on the same target without conflicts.
 	InstanceIsolation bool `json:"instanceIsolation,omitempty"`
+}
+type ComponentValidationRule struct {
+	RequiredComponentType     string         `json:"requiredType"`
+	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
+	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
+	RequiredProperties        []string       `json:"requiredProperties"`
+	OptionalProperties        []string       `json:"optionalProperties"`
+	RequiredMetadata          []string       `json:"requiredMetadata"`
+	OptionalMetadata          []string       `json:"optionalMetadata"`
 }
 
 func (v ValidationRule) ValidateInputs(inputs map[string]interface{}) error {
@@ -157,8 +159,13 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 	}
 }
 func compareProperties(c PropertyDesc, old map[string]interface{}, new map[string]interface{}, key string) bool {
-	if v, ok := old[key]; ok {
-		if nv, nok := new[key]; nok {
+	v, ook := old[key]
+	nv, nok := new[key]
+	if c.PropChanged != nil {
+		return c.PropChanged(v, nv)
+	}
+	if ook {
+		if nok {
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}

@@ -39,3 +39,35 @@ EXPOSE 8089
 ENV LOG_LEVEL Debug
 ENV CONFIG /symphony-target-agent.json
 CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL
+
+
+# ADO Docker file
+# FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.21-fips-cbl-mariner2.0 AS build
+
+# ARG TARGETPLATFORM
+# ARG BUILDPLATFORM
+# ARG TARGETOS
+# ARG TARGETARCH
+
+# ENV CGO_ENABLED=0
+
+# RUN mkdir /src
+# WORKDIR /src
+# COPY . .
+ 
+# RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-agent  -tags=azure
+
+# FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+# RUN \
+#     set -x \
+#     && tdnf check-update \
+#     && tdnf install -y ca-certificates openssl jq 
+# # RUN tdnf install -y ffmpeg android-tools-adb
+
+# COPY --from=build /dist /
+# ADD ./api/symphony-target-agent.json /
+# EXPOSE 8088
+# EXPOSE 8089
+# ENV LOG_LEVEL Debug
+# ENV CONFIG /symphony-target-agent.json
+# CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL

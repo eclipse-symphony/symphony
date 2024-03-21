@@ -278,6 +278,176 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
+
+// TestKubectlTargetProviderInlineUpdate tests that updating a component works
+func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+	// wait for 5 sec before updating the deployment
+	time.Sleep(5 * time.Second)
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path"}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 4,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginx",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginx",
+							},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.17.0",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name:  "test-instance",
+				Scope: "test-scope",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+// TestKubectlTargetProviderInlineStatusProbeApply tests that applying a deployment with a status probe works
+func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path"}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "nginxtest",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginxtest",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 3,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginxtest",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginxtest",
+							},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.16.1",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"statusProbe": map[string]interface{}{
+				"succeededValues":  []string{"True"},
+				"failedValues":     []string{"Failed"},
+				"statusPath":       "$.status.conditions[0].status",
+				"errorMessagePath": "$.status.conditions[0].message",
+				"timeout":          "1m",
+				"interval":         "2s",
+				"initialWait":      "10s",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Name:  "test-instance",
+				Scope: "test-scope",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
 func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {

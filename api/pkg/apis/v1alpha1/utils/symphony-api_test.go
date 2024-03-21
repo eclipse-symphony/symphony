@@ -7,7 +7,6 @@
 package utils
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -21,6 +20,12 @@ const (
 	baseUrl  = "http://localhost:8090/v1alpha2/"
 	user     = "admin"
 	password = ""
+)
+
+var (
+	testApiClient ApiClient = &apiClient{
+		baseUrl: baseUrl,
+	}
 )
 
 func TestGetInstancesWhenSomeInstances(t *testing.T) {
@@ -46,7 +51,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
+	err = testApiClient.CreateSolution(solutionName, solution1, "default")
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -56,6 +61,23 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 			"displayName": "int-virtual-02",
 			"scope":       "alice-springs",
 			"components": []interface{}{
+				map[string]interface{}{
+					"name": "observability",
+					"type": "helm.v3",
+					"properties": map[string]interface{}{
+						"chart": map[string]interface{}{
+							"repo":    "symphonycr.azurecr.io/sample-dashboard",
+							"version": "0.4.0-dev",
+						},
+						"values": map[string]interface{}{
+							"obsConfig": map[string]interface{}{
+								"bluefin": true,
+								"e4i":     true,
+								"e4k":     true,
+							},
+						},
+					},
+				},
 				map[string]interface{}{
 					"name": "e4k",
 					"type": "helm.v3",
@@ -134,7 +156,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
+	err = testApiClient.CreateTarget(targetName, target1, "default")
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -151,13 +173,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateInstance(context.Background(), baseUrl, instanceName, user, password, instance1, "default")
+	err = testApiClient.CreateInstance(instanceName, instance1, "default")
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := GetInstances(context.Background(), baseUrl, user, password, "default")
+	instancesRes, err := testApiClient.GetInstances("default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -167,7 +189,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
 
-	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password, "default")
+	instanceRes, err := testApiClient.GetInstance(instanceName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -176,13 +198,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
 	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	err = testApiClient.DeleteTarget(targetName, "default")
 	require.NoError(t, err)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	err = testApiClient.DeleteSolution(solutionName, "default")
 	require.NoError(t, err)
 
-	err = DeleteInstance(context.Background(), baseUrl, instanceName, user, password, "default")
+	err = testApiClient.DeleteInstance(instanceName, "default")
 	require.NoError(t, err)
 }
 
@@ -209,21 +231,21 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
+	err = testApiClient.CreateSolution(solutionName, solution1, "default")
 	require.NoError(t, err)
 
-	solutionsRes, err := GetSolutions(context.Background(), baseUrl, user, password, "default")
+	solutionsRes, err := testApiClient.GetSolutions("default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := GetSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	solutionRes, err := testApiClient.GetSolution(solutionName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	err = testApiClient.DeleteSolution(solutionName, "default")
 	require.NoError(t, err)
 }
 
@@ -240,6 +262,23 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 			"displayName": "int-virtual-02",
 			"scope":       "alice-springs",
 			"components": []interface{}{
+				map[string]interface{}{
+					"name": "observability",
+					"type": "helm.v3",
+					"properties": map[string]interface{}{
+						"chart": map[string]interface{}{
+							"repo":    "symphonycr.azurecr.io/sample-dashboard",
+							"version": "0.4.0-dev",
+						},
+						"values": map[string]interface{}{
+							"obsConfig": map[string]interface{}{
+								"bluefin": true,
+								"e4i":     true,
+								"e4k":     true,
+							},
+						},
+					},
+				},
 				map[string]interface{}{
 					"name": "e4k",
 					"type": "helm.v3",
@@ -318,13 +357,13 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
+	err = testApiClient.CreateTarget(targetName, target1, "default")
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
 	time.Sleep(time.Second)
 
-	targetsRes, err := GetTargets(context.Background(), baseUrl, user, password, "default")
+	targetsRes, err := testApiClient.GetTargets("default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
@@ -333,7 +372,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
 
-	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	targetRes, err := testApiClient.GetTarget(targetName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
@@ -341,7 +380,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetRes.Status.Properties["targets"])
 	require.Equal(t, "OK", targetRes.Status.Properties["status"])
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	err = testApiClient.DeleteTarget(targetName, "default")
 	require.NoError(t, err)
 }
 
@@ -523,7 +562,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 				"key2": "value2",
 			},
 		},
-	})
+	}, "default")
 	require.NoError(t, err)
 
 	ret, err := res.DeepEquals(model.DeploymentSpec{
@@ -676,7 +715,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, "default")
 	require.NoError(t, err)
 
 	jData, _ := json.Marshal(res)
@@ -720,6 +759,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			Spec: &model.InstanceSpec{
 				Name:     "someOtherId",
 				Solution: "",
+				Scope:    "default", // CreateSymphonyDeployment will give default if instance.Spec.Scope is empty
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 					Selector: map[string]string{
