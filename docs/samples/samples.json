@@ -133,7 +133,7 @@
             "postActions": 
             [
                 {
-                    "command": "./maestro",
+                    "command": "maestro",
                     "args": [
                        "get",
                        "catalog",
