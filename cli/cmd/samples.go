@@ -256,7 +256,7 @@ func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]s
 	if _, err := os.Stat(artifactFile); errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("sample artifact '%s' is not found", artifactFile)
 	}
-	src, err := ioutil.ReadFile(artifactFile)
+	src, err := os.ReadFile(artifactFile)
 	strStr := string(src)
 	if len(artifact.Parameters) > 0 {
 		if err != nil {
@@ -283,6 +283,7 @@ func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]s
 	}
 
 	fmt.Printf("%sCreating %s %s%s ... ", utils.ColorCyan(), artifact.Type, utils.ColorReset(), artifact.Name)
+
 	err = utils.Upsert(
 		c.Contexts[ctx].Url,
 		c.Contexts[ctx].User,

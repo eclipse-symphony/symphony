@@ -9,6 +9,7 @@ package utils
 import (
 	"archive/zip"
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -95,10 +96,17 @@ func RunCommandWithRetry(message string, successMessage string, showOutput bool,
 	retryErr := backoff.Retry(func() error {
 		retryCount++
 		if retryCount > 1 {
-			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "trying", ColorReset())
+			fmt.Printf("\r  %s%s%s ... %s%s \n", ColorReset(), message, ColorCyan(), "checking post-command condition", ColorReset())
 		}
 		output, errOutput, err = runCommandHelper(message, successMessage, showOutput, true, name, args...)
-		return err
+		if err != nil {
+			return err
+		}
+
+		if output == "" || output == "''" || output == "\"\"" {
+			return errors.New("no output")
+		}
+		return nil
 	}, b)
 
 	if retryErr == nil {
@@ -155,7 +163,9 @@ func runCommandHelper(message string, successMessage string, showOutput bool, sk
 	running = false
 	time.Sleep(200 * time.Millisecond)
 	if exeErr == nil {
-		fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorGreen(), successMessage, ColorReset())
+		if message != "" {
+			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorGreen(), successMessage, ColorReset())
+		}
 	} else {
 		if !skipFailurePrompt {
 			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "failed", ColorReset())

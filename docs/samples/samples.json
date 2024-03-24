@@ -41,7 +41,7 @@
                     {
                         "command": "echo",
                         "args": [
-                           "Navigate to http://$(1):9090/ to access Promethus portal"                           
+                           "Navigate to http://$(1):9090/ to access the Promethus portal (it may take a few minutes for the LoadBalancer to be provisioned)"                           
                         ]
                     }                    
                 ],
