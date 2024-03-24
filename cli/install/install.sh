@@ -168,7 +168,7 @@ installFile() {
     fi
 
     mkdir -p $SYMPHONY_HOME_DIR
-
+    rm -rf $SYMPHONY_HOME_DIR/*    
     mv $SYMPHONY_TMP_ROOT/* $SYMPHONY_HOME_DIR/    
 }
 
