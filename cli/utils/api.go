@@ -111,6 +111,10 @@ func Get(url string, username string, password string, objType string, path stri
 		route = "/solutions"
 	case "instance", "instances":
 		route = "/instances"
+	case "catalog", "catalogs":
+		route = "/catalogs/registry"
+	default:
+		return nil, fmt.Errorf("unsupported object type: %s", objType)
 	}
 	if objName != "" {
 		route += "/" + objName
