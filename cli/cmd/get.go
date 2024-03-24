@@ -27,6 +27,7 @@ var (
 	jsonPath      string
 	docType       string
 	configContext string
+	noHeader      bool
 )
 var GetCmd = &cobra.Command{
 	Use:   "get",
@@ -123,12 +124,17 @@ func addTableHeader(t table.Writer, list interface{}, objType string, path strin
 		case "instance", "instances":
 			t.AppendHeader(table.Row{"Name", "Status", "Targets", "Deployed"})
 			return []string{"Name", "Status", "Targets", "Deployed"}
+		case "catalog", "catalogs":
+			t.AppendHeader(table.Row{"Name"})
+			return []string{"Name"}
 		}
 		return nil
 	}
 	if itemType == "string" {
 		header := path[strings.LastIndex(path, ".")+1:]
-		t.AppendHeader(table.Row{header})
+		if !noHeader {
+			t.AppendHeader(table.Row{header})
+		}
 		return []string{header}
 	}
 	if itemType == "array" {
@@ -139,7 +145,7 @@ func addTableHeader(t table.Writer, list interface{}, objType string, path strin
 	if itemType == "property-bag" {
 		if dict, ok := list.(map[string]interface{}); ok {
 			keys := make([]string, 0)
-			for k, _ := range dict {
+			for k := range dict {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
@@ -171,8 +177,8 @@ func outputTarget(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &target)
 	if err == nil {
 		row := table.Row{}
-		row = append(row, target.Id)
-		row = append(row, target.Status["status"])
+		row = append(row, target.Metadata.Name)
+		row = append(row, target.Status.Properties["status"])
 		t.AppendRow(row)
 	}
 }
@@ -181,8 +187,17 @@ func outputDevice(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &device)
 	if err == nil {
 		row := table.Row{}
-		row = append(row, device.Id)
-		row = append(row, device.Status["status"])
+		row = append(row, device.Metadata.Name)
+		row = append(row, device.Status.Properties)
+		t.AppendRow(row)
+	}
+}
+func outputCatalog(t table.Writer, data []byte) {
+	var catalog Catalog
+	err := json.Unmarshal(data, &catalog)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, catalog.Metadata.Name)
 		t.AppendRow(row)
 	}
 }
@@ -191,7 +206,7 @@ func outputSolution(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &solution)
 	if err == nil {
 		row := table.Row{}
-		row = append(row, solution.Id)
+		row = append(row, solution.Metadata.Name)
 		t.AppendRow(row)
 	}
 }
@@ -200,10 +215,10 @@ func outputInstance(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &instance)
 	if err == nil {
 		row := table.Row{}
-		row = append(row, instance.Id)
-		row = append(row, instance.Status["status"])
-		row = append(row, instance.Status["targets"])
-		row = append(row, instance.Status["deployed"])
+		row = append(row, instance.Metadata.Name)
+		row = append(row, instance.Status.Properties["status"])
+		row = append(row, instance.Status.Properties["targets"])
+		row = append(row, instance.Status.Properties["deployed"])
 		t.AppendRow(row)
 	}
 }
@@ -235,6 +250,9 @@ func outputListItem(t table.Writer, item interface{}, objType string, path strin
 		case "solution", "solutions":
 			outputSolution(t, data)
 			return
+		case "catalog", "catalogs":
+			outputCatalog(t, data)
+			return
 		case "instance", "instances":
 			outputInstance(t, data)
 			return
@@ -260,26 +278,32 @@ func init() {
 	GetCmd.Flags().StringVarP(&jsonPath, "json-path", "", "", "Jason Path query to be applied on results")
 	GetCmd.Flags().StringVarP(&docType, "doc-type", "", "", "Result type (Json or Yaml)")
 	GetCmd.Flags().StringVarP(&configContext, "context", "", "", "Maestro CLI configuration context")
+	GetCmd.Flags().BoolVarP(&noHeader, "no-header", "", false, "Do not print header")
 	RootCmd.AddCommand(GetCmd)
 }
 
 type Target struct {
-	Id     string            `json:"id"`
-	Spec   model.TargetSpec  `json:"spec,omitempty"`
-	Status map[string]string `json:"status,omitempty"`
+	Metadata model.ObjectMeta   `json:"metadata,omitempty"`
+	Spec     model.TargetSpec   `json:"spec,omitempty"`
+	Status   model.TargetStatus `json:"status,omitempty"`
 }
 type Device struct {
-	Id     string            `json:"id"`
-	Spec   model.DeviceSpec  `json:"spec,omitempty"`
-	Status map[string]string `json:"status,omitempty"`
+	Metadata model.ObjectMeta   `json:"metadata,omitempty"`
+	Spec     model.DeviceSpec   `json:"spec,omitempty"`
+	Status   model.DeviceStatus `json:"status,omitempty"`
 }
 type Solution struct {
-	Id     string             `json:"id"`
-	Spec   model.SolutionSpec `json:"spec,omitempty"`
-	Status map[string]string  `json:"status,omitempty"`
+	Metadata model.ObjectMeta   `json:"metadata,omitempty"`
+	Spec     model.SolutionSpec `json:"spec,omitempty"`
+	Status   map[string]string  `json:"status,omitempty"`
 }
 type Instance struct {
-	Id     string             `json:"id"`
-	Spec   model.InstanceSpec `json:"spec,omitempty"`
-	Status map[string]string  `json:"status,omitempty"`
+	Metadata model.ObjectMeta     `json:"metadata,omitempty"`
+	Spec     model.InstanceSpec   `json:"spec,omitempty"`
+	Status   model.InstanceStatus `json:"status,omitempty"`
+}
+type Catalog struct {
+	Metadata model.ObjectMeta    `json:"metadata,omitempty"`
+	Spec     model.CatalogSpec   `json:"spec,omitempty"`
+	Status   model.CatalogStatus `json:"status,omitempty"`
 }
