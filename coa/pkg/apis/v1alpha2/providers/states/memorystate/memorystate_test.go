@@ -164,6 +164,56 @@ func TestListWithNamespace(t *testing.T) {
 	assert.Equal(t, "234", entries[1].ID)
 }
 
+func TestListWithNamespaceTwoObjectWithSameName(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	assert.Equal(t, "123", entries[1].ID)
+}
+
 func TestDelete(t *testing.T) {
 	provider := MemoryStateProvider{}
 	err := provider.Init(MemoryStateProvider{})
