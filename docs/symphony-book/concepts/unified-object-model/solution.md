@@ -36,5 +36,4 @@ Circular references are not allowed.
 
 ## Related topics
 
-* [Solution schema](../concepts/unified-object-model/solution.md)
-* [Configuration management](./configuration-management.md)
+* [Configuration management](../../configuration-management/_overview.md)
