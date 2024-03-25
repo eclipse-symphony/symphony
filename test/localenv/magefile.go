@@ -224,7 +224,10 @@ func buildAPI() error {
 }
 
 func buildAgent() error {
-	return shellcmd.Command("docker compose -f ../../api/docker-compose-agent.yaml build").Run() //oss
+	return shellcmd.RunAll(
+		shellcmd.Command("docker compose -f ../../api/docker-compose-poll-agent.yaml build"),
+		shellcmd.Command("docker compose -f ../../api/docker-compose-target-agent.yaml build"),
+	) //oss
 }
 
 // Build k8s container
