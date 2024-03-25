@@ -77,21 +77,28 @@ Symphony is an extensible system with the concept of providers. For each provide
 
 | Provider | Basic<sup>1</sup> | 
 |--------|--------|
-| ```providers.target.adb``` |![](https://byob.yarr.is/Haishi2016/badges/target-adb-app)|
-| ```providers.target.azure.adu``` |![](https://byob.yarr.is/Haishi2016/badges/target-adu-app)|
-| ```providers.target.azure.iotedge``` |![](https://byob.yarr.is/Haishi2016/badges/target-iotedge-app)|
-| ```providers.target.docker```|![](https://byob.yarr.is/Haishi2016/badges/target-docker-app)|
-| ```providers.target.helm```|![](https://byob.yarr.is/Haishi2016/badges/target-helm-app)|
-| ```providers.target.http```|![](https://byob.yarr.is/Haishi2016/badges/target-http-app)|
-| ```providers.target.k8s``` |![](https://byob.yarr.is/Haishi2016/badges/target-k8s-app)|
-| ```providers.target.kubectl```|![](https://byob.yarr.is/Haishi2016/badges/target-kubectl-app)|
-| ```providers.target.mqtt```|![](https://byob.yarr.is/Haishi2016/badges/target-mqtt-app)|
-| ```providers.target.proxy```|![](https://byob.yarr.is/Haishi2016/badges/target-proxy-app)|
-| ```providers.target.script```|![](https://byob.yarr.is/Haishi2016/badges/target-script-app)|
-| ```providers.target.staging```|![](https://byob.yarr.is/Haishi2016/badges/target-staging-app)|
-| ```providers.target.win10```|![](https://byob.yarr.is/Haishi2016/badges/target-win10-app)|
+| ```providers.target.adb``` |![](https://byob.yarr.is/eclipse-symphony/symphony/target-adb-app)|
+| ```providers.target.azure.adu``` |![](https://byob.yarr.is/eclipse-symphony/symphony/target-adu-app)|
+| ```providers.target.azure.iotedge``` |![](https://byob.yarr.is/eclipse-symphony/symphony/target-iotedge-app)|
+| ```providers.target.docker```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-docker-app)|
+| ```providers.target.helm```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-helm-app)|
+| ```providers.target.http```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-http-app)|
+| ```providers.target.k8s``` |![](https://byob.yarr.is/eclipse-symphony/symphony/target-k8s-app)|
+| ```providers.target.kubectl```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-kubectl-app)|
+| ```providers.target.mqtt```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-mqtt-app)|
+| ```providers.target.proxy```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-proxy-app)|
+| ```providers.target.script```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-script-app)|
+| ```providers.target.staging```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-staging-app)|
+| ```providers.target.win10```|![](https://byob.yarr.is/eclipse-symphony/symphony/target-win10-app)|
 
 1. **Basic** conformance level requires a provider to properly respond to missing properties
+
+## Tests
+
+| Package | Unit tests |
+|--------|--------|
+| ```api``` | ![](https://byob.yarr.is/eclipse-symphony/symphony/target-api-testcoverage-app/shields/go-shields.json) |
+| ```coa``` | ![](https://byob.yarr.is/eclipse-symphony/symphony/target-coa-testcoverage-app/shields/go-shields.json) |
 
 ## What's Next
 

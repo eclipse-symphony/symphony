@@ -36,12 +36,12 @@ jobs:
     - name: target-adb-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-adb-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-adb-app.outcome == 'success' && 'green' || steps.target-adb-app.outcome == 'failure' && 'red' || steps.target-adb-app.outcome == 'cancelled' && 'yellow' || steps.target-adb-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-adb-app.outcome == 'success' && 'PASS' || steps.target-adb-app.outcome == 'failure' && 'FAIL' || steps.target-adb-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-adb-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-adb-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-adb-app.outcome == 'success' && 'green' || steps.target-adb-app.outcome == 'failure' && 'red' || steps.target-adb-app.outcome == 'cancelled' && 'yellow' || steps.target-adb-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-adb-app.outcome == 'success' && 'PASS' || steps.target-adb-app.outcome == 'failure' && 'FAIL' || steps.target-adb-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-adb-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-adu-app
@@ -51,12 +51,12 @@ jobs:
     - name: target-adu-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-adu-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-adu-app.outcome == 'success' && 'green' || steps.target-adu-app.outcome == 'failure' && 'red' || steps.target-adu-app.outcome == 'cancelled' && 'yellow' || steps.target-adu-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-adu-app.outcome == 'success' && 'PASS' || steps.target-adu-app.outcome == 'failure' && 'FAIL' || steps.target-adu-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-adu-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-adu-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-adu-app.outcome == 'success' && 'green' || steps.target-adu-app.outcome == 'failure' && 'red' || steps.target-adu-app.outcome == 'cancelled' && 'yellow' || steps.target-adu-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-adu-app.outcome == 'success' && 'PASS' || steps.target-adu-app.outcome == 'failure' && 'FAIL' || steps.target-adu-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-adu-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-iotedge-app
@@ -66,12 +66,12 @@ jobs:
     - name: target-iotedge-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-iotedge-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-iotedge-app.outcome == 'success' && 'green' || steps.target-iotedge-app.outcome == 'failure' && 'red' || steps.target-iotedge-app.outcome == 'cancelled' && 'yellow' || steps.target-iotedge-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-iotedge-app.outcome == 'success' && 'PASS' || steps.target-iotedge-app.outcome == 'failure' && 'FAIL' || steps.target-iotedge-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-iotedge-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-iotedge-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-iotedge-app.outcome == 'success' && 'green' || steps.target-iotedge-app.outcome == 'failure' && 'red' || steps.target-iotedge-app.outcome == 'cancelled' && 'yellow' || steps.target-iotedge-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-iotedge-app.outcome == 'success' && 'PASS' || steps.target-iotedge-app.outcome == 'failure' && 'FAIL' || steps.target-iotedge-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-iotedge-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-docker-app
@@ -81,12 +81,12 @@ jobs:
     - name: target-docker-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-docker-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-docker-app.outcome == 'success' && 'green' || steps.target-docker-app.outcome == 'failure' && 'red' || steps.target-docker-app.outcome == 'cancelled' && 'yellow' || steps.target-docker-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-docker-app.outcome == 'success' && 'PASS' || steps.target-docker-app.outcome == 'failure' && 'FAIL' || steps.target-docker-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-docker-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-docker-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-docker-app.outcome == 'success' && 'green' || steps.target-docker-app.outcome == 'failure' && 'red' || steps.target-docker-app.outcome == 'cancelled' && 'yellow' || steps.target-docker-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-docker-app.outcome == 'success' && 'PASS' || steps.target-docker-app.outcome == 'failure' && 'FAIL' || steps.target-docker-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-docker-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-helm-app
@@ -96,12 +96,12 @@ jobs:
     - name: target-helm-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-helm-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-helm-app.outcome == 'success' && 'green' || steps.target-helm-app.outcome == 'failure' && 'red' || steps.target-helm-app.outcome == 'cancelled' && 'yellow' || steps.target-helm-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-helm-app.outcome == 'success' && 'PASS' || steps.target-helm-app.outcome == 'failure' && 'FAIL' || steps.target-helm-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-helm-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-helm-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-helm-app.outcome == 'success' && 'green' || steps.target-helm-app.outcome == 'failure' && 'red' || steps.target-helm-app.outcome == 'cancelled' && 'yellow' || steps.target-helm-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-helm-app.outcome == 'success' && 'PASS' || steps.target-helm-app.outcome == 'failure' && 'FAIL' || steps.target-helm-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-helm-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
         
 
@@ -112,12 +112,12 @@ jobs:
     - name: target-http-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-http-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-http-app.outcome == 'success' && 'green' || steps.target-http-app.outcome == 'failure' && 'red' || steps.target-http-app.outcome == 'cancelled' && 'yellow' || steps.target-http-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-http-app.outcome == 'success' && 'PASS' || steps.target-http-app.outcome == 'failure' && 'FAIL' || steps.target-http-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-http-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-http-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-http-app.outcome == 'success' && 'green' || steps.target-http-app.outcome == 'failure' && 'red' || steps.target-http-app.outcome == 'cancelled' && 'yellow' || steps.target-http-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-http-app.outcome == 'success' && 'PASS' || steps.target-http-app.outcome == 'failure' && 'FAIL' || steps.target-http-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-http-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-k8s-app
@@ -127,12 +127,12 @@ jobs:
     - name: target-k8s-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-k8s-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-k8s-app.outcome == 'success' && 'green' || steps.target-k8s-app.outcome == 'failure' && 'red' || steps.target-k8s-app.outcome == 'cancelled' && 'yellow' || steps.target-k8s-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-k8s-app.outcome == 'success' && 'PASS' || steps.target-k8s-app.outcome == 'failure' && 'FAIL' || steps.target-k8s-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-k8s-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-k8s-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-k8s-app.outcome == 'success' && 'green' || steps.target-k8s-app.outcome == 'failure' && 'red' || steps.target-k8s-app.outcome == 'cancelled' && 'yellow' || steps.target-k8s-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-k8s-app.outcome == 'success' && 'PASS' || steps.target-k8s-app.outcome == 'failure' && 'FAIL' || steps.target-k8s-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-k8s-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-kubectl-app
@@ -142,12 +142,12 @@ jobs:
     - name: target-kubectl-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-kubectl-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-kubectl-app.outcome == 'success' && 'green' || steps.target-kubectl-app.outcome == 'failure' && 'red' || steps.target-kubectl-app.outcome == 'cancelled' && 'yellow' || steps.target-kubectl-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-kubectl-app.outcome == 'success' && 'PASS' || steps.target-kubectl-app.outcome == 'failure' && 'FAIL' || steps.target-kubectl-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-kubectl-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-kubectl-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-kubectl-app.outcome == 'success' && 'green' || steps.target-kubectl-app.outcome == 'failure' && 'red' || steps.target-kubectl-app.outcome == 'cancelled' && 'yellow' || steps.target-kubectl-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-kubectl-app.outcome == 'success' && 'PASS' || steps.target-kubectl-app.outcome == 'failure' && 'FAIL' || steps.target-kubectl-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-kubectl-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
 
@@ -158,12 +158,12 @@ jobs:
     - name: target-mqtt-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-mqtt-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-mqtt-app.outcome == 'success' && 'green' || steps.target-mqtt-app.outcome == 'failure' && 'red' || steps.target-mqtt-app.outcome == 'cancelled' && 'yellow' || steps.target-mqtt-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-mqtt-app.outcome == 'success' && 'PASS' || steps.target-mqtt-app.outcome == 'failure' && 'FAIL' || steps.target-mqtt-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-mqtt-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-mqtt-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-mqtt-app.outcome == 'success' && 'green' || steps.target-mqtt-app.outcome == 'failure' && 'red' || steps.target-mqtt-app.outcome == 'cancelled' && 'yellow' || steps.target-mqtt-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-mqtt-app.outcome == 'success' && 'PASS' || steps.target-mqtt-app.outcome == 'failure' && 'FAIL' || steps.target-mqtt-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-mqtt-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-proxy-app
@@ -173,12 +173,12 @@ jobs:
     - name: target-proxy-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-proxy-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-proxy-app.outcome == 'success' && 'green' || steps.target-proxy-app.outcome == 'failure' && 'red' || steps.target-proxy-app.outcome == 'cancelled' && 'yellow' || steps.target-proxy-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-proxy-app.outcome == 'success' && 'PASS' || steps.target-proxy-app.outcome == 'failure' && 'FAIL' || steps.target-proxy-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-proxy-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-proxy-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-proxy-app.outcome == 'success' && 'green' || steps.target-proxy-app.outcome == 'failure' && 'red' || steps.target-proxy-app.outcome == 'cancelled' && 'yellow' || steps.target-proxy-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-proxy-app.outcome == 'success' && 'PASS' || steps.target-proxy-app.outcome == 'failure' && 'FAIL' || steps.target-proxy-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-proxy-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-script-app
@@ -188,12 +188,12 @@ jobs:
     - name: target-script-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-script-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-script-app.outcome == 'success' && 'green' || steps.target-script-app.outcome == 'failure' && 'red' || steps.target-script-app.outcome == 'cancelled' && 'yellow' || steps.target-script-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-script-app.outcome == 'success' && 'PASS' || steps.target-script-app.outcome == 'failure' && 'FAIL' || steps.target-script-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-script-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-script-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-script-app.outcome == 'success' && 'green' || steps.target-script-app.outcome == 'failure' && 'red' || steps.target-script-app.outcome == 'cancelled' && 'yellow' || steps.target-script-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-script-app.outcome == 'success' && 'PASS' || steps.target-script-app.outcome == 'failure' && 'FAIL' || steps.target-script-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-script-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-staging-app
@@ -203,12 +203,12 @@ jobs:
     - name: target-staging-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-staging-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-staging-app.outcome == 'success' && 'green' || steps.target-staging-app.outcome == 'failure' && 'red' || steps.target-staging-app.outcome == 'cancelled' && 'yellow' || steps.target-staging-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-staging-app.outcome == 'success' && 'PASS' || steps.target-staging-app.outcome == 'failure' && 'FAIL' || steps.target-staging-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-staging-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-staging-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-staging-app.outcome == 'success' && 'green' || steps.target-staging-app.outcome == 'failure' && 'red' || steps.target-staging-app.outcome == 'cancelled' && 'yellow' || steps.target-staging-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-staging-app.outcome == 'success' && 'PASS' || steps.target-staging-app.outcome == 'failure' && 'FAIL' || steps.target-staging-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-staging-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - id: target-win10-app
@@ -218,10 +218,10 @@ jobs:
     - name: target-win10-app-badge
       uses: RubbaBoy/BYOB@v1.3.0
       with:
-        NAME: target-win10-app
-        LABEL: Conformance 
-        ICON: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
-        COLOR: ${{ steps.target-win10-app.outcome == 'success' && 'green' || steps.target-win10-app.outcome == 'failure' && 'red' || steps.target-win10-app.outcome == 'cancelled' && 'yellow' || steps.target-win10-app.outcome == 'skipped' && 'gray' }}
-        STATUS: ${{ steps.target-win10-app.outcome == 'success' && 'PASS' || steps.target-win10-app.outcome == 'failure' && 'FAIL' || steps.target-win10-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-win10-app.outcome == 'skipped' && 'SKIPPED' }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: target-win10-app
+        label: Conformance 
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0YwMCI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMiAyMS4zNWwtMS40NS0xLjMyQzUuNCAxNS4zNiAyIDEyLjI4IDIgOC41IDIgNS40MiA0LjQyIDMgNy41IDNjMS43NCAwIDMuNDEuODEgNC41IDIuMDlDMTMuMDkgMy44MSAxNC43NiAzIDE2LjUgMyAxOS41OCAzIDIyIDUuNDIgMjIgOC41YzAgMy43OC0zLjQgNi44Ni04LjU1IDExLjU0TDEyIDIxLjM1eiIvPjwvc3ZnPg=='
+        color: ${{ steps.target-win10-app.outcome == 'success' && 'green' || steps.target-win10-app.outcome == 'failure' && 'red' || steps.target-win10-app.outcome == 'cancelled' && 'yellow' || steps.target-win10-app.outcome == 'skipped' && 'gray' }}
+        status: ${{ steps.target-win10-app.outcome == 'success' && 'PASS' || steps.target-win10-app.outcome == 'failure' && 'FAIL' || steps.target-win10-app.outcome == 'cancelled' && 'CANCELLED' || steps.target-win10-app.outcome == 'skipped' && 'SKIPPED' }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
