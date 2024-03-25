@@ -2,7 +2,7 @@
 
 A campaign describes a workflow of multiple stages. When a stage finishes execution, the stage runs a `StageSelector` to select the next stage. The campaign stops execution if no next stage is selected.
 
-For more information about how Symphony approaches workflows, see [Workflows](../concepts/workflows.md).
+For more information about how Symphony approaches workflows, see [Workflows](../workflows.md).
 
 ## Stages
 
