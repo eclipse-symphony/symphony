@@ -414,10 +414,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	})
 	//}
 
-	summary.Skipped = !someStepsRan
-	if summary.Skipped {
-		summary.SuccessCount = summary.TargetCount
-	}
 	summary.IsRemoval = remove
 
 	successCount := 0
@@ -426,6 +422,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 	summary.SuccessCount = successCount
 	summary.AllAssignedDeployed = plannedCount == planSuccessCount
+
+	// if solutions.components are empty,
+	// we need to set summary.Skipped = true
+	// and summary.SuccessCount = summary.TargetCount (instance_controller and target_controller will check whether targetCount == successCount in deletion case)
+	summary.Skipped = !someStepsRan
+	if summary.Skipped {
+		summary.SuccessCount = summary.TargetCount
+	}
+
 	s.saveSummary(iCtx, deployment, summary, namespace)
 
 	return summary, nil
