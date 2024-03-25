@@ -160,8 +160,7 @@ func TestListWithNamespace(t *testing.T) {
 	entries, _, err = provider.List(context.Background(), states.ListRequest{})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(entries))
-	assert.Equal(t, "123", entries[0].ID)
-	assert.Equal(t, "234", entries[1].ID)
+	assert.True(t, (entries[0].ID == "123" && entries[1].ID == "234") || (entries[1].ID == "123" && entries[0].ID == "234"))
 }
 
 func TestListWithNamespaceTwoObjectWithSameName(t *testing.T) {
