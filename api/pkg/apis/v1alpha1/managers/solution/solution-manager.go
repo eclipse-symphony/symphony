@@ -174,9 +174,10 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Info(" M (Solution): get summary")
+	log.Infof(" M (Solution): get summary, key: %s, namespace: %s, traceId: %s", key, namespace, span.SpanContext().TraceID().String())
 
-	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
+	var state states.StateEntry
+	state, err = s.StateProvider.Get(iCtx, states.GetRequest{
 		ID: fmt.Sprintf("%s-%s", "summary", key),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -241,7 +242,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Info(" M (Solution): reconciling")
+	log.Infof(" M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, traceId: %s",
+		deployment.Instance.Spec.Name,
+		deployment.SolutionName,
+		remove,
+		namespace,
+		targetName,
+		span.SpanContext().TraceID().String())
 
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
@@ -292,13 +299,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Spec.Name, namespace)
 
-	currentDesiredState, err := NewDeploymentState(deployment)
+	var currentDesiredState model.DeploymentState
+	currentDesiredState, err = NewDeploymentState(deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to create target manager state from deployment spec: %+v", err)
 		return summary, err
 	}
-	currentState, _, err := s.Get(iCtx, deployment, targetName)
+	var currentState model.DeploymentState
+	currentState, _, err = s.Get(iCtx, deployment, targetName)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
 		log.Errorf(" M (Solution): failed to get current state: %+v", err)
@@ -314,12 +323,19 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	mergedState := MergeDeploymentStates(&currentState, desiredState)
-	plan, err := PlanForDeployment(deployment, mergedState)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, mergedState)
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
 		return summary, err
 	}
+
+	planBytes, _ := json.Marshal(plan)
+	log.Infof(" M (Solution): deployment plan: %s", string(planBytes))
+
+	mergedStateBytes, _ := json.Marshal(mergedState)
+	log.Infof(" M (Solution): merged state: %s", string(mergedStateBytes))
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
 	dep := deployment
@@ -331,6 +347,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	plannedCount := 0
 	planSuccessCount := 0
 	for _, step := range plan.Steps {
+		log.Debugf(" M (Solution): processing step: %+v", step)
 		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
 			continue
 		}
@@ -377,6 +394,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				continue
 			}
 		}
+		log.Debugf(" M (Solution): applying step: %+v", step)
 		someStepsRan = true
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
@@ -517,10 +535,12 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 }
 
 func (s *SolutionManager) saveSummaryProgress(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
+	summary.IsDeploymentFinished = false
 	s.saveSummary(ctx, deployment, summary, model.SummaryStateRunning, namespace)
 }
 
 func (s *SolutionManager) concludeSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
+	summary.IsDeploymentFinished = true
 	s.saveSummary(ctx, deployment, summary, model.SummaryStateDone, namespace)
 }
 
@@ -560,16 +580,22 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Info(" M (Solution): getting deployment")
+	log.Infof(" M (Solution): getting deployment.InstanceName: %s, deployment.SolutionName: %s, targetName: %s, traceId: %s",
+		deployment.Instance.Spec.Name,
+		deployment.SolutionName,
+		targetName,
+		span.SpanContext().TraceID().String())
 
 	ret := model.DeploymentState{}
 
-	state, err := NewDeploymentState(deployment)
+	var state model.DeploymentState
+	state, err = NewDeploymentState(deployment)
 	if err != nil {
 		log.Errorf(" M (Solution): failed to create manager state for deployment: %+v", err)
 		return ret, nil, err
 	}
-	plan, err := PlanForDeployment(deployment, state)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, state)
 	if err != nil {
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
 		return ret, nil, err
