@@ -108,3 +108,29 @@ func TestClone(t *testing.T) {
 	assert.NotNil(t, pc)
 	assert.Nil(t, err)
 }
+
+// TestInitWithMap tests the InitWithMap function
+func TestInitWithMap(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"name": "my-name",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "my-name", provider.Config.Name)
+}
+
+// TestCloneWithEmptyConfig tests the Clone function with an empty config
+func TestCloneWithEmptyConfig(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	_, err := provider.Clone(InMemoryPubSubConfig{})
+	assert.Nil(t, err)
+}
+
+// TestCloneWithConfig tests the Clone function with a config
+func TestCloneWithConfig(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	_, err := provider.Clone(InMemoryPubSubConfig{
+		Name: "my-name",
+	})
+	assert.Nil(t, err)
+}

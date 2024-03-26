@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type MockSecretProviderConfig struct {
@@ -21,7 +22,7 @@ type MockSecretProviderConfig struct {
 func MockSecretProviderConfigFromMap(properties map[string]string) (MockSecretProviderConfig, error) {
 	ret := MockSecretProviderConfig{}
 	if v, ok := properties["name"]; ok {
-		ret.Name = v
+		ret.Name = utils.ParseProperty(v)
 	}
 	return ret, nil
 }
@@ -64,6 +65,7 @@ func toMockSecretProviderConfig(config providers.IProviderConfig) (MockSecretPro
 		return ret, err
 	}
 	err = json.Unmarshal(data, &ret)
+	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
 func (m *MockSecretProvider) Get(object string, field string) (string, error) {
