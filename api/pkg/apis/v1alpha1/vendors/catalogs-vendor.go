@@ -124,7 +124,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	defer span.End()
 
-	lLog.Info("V (Catalogs Vendor): onStatus")
+	lLog.Infof("V (Catalogs Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -182,19 +182,19 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 	defer span.End()
 
-	lLog.Info("V (Catalogs Vendor): onCheck")
+	lLog.Infof("V (Catalogs Vendor): onCheck, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var campaign model.CatalogState
+		var catalog model.CatalogState
 
-		err := json.Unmarshal(request.Body, &campaign)
+		err := json.Unmarshal(request.Body, &catalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
 		}
-		res, err := e.CatalogsManager.ValidateState(rCtx, campaign)
+		res, err := e.CatalogsManager.ValidateState(rCtx, catalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -229,7 +229,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	})
 	defer span.End()
 
-	lLog.Info("V (Catalogs Vendor): onCatalogsGraph")
+	lLog.Infof("V (Catalogs Vendor): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -294,7 +294,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	lLog.Info("V (Catalogs Vendor): onCatalogs")
+	lLog.Infof("V (Catalogs Vendor): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {

@@ -85,6 +85,12 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 	defer span.End()
 
 	vLog.Infof("V (Activations Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onStatus-POST", pCtx, nil)
@@ -98,7 +104,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 				Body:  []byte(err.Error()),
 			})
 		}
-		err = c.ActivationsManager.ReportStatus(ctx, id, status)
+		err = c.ActivationsManager.ReportStatus(ctx, id, namespace, status)
 		if err != nil {
 			vLog.Infof("V (Activations Vendor): onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -210,6 +216,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 					Activation:           id,
 					Stage:                "",
 					Inputs:               activation.Spec.Inputs,
+					Namespace:            activation.ObjectMeta.Namespace,
 				},
 			})
 		}

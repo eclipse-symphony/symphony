@@ -106,7 +106,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
+	mLog.Info("  P (Materialize Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
 	objects := inputs["names"].([]interface{})
@@ -118,8 +118,15 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			prefixedNames[i] = object.(string)
 		}
 	}
+	namespace := "default"
+	if s, ok := inputs["__namespace"]; ok && s.(string) != "" {
+		namespace = s.(string)
+	}
 
-	catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+	mLog.Debugf("  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
+
+	catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+
 	if err != nil {
 		return outputs, false, err
 	}
@@ -146,6 +153,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(instanceState)
+					mLog.Debugf("  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 					err = utils.CreateInstance(ctx, i.Config.BaseUrl, instanceState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, instanceState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
@@ -165,6 +173,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(solutionState)
+					mLog.Debugf("  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
 					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, solutionState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, solutionState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
@@ -184,6 +193,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(targetState)
+					mLog.Debugf("  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 					err = utils.CreateTarget(ctx, i.Config.BaseUrl, targetState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, targetState.ObjectMeta.Namespace)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
@@ -204,6 +214,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
+					mLog.Debugf("  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
 						mLog.Errorf("Failed to create catalog %s: %s", catalogState.Spec.Name, err.Error())
@@ -227,7 +238,7 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 		objectMeta.Name = catalogName
 	}
 	// stage inputs override objectMeta namespace
-	if s, ok := inputs["objectNamespace"]; ok && s.(string) != "" {
+	if s, ok := inputs["__namespace"]; ok && s.(string) != "" {
 		objectMeta.Namespace = s.(string)
 	} else if objectMeta.Namespace == "" {
 		objectMeta.Namespace = "default"

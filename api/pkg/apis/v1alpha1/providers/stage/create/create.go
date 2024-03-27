@@ -140,7 +140,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":
-		objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
+		objectNamespace := stage.ReadInputString(inputs, "__namespace")
 		if objectNamespace == "" {
 			objectNamespace = "default"
 		}

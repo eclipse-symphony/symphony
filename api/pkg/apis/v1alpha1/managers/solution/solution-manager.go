@@ -114,7 +114,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			return errors.New("target mode is set but target name is not set")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -170,7 +170,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	return result, nil
 }
 
-func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -188,6 +188,9 @@ func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan stru
 					Action: action,
 					Time:   time.Now().UTC(),
 				},
+				Metadata: map[string]string{
+					"namespace": namespace,
+				},
 			})
 		case <-stopCh:
 			return // Exit the goroutine when the stop signal is received
@@ -201,7 +204,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.Spec.Name, remove, stopCh)
+	go s.sendHeartbeat(deployment.Instance.Spec.Name, namespace, remove, stopCh)
 
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
@@ -583,7 +586,7 @@ func (s *SolutionManager) Poll() []error {
 	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
 		symphonyUrl := s.Context.SiteInfo.ParentSite.BaseUrl
 		for _, target := range s.TargetNames {
-			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "label", "staged_target="+target)
+			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "", "label", "staged_target="+target)
 			if err != nil {
 				return []error{err}
 			}

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -161,13 +162,13 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			prefixedNames[i] = fmt.Sprintf("%v-%v", inputs["__origin"], object)
 		}
 	}
-
-	log.Debugf("  P (Wait Processor): waiting for %v %v", objectType, prefixedNames)
-	counter := 0
-	namespace := "default"
-	if s, ok := inputs["namespace"]; ok {
-		namespace = s.(string)
+	namespace := stage.ReadInputString(inputs, "__namespace")
+	if namespace == "" {
+		namespace = "default"
 	}
+
+	log.Debugf("  P (Wait Processor): waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
+	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
 		switch objectType {
@@ -201,7 +202,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		case "catalogs":
 			var catalogs []model.CatalogState
-			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
 				return nil, false, err

@@ -115,6 +115,7 @@ func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 				ContentType: "application/json",
 			})
 		}
+		jLog.Infof("V (Job): onHello, activationData: %v, traceId: %s", activationData, span.SpanContext().TraceID().String())
 		c.Vendor.Context.Publish("activation", v1alpha2.Event{
 			Body: activationData,
 		})
