@@ -1,7 +1,10 @@
 go 1.20
 
 use ./api
+
 use ./coa
+
 use ./k8s
+
 use ./cli
 use ./test/integration
