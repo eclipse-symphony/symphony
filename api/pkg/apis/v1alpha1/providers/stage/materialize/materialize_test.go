@@ -95,9 +95,9 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":           []interface{}{"instance1", "target1", "solution1", "catalog1"},
-		"__origin":        "hq",
-		"objectNamespace": stageNs,
+		"names":       []interface{}{"instance1", "target1", "solution1", "catalog1"},
+		"__origin":    "hq",
+		"__namespace": stageNs,
 	})
 	assert.Nil(t, err)
 	assert.False(t, paused)
