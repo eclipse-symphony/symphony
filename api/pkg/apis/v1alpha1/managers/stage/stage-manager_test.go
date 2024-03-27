@@ -135,7 +135,7 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
 	assert.Equal(t, "test-activation", status.Outputs["__activation"])
-	assert.Equal(t, 5, status.Outputs["__activationGeneration"])
+	assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
 	assert.Equal(t, "test", status.Outputs["__stage"])
 	assert.Equal(t, "fake", status.Outputs["__site"])
 }
