@@ -158,7 +158,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		patchAction = "add"
 	}
 	udpated := false
-	objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
+	objectNamespace := stage.ReadInputString(inputs, "__namespace")
 	if objectNamespace == "" {
 		objectNamespace = "default"
 	}
@@ -225,10 +225,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
-		objectNamespace := stage.ReadInputString(inputs, "objectNamespace")
-		if objectNamespace == "" {
-			objectNamespace = "default"
-		}
 		var solution model.SolutionState
 		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
 		if err != nil {

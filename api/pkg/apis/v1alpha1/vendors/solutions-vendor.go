@@ -127,7 +127,8 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		if embed_type != "" && embed_component != "" && embed_property != "" {
 			solution = model.SolutionState{
 				ObjectMeta: model.ObjectMeta{
-					Name: id,
+					Name:      id,
+					Namespace: namespace,
 				},
 				Spec: &model.SolutionSpec{
 					DisplayName: id,

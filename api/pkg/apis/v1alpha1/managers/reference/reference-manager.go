@@ -219,7 +219,7 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 		ID: entityId,
 	})
 	if err == nil {
-		data, _ := json.Marshal(entity.Body)
+		data, err := json.Marshal(entity.Body)
 		cachedItem := CachedItem{}
 		if err == nil {
 			err := json.Unmarshal(data, &cachedItem)

@@ -41,14 +41,16 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
 		Inputs: map[string]interface{}{
 			"foo": 0,
 		},
-		Outputs:  nil,
-		Provider: "providers.stage.mock",
+		Outputs:   nil,
+		Provider:  "providers.stage.mock",
+		Namespace: "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -73,6 +75,12 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(5), status.Outputs["foo"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, "1", status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -94,14 +102,16 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
 		Inputs: map[string]interface{}{
 			"foo": 1,
 		},
-		Outputs:  nil,
-		Provider: "providers.stage.counter",
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -122,6 +132,12 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(5), status.Outputs["foo"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, 5, status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
 func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
@@ -144,14 +160,16 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
 		Inputs: map[string]interface{}{
 			"foo": -10,
 		},
-		Outputs:  nil,
-		Provider: "providers.stage.counter",
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -172,6 +190,12 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(-50), status.Outputs["foo"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
 func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
@@ -194,15 +218,17 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
 		Inputs: map[string]interface{}{
 			"foo": 1,
 			"bar": 1,
 		},
-		Outputs:  nil,
-		Provider: "providers.stage.counter",
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -228,6 +254,12 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(5), status.Outputs["foo"])
 	assert.Equal(t, int64(5), status.Outputs["bar"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test2", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
 func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
@@ -250,11 +282,13 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
-		Outputs:    nil,
-		Provider:   "providers.stage.http",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.http",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -286,6 +320,12 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(5), status.Outputs["success"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test2", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 func TestCampaignWithDelay(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -307,11 +347,13 @@ func TestCampaignWithDelay(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
-		Outputs:    nil,
-		Provider:   "providers.stage.delay",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.delay",
+		Namespace:            "fakens",
 	}
 	timeStamp := time.Now().UTC()
 	for {
@@ -336,6 +378,12 @@ func TestCampaignWithDelay(t *testing.T) {
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, v1alpha2.OK, status.Outputs[v1alpha2.StatusOutput])
 	assert.True(t, time.Now().UTC().Sub(timeStamp) > 5*time.Second)
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, "1", status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 func TestErrorHandler(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -357,11 +405,13 @@ func TestErrorHandler(t *testing.T) {
 	}
 	var status model.ActivationStatus
 	activation := &v1alpha2.ActivationData{
-		Campaign:   "test-campaign",
-		Activation: "test-activation",
-		Stage:      "test",
-		Outputs:    nil,
-		Provider:   "providers.stage.http",
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.http",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -394,6 +444,12 @@ func TestErrorHandler(t *testing.T) {
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.Equal(t, int64(0), status.Outputs["success"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
+	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
+	assert.Equal(t, "test-activation", status.Outputs["__activation"])
+	assert.Equal(t, int64(1), status.Outputs["__activationGeneration"])
+	assert.Equal(t, "test2", status.Outputs["__stage"])
+	assert.Equal(t, "fake", status.Outputs["__site"])
 }
 func TestErrorHandlerNotSet(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -867,6 +923,7 @@ func TestResumeStage(t *testing.T) {
 		"__activationGeneration": activationGen,
 		"__site":                 "fake",
 		"__stage":                "test",
+		"__namespace":            "default",
 	}
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
@@ -911,6 +968,71 @@ func TestResumeStage(t *testing.T) {
 	assert.Equal(t, campaignName, nextStage.Campaign)
 	assert.Equal(t, activationName, nextStage.Activation)
 }
+
+func TestResumeStageFailed(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	campaignName := "campaign1"
+	activationName := "activation1"
+	activationGen := "1"
+	output := map[string]interface{}{}
+	stateProvider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: fmt.Sprintf("%s-%s-%s", campaignName, activationName, activationGen),
+			Body: PendingTask{
+				Sites:         []string{"fake"},
+				OutputContext: map[string]map[string]interface{}{"fake": output},
+			},
+		},
+	})
+	activation := model.ActivationStatus{
+		Status:  v1alpha2.Done,
+		Stage:   "test",
+		Outputs: output,
+	}
+	campaign := model.CampaignSpec{
+		Name:        campaignName,
+		SelfDriving: true,
+		FirstStage:  "test",
+		Stages: map[string]model.StageSpec{
+			"test": {
+				Provider:      "providers.stage.mock",
+				StageSelector: "test2",
+				Inputs: map[string]interface{}{
+					"ticket": "bar",
+				},
+			},
+			"test2": {
+				Provider:      "providers.stage.mock",
+				StageSelector: "",
+				HandleErrors:  false,
+				Inputs: map[string]interface{}{
+					"stcheck": "${{$output($input(__previousStage), __status)}}",
+					"stfoo":   "${{$output($input(__previousStage), ticket)}}",
+				},
+			},
+		},
+	}
+	_, err := manager.ResumeStage(activation, campaign)
+	assert.NotNil(t, err)
+	assert.Equal(t, "ResumeStage: campaign is not valid", err.Error())
+}
+
 func TestHandleDirectTriggerEvent(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
@@ -939,8 +1061,9 @@ func TestHandleDirectTriggerEvent(t *testing.T) {
 			"bar":     2,
 			"__state": map[string]interface{}{"foo": 1, "bar": 1},
 		},
-		Outputs:  nil,
-		Provider: "providers.stage.counter",
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
 	}
 	status := manager.HandleDirectTriggerEvent(context.Background(), activation)
 	assert.Equal(t, v1alpha2.Done, status.Status)
@@ -949,6 +1072,7 @@ func TestHandleDirectTriggerEvent(t *testing.T) {
 	assert.Equal(t, "1", status.Outputs["__activationGeneration"])
 	assert.Equal(t, "fake", status.Outputs["__site"])
 	assert.Equal(t, "test", status.Outputs["__stage"])
+	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, int64(2), status.Outputs["foo"])
 	assert.Equal(t, int64(3), status.Outputs["bar"])
 }

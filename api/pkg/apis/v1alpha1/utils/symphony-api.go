@@ -141,7 +141,7 @@ func ReportCatalogs(context context.Context, baseUrl string, user string, passwo
 	return nil
 }
 
-func GetCatalogsWithFilter(context context.Context, baseUrl string, user string, password string, filterType string, filterValue string) ([]model.CatalogState, error) {
+func GetCatalogsWithFilter(context context.Context, baseUrl string, user string, password string, namespace string, filterType string, filterValue string) ([]model.CatalogState, error) {
 	ret := make([]model.CatalogState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -150,6 +150,11 @@ func GetCatalogsWithFilter(context context.Context, baseUrl string, user string,
 	path := "catalogs/registry"
 	if filterType != "" && filterValue != "" {
 		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
+		if namespace != "" {
+			path = path + "&namespace=" + url.QueryEscape(namespace)
+		}
+	} else if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
 	}
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
@@ -161,8 +166,8 @@ func GetCatalogsWithFilter(context context.Context, baseUrl string, user string,
 	}
 	return ret, nil
 }
-func GetCatalogs(context context.Context, baseUrl string, user string, password string) ([]model.CatalogState, error) {
-	return GetCatalogsWithFilter(context, baseUrl, user, password, "", "")
+func GetCatalogs(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.CatalogState, error) {
+	return GetCatalogsWithFilter(context, baseUrl, user, password, namespace, "", "")
 }
 func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string, namespace string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
@@ -191,7 +196,7 @@ func GetCatalog(context context.Context, baseUrl string, catalog string, user st
 	}
 	return ret, nil
 }
-func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
+func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string, namespace string) (model.CampaignState, error) {
 	ret := model.CampaignState{}
 	token, err := auth(context, baseUrl, user, password)
 
@@ -199,7 +204,12 @@ func GetCampaign(context context.Context, baseUrl string, campaign string, user 
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "campaigns/"+url.QueryEscape(campaign), "GET", nil, token)
+	path := "campaigns/" + url.QueryEscape(campaign)
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+
+	}
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}

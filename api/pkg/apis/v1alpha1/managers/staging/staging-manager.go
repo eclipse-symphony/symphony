@@ -77,7 +77,8 @@ func (s *StagingManager) Poll() []error {
 		ctx,
 		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
 		s.VendorContext.SiteInfo.CurrentSite.Username,
-		s.VendorContext.SiteInfo.CurrentSite.Password)
+		s.VendorContext.SiteInfo.CurrentSite.Password,
+		"")
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
 		observ_utils.CloseSpanWithError(span, &err)

@@ -19,7 +19,6 @@ type CampaignState struct {
 }
 
 type ActivationState struct {
-	Id         string            `json:"id"`
 	Namespace  string            `json:"namespace"`
 	ObjectMeta ObjectMeta        `json:"metadata,omitempty"`
 	Spec       *ActivationSpec   `json:"spec,omitempty"`
@@ -117,10 +116,6 @@ func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(ActivationState)
 	if !ok {
 		return false, errors.New("parameter is not a ActivationState type")
-	}
-
-	if c.Id != otherC.Id {
-		return false, nil
 	}
 
 	if c.Namespace != otherC.Namespace {

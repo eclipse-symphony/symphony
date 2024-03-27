@@ -112,14 +112,41 @@ func (s *StageManager) Reconcil() []error {
 }
 func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
 	log.Debugf(" M (Stage): ResumeStage: %v\n", status)
-	campaign := status.Outputs["__campaign"].(string)
-	activation := status.Outputs["__activation"].(string)
-	activationGeneration := status.Outputs["__activationGeneration"].(string)
-	site := status.Outputs["__site"].(string)
-	stage := status.Outputs["__stage"].(string)
+	campaign, ok := status.Outputs["__campaign"].(string)
+	if !ok {
+		log.Errorf(" M (Stage): ResumeStage: campaign (%v) is not valid from output", status.Outputs["__campaign"])
+		return nil, fmt.Errorf("ResumeStage: campaign is not valid")
+	}
+	activation, ok := status.Outputs["__activation"].(string)
+	if !ok {
+		log.Errorf(" M (Stage): ResumeStage: activation (%v) is not valid from output", status.Outputs["__activation"])
+		return nil, fmt.Errorf("ResumeStage: activation is not valid")
+	}
+	activationGeneration, ok := status.Outputs["__activationGeneration"].(string)
+	if !ok {
+		log.Errorf(" M (Stage): ResumeStage: activationGeneration (%v) is not valid from output", status.Outputs["__activationGeneration"])
+		return nil, fmt.Errorf("ResumeStage: activationGeneration is not valid")
+	}
+	site, ok := status.Outputs["__site"].(string)
+	if !ok {
+		log.Errorf(" M (Stage): ResumeStage: site (%v) is not valid from output", status.Outputs["__site"])
+		return nil, fmt.Errorf("ResumeStage: site is not valid")
+	}
+	stage, ok := status.Outputs["__stage"].(string)
+	if !ok {
+		log.Errorf(" M (Stage): ResumeStage: stage (%v) is not valid from output", status.Outputs["__stage"])
+		return nil, fmt.Errorf("ResumeStage: stage is not valid")
+	}
+	namespace, ok := status.Outputs["__namespace"].(string)
+	if !ok {
+		namespace = "default"
+	}
 
 	entry, err := s.StateProvider.Get(context.TODO(), states.GetRequest{
 		ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -149,6 +176,9 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 		if len(newSites) == 0 {
 			err := s.StateProvider.Delete(context.TODO(), states.DeleteRequest{
 				ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+				},
 			})
 			if err != nil {
 				return nil, err
@@ -201,6 +231,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						Outputs:              outputs,
 						TriggeringStage:      stage,
 						Schedule:             cam.Stages[nextStage].Schedule,
+						Namespace:            namespace,
 					}
 					log.Debugf(" M (Stage): Activating next stage: %s\n", activationData.Stage)
 					return activationData, nil
@@ -216,6 +247,9 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 				Value: states.StateEntry{
 					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
 					Body: p,
+				},
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
 				},
 			})
 			if err != nil {
@@ -236,9 +270,16 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	status := model.ActivationStatus{
-		Stage:        "",
-		NextStage:    "",
-		Outputs:      map[string]interface{}{},
+		Stage:     "",
+		NextStage: "",
+		Outputs: map[string]interface{}{
+			"__campaign":             triggerData.Campaign,
+			"__namespace":            triggerData.Namespace,
+			"__activation":           triggerData.Activation,
+			"__activationGeneration": triggerData.ActivationGeneration,
+			"__stage":                triggerData.Stage,
+			"__site":                 s.VendorContext.SiteInfo.SiteId,
+		},
 		Status:       v1alpha2.Untouched,
 		ErrorMessage: "",
 		IsActive:     true,
@@ -291,14 +332,13 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		result.Outputs = carryOutPutsToErrorStatus(outputs, err, "")
 		return status
 	}
-	status.Outputs = outputs
+
+	// Merge outputs, provider output overwrite status.Outputs for the same key
+	for k, v := range outputs {
+		status.Outputs[k] = v
+	}
+
 	status.Outputs["__status"] = v1alpha2.OK
-	status.Outputs["__campaign"] = triggerData.Campaign
-	status.Outputs["__namespace"] = triggerData.Namespace
-	status.Outputs["__activation"] = triggerData.Activation
-	status.Outputs["__activationGeneration"] = triggerData.ActivationGeneration
-	status.Outputs["__stage"] = triggerData.Stage
-	status.Outputs["__site"] = s.VendorContext.SiteInfo.SiteId
 	status.Status = v1alpha2.Done
 	status.IsActive = false
 	return status
@@ -337,9 +377,16 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 	log.Info(" M (Stage): HandleTriggerEvent")
 	status := model.ActivationStatus{
-		Stage:        triggerData.Stage,
-		NextStage:    "",
-		Outputs:      nil,
+		Stage:     triggerData.Stage,
+		NextStage: "",
+		Outputs: map[string]interface{}{
+			"__campaign":             triggerData.Campaign,
+			"__namespace":            triggerData.Namespace,
+			"__activation":           triggerData.Activation,
+			"__activationGeneration": triggerData.ActivationGeneration,
+			"__stage":                triggerData.Stage,
+			"__site":                 s.VendorContext.SiteInfo.SiteId,
+		},
 		Status:       v1alpha2.Untouched,
 		ErrorMessage: "",
 		IsActive:     true,
@@ -554,13 +601,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 		}
-		outputs["__campaign"] = triggerData.Campaign
-		outputs["__namespace"] = triggerData.Namespace
-		outputs["__activation"] = triggerData.Activation
-		outputs["__activationGeneration"] = triggerData.ActivationGeneration
-		outputs["__stage"] = triggerData.Stage
-		outputs["__site"] = s.VendorContext.SiteInfo.SiteId
-		status.Outputs = outputs //TODO: This is newly added 10/3/2023, is this correct?
+
+		for k, v := range outputs {
+			status.Outputs[k] = v
+		}
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
 		}
@@ -575,6 +619,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					Value: states.StateEntry{
 						ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
 						Body: pendingTask,
+					},
+					Metadata: map[string]interface{}{
+						"namespace": triggerData.Namespace,
 					},
 				})
 				if err != nil {
@@ -626,6 +673,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							Config:               nextStage.Config,
 							TriggeringStage:      triggerData.Stage,
 							Schedule:             nextStage.Schedule,
+							Namespace:            triggerData.Namespace,
 						}
 					} else {
 						status.Status = v1alpha2.InternalError
@@ -744,6 +792,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			Config:               stageSpec.Config,
 			TriggeringStage:      stage,
 			Schedule:             stageSpec.Schedule,
+			Namespace:            actData.Namespace,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)
