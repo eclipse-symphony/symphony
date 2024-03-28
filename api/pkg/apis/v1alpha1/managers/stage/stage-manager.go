@@ -251,6 +251,12 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.IsActive = false
 		return status
 	}
+	if provider == nil {
+		status.Status = v1alpha2.BadRequest
+		status.ErrorMessage = fmt.Sprintf("provider %s is not found", triggerData.Provider)
+		status.IsActive = false
+		return status
+	}
 
 	if _, ok := provider.(contexts.IWithManagerContext); ok {
 		provider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
@@ -441,6 +447,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		if err != nil {
 			status.Status = v1alpha2.InternalError
 			status.ErrorMessage = err.Error()
+			status.IsActive = false
+			log.Errorf(" M (Stage): failed to create provider: %v", err)
+			return status, activationData
+		}
+		if provider == nil {
+			status.Status = v1alpha2.BadRequest
+			status.ErrorMessage = fmt.Sprintf("provider %s is not found", triggerData.Provider)
 			status.IsActive = false
 			log.Errorf(" M (Stage): failed to create provider: %v", err)
 			return status, activationData
