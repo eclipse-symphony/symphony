@@ -1,0 +1,15 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: schema
+spec:  
+  siteId: hq
+  type: schema
+  name: schema
+  properties:
+    spec:
+      rules:
+        email:
+          pattern: "<email>"
+        bar:
+          expression: "${{$and($gt($val(),10),$lt($val(),20))}}"

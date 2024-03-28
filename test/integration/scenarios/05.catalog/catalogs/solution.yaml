@@ -1,0 +1,25 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: solution
+spec:  
+  siteId: hq
+  type: solution
+  name: solution
+  properties:
+    spec: 
+      displayName: site-app
+      components:
+      - name: influxdb
+        type: container
+        properties:
+          container.image: "influxdb:latest"
+      - name: grafana
+        type: container
+        properties:
+          container.image: "redis:latest"
+      - name: inference
+        type: container
+        properties:
+          container.image: "redis:latest"
+          env.AI_MODEL: "$config(ai-config,model)"
