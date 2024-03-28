@@ -118,7 +118,7 @@ func Verify() error {
 		if err != nil {
 			return err
 		}
-		err, catalogs := ListCatalogs(namespace, dynamicClient)
+		err, catalogs := listCatalogs(namespace, dynamicClient)
 		if err != nil {
 			return err
 		}
@@ -127,7 +127,7 @@ func Verify() error {
 			return errors.New("Catalogs not created")
 		}
 		// read catalog
-		err, catalog := ReadCatalog("asset", namespace, dynamicClient)
+		err, catalog := readCatalog("asset", namespace, dynamicClient)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func Verify() error {
 		}
 		// Update catalog
 		catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] = "大阪"
-		err, catalog = UpdateCatalog("asset", namespace, catalog, dynamicClient)
+		err, catalog = updateCatalog("asset", namespace, catalog, dynamicClient)
 		if err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ func createCatalogs(namespace string) error {
 	return nil
 }
 
-func ReadCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
+func readCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
 	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
 	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogName, metav1.GetOptions{})
 	if err != nil {
@@ -197,7 +197,7 @@ func ReadCatalog(catalogName string, namespace string, dynamicClient dynamic.Int
 	return nil, catalog
 }
 
-func UpdateCatalog(catalogName string, namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
+func updateCatalog(catalogName string, namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
 	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
 	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
 	if err != nil {
@@ -206,7 +206,7 @@ func UpdateCatalog(catalogName string, namespace string, object *unstructured.Un
 	return nil, catalog
 }
 
-func ListCatalogs(namespace string, dynamicClient dynamic.Interface) (error, *unstructured.UnstructuredList) {
+func listCatalogs(namespace string, dynamicClient dynamic.Interface) (error, *unstructured.UnstructuredList) {
 	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
 	catalogs, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
