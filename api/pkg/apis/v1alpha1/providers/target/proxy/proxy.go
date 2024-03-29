@@ -164,13 +164,26 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
 		data, _ := json.Marshal(deployment)
+		payload, err := i.callRestAPI("instances", "POST", data)
 
-		_, err = i.callRestAPI("instances", "POST", data)
 		if err != nil {
 			sLog.Errorf("  P (Proxy Target): failed to post instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return ret, err
 		}
+
+		var summarySpec model.SummarySpec
+		err = json.Unmarshal(payload, &summarySpec)
+
+		if err == nil {
+			// Update ret
+			for target, targetResult := range summarySpec.TargetResults {
+				for _, componentResults := range targetResult.ComponentResults {
+					ret[target] = componentResults
+				}
+			}
+		}
 	}
+
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		data, _ := json.Marshal(deployment)
