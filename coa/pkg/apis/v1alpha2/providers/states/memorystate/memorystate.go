@@ -313,7 +313,13 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 								}
 							}
 						}
-						entities = append(entities, vE)
+						copy, err := s.ReturnDeepCopy(vE)
+						if err != nil {
+							err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", vE.ID), v1alpha2.InternalError)
+							sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+							return entities, "", err
+						}
+						entities = append(entities, copy)
 					} else {
 						err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
 						sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -406,8 +412,13 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	}
 	vE, ok := entry.(states.StateEntry)
 	if ok {
-		err = nil
-		return vE, nil
+		copy, err := s.ReturnDeepCopy(vE)
+		if err != nil {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", request.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+			return states.StateEntry{}, err
+		}
+		return copy, nil
 	}
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
 	sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
@@ -440,6 +451,19 @@ func (a *MemoryStateProvider) Clone(config providers.IProviderConfig) (providers
 	}
 	if a.Context != nil {
 		ret.Context = a.Context
+	}
+	return ret, nil
+}
+
+func (a *MemoryStateProvider) ReturnDeepCopy(s states.StateEntry) (states.StateEntry, error) {
+	var ret states.StateEntry
+	jBody, err := json.Marshal(s)
+	if err != nil {
+		return states.StateEntry{}, err
+	}
+	err = json.Unmarshal(jBody, &ret)
+	if err != nil {
+		return states.StateEntry{}, err
 	}
 	return ret, nil
 }

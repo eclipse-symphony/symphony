@@ -8,6 +8,7 @@ package users
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 
@@ -104,18 +105,24 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	getRequest := states.GetRequest{
 		ID: name,
 	}
-	user, err := t.StateProvider.Get(ctx, getRequest)
+	var user states.StateEntry
+	user, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		log.Debugf(" M (Users) : failed to get user %s states, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, false
 	}
-
-	if v, ok := user.Body.(UserState); ok {
-		if hash(name, password) == v.PasswordHash {
-			log.Debugf(" M (Users) : user authenticated, traceId: %s", span.SpanContext().TraceID().String())
-			return v.Roles, true
-		}
+	var userState UserState
+	bytes, _ := json.Marshal(user.Body)
+	err = json.Unmarshal(bytes, &userState)
+	if err != nil {
+		return nil, false
 	}
+
+	if hash(name, password) == userState.PasswordHash {
+		log.Debugf(" M (Users) : user authenticated, traceId: %s", span.SpanContext().TraceID().String())
+		return userState.Roles, true
+	}
+
 	log.Debugf(" M (Users) : authentication failed, traceId: %s", span.SpanContext().TraceID().String())
 	return nil, false
 }

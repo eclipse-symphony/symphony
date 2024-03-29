@@ -126,7 +126,8 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 			"namespace": namespace,
 		},
 	}
-	devices, _, err := t.StateProvider.List(ctx, listRequest)
+	var devices []states.StateEntry
+	devices, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		log.Errorf(" M (Devices): failed to list state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
@@ -134,7 +135,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.DeviceState, 0)
 	for _, t := range devices {
 		var rt model.DeviceState
-		rt, err = getDeviceState(t.ID, t.Body)
+		rt, err = getDeviceState(t.Body)
 		if err != nil {
 			log.Errorf(" M (Devices): ListState failed to get device state %s, error: %v, traceId: %s", t.ID, err, span.SpanContext().TraceID().String())
 			return nil, err
@@ -144,42 +145,17 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	return ret, nil
 }
 
-func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.DeviceSpec
-	err := json.Unmarshal(j, &rSpec)
+func getDeviceState(body interface{}) (model.DeviceState, error) {
+	var deviceState model.DeviceState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &deviceState)
 	if err != nil {
 		return model.DeviceState{}, err
 	}
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.DeviceState{}, err
+	if deviceState.Spec == nil {
+		deviceState.Spec = &model.DeviceSpec{}
 	}
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.DeviceStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.DeviceState{}, err
-	}
-
-	state := model.DeviceState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-		Status:     rStatus,
-	}
-	return state, nil
+	return deviceState, nil
 }
 
 func (t *DevicesManager) GetState(ctx context.Context, name string, namespace string) (model.DeviceState, error) {
@@ -200,13 +176,14 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 			"kind":      "Device",
 		},
 	}
-	entry, err := t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		log.Errorf(" M (Devices): failed to get state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
 	}
-
-	ret, err := getDeviceState(name, entry.Body)
+	var ret model.DeviceState
+	ret, err = getDeviceState(entry.Body)
 	if err != nil {
 		log.Errorf(" M (Devices): GetSpec failed to get device state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
