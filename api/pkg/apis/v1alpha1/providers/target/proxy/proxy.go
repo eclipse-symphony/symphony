@@ -174,18 +174,16 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		var summarySpec model.SummarySpec
 		err = json.Unmarshal(payload, &summarySpec)
 
-		if err != nil {
-			sLog.Errorf("  P (Proxy Target): failed to unmarshall apply response: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
-			return ret, err
-		}
-
-		// Update ret
-		for target, targetResult := range summarySpec.TargetResults {
-			for _, componentResults := range targetResult.ComponentResults {
-				ret[target] = componentResults
+		if err == nil {
+			// Update ret
+			for target, targetResult := range summarySpec.TargetResults {
+				for _, componentResults := range targetResult.ComponentResults {
+					ret[target] = componentResults
+				}
 			}
 		}
 	}
+
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		data, _ := json.Marshal(deployment)
