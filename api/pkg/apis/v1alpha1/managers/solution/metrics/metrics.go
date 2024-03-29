@@ -26,7 +26,7 @@ func New() (*Metrics, error) {
 	observable := observability.New(constants.API)
 
 	apiComponentCount, err := observable.Metrics.Gauge(
-		"aio_orc_api_component_count",
+		"symphony_api_component_count",
 		"count of components in API operation",
 	)
 	if err != nil {
