@@ -85,13 +85,14 @@ func (s *StagingManager) Poll() []error {
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
-		cacheId := siteId + "-" + catalog.Spec.Name
+		cacheId := siteId + "-" + catalog.ObjectMeta.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
 			Metadata: map[string]interface{}{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		}
 		var entry states.StateEntry
@@ -113,9 +114,10 @@ func (s *StagingManager) Poll() []error {
 				Body: catalog.Spec.Generation,
 			},
 			Metadata: map[string]interface{}{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		})
 		if err != nil {

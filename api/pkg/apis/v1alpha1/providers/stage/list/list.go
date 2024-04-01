@@ -162,7 +162,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if namesOnly {
 			names := make([]string, 0)
 			for _, catalog := range catalogs {
-				names = append(names, catalog.Spec.Name)
+				names = append(names, catalog.ObjectMeta.Name)
 			}
 			outputs["items"] = names
 		} else {
