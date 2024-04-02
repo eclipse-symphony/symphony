@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -118,9 +119,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			prefixedNames[i] = object.(string)
 		}
 	}
-	namespace := "default"
-	if s, ok := inputs["__namespace"]; ok && s.(string) != "" {
-		namespace = s.(string)
+	namespace := stage.GetNamespace(inputs)
+	if namespace == "" {
+		namespace = "default"
 	}
 
 	mLog.Debugf("  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
@@ -238,8 +239,8 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 		objectMeta.Name = catalogName
 	}
 	// stage inputs override objectMeta namespace
-	if s, ok := inputs["__namespace"]; ok && s.(string) != "" {
-		objectMeta.Namespace = s.(string)
+	if s := stage.GetNamespace(inputs); s != "" {
+		objectMeta.Namespace = s
 	} else if objectMeta.Namespace == "" {
 		objectMeta.Namespace = "default"
 	}

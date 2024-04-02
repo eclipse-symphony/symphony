@@ -109,7 +109,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			namesOnly = v.(bool)
 		}
 	}
-	objectNamespace := stage.ReadInputString(inputs, "__namespace")
+	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
 	}

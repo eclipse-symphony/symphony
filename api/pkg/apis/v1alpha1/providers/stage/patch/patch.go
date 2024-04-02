@@ -158,7 +158,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		patchAction = "add"
 	}
 	udpated := false
-	objectNamespace := stage.ReadInputString(inputs, "__namespace")
+	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
 	}
