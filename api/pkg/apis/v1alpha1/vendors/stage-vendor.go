@@ -188,14 +188,17 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		campaign, ok := status.Outputs["__campaign"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get campaign name from job report")
+			return fmt.Errorf("job-report: campaign is not valid")
 		}
 		namespace, ok := status.Outputs["__namespace"].(string)
 		if !ok {
-			sLog.Errorf("V (Stage): failed to get namespace from job report")
+			sLog.Errorf("V (Stage): failed to get namespace from job report, use default instead")
+			namespace = "default"
 		}
 		activation, ok := status.Outputs["__activation"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get activation name from job report")
+			return fmt.Errorf("job-report: activation is not valid")
 		}
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaign, err := s.CampaignsManager.GetState(context.TODO(), campaign, namespace)
