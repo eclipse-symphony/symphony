@@ -54,7 +54,10 @@ func Manifests() error {
 // Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 func Generate() error {
 	mg.Deps(ensureControllerGen)
-	return controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./... paths=../api/pkg/apis/v1alpha1/model").Run()
+	return shellcmd.RunAll(
+		controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./..."),
+		controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=../api/pkg/apis/v1alpha1/model"),
+	)
 }
 
 // Run tests.

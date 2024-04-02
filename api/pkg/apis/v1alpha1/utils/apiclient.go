@@ -520,7 +520,7 @@ func (a *apiClient) callRestAPI(route string, method string, payload []byte, tok
 			return nil, nil
 		}
 		object := &SummarySpecError{
-			Code:    fmt.Sprintf("AIO Orchestrator API: [%d]", resp.StatusCode),
+			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
 			Message: string(bodyBytes),
 		}
 		return nil, object

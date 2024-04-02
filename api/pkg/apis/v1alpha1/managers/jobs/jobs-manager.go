@@ -265,6 +265,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
+	log.Debugf(" M (Job): handling heartbeat h_%s", heartbeat.JobId)
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
@@ -297,8 +298,10 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
+			log.Errorf(" M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
+		log.Debugf(" M (Job): found heartbeat %s, entry: %+v", key, entry)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData

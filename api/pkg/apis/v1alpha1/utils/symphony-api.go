@@ -762,6 +762,9 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 			return result, err
 		}
 	}
+
+	log.Infof("Summary result: %s", string(ret))
+
 	return result, nil
 }
 func CatalogHook(context context.Context, baseUrl string, user string, password string, payload []byte) error {
