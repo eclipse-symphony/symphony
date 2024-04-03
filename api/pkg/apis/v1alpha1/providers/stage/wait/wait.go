@@ -162,7 +162,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			prefixedNames[i] = fmt.Sprintf("%v-%v", inputs["__origin"], object)
 		}
 	}
-	namespace := stage.ReadInputString(inputs, "__namespace")
+	namespace := stage.GetNamespace(inputs)
 	if namespace == "" {
 		namespace = "default"
 	}
