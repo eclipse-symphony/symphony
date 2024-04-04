@@ -77,20 +77,22 @@ func (s *StagingManager) Poll() []error {
 		ctx,
 		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
 		s.VendorContext.SiteInfo.CurrentSite.Username,
-		s.VendorContext.SiteInfo.CurrentSite.Password)
+		s.VendorContext.SiteInfo.CurrentSite.Password,
+		"")
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
 		observ_utils.CloseSpanWithError(span, &err)
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
-		cacheId := siteId + "-" + catalog.Spec.Name
+		cacheId := siteId + "-" + catalog.ObjectMeta.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
 			Metadata: map[string]interface{}{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		}
 		var entry states.StateEntry
@@ -112,9 +114,10 @@ func (s *StagingManager) Poll() []error {
 				Body: catalog.Spec.Generation,
 			},
 			Metadata: map[string]interface{}{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		})
 		if err != nil {

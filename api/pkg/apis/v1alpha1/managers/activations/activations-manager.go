@@ -69,14 +69,14 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 		return model.ActivationState{}, err
 	}
 
-	ret, err := getActivationState(name, entry.Body, entry.ETag)
+	ret, err := getActivationState(entry.Body, entry.ETag)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
 	return ret, nil
 }
 
-func getActivationState(id string, body interface{}, etag string) (model.ActivationState, error) {
+func getActivationState(body interface{}, etag string) (model.ActivationState, error) {
 	dict := body.(map[string]interface{})
 
 	//read spec
@@ -109,7 +109,6 @@ func getActivationState(id string, body interface{}, etag string) (model.Activat
 	}
 
 	state := model.ActivationState{
-		Id:         id,
 		Spec:       &rSpec,
 		Status:     &rStatus,
 		ObjectMeta: rMetadata,
@@ -191,14 +190,14 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 			"kind":      "Activation",
 		},
 	}
-	solutions, _, err := t.StateProvider.List(ctx, listRequest)
+	activations, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.ActivationState, 0)
-	for _, t := range solutions {
+	for _, t := range activations {
 		var rt model.ActivationState
-		rt, err = getActivationState(t.ID, t.Body, t.ETag)
+		rt, err = getActivationState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +205,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	}
 	return ret, nil
 }
-func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, current model.ActivationStatus) error {
+func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, namespace string, current model.ActivationStatus) error {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ReportStatus",
 	})
@@ -217,9 +216,10 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, curr
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "activations",
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": namespace,
 		},
 	}
 	entry, err := t.StateProvider.Get(ctx, getRequest)

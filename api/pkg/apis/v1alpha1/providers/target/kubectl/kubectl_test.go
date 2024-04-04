@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
@@ -143,7 +144,7 @@ func TestReadYamlFromUrl(t *testing.T) {
 }
 
 // TestKubectlTargetProviderApply tests that applying a deployment works
-func TestKubectlTargetProviderPathApply(t *testing.T) {
+func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
@@ -180,6 +181,18 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 		Components: []model.ComponentStep{
 			{
 				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	time.Sleep(3 * time.Second)
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -402,52 +415,6 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
-}
-
-// TestKubectlTargetProviderDelete tests that deleting a deployment works
-func TestKubectlTargetProviderDelete(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
-	}
-
-	config := KubectlTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-	}
-
-	provider := KubectlTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	component := model.ComponentSpec{
-		Name: "gatekeepr1",
-		Type: "yaml.k8s",
-		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
-				Name: "gatekeeper",
-			},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{component},
-			},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    model.ComponentDelete,
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
 }
 
 func TestKubectlTargetProviderDeleteInline(t *testing.T) {

@@ -224,17 +224,25 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		err = v1alpha2.NewCOAError(nil, "event body is not a heart beat", v1alpha2.BadRequest)
 		return err
 	}
+
+	namespace, ok := event.Metadata["namespace"]
+	if !ok {
+		namespace = "default"
+	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
 			Body: heartbeat,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+		},
 	})
 	return err
 }
 
-func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job v1alpha2.JobData) error {
+func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, objectType string, job v1alpha2.JobData) error {
 	ctx, span := observability.StartSpan("Job Manager", ctx, &map[string]string{
 		"method": "DelayOrSkipJob",
 	})
@@ -248,6 +256,9 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, objectType string, job
 	//check if a manager is working on the job
 	entry, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: key,
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+		},
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
@@ -292,6 +303,9 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 			ID:   key,
 			Body: activationData,
 		},
+		Metadata: map[string]interface{}{
+			"namespace": activationData.Namespace,
+		},
 	})
 	return err
 }
@@ -318,7 +332,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
-		err = s.DelayOrSkipJob(ctx, objectType, job)
+		err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
 		if err != nil {
 			return err
 		}
@@ -394,6 +408,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 								Time: time.Now().UTC(),
 							},
 						},
+						Metadata: map[string]interface{}{
+							"namespace": namespace,
+						},
 					})
 				}
 			case v1alpha2.JobDelete:
@@ -430,6 +447,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 							Body: LastSuccessTime{
 								Time: time.Now().UTC(),
 							},
+						},
+						Metadata: map[string]interface{}{
+							"namespace": namespace,
 						},
 					})
 				}

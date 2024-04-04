@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/princjef/mageutil/shellcmd"
@@ -27,7 +28,7 @@ const (
 var (
 	NAMESPACES = []string{
 		"default",
-		//"nondefault",
+		"nondefault",
 	}
 )
 
@@ -35,7 +36,7 @@ var (
 	// catalogs to deploy
 	testCatalogs = []string{
 		"docs/samples/multisite/catalog-catalog.yaml",
-		"docs/samples/multisite/instance-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"docs/samples/multisite/solution-catalog.yaml",
 		"docs/samples/multisite/target-catalog.yaml",
 	}
@@ -117,10 +118,23 @@ func DeployManifests(namespace string) error {
 	// Deploy the catalogs
 	for _, catalog := range testCatalogs {
 		absCatalog := filepath.Join(repoPath, catalog)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalog, namespace)).Run()
+
+		data, err := os.ReadFile(absCatalog)
 		if err != nil {
 			return err
 		}
+		stringYaml := string(data)
+		stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace)
+
+		err = writeYamlStringsToFile(stringYaml, "./test.yaml")
+		if err != nil {
+			return err
+		}
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
+		if err != nil {
+			return err
+		}
+		os.Remove("./test.yaml")
 	}
 
 	for _, campaign := range testCampaign {

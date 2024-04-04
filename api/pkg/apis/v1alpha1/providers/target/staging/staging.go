@@ -86,7 +86,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -101,7 +101,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
-		"default")
+		scope)
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
@@ -137,7 +137,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -166,7 +166,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
-		"default")
+		scope)
 
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())

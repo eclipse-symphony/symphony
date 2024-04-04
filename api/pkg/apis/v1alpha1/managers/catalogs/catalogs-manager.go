@@ -74,14 +74,14 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 		return model.CatalogState{}, err
 	}
 
-	ret, err := getCatalogState(name, entry.Body, entry.ETag)
+	ret, err := getCatalogState(entry.Body, entry.ETag)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
 	return ret, nil
 }
 
-func getCatalogState(id string, body interface{}, etag string) (model.CatalogState, error) {
+func getCatalogState(body interface{}, etag string) (model.CatalogState, error) {
 	dict := body.(map[string]interface{})
 
 	//read spec
@@ -253,7 +253,7 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	ret := make([]model.CatalogState, 0)
 	for _, t := range catalogs {
 		var rt model.CatalogState
-		rt, err = getCatalogState(t.ID, t.Body, t.ETag)
+		rt, err = getCatalogState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
