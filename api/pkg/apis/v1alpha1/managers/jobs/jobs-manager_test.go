@@ -209,13 +209,13 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
 		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now().Add(-time.Hour)},
 	})
-	err = jobManager.DelayOrSkipJob(context.Background(), "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
+	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.Nil(t, err)
 
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
 		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now()},
 	})
-	err = jobManager.DelayOrSkipJob(context.Background(), "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
+	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.NotNil(t, err)
 }
 
