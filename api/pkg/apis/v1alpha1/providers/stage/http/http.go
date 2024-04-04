@@ -196,7 +196,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	sLog.Infof("  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
-	req, err := http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
+	var req *http.Request
+	req, err = http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
 		return nil, false, err
@@ -217,7 +218,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	}
 
-	resp, err := webClient.Do(req)
+	var resp *http.Response
+	resp, err = webClient.Do(req)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): request failed: %v", err)
 		return nil, false, err
@@ -229,7 +231,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		outputs[fmt.Sprintf("header.%v", key)] = values
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	var data []byte
+	data, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		sLog.Errorf("  P (Http Stage): failed to read request response: %v", err)
 		return nil, false, err

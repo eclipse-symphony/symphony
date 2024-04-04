@@ -126,7 +126,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 
 	mLog.Debugf("  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
 
-	catalogs, err := utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+	var catalogs []model.CatalogState
+	catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
 
 	if err != nil {
 		return outputs, false, err

@@ -165,7 +165,8 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.Script))
 	}
 
-	o, err := i.runCommand(scriptAbs, abs)
+	var o []byte
+	o, err = i.runCommand(scriptAbs, abs)
 	sLog.Debugf("  P (Script Stage): get script output: %s", o)
 
 	if err != nil {
@@ -175,7 +176,8 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	data, err := ioutil.ReadFile(outputStaging)
+	var data []byte
+	data, err = ioutil.ReadFile(outputStaging)
 
 	if err != nil {
 		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
