@@ -13,7 +13,7 @@ import (
 	"os"
 
 	//mage:import
-	_ "github.com/eclipse-symphony/symphony/packages/mage"
+	base "github.com/eclipse-symphony/symphony/packages/mage"
 	"github.com/magefile/mage/mg"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
@@ -69,7 +69,7 @@ func OperatorTest() error {
 	}
 	os.Setenv("KUBEBUILDER_ASSETS", string(assets))
 
-	return shellcmd.Command("go test ./... -race -v -coverprofile cover.out").Run()
+	return base.Test2()
 }
 
 // Build manager binary.

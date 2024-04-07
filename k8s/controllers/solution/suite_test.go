@@ -4,26 +4,26 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution
+package solution_test
 
 import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	api "gopls-workspace/apis/solution/v1"
+	internalTesting "gopls-workspace/testing"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -35,12 +35,9 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
-	t.Skip("Skipping tests for now as they are no longer relevant")
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	internalTesting.RunGinkgoSpecs(t, "Controller Suite")
 }
 
 func TestUnmarshalSolution(t *testing.T) {
@@ -57,7 +54,7 @@ spec:
       bar:
         baz: "qux"
 `
-	solution := &solutionv1.Solution{}
+	solution := &api.Solution{}
 	err := yaml.Unmarshal([]byte(solutionYaml), solution)
 	assert.NoError(t, err)
 
@@ -88,7 +85,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = solutionv1.AddToScheme(scheme.Scheme)
+	err = api.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -97,10 +94,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-}, 60)
+})
 
 var _ = AfterSuite(func() {
-	Skip("Skipping tests for now as they are no longer relevant")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
