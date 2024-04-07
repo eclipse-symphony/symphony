@@ -36,7 +36,7 @@ type InstanceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	// ApiClient is the client for aio-orc API
+	// ApiClient is the client for Symphony API
 	ApiClient utils.ApiClient
 
 	// ReconciliationInterval defines the reconciliation interval
