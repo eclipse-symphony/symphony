@@ -143,7 +143,30 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			}
 			reqCtx.SetContentType(resp.ContentType)
 			reqCtx.SetBody(resp.Body)
-			reqCtx.SetStatusCode(int(resp.State))
+			reqCtx.SetStatusCode(toHttpState(resp.State))
 		}
+	}
+}
+
+func toHttpState(state v1alpha2.State) int {
+	switch state {
+	case v1alpha2.OK:
+		return fasthttp.StatusOK
+	case v1alpha2.Accepted:
+		return fasthttp.StatusAccepted
+	case v1alpha2.BadRequest:
+		return fasthttp.StatusBadRequest
+	case v1alpha2.Unauthorized:
+		return fasthttp.StatusUnauthorized
+	case v1alpha2.NotFound:
+		return fasthttp.StatusNotFound
+	case v1alpha2.MethodNotAllowed:
+		return fasthttp.StatusMethodNotAllowed
+	case v1alpha2.Conflict:
+		return fasthttp.StatusConflict
+	case v1alpha2.InternalError:
+		return fasthttp.StatusInternalServerError
+	default:
+		return fasthttp.StatusInternalServerError
 	}
 }
