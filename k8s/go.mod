@@ -50,6 +50,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.1 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.50.0 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
