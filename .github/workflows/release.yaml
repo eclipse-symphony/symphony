@@ -179,9 +179,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: /home/runner/maestro/maestro_linux_amd64.tar.gz
           asset_name: maestro_linux_amd64.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload linux mastro ARM64 packages
+        id: upload_mastro_linux_arm64_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /home/runner/maestro/maestro_linux_arm64.tar.gz
+          asset_name: maestro_linux_arm64.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload linux mastro ARM7 packages
+        id: upload_mastro_linux_arm_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /home/runner/maestro/maestro_linux_arm.tar.gz
+          asset_name: maestro_linux_arm.tar.gz
           asset_content_type: application/gzip
       - name: Upload mac mastro packages
         id: upload_mastro_mac_package
