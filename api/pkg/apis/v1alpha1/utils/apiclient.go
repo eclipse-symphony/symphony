@@ -553,7 +553,7 @@ func newHttpClient(ctx context.Context, secure bool) (*http.Client, error) {
 
 	updateTransport(certBytes)
 
-	// setup a file watcher to reload the cert pool when the aio cert changes
+	// setup a file watcher to reload the cert pool when the symphony cert changes
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err

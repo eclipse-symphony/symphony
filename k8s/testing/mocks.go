@@ -54,7 +54,7 @@ const (
 	TestReconcileTimout   = 20 * TestPollInterval
 	TestDeleteSyncDelay   = 5 * time.Second
 	TestNamespace         = "default"
-	TestScope             = "azure-iot-operations"
+	TestScope             = "symphony-test-scope"
 )
 
 var (
@@ -73,6 +73,24 @@ var (
 
 func (m *MockDelayer) Sleep(duration time.Duration) {
 	m.Called(duration)
+}
+
+func CreateFakeKubeClientForSolutionAndFabricGroup(objects ...client.Object) client.Client {
+	scheme := runtime.NewScheme()
+	if objects == nil {
+		objects = []client.Object{
+			BuildDefaultInstance(),
+			BuildDefaultSolution(),
+			BuildDefaultTarget(),
+		}
+	}
+
+	_ = solution_v1.AddToScheme(scheme)
+	_ = fabric_v1.AddToScheme(scheme)
+	return fake.NewClientBuilder().
+		WithObjects(objects...).
+		WithScheme(scheme).
+		Build()
 }
 
 func CreateFakeKubeClientForSolutionGroup(objects ...client.Object) client.Client {
@@ -226,8 +244,8 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 }
 
 // GetSummary implements ApiClient.
-func (c *MockApiClient) GetSummary(id string, scope string) (*model.SummaryResult, error) {
-	args := c.Called(id, scope)
+func (c *MockApiClient) GetSummary(id string, namespace string) (*model.SummaryResult, error) {
+	args := c.Called(id, namespace)
 	summary := args.Get(0)
 	if summary == nil {
 		return nil, args.Error(1)
@@ -236,8 +254,8 @@ func (c *MockApiClient) GetSummary(id string, scope string) (*model.SummaryResul
 }
 
 // QueueDeploymentJob implements utils.ApiClient.
-func (c *MockApiClient) QueueDeploymentJob(scope string, isDelete bool, deployment model.DeploymentSpec) error {
-	args := c.Called(scope, isDelete, deployment)
+func (c *MockApiClient) QueueDeploymentJob(namespace string, isDelete bool, deployment model.DeploymentSpec) error {
+	args := c.Called(namespace, isDelete, deployment)
 	return args.Error(0)
 }
 

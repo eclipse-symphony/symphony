@@ -52,7 +52,7 @@ type TargetReconciler struct {
 
 const (
 	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
-	targetOperationStartTimeKey = "target.fabric" + constants.OperationStartTimeKeyPostfix
+	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=fabric.symphony,resources=targets,verbs=get;list;watch;create;update;patch;delete
@@ -135,7 +135,7 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *TargetReconciler) populateProvisioningError(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {
-	errorObj.Code = "AIO Orchestrator: [500]"
+	errorObj.Code = "Symphony Orchestrator: [500]"
 	if summaryResult != nil {
 		summary := summaryResult.Summary
 

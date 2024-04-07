@@ -180,29 +180,31 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&solution_v1.Instance{}).
 		WithEventFilter(predicate.Or(generationChange, annotationChange)).
 		Watches(&source.Kind{Type: &solution_v1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
-			func(obj client.Object) []ctrl.Request {
-				ret := make([]ctrl.Request, 0)
-				solObj := obj.(*solution_v1.Solution)
-				var instances solution_v1.InstanceList
-				options := []client.ListOption{
-					client.InNamespace(solObj.Namespace),
-					client.MatchingFields{"spec.solution": solObj.Name},
-				}
-				error := r.List(context.Background(), &instances, options...)
-				if error != nil {
-					log.Log.Error(error, "Failed to list instances")
-					return ret
-				}
-
-				for _, instance := range instances.Items {
-					ret = append(ret, ctrl.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      instance.Name,
-							Namespace: instance.Namespace,
-						},
-					})
-				}
-				return ret
-			})).
+			r.handleSolution)).
 		Complete(r)
+}
+
+func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
+	ret := make([]ctrl.Request, 0)
+	solObj := obj.(*solution_v1.Solution)
+	var instances solution_v1.InstanceList
+	options := []client.ListOption{
+		client.InNamespace(solObj.Namespace),
+		client.MatchingFields{"spec.solution": solObj.Name},
+	}
+	error := r.List(context.Background(), &instances, options...)
+	if error != nil {
+		log.Log.Error(error, "Failed to list instances")
+		return ret
+	}
+
+	for _, instance := range instances.Items {
+		ret = append(ret, ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+			},
+		})
+	}
+	return ret
 }

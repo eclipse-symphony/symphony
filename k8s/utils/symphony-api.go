@@ -219,7 +219,13 @@ func CreateSymphonyDeploymentFromTarget(target fabric_v1.Target, namespace strin
 		return apimodel.DeploymentSpec{}, err
 	}
 
-	return api_utils.CreateSymphonyDeploymentFromTarget(targetState, namespace)
+	var ret apimodel.DeploymentSpec
+	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(targetState, namespace)
+	ret.Hash = HashObjects(DeploymentResources{
+		TargetCandidates: []fabric_v1.Target{target},
+	})
+
+	return ret, err
 }
 
 func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance, solution solution_v1.Solution, targets []fabric_v1.Target, objectNamespace string) (apimodel.DeploymentSpec, error) {
@@ -241,5 +247,13 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 		}
 	}
 
-	return api_utils.CreateSymphonyDeployment(instanceState, solutionState, targetStates, nil, objectNamespace)
+	var ret apimodel.DeploymentSpec
+	ret, err = api_utils.CreateSymphonyDeployment(instanceState, solutionState, targetStates, nil, objectNamespace)
+	ret.Hash = HashObjects(DeploymentResources{
+		Instance:         instance,
+		Solution:         solution,
+		TargetCandidates: targets,
+	})
+
+	return ret, err
 }
