@@ -9,3 +9,9 @@ Symphony has a built-in workflow engine that captures complex operational workfl
 ## Fundamentals
 
 * [Defining and running a workflow](./define-campaigns.md)
+
+## Stage Processors 
+
+## Advanced
+
+* [Stage isolation with provider proxy](./provider-proxy.md)
