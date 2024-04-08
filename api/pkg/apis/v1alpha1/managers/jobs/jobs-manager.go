@@ -487,6 +487,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "deployment":
+			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
+			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
+
 			deployment, err := model.ToDeployment(job.Data)
 			if err != nil {
 				return err

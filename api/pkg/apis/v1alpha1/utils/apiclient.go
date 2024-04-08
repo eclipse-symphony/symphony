@@ -391,9 +391,11 @@ func (a *apiClient) GetSummary(id string, namespace string) (*model.SummaryResul
 		return nil, err
 	}
 
+	log.Infof("apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
 	ret, err := a.callRestAPI("solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
+		log.Infof("apiClient.GetSummary: Not found")
 		return nil, v1alpha2.NewCOAError(nil, "Not found", v1alpha2.NotFound)
 	}
 
@@ -401,6 +403,7 @@ func (a *apiClient) GetSummary(id string, namespace string) (*model.SummaryResul
 		return nil, err
 	}
 	if ret != nil {
+		log.Infof("apiClient.GetSummary: ret: %s", string(ret))
 		err = json.Unmarshal(ret, &result)
 		if err != nil {
 			return nil, err
@@ -422,6 +425,7 @@ func (a *apiClient) QueueDeploymentJob(namespace string, isDelete bool, deployme
 		return err
 	}
 	payload, err = json.Marshal(deployment)
+	log.Infof("apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
 	if err != nil {
 		return err
 	}

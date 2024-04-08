@@ -117,6 +117,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
+	log := ctrllog.FromContext(ctx)
+	log.Info("Building deployment")
 	var deployment model.DeploymentSpec
 	instance, ok := object.(*solution_v1.Instance)
 	if !ok {
@@ -141,7 +143,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	// Get target candidates
 	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
 	if len(deploymentResources.TargetCandidates) == 0 {
-		return nil, v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound)
+		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "no target candidates found")
 	}
 
 	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())

@@ -297,7 +297,7 @@ func BuildDefaultInstance() *solution_v1.Instance {
 			APIVersion: solution_v1.GroupVersion.String(),
 		},
 		Spec: k8smodel.InstanceSpec{
-			Target: k8smodel.TargetSelector{
+			Target: model.TargetSelector{
 				Name: DefaultTargetNamepsacedName.Name,
 			},
 			Solution: DefaultSolutionNamespacedName.Name,

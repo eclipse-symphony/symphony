@@ -147,7 +147,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	if time.Since(startTime) > timeout && !utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 		if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 			terminalErr: v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut),
-		}); err != nil {
+		}, log); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
@@ -160,17 +160,17 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			// updates the object status to reconciling
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
 				nonTerminalErr: err,
-			}); err != nil {
+			}, log); err != nil {
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 			return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
 			if err := r.queueDeploymentJob(ctx, object, false, false, operationStartTimeKey); err != nil {
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err)
+				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
 			}
 
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}); err != nil {
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
@@ -186,7 +186,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		// a previous revision, so we'll only make sure the status is Non-terminal
 		// But if they are the same, it's currently reconciling this generatation
 		// we'll update the status and also the current progress. Either way, we'll check back in POLL seconds
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}); err != nil {
+		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 		return metrics.DeploymentStatusPolled, ctrl.Result{RequeueAfter: r.pollInterval}, nil
@@ -196,19 +196,19 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		// api, if the api is currently busy reconciling a different object, it will successfully queue this job but
 		// the api would not send a summary object back. This means we might queue multiple jobs for the same generation
 		// but it's better than not queueing a job at all.
-		if !r.hasParity(ctx, object, summary) {
+		if !r.hasParity(ctx, object, summary, log) {
 			if err = r.queueDeploymentJob(ctx, object, false, true, operationStartTimeKey); err != nil {
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err)
+				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
 			}
 
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}); err != nil {
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 
 		// There's parity, so we should update the status to a terminal state and proceed based on the reconcile policy
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}); err != nil {
+		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 
@@ -223,10 +223,10 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		// else we should queue a reconciliation and check back in the difference between the summary time and the current time
 		if time.Since(summary.Time) > reconciliationInterval {
 			if err = r.queueDeploymentJob(ctx, object, false, true, operationStartTimeKey); err != nil {
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err)
+				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
 			}
 
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}); err != nil {
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
@@ -252,7 +252,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		// so that ARM can sycnchroniize the failure
 		r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 			terminalErr: v1alpha2.NewCOAError(nil, "failed to completely delete the resource within the allocated time", v1alpha2.TimedOut),
-		})
+		}, log)
 		r.delayFunc(r.deleteSyncDelay)
 		return metrics.DeploymentTimedOut, ctrl.Result{}, r.concludeDeletion(ctx, object)
 	}
@@ -261,7 +261,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 	summary, err := r.getDeploymentSummary(object)
 	// If there was an error and it was not a 404, we should update the status and return the error so the reconciler can retry
 	if err != nil && !v1alpha2.IsNotFound(err) {
-		if _, uErr := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{nonTerminalErr: err}); uErr != nil {
+		if _, uErr := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{nonTerminalErr: err}, log); uErr != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, uErr
 		}
 		return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
@@ -270,9 +270,9 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 	// Since the summary is not found, we should queue a job and check back in POLL seconds
 	if err != nil {
 		if err = r.queueDeploymentJob(ctx, object, true, false, operationStartTimeKey); err != nil {
-			return r.handleDeleteDeploymentError(ctx, object, summary, err)
+			return r.handleDeleteDeploymentError(ctx, object, summary, err, log)
 		}
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}); err != nil {
+		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
@@ -287,7 +287,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		// a previous revision, so we'll only make sure the status is Non-terminal
 		// But if they are the same, it's currently reconciling this generatation
 		// we'll update the status and also the current progress. Either way, we'll check back in POLL seconds
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}); err != nil {
+		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 		return metrics.DeploymentStatusPolled, ctrl.Result{RequeueAfter: r.pollInterval}, nil
@@ -297,20 +297,20 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		// api, if the api is currently busy reconciling a different object, it will successfully queue this job but
 		// the api would not send a summary object back. This means we might queue multiple jobs for the same generation
 		// but it's better than not queueing a job at all.
-		if !r.hasParity(ctx, object, summary) {
+		if !r.hasParity(ctx, object, summary, log) {
 			if err = r.queueDeploymentJob(ctx, object, true, true, operationStartTimeKey); err != nil {
-				return r.handleDeleteDeploymentError(ctx, object, summary, err)
+				return r.handleDeleteDeploymentError(ctx, object, summary, err, log)
 			}
 
 			// We've queued a job so we should update the status and check back in POLL seconds
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}); err != nil {
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 
 		// There's parity, so we should update the status to a terminal state and conclude the deletion
-		_, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{})
+		_, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log)
 		if err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
@@ -327,7 +327,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 	}
 }
 
-func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, reconcileInterval time.Duration, err error) (metrics.OperationStatus, ctrl.Result, error) {
+func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
 	patchOptions := patchStatusOptions{}
 	if isTermnalError(err, termialErrors) {
 		patchOptions.terminalErr = err
@@ -336,7 +336,7 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	}
 
 	// update the object status
-	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions); err != nil {
+	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions, log); err != nil {
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
 
@@ -347,7 +347,7 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	}
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
-func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error) (metrics.OperationStatus, ctrl.Result, error) {
+func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
 	patchOptions := patchStatusOptions{}
 	if isTermnalError(err, termialErrors) {
 		patchOptions.terminalErr = err
@@ -356,7 +356,7 @@ func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, 
 	}
 
 	// update the object status
-	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions); err != nil {
+	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions, log); err != nil {
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
 
@@ -377,11 +377,15 @@ func (r *DeploymentReconciler) concludeDeletion(ctx context.Context, object Reco
 	return nil
 }
 
-func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilable, summary *model.SummaryResult) bool {
+func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilable, summary *model.SummaryResult, log logr.Logger) bool {
 	if object == nil || summary == nil { // we don't expect any of these to be nil
 		return false
 	}
-	return r.generationMatch(object, summary) && r.operationTypeMatch(object, summary) && r.deploymentHashMatch(ctx, object, summary)
+	generationMatch := r.generationMatch(object, summary)
+	operationTypeMatch := r.operationTypeMatch(object, summary)
+	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
+	log.Info(fmt.Sprintf("CheckParity: generationMatch: %t, operationTypeMatch: %t, deploymentHashMatch: %t", generationMatch, operationTypeMatch, deploymentHashMatch))
+	return generationMatch && operationTypeMatch && deploymentHashMatch
 }
 
 func (r *DeploymentReconciler) generationMatch(object Reconcilable, summary *model.SummaryResult) bool {
@@ -462,14 +466,14 @@ func (r *DeploymentReconciler) ensureOperationState(annotations map[string]strin
 	objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
 }
 
-func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions) (provisioningState string, err error) {
-	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts)
+func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) (provisioningState string, err error) {
+	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
 
-	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts)
-	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus)
-	r.updateProvisioningStatus(ctx, object, summaryResult, status, nextStatus, opts)
+	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
+	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
+	r.updateProvisioningStatus(ctx, object, summaryResult, status, nextStatus, opts, log)
 
 	if reflect.DeepEqual(&originalStatus, nextStatus) {
 		return string(status), nil
@@ -479,13 +483,13 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	return string(status), r.kubeClient.Status().Update(context.Background(), object)
 }
 
-func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions) utilsmodel.ProvisioningStatus {
+func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) utilsmodel.ProvisioningStatus {
 	if opts.terminalErr != nil {
 		// add more details of the terminal error to the status
 		return utilsmodel.ProvisioningStatusFailed
 	}
 
-	if opts.nonTerminalErr != nil || summaryResult == nil || !r.hasParity(ctx, object, summaryResult) || opts.deploymentQueued {
+	if opts.nonTerminalErr != nil || summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) || opts.deploymentQueued {
 		return utilsmodel.GetNonTerminalStatus(object)
 	}
 
@@ -505,7 +509,7 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 	}
 }
 
-func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions) {
+func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
 	if objectStatus.Properties == nil {
 		objectStatus.Properties = make(map[string]string)
 	}
@@ -523,7 +527,7 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		return
 	}
 
-	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult) {
+	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
 		objectStatus.Properties["deployed"] = "pending"
 		objectStatus.Properties["targets"] = "pending"
 		objectStatus.Properties["status-details"] = ""
@@ -539,7 +543,7 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 	objectStatus.Properties["status-details"] = summary.SummaryMessage
 }
 
-func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus) {
+func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
 	if objectStatus.Properties == nil {
 		return
 	}
@@ -552,7 +556,7 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 			objectStatus.Properties[k] = v1alpha2.Untouched.String()
 		}
 	}
-	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult) {
+	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
 		return
 	}
 	summary := summaryResult.Summary
@@ -566,7 +570,7 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	}
 }
 
-func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions) {
+func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
 	// THIS IS A HACK. to align with legacy expectations, we need to concatenate
 	// the status with the non-terminal error message. This is not ideal and should
 	// be removed in the future
@@ -595,7 +599,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		return
 	}
 
-	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult) {
+	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
 		return
 	}
 	summary := summaryResult.Summary

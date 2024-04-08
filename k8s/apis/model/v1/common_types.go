@@ -74,9 +74,9 @@ type InstanceSpec struct {
 	Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
 	Metadata    map[string]string            `json:"metadata,omitempty"`
 	Solution    string                       `json:"solution"`
-	Target      TargetSelector               `json:"target,omitempty"`
-	Topologies  []TopologySpec               `json:"topologies,omitempty"`
-	Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
+	Target      model.TargetSelector         `json:"target,omitempty"`
+	Topologies  []model.TopologySpec         `json:"topologies,omitempty"`
+	Pipelines   []model.PipelineSpec         `json:"pipelines,omitempty"`
 	Arguments   map[string]map[string]string `json:"arguments,omitempty"`
 	Generation  string                       `json:"generation,omitempty"`
 	// Defines the version of a particular resource
@@ -86,36 +86,6 @@ type InstanceSpec struct {
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
-}
-
-// TopologySpec defines the desired device topology the instance
-// +kubebuilder:object:generate=true
-type TopologySpec struct {
-	Device   string            `json:"device,omitempty"`
-	Selector map[string]string `json:"selector,omitempty"`
-	Bindings []BindingSpec     `json:"bindings,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type BindingSpec struct {
-	Role     string            `json:"role"`
-	Provider string            `json:"provider"`
-	Config   map[string]string `json:"config,omitempty"`
-}
-
-// TargertRefSpec defines the target the instance will deploy to
-// +kubebuilder:object:generate=true
-type TargetSelector struct {
-	Name     string            `json:"name,omitempty"`
-	Selector map[string]string `json:"selector,omitempty"`
-}
-
-// PipelineSpec defines the desired pipeline of the instance
-// +kubebuilder:object:generate=true
-type PipelineSpec struct {
-	Name       string            `json:"name"`
-	Skill      string            `json:"skill"`
-	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
