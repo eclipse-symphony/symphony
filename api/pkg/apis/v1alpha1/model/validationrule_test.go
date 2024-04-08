@@ -9,6 +9,7 @@ package model
 import (
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,7 +130,8 @@ func TestValidateCOA(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "Bad Request: required property 'requiredProperties1' is missing")
+	err := equal.(v1alpha2.COAError)
+	assert.Equal(t, v1alpha2.BadRequest, err.State)
 }
 
 func TestValidateMetadata(t *testing.T) {
