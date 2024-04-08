@@ -8,6 +8,8 @@ package solution
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
@@ -133,17 +135,17 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	}
 
 	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
-		return nil, v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed)
+		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
 	// Get targets
 	if err := r.List(ctx, &deploymentResources.TargetList, client.InNamespace(instance.Namespace)); err != nil {
-		return nil, v1alpha2.NewCOAError(err, "failed to list targets", v1alpha2.TargetListGetFailed)
+		log.Error(v1alpha2.NewCOAError(err, "failed to list targets", v1alpha2.TargetListGetFailed), "proceed with no targets found")
 	}
 
 	// Get target candidates
 	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
 	if len(deploymentResources.TargetCandidates) == 0 {
-		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "no target candidates found")
+		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "proceed with no target candidates found")
 	}
 
 	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
@@ -183,7 +185,45 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.Or(generationChange, annotationChange)).
 		Watches(&source.Kind{Type: &solution_v1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
 			r.handleSolution)).
+		Watches(&source.Kind{Type: &fabric_v1.Target{}}, handler.EnqueueRequestsFromMapFunc(
+			r.handleTarget)).
 		Complete(r)
+}
+
+func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
+	ret := make([]ctrl.Request, 0)
+	tarObj := obj.(*fabric_v1.Target)
+	var instances solution_v1.InstanceList
+
+	options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
+	err := r.List(context.Background(), &instances, options...)
+	if err != nil {
+		log.Log.Error(err, "Failed to list instances")
+		return ret
+	}
+
+	targetList := fabric_v1.TargetList{}
+	targetList.Items = append(targetList.Items, *tarObj)
+
+	updatedInstanceNames := make([]string, 0)
+	for _, instance := range instances.Items {
+		targetCandidates := utils.MatchTargets(instance, targetList)
+		if len(targetCandidates) > 0 {
+			ret = append(ret, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      instance.Name,
+					Namespace: instance.Namespace,
+				},
+			})
+			updatedInstanceNames = append(updatedInstanceNames, instance.Name)
+		}
+	}
+
+	if len(ret) > 0 {
+		log.Log.Info(fmt.Sprintf("Watched target %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", tarObj.Name, tarObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+	}
+
+	return ret
 }
 
 func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
@@ -200,6 +240,7 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 		return ret
 	}
 
+	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
 		ret = append(ret, ctrl.Request{
 			NamespacedName: types.NamespacedName{
@@ -207,6 +248,12 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 				Namespace: instance.Namespace,
 			},
 		})
+		updatedInstanceNames = append(updatedInstanceNames, instance.Name)
 	}
+
+	if len(ret) > 0 {
+		log.Log.Info(fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solObj.Name, solObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+	}
+
 	return ret
 }

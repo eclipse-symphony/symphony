@@ -119,6 +119,9 @@ var _ = Describe("Instance controller", Ordered, func() {
 				BeforeEach(func(ctx context.Context) {
 					By("deleting the solution")
 					Expect(kubeClient.Delete(ctx, solution)).To(Succeed())
+
+					By("mocking a successful deployment to the api")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				})
 
 				BeforeEach(func() {
@@ -130,30 +133,33 @@ var _ = Describe("Instance controller", Ordered, func() {
 					Expect(instance.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
 				})
 
-				It("should requeue as soon as possible due to error", func() {
-					Expect(reconcileError).To(HaveOccurred())
+				It("should requeue without error", func() {
+					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 			})
 
-			// Context("and the target is not present in the cluster", func() {
-			// 	BeforeEach(func(ctx context.Context) {
-			// 		By("deleting the target")
-			// 		Expect(kubeClient.Delete(ctx, target)).To(Succeed())
-			// 	})
+			Context("and the target is not present in the cluster", func() {
+				BeforeEach(func(ctx context.Context) {
+					By("deleting the target")
+					Expect(kubeClient.Delete(ctx, target)).To(Succeed())
+				})
 
-			// 	BeforeEach(func() {
-			// 		By("mocking the get summary call to return a not found error")
-			// 		apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
-			// 	})
+				BeforeEach(func() {
+					By("mocking the get summary call to return a not found error")
+					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
-			// 	It("should have a status of Reconciling", func() {
-			// 		Expect(instance.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
-			// 	})
+					By("mocking a successful deployment to the api")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				})
 
-			// 	It("should requeue as soon as possible due to error", func() {
-			// 		Expect(reconcileError).To(HaveOccurred())
-			// 	})
-			// })
+				It("should have a status of Reconciling", func() {
+					Expect(instance.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
+				})
+
+				It("should requeue without error", func() {
+					Expect(reconcileError).NotTo(HaveOccurred())
+				})
+			})
 		})
 
 		When("the instance is not found", func() {
@@ -257,6 +263,20 @@ var _ = Describe("Instance controller", Ordered, func() {
 			BeforeEach(func(ctx context.Context) {
 				By("simulating a call to the handleSolution function")
 				requests = controller.handleSolution(solution)
+			})
+
+			It("should return a request for the instance", func() {
+				Expect(requests).To(ContainElement(ctrl.Request{NamespacedName: DefaultInstanceNamespacedName}))
+			})
+		})
+	})
+
+	Describe("Target Events", func() {
+		When("the target referenced by the instance is changed", func() {
+			var requests []ctrl.Request
+			BeforeEach(func(ctx context.Context) {
+				By("simulating a call to the handleTarget function")
+				requests = controller.handleTarget(target)
 			})
 
 			It("should return a request for the instance", func() {
