@@ -229,6 +229,10 @@ spec:
             properties:
               generation:
                 type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
               name:
                 type: string
               objectRef:
@@ -268,10 +272,6 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               siteId:
                 type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
               type:
                 type: string
             required:
