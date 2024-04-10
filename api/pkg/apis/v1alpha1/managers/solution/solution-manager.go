@@ -498,7 +498,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		summary.SuccessCount = summary.TargetCount
 	}
 
-	s.saveSummary(iCtx, deployment, summary, namespace)
+	s.concludeSummary(iCtx, deployment, summary, namespace)
 
 	return summary, nil
 }
