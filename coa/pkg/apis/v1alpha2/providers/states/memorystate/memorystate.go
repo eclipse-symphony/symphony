@@ -274,7 +274,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 										if metadata["labels"] != nil {
 											labels, ok := metadata["labels"].(map[string]interface{})
 											if ok {
-												match, err := simulateK8sFilter(labels, request.FilterValue)
+												var match bool
+												match, err = simulateK8sFilter(labels, request.FilterValue)
 												if err != nil {
 													return entities, "", err
 												}
@@ -286,7 +287,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 									}
 								}
 							case "field":
-								match, err := simulateK8sFilter(dict, request.FilterValue)
+								var match bool
+								match, err = simulateK8sFilter(dict, request.FilterValue)
 								if err != nil {
 									return entities, "", err
 								}
@@ -313,7 +315,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 								}
 							}
 						}
-						copy, err := s.ReturnDeepCopy(vE)
+						var copy states.StateEntry
+						copy, err = s.ReturnDeepCopy(vE)
 						if err != nil {
 							err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", vE.ID), v1alpha2.InternalError)
 							sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -412,7 +415,8 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	}
 	vE, ok := entry.(states.StateEntry)
 	if ok {
-		copy, err := s.ReturnDeepCopy(vE)
+		var copy states.StateEntry
+		copy, err = s.ReturnDeepCopy(vE)
 		if err != nil {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", request.ID), v1alpha2.InternalError)
 			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
