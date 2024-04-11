@@ -20,6 +20,43 @@ func TestInit(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestConfigData tests the ConfigData function
+func TestConfigData(t *testing.T) {
+	provider := MockReferenceProvider{}
+	err := provider.Init(MockReferenceProviderConfig{
+		Name: "test",
+	})
+	assert.Nil(t, err)
+	id := provider.ID()
+	assert.Equal(t, "test", id)
+	targetID := provider.TargetID()
+	assert.Equal(t, "mock-target", targetID)
+	referenceType := provider.ReferenceType()
+	assert.Equal(t, "mock", referenceType)
+	err = provider.Reconfigure(MockReferenceProviderConfig{})
+	assert.Nil(t, err)
+}
+
+// TestCloneWithEmptyConfig	tests the Clone function with an empty config
+func TestCloneWithEmptyConfig(t *testing.T) {
+	provider := MockReferenceProvider{}
+	_, err := provider.Clone(MockReferenceProviderConfig{})
+	assert.Nil(t, err)
+}
+
+// TestClone tests the Clone function
+func TestClone(t *testing.T) {
+	provider := MockReferenceProvider{}
+	config := MockReferenceProviderConfig{
+		Values: map[string]interface{}{
+			"abc": "def",
+		},
+	}
+	_, err := provider.Clone(config)
+	assert.Nil(t, err)
+}
+
+// TestGetValidKey tests the Get function with a valid key
 func TestGetValidKey(t *testing.T) {
 	provider := MockReferenceProvider{}
 	err := provider.Init(MockReferenceProviderConfig{

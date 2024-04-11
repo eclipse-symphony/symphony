@@ -79,6 +79,10 @@ jobs:
         cd test/localenv/
         mage build:all
         mage cluster:up
+    
+    - name: Go work init
+      run: |
+        mv go.work.bk go.work
 
     - name: Run integration tests 00
       run: |

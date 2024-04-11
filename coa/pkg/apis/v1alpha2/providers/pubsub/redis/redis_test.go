@@ -8,6 +8,7 @@ package redis
 
 import (
 	"encoding/json"
+
 	"os"
 	"testing"
 	"time"

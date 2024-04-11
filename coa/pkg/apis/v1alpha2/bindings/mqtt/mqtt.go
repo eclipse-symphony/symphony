@@ -91,3 +91,9 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 	return nil
 }
+
+// Shutdown stops the MQTT binding
+func (m *MQTTBinding) Shutdown(ctx context.Context) error {
+	m.MQTTClient.Disconnect(1000)
+	return nil
+}
