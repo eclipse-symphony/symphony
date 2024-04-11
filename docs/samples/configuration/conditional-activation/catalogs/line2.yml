@@ -1,0 +1,9 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line2
+spec:
+  type: config
+  properties:
+    IS_PREMIUM_LINE: false
