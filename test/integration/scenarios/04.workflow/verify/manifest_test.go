@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"dev.azure.com/msazure/One/_git/symphony.git/test/integration/lib/testhelpers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

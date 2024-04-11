@@ -7,11 +7,17 @@
 package v1alpha2
 
 import (
+	"context"
 	"fmt"
 )
 
 // State represents a response state
-type State uint16
+type (
+	State      uint16
+	Terminable interface {
+		Shutdown(ctx context.Context) error
+	}
+)
 
 const (
 	// OK = HTTP 200
@@ -39,6 +45,7 @@ const (
 	FileAccessError State = 4000
 	// Serialization errors
 	SerializationError State = 5000
+	DeserializeError   State = 5001
 	// Async requets
 	DeleteRequested State = 6000
 	// Operation results
@@ -54,6 +61,42 @@ const (
 	Delayed        State = 9997
 	Untouched      State = 9998
 	NotImplemented State = 9999
+
+	// To have clearer metrics/self-explanatory errors, we introduce some
+	// detailed error codes
+	InitFailed                   State = 10000
+	CreateActionConfigFailed     State = 10001
+	HelmActionFailed             State = 10002
+	GetComponentSpecFailed       State = 10003
+	CreateProjectorFailed        State = 10004
+	K8sRemoveServiceFailed       State = 10005
+	K8sRemoveDeploymentFailed    State = 10006
+	K8sDeploymentFailed          State = 10007
+	ReadYamlFailed               State = 10008
+	ApplyYamlFailed              State = 10009
+	ReadResourcePropertyFailed   State = 10010
+	ApplyResourceFailed          State = 10011
+	DeleteYamlFailed             State = 10012
+	DeleteResourceFailed         State = 10013
+	CheckResourceStatusFailed    State = 10014
+	ApplyScriptFailed            State = 10015
+	RemoveScriptFailed           State = 10016
+	YamlResourcePropertyNotFound State = 10017
+	GetHelmPropertyFailed        State = 10018
+	HelmChartPullFailed          State = 10019
+	HelmChartLoadFailed          State = 10020
+	HelmChartApplyFailed         State = 10021
+	HelmChartUninstallFailed     State = 10022
+
+	// instance controller errors
+	SolutionGetFailed             State = 11000
+	TargetCandidatesNotFound      State = 11001
+	TargetListGetFailed           State = 11002
+	ObjectInstanceCoversionFailed State = 11003
+	TimedOut                      State = 11004
+
+	//target controller errors
+	TargetPropertyNotFound State = 12000
 )
 
 func (s State) String() string {
@@ -86,6 +129,8 @@ func (s State) String() string {
 		return "File Access Error"
 	case SerializationError:
 		return "Serialization Error"
+	case DeserializeError:
+		return "De-serialization Error"
 	case DeleteRequested:
 		return "Delete Requested"
 	case UpdateFailed:
@@ -110,25 +155,85 @@ func (s State) String() string {
 		return "Untouched"
 	case NotImplemented:
 		return "Not Implemented"
+	case InitFailed:
+		return "Init Failed"
+	case CreateActionConfigFailed:
+		return "Create Action Config Failed"
+	case HelmActionFailed:
+		return "Helm Action Failed"
+	case GetComponentSpecFailed:
+		return "Get Component Spec Failed"
+	case CreateProjectorFailed:
+		return "Create Projector Failed"
+	case K8sRemoveServiceFailed:
+		return "Remove K8s Service Failed"
+	case K8sRemoveDeploymentFailed:
+		return "Remove K8s Deployment Failed"
+	case K8sDeploymentFailed:
+		return "K8s Deployment Failed"
+	case ReadYamlFailed:
+		return "Read Yaml Failed"
+	case ApplyYamlFailed:
+		return "Apply Yaml Failed"
+	case ReadResourcePropertyFailed:
+		return "Read Resource Property Failed"
+	case ApplyResourceFailed:
+		return "Apply Resource Failed"
+	case DeleteYamlFailed:
+		return "Delete Yaml Failed"
+	case DeleteResourceFailed:
+		return "Delete Resource Failed"
+	case CheckResourceStatusFailed:
+		return "Check Resource Status Failed"
+	case ApplyScriptFailed:
+		return "Apply Script Failed"
+	case RemoveScriptFailed:
+		return "Remove Script Failed"
+	case YamlResourcePropertyNotFound:
+		return "Yaml or Resource Property Not Found"
+	case GetHelmPropertyFailed:
+		return "Get Helm Property Failed"
+	case HelmChartPullFailed:
+		return "Helm Chart Pull Failed"
+	case HelmChartLoadFailed:
+		return "Helm Chart Load Failed"
+	case HelmChartApplyFailed:
+		return "Helm Chart Apply Failed"
+	case HelmChartUninstallFailed:
+		return "Helm Chart Uninstall Failed"
+	case TargetCandidatesNotFound:
+		return "Target does not exist"
+	case SolutionGetFailed:
+		return "Solution does not exist"
+	case TargetListGetFailed:
+		return "Target list does not exist"
+	case ObjectInstanceCoversionFailed:
+		return "Object to Instance conversion failed"
+	case TimedOut:
+		return "Timed Out"
+	case TargetPropertyNotFound:
+		return "Target Property Not Found"
 	default:
 		return fmt.Sprintf("Unknown State: %d", s)
 	}
 }
 
 const (
-	COAMetaHeader          = "COA_META_HEADER"
-	TracingExporterConsole = "tracing.exporters.console"
-	TracingExporterZipkin  = "tracing.exporters.zipkin"
-	ProvidersState         = "providers.state"
-	ProvidersConfig        = "providers.config"
-	ProvidersSecret        = "providers.secret"
-	ProvidersReference     = "providers.reference"
-	ProvidersProbe         = "providers.probe"
-	ProvidersUploader      = "providers.uploader"
-	ProvidersReporter      = "providers.reporter"
-	ProviderQueue          = "providers.queue"
-	ProviderLedger         = "providers.ledger"
-	StatusOutput           = "__status"
-	ErrorOutput            = "__error"
-	StateOutput            = "__state"
+	COAMetaHeader           = "COA_META_HEADER"
+	TracingExporterConsole  = "tracing.exporters.console"
+	MetricsExporterOTLPgRPC = "metrics.exporters.otlpgrpc"
+	TracingExporterZipkin   = "tracing.exporters.zipkin"
+	TracingExporterOTLPgRPC = "tracing.exporters.otlpgrpc"
+	ProvidersState          = "providers.state"
+	ProvidersConfig         = "providers.config"
+	ProvidersSecret         = "providers.secret"
+	ProvidersReference      = "providers.reference"
+	ProvidersProbe          = "providers.probe"
+	ProvidersUploader       = "providers.uploader"
+	ProvidersReporter       = "providers.reporter"
+	ProviderQueue           = "providers.queue"
+	ProviderLedger          = "providers.ledger"
+	StatusOutput            = "__status"
+	ErrorOutput             = "__error"
+	StateOutput             = "__state"
 )

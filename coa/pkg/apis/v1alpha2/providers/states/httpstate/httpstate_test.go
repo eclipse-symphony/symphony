@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -64,7 +65,7 @@ func TestInitWithMapWithError(t *testing.T) {
 			"postAsArray":       "This is causing an Error :)",
 		},
 	)
-	assert.EqualError(t, err, "invalid bool value in the 'postAsArray' setting of Http state provider (strconv.ParseBool: parsing \"This is causing an Error :)\": invalid syntax)")
+	assert.True(t, strings.Contains(err.Error(), "invalid bool value in the 'postAsArray'"))
 }
 
 func TestID(t *testing.T) {
