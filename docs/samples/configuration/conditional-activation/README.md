@@ -6,7 +6,7 @@ There can be sections of configuration that need to be toggled on or off based o
 
 ### Example
 
-#### Prior to Symphony Configuration Management
+#### Prior to Symphony configuration management
 
 `IS_PREMIUM_LINE` will be used in the template to toggle a section on if true, or off if false.
 
@@ -37,7 +37,7 @@ This is an example template that utilizes that variable.
 }
 ```
 
-#### Solving via Symphony Configuration Management
+#### Solving via Symphony configuration management
 
 [Symphony property expressions](../../../symphony-book/concepts/unified-object-model/property-expressions.md#functions) allow for conditional inclusion.  
 

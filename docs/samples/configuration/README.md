@@ -1,6 +1,6 @@
 # Configuration Management Documentation
 
-This directory contains resources and guidelines for managing various degrees of configuration complexity.  It includes examples and detailed instructions for the following scenarios.  Each scenario is a self-contained, deployable example.
+This directory contains resources and guidelines for managing various degrees of configuration complexity.  It includes examples and detailed instructions for the following scenarios.  Each scenario is a self-contained example, deployable to a Kubernetes cluster.
 
 * [Conditional Configuration Activation](./conditional-activation/README.md): This section provides guidance on enabling or disabling specific configuration sections based on a predetermined flag. It explains how to conditionally include sections in the final configuration object, ensuring that only relevant configurations are applied.
 
