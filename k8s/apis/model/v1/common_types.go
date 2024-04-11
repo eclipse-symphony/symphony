@@ -105,9 +105,10 @@ type CampaignSpec struct {
 
 // +kubebuilder:object:generate=true
 type CatalogSpec struct {
-	SiteId string `json:"siteId"`
-	Type   string `json:"type"`
-	Name   string `json:"name"`
+	SiteId   string            `json:"siteId"`
+	Type     string            `json:"type"`
+	Name     string            `json:"name"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties runtime.RawExtension `json:"properties"`
