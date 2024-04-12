@@ -25,7 +25,7 @@ There can be sections of configuration that need to be toggled on or off based o
 }
 ```
 
-This is an example template that utilizes that variable.
+This is an example template that utilizes that variable.  This block is included in the final configuration object only if the variable evaluates to true within the context it is applied.
 
 ```json
 "properties": {
@@ -54,8 +54,12 @@ This is an example template that utilizes that variable.
             line2: ${{$if($config('line2', 'IS_PREMIUM_LINE'), $config('premium',''), '')}}
     ```
 
-1. Deploy the example from the conditional-activation directory: `kubectl apply -f ./ --recursive`
-1. Once the instance has reconciled successfully, view the config map: `kubectl describe configmap conditional-activation-config`
+1. Deploy the example from the conditional-activation directory:
+
+    `kubectl apply -f ./ --recursive`
+1. Once the instance has reconciled successfully, view the config map:
+
+    `kubectl describe configmap conditional-activation-config`
 1. The resulting config map should have premium settings for line 1 only:
 
     ```json

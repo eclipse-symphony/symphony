@@ -78,11 +78,13 @@ As a simple example of this problem, there are two regions which each have a "Ta
             tags: ${{$config('shared-tags', 'tags') $$config('region1-tags', 'tags')}}
     ```
 
-1. Deploy the example from the array-merging directory: `kubectl apply -f ./ --recursive`
+1. Deploy the example from the array-merging directory:
+
+    `kubectl apply -f ./ --recursive`
 1. Once the instance has reconciled successfully, view the config map:
 
     `kubectl describe configmap merged-config-region1`
-   
+
     `kubectl describe configmap merged-config-region2`
 1. The resulting config map for each region should have a tags array that contains the shared segment tags and the region specific tags.
 
