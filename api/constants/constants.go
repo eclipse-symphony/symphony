@@ -34,7 +34,7 @@ SOFTWARE`
 	DefaultScope = "default"
 	SATokenPath  = "/var/run/secrets/tokens/symphony-api-token"
 	// These constants need to be in a shared package.
-	GroupPrefix     = "iotoperations.azure.com"
+	GroupPrefix     = "symphony"
 	ManagerMetaKey  = GroupPrefix + "/managed-by"
 	InstanceMetaKey = GroupPrefix + "/instance"
 )
