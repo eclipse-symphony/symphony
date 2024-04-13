@@ -149,7 +149,7 @@ func docCfg() (func(), error) {
 
 // Test runs the unit tests.
 func Test() error {
-	return shellcmd.Command(`go test -race -timeout 35s -cover ./...`).Run()
+	return shellcmd.Command(`go test -race -timeout 35s -cover -coverprofile=coverage.out ./...`).Run()
 }
 
 // TestRace runs unit tests without the test cache.
@@ -157,7 +157,7 @@ func Test() error {
 func TestRace() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 35s -cover ./...`,
+		`go test -race -timeout 35s -cover -coverprofile=coverage.out ./...`,
 	)
 }
 
@@ -165,7 +165,7 @@ func TestRace() error {
 func CleanTest() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 35s -cover ./...`,
+		`go test -race -timeout 35s -coverprofile=coverage.out ./...`,
 	)
 }
 
@@ -180,7 +180,7 @@ func PrintCoverage() error {
 		return fmt.Errorf("coverage file (%s) does not exist", file)
 	}
 	// print test coverage count
-	return shellExec(fmt.Sprintf(`go tool cover -func=%s | grep total: | grep -Eo '[0-9]+\.[0-9]+'`, file))
+	return shellExec(fmt.Sprintf(`go tool cover -func=%s | grep total: | grep -Eo '[0-9]+\.[0-9]+'`, file), false)
 }
 
 // Cover checks code coverage from unit tests.
@@ -210,7 +210,7 @@ func UnitTest() error {
 		mg.Deps(ensureGoJUnit)
 		bld.WriteString(" 2>&1 | bin/go-junit-report -set-exit-code -iocopy -out junit-unit-tests.xml")
 	}
-	err := shellExec(bld.String())
+	err := shellExec(bld.String(), true)
 	if err != nil {
 		return err
 	}
@@ -311,8 +311,10 @@ func DockerBuild() error {
 }
 
 // Run a command with | or other things that do not work in shellcmd
-func shellExec(cmd string) error {
-	fmt.Println(">", cmd)
+func shellExec(cmd string, printCmdOrNot bool) error {
+	if printCmdOrNot {
+		fmt.Println(">", cmd)
+	}
 
 	execCmd := exec.Command("sh", "-c", cmd)
 	execCmd.Stdout = os.Stdout
