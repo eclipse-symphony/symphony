@@ -5,9 +5,9 @@ name: integration
 
 on:
   push:
-    branches: [ "main", "adomerge_staging" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "adomerge_staging" ]
+    branches: [ "main" ]
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"

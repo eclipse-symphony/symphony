@@ -5,9 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "main", "adomerge_staging" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "adomerge_staging" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
