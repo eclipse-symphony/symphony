@@ -23,6 +23,15 @@ type PropertyDesc struct {
 	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
 	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
+type ComponentValidationRule struct {
+	RequiredComponentType     string         `json:"requiredType"`
+	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
+	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
+	RequiredProperties        []string       `json:"requiredProperties"`
+	OptionalProperties        []string       `json:"optionalProperties"`
+	RequiredMetadata          []string       `json:"requiredMetadata"`
+	OptionalMetadata          []string       `json:"optionalMetadata"`
+}
 type ValidationRule struct {
 	RequiredComponentType   string                  `json:"requiredType"`
 	ComponentValidationRule ComponentValidationRule `json:"componentValidationRule,omitempty"`
@@ -34,15 +43,6 @@ type ValidationRule struct {
 	ScopeIsolation bool `json:"supportScopes,omitempty"`
 	// a provider that supports instance isolation can deploy multiple instances on the same target without conflicts.
 	InstanceIsolation bool `json:"instanceIsolation,omitempty"`
-}
-type ComponentValidationRule struct {
-	RequiredComponentType     string         `json:"requiredType"`
-	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
-	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
-	RequiredProperties        []string       `json:"requiredProperties"`
-	OptionalProperties        []string       `json:"optionalProperties"`
-	RequiredMetadata          []string       `json:"requiredMetadata"`
-	OptionalMetadata          []string       `json:"optionalMetadata"`
 }
 
 func (v ValidationRule) ValidateInputs(inputs map[string]interface{}) error {

@@ -18,7 +18,6 @@ type (
 
 	SolutionSpec struct {
 		DisplayName string            `json:"displayName,omitempty"`
-		Scope       string            `json:"scope,omitempty"`
 		Metadata    map[string]string `json:"metadata,omitempty"`
 		Components  []ComponentSpec   `json:"components,omitempty"`
 	}
@@ -31,10 +30,6 @@ func (c SolutionSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.DisplayName != otherC.DisplayName {
-		return false, nil
-	}
-
-	if c.Scope != otherC.Scope {
 		return false, nil
 	}
 

@@ -206,6 +206,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 		log.Debugf("failed to report target status: %s", err.Error())
 		ret = append(ret, err)
 	}
+
 	return ret
 }
 func (s *TargetManager) Reconcil() []error {
