@@ -65,24 +65,6 @@ func ensureDocumenter() error {
 	return documenter.Ensure()
 }
 
-// EnsureAllTools checks to see if a valid version of the needed tools are
-// installed, and downloads/installs them if not.
-func EnsureAllTools() error {
-	if err := ensureFormatter(); err != nil {
-		return err
-	}
-
-	if err := ensureLinter(); err != nil {
-		return err
-	}
-
-	if err := ensureDocumenter(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ensureGinkgo() error {
 	return ginkgo.Ensure()
 }
@@ -93,7 +75,7 @@ func ensureGoJUnit() error {
 
 // EnsureAllTools checks to see if a valid version of the needed tools are
 // installed, and downloads/installs them if not.
-func EnsureAllTools2() error {
+func EnsureAllTools() error {
 	mg.Deps(ensureFormatter, ensureLinter, ensureDocumenter, ensureGinkgo, ensureGoJUnit)
 
 	return nil
@@ -187,6 +169,20 @@ func CleanTest() error {
 	)
 }
 
+// Retrieve the test coverage count from coverage.out file.
+func PrintCoverage() error {
+	file := "coverage.out"
+
+	// check if coverage file exists
+	_, err := os.Stat(file)
+	if err != nil {
+		// throw error if coverage file does not exist
+		return fmt.Errorf("coverage file (%s) does not exist", file)
+	}
+	// print test coverage count
+	return shellExec(fmt.Sprintf(`go tool cover -func=%s | grep total: | grep -Eo '[0-9]+\.[0-9]+'`, file))
+}
+
 // Cover checks code coverage from unit tests.
 func Cover(file string) error {
 	return shellcmd.RunAll(
@@ -198,7 +194,7 @@ func Cover(file string) error {
 }
 
 // Test runs both unit and suite tests.
-func Test2() error {
+func RunUnitTestAndSuiteTest() error {
 	mg.SerialDeps(UnitTest, SuiteTest)
 	return nil
 }

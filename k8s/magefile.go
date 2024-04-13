@@ -60,7 +60,7 @@ func Generate() error {
 	)
 }
 
-// Run tests.
+// Run suites and unit tests in k8s.
 func OperatorTest() error {
 	mg.Deps(ensureEnvTest)
 	assets, err := envTest.Command(fmt.Sprintf("use %s -p path", EnvTestK8sVersion)).Output()
@@ -69,7 +69,21 @@ func OperatorTest() error {
 	}
 	os.Setenv("KUBEBUILDER_ASSETS", string(assets))
 
-	return base.Test2()
+	return base.RunUnitTestAndSuiteTest()
+}
+
+// Run unit tests in k8s.
+func OperatorUnitTest() error {
+	mg.Deps(ensureEnvTest)
+
+	assets, err := envTest.Command(fmt.Sprintf("use %s -p path", EnvTestK8sVersion)).Output()
+	if err != nil {
+		return err
+	}
+
+	os.Setenv("KUBEBUILDER_ASSETS", string(assets))
+
+	return base.UnitTest()
 }
 
 // Build manager binary.
