@@ -113,7 +113,8 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 		_, err := p.Apply(context.Background(), deployment, step, true)
 		assert.NotNil(t, err)
 		coaErr := err.(v1alpha2.COAError)
-		assert.Equal(t, v1alpha2.BadRequest, coaErr.State)
+		condition := coaErr.State == v1alpha2.BadRequest || coaErr.State == v1alpha2.ValidateFailed
+		assert.True(t, condition, "Expected coaErr.State to be either BadRequest or ValidateFailed, but got %v", coaErr.State)
 	}
 }
 func ConformanceSuite[P target.ITargetProvider](t *testing.T, p P) {

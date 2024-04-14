@@ -1,7 +1,7 @@
 /*
- * Copyright (c) Microsoft Corporation.
- * Licensed under the MIT license.
- * SPDX-License-Identifier: MIT
+* Copyright (c) Microsoft Corporation.
+* Licensed under the MIT license.
+* SPDX-License-Identifier: MIT
  */
 
 package vendors
@@ -9,7 +9,9 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -88,7 +90,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		namespace = "default"
+		namespace = constants.DefaultScope
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -130,7 +132,29 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		defer span.End()
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
+		objectType := request.Parameters["objectType"]
 		target := request.Parameters["target"]
+
+		if objectType == "" { // For backward compatibility
+			objectType = "instance"
+		}
+
+		if target == "true" {
+			objectType = "target"
+		}
+
+		if objectType == "deployment" {
+			deployment, err := model.ToDeployment(request.Body)
+			if err != nil {
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State:       v1alpha2.DeserializeError,
+					ContentType: "application/json",
+					Body:        []byte(fmt.Sprintf(`{"result":"%s"}`, err.Error())),
+				})
+			}
+			instance = deployment.Instance.Spec.Name
+		}
+
 		if instance == "" {
 			sLog.Infof("V (Solution): onQueue failed - 400 instance parameter is not found, traceId: %s", span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -143,18 +167,16 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if delete == "true" {
 			action = v1alpha2.JobDelete
 		}
-		objType := "instance"
-		if target == "true" {
-			objType = "target"
-		}
 		c.Vendor.Context.Publish("job", v1alpha2.Event{
 			Metadata: map[string]string{
-				"objectType": objType,
+				"objectType": objectType,
 				"namespace":  namespace,
 			},
 			Body: v1alpha2.JobData{
 				Id:     instance,
+				Scope:  namespace,
 				Action: action,
+				Data:   request.Body,
 			},
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -179,7 +201,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 	sLog.Infof("V (Solution): onReconcile, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		namespace = "default"
+		namespace = constants.DefaultScope
 	}
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -233,7 +255,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 	sLog.Infof("V (Solution): onApplyDeployment %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		namespace = "default"
+		namespace = constants.DefaultScope
 	}
 	targetName := ""
 	if request.Metadata != nil {

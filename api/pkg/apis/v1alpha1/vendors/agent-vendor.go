@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -134,7 +135,7 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	defer span.End()
 	log.Infof("V (Agent): doGet with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
 
-	var namespace = "default"
+	var namespace = constants.DefaultScope
 	var kind = ""
 	var ref = ""
 	var group = ""
@@ -263,7 +264,7 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 
 	log.Infof("V (Agent): doPost with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
 
-	var namespace = "default"
+	var namespace = constants.DefaultScope
 	var kind = ""
 	var group = ""
 	var id = ""

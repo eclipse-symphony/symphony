@@ -26,7 +26,8 @@
               "providers.state": "mem-state",  
               "providers.target": "k8s",
               "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"  
+              "providers.secret": "mock-secret",
+              "disableEvaluation": "false"
             },
             "providers": {
               "mem-state": {

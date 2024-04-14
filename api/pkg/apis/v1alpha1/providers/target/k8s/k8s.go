@@ -9,7 +9,6 @@ package k8s
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -37,14 +36,17 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var log = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.k8s"
+
+var log = logger.NewLogger(loggerName)
 
 const (
-	ENV_NAME     string = "SYMPHONY_AGENT_ADDRESS"
-	SINGLE_POD   string = "single-pod"
-	SERVICES     string = "services"
-	SERVICES_NS  string = "ns-services"
-	SERVICES_HNS string = "hns-services" //TODO: future versions
+	ENV_NAME      string = "SYMPHONY_AGENT_ADDRESS"
+	SINGLE_POD    string = "single-pod"
+	SERVICES      string = "services"
+	SERVICES_NS   string = "ns-services"
+	SERVICES_HNS  string = "hns-services" //TODO: future versions
+	componentName string = "P (K8s Target Provider)"
 )
 
 type K8sTargetProviderConfig struct {
@@ -135,7 +137,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 func (i *K8sTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := K8sTargetProviderConfigFromMap(properties)
 	if err != nil {
-		return err
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", componentName), v1alpha2.InitFailed)
 	}
 	return i.Init(config)
 }
@@ -158,59 +160,63 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 	updateConfig, err := toK8sTargetProviderConfig(config)
 	if err != nil {
 		log.Errorf("  P (K8s Target): expected K8sTargetProviderConfig - %+v", err)
-		return errors.New("expected K8sTargetProviderConfig")
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to convert to K8sTargetProviderConfig", componentName), v1alpha2.InitFailed)
 	}
 	i.Config = updateConfig
 	var kConfig *rest.Config
-	if i.Config.InCluster {
-		kConfig, err = rest.InClusterConfig()
-	} else {
-		switch i.Config.ConfigType {
-		case "path":
-			if i.Config.ConfigData == "" {
-				if home := homedir.HomeDir(); home != "" {
-					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
-				} else {
-					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					log.Errorf("  P (K8s Target): %+v", err)
-					return err
-				}
-			}
-			kConfig, err = clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
-		case "bytes":
-			if i.Config.ConfigData != "" {
-				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
-				if err != nil {
-					log.Errorf("  P (K8s Target): failed to get RESTconfg:  %+v", err)
-					return err
-				}
-			} else {
-				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				log.Errorf("  P (K8s Target): %+v", err)
-				return err
-			}
-		default:
-			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and inline", v1alpha2.BadConfig)
-			log.Errorf("  P (K8s Target): %+v", err)
-			return err
-		}
-	}
+	kConfig, err = i.getKubernetesConfig()
 	if err != nil {
 		log.Errorf("  P (K8s Target): failed to get the cluster config: %+v", err)
-		return err
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get kubernetes config", componentName), v1alpha2.InitFailed)
 	}
+
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
 		log.Errorf("  P (K8s Target): failed to create a new clientset: %+v", err)
-		return err
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create kubernetes client", componentName), v1alpha2.InitFailed)
 	}
+
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
 		log.Errorf("  P (K8s Target): failed to create a discovery client: %+v", err)
-		return err
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create dynamic client", componentName), v1alpha2.InitFailed)
 	}
 	return nil
 }
+
+func (i *K8sTargetProvider) getKubernetesConfig() (*rest.Config, error) {
+	if i.Config.InCluster {
+		return rest.InClusterConfig()
+	}
+
+	switch i.Config.ConfigType {
+	case "path":
+		return i.getConfigFromPath()
+	case "bytes":
+		return i.getConfigFromBytes()
+	default:
+		return nil, v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and bytes", v1alpha2.BadConfig)
+	}
+}
+
+func (i *K8sTargetProvider) getConfigFromPath() (*rest.Config, error) {
+	if i.Config.ConfigData == "" {
+		home := homedir.HomeDir()
+		if home == "" {
+			return nil, v1alpha2.NewCOAError(nil, "can't locate home directory to read default kubernetes config file. To run in cluster, set inCluster to true", v1alpha2.BadConfig)
+		}
+		i.Config.ConfigData = filepath.Join(home, ".kube", "config")
+	}
+	return clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
+}
+
+func (i *K8sTargetProvider) getConfigFromBytes() (*rest.Config, error) {
+	if i.Config.ConfigData == "" {
+		return nil, v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
+	}
+	return clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+}
+
 func toK8sTargetProviderConfig(config providers.IProviderConfig) (K8sTargetProviderConfig, error) {
 	ret := K8sTargetProviderConfig{}
 	data, err := json.Marshal(config)
@@ -293,6 +299,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		components, err = i.getDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to get - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get components from deployment spec", componentName), v1alpha2.GetComponentSpecFailed)
 			return nil, err
 		}
 	case SERVICES, SERVICES_NS:
@@ -307,11 +314,12 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 			cComponents, err = i.getDeployment(ctx, scope, component.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to get deployment: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get components from deployment spec", componentName), v1alpha2.GetComponentSpecFailed)
 				return nil, err
 			}
 			if len(cComponents) > 1 {
 				log.Debugf("  P (K8s Target Provider): can't read multiple components %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
-				err = v1alpha2.NewCOAError(nil, fmt.Sprintf("can't read multiple components when %s strategy or %s strategy is used", SERVICES, SERVICES_NS), v1alpha2.InternalError)
+				err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: can't read multiple components when %s strategy or %s strategy is used", componentName, SERVICES, SERVICES_NS), v1alpha2.GetComponentSpecFailed)
 				return nil, err
 			}
 			if len(cComponents) == 1 {
@@ -329,6 +337,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 				err = i.fillServiceMeta(ctx, scope, serviceName, cComponents[0])
 				if err != nil {
 					log.Debugf("  P (K8s Target Provider): failed to get: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to fill service meta data", componentName), v1alpha2.GetComponentSpecFailed)
 					return nil, err
 				}
 				components = append(components, cComponents...)
@@ -648,6 +657,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		log.Errorf("  P (K8s Target Provider): failed to validate components, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", componentName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
 	if isDryRun {
@@ -659,6 +669,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	projector, err := createProjector(i.Config.Projector)
 	if err != nil {
 		log.Debugf("  P (K8s Target Provider): failed to create projector: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create projector", componentName), v1alpha2.CreateProjectorFailed)
 		return ret, err
 	}
 
@@ -669,6 +680,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.Spec.Name, dep.Instance.Spec.Metadata, components, projector, dep.Instance.Spec.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
 				return ret, err
 			}
 		}
@@ -681,11 +693,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			err = i.removeService(ctx, dep.Instance.Spec.Scope, serviceName)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to remove service: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s service", componentName), v1alpha2.K8sRemoveServiceFailed)
 				return ret, err
 			}
 			err = i.removeDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to remove deployment: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s deployment", componentName), v1alpha2.K8sRemoveDeploymentFailed)
 				return ret, err
 			}
 			if i.Config.DeleteEmptyNamespace {
@@ -714,6 +728,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.Spec.Name)
 				if err != nil {
 					log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
 					return ret, err
 				}
 			}
@@ -738,6 +753,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						Message: err.Error(),
 					}
 					log.Debugf("P (K8s Target Provider): failed to remove service: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s service", componentName), v1alpha2.K8sRemoveServiceFailed)
 					return ret, err
 				}
 				err = i.removeDeployment(ctx, scope, component.Name)
@@ -747,6 +763,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						Message: err.Error(),
 					}
 					log.Debugf("P (K8s Target Provider): failed to remove deployment: %s, traceId: %", err.Error(), span.SpanContext().TraceID().String())
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s deployment", componentName), v1alpha2.K8sRemoveDeploymentFailed)
 					return ret, err
 				}
 				if i.Config.DeleteEmptyNamespace {

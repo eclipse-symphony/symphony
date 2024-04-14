@@ -25,7 +25,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.proxy"
+
+var sLog = logger.NewLogger(loggerName)
 
 type ProxyUpdateProviderConfig struct {
 	Name      string `json:"name"`

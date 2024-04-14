@@ -215,6 +215,27 @@ func (Build) All() error {
 	return nil
 }
 
+// Store the docker images to tar files
+func (Build) Save() error {
+	defer logTime(time.Now(), "build:save")
+
+	err := saveDockerImageToTarFile("symphony-k8s:latest.tar", "ghcr.io/eclipse-symphony/symphony-k8s:latest")
+	if err != nil {
+		return err
+	}
+
+	err = saveDockerImageToTarFile("symphony-api:latest.tar", "ghcr.io/eclipse-symphony/symphony-api:latest")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func saveDockerImageToTarFile(tarFilePath string, imageTag string) error {
+	return shellcmd.Command(fmt.Sprintf("docker image save -o %s %s", tarFilePath, imageTag)).Run()
+}
+
 // Build api container
 func (Build) Api() error {
 	return buildAPI()
@@ -431,7 +452,7 @@ func GhcrLogin() error {
 
 // Remove Symphony resource
 func Remove(resourceType, resourceName string) error {
-	fmt.Println("Deleting resource %s %s", resourceType, resourceName)
+	fmt.Printf("Deleting resource %s %s\n", resourceType, resourceName)
 	err := shellcmd.RunAll(shellcmd.Command(fmt.Sprintf("kubectl delete %s %s", resourceType, resourceName)))
 	if err != nil {
 		return err
@@ -531,7 +552,7 @@ func waitForServiceCleanup() error {
 			return fmt.Errorf("Failed to clean up all the resources!")
 		}
 
-		o, err := shellcmd.Command.Output(`kubectl get pods -A --no-headers`)
+		o, err := shellcmd.Command.Output(`kubectl get pods -A --output=jsonpath='{range .items[*]}{@.metadata.namespace}{"|"}{@.metadata.name}{"\n"}{end}'`)
 		if err != nil {
 			return err
 		}
@@ -540,13 +561,11 @@ func waitForServiceCleanup() error {
 		notReady := make([]string, 0)
 
 		for _, pod := range pods {
-			if len(strings.TrimSpace(pod)) > 3 && !strings.Contains(pod, "kube-system") {
-				parts := strings.Split(pod, " ")
-				name := pod
-				if len(parts) >= 2 {
-					name = parts[1]
-				}
-				notReady = append(notReady, name)
+			parts := strings.Split(pod, "|")
+			pod = parts[1]
+			namespace := parts[0]
+			if namespace != "kube-system" {
+				notReady = append(notReady, pod)
 			}
 		}
 

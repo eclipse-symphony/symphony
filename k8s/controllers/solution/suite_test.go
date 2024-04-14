@@ -11,14 +11,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "gopls-workspace/testing"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
@@ -38,9 +40,7 @@ func TestAPIs(t *testing.T) {
 	t.Skip("Skipping tests for now as they are no longer relevant")
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunGinkgoSpecs(t, "Controller Suite")
 }
 
 func TestUnmarshalSolution(t *testing.T) {
@@ -97,7 +97,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	Skip("Skipping tests for now as they are no longer relevant")

@@ -9,6 +9,7 @@ package vendors
 import (
 	"encoding/json"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -78,7 +79,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		namespace = "default"
+		namespace = constants.DefaultScope
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -117,7 +118,6 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
 		id := request.Parameters["__name"]
-
 		embed_type := request.Parameters["embed-type"]
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]

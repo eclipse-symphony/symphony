@@ -346,7 +346,7 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 				Name: namespace,
 			},
 		}, metav1.CreateOptions{})
-		if err != nil {
+		if err != nil && !kerrors.IsAlreadyExists(err) {
 			sLog.Errorf("  P (Ingress Target): failed to create namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return err
 		}
