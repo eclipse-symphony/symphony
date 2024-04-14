@@ -199,6 +199,9 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
+
+	// sleep 30s and wait for sufficient cleanup for gatekeeper
+	time.Sleep(30 * time.Second)
 }
 
 func TestKubectlTargetProviderInlineApply(t *testing.T) {
