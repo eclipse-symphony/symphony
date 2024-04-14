@@ -7,6 +7,7 @@
 package providers
 
 import (
+	"os"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -56,26 +57,40 @@ import (
 )
 
 func TestCreateProvider(t *testing.T) {
+	getTestMiniKubeEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+
 	providerfactory := SymphonyProviderFactory{}
 	provider, err := providerfactory.CreateProvider("providers.state.memory", memorystate.MemoryStateProviderConfig{})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memorystate.MemoryStateProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.state.k8s", k8sstate.K8sStateProviderConfig{})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.state.k8s test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.state.k8s", k8sstate.K8sStateProviderConfig{})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	}
 
-	provider, err = providerfactory.CreateProvider("providers.config.k8scatalog", k8sstate.K8sStateProviderConfig{})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.config.k8scatalog test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.config.k8scatalog", k8sstate.K8sStateProviderConfig{})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.state.http", httpstate.HttpStateProviderConfig{Url: "http://localhost:3500/v1.0/state/statestore"})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpstate.HttpStateProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.reference.k8s", k8sref.K8sReferenceProviderConfig{})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sref.K8sReferenceProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.reference.k8s test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.reference.k8s", k8sref.K8sReferenceProviderConfig{})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sref.K8sReferenceProvider))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.reference.customvision", cvref.CustomVisionReferenceProviderConfig{})
 	assert.Nil(t, err)
@@ -85,9 +100,13 @@ func TestCreateProvider(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpref.HTTPReferenceProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.reporter.k8s", k8sreporter.K8sReporterConfig{})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sreporter.K8sReporter))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.reporter.k8s test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.reporter.k8s", k8sreporter.K8sReporterConfig{})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sreporter.K8sReporter))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.reporter.http", httpreporter.HTTPReporterConfig{})
 	assert.Nil(t, err)
@@ -117,21 +136,33 @@ func TestCreateProvider(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*adu.ADUTargetProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.target.k8s", k8s.K8sTargetProviderConfig{ConfigType: "path"})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8s.K8sTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.target.k8s test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.target.k8s", k8s.K8sTargetProviderConfig{ConfigType: "path"})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8s.K8sTargetProvider))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.target.docker", docker.DockerTargetProviderConfig{})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*docker.DockerTargetProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.target.ingress", ingress.IngressTargetProviderConfig{ConfigType: "path"})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*ingress.IngressTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.target.ingress test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.target.ingress", ingress.IngressTargetProviderConfig{ConfigType: "path"})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*ingress.IngressTargetProvider))
+	}
 
-	provider, err = providerfactory.CreateProvider("providers.target.kubectl", kubectl.KubectlTargetProviderConfig{ConfigType: "path"})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*kubectl.KubectlTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.target.kubectl test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.target.kubectl", kubectl.KubectlTargetProviderConfig{ConfigType: "path"})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*kubectl.KubectlTargetProvider))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.target.staging", staging.StagingTargetProviderConfig{})
 	assert.Nil(t, err)
@@ -161,9 +192,13 @@ func TestCreateProvider(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*tgtmock.MockTargetProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.target.configmap", configmap.ConfigMapTargetProviderConfig{ConfigType: "path"})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*configmap.ConfigMapTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping providers.target.configmap test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.target.configmap", configmap.ConfigMapTargetProviderConfig{ConfigType: "path"})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*configmap.ConfigMapTargetProvider))
+	}
 
 	provider, err = providerfactory.CreateProvider("providers.config.mock", mockconfig.MockConfigProviderConfig{})
 	assert.Nil(t, err)
@@ -231,6 +266,8 @@ func TestCreateProvider(t *testing.T) {
 }
 
 func TestCreateProviderForTargetRole(t *testing.T) {
+	getTestMiniKubeEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+
 	targetState := model.TargetState{
 		Spec: &model.TargetSpec{
 			DisplayName: "target",
@@ -526,21 +563,33 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memorystate.MemoryStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sstate", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping k8sstate test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "k8sstate", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	}
 
-	provider, err = CreateProviderForTargetRole(nil, "k8scatalog", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping k8scatalog test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "k8scatalog", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	}
 
 	provider, err = CreateProviderForTargetRole(nil, "httpstate", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpstate.HttpStateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sref", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sref.K8sReferenceProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping k8sref test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "k8sref", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sref.K8sReferenceProvider))
+	}
 
 	provider, err = CreateProviderForTargetRole(nil, "cvref", targetState, nil)
 	assert.Nil(t, err)
@@ -558,21 +607,33 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*counter.CounterStageProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8s", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8s.K8sTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping k8s test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "k8s", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8s.K8sTargetProvider))
+	}
 
 	provider, err = CreateProviderForTargetRole(nil, "docker", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*docker.DockerTargetProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "ingress", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*ingress.IngressTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping ingress test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "ingress", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*ingress.IngressTargetProvider))
+	}
 
-	provider, err = CreateProviderForTargetRole(nil, "kubectl", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*kubectl.KubectlTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping kubectl test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "kubectl", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*kubectl.KubectlTargetProvider))
+	}
 
 	provider, err = CreateProviderForTargetRole(nil, "staging", targetState, nil)
 	assert.Nil(t, err)
@@ -598,9 +659,13 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*proxy.ProxyUpdateProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "configmap", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*configmap.ConfigMapTargetProvider))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping configmap test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "configmap", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*configmap.ConfigMapTargetProvider))
+	}
 
 	provider, err = CreateProviderForTargetRole(nil, "mock", targetState, nil)
 	assert.Nil(t, err)
@@ -682,7 +747,11 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*httpreporter.HTTPReporter))
 
-	provider, err = CreateProviderForTargetRole(nil, "k8sreporter", targetState, nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*k8sreporter.K8sReporter))
+	if getTestMiniKubeEnabled == "" {
+		t.Log("Skipping k8sreporter test as TEST_MINIKUBE_ENABLED is not set")
+	} else {
+		provider, err = CreateProviderForTargetRole(nil, "k8sreporter", targetState, nil)
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*k8sreporter.K8sReporter))
+	}
 }

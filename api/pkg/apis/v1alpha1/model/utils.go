@@ -7,6 +7,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -344,4 +345,13 @@ func ResolveString(value string, injections *ValueInjections) string {
 	}
 
 	return value
+}
+
+func ToDeployment(data []byte) (*DeploymentSpec, error) {
+	var deployment DeploymentSpec
+	err := json.Unmarshal(data, &deployment)
+	if err != nil {
+		return nil, err
+	}
+	return &deployment, nil
 }

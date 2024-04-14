@@ -11,15 +11,16 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -29,7 +30,15 @@ import (
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	script     = "script"
+	loggerName = "providers.target.script"
+)
+
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+)
 
 type ScriptProviderConfig struct {
 	Name          string `json:"name"`
@@ -129,8 +138,18 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 
+	if providerOperationMetrics == nil {
+		providerOperationMetrics, err = metrics.New()
+		if err != nil {
+			return err
+		}
+	}
+
+	observ_utils.CloseSpanWithError(span, nil)
+
 	return nil
 }
+
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
 	sPath, err := url.JoinPath(scriptFolder, script)
 	if err != nil {
@@ -181,11 +200,11 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(deployment, "", " ")
-	_ = ioutil.WriteFile(staging, file, 0644)
+	_ = os.WriteFile(staging, file, 0644)
 
 	staging_ref := filepath.Join(i.Config.StagingFolder, input_ref)
 	file_ref, _ := json.MarshalIndent(references, "", " ")
-	_ = ioutil.WriteFile(staging_ref, file_ref, 0644)
+	_ = os.WriteFile(staging_ref, file_ref, 0644)
 
 	abs, _ := filepath.Abs(staging)
 	abs_ref, _ := filepath.Abs(staging_ref)
@@ -208,7 +227,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	data, err := ioutil.ReadFile(outputStaging)
+	data, err := os.ReadFile(outputStaging)
 
 	if err != nil {
 		sLog.Errorf("  P (Script Target): failed to read output file: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -235,11 +254,11 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 
 	stagingDeployment := filepath.Join(i.Config.StagingFolder, deploymentId)
 	file, _ := json.MarshalIndent(deployment, "", " ")
-	_ = ioutil.WriteFile(stagingDeployment, file, 0644)
+	_ = os.WriteFile(stagingDeployment, file, 0644)
 
 	stagingRef := filepath.Join(i.Config.StagingFolder, currenRefId)
 	file, _ = json.MarshalIndent(components, "", " ")
-	_ = ioutil.WriteFile(stagingRef, file, 0644)
+	_ = os.WriteFile(stagingRef, file, 0644)
 
 	absDeployment, _ := filepath.Abs(stagingDeployment)
 	absRef, _ := filepath.Abs(stagingRef)
@@ -269,10 +288,10 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	data, err := ioutil.ReadFile(outputStaging)
+	data, err := os.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to pread output file: %+v", err)
+		sLog.Errorf("  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
 		return nil, err
 	}
 
@@ -296,8 +315,16 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	defer observ_utils.CloseSpanWithError(span, &err)
 	sLog.Infof("  P (Script Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
+	functionName := observ_utils.GetFunctionName()
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
+		providerOperationMetrics.ProviderOperationErrors(
+			script,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.CreateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
@@ -305,6 +332,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		return nil, nil
 	}
 
+	applyTime := time.Now()
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
@@ -312,24 +340,61 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		retU, err = i.runScriptOnComponents(deployment, components, false)
 		if err != nil {
 			sLog.Errorf("  P (Script Target): failed to run apply script: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+			providerOperationMetrics.ProviderOperationErrors(
+				script,
+				functionName,
+				metrics.ApplyScriptOperation,
+				metrics.UpdateOperationType,
+				v1alpha2.ApplyScriptFailed.String(),
+			)
 			return nil, err
 		}
 		for k, v := range retU {
 			ret[k] = v
 		}
 	}
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		script,
+		functionName,
+		metrics.ApplyScriptOperation,
+		metrics.UpdateOperationType,
+	)
+
+	deleteTime := time.Now()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		var retU map[string]model.ComponentResultSpec
 		retU, err = i.runScriptOnComponents(deployment, components, true)
 		if err != nil {
 			sLog.Errorf("  P (Script Target): failed to run remove script: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+			providerOperationMetrics.ProviderOperationErrors(
+				script,
+				functionName,
+				metrics.ApplyScriptOperation,
+				metrics.DeleteOperationType,
+				v1alpha2.RemoveScriptFailed.String(),
+			)
 			return nil, err
 		}
 		for k, v := range retU {
 			ret[k] = v
 		}
 	}
+	providerOperationMetrics.ProviderOperationLatency(
+		deleteTime,
+		script,
+		functionName,
+		metrics.ApplyScriptOperation,
+		metrics.DeleteOperationType,
+	)
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		script,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.CreateOperationType,
+	)
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
