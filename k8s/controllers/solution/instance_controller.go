@@ -199,8 +199,12 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 	targetCount := strconv.Itoa(summary.TargetCount)
 	successCount := strconv.Itoa(summary.SuccessCount)
 	status := provisioningstates.Succeeded
-	if !summary.AllAssignedDeployed {
-		status = provisioningstates.Failed
+	if !summary.IsDeploymentFinished {
+		status = provisioningstates.Reconciling
+	} else {
+		if !summary.AllAssignedDeployed {
+			status = provisioningstates.Failed
+		}
 	}
 
 	instance.Status.Properties["status"] = status

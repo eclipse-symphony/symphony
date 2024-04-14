@@ -25,13 +25,14 @@ type TargetResultSpec struct {
 	ComponentResults map[string]ComponentResultSpec `json:"components,omitempty"`
 }
 type SummarySpec struct {
-	TargetCount         int                         `json:"targetCount"`
-	SuccessCount        int                         `json:"successCount"`
-	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
-	SummaryMessage      string                      `json:"message,omitempty"`
-	Skipped             bool                        `json:"skipped"`
-	IsRemoval           bool                        `json:"isRemoval"`
-	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
+	TargetCount          int                         `json:"targetCount"`
+	SuccessCount         int                         `json:"successCount"`
+	TargetResults        map[string]TargetResultSpec `json:"targets,omitempty"`
+	SummaryMessage       string                      `json:"message,omitempty"`
+	Skipped              bool                        `json:"skipped"`
+	IsRemoval            bool                        `json:"isRemoval"`
+	AllAssignedDeployed  bool                        `json:"allAssignedDeployed"`
+	IsDeploymentFinished bool                        `json:"isDeploymentFinished"`
 }
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`

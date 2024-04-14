@@ -495,12 +495,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
 			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
 
-			deployment, err := model.ToDeployment(job.Data)
+			var deployment *model.DeploymentSpec
+			deployment, err = model.ToDeployment(job.Data)
 			if err != nil {
 				return err
 			}
 			if job.Action == v1alpha2.JobUpdate {
-				_, err := s.apiClient.Reconcile(*deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(*deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -519,7 +520,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == v1alpha2.JobDelete {
-				_, err := s.apiClient.Reconcile(*deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(*deployment, true, namespace)
 				if err != nil {
 					return err
 				}
