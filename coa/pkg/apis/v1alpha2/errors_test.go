@@ -8,6 +8,7 @@ package v1alpha2
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,21 @@ func TestError(t *testing.T) {
 		InnerError: errors.New("Mock Inner Error"),
 	}
 	errStr := coaError.Error()
-	assert.Equal(t, "Mock Error Message (Mock Inner Error)", errStr)
+	assert.Equal(t, "Internal Error: Mock Error Message (caused by: Mock Inner Error)", errStr)
+
+	coaError = COAError{
+		State:      InternalError,
+		InnerError: errors.New("Mock Inner Error"),
+	}
+	errStr = coaError.Error()
+	assert.Equal(t, "Mock Inner Error", errStr)
+
+	coaError = COAError{
+		State:   InternalError,
+		Message: "Mock Error Message",
+	}
+	errStr = coaError.Error()
+	assert.Equal(t, "Internal Error: Mock Error Message", errStr)
 }
 
 func TestFromError(t *testing.T) {
@@ -78,4 +93,22 @@ func TestIsNotFound(t *testing.T) {
 func TestIsDelayed(t *testing.T) {
 	assert.False(t, IsDelayed(errors.New("Mock Error")))
 	assert.True(t, IsDelayed(NewCOAError(errors.New("Mock Error"), "Mock Error Message", Delayed)))
+}
+func TestInnerError_SimpleError(t *testing.T) {
+	testErr := NewCOAError(nil, "This is an error msg", InternalError)
+	expected := "Internal Error: This is an error msg"
+	assert.Equal(t, expected, testErr.Error())
+}
+
+func TestInnerError_StandardInnerError(t *testing.T) {
+	testErr := NewCOAError(fmt.Errorf("standard inner error"), "This is an error msg", InternalError)
+	expected := "Internal Error: This is an error msg (caused by: standard inner error)"
+	assert.Equal(t, expected, testErr.Error())
+}
+
+func TestInnerError_COAInnerError(t *testing.T) {
+	innerErr := NewCOAError(nil, "This is an inner error msg", InternalError)
+	testErr := NewCOAError(innerErr, "This is an error msg", InternalError)
+	expected := "Internal Error: This is an error msg (caused by: Internal Error: This is an inner error msg)"
+	assert.Equal(t, expected, testErr.Error())
 }

@@ -1,11 +1,15 @@
 package mage
 
 import (
+	"bufio"
 	_ "embed"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"text/template"
 
+	"github.com/magefile/mage/mg"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
 )
@@ -28,9 +32,25 @@ var (
 	))
 	documenter = bintool.Must(bintool.New(
 		"gomarkdoc{{.BinExt}}",
-		"0.4.1",
+		"1.1.0",
 		"https://github.com/princjef/gomarkdoc/releases/download/v{{.Version}}/gomarkdoc_{{.Version}}_{{.GOOS}}_{{.GOARCH}}{{.ArchiveExt}}",
 	))
+
+	ginkgo = bintool.Must(bintool.NewGo(
+		"github.com/onsi/ginkgo/v2/ginkgo",
+		"v2.13.1",
+		bintool.WithVersionCmd("{{.FullCmd}} version"),
+	))
+
+	gojunit = bintool.Must(bintool.New(
+		"go-junit-report{{.BinExt}}",
+		"v2.0.0",
+		"https://github.com/jstemmer/go-junit-report/releases/download/{{.Version}}/go-junit-report-{{.Version}}-{{.GOOS}}-{{.GOARCH}}{{.ArchiveExt}}",
+	))
+)
+
+const (
+	exludePackagesManifest = "exclude-from-code-coverage.txt"
 )
 
 func ensureFormatter() error {
@@ -59,6 +79,22 @@ func EnsureAllTools() error {
 	if err := ensureDocumenter(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func ensureGinkgo() error {
+	return ginkgo.Ensure()
+}
+
+func ensureGoJUnit() error {
+	return gojunit.Ensure()
+}
+
+// EnsureAllTools checks to see if a valid version of the needed tools are
+// installed, and downloads/installs them if not.
+func EnsureAllTools2() error {
+	mg.Deps(ensureFormatter, ensureLinter, ensureDocumenter, ensureGinkgo, ensureGoJUnit)
 
 	return nil
 }
@@ -161,6 +197,78 @@ func Cover(file string) error {
 	)
 }
 
+// Test runs both unit and suite tests.
+func Test2() error {
+	mg.SerialDeps(UnitTest, SuiteTest)
+	return nil
+}
+
+// UnitTest runs the unit tests.
+func UnitTest() error {
+	mg.Deps(Clean)
+	bld := strings.Builder{}
+	os.Setenv("GOUNIT", "true")
+	defer os.Unsetenv("GOUNIT")
+	bld.WriteString("go test -v -cover -coverprofile=coverage.out -race -timeout 5m ./...")
+	if isCI() {
+		mg.Deps(ensureGoJUnit)
+		bld.WriteString(" 2>&1 | bin/go-junit-report -set-exit-code -iocopy -out junit-unit-tests.xml")
+	}
+	err := shellExec(bld.String())
+	if err != nil {
+		return err
+	}
+	// Hack to remove unused packages from code coverage
+	// until we purge them from the codebase.
+	_, err = os.Stat(exludePackagesManifest)
+	if err != nil && os.IsNotExist(err) {
+		return nil
+	}
+	err = deleteLinesFromCoverage("coverage.out", exludePackagesManifest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// SuiteTest runs the suite tests.
+func SuiteTest() error {
+	mg.Deps(Clean, ensureGinkgo)
+	bld := strings.Builder{}
+	if isCI() {
+		bld.WriteString("--cover --junit-report=junit-suite-tests.xml")
+	}
+	return ginkgo.Command(fmt.Sprintf("%s -r", bld.String())).Run()
+}
+
+// Clean cleans the testcache
+func Clean() error {
+	mg.SerialDeps(
+		shellcmd.Command(`go clean -testcache`).Run,
+	)
+	return nil
+}
+
+// deleteLinesFromCoverage deletes lines from coverage file.
+func deleteLinesFromCoverage(coverageFile, exclusionFileName string) error {
+	exclusionFile, err := os.Open(exclusionFileName)
+	if err != nil {
+		return err
+	}
+	defer exclusionFile.Close()
+
+	scanner := bufio.NewScanner(exclusionFile)
+	for scanner.Scan() {
+		line := scanner.Text()
+		err = shellcmd.Command(fmt.Sprintf(`sed -i "/%s/d" %s`, line, coverageFile)).Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CI runs format, lint, doc and test.
 func CI() error {
 	if err := Format(); err != nil {
@@ -201,7 +309,24 @@ func CIVerify() error {
 	return nil
 }
 
-// Build docker image with docker-compose.
+// Build docker image with docker compose.
 func DockerBuild() error {
 	return shellcmd.Command("docker-compose -f docker-compose.yaml build").Run()
+}
+
+// Run a command with | or other things that do not work in shellcmd
+func shellExec(cmd string) error {
+	fmt.Println(">", cmd)
+
+	execCmd := exec.Command("sh", "-c", cmd)
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+
+	return execCmd.Run()
+}
+
+// isCI returns true if running in CI.
+func isCI() bool {
+	_, ok := os.LookupEnv("BUILD_BUILDID") // rudimentary check for Azure DevOps
+	return ok
 }
