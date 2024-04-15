@@ -6,13 +6,11 @@ The required configuration may vary based on the context of the instance.
 
 ### Example
 
-There are two different line configurations here, the scope of the instance determines which will be used in the generated config map.
-
-#### Solving via Symphony configuration management
+There are two different line configurations, the scope of the instance determines which will be used in the generated config map.
 
 [Symphony property expressions](../../../symphony-book/concepts/unified-object-model/property-expressions.md#functions) allow for retrieval of the evaluation context.  
 
-1. Define the configurations, using a name that will be part of the instance scope.  See [line1](./catalogs/line1.yml) and [line2](.catalogs/line2.yml)
+1. Define the configurations, using a name that will be part of the instance scope.  See [line1](./catalogs/line1.yml) and [line2](.catalogs/line2.yml).
 
 1. Set a scope on the instances.  See [instance-line1](./instances/instance-line1.yml) and [instance-line2](./instances/instance-line2.yml).
 

@@ -8,6 +8,8 @@ There can be sections of configuration that need to be toggled on or off based o
 
 #### Prior to Symphony configuration management
 
+A combination of templates and variables could be used along with a script to compile the final configuration object.
+
 `IS_PREMIUM_LINE` will be used in the template to toggle a section on if true, or off if false.
 
 ```json

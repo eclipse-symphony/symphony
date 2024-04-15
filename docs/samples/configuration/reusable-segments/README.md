@@ -41,12 +41,14 @@ Composition allows for a configuration object to be made of many other objects.
 1. Once the instance has reconciled successfully, view the config map:
 
     `kubectl describe configmap reusable-segment-config`
-1. The resulting config map should have premium settings for line 1 only:
+1. The resulting config map contains the values from the shared segment and the additional values from the top level:
 
     ```json
     {
+        // From shared segment
         "common-key1": "common-value1",
         "common-key2": "common-value2",
+        // From top level config
         "key1": "value1",
         "key2": "value2"
     }
