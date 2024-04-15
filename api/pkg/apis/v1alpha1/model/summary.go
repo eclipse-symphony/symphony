@@ -37,5 +37,28 @@ type SummaryResult struct {
 }
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
-	s.TargetResults[target] = spec
+	if existing, ok := s.TargetResults[target]; !ok {
+		s.TargetResults[target] = spec
+	} else {
+		status := s.TargetResults[target].Status
+		if spec.Status != "OK" {
+			status = spec.Status
+		}
+		message := s.TargetResults[target].Message
+		if spec.Message != "" {
+			if message != "" {
+				message += "; "
+			}
+			message += spec.Message
+		}
+		updatedResult := TargetResultSpec{
+			Status:           status,
+			Message:          message,
+			ComponentResults: existing.ComponentResults,
+		}
+		for k, v := range spec.ComponentResults {
+			updatedResult.ComponentResults[k] = v
+		}
+		s.TargetResults[target] = updatedResult
+	}
 }

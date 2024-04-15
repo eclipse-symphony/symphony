@@ -521,6 +521,67 @@ func TestMockApply(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
 }
+func TestMockApplyMultiRoles(t *testing.T) {
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock2",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
+								{
+									Role:     "mock2",
+									Provider: "providers.target.mock2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider2 := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider2.Init(mock.MockTargetProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock":  targetProvider,
+			"mock2": targetProvider2,
+		},
+		StateProvider: stateProvider,
+	}
+	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
+	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
+}
 func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
