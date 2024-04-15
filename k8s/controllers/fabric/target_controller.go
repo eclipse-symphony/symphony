@@ -55,7 +55,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	myFinalizerName := "target.fabric.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target")
+	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
 
 	// Get target
 	target := &symphonyv1.Target{}

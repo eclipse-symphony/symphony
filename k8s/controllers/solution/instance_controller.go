@@ -60,7 +60,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	myFinalizerName := "instance.solution.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Instance")
+	log.Info("Reconcile Instance " + req.Name + " in namespace " + req.Namespace)
 
 	// Get instance
 	instance := &symphonyv1.Instance{}
