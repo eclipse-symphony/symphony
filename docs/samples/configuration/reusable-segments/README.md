@@ -18,9 +18,8 @@ Composition allows for a configuration object to be made of many other objects.
     spec:
         type: config
         properties:
-            EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
-                common-key1: "common-value1"
-                common-key2: "common-value2"
+            common-key1: "common-value1"
+            common-key2: "common-value2"
     ```
 
 1. Define a top level configuration object that has its own properties and also uses the shared segment.  See [top-level](./catalogs/top-level.yml).
@@ -30,7 +29,6 @@ Composition allows for a configuration object to be made of many other objects.
         type: config
         properties:
             reusable-segment: ${{$config('segment', '')}}
-            EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
                 key1: "value1"
                 key2: "value2"
     ```
