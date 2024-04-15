@@ -101,6 +101,7 @@ func Verify() error {
 // Clean up
 func Cleanup() {
 	shellExec(fmt.Sprintf("kubectl delete deployment nginx -n default"))
+	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
 

@@ -11,10 +11,11 @@ import (
 	"testing"
 
 	api "gopls-workspace/apis/ai/v1"
-	internalTesting "gopls-workspace/testing"
+	. "gopls-workspace/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +35,7 @@ var testEnv *envtest.Environment
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	internalTesting.RunGinkgoSpecs(t, "Controller Suite")
+	RunGinkgoSpecs(t, "Controller Suite")
 }
 
 var _ = BeforeSuite(func() {

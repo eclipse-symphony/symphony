@@ -17,6 +17,8 @@ import (
 	"gopls-workspace/constants"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 var targetKeyRegex = regexp.MustCompile(`^targets\.[^.]+\.[^.]+`)
@@ -53,4 +55,8 @@ func writeObjectHash(writer io.Writer, object client.Object) {
 		object.GetAnnotations()[constants.AzureOperationIdKey],
 		object.GetGeneration(),
 	)
+}
+
+func IsDeploymentFinished(summary apimodel.SummaryResult) bool {
+	return summary.State == apimodel.SummaryStateDone
 }

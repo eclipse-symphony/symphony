@@ -15,11 +15,12 @@ import (
 	"testing"
 	"time"
 
+	. "gopls-workspace/testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	api "gopls-workspace/apis/ai/v1"
-	internalTesting "gopls-workspace/testing"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	//+kubebuilder:scaffold:imports
@@ -44,7 +45,7 @@ var cancel context.CancelFunc
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	internalTesting.RunGinkgoSpecs(t, "Webhook Suite")
+	RunGinkgoSpecs(t, "Webhook Suite")
 }
 
 var _ = BeforeSuite(func() {

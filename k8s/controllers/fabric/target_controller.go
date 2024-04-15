@@ -70,7 +70,7 @@ const (
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target")
+	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
 
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()

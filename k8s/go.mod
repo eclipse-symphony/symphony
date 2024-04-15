@@ -13,6 +13,7 @@ replace github.com/eclipse-symphony/symphony/packages/mage => ../packages/mage
 require (
 	github.com/eclipse-symphony/symphony/api v0.0.0
 	github.com/eclipse-symphony/symphony/coa v0.0.0
+	github.com/eclipse-symphony/symphony/k8s v0.0.0
 	github.com/eclipse-symphony/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/magefile/mage v1.15.0
 	github.com/onsi/gomega v1.30.0
