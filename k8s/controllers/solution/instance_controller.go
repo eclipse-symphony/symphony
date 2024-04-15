@@ -83,6 +83,10 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace)
 		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !summary.Summary.IsDeploymentFinished) {
+			if err == nil && !summary.Summary.IsDeploymentFinished {
+				// mock error if deployment is not finished then cause requeue
+				err = fmt.Errorf("Get summary but deployment is not finished yet")
+			}
 			uErr := r.updateInstanceStatusToReconciling(instance, err)
 			if uErr != nil {
 				return ctrl.Result{}, uErr

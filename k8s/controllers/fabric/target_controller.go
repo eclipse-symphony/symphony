@@ -79,6 +79,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
 		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !summary.Summary.IsDeploymentFinished) {
+			if err == nil && !summary.Summary.IsDeploymentFinished {
+				// mock error if deployment is not finished then cause requeue
+				err = fmt.Errorf("Get summary but deployment is not finished yet")
+			}
 			uErr := r.updateTargetStatusToReconciling(target, err)
 			if uErr != nil {
 				log.Error(uErr, "failed to update target status to reconciling")
