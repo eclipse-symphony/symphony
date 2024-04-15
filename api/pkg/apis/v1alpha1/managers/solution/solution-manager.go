@@ -534,12 +534,10 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 }
 
 func (s *SolutionManager) saveSummaryProgress(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	summary.IsDeploymentFinished = false
 	s.saveSummary(ctx, deployment, summary, model.SummaryStateRunning, namespace)
 }
 
 func (s *SolutionManager) concludeSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	summary.IsDeploymentFinished = true
 	s.saveSummary(ctx, deployment, summary, model.SummaryStateDone, namespace)
 }
 
