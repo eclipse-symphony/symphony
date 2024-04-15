@@ -7,6 +7,5 @@ spec:
   type: config
   properties:
     reusable-segment: ${{$config('segment', '')}}
-    EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
-      key1: "value1"
-      key2: "value2"
+    key1: "value1"
+    key2: "value2"

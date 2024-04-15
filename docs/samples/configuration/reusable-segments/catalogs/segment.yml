@@ -6,6 +6,5 @@ metadata:
 spec:
   type: config
   properties:
-    EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
-      common-key1: "common-value1"
-      common-key2: "common-value2"
+    common-key1: "common-value1"
+    common-key2: "common-value2"
