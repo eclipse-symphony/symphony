@@ -154,7 +154,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval == true && err == nil && utils.IsDeploymentFinished(summary) && summary.Summary.AllAssignedDeployed {
+					if err == nil && summary.Summary.IsRemoval && utils.IsDeploymentFinished(summary) && summary.Summary.AllAssignedDeployed {
 						break loop
 					}
 					if err != nil && !v1alpha2.IsNotFound(err) {
