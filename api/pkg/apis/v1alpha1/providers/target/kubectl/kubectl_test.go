@@ -145,8 +145,8 @@ func TestReadYamlFromUrl(t *testing.T) {
 
 // TestKubectlTargetProviderApply tests that applying a deployment works
 func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
+	testKubectl := os.Getenv("TEST_KUBECTL")
+	if testKubectl == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
 	config := KubectlTargetProviderConfig{
@@ -158,17 +158,19 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "gatekeeper",
+		Name: "nginx",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+			// use nginx deployment as an example to replace gatekeeper tests since insufficient cleanup for gatekeeper deployment may break other cases.
+			"yaml": "https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/deployment.yaml",
+			// "yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{
-				Scope: "gatekeeper-system",
-				Name:  "gatekeeper",
+				Scope: "nginx-deployment",
+				Name:  "nginx",
 			},
 		},
 		Solution: model.SolutionState{
