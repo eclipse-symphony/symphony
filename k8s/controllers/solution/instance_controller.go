@@ -82,8 +82,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace)
-		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !summary.Summary.IsDeploymentFinished) {
-			if err == nil && !summary.Summary.IsDeploymentFinished {
+		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !utils.IsDeploymentFinished(summary)) {
+			if err == nil && !utils.IsDeploymentFinished(summary) {
 				// mock error if deployment is not finished then cause requeue
 				err = fmt.Errorf("Get summary but deployment is not finished yet")
 			}
@@ -151,7 +151,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval && summary.Summary.IsDeploymentFinished && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+					if err == nil && summary.Summary.IsRemoval && utils.IsDeploymentFinished(summary) && summary.Summary.SuccessCount == summary.Summary.TargetCount {
 						break loop
 					}
 					if err != nil && v1alpha2.IsNotFound(err) {
@@ -199,12 +199,8 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 	targetCount := strconv.Itoa(summary.TargetCount)
 	successCount := strconv.Itoa(summary.SuccessCount)
 	status := provisioningstates.Succeeded
-	if !summary.IsDeploymentFinished {
-		status = provisioningstates.Reconciling
-	} else {
-		if !summary.AllAssignedDeployed {
-			status = provisioningstates.Failed
-		}
+	if !summary.AllAssignedDeployed {
+		status = provisioningstates.Failed
 	}
 
 	instance.Status.Properties["status"] = status
