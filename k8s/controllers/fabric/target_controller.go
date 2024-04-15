@@ -200,12 +200,8 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, summary
 	targetCount := strconv.Itoa(summary.TargetCount)
 	successCount := strconv.Itoa(summary.SuccessCount)
 	status := provisioningstates.Succeeded
-	if !summary.IsDeploymentFinished {
-		status = provisioningstates.Reconciling
-	} else {
-		if !summary.AllAssignedDeployed {
-			status = provisioningstates.Failed
-		}
+	if !summary.AllAssignedDeployed {
+		status = provisioningstates.Failed
 	}
 	target.Status.Properties["status"] = status
 	target.Status.Properties["deployed"] = successCount
