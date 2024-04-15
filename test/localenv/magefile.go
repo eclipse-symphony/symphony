@@ -166,6 +166,49 @@ func BuildUp() error {
 	return nil
 }
 
+// Run a command with | or other things that do not work in shellcmd
+func shellExec(cmd string, printCmdOrNot bool) error {
+	if printCmdOrNot {
+		fmt.Println(">", cmd)
+	}
+
+	execCmd := exec.Command("sh", "-c", cmd)
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+
+	return execCmd.Run()
+}
+
+// Collect Symphony logs to a log folder provided
+func Logs(logRootFolder string) error {
+	// api logs
+	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
+	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
+
+	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", NAMESPACE, apiLogFile), true)
+
+	if err != nil {
+		return err
+	}
+
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", NAMESPACE, k8sLogFile), true)
+
+	return err
+}
+
+// Dump symphony api and k8s logs for tests
+func DumpSymphonyLogsForTest(testName string) {
+	normalizedTestName := strings.Replace(testName, "/", "_", -1)
+	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
+
+	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
+	logRootFolder := fmt.Sprintf("/tmp/symhony-integration-test-logs/%s", logFolderName)
+
+	_ = shellcmd.Command(fmt.Sprintf("mkdir -p %s", logRootFolder)).Run()
+
+	_ = Logs(logRootFolder)
+}
+
 // Uninstall all components, e.g. mage destroy all
 func Destroy(flags string) error {
 	err := shellcmd.RunAll(
