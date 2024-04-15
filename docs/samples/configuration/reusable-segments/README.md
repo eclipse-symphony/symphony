@@ -29,8 +29,8 @@ Composition allows for a configuration object to be made of many other objects.
         type: config
         properties:
             reusable-segment: ${{$config('segment', '')}}
-                key1: "value1"
-                key2: "value2"
+            key1: "value1"
+            key2: "value2"
     ```
 
 1. Deploy the example from the reusable-segments directory:
