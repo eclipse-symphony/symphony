@@ -25,9 +25,9 @@ type MockTargetProviderConfig struct {
 type MockTargetProvider struct {
 	Config  MockTargetProviderConfig
 	Context *contexts.ManagerContext
-	Cache   map[string][]model.ComponentSpec
 }
 
+var cache map[string][]model.ComponentSpec
 var mLock sync.Mutex
 
 func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
@@ -49,7 +49,9 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	m.Config = mockConfig
-	m.Cache = make(map[string][]model.ComponentSpec)
+	if cache == nil {
+		cache = make(map[string][]model.ComponentSpec)
+	}
 	return nil
 }
 func (s *MockTargetProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -91,7 +93,7 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	ret := make([]model.ComponentSpec, 0)
-	for _, c := range m.Cache[m.Config.ID] {
+	for _, c := range cache[m.Config.ID] {
 		for _, r := range references {
 			if c.Name == r.Component.Name {
 				ret = append(ret, c)
@@ -114,26 +116,26 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	mLock.Lock()
 	defer mLock.Unlock()
-	if m.Cache[m.Config.ID] == nil {
-		m.Cache[m.Config.ID] = make([]model.ComponentSpec, 0)
+	if cache[m.Config.ID] == nil {
+		cache[m.Config.ID] = make([]model.ComponentSpec, 0)
 	}
 	for _, c := range step.Components {
 		found := false
-		for i := range m.Cache[m.Config.ID] {
-			if m.Cache[m.Config.ID][i].Name == c.Component.Name {
+		for i, _ := range cache[m.Config.ID] {
+			if cache[m.Config.ID][i].Name == c.Component.Name {
 				found = true
 				if c.Action == model.ComponentDelete {
-					m.Cache[m.Config.ID] = append(m.Cache[m.Config.ID][:i], m.Cache[m.Config.ID][i+1:]...)
+					cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
 				}
 				break
 			}
 		}
 		if !found {
-			m.Cache[m.Config.ID] = append(m.Cache[m.Config.ID], c.Component)
+			cache[m.Config.ID] = append(cache[m.Config.ID], c.Component)
 		}
 	}
 	ret := make(map[string]model.ComponentResultSpec)
-	for _, c := range m.Cache[m.Config.ID] {
+	for _, c := range cache[m.Config.ID] {
 		ret[c.Name] = model.ComponentResultSpec{
 			Status:  v1alpha2.OK,
 			Message: "",

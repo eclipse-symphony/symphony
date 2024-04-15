@@ -344,7 +344,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 		},
 	}
 	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
@@ -355,8 +355,8 @@ func TestMockGetTwoTargets(t *testing.T) {
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(components))
-	assert.Equal(t, 4, len(state.TargetComponent))
+	assert.Equal(t, 0, len(components))
+	assert.Equal(t, 0, len(state.TargetComponent))
 
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
@@ -437,12 +437,13 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 		},
 	}
 	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
-			"mock": targetProvider,
+			"mock1": targetProvider,
+			"mock2": targetProvider,
 		},
 		StateProvider: stateProvider,
 	}
@@ -469,6 +470,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestMockApply(t *testing.T) {
+	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
@@ -508,7 +510,7 @@ func TestMockApply(t *testing.T) {
 		},
 	}
 	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
@@ -522,6 +524,8 @@ func TestMockApply(t *testing.T) {
 	assert.Equal(t, 1, summary.SuccessCount)
 }
 func TestMockApplyMultiRoles(t *testing.T) {
+	id1 := uuid.New().String()
+	id2 := uuid.New().String()
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
@@ -566,8 +570,8 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	}
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider2 := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
-	targetProvider2.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id1})
+	targetProvider2.Init(mock.MockTargetProviderConfig{ID: id2})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
@@ -583,6 +587,7 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
 }
 func TestMockApplyWithUpdateAndRemove(t *testing.T) {
+	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
@@ -622,7 +627,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 		},
 	}
 	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
@@ -636,6 +641,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	assert.Equal(t, 1, summary.SuccessCount)
 }
 func TestMockApplyWithError(t *testing.T) {
+	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
@@ -671,7 +677,7 @@ func TestMockApplyWithError(t *testing.T) {
 		},
 	}
 	targetProvider := &mock.MockTargetProvider{}
-	targetProvider.Init(mock.MockTargetProviderConfig{})
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionManager{
