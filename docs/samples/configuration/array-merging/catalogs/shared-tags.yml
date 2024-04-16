@@ -1,0 +1,13 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: shared-tags
+spec:
+  type: config
+  properties:
+    tags: [
+      "Tag1",
+      "Tag2",
+      "Tag3"
+    ]

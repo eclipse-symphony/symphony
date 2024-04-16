@@ -1,0 +1,10 @@
+---
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: conditional-activation-instance
+spec:
+  solution: conditional-activation-solution
+  scope: default
+  target:
+    name: k8s-target

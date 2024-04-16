@@ -1,0 +1,11 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: top-level
+spec:
+  type: config
+  properties:
+    reusable-segment: ${{$config('segment', '')}}
+    key1: "value1"
+    key2: "value2"

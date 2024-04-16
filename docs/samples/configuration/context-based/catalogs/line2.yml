@@ -1,0 +1,11 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line2-config
+spec:
+  type: config
+  properties:
+    line2:
+      name: "Line 2"
+      capacity: 200
