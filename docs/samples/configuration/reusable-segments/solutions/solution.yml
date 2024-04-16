@@ -1,0 +1,44 @@
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: reusable-segment-solution
+spec:
+  components:
+    - name: reusable-segment-deployment
+      type: yaml.k8s
+      properties:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: testapp
+            labels:
+              version: "1"
+              application: "testapp"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: testapp
+            template:
+              metadata:
+                labels:
+                  app: testapp
+              spec:
+                nodeSelector:
+                  "kubernetes.io/os": linux
+                containers:
+                  - name: busybox
+                    image: k8s.gcr.io/e2e-test-images/busybox:1.29
+                    command:
+                      - "/bin/sleep"
+                      - "10000"
+                volumes:
+                  - name: config
+                    configMap:
+                      name: reusable-segment-config
+    - name: reusable-segment-config
+      type: config
+      properties: 
+        top-level: ${{$config(top-level, '')}}
