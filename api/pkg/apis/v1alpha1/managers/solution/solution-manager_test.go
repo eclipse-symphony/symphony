@@ -355,8 +355,8 @@ func TestMockGetTwoTargets(t *testing.T) {
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(components))
-	assert.Equal(t, 0, len(state.TargetComponent))
+	assert.Equal(t, 2, len(components))
+	assert.Equal(t, 4, len(state.TargetComponent))
 
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)

@@ -58,10 +58,9 @@ type UpsertRequest struct {
 	Options  UpsertOption           `json:"options,omitempty"`
 }
 type ListRequest struct {
-	FilterType       string                 `json:"filterType"`
-	Filter           string                 `json:"filter"`
-	FilterParameters map[string]string      `json:"filterParameters"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	FilterType  string                 `json:"filterType"`
+	FilterValue string                 `json:"filterValue"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 func JsonPathMatch(jsonData interface{}, path string, target string) bool {

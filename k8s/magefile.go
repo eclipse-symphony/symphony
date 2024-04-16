@@ -13,7 +13,7 @@ import (
 	"os"
 
 	//mage:import
-	_ "github.com/eclipse-symphony/symphony/packages/mage"
+	base "github.com/eclipse-symphony/symphony/packages/mage"
 	"github.com/magefile/mage/mg"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
@@ -31,7 +31,7 @@ var (
 
 	envTest = bintool.Must(bintool.NewGo(
 		"sigs.k8s.io/controller-runtime/tools/setup-envtest",
-		"latest",
+		"v0.0.0-20240320141353-395cfc7486e6",
 	))
 
 	kustomize = bintool.Must(bintool.New(
@@ -54,10 +54,13 @@ func Manifests() error {
 // Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 func Generate() error {
 	mg.Deps(ensureControllerGen)
-	return controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./... paths=../api/pkg/apis/v1alpha1/model").Run()
+	return shellcmd.RunAll(
+		controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=./..."),
+		controllerGen.Command("object:headerFile=hack/boilerplate.go.txt paths=../api/pkg/apis/v1alpha1/model"),
+	)
 }
 
-// Run tests.
+// Run suites and unit tests in k8s.
 func OperatorTest() error {
 	mg.Deps(ensureEnvTest)
 	assets, err := envTest.Command(fmt.Sprintf("use %s -p path", EnvTestK8sVersion)).Output()
@@ -66,7 +69,21 @@ func OperatorTest() error {
 	}
 	os.Setenv("KUBEBUILDER_ASSETS", string(assets))
 
-	return shellcmd.Command("go test ./... -race -v -coverprofile cover.out").Run()
+	return base.RunUnitTestAndSuiteTest()
+}
+
+// Run unit tests in k8s.
+func OperatorUnitTest() error {
+	mg.Deps(ensureEnvTest)
+
+	assets, err := envTest.Command(fmt.Sprintf("use %s -p path", EnvTestK8sVersion)).Output()
+	if err != nil {
+		return err
+	}
+
+	os.Setenv("KUBEBUILDER_ASSETS", string(assets))
+
+	return base.UnitTest()
 }
 
 // Build manager binary.

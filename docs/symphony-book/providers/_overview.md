@@ -14,7 +14,7 @@ Common provider types include:
 * Probe
 * Pub-Sub
 * Reporter
-* State  
+* [State](./state-providers/README.md)  
 * Uploader
   
 ## Develop providers

@@ -63,14 +63,14 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		return model.CampaignState{}, err
 	}
 
-	ret, err := getCampaignState(name, entry.Body)
+	ret, err := getCampaignState(entry.Body)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
 	return ret, nil
 }
 
-func getCampaignState(id string, body interface{}) (model.CampaignState, error) {
+func getCampaignState(body interface{}) (model.CampaignState, error) {
 	dict := body.(map[string]interface{})
 
 	//read spec
@@ -177,7 +177,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.CampaignState, 0)
 	for _, t := range solutions {
 		var rt model.CampaignState
-		rt, err = getCampaignState(t.ID, t.Body)
+		rt, err = getCampaignState(t.Body)
 		if err != nil {
 			return nil, err
 		}

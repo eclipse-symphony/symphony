@@ -25,7 +25,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.mqtt"
+
+var sLog = logger.NewLogger(loggerName)
 
 type MQTTTargetProviderConfig struct {
 	Name               string `json:"name"`
@@ -169,8 +171,9 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		var response v1alpha2.COAResponse
 		json.Unmarshal(msg.Payload(), &response)
 		proxyResponse := ProxyResponse{
-			IsOK:  response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
-			State: response.State,
+			IsOK:    response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
+			State:   response.State,
+			Payload: response.String(),
 		}
 
 		if !proxyResponse.IsOK {
@@ -194,6 +197,13 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		case "TargetProvider-NeedsRemove":
 			i.NeedsRemoveChan <- proxyResponse
 		case "TargetProvider-Apply":
+			if proxyResponse.IsOK {
+				var ret model.SummarySpec
+				err = json.Unmarshal(response.Body, &ret)
+				if err == nil {
+					proxyResponse.Payload = ret
+				}
+			}
 			i.ApplyChan <- proxyResponse
 		}
 	}); token.Wait() && token.Error() != nil {
@@ -364,6 +374,15 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		case resp := <-i.ApplyChan:
 			if resp.IsOK {
 				err = nil
+				payload, isOk := resp.Payload.(model.SummarySpec)
+				if isOk {
+					// Update ret
+					for target, targetResult := range payload.TargetResults {
+						for _, componentResults := range targetResult.ComponentResults {
+							ret[target] = componentResults
+						}
+					}
+				}
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)

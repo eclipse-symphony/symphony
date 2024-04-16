@@ -60,7 +60,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "Not Found: entry 'activation1' is not found", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'activation1' is not found in namespace default", string(resp.Body))
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -103,10 +103,12 @@ func TestActivationsOnActivations(t *testing.T) {
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
 	activationState := model.ActivationState{
-		Id: activationName,
 		Spec: &model.ActivationSpec{
 			Name:     activationName,
 			Campaign: campaignName,
+		},
+		ObjectMeta: model.ObjectMeta{
+			Name: activationName,
 		},
 	}
 	data, _ := json.Marshal(activationState)
@@ -133,7 +135,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	err := json.Unmarshal(resp.Body, &activation)
 	assert.Nil(t, err)
-	assert.Equal(t, activationName, activation.Id)
+	assert.Equal(t, activationName, activation.ObjectMeta.Name)
 	assert.Equal(t, campaignName, activation.Spec.Campaign)
 
 	resp = vendor.onActivations(v1alpha2.COARequest{
@@ -144,7 +146,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &activations)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(activations))
-	assert.Equal(t, activationName, activations[0].Id)
+	assert.Equal(t, activationName, activations[0].ObjectMeta.Name)
 	assert.Equal(t, campaignName, activations[0].Spec.Campaign)
 
 	status := model.ActivationStatus{

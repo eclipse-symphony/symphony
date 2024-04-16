@@ -60,7 +60,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	myFinalizerName := "instance.solution.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Instance")
+	log.Info("Reconcile Instance " + req.Name + " in namespace " + req.Namespace)
 
 	// Get instance
 	instance := &symphonyv1.Instance{}
@@ -82,7 +82,11 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace)
-		if err != nil && !v1alpha2.IsNotFound(err) {
+		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !utils.IsDeploymentFinished(summary)) {
+			if err == nil && !utils.IsDeploymentFinished(summary) {
+				// mock error if deployment is not finished then cause requeue
+				err = fmt.Errorf("Get summary but deployment is not finished yet")
+			}
 			uErr := r.updateInstanceStatusToReconciling(instance, err)
 			if uErr != nil {
 				return ctrl.Result{}, uErr
@@ -147,7 +151,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.SuccessCount == summary.Summary.TargetCount {
+					if err == nil && summary.Summary.IsRemoval && utils.IsDeploymentFinished(summary) && summary.Summary.SuccessCount == summary.Summary.TargetCount {
 						break loop
 					}
 					if err != nil && v1alpha2.IsNotFound(err) {

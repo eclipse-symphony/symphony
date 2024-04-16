@@ -8,16 +8,10 @@ package model
 
 import (
 	"errors"
-	"time"
 )
 
 type (
-	InstanceStatus struct {
-		// Important: Run "make" to regenerate code after modifying this file
-		Properties         map[string]string  `json:"properties,omitempty"`
-		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
-		LastModified       time.Time          `json:"lastModified,omitempty"`
-	}
+	InstanceStatus = DeployableStatus
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {

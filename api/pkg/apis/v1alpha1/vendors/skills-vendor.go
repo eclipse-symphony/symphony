@@ -77,6 +77,11 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 	defer span.End()
 	kLog.Debugf("V (Skills): onSkills, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSkills-GET", pCtx, nil)
@@ -85,10 +90,13 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.SkillsManager.ListSpec(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.SkillsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.SkillsManager.GetSpec(ctx, id)
+			state, err = c.SkillsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
 			if isArray {
@@ -115,7 +123,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 		ctx, span := observability.StartSpan("onSkills-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var skill model.SkillSpec
+		var skill model.SkillState
 
 		err := json.Unmarshal(request.Body, &skill)
 		if err != nil {
@@ -126,7 +134,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 			})
 		}
 
-		err = c.SkillsManager.UpsertSpec(ctx, id, skill)
+		err = c.SkillsManager.UpsertState(ctx, id, skill)
 		if err != nil {
 			kLog.Errorf("V (Skills): onSkills failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -140,7 +148,7 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSkills-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.SkillsManager.DeleteSpec(ctx, id)
+		err := c.SkillsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			kLog.Errorf("V (Skills): onSkills failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

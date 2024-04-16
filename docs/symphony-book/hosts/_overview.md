@@ -1,14 +1,14 @@
 # Hosts
 
-_(last edit: 4/12/2023)_
+_(last edit: 3/14/2024)_
 
-Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/_overview.md) and bind them to one or multiple [bindings](../bindings/_overview.md).
+Hosts are configurable hosting processes that load a group of configured [vendors](../vendors/_overview.md) and bind them to one or multiple [bindings](../bindings/_overview.md). Because Symphony vendors are independent, you can split Symphony vendors into multiple hosts and scale them independently.
 
 ## Host configurations
 
 Under the `api` folder of the `symphony` repo, several `*.json` files define the configurations for various Symphony roles and purposes. For example:
 
-* `symphony-agent.json`: This is the default configuration for a Symphony agent.
+* `symphony-target-agent.json`: This is the default configuration for a Symphony target agent.
 * `symphony-api-dev-console-trace.json`: This is the same configuration as `symphony-api-dev.json`, plus a console exporter for [OpenTelemetry](https://opentelemetry.io/).
 * `symphony-api-dev-zipkin-trace.json`: This is the same configuration as `symphony-api-dev.json`, plus a [Zipkin](https://zipkin.io/) exporter for [OpenTelemetry](https://opentelemetry.io/).
 * `symphony-api-dev.json`: This is a Symphony API configuration for your local tests. When you run a Symphony API process outside a Kubernetes cluster, you should use this configuration file, for example:

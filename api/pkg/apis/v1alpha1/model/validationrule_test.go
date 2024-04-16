@@ -9,6 +9,7 @@ package model
 import (
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,7 +130,8 @@ func TestValidateCOA(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "Bad Request: required property 'requiredProperties1' is missing")
+	err := equal.(v1alpha2.COAError)
+	assert.Equal(t, v1alpha2.BadRequest, err.State)
 }
 
 func TestValidateMetadata(t *testing.T) {
@@ -169,7 +171,7 @@ func TestValidateComponentType(t *testing.T) {
 		},
 	}
 	equal := validationRule.Validate(components)
-	assert.EqualError(t, equal, "provider requires component type 'requiredComponentType', but 'requiredComponentType1' is found instead")
+	assert.EqualError(t, equal, "Bad Request: provider requires component type 'requiredComponentType', but 'requiredComponentType1' is found instead")
 }
 
 func TestValidateInputs(t *testing.T) {
@@ -664,4 +666,94 @@ func TestCheckSidecarEnvVarChange(t *testing.T) {
 
 	equal := validationRule.IsComponentChanged(components1, components2)
 	assert.True(t, equal)
+}
+
+func TestValidateChangeDetectionNoChange(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", IgnoreCase: false, SkipIfMissing: true},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.False(t, rule.IsComponentChanged(oldComponent, newComponent))
+}
+
+func TestValidateChangeDetectionWithChange(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", IgnoreCase: false, SkipIfMissing: true},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "changed valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.True(t, rule.IsComponentChanged(oldComponent, newComponent))
+}
+
+func TestValidateChangeDetectionWithCustomComparator(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", PropChanged: func(_, _ any) bool {
+					// always return true
+					return true
+				}},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.True(t, rule.IsComponentChanged(oldComponent, newComponent))
 }

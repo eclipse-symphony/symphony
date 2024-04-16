@@ -1,3 +1,5 @@
+//go:build mage
+
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.

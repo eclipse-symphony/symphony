@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -84,7 +85,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		id := request.Parameters["__name"]
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			namespace = "default"
+			namespace = constants.DefaultScope
 		}
 		var err error
 		var state interface{}
@@ -119,7 +120,10 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onInstances-POST", pCtx, nil)
 		id := request.Parameters["__name"]
-
+		namespace, exist := request.Parameters["namespace"]
+		if !exist {
+			namespace = constants.DefaultScope
+		}
 		solution := request.Parameters["solution"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
@@ -129,7 +133,8 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		if solution != "" && (target != "" || target_selector != "") {
 			instance = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: id,
+					Name:      id,
+					Namespace: namespace,
 				},
 				Spec: &model.InstanceSpec{
 					DisplayName: id,
@@ -189,6 +194,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				Body: v1alpha2.JobData{
 					Id:     id,
 					Action: v1alpha2.JobUpdate,
+					Scope:  instance.ObjectMeta.Namespace,
 				},
 			})
 		}
@@ -201,7 +207,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		direct := request.Parameters["direct"]
 		namespace, exist := request.Parameters["namespace"]
 		if !exist {
-			namespace = "default"
+			namespace = constants.DefaultScope
 		}
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
 			c.Context.Publish("job", v1alpha2.Event{
@@ -212,6 +218,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				Body: v1alpha2.JobData{
 					Id:     id,
 					Action: v1alpha2.JobDelete,
+					Scope:  namespace,
 				},
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

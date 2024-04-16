@@ -33,9 +33,9 @@ RUN \
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO /zoneinfo.zip
 COPY --from=build /dist /
-ADD ./api/symphony-agent.json /
+ADD ./api/symphony-target-agent.json /
 EXPOSE 8088
 EXPOSE 8089
 ENV LOG_LEVEL Debug
-ENV CONFIG /symphony-agent.json
+ENV CONFIG /symphony-target-agent.json
 CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL

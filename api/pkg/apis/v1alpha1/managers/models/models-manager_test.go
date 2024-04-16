@@ -65,15 +65,20 @@ func TestUpsertAndDeleteSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.ModelSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	err = manager.UpsertState(context.Background(), "test", model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Constraints: "constraints",
+		Spec: &model.ModelSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
+			Constraints: "constraints",
+		},
 	})
 	assert.Nil(t, err)
-	err = manager.DeleteSpec(context.Background(), "test")
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }
 
@@ -91,18 +96,23 @@ func TestUpsertAndListSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.ModelSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	err = manager.UpsertState(context.Background(), "test", model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Constraints: "constraints",
+		Spec: &model.ModelSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
+			Constraints: "constraints",
+		},
 	})
 	assert.Nil(t, err)
-	list, err := manager.ListSpec(context.Background())
+	list, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list))
-	assert.Equal(t, "test", list[0].Id)
+	assert.Equal(t, "test", list[0].ObjectMeta.Name)
 	assert.Equal(t, "device", list[0].Spec.DisplayName)
 	assert.Equal(t, "a", list[0].Spec.Properties["a"])
 }
@@ -121,17 +131,22 @@ func TestUpsertAndGetSpec(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "test", model.ModelSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	err = manager.UpsertState(context.Background(), "test", model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
 		},
-		Constraints: "constraints",
+		Spec: &model.ModelSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
+			Constraints: "constraints",
+		},
 	})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "test", spec.Id)
+	assert.Equal(t, "test", spec.ObjectMeta.Name)
 	assert.Equal(t, "device", spec.Spec.DisplayName)
 	assert.Equal(t, "a", spec.Spec.Properties["a"])
 }
@@ -150,12 +165,17 @@ func TestUpsertSpecFail(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "mockError", model.ModelSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	err = manager.UpsertState(context.Background(), "mockError", model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "mockError",
 		},
-		Constraints: "constraints",
+		Spec: &model.ModelSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
+			Constraints: "constraints",
+		},
 	})
 	assert.NotNil(t, err)
 }
@@ -174,7 +194,7 @@ func TestListSpecFail(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	_, err = manager.ListSpec(context.Background())
+	_, err = manager.ListState(context.Background(), "default")
 	assert.NotNil(t, err)
 }
 
@@ -192,10 +212,10 @@ func TestGetSpecFail(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	_, err = manager.GetSpec(context.Background(), "mockError")
+	_, err = manager.GetState(context.Background(), "mockError", "default")
 	assert.NotNil(t, err)
 
-	_, err = manager.GetSpec(context.Background(), "mockJsonError")
+	_, err = manager.GetState(context.Background(), "mockJsonError", "default")
 	assert.NotNil(t, err)
 }
 
@@ -213,16 +233,21 @@ func TestUpsertAndListSpecFail(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertSpec(context.Background(), "mockJsonError", model.ModelSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	err = manager.UpsertState(context.Background(), "mockJsonError", model.ModelState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "mockJsonError",
 		},
-		Constraints: "constraints",
+		Spec: &model.ModelSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
+			Constraints: "constraints",
+		},
 	})
 	assert.Nil(t, err)
 
-	_, err = manager.ListSpec(context.Background())
+	_, err = manager.ListState(context.Background(), "default")
 	assert.NotNil(t, err)
 }
 

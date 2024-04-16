@@ -1,6 +1,6 @@
-# Symphony agent
+# Symphony target agent
 
-A Symphony agent runs on a `target` and provides several services to Symphony payloads running on the same target, including:
+A Symphony target agent runs on a `target` and provides several services to Symphony payloads running on the same target, including:
 
 * Get object references from the control plane.
 * Probe and report on health of associated `device` objects.
@@ -8,7 +8,7 @@ A Symphony agent runs on a `target` and provides several services to Symphony pa
 
 A Symphony agent is a microservice that exposes an HTTP endpoint to Symphony payloads. We offer a Symphony container (`ghcr.io/eclipse-symphony/symphony-agent`) as well as a cross-platform binary that can be configured as a system daemon or service.
 
-## Prepare for Symphony agent deployment
+## Prepare for Symphony target agent deployment
 
 In this example, the Symphony agent needs a service principal to access an Azure Storage account to upload camera snapshots. In the current version of Symphony, we support service principal with a secret.
 
@@ -32,6 +32,9 @@ In this example, the Symphony agent needs a service principal to access an Azure
    ```bash
    az storage account create --name <storage account name> --resource-group <resource group name> --location <location> --sku Standard_LRS
    az storage container create -n snapshots --account-name <storage account name>
+
+   # grant permission to access storage account
+   az role assignment create --assignee <service principal app id> --role "Storage Blob Data Owner" --scope /subscriptions/<subscription id>/resourceGroups/<resource group name>/providers/Microsoft.Storage/storageAccounts/<storage account name>
    ```
 
 3. If you plan to run Symphony agent as a process or a service, install [FFmpeg](https://ffmpeg.org/) on your target machine. You can skip this step if you plan to run Symphony agent as a container, which has FFmpeg pre-installed.

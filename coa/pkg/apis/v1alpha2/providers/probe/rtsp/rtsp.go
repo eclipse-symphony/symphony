@@ -103,6 +103,8 @@ func (m *RTSPProbeProvider) Probe(user string, password string, ip string, name 
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		return nil, err
 	}
 	if path != "" {
 		return map[string]string{

@@ -92,6 +92,11 @@ func TestInitWithBadFile(t *testing.T) {
 }
 
 func TestInitWithEmptyConfigData(t *testing.T) {
+	getConfigMap := os.Getenv("TEST_CONFIGMAP")
+	if getConfigMap == "" {
+		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
+	}
+
 	config := ConfigMapTargetProviderConfig{
 		ConfigType: "path",
 		ConfigData: "",
@@ -159,7 +164,8 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 				Namespace: "configs",
 			},
 			Spec: &model.InstanceSpec{
-				Name: "config-test",
+				Name:  "config-test",
+				Scope: "configs",
 			},
 		},
 		Solution: model.SolutionState{
@@ -178,6 +184,58 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
+}
+
+// TestConfigMapTargetProviderGet tests that getting a configmap works
+func TestConfigMapTargetProviderGet(t *testing.T) {
+	getConfigMap := os.Getenv("TEST_CONFIGMAP")
+	if getConfigMap == "" {
+		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
+	}
+
+	config := ConfigMapTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+		ConfigData: "",
+	}
+	provider := ConfigMapTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "test-config",
+		Type: "config",
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+			},
+			Spec: &model.InstanceSpec{
+				Name:  "config-test",
+				Scope: "configs",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	components, err := provider.Get(context.Background(), deployment, step.Components)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+	assert.Equal(t, "bar", components[0].Properties["foo"])
+	assert.Equal(t, "as", components[0].Properties["complex"].(map[string]interface{})["easy"])
+	// TODO: This could be problematic as integers are probably preferred
+	assert.Equal(t, 456.0, components[0].Properties["complex"].(map[string]interface{})["123"])
 }
 
 // TestConfigMapTargetProviderDekete tests that deleting a configmap works
@@ -212,7 +270,8 @@ func TestConfigMapTargetProviderDekete(t *testing.T) {
 				Namespace: "configs",
 			},
 			Spec: &model.InstanceSpec{
-				Name: "config-test",
+				Name:  "config-test",
+				Scope: "configs",
 			},
 		},
 		Solution: model.SolutionState{
@@ -233,58 +292,11 @@ func TestConfigMapTargetProviderDekete(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestConfigMapTargetProviderGet tests that getting a configmap works
-func TestConfigMapTargetProviderGet(t *testing.T) {
+func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 	getConfigMap := os.Getenv("TEST_CONFIGMAP")
 	if getConfigMap == "" {
 		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
 	}
-
-	config := ConfigMapTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		ConfigData: "",
-	}
-	provider := ConfigMapTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	component := model.ComponentSpec{
-		Name: "test-config",
-		Type: "config",
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Namespace: "configs",
-			},
-			Spec: &model.InstanceSpec{
-				Name: "config-test",
-			},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{component},
-			},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    model.ComponentUpdate,
-				Component: component,
-			},
-		},
-	}
-	components, err := provider.Get(context.Background(), deployment, step.Components)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(components))
-	assert.Equal(t, "bar", components[0].Properties["foo"])
-	assert.Equal(t, "as", components[0].Properties["complex"].(map[string]interface{})["easy"])
-	// TODO: This could be problematic as integers are probably preferred
-	assert.Equal(t, 456.0, components[0].Properties["complex"].(map[string]interface{})["123"])
-}
-
-func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 	config := ConfigMapTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -309,7 +321,8 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 				Namespace: "configs",
 			},
 			Spec: &model.InstanceSpec{
-				Name: "config-test",
+				Name:  "config-test",
+				Scope: "configs",
 			},
 		},
 		Solution: model.SolutionState{

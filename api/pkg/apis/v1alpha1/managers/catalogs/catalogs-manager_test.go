@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 package catalogs
 
 import (
@@ -181,7 +187,7 @@ func TestList(t *testing.T) {
 		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
-	val, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace)
+	val, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace, "", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(val))
 	equal, err := catalogState.DeepEquals(val[0])
@@ -228,7 +234,7 @@ func TestGetChains(t *testing.T) {
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	tk, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace)
+	tk, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace, "", "")
 	assert.Nil(t, err)
 	for _, v := range tk {
 		fmt.Println(v.Spec.Name)

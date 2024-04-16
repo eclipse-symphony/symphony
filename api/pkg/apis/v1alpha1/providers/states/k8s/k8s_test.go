@@ -396,9 +396,335 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestCatalogSpecFilter(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkCatalogCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "c2",
+			Body: map[string]interface{}{
+				"apiVersion": model.FederationGroup,
+				"kind":       "Catalog",
+				"metadata": map[string]interface{}{
+					"name": "c2",
+				},
+				"spec": model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+		FilterType:  "spec",
+		FilterValue: `[?(@.properties.foo=="bar")]`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "c2",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+}
+func TestCatalogLabelFilter(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkCatalogCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "c2",
+			Body: map[string]interface{}{
+				"apiVersion": model.FederationGroup,
+				"kind":       "Catalog",
+				"metadata": map[string]interface{}{
+					"name": "c2",
+					"labels": map[string]interface{}{
+						"foo":  "bar",
+						"foo2": "bar2",
+					},
+				},
+				"spec": model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+		FilterType:  "label",
+		FilterValue: `foo=bar,foo2=bar2`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "c2",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+}
+func TestCatalogFieldFilter(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkCatalogCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "c2",
+			Body: map[string]interface{}{
+				"apiVersion": model.FederationGroup,
+				"kind":       "Catalog",
+				"metadata": map[string]interface{}{
+					"name": "c2",
+				},
+				"spec": model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+		FilterType:  "field",
+		FilterValue: `metadata.name==c2`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "c2",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+}
+
+func TestCatalogStatusFilter(t *testing.T) {
+	testK8s := os.Getenv("TEST_K8S_STATE")
+	if testK8s == "" {
+		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
+	}
+	err := checkCatalogCRDApplied()
+	assert.Nil(t, err)
+	provider := K8sStateProvider{}
+	err = provider.Init(K8sStateProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "c2",
+			Body: map[string]interface{}{
+				"apiVersion": model.FederationGroup,
+				"kind":       "Catalog",
+				"metadata": map[string]interface{}{
+					"name": "c2",
+				},
+				"spec": model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{ // An update is issued as in initial insert status is ignored. TODO: Isn't that a bug?
+		Value: states.StateEntry{
+			ID: "c2",
+			Body: map[string]interface{}{
+				"apiVersion": model.FederationGroup,
+				"kind":       "Catalog",
+				"metadata": map[string]interface{}{
+					"name": "c2",
+				},
+				"spec": model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+		FilterType:  "status",
+		FilterValue: `[?(@.properties.foo=="bar")]`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "c2",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+}
+
 func runKubectl(args ...string) ([]byte, error) {
 	cmd := exec.Command("kubectl", args...)
 	return cmd.Output()
+}
+
+func checkCatalogCRDApplied() error {
+	// Check that the CRD is applied
+	_, err := runKubectl("get", "crd", "catalogs.federation.symphony")
+	if err != nil {
+		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
+		ProjectPath := os.Getenv("REPOPATH")
+		activationYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/federation.symphony_catalogs.yaml"
+		if _, err := os.Stat(activationYamlPath); err != nil {
+			return err
+		}
+		_, err = runKubectl("apply", "-f", activationYamlPath)
+		if err != nil {
+			return err
+		}
+		// Wait for the CRD to be applied
+		time.Sleep(10 * time.Second)
+	}
+	return nil
 }
 
 func checkActivationCRDApplied() error {

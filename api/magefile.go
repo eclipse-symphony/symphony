@@ -36,9 +36,16 @@ func TestWithCoa() error {
 func testHelper() error {
 	if err := shellcmd.RunAll(
 		"go clean -testcache",
-		"go test -race -timeout 35s -cover ./...",
+		"go test -race -timeout 5m -cover -coverprofile=coverage.out ./...",
 	); err != nil {
 		return err
 	}
 	return nil
+}
+
+func DockerBuildTargetAgent() error {
+	return shellcmd.Command("docker-compose -f docker-compose-target-agent.yaml build").Run()
+}
+func DockerBuildPollAgent() error {
+	return shellcmd.Command("docker-compose -f docker-compose-poll-agent.yaml build").Run()
 }

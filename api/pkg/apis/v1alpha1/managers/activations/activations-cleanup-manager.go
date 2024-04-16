@@ -65,11 +65,11 @@ func (s *ActivationsCleanupManager) Poll() []error {
 		if activation.Status.UpdateTime == "" {
 			// Ugrade scenario: update time is not set for activations created before. Set it to now and the activation will be deleted later.
 			// UpdateTime will be set in ReportStatus function
-			err = s.ActivationsManager.ReportStatus(context.Background(), activation.Id, *activation.Status)
+			err = s.ActivationsManager.ReportStatus(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace, *activation.Status)
 			if err != nil {
 				// Delete activation immediately if update time cannot be set? Cx may be confused why activations disappeared
 				// Just leave those activations as it is and let Cx delete them manually
-				log.Error("M (Activation Cleanup): Cannot set update time for activation "+activation.Id+" since update time cannot be set: %+v", err)
+				log.Error("M (Activation Cleanup): Cannot set update time for activation "+activation.ObjectMeta.Name+" since update time cannot be set: %+v", err)
 				ret = append(ret, err)
 			}
 			continue
@@ -79,13 +79,13 @@ func (s *ActivationsCleanupManager) Poll() []error {
 		updateTime, err := time.Parse(time.RFC3339, activation.Status.UpdateTime)
 		if err != nil {
 			// TODO: should not happen, force update time to Time.Now() ?
-			log.Info("M (Activation Cleanup): Cannot parse update time of " + activation.Id)
+			log.Info("M (Activation Cleanup): Cannot parse update time of " + activation.ObjectMeta.Name)
 			ret = append(ret, err)
 		}
 		duration := time.Since(updateTime)
 		if duration > time.Duration(s.RetentionInMinutes)*time.Minute {
-			log.Info("M (Activation Cleanup): Deleting activation " + activation.Id + " since it has completed for " + duration.String())
-			err = s.ActivationsManager.DeleteState(context.Background(), activation.Id, activation.ObjectMeta.Namespace)
+			log.Info("M (Activation Cleanup): Deleting activation " + activation.ObjectMeta.Name + " since it has completed for " + duration.String())
+			err = s.ActivationsManager.DeleteState(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 			if err != nil {
 				ret = append(ret, err)
 			}

@@ -61,7 +61,14 @@ type APIHost struct {
 	Vendors              []VendorSpec
 	Bindings             []bindings.IBinding
 	SharedPubSubProvider pv.IProvider
-	shutdownGracePeriod  time.Duration
+	ShutdownGracePeriod  time.Duration
+}
+
+func overrideWithEnvVariable(value string, env string) string {
+	if os.Getenv(env) != "" {
+		return os.Getenv(env)
+	}
+	return value
 }
 
 func (h *APIHost) Launch(config HostConfig,
@@ -72,14 +79,23 @@ func (h *APIHost) Launch(config HostConfig,
 	h.Bindings = make([]bindings.IBinding, 0)
 	log.Info("--- launching COA host ---")
 	var err error
-	h.shutdownGracePeriod, err = time.ParseDuration(config.ShutdownGracePeriod)
+	h.ShutdownGracePeriod, err = time.ParseDuration(config.ShutdownGracePeriod)
 	if err != nil {
 		log.Warnf("failed to parse shutdownGracePeriod '%s' from config, using default '%s'", config.ShutdownGracePeriod, defaultShutdownGracePeriod)
-		h.shutdownGracePeriod, _ = time.ParseDuration(defaultShutdownGracePeriod)
+		h.ShutdownGracePeriod, _ = time.ParseDuration(defaultShutdownGracePeriod)
 	}
 	if config.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is not specified", v1alpha2.BadConfig)
 	}
+
+	config.SiteInfo.SiteId = overrideWithEnvVariable(config.SiteInfo.SiteId, "SYMPHONY_SITE_ID")
+	config.SiteInfo.CurrentSite.BaseUrl = overrideWithEnvVariable(config.SiteInfo.CurrentSite.BaseUrl, "SYMPHONY_API_BASE_URL")
+	config.SiteInfo.CurrentSite.Username = overrideWithEnvVariable(config.SiteInfo.CurrentSite.Username, "SYMPHONY_API_USER")
+	config.SiteInfo.CurrentSite.Password = overrideWithEnvVariable(config.SiteInfo.CurrentSite.Password, "SYMPHONY_API_PASSWORD")
+	config.SiteInfo.ParentSite.BaseUrl = overrideWithEnvVariable(config.SiteInfo.ParentSite.BaseUrl, "PARENT_SYMPHONY_API_BASE_URL")
+	config.SiteInfo.ParentSite.Username = overrideWithEnvVariable(config.SiteInfo.ParentSite.Username, "PARENT_SYMPHONY_API_USER")
+	config.SiteInfo.ParentSite.Password = overrideWithEnvVariable(config.SiteInfo.ParentSite.Password, "PARENT_SYMPHONY_API_PASSWORD")
+
 	for _, v := range config.API.Vendors {
 		v.SiteInfo = config.SiteInfo
 		created := false
@@ -245,7 +261,7 @@ func (h *APIHost) WaitForShutdown(wg *sync.WaitGroup, cancel context.CancelFunc)
 
 	wg.Wait() // Wait for all original goroutines to finish
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), h.shutdownGracePeriod)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), h.ShutdownGracePeriod)
 	defer shutdownCancel()
 
 	eg := errgroup.Group{}

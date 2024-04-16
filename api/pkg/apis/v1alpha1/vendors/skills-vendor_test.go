@@ -128,37 +128,42 @@ func TestSkillsVendorGetEndpoints(t *testing.T) {
 }
 
 func TestSkillsVendorOnSkills(t *testing.T) {
-	s1 := model.SkillSpec{
-		DisplayName: "skill",
-		Parameters: map[string]string{
-			"foo": "bar",
+	s1 := model.SkillState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "skill",
 		},
-		Nodes: []model.NodeSpec{
-			{
-				Id: "node1",
+		Spec: &model.SkillSpec{
+			DisplayName: "skill",
+			Parameters: map[string]string{
+				"foo": "bar",
 			},
-			{
-				Id: "node2",
-			},
-		},
-		Properties: map[string]string{
-			"foo": "bar",
-		},
-		Bindings: []model.BindingSpec{
-			{
-				Role:     "role",
-				Provider: "provider",
-			},
-		},
-		Edges: []model.EdgeSpec{
-			{
-				Source: model.ConnectionSpec{
-					Node:  "node1",
-					Route: "route1",
+			Nodes: []model.NodeSpec{
+				{
+					Id: "node1",
 				},
-				Target: model.ConnectionSpec{
-					Node:  "node2",
-					Route: "route1",
+				{
+					Id: "node2",
+				},
+			},
+			Properties: map[string]string{
+				"foo": "bar",
+			},
+			Bindings: []model.BindingSpec{
+				{
+					Role:     "role",
+					Provider: "provider",
+				},
+			},
+			Edges: []model.EdgeSpec{
+				{
+					Source: model.ConnectionSpec{
+						Node:  "node1",
+						Route: "route1",
+					},
+					Target: model.ConnectionSpec{
+						Node:  "node2",
+						Route: "route1",
+					},
 				},
 			},
 		},
@@ -174,7 +179,7 @@ func TestSkillsVendorOnSkills(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": s1.DisplayName,
+			"__name": s1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}
@@ -185,7 +190,7 @@ func TestSkillsVendorOnSkills(t *testing.T) {
 	getReq := v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": s1.DisplayName,
+			"__name": s1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}
@@ -194,7 +199,7 @@ func TestSkillsVendorOnSkills(t *testing.T) {
 	var s1State model.SkillState
 	err = json.Unmarshal(resp.Body, &s1State)
 	assert.Nil(t, err)
-	equal, err := s1.DeepEquals(*s1State.Spec)
+	equal, err := s1.Spec.DeepEquals(*s1State.Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
@@ -209,7 +214,7 @@ func TestSkillsVendorOnSkills(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &skillsState)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(skillsState))
-	equal, err = s1.DeepEquals(*skillsState[0].Spec)
+	equal, err = s1.Spec.DeepEquals(*skillsState[0].Spec)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
@@ -217,7 +222,7 @@ func TestSkillsVendorOnSkills(t *testing.T) {
 	deleteReq := v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": s1.DisplayName,
+			"__name": s1.Spec.DisplayName,
 		},
 		Context: context.Background(),
 	}

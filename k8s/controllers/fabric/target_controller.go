@@ -55,7 +55,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	myFinalizerName := "target.fabric.symphony/finalizer"
 
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target")
+	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
 
 	// Get target
 	target := &symphonyv1.Target{}
@@ -78,7 +78,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-		if err != nil && !v1alpha2.IsNotFound(err) {
+		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !utils.IsDeploymentFinished(summary)) {
+			if err == nil && !utils.IsDeploymentFinished(summary) {
+				// mock error if deployment is not finished then cause requeue
+				err = fmt.Errorf("Get summary but deployment is not finished yet")
+			}
 			uErr := r.updateTargetStatusToReconciling(target, err)
 			if uErr != nil {
 				log.Error(uErr, "failed to update target status to reconciling")
@@ -150,7 +154,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval == true && summary.Summary.AllAssignedDeployed {
+					if err == nil && summary.Summary.IsRemoval && utils.IsDeploymentFinished(summary) && summary.Summary.AllAssignedDeployed {
 						break loop
 					}
 					if err != nil && !v1alpha2.IsNotFound(err) {

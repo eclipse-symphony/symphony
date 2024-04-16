@@ -69,11 +69,11 @@ type Observability struct {
 }
 
 // New returns a new instance of the observability.
-func New(aioProject string) Observability {
+func New(symphonyProject string) Observability {
 	return Observability{
 		Metrics: &metrics{
 			provider: otel.GetMeterProvider(),
-			meter:    otel.GetMeterProvider().Meter(aioProject),
+			meter:    otel.GetMeterProvider().Meter(symphonyProject),
 		},
 	}
 }

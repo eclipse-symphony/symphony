@@ -160,7 +160,7 @@ func TestCatalogGetEndpoints(t *testing.T) {
 	vendor := CatalogVendorInit()
 	endpoints := vendor.GetEndpoints()
 	assert.NotNil(t, endpoints)
-	assert.Equal(t, "catalogs/check", endpoints[len(endpoints)-1].Route)
+	assert.Equal(t, "catalogs/status", endpoints[len(endpoints)-1].Route)
 }
 
 func TestCatalogOnCheck(t *testing.T) {
@@ -494,10 +494,11 @@ func TestCatalogOnCatalogsGraphMethodNotAllowed(t *testing.T) {
 
 func TestCatalogSubscribe(t *testing.T) {
 	vendor := CatalogVendorInit()
-
+	origin := "parent"
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{
 		Metadata: map[string]string{
 			"objectType": catalogState.Spec.Type,
+			"origin":     origin,
 		},
 		Body: v1alpha2.JobData{
 			Id:     catalogState.ObjectMeta.Name,
@@ -510,7 +511,7 @@ func TestCatalogSubscribe(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": fmt.Sprintf("%s-%s", catalogState.Spec.SiteId, catalogState.Spec.Name),
+			"__name": fmt.Sprintf("%s-%s", origin, catalogState.Spec.Name),
 		},
 	}
 	response := vendor.onCatalogs(*requestGet)

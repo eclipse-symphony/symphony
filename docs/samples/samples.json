@@ -41,7 +41,7 @@
                     {
                         "command": "echo",
                         "args": [
-                           "Navigate to http://$(1):9090/ to access Promethus portal"                           
+                           "Navigate to http://$(1):9090/ to access the Promethus portal (it may take a few minutes for the LoadBalancer to be provisioned)"                           
                         ]
                     }                    
                 ],
@@ -133,16 +133,23 @@
             "postActions": 
             [
                 {
-                    "command": "./maestro",
+                    "command": "maestro",
                     "args": [
                        "get",
-                       "target",
+                       "catalog",
                        "-n",
-                       "sample-staged-k8s",
+                       "sample-staged-instance-sample-staged-k8s",
                        "--json-path",
-                       "$.spec.components[0].properties"
+                       "$.metadata.name",
+                       "--no-header"
                     ]                    
-                }                    
+                },
+                {
+                    "command": "echo",
+                    "args": [
+                       "Target artifact is staged at Catalog object$(1)"                           
+                    ]
+                }                          
             ]
         }
     ]

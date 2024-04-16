@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -108,13 +109,15 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			namesOnly = v.(bool)
 		}
 	}
+	objectNamespace := stage.GetNamespace(inputs)
+	if objectNamespace == "" {
+		objectNamespace = "default"
+	}
+
 	switch objectType {
 	case "instance":
-		objectNamespace := "default"
-		if s, ok := inputs["objectNamespace"]; ok {
-			objectNamespace = s.(string)
-		}
-		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
+		var instances []model.InstanceState
+		instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err
@@ -149,6 +152,22 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["items"] = names
 		} else {
 			outputs["items"] = filteredSites
+		}
+	case "catalogs":
+		var catalogs []model.CatalogState
+		catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
+		if err != nil {
+			log.Errorf("  P (List Processor): failed to get catalogs: %v", err)
+			return nil, false, err
+		}
+		if namesOnly {
+			names := make([]string, 0)
+			for _, catalog := range catalogs {
+				names = append(names, catalog.ObjectMeta.Name)
+			}
+			outputs["items"] = names
+		} else {
+			outputs["items"] = catalogs
 		}
 	default:
 		log.Errorf("  P (List Processor): unsupported object type: %s", objectType)

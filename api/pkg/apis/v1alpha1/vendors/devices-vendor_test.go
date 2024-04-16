@@ -95,13 +95,19 @@ func TestPostAndGet(t *testing.T) {
 	}
 	res := vendor.onDevices(*request)
 	assert.Equal(t, v1alpha2.InternalError, res.State)
-	deviceSpec := model.DeviceSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"type": "sensor",
+	deviceState := model.DeviceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: &model.DeviceSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"type": "sensor",
+			},
 		},
 	}
-	data, err := json.Marshal(deviceSpec)
+	data, err := json.Marshal(deviceState)
 	request.Body = data
 	res = vendor.onDevices(*request)
 	assert.Equal(t, v1alpha2.OK, res.State)
@@ -118,13 +124,12 @@ func TestPostAndGet(t *testing.T) {
 	res = vendor.onDevices(*request)
 	assert.Equal(t, v1alpha2.OK, res.State)
 	var state model.DeviceState
-	deviceState := model.DeviceState{
-		Id:   "test",
-		Spec: &deviceSpec,
-	}
+
 	err = json.Unmarshal(res.Body, &state)
 	assert.Nil(t, err)
-	assert.Equal(t, deviceState, state)
+	equal, err := deviceState.DeepEquals(state)
+	assert.Nil(t, err)
+	assert.True(t, equal)
 
 	request = &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,

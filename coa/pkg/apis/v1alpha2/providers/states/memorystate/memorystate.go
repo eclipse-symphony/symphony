@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -81,10 +82,21 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
-	sLog.Debugf("  P (Memory State): upsert states %s, traceId: %s", entry.Value.ID, span.SpanContext().TraceID().String())
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+
+	namespace := "default"
+	if n, ok := entry.Metadata["namespace"]; ok {
+		if nstring, ok := n.(string); ok && nstring != "" {
+			namespace = nstring
+		}
+	}
+	sLog.Debugf("  P (Memory State): upsert states %s in namespace %s, traceId: %s", entry.Value.ID, namespace, span.SpanContext().TraceID().String())
+
+	if _, ok := s.Data[namespace]; !ok {
+		s.Data[namespace] = map[string]interface{}{}
+	}
 
 	tag := "1"
 	if entry.Value.ETag != "" {
@@ -95,8 +107,14 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	}
 	entry.Value.ETag = tag
 
+	list, ok := s.Data[namespace].(map[string]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
+		sLog.Errorf("  P (Memory State): failed to upsert %s states: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+		return "", err
+	}
 	if entry.Options.UpdateStateOnly {
-		existing, ok := s.Data[entry.Value.ID]
+		existing, ok := list[entry.Value.ID]
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", entry.Value.ID), v1alpha2.NotFound)
 			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
@@ -109,7 +127,12 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 			return "", err
 		}
 
-		mapRef := existingEntry.Body.(map[string]interface{})
+		mapRef, ok := existingEntry.Body.(map[string]interface{})
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid body", entry.Value.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			return "", err
+		}
 		var mapType map[string]interface{}
 		jBody, _ := json.Marshal(entry.Value.Body)
 		json.Unmarshal(jBody, &mapType)
@@ -124,11 +147,93 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 		entry.Value.Body = mapRef
 	}
 
-	s.Data[entry.Value.ID] = entry.Value
+	list[entry.Value.ID] = entry.Value
 
 	return entry.Value.ID, nil
 }
-
+func traceDownField(entity map[string]interface{}, filter string) (map[string]interface{}, string, error) {
+	if !strings.Contains(filter, ".") {
+		return entity, filter, nil
+	}
+	parts := strings.Split(filter, ".")
+	if v, ok := entity[parts[0]]; ok {
+		var dict = make(map[string]interface{})
+		j, _ := json.Marshal(v)
+		err := json.Unmarshal(j, &dict)
+		if err != nil {
+			return nil, filter, err
+		}
+		return traceDownField(dict, strings.Join(parts[1:], "."))
+	} else {
+		return nil, filter, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+	}
+}
+func simulateK8sFilter(entity map[string]interface{}, filter string) (bool, error) {
+	parts := strings.Split(filter, ",")
+	for _, part := range parts {
+		match, err := simulateK8sFilterSingleKey(entity, part)
+		if err != nil {
+			return false, err
+		}
+		if !match {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+func simulateK8sFilterSingleKey(entity map[string]interface{}, filter string) (bool, error) {
+	if strings.Index(filter, "!=") > 0 {
+		parts := strings.Split(filter, "!=")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] != parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else if strings.Index(filter, "==") > 0 {
+		parts := strings.Split(filter, "==")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] == parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else if strings.Index(filter, "=") > 0 {
+		parts := strings.Split(filter, "=")
+		if len(parts) == 2 {
+			dict, key, err := traceDownField(entity, parts[0])
+			if err != nil {
+				return false, err
+			}
+			if dict[key] != nil {
+				if dict[key] == parts[1] {
+					return true, nil
+				}
+			}
+			return false, nil
+		} else {
+			return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+		}
+	} else {
+		return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("filter '%s' is not a valid selector", filter), v1alpha2.BadRequest)
+	}
+}
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -138,20 +243,89 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debugf("  P (Memory State): list states, traceId: %s", span.SpanContext().TraceID().String())
-
 	var entities []states.StateEntry
-	for _, v := range s.Data {
-		vE, ok := v.(states.StateEntry)
-		if ok {
-			if request.Filter != "" {
-				//TODO: support filters in the future
+	namespace := ""
+	if n, ok := request.Metadata["namespace"]; ok {
+		if nstring, ok := n.(string); ok && nstring != "" {
+			namespace = nstring
+		}
+	}
+	sLog.Debugf("  P (Memory State): list states in namespace %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
+	for nKey, nList := range s.Data {
+		// If namespace is not specified, get entry for all namespaces
+		if namespace == "" || namespace == nKey {
+			if list, ok := nList.(map[string]interface{}); ok {
+				for _, entry := range list {
+					vE, ok := entry.(states.StateEntry)
+					if ok {
+						if request.FilterType != "" && request.FilterValue != "" {
+							var dict map[string]interface{}
+							j, _ := json.Marshal(vE.Body)
+							err = json.Unmarshal(j, &dict)
+							if err != nil {
+								err = v1alpha2.NewCOAError(nil, "failed to unmarshal state entry", v1alpha2.InternalError)
+								sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+								return entities, "", err
+							}
+							switch request.FilterType {
+							case "label":
+								if dict["metadata"] != nil {
+									metadata, ok := dict["metadata"].(map[string]interface{})
+									if ok {
+										if metadata["labels"] != nil {
+											labels, ok := metadata["labels"].(map[string]interface{})
+											if ok {
+												match, err := simulateK8sFilter(labels, request.FilterValue)
+												if err != nil {
+													return entities, "", err
+												}
+												if !match {
+													continue
+												}
+											}
+										}
+									}
+								}
+							case "field":
+								match, err := simulateK8sFilter(dict, request.FilterValue)
+								if err != nil {
+									return entities, "", err
+								}
+								if !match {
+									continue
+								}
+							case "status":
+								if dict["status"] != nil {
+									status, ok := dict["status"].(map[string]interface{})
+									if ok {
+										if v, e := utils.JsonPathQuery(status, request.FilterValue); e != nil || v == nil {
+											continue
+										}
+									}
+								}
+							case "spec":
+								if dict["spec"] != nil {
+									spec, ok := dict["spec"].(map[string]interface{})
+									if ok {
+										if v, e := utils.JsonPathQuery(spec, request.FilterValue); e != nil || v == nil {
+											continue
+										}
+									}
+								}
+							}
+						}
+						entities = append(entities, vE)
+					} else {
+						err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
+						sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+						return entities, "", err
+					}
+				}
+			} else {
+				err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
+				sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				return entities, "", err
 			}
-			entities = append(entities, vE)
-		} else {
-			err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
-			return entities, "", err
 		}
 	}
 
@@ -167,14 +341,31 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debugf("  P (Memory State): delete state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
+	namespace := "default"
+	if n, ok := request.Metadata["namespace"]; ok {
+		if nstring, ok := n.(string); ok && nstring != "" {
+			namespace = nstring
+		}
+	}
+	sLog.Debugf("  P (Memory State): delete state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
 
-	if _, ok := s.Data[request.ID]; !ok {
+	if _, ok := s.Data[namespace]; !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
+		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		return err
+	}
+	list, ok := s.Data[namespace].(map[string]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
+		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		return err
+	}
+	if _, ok := list[request.ID]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
 		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
 		return err
 	}
-	delete(s.Data, request.ID)
+	delete(list, request.ID)
 
 	return nil
 }
@@ -188,20 +379,38 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Debugf("  P (Memory State): get state %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
-
-	if v, ok := s.Data[request.ID]; ok {
-		vE, ok := v.(states.StateEntry)
-		if ok {
-			err = nil
-			return vE, nil
-		} else {
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
-			return states.StateEntry{}, err
+	namespace := "default"
+	if n, ok := request.Metadata["namespace"]; ok {
+		if nstring, ok := n.(string); ok && nstring != "" {
+			namespace = nstring
 		}
 	}
-	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
+
+	sLog.Debugf("  P (Memory State): get state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
+
+	if _, ok := s.Data[namespace]; !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
+		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		return states.StateEntry{}, err
+	}
+	list, ok := s.Data[namespace].(map[string]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
+		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		return states.StateEntry{}, err
+	}
+	entry, ok := list[request.ID]
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
+		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		return states.StateEntry{}, err
+	}
+	vE, ok := entry.(states.StateEntry)
+	if ok {
+		err = nil
+		return vE, nil
+	}
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
 	sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
 	return states.StateEntry{}, err
 }

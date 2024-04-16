@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -44,18 +45,18 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 	return nil
 }
 
-func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
+func (t *DevicesManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): DeleteSpec name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.Infof(" M (Devices): DeleteState name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
-			"namespace": "",
+			"namespace": namespace,
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "devices",
@@ -69,13 +70,18 @@ func (t *DevicesManager) DeleteSpec(ctx context.Context, name string) error {
 	return nil
 }
 
-func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
+func (t *DevicesManager) UpsertState(ctx context.Context, name string, state model.DeviceState) error {
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): UpsertSpec name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.Infof(" M (Devices): UpsertState name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -83,15 +89,12 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 			Body: map[string]interface{}{
 				"apiVersion": model.FabricGroup + "/v1",
 				"kind":       "device",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   state.ObjectMeta,
+				"spec":       state.Spec,
 			},
 		},
 		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Device", "metadata": {"name": "${{$device()}}"}}`, model.FabricGroup),
-			"namespace": "",
+			"namespace": state.ObjectMeta.Namespace,
 			"group":     model.FabricGroup,
 			"version":   "v1",
 			"resource":  "devices",
@@ -106,32 +109,34 @@ func (t *DevicesManager) UpsertSpec(ctx context.Context, name string, spec model
 	return nil
 }
 
-func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, error) {
+func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]model.DeviceState, error) {
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): ListSpec, traceId: %s", span.SpanContext().TraceID().String())
+	log.Infof(" M (Devices): ListState, traceId: %s", span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "devices",
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "devices",
+			"kind":      "Device",
+			"namespace": namespace,
 		},
 	}
-	solutions, _, err := t.StateProvider.List(ctx, listRequest)
+	devices, _, err := t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		log.Errorf(" M (Devices): failed to list state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
 	ret := make([]model.DeviceState, 0)
-	for _, t := range solutions {
+	for _, t := range devices {
 		var rt model.DeviceState
 		rt, err = getDeviceState(t.ID, t.Body)
 		if err != nil {
-			log.Errorf(" M (Devices): ListSpec failed to get device state %s, error: %v, traceId: %s", t.ID, err, span.SpanContext().TraceID().String())
+			log.Errorf(" M (Devices): ListState failed to get device state %s, error: %v, traceId: %s", t.ID, err, span.SpanContext().TraceID().String())
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -141,44 +146,67 @@ func (t *DevicesManager) ListSpec(ctx context.Context) ([]model.DeviceState, err
 
 func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
 	dict := body.(map[string]interface{})
-	spec := dict["spec"]
 
+	//read spec
+	spec := dict["spec"]
 	j, _ := json.Marshal(spec)
 	var rSpec model.DeviceSpec
 	err := json.Unmarshal(j, &rSpec)
 	if err != nil {
 		return model.DeviceState{}, err
 	}
+
+	//read metadata
+	metadata := dict["metadata"]
+	j, _ = json.Marshal(metadata)
+	var rMetadata model.ObjectMeta
+	err = json.Unmarshal(j, &rMetadata)
+	if err != nil {
+		return model.DeviceState{}, err
+	}
+
+	//read status
+	status := dict["status"]
+	j, _ = json.Marshal(status)
+	var rStatus model.DeviceStatus
+	err = json.Unmarshal(j, &rStatus)
+	if err != nil {
+		return model.DeviceState{}, err
+	}
+
 	state := model.DeviceState{
-		Id:   id,
-		Spec: &rSpec,
+		ObjectMeta: rMetadata,
+		Spec:       &rSpec,
+		Status:     rStatus,
 	}
 	return state, nil
 }
 
-func (t *DevicesManager) GetSpec(ctx context.Context, id string) (model.DeviceState, error) {
+func (t *DevicesManager) GetState(ctx context.Context, name string, namespace string) (model.DeviceState, error) {
 	ctx, span := observability.StartSpan("Devices Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): GetSpec id %s, traceId: %s", id, span.SpanContext().TraceID().String())
+	log.Infof(" M (Devices): GetState id %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
-		ID: id,
+		ID: name,
 		Metadata: map[string]interface{}{
-			"version":  "v1",
-			"group":    model.FabricGroup,
-			"resource": "devices",
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "devices",
+			"namespace": namespace,
+			"kind":      "Device",
 		},
 	}
-	target, err := t.StateProvider.Get(ctx, getRequest)
+	entry, err := t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Errorf(" M (Devices): failed to get state %s, error: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+		log.Errorf(" M (Devices): failed to get state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
 	}
 
-	ret, err := getDeviceState(id, target.Body)
+	ret, err := getDeviceState(name, entry.Body)
 	if err != nil {
 		log.Errorf(" M (Devices): GetSpec failed to get device state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return model.DeviceState{}, err
