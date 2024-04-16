@@ -120,14 +120,15 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 			"kind":      "Instance",
 		},
 	}
-	instances, _, err := t.StateProvider.List(ctx, listRequest)
+	var instances []states.StateEntry
+	instances, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		var rt model.InstanceState
-		rt, err = getInstanceState(t.ID, t.Body, t.ETag)
+		rt, err = getInstanceState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -136,44 +137,18 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getInstanceState(id string, body interface{}, etag string) (model.InstanceState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.InstanceSpec
-	err := json.Unmarshal(j, &rSpec)
+func getInstanceState(body interface{}, etag string) (model.InstanceState, error) {
+	var instanceState model.InstanceState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &instanceState)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.InstanceStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.InstanceState{}, err
+	if instanceState.Spec == nil {
+		instanceState.Spec = &model.InstanceSpec{}
 	}
-
-	rSpec.Generation = etag
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.InstanceState{}, err
-	}
-
-	state := model.InstanceState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-		Status:     rStatus,
-	}
-	return state, nil
+	instanceState.Spec.Generation = etag
+	return instanceState, nil
 }
 
 func (t *InstancesManager) GetState(ctx context.Context, id string, namespace string) (model.InstanceState, error) {
@@ -193,12 +168,13 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 			"kind":      "Instance",
 		},
 	}
-	instance, err := t.StateProvider.Get(ctx, getRequest)
+	var instance states.StateEntry
+	instance, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-
-	ret, err := getInstanceState(id, instance.Body, instance.ETag)
+	var ret model.InstanceState
+	ret, err = getInstanceState(instance.Body, instance.ETag)
 	if err != nil {
 		return model.InstanceState{}, err
 	}

@@ -58,12 +58,13 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 			"kind":      "Campaign",
 		},
 	}
-	entry, err := m.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
-
-	ret, err := getCampaignState(entry.Body)
+	var ret model.CampaignState
+	ret, err = getCampaignState(entry.Body)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
@@ -71,32 +72,16 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 }
 
 func getCampaignState(body interface{}) (model.CampaignState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.CampaignSpec
-	err := json.Unmarshal(j, &rSpec)
+	var campaignState model.CampaignState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &campaignState)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.CampaignState{}, err
+	if campaignState.Spec == nil {
+		campaignState.Spec = &model.CampaignSpec{}
 	}
-
-	state := model.CampaignState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-	}
-
-	return state, nil
+	return campaignState, nil
 }
 
 func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state model.CampaignState) error {
@@ -170,7 +155,8 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 			"kind":      "Campaign",
 		},
 	}
-	solutions, _, err := t.StateProvider.List(ctx, listRequest)
+	var solutions []states.StateEntry
+	solutions, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}

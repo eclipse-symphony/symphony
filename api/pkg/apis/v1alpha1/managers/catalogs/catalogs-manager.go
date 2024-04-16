@@ -69,12 +69,13 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 			"kind":      "Catalog",
 		},
 	}
-	entry, err := s.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = s.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
-
-	ret, err := getCatalogState(entry.Body, entry.ETag)
+	var ret model.CatalogState
+	ret, err = getCatalogState(entry.Body, entry.ETag)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
@@ -82,42 +83,20 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 }
 
 func getCatalogState(body interface{}, etag string) (model.CatalogState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.CatalogSpec
-	err := json.Unmarshal(j, &rSpec)
+	var catalogState model.CatalogState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &catalogState)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
-	rSpec.Generation = etag
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.CatalogStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.CatalogState{}, err
+	if catalogState.Spec == nil {
+		catalogState.Spec = &model.CatalogSpec{}
 	}
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.CatalogState{}, err
+	catalogState.Spec.Generation = etag
+	if catalogState.Status == nil {
+		catalogState.Status = &model.CatalogStatus{}
 	}
-
-	state := model.CatalogState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-		Status:     &rStatus,
-	}
-	return state, nil
+	return catalogState, nil
 }
 func (m *CatalogsManager) ValidateState(ctx context.Context, state model.CatalogState) (utils.SchemaResult, error) {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
@@ -163,7 +142,8 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	}
 	state.ObjectMeta.FixNames(name)
 
-	result, err := m.ValidateState(ctx, state)
+	var result utils.SchemaResult
+	result, err = m.ValidateState(ctx, state)
 	if err != nil {
 		return err
 	}
@@ -246,7 +226,8 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	}
 	listRequest.FilterType = filterType
 	listRequest.FilterValue = filterValue
-	catalogs, _, err := t.StateProvider.List(ctx, listRequest)
+	var catalogs []states.StateEntry
+	catalogs, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +271,8 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string, namespac
 	if err != nil {
 		return nil, err
 	}
-	ret, err := g.GraphProvider.GetChains(ctx, graph.ListRequest{Filter: filter})
+	var ret graph.GetSetsResponse
+	ret, err = g.GraphProvider.GetChains(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +294,8 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 	if err != nil {
 		return nil, err
 	}
-	ret, err := g.GraphProvider.GetTrees(ctx, graph.ListRequest{Filter: filter})
+	var ret graph.GetSetsResponse
+	ret, err = g.GraphProvider.GetTrees(ctx, graph.ListRequest{Filter: filter})
 	if err != nil {
 		return nil, err
 	}

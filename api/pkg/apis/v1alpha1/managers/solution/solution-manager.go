@@ -57,7 +57,6 @@ type SolutionManagerDeploymentState struct {
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
 		return err
@@ -148,7 +147,8 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 
 	log.Info(" M (Solution): get summary")
 
-	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
+	var state states.StateEntry
+	state, err = s.StateProvider.Get(iCtx, states.GetRequest{
 		ID: fmt.Sprintf("%s-%s", "summary", key),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -243,14 +243,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Spec.Name, namespace)
 
-	currentDesiredState, err := NewDeploymentState(deployment)
+	var currentDesiredState, currentState model.DeploymentState
+	currentDesiredState, err = NewDeploymentState(deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
 		log.Errorf(" M (Solution): failed to create target manager state from deployment spec: %+v", err)
 		s.saveSummary(iCtx, deployment, summary, namespace)
 		return summary, err
 	}
-	currentState, _, err := s.Get(iCtx, deployment, targetName)
+	currentState, _, err = s.Get(iCtx, deployment, targetName)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
 		log.Errorf(" M (Solution): failed to get current state: %+v", err)
@@ -268,7 +269,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState := MergeDeploymentStates(&currentState, desiredState)
 
-	plan, err := PlanForDeployment(deployment, mergedState)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, mergedState)
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
@@ -507,12 +509,14 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 
 	ret := model.DeploymentState{}
 
-	state, err := NewDeploymentState(deployment)
+	var state model.DeploymentState
+	state, err = NewDeploymentState(deployment)
 	if err != nil {
 		log.Errorf(" M (Solution): failed to create manager state for deployment: %+v", err)
 		return ret, nil, err
 	}
-	plan, err := PlanForDeployment(deployment, state)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, state)
 	if err != nil {
 		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
 		return ret, nil, err
