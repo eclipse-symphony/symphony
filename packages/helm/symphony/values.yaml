@@ -32,3 +32,13 @@ parent:
   password:
 siteId: hq
 imagePrivateRegistryUrl: ghcr.io
+api:
+  apiContainerPortHttp: 8080
+  apiContainerPortHttps: 8081
+symphony:
+  incluster:
+    httpsport: 8081
+    httpport: 8080
+  extension:
+    httpsport: 8081
+    httpport: 8080

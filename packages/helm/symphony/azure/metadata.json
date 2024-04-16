@@ -1,37 +1,37 @@
 {
   "mappings": [
     {
-      "ApiVersion": "2020-01-01-preview",
+      "ApiVersion": "2023-10-04-preview",
       "ResourceType": "solutions",
-      "ProviderName": "Private.Symphony",
+      "ProviderName": "Microsoft.IoTOperationsOrchestrator",
       "ResourceMapping": {
         "Version": "v1",
-        "Group": "symphony.microsoft.com",
+        "Group": "orchestrator.iotoperations.azure.com",
         "Kind": "Solution",
-        "Name": "solutions.symphony.microsoft.com"
+        "Name": "solutions.orchestrator.iotoperations.azure.com"
       }
     },
     {
-      "ApiVersion": "2020-01-01-preview",
+      "ApiVersion": "2023-10-04-preview",
       "ResourceType": "instances",
-      "ResourceProviderName": "Private.Symphony",
+      "ResourceProviderName": "Microsoft.IoTOperationsOrchestrator",
       "ResourceMapping": {
           "Version": "v1",
-          "Group": "symphony.microsoft.com",
+          "Group": "orchestrator.iotoperations.azure.com",
           "Kind": "Instance",
-          "Name": "instances.symphony.microsoft.com",
+          "Name": "instances.orchestrator.iotoperations.azure.com",
           "IsAsync": true
       }
   },
   {
-      "ApiVersion": "2020-01-01-preview",
+      "ApiVersion": "2023-10-04-preview",
       "ResourceType": "targets",
-      "ResourceProviderName": "Private.Symphony",
+      "ResourceProviderName": "Microsoft.IoTOperationsOrchestrator",
       "ResourceMapping": {
           "Version": "v1",
-          "Group": "symphony.microsoft.com",
+          "Group": "orchestrator.iotoperations.azure.com",
           "Kind": "Target",
-          "Name": "targets.symphony.microsoft.com",
+          "Name": "targets.orchestrator.iotoperations.azure.com",
           "IsAsync": true
       }
   }

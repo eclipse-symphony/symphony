@@ -17,7 +17,7 @@ spec:
     spec:
       {{- with .Values.affinity }}
       affinity:
-{{ toYaml . | indent 8 }}
+        {{ toYaml . | indent 8 }}
       {{- end }}
       serviceAccountName: {{ include "symphony.serviceAccountName" . }}
       containers:
@@ -26,19 +26,35 @@ spec:
         image: {{ .Values.paiImage.repository }}:{{ .Values.paiImage.tag }}
         imagePullPolicy: {{ .Values.paiImage.pullPolicy }}
         ports:
-        - containerPort: 8080
-        - containerPort: 8081
+        - containerPort: {{ include "symphony.apiContainerPortHttp" . }}
+        - containerPort: {{ include "symphony.apiContainerPortHttps" . }}
         env:          
           - name: "HELM_NAMESPACE"
             value: default
           - name: "CONFIG"
             value: /etc/symphony-api/config/symphony-api.json
+          - name: SERVICE_ACCOUNT_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          - name: SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME
+            value: '{{ include "symphony.fullname" . }}-controller-manager'
+
         envFrom:
-          - secretRef:
-              name: {{ include "symphony.fullname" . }}-auth
+        - secretRef:
+            name: {{ include "symphony.fullname" . }}-auth
+        - configMapRef:
+            name: {{ include "symphony.envConfigName" . }}
+
         volumeMounts:
         - name: symphony-api-config
           mountPath: /etc/symphony-api/config
+        - mountPath: /var/run/secrets/tokens
+          name: symphony-api-token
+        - mountPath: {{ include "symphony.apiServingCertsDir" . }}
+          name: serving-cert
+          readOnly: true
+
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
         env:
@@ -50,3 +66,13 @@ spec:
         - name: symphony-api-config
           configMap:
             name: {{ include "symphony.configmapName" . }}
+        - name: symphony-api-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: symphony-api-token
+                expirationSeconds: 600
+                audience: {{ include "symphony.url" . }}
+        - name: serving-cert
+          secret:
+            secretName: {{ include "symphony.apiServingCertName" . }}

@@ -4,7 +4,7 @@
 # This is needed incase the Symphony Operator is not running and the CRs are stuck in a terminating state
 
 TIMEOUT=60
-GROUP=symphony.microsoft.com
+GROUP=orchestrator.iotoperations.azure.com
 
 patchResource() {
   local resource_type="$1"

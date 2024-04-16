@@ -1,4 +1,4 @@
-module dev.azure.com/msazure/One/_git/symphony.git/test/integration
+module github.com/eclipse-symphony/symphony/test/integration
 
 go 1.20
 
