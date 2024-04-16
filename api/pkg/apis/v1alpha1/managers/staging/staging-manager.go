@@ -67,13 +67,15 @@ func (s *StagingManager) Poll() []error {
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
 		return nil
 	}
-	site, err := s.QueueProvider.Dequeue(Site_Job_Queue)
+	var site interface{}
+	site, err = s.QueueProvider.Dequeue(Site_Job_Queue)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
 	}
 	siteId := site.(string)
-	catalogs, err := utils.GetCatalogs(
+	var catalogs []model.CatalogState
+	catalogs, err = utils.GetCatalogs(
 		ctx,
 		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
 		s.VendorContext.SiteInfo.CurrentSite.Username,

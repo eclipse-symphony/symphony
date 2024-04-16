@@ -122,7 +122,8 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 			"namespace": namespace,
 		},
 	}
-	models, _, err := t.StateProvider.List(ctx, listRequest)
+	var models []states.StateEntry
+	models, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		log.Errorf(" M (Models): failed to ListState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
@@ -130,7 +131,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	ret := make([]model.ModelState, 0)
 	for _, t := range models {
 		var rt model.ModelState
-		rt, err = getModelState(t.ID, t.Body)
+		rt, err = getModelState(t.Body)
 		if err != nil {
 			log.Errorf(" M (Models): failed to getModelState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
@@ -140,34 +141,17 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	return ret, nil
 }
 
-func getModelState(id string, body interface{}) (model.ModelState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.ModelSpec
-	err := json.Unmarshal(j, &rSpec)
+func getModelState(body interface{}) (model.ModelState, error) {
+	var modelState model.ModelState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &modelState)
 	if err != nil {
 		return model.ModelState{}, err
 	}
-
-	//rSpec.Generation??
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.ModelState{}, err
+	if modelState.Spec == nil {
+		modelState.Spec = &model.ModelSpec{}
 	}
-
-	state := model.ModelState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-	}
-	return state, nil
+	return modelState, nil
 }
 
 func (t *ModelsManager) GetState(ctx context.Context, name string, namespace string) (model.ModelState, error) {
@@ -188,13 +172,15 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 			"kind":      "Model",
 		},
 	}
-	m, err := t.StateProvider.Get(ctx, getRequest)
+	var m states.StateEntry
+	m, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		log.Errorf(" M (Models): failed to GetSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.ModelState{}, err
 	}
 
-	ret, err := getModelState(name, m.Body)
+	var ret model.ModelState
+	ret, err = getModelState(m.Body)
 	if err != nil {
 		log.Errorf(" M (Models): failed to getModelState, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.ModelState{}, err
