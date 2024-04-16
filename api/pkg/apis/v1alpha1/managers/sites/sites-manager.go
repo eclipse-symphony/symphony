@@ -126,6 +126,9 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 
 	var siteState model.SiteState
 	siteState, err = getSiteState(entry.ID, entry.Body)
+	if err != nil {
+		return err
+	}
 	if siteState.Status == nil {
 		siteState.Status = &model.SiteStatus{}
 	}
