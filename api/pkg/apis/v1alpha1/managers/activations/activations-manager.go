@@ -64,12 +64,13 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 			"kind":      "Activation",
 		},
 	}
-	entry, err := m.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
-
-	ret, err := getActivationState(entry.Body, entry.ETag)
+	var ret model.ActivationState
+	ret, err = getActivationState(entry.Body, entry.ETag)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
@@ -77,43 +78,20 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 }
 
 func getActivationState(body interface{}, etag string) (model.ActivationState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.ActivationSpec
-	err := json.Unmarshal(j, &rSpec)
+	var activationState model.ActivationState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &activationState)
 	if err != nil {
 		return model.ActivationState{}, err
 	}
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.ActivationStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.ActivationState{}, err
+	if activationState.Spec == nil {
+		activationState.Spec = &model.ActivationSpec{}
 	}
-
-	rSpec.Generation = etag
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.ActivationState{}, err
+	activationState.Spec.Generation = etag
+	if activationState.Status == nil {
+		activationState.Status = &model.ActivationStatus{}
 	}
-
-	state := model.ActivationState{
-		Spec:       &rSpec,
-		Status:     &rStatus,
-		ObjectMeta: rMetadata,
-	}
-	return state, nil
+	return activationState, nil
 }
 
 func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state model.ActivationState) error {
@@ -190,7 +168,8 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 			"kind":      "Activation",
 		},
 	}
-	activations, _, err := t.StateProvider.List(ctx, listRequest)
+	var activations []states.StateEntry
+	activations, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +201,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"namespace": namespace,
 		},
 	}
-	entry, err := t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return err
 	}
