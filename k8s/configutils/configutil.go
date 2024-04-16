@@ -12,6 +12,7 @@ import (
 	"os"
 
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/constants"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -21,7 +22,7 @@ import (
 
 var (
 	namespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	configName    = os.Getenv("CONFIG_NAME")
+	configName    = os.Getenv(constants.ConfigName)
 )
 
 func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {

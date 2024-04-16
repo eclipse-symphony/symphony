@@ -7,17 +7,10 @@
 package v1
 
 import (
-	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	k8smodel "gopls-workspace/apis/model/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// InstanceStatus defines the observed state of Instance
-type InstanceStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
-	Properties         map[string]string           `json:"properties,omitempty"`
-	ProvisioningStatus apimodel.ProvisioningStatus `json:"provisioningStatus"`
-	LastModified       metav1.Time                 `json:"lastModified,omitempty"`
-}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
@@ -30,8 +23,8 @@ type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   apimodel.InstanceSpec `json:"spec,omitempty"`
-	Status InstanceStatus        `json:"status,omitempty"`
+	Spec   k8smodel.InstanceSpec   `json:"spec,omitempty"`
+	Status k8smodel.InstanceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -44,4 +37,16 @@ type InstanceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
+}
+
+func (i *Instance) GetStatus() k8smodel.TargetStatus {
+	return i.Status
+}
+
+func (i *Instance) SetStatus(status k8smodel.TargetStatus) {
+	i.Status = status
+}
+
+func (i *Instance) GetReconciliationPolicy() *k8smodel.ReconciliationPolicySpec {
+	return i.Spec.ReconciliationPolicy
 }

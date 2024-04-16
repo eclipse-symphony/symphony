@@ -69,7 +69,6 @@ spec:
               stage:
                 type: string
               status:
-                description: State represents a response state
                 type: integer
               updateTime:
                 type: string
