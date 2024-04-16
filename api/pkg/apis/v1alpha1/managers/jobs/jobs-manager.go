@@ -77,7 +77,7 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		if err != nil {
 			return err
 		}
-		clientOptions = append(clientOptions, utils.WithUserPassword(user, password))
+		clientOptions = append(clientOptions, utils.WithUserPassword(context.TODO(), user, password))
 	}
 
 	client, err := utils.NewAPIClient(context.Background(), baseUrl, clientOptions...)
@@ -105,7 +105,7 @@ func (s *JobsManager) pollObjects() []error {
 	}
 
 	var instances []model.InstanceState
-	instances, err = s.apiClient.GetInstancesForAllNamespaces()
+	instances, err = s.apiClient.GetInstancesForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -143,7 +143,7 @@ func (s *JobsManager) pollObjects() []error {
 		}
 	}
 	var targets []model.TargetState
-	targets, err = s.apiClient.GetTargetsForAllNamespaces()
+	targets, err = s.apiClient.GetTargetsForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -381,7 +381,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err = s.apiClient.GetInstance(instanceName, namespace)
+			instance, err = s.apiClient.GetInstance(ctx, instanceName, namespace)
 			if err != nil {
 				log.Errorf(" M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
 				return err //TODO: instance is gone
@@ -389,7 +389,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get solution
 			var solution model.SolutionState
-			solution, err = s.apiClient.GetSolution(instance.Spec.Solution, namespace)
+			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace)
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
@@ -404,7 +404,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = s.apiClient.GetTargets(namespace)
+			targets, err = s.apiClient.GetTargets(ctx, namespace)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -423,7 +423,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//call api
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err = s.apiClient.Reconcile(deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
@@ -441,11 +441,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err = s.apiClient.Reconcile(deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return s.apiClient.DeleteInstance(deployment.Instance.Spec.Name, namespace)
+					return s.apiClient.DeleteInstance(ctx, deployment.Instance.Spec.Name, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -453,7 +453,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		case "target":
 			var target model.TargetState
 			targetName := job.Id
-			target, err = s.apiClient.GetTarget(targetName, namespace)
+			target, err = s.apiClient.GetTarget(ctx, targetName, namespace)
 			if err != nil {
 				return err
 			}
@@ -464,7 +464,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err = s.apiClient.Reconcile(deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -482,11 +482,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err = s.apiClient.Reconcile(deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return s.apiClient.DeleteTarget(targetName, namespace)
+					return s.apiClient.DeleteTarget(ctx, targetName, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -501,7 +501,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			if job.Action == v1alpha2.JobUpdate {
-				_, err = s.apiClient.Reconcile(*deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, *deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -520,7 +520,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == v1alpha2.JobDelete {
-				_, err = s.apiClient.Reconcile(*deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, *deployment, true, namespace)
 				if err != nil {
 					return err
 				}
