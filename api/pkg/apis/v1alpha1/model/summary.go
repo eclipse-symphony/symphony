@@ -7,6 +7,7 @@
 package model
 
 import (
+	"maps"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -37,28 +38,22 @@ type SummaryResult struct {
 }
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
-	if existing, ok := s.TargetResults[target]; !ok {
+	if v, ok := s.TargetResults[target]; !ok {
 		s.TargetResults[target] = spec
 	} else {
-		status := s.TargetResults[target].Status
+		status := v.Status
 		if spec.Status != "OK" {
 			status = spec.Status
 		}
-		message := s.TargetResults[target].Message
+		message := v.Message
 		if spec.Message != "" {
 			if message != "" {
 				message += "; "
 			}
 			message += spec.Message
 		}
-		updatedResult := TargetResultSpec{
-			Status:           status,
-			Message:          message,
-			ComponentResults: existing.ComponentResults,
-		}
-		for k, v := range spec.ComponentResults {
-			updatedResult.ComponentResults[k] = v
-		}
-		s.TargetResults[target] = updatedResult
+		v.Status = status
+		v.Message = message
+		maps.Copy(v.ComponentResults, spec.ComponentResults)
 	}
 }
