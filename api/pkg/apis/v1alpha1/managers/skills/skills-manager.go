@@ -120,7 +120,8 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 			"namespace": namespace,
 		},
 	}
-	models, _, err := t.StateProvider.List(ctx, listRequest)
+	var models []states.StateEntry
+	models, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		log.Errorf(" M (Skills): failed to list state, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
@@ -128,7 +129,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	ret := make([]model.SkillState, 0)
 	for _, t := range models {
 		var rt model.SkillState
-		rt, err = getSkillState(t.ID, t.Body)
+		rt, err = getSkillState(t.Body)
 		if err != nil {
 			log.Errorf(" M (Models): failed to get skill state, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return nil, err
@@ -138,33 +139,17 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	return ret, nil
 }
 
-func getSkillState(id string, body interface{}) (model.SkillState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.SkillSpec
-	err := json.Unmarshal(j, &rSpec)
+func getSkillState(body interface{}) (model.SkillState, error) {
+	var skillState model.SkillState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &skillState)
 	if err != nil {
 		return model.SkillState{}, err
 	}
-	//rSpec.Generation??
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.SkillState{}, err
+	if skillState.Spec == nil {
+		skillState.Spec = &model.SkillSpec{}
 	}
-
-	state := model.SkillState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-	}
-	return state, nil
+	return skillState, nil
 }
 
 func (t *SkillsManager) GetState(ctx context.Context, name string, namespace string) (model.SkillState, error) {
@@ -185,13 +170,14 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 			"kind":      "Skill",
 		},
 	}
-	m, err := t.StateProvider.Get(ctx, getRequest)
+	var m states.StateEntry
+	m, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		log.Errorf(" M (Skills): failed to get state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err
 	}
-
-	ret, err := getSkillState(name, m.Body)
+	var ret model.SkillState
+	ret, err = getSkillState(m.Body)
 	if err != nil {
 		log.Errorf(" M (Skills): failed to get skill state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
 		return model.SkillState{}, err

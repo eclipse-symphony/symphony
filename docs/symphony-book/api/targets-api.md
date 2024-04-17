@@ -202,7 +202,7 @@ To report target status, you can report a single status value through the query 
       "ping": "2022-10-27 01:16:06.867714383 +0000 UTC",
       "status": "OK",
       "targets": "1",
-      "targets.my-phone-a": "OK - "
+      "targets.my-phone-a": "OK"
     }
   }
   ```

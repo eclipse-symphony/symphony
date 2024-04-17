@@ -1,0 +1,10 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: segment
+spec:
+  type: config
+  properties:
+    common-key1: "common-value1"
+    common-key2: "common-value2"
