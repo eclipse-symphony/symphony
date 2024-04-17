@@ -358,8 +358,7 @@
             "properties": {
               "providers.state": "mem-state",
               "providers.config": "mock-config",
-              "providers.secret": "mock-secret",
-              "disableEvaluation": "false"
+              "providers.secret": "mock-secret"
             },
             "providers": {
               "mem-state": {

@@ -54,13 +54,12 @@ const (
 
 type SolutionManager struct {
 	managers.Manager
-	TargetProviders    map[string]tgt.ITargetProvider
-	StateProvider      states.IStateProvider
-	ConfigProvider     config.IExtConfigProvider
-	SecretProvider     secret.ISecretProvider
-	IsTarget           bool
-	TargetNames        []string
-	evaluationDisabled bool
+	TargetProviders map[string]tgt.ITargetProvider
+	StateProvider   states.IStateProvider
+	ConfigProvider  config.IExtConfigProvider
+	SecretProvider  secret.ISecretProvider
+	IsTarget        bool
+	TargetNames     []string
 }
 
 type SolutionManagerDeploymentState struct {
@@ -124,16 +123,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		if len(s.TargetNames) == 0 {
 			return errors.New("target mode is set but target name is not set")
 		}
-	}
-
-	var evaluationDisabled bool
-	s.evaluationDisabled = false
-	if v, ok := config.Properties["disableEvaluation"]; ok {
-		evaluationDisabled, err = strconv.ParseBool(v)
-		if err != nil {
-			return err
-		}
-		s.evaluationDisabled = evaluationDisabled
 	}
 
 	if apiOperationMetrics == nil {
@@ -276,24 +265,22 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		metrics.GetOperationType,
 	)
 
-	if !s.evaluationDisabled {
-		if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
-			context := s.VendorContext.EvaluationContext.Clone()
-			context.DeploymentSpec = deployment
-			context.Value = deployment
-			context.Component = ""
-			context.Namespace = namespace
-			deployment, err = api_utils.EvaluateDeployment(*context)
-		}
+	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
+		context := s.VendorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = deployment
+		context.Value = deployment
+		context.Component = ""
+		context.Namespace = namespace
+		deployment, err = api_utils.EvaluateDeployment(*context)
+	}
 
-		if err != nil {
-			if remove {
-				log.Infof(" M (Solution): skipped failure to evaluate deployment spec: %+v", err)
-			} else {
-				summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
-				log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
-				return summary, err
-			}
+	if err != nil {
+		if remove {
+			log.Infof(" M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+		} else {
+			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
+			log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
+			return summary, err
 		}
 	}
 
@@ -331,10 +318,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	planBytes, _ := json.Marshal(plan)
-	log.Infof(" M (Solution): deployment plan: %s", string(planBytes))
+	log.Debugf(" M (Solution): deployment plan: %s", string(planBytes))
 
 	mergedStateBytes, _ := json.Marshal(mergedState)
-	log.Infof(" M (Solution): merged state: %s", string(mergedStateBytes))
+	log.Debugf(" M (Solution): merged state: %s", string(mergedStateBytes))
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
 	dep := deployment
@@ -496,8 +483,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if summary.Skipped {
 		summary.SuccessCount = summary.TargetCount
 	}
-
-	s.concludeSummary(iCtx, deployment, summary, namespace)
 
 	return summary, nil
 }

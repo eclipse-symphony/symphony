@@ -78,10 +78,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !utils.IsDeploymentFinished(summary)) {
-			if err == nil && !utils.IsDeploymentFinished(summary) {
+		if (err != nil && !v1alpha2.IsNotFound(err)) || (err == nil && !summary.IsDeploymentFinished()) {
+			if err == nil && !summary.IsDeploymentFinished() {
 				// mock error if deployment is not finished then cause requeue
-				err = fmt.Errorf("Get summary but deployment is not finished yet")
+				err = fmt.Errorf("get summary but deployment is not finished yet")
 			}
 			uErr := r.updateTargetStatusToReconciling(target, err)
 			if uErr != nil {
@@ -154,7 +154,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					break loop
 				case <-ticker:
 					summary, err := api_utils.GetSummary(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", fmt.Sprintf("target-runtime-%s", target.ObjectMeta.Name), target.ObjectMeta.Namespace)
-					if err == nil && summary.Summary.IsRemoval && utils.IsDeploymentFinished(summary) && summary.Summary.AllAssignedDeployed {
+					if err == nil && summary.Summary.IsRemoval && summary.IsDeploymentFinished() && summary.Summary.AllAssignedDeployed {
 						break loop
 					}
 					if err != nil && !v1alpha2.IsNotFound(err) {

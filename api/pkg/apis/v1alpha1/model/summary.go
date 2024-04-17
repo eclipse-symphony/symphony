@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
-	"golang.org/x/exp/maps"
 )
 
 type ComponentResultSpec struct {
@@ -69,4 +68,8 @@ func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 		maps.Copy(v.ComponentResults, spec.ComponentResults)
 		s.TargetResults[target] = v
 	}
+}
+
+func (summary *SummaryResult) IsDeploymentFinished() bool {
+	return summary.State == SummaryStateDone
 }
