@@ -217,7 +217,11 @@ func (r *InstanceReconciler) updateInstanceStatus(instance *symphonyv1.Instance,
 	for k, v := range summary.TargetResults {
 		instance.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 		for ck, cv := range v.ComponentResults {
-			instance.Status.Properties["targets."+k+"."+ck] = fmt.Sprintf("%s - %s", cv.Status, cv.Message)
+			if cv.Message == "" {
+				instance.Status.Properties["targets."+k+"."+ck] = cv.Status.String()
+			} else {
+				instance.Status.Properties["targets."+k+"."+ck] = fmt.Sprintf("%s - %s", cv.Status, cv.Message)
+			}
 		}
 	}
 
