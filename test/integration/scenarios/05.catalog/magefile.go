@@ -167,24 +167,30 @@ func createCatalogs(namespace string) error {
 			return err
 		}
 	}
-	// // Deploy schema catalog
-	// shcemaPath := filepath.Join(currentPath, schemaCatalog)
-	// err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", shcemaPath, namespace)).Run()
-	// if err != nil {
-	// 	return err
-	// }
-	// // Deploy config catalog
-	// configPath := filepath.Join(currentPath, configCatalog)
-	// err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
-	// if err != nil {
-	// 	return err
-	// }
-	// //Deploy wrong catalog
-	// wrongPath := filepath.Join(currentPath, wrongCatalog)
-	// err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", wrongPath, namespace)).Run()
-	// if err == nil {
-	// 	return errors.New("Wrong catalog should not be deployed")
-	// }
+	// Deploy config catalog before schema catalog
+	configPath := filepath.Join(currentPath, configCatalog)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
+	if err == nil {
+		return errors.New("Catalog using shcema should not be deployed before schema catalog being deployed.")
+	}
+	// Deploy schema catalog
+	shcemaPath := filepath.Join(currentPath, schemaCatalog)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", shcemaPath, namespace)).Run()
+	if err != nil {
+		return err
+	}
+	// Deploy config catalog
+	configPath = filepath.Join(currentPath, configCatalog)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
+	if err != nil {
+		return err
+	}
+	//Deploy wrong catalog
+	wrongPath := filepath.Join(currentPath, wrongCatalog)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", wrongPath, namespace)).Run()
+	if err == nil {
+		return errors.New("Wrong catalog should not be deployed")
+	}
 	return nil
 }
 

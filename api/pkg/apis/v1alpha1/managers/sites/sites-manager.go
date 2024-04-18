@@ -57,12 +57,13 @@ func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteSta
 			"resource": "sites",
 		},
 	}
-	entry, err := m.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.SiteState{}, err
 	}
-
-	ret, err := getSiteState(name, entry.Body)
+	var ret model.SiteState
+	ret, err = getSiteState(name, entry.Body)
 	if err != nil {
 		return model.SiteState{}, err
 	}
@@ -70,32 +71,20 @@ func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteSta
 }
 
 func getSiteState(id string, body interface{}) (model.SiteState, error) {
-	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-	status := dict["status"]
-
-	j, _ := json.Marshal(spec)
-	var rSpec model.SiteSpec
-	err := json.Unmarshal(j, &rSpec)
+	var siteState model.SiteState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &siteState)
 	if err != nil {
 		return model.SiteState{}, err
 	}
-
-	var rStatus model.SiteStatus
-
-	if status != nil {
-		j, _ = json.Marshal(status)
-		err = json.Unmarshal(j, &rStatus)
-		if err != nil {
-			return model.SiteState{}, err
-		}
+	siteState.Id = id
+	if siteState.Spec == nil {
+		siteState.Spec = &model.SiteSpec{}
 	}
-	state := model.SiteState{
-		Id:     id,
-		Spec:   &rSpec,
-		Status: &rStatus,
+	if siteState.Status == nil {
+		siteState.Status = &model.SiteStatus{}
 	}
-	return state, nil
+	return siteState, nil
 }
 
 func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState) error {
@@ -119,7 +108,8 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 		},
 	}
 
-	entry, err := t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
 			return err
@@ -134,34 +124,26 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 		}
 	}
 
-	// This copy is necessary becasue otherwise you could be modifying data in memory stage provider
-	jTransfer, _ := json.Marshal(entry.Body)
-	var dict map[string]interface{}
-	json.Unmarshal(jTransfer, &dict)
-
-	delete(dict, "spec")
-	status := dict["status"]
-
-	j, _ := json.Marshal(status)
-	var rStatus model.SiteStatus
-	err = json.Unmarshal(j, &rStatus)
+	var siteState model.SiteState
+	siteState, err = getSiteState(entry.ID, entry.Body)
 	if err != nil {
 		return err
 	}
+	if siteState.Status == nil {
+		siteState.Status = &model.SiteStatus{}
+	}
+
 	// if current.Status is not nil, update the status using new IsOnline, InstanceStatuses and TargetStatuses
 	// otherwise, only update LastReported as time.Now()
 	if current.Status != nil {
-		rStatus.IsOnline = current.Status.IsOnline
-		rStatus.InstanceStatuses = current.Status.InstanceStatuses
-		rStatus.TargetStatuses = current.Status.TargetStatuses
+		siteState.Status.IsOnline = current.Status.IsOnline
+		siteState.Status.InstanceStatuses = current.Status.InstanceStatuses
+		siteState.Status.TargetStatuses = current.Status.TargetStatuses
 	}
-	rStatus.LastReported = time.Now().UTC().Format(time.RFC3339)
-	dict["status"] = rStatus
-
-	entry.Body = dict
+	siteState.Status.LastReported = time.Now().UTC().Format(time.RFC3339)
 
 	updateRequest := states.UpsertRequest{
-		Value:    entry,
+		Value:    states.StateEntry{ID: current.Id, Body: siteState, ETag: entry.ETag},
 		Metadata: current.Metadata,
 	}
 
@@ -242,7 +224,8 @@ func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error)
 			"resource": "sites",
 		},
 	}
-	sites, _, err := t.StateProvider.List(ctx, listRequest)
+	var sites []states.StateEntry
+	sites, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +250,8 @@ func (s *SitesManager) Poll() []error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	thisSite, err := s.GetState(ctx, s.VendorContext.SiteInfo.SiteId)
+	var thisSite model.SiteState
+	thisSite, err = s.GetState(ctx, s.VendorContext.SiteInfo.SiteId)
 	if err != nil {
 		//TOOD: only ignore not found, and log the error
 		return nil

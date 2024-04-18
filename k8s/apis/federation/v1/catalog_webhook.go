@@ -78,40 +78,52 @@ func (r *Catalog) validateCreateCatalog() error {
 
 func (r *Catalog) checkSchema() error {
 
-	if schemaName, ok := r.ObjectMeta.Annotations["schema"]; ok {
-		var catalogs CatalogList
-		err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".spec.name": schemaName})
-		if err != nil || len(catalogs.Items) == 0 {
-			return err
-		}
-
-		jData, _ := json.Marshal(catalogs.Items[0].Spec.Properties)
-		var properties map[string]interface{}
-		err = json.Unmarshal(jData, &properties)
-		if err != nil {
-			return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
-		}
-		if spec, ok := properties["spec"]; ok {
-			var schemaObj utils.Schema
-			jData, _ := json.Marshal(spec)
-			err := json.Unmarshal(jData, &schemaObj)
-			if err != nil {
-				return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+	if r.Spec.Metadata != nil {
+		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
+			cataloglog.Info("Find schema name", "name", schemaName)
+			var catalogs CatalogList
+			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".spec.name": schemaName})
+			if err != nil || len(catalogs.Items) == 0 {
+				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
+				return v1alpha2.NewCOAError(err, "schema not found", v1alpha2.NotFound)
 			}
-			jData, _ = json.Marshal(r.Spec.Properties)
+
+			jData, _ := json.Marshal(catalogs.Items[0].Spec.Properties)
 			var properties map[string]interface{}
 			err = json.Unmarshal(jData, &properties)
 			if err != nil {
-				return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+				cataloglog.Error(err, "Invalid schema.", "name", schemaName)
+				return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
 			}
-			result, err := schemaObj.CheckProperties(properties, nil)
-			if err != nil {
-				return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+			if spec, ok := properties["spec"]; ok {
+				var schemaObj utils.Schema
+				jData, _ := json.Marshal(spec)
+				err := json.Unmarshal(jData, &schemaObj)
+				if err != nil {
+					cataloglog.Error(err, "Invalid schema.", "name", schemaName)
+					return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				}
+				jData, _ = json.Marshal(r.Spec.Properties)
+				var properties map[string]interface{}
+				err = json.Unmarshal(jData, &properties)
+				if err != nil {
+					cataloglog.Error(err, "Validating failed.")
+					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+				}
+				result, err := schemaObj.CheckProperties(properties, nil)
+				if err != nil {
+					cataloglog.Error(err, "Validating failed.")
+					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+				}
+				if !result.Valid {
+					cataloglog.Error(err, "Validating failed.")
+					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+				}
 			}
-			if !result.Valid {
-				return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
-			}
+			cataloglog.Info("Validation finished.", "name", r.Name)
 		}
+	} else {
+		cataloglog.Info("Catalog no meta.", "name", r.Name)
 	}
 	return nil
 }

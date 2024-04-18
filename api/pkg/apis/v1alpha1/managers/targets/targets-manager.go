@@ -120,7 +120,8 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 		},
 	}
 
-	target, err := t.StateProvider.Get(ctx, getRequest)
+	var target states.StateEntry
+	target, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
@@ -180,14 +181,15 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 			"kind":      "Target",
 		},
 	}
-	targets, _, err := t.StateProvider.List(ctx, listRequest)
+	var targets []states.StateEntry
+	targets, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = getTargetState(t.ID, t.Body, t.ETag)
+		rt, err = getTargetState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -196,48 +198,18 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	return ret, nil
 }
 
-func getTargetState(id string, body interface{}, etag string) (model.TargetState, error) {
-	if v, ok := body.(model.TargetState); ok {
-		return v, nil
-	}
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.TargetSpec
-	err := json.Unmarshal(j, &rSpec)
+func getTargetState(body interface{}, etag string) (model.TargetState, error) {
+	var targetState model.TargetState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &targetState)
 	if err != nil {
 		return model.TargetState{}, err
 	}
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.TargetStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.TargetState{}, err
+	if targetState.Spec == nil {
+		targetState.Spec = &model.TargetSpec{}
 	}
-
-	rSpec.Generation = etag
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.TargetState{}, err
-	}
-
-	state := model.TargetState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-		Status:     rStatus,
-	}
-
-	return state, nil
+	targetState.Spec.Generation = etag
+	return targetState, nil
 }
 
 func (t *TargetsManager) GetState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
@@ -257,12 +229,14 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 			"kind":      "Target",
 		},
 	}
-	target, err := t.StateProvider.Get(ctx, getRequest)
+	var target states.StateEntry
+	target, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.TargetState{}, err
 	}
 
-	ret, err := getTargetState(id, target.Body, target.ETag)
+	var ret model.TargetState
+	ret, err = getTargetState(target.Body, target.ETag)
 	if err != nil {
 		return model.TargetState{}, err
 	}

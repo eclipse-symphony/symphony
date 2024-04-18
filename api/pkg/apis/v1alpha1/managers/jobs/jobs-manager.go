@@ -61,15 +61,16 @@ func (s *JobsManager) pollObjects() []error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
+	var baseUrl, user, password string
+	baseUrl, err = utils.GetString(s.Manager.Config.Properties, "baseUrl")
 	if err != nil {
 		return []error{err}
 	}
-	user, err := utils.GetString(s.Manager.Config.Properties, "user")
+	user, err = utils.GetString(s.Manager.Config.Properties, "user")
 	if err != nil {
 		return []error{err}
 	}
-	password, err := utils.GetString(s.Manager.Config.Properties, "password")
+	password, err = utils.GetString(s.Manager.Config.Properties, "password")
 	if err != nil {
 		return []error{err}
 	}
@@ -77,7 +78,9 @@ func (s *JobsManager) pollObjects() []error {
 	if interval == 0 {
 		return nil
 	}
-	instances, err := utils.GetInstancesForAllNamespaces(context, baseUrl, user, password)
+
+	var instances []model.InstanceState
+	instances, err = utils.GetInstancesForAllNamespaces(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -89,7 +92,8 @@ func (s *JobsManager) pollObjects() []error {
 		})
 		needsPub := true
 		if err == nil {
-			if stamp, ok := entry.Body.(LastSuccessTime); ok {
+			var stamp LastSuccessTime
+			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
 				if time.Since(stamp.Time) > time.Duration(interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
@@ -109,7 +113,8 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	targets, err := utils.GetTargetsForAllNamespaces(context, baseUrl, user, password)
+	var targets []model.TargetState
+	targets, err = utils.GetTargetsForAllNamespaces(context, baseUrl, user, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -122,9 +127,7 @@ func (s *JobsManager) pollObjects() []error {
 		needsPub := true
 		if err == nil {
 			var stamp LastSuccessTime
-			jData, _ := json.Marshal(entry.Body)
-			err = json.Unmarshal(jData, &stamp)
-			if err == nil {
+			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
 				if time.Since(stamp.Time) > time.Duration(interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
@@ -172,7 +175,8 @@ func (s *JobsManager) pollSchedules() []error {
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	//TODO: use filters and continue tokens
-	list, _, err := s.StateProvider.List(context, states.ListRequest{})
+	var list []states.StateEntry
+	list, _, err = s.StateProvider.List(context, states.ListRequest{})
 	if err != nil {
 		return []error{err}
 	}
@@ -254,7 +258,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
 	}
 	//check if a manager is working on the job
-	entry, err := s.StateProvider.Get(ctx, states.GetRequest{
+	var entry states.StateEntry
+	entry, err = s.StateProvider.Get(ctx, states.GetRequest{
 		ID: key,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -355,14 +360,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err := utils.GetInstance(ctx, baseUrl, instanceName, user, password, namespace)
+			instance, err = utils.GetInstance(ctx, baseUrl, instanceName, user, password, namespace)
 			if err != nil {
 				log.Errorf(" M (Job): error getting instance %s: %s", instanceName, err.Error())
 				return err //TODO: instance is gone
 			}
 
 			//get solution
-			solution, err := utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, namespace)
+			var solution model.SolutionState
+			solution, err = utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, namespace)
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
@@ -396,7 +402,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//call api
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
@@ -414,7 +420,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
@@ -424,8 +430,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "target":
+			var target model.TargetState
 			targetName := job.Id
-			target, err := utils.GetTarget(ctx, baseUrl, targetName, user, password, namespace)
+			target, err = utils.GetTarget(ctx, baseUrl, targetName, user, password, namespace)
 			if err != nil {
 				return err
 			}
@@ -436,7 +443,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
 				if err != nil {
 					return err
 				} else {
@@ -454,7 +461,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err := utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
+				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
 				if err != nil {
 					return err
 				} else {
@@ -466,4 +473,14 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		}
 	}
 	return nil
+}
+
+func getLastSuccessTime(body interface{}) (LastSuccessTime, error) {
+	var lastSuccessTime LastSuccessTime
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &lastSuccessTime)
+	if err != nil {
+		return LastSuccessTime{}, err
+	}
+	return lastSuccessTime, nil
 }

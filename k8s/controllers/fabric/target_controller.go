@@ -217,7 +217,11 @@ func (r *TargetReconciler) updateTargetStatus(target *symphonyv1.Target, summary
 	for k, v := range summary.TargetResults {
 		target.Status.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 		for kc, c := range v.ComponentResults {
-			target.Status.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			if c.Message == "" {
+				target.Status.Properties["targets."+k+"."+kc] = c.Status.String()
+			} else {
+				target.Status.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			}
 		}
 	}
 

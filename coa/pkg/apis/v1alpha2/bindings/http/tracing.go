@@ -56,6 +56,7 @@ func (t Tracing) Tracing(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		span.End()
 	}
 }
+
 func startTracingClientSpanFromHTTPContext(ctx *fasthttp.RequestCtx, spanName string) (*fasthttp.RequestCtx, trace.Span) {
 	sc, ok := SpanContextFromRequest(&ctx.Request)
 	if ok {

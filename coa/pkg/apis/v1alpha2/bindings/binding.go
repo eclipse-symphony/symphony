@@ -6,5 +6,10 @@
 
 package bindings
 
+import (
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+)
+
 type IBinding interface {
+	v1alpha2.Terminable
 }

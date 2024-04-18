@@ -292,8 +292,9 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		ErrorMessage: "",
 		IsActive:     true,
 	}
+	var provider providers.IProvider
 	factory := symproviders.SymphonyProviderFactory{}
-	provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
+	provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
 	if err != nil {
 		status.Status = v1alpha2.InternalError
 		status.ErrorMessage = err.Error()

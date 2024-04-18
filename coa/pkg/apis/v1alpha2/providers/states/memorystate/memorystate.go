@@ -44,6 +44,7 @@ type MemoryStateProvider struct {
 	Config  MemoryStateProviderConfig
 	Data    map[string]interface{}
 	Context *contexts.ManagerContext
+	mu      sync.RWMutex
 }
 
 func (s *MemoryStateProvider) ID() string {
@@ -75,8 +76,8 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	mLock.Lock()
-	defer mLock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Upsert",
@@ -234,8 +235,8 @@ func simulateK8sFilterSingleKey(entity map[string]interface{}, filter string) (b
 	}
 }
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	mLock.RLock()
-	defer mLock.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
@@ -274,7 +275,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 										if metadata["labels"] != nil {
 											labels, ok := metadata["labels"].(map[string]interface{})
 											if ok {
-												match, err := simulateK8sFilter(labels, request.FilterValue)
+												var match bool
+												match, err = simulateK8sFilter(labels, request.FilterValue)
 												if err != nil {
 													return entities, "", err
 												}
@@ -286,7 +288,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 									}
 								}
 							case "field":
-								match, err := simulateK8sFilter(dict, request.FilterValue)
+								var match bool
+								match, err = simulateK8sFilter(dict, request.FilterValue)
 								if err != nil {
 									return entities, "", err
 								}
@@ -313,7 +316,14 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 								}
 							}
 						}
-						entities = append(entities, vE)
+						var copy states.StateEntry
+						copy, err = s.ReturnDeepCopy(vE)
+						if err != nil {
+							err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", vE.ID), v1alpha2.InternalError)
+							sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+							return entities, "", err
+						}
+						entities = append(entities, copy)
 					} else {
 						err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
 						sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -332,8 +342,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 }
 
 func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	mLock.Lock()
-	defer mLock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
@@ -370,8 +380,8 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 }
 
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	mLock.RLock()
-	defer mLock.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -406,8 +416,14 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	}
 	vE, ok := entry.(states.StateEntry)
 	if ok {
-		err = nil
-		return vE, nil
+		var copy states.StateEntry
+		copy, err = s.ReturnDeepCopy(vE)
+		if err != nil {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", request.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+			return states.StateEntry{}, err
+		}
+		return copy, nil
 	}
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
 	sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
@@ -440,6 +456,19 @@ func (a *MemoryStateProvider) Clone(config providers.IProviderConfig) (providers
 	}
 	if a.Context != nil {
 		ret.Context = a.Context
+	}
+	return ret, nil
+}
+
+func (a *MemoryStateProvider) ReturnDeepCopy(s states.StateEntry) (states.StateEntry, error) {
+	var ret states.StateEntry
+	jBody, err := json.Marshal(s)
+	if err != nil {
+		return states.StateEntry{}, err
+	}
+	err = json.Unmarshal(jBody, &ret)
+	if err != nil {
+		return states.StateEntry{}, err
 	}
 	return ret, nil
 }

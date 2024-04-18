@@ -1,0 +1,24 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: region2-tags
+spec:
+  type: config
+  properties:
+    tags: [
+      "Tag6",
+      "Tag7",
+      "Tag8"
+    ]
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: region2-config
+spec:
+  type: config
+  properties:
+    name: "tags-region2"
+    # This will combine the two arrays of strings into one.  The double dollar sign on the second config object is required
+    tags: ${{$config('shared-tags', 'tags') $$config('region2-tags', 'tags')}}
