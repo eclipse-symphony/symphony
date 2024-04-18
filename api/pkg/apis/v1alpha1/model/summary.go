@@ -56,5 +56,6 @@ func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 		v.Status = status
 		v.Message = message
 		maps.Copy(v.ComponentResults, spec.ComponentResults)
+		s.TargetResults[target] = v
 	}
 }
