@@ -695,65 +695,18 @@
               }
             },
             {
-              "type": "middleware.http.jwt",                   
+              "type": "middleware.http.jwt",
               "properties": {
-                "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings", "/v1alpha2/agent/config"],
-                "verifyKey": "SymphonyKey",              
-                "enableRBAC": true,
-                "roles": [
-                  {
-                    "role": "administrator",
-                    "claim": "user",
-                    "value": "admin"
-                  },
-                  {
-                    "role": "reader",
-                    "claim": "user",
-                    "value": "*"
-                  },
-                  {
-                    "role": "solution-creator",
-                    "claim": "user",
-                    "value": "developer"
-                  },
-                  {
-                    "role": "target-manager",
-                    "claim": "user",
-                    "value": "device-manager"
-                  },
-                  {
-                    "role": "operator",
-                    "claim": "user",
-                    "value": "solution-operator"
-                  }
+                "ignorePaths": [
+                  "/v1alpha2/users/auth",
+                  "/v1alpha2/solution/instances",
+                  "/v1alpha2/agent/references",
+                  "/v1alpha2/greetings",
+                  "/v1alpha2/agent/config"
                 ],
-                "policy": {                
-                  "administrator": {
-                    "items": {
-                      "*": "*"                    
-                    }
-                  },
-                  "reader": {
-                    "items": {
-                      "*": "GET"
-                    }
-                  },
-                  "solution-creator": {
-                    "items": {
-                      "/v1alpha2/solutions": "*"
-                    }
-                  },
-                  "target-manager": {
-                    "items": {
-                      "/v1alpha2/targets": "*"
-                    }
-                  },
-                  "solution-operator": {
-                    "items": {
-                      "/v1alpha2/instances": "*"
-                    }
-                  }                
-                }
+                "verifyKey": "SymphonyKey",
+                "authServer": "kubernetes",
+                "enableRBAC": false
               }
             },
             {

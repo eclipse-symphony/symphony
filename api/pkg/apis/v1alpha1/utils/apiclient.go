@@ -391,6 +391,9 @@ func (a *apiClient) GetSummary(id string, namespace string) (*model.SummaryResul
 		return nil, err
 	}
 
+	// TEMP LOG
+	log.Debugf("Token: %s", token)
+	log.Debugf("Baseurl: %s", a.baseUrl)
 	log.Infof("apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
 	ret, err := a.callRestAPI("solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
