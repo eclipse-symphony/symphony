@@ -84,7 +84,7 @@ function GetVersionInfo {
         $release = $Releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1
     }
     else {
-        $release = $Releases | Where-Object { $_.tag_name -eq "v$Version" } | Select-Object -First 1
+        $release = $Releases | Where-Object { $_.tag_name -eq "$Version" } | Select-Object -First 1
     }
 
     return $release
