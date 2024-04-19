@@ -5,7 +5,9 @@
 
 _(last edit: 02/02/2024)_
 
-### ⚠️⚠️⚠️ This branch hosts experimental features. The Symphony community does not guarantee long-term support for these features. Their incorporation into the main branch is not assured, and they may be deprecated or removed at any time without notice. ⚠️⚠️⚠️
+### ⚠️⚠️⚠️ This branch hosts experimental features. The Symphony community does not guarantee long-term support for these features. Their incorporation into the main branch is not assured, and they may be deprecated or removed at any time without notice. For more details, please see [Experimental Feature Table](./experimental-features.md)⚠️⚠️⚠️
+
+
 
 Symphony is a powerful service orchestration engine that enables the organization of multiple intelligent edge services into a seamless, end-to-end experience. Its primary purpose is to address the inherent complexity of edge deployment by providing a set of technology-agnostic workflow APIs, which are designed to deliver a streamlined experience for users across all device profiles.
 
