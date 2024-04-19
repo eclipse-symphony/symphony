@@ -238,8 +238,8 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 	assert.Equal(t, 456.0, components[0].Properties["complex"].(map[string]interface{})["123"])
 }
 
-// TestConfigMapTargetProviderDekete tests that deleting a configmap works
-func TestConfigMapTargetProviderDekete(t *testing.T) {
+// TestConfigMapTargetProviderDelete tests that deleting a configmap works
+func TestConfigMapTargetProviderDelete(t *testing.T) {
 	getConfigMap := os.Getenv("TEST_CONFIGMAP")
 	if getConfigMap == "" {
 		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")

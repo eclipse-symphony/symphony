@@ -332,7 +332,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		return nil, nil
 	}
 
-	applyTime := time.Now()
+	applyTime := time.Now().UTC()
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
@@ -361,7 +361,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		metrics.UpdateOperationType,
 	)
 
-	deleteTime := time.Now()
+	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		var retU map[string]model.ComponentResultSpec

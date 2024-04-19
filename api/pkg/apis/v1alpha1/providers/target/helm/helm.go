@@ -395,7 +395,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -433,7 +433,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 
 	for _, component := range step.Components {
-		applyComponentTime := time.Now()
+		applyComponentTime := time.Now().UTC()
 		if component.Action == model.ComponentUpdate {
 			var helmProp *HelmProperty
 			helmProp, err = getHelmPropertyFromComponent(component.Component)

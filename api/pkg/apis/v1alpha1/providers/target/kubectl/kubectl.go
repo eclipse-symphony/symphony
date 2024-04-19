@@ -364,7 +364,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -388,7 +388,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
 		for _, component := range components {
-			applyComponentTime := time.Now()
+			applyComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
 				if v, ok := component.Properties["yaml"].(string); ok {
 					chanMes, chanErr := readYaml(v)
@@ -575,11 +575,11 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		metrics.UpdateOperationType,
 	)
 
-	deleteTime := time.Now()
+	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		for _, component := range components {
-			deleteComponentTime := time.Now()
+			deleteComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
 				if v, ok := component.Properties["yaml"].(string); ok {
 					chanMes, chanErr := readYaml(v)
