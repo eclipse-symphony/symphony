@@ -33,10 +33,20 @@ type SummarySpec struct {
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
 }
 type SummaryResult struct {
-	Summary    SummarySpec `json:"summary"`
-	Generation string      `json:"generation"`
-	Time       time.Time   `json:"time"`
+	Summary        SummarySpec  `json:"summary"`
+	Generation     string       `json:"generation"`
+	Time           time.Time    `json:"time"`
+	State          SummaryState `json:"state"`
+	DeploymentHash string       `json:"deploymentHash"`
 }
+
+const (
+	SummaryStatePending SummaryState = iota // Currently unused
+	SummaryStateRunning                     // Should indicate that a reconcile operation is in progress
+	SummaryStateDone                        // Should indicate that a reconcile operation has completed either successfully or unsuccessfully
+)
+
+type SummaryState int
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 	if v, ok := s.TargetResults[target]; !ok {
@@ -58,4 +68,8 @@ func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 		maps.Copy(v.ComponentResults, spec.ComponentResults)
 		s.TargetResults[target] = v
 	}
+}
+
+func (summary *SummaryResult) IsDeploymentFinished() bool {
+	return summary.State == SummaryStateDone
 }

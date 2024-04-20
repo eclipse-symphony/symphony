@@ -26,7 +26,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.docker"
+
+var sLog = logger.NewLogger(loggerName)
 
 type DockerTargetProviderConfig struct {
 	Name string `json:"name"`
@@ -207,7 +209,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Helm Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.Errorf("  P (Docker Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
 

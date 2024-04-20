@@ -63,6 +63,9 @@ func TestJobsInit(t *testing.T) {
 				Type: "managers.symphony.jobs",
 				Properties: map[string]string{
 					"providers.state": "mem-state",
+					"baseUrl":         "http://localhost:8082/v1alpha2/",
+					"user":            "admin",
+					"password":        "",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

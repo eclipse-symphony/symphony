@@ -8,15 +8,11 @@ package model
 
 import (
 	"errors"
-	"time"
 )
 
 type (
-	TargetStatus struct {
-		Properties         map[string]string  `json:"properties,omitempty"`
-		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
-		LastModified       time.Time          `json:"lastModified,omitempty"`
-	}
+	TargetStatus = DeployableStatus
+
 	// TargetState defines the current state of the target
 	TargetState struct {
 		ObjectMeta ObjectMeta   `json:"metadata,omitempty"`

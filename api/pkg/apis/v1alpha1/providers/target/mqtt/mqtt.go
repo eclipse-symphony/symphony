@@ -25,7 +25,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.mqtt"
+
+var sLog = logger.NewLogger(loggerName)
 
 type MQTTTargetProviderConfig struct {
 	Name               string `json:"name"`
