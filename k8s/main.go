@@ -10,12 +10,17 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -41,8 +46,9 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	apiCertPath = os.Getenv(constants.ApiCertEnvName)
 )
 
 func init() {
@@ -61,6 +67,13 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var configFile string
+	var pollIntervalString string
+	var reconcileIntervalString string
+	var deleteTimeOutString string
+	var metricsConfigFile string
+	var disableWebhooksServer bool
+
+	flag.StringVar(&metricsConfigFile, "metrics-config-file", "", "The path to the otel metrics config file.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -69,6 +82,10 @@ func main() {
 	flag.StringVar(&configFile, "config", "", "The controller will laod its initial configuration from this file. "+
 		"Omit this flag to use the default configuration value. "+
 		"Command-line flags override configuration from this file.")
+	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
+	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
+	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
+	flag.StringVar(&deleteTimeOutString, "delete-timeout", "5m", "The timeout in seconds to wait for the target and instance deletion.")
 
 	opts := zap.Options{
 		Development: true,
@@ -80,6 +97,8 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	fmt.Println(constants.EulaMessage)
 	fmt.Println()
+
+	ctx := ctrl.SetupSignalHandler()
 	var err error
 	ctrlConfig := configv1.ProjectConfig{}
 	options := ctrl.Options{
@@ -101,6 +120,53 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if metricsConfigFile != "" {
+		obs, err := initMetrics(metricsConfigFile)
+		if err != nil {
+			setupLog.Error(err, "unable to initialize metrics")
+			os.Exit(1)
+		}
+		defer shutdownMetrics(obs)
+	}
+
+	apiClientOptions := []utils.ApiClientOption{
+		utils.WithCertAuth(apiCertPath),
+	}
+
+	if utils.ShouldUseSATokens() {
+		apiClientOptions = append(apiClientOptions, utils.WithServiceAccountToken())
+	} else {
+		apiClientOptions = append(apiClientOptions, utils.WithUserPassword(ctx, "admin", ""))
+	}
+
+	apiClient, err := utils.NewAPIClient(
+		ctx,
+		utils.GetSymphonyAPIAddressBase(),
+		apiClientOptions...,
+	)
+	if err != nil {
+		setupLog.Error(err, "unable to create api client")
+		os.Exit(1)
+	}
+
+	pollInterval, err := time.ParseDuration(pollIntervalString)
+	if err != nil {
+		setupLog.Error(err, "unable to parse poll interval")
+		os.Exit(1)
+	}
+
+	reconcileInterval, err := time.ParseDuration(reconcileIntervalString)
+	if err != nil {
+		setupLog.Error(err, "unable to parse reconcile interval")
+		os.Exit(1)
+	}
+
+	deleteTimeOut, err := time.ParseDuration(deleteTimeOutString)
+	if err != nil {
+		setupLog.Error(err, "unable to parse delete timeout")
 		os.Exit(1)
 	}
 
@@ -126,15 +192,23 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&solutioncontrollers.InstanceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		ReconciliationInterval: reconcileInterval,
+		DeleteTimeOut:          deleteTimeOut,
+		PollInterval:           pollInterval,
+		ApiClient:              apiClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
 	if err = (&fabriccontrollers.TargetReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		ReconciliationInterval: reconcileInterval,
+		DeleteTimeOut:          deleteTimeOut,
+		PollInterval:           pollInterval,
+		ApiClient:              apiClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Target")
 		os.Exit(1)
@@ -181,33 +255,35 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
 		os.Exit(1)
 	}
-	if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Device")
-		os.Exit(1)
-	}
-	if err = (&fabricv1.Target{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Target")
-		os.Exit(1)
-	}
-	if err = (&solutionv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
-		os.Exit(1)
-	}
-	if err = (&solutionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
-		os.Exit(1)
-	}
-	if err = (&aiv1.Model{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Model")
-		os.Exit(1)
-	}
-	if err = (&aiv1.Skill{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
-		os.Exit(1)
-	}
-	if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
-		os.Exit(1)
+	if !disableWebhooksServer {
+		if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Device")
+			os.Exit(1)
+		}
+		if err = (&fabricv1.Target{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Target")
+			os.Exit(1)
+		}
+		if err = (&solutionv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
+			os.Exit(1)
+		}
+		if err = (&solutionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
+			os.Exit(1)
+		}
+		if err = (&aiv1.Model{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Model")
+			os.Exit(1)
+		}
+		if err = (&aiv1.Skill{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
+			os.Exit(1)
+		}
+		if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
@@ -221,8 +297,35 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func initMetrics(configPath string) (*observability.Observability, error) {
+	// Read file content and parse int ObservabilityConfig
+	configBytes, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config observability.ObservabilityConfig
+
+	if err := json.Unmarshal(configBytes, &config); err != nil {
+		return nil, err
+	}
+
+	obs := observability.New(constants.K8S)
+	if err := obs.InitMetric(config); err != nil {
+		return nil, err
+	}
+
+	return &obs, nil
+}
+
+func shutdownMetrics(obs *observability.Observability) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	obs.Shutdown(ctx)
 }

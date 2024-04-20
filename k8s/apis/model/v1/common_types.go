@@ -8,8 +8,17 @@ package v1
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+const (
+	// ReconciliationPolicy_Periodic allows the controller to reconcile periodically
+	ReconciliationPolicy_Periodic ReconciliationPolicy = "periodic"
+)
+
+// +kubebuilder:validation:Enum=periodic;
+type ReconciliationPolicy string
 
 // +kubebuilder:object:generate=true
 type SidecarSpec struct {
@@ -50,6 +59,33 @@ type TargetSpec struct {
 	// Defines the version of a particular resource
 	Version    string `json:"version,omitempty"`
 	Generation string `json:"generation,omitempty"`
+
+	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
+	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+	// when the instance is created or updated.
+	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type InstanceSpec struct {
+	Name        string                       `json:"name"`
+	DisplayName string                       `json:"displayName,omitempty"`
+	Scope       string                       `json:"scope,omitempty"`
+	Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata    map[string]string            `json:"metadata,omitempty"`
+	Solution    string                       `json:"solution"`
+	Target      model.TargetSelector         `json:"target,omitempty"`
+	Topologies  []model.TopologySpec         `json:"topologies,omitempty"`
+	Pipelines   []model.PipelineSpec         `json:"pipelines,omitempty"`
+	Arguments   map[string]map[string]string `json:"arguments,omitempty"`
+	Generation  string                       `json:"generation,omitempty"`
+	// Defines the version of a particular resource
+	Version string `json:"version,omitempty"`
+
+	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
+	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+	// when the instance is created or updated.
+	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -115,4 +151,24 @@ type CatalogSpec struct {
 	ParentName string               `json:"parentName,omitempty"`
 	ObjectRef  model.ObjectRef      `json:"objectRef,omitempty"`
 	Generation string               `json:"generation,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type DeployableStatus struct {
+	Properties         map[string]string        `json:"properties,omitempty"`
+	ProvisioningStatus model.ProvisioningStatus `json:"provisioningStatus"`
+	LastModified       metav1.Time              `json:"lastModified,omitempty"`
+}
+
+// InstanceStatus defines the observed state of Instance
+type InstanceStatus = DeployableStatus
+
+// TargetStatus defines the observed state of Target
+type TargetStatus = DeployableStatus
+
+// +kubebuilder:object:generate=true
+type ReconciliationPolicySpec struct {
+	Type ReconciliationPolicy `json:"type"`
+	// +kubebuilder:validation:MinLength=1
+	Interval *string `json:"interval,omitempty"`
 }

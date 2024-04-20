@@ -129,6 +129,19 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              reconciliationPolicy:
+                description: Optional ReconcilicationPolicy to specify how target
+                  controller should reconcile. Now only periodic reconciliation is
+                  supported. If the interval is 0, it will only reconcile when the
+                  instance is created or updated.
+                properties:
+                  interval:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                type: object
               scope:
                 type: string
               topologies:
@@ -165,7 +178,6 @@ spec:
                 type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
             properties:
               lastModified:
                 format: date-time
@@ -173,8 +185,6 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
