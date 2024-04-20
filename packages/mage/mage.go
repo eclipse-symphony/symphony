@@ -65,24 +65,6 @@ func ensureDocumenter() error {
 	return documenter.Ensure()
 }
 
-// EnsureAllTools checks to see if a valid version of the needed tools are
-// installed, and downloads/installs them if not.
-func EnsureAllTools() error {
-	if err := ensureFormatter(); err != nil {
-		return err
-	}
-
-	if err := ensureLinter(); err != nil {
-		return err
-	}
-
-	if err := ensureDocumenter(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ensureGinkgo() error {
 	return ginkgo.Ensure()
 }
@@ -93,7 +75,7 @@ func ensureGoJUnit() error {
 
 // EnsureAllTools checks to see if a valid version of the needed tools are
 // installed, and downloads/installs them if not.
-func EnsureAllTools2() error {
+func EnsureAllTools() error {
 	mg.Deps(ensureFormatter, ensureLinter, ensureDocumenter, ensureGinkgo, ensureGoJUnit)
 
 	return nil
@@ -167,7 +149,7 @@ func docCfg() (func(), error) {
 
 // Test runs the unit tests.
 func Test() error {
-	return shellcmd.Command(`go test -race -timeout 35s -cover ./...`).Run()
+	return shellcmd.Command(`go test -race -timeout 5m -cover -coverprofile=coverage.out ./...`).Run()
 }
 
 // TestRace runs unit tests without the test cache.
@@ -175,7 +157,7 @@ func Test() error {
 func TestRace() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 35s -cover ./...`,
+		`go test -race -timeout 5m -cover -coverprofile=coverage.out ./...`,
 	)
 }
 
@@ -183,8 +165,22 @@ func TestRace() error {
 func CleanTest() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 35s -cover ./...`,
+		`go test -race -timeout 5m -coverprofile=coverage.out ./...`,
 	)
+}
+
+// Retrieve the test coverage count from coverage.out file.
+func PrintCoverage() error {
+	file := "coverage.out"
+
+	// check if coverage file exists
+	_, err := os.Stat(file)
+	if err != nil {
+		// throw error if coverage file does not exist
+		return fmt.Errorf("coverage file (%s) does not exist", file)
+	}
+	// print test coverage count
+	return shellExec(fmt.Sprintf(`go tool cover -func=%s | grep total: | grep -Eo '[0-9]+\.[0-9]+'`, file), false)
 }
 
 // Cover checks code coverage from unit tests.
@@ -198,7 +194,7 @@ func Cover(file string) error {
 }
 
 // Test runs both unit and suite tests.
-func Test2() error {
+func RunUnitTestAndSuiteTest() error {
 	mg.SerialDeps(UnitTest, SuiteTest)
 	return nil
 }
@@ -214,7 +210,7 @@ func UnitTest() error {
 		mg.Deps(ensureGoJUnit)
 		bld.WriteString(" 2>&1 | bin/go-junit-report -set-exit-code -iocopy -out junit-unit-tests.xml")
 	}
-	err := shellExec(bld.String())
+	err := shellExec(bld.String(), true)
 	if err != nil {
 		return err
 	}
@@ -315,8 +311,10 @@ func DockerBuild() error {
 }
 
 // Run a command with | or other things that do not work in shellcmd
-func shellExec(cmd string) error {
-	fmt.Println(">", cmd)
+func shellExec(cmd string, printCmdOrNot bool) error {
+	if printCmdOrNot {
+		fmt.Println(">", cmd)
+	}
 
 	execCmd := exec.Command("sh", "-c", cmd)
 	execCmd.Stdout = os.Stdout

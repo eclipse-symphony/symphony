@@ -98,6 +98,7 @@ func ReadStringWithOverrides(col1 map[string]string, col2 map[string]string, key
 	val := ReadString(col1, key, defaultVal)
 	return ReadString(col2, key, val)
 }
+
 func ContainsString(names []string, name string) bool {
 	for _, n := range names {
 		if n == name {
@@ -106,14 +107,12 @@ func ContainsString(names []string, name string) bool {
 	}
 	return false
 }
-
-func MergeCollection(col1 map[string]string, col2 map[string]string) map[string]string {
+func MergeCollection(cols ...map[string]string) map[string]string {
 	ret := make(map[string]string)
-	for k, v := range col1 {
-		ret[k] = v
-	}
-	for k, v := range col2 {
-		ret[k] = v
+	for _, col := range cols {
+		for k, v := range col {
+			ret[k] = v
+		}
 	}
 	return ret
 }
