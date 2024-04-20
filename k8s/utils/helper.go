@@ -6,7 +6,9 @@
 
 package utils
 
-import "regexp"
+import (
+	"regexp"
+)
 
 func IsComponentKey(key string) bool {
 	regex := regexp.MustCompile(`^targets\.[^.]+\.[^.]+`)

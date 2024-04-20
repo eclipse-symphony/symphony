@@ -20,6 +20,8 @@ type PropertyDesc struct {
 	SkipIfMissing   bool   `json:"skipIfMissing,omitempty"`
 	PrefixMatch     bool   `json:"prefixMatch,omitempty"`
 	IsComponentName bool   `json:"isComponentName,omitempty"`
+	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
+	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
 type ComponentValidationRule struct {
 	RequiredComponentType     string         `json:"requiredType"`
@@ -157,8 +159,13 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 	}
 }
 func compareProperties(c PropertyDesc, old map[string]interface{}, new map[string]interface{}, key string) bool {
-	if v, ok := old[key]; ok {
-		if nv, nok := new[key]; nok {
+	v, ook := old[key]
+	nv, nok := new[key]
+	if c.PropChanged != nil {
+		return c.PropChanged(v, nv)
+	}
+	if ook {
+		if nok {
 			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 				return true
 			}
