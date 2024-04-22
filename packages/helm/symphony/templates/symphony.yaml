@@ -79,7 +79,6 @@ spec:
               stage:
                 type: string
               status:
-                description: State represents a response state
                 type: integer
               updateTime:
                 type: string
@@ -435,7 +434,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: InstanceSpec defines the spec property of the InstanceState
             properties:
               arguments:
                 additionalProperties:
@@ -474,6 +472,19 @@ spec:
                   - skill
                   type: object
                 type: array
+              reconciliationPolicy:
+                description: Optional ReconcilicationPolicy to specify how target
+                  controller should reconcile. Now only periodic reconciliation is
+                  supported. If the interval is 0, it will only reconcile when the
+                  instance is created or updated.
+                properties:
+                  interval:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                type: object
               scope:
                 type: string
               solution:
@@ -526,7 +537,6 @@ spec:
             - solution
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance
             properties:
               lastModified:
                 format: date-time
@@ -534,8 +544,6 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
@@ -754,7 +762,6 @@ spec:
                     reason:
                       type: string
                     state:
-                      description: State represents a response state
                       type: integer
                   type: object
                 type: object
@@ -768,7 +775,6 @@ spec:
                     reason:
                       type: string
                     state:
-                      description: State represents a response state
                       type: integer
                   type: object
                 type: object
@@ -1371,6 +1377,19 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              reconciliationPolicy:
+                description: Optional ReconcilicationPolicy to specify how target
+                  controller should reconcile. Now only periodic reconciliation is
+                  supported. If the interval is 0, it will only reconcile when the
+                  instance is created or updated.
+                properties:
+                  interval:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                type: object
               scope:
                 type: string
               topologies:
@@ -1407,7 +1426,6 @@ spec:
                 type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
             properties:
               lastModified:
                 format: date-time
@@ -1415,8 +1433,6 @@ spec:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
