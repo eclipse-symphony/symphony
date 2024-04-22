@@ -217,6 +217,7 @@ var _ = Describe("Reconcile Policies", func() {
 					By("mocking the summary response with a failed deployment")
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
+					summary.Summary.AllAssignedDeployed = false
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -340,6 +341,7 @@ var _ = Describe("Reconcile Policies", func() {
 					By("mocking the summary response with a failed deployment")
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
+					summary.Summary.AllAssignedDeployed = false
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 

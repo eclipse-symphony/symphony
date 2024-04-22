@@ -496,11 +496,10 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 	summary := summaryResult.Summary
 	switch summaryResult.State {
 	case model.SummaryStateDone:
-		targetCount := strconv.Itoa(summary.TargetCount)
-		successCount := strconv.Itoa(summary.SuccessCount)
-
+		// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/148
+		// Use AllAssignedDeployed instead of targetCount/successCount to verify deployment.
 		status := utilsmodel.ProvisioningStatusSucceeded
-		if successCount != targetCount {
+		if !summary.AllAssignedDeployed {
 			status = utilsmodel.ProvisioningStatusFailed
 		}
 		return status
@@ -565,7 +564,13 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	for k, v := range summary.TargetResults {
 		objectStatus.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 		for kc, c := range v.ComponentResults {
-			objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			if c.Message == "" {
+				// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/225
+				// If c.Message is empty, only show c.Status.
+				objectStatus.Properties["targets."+k+"."+kc] = c.Status.String()
+			} else {
+				objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			}
 		}
 	}
 }

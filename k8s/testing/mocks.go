@@ -166,8 +166,9 @@ func CreateFakeKubeClientForWorkflowGroup(objects ...client.Object) client.Clien
 func MockSucessSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{
-			TargetCount:  1,
-			SuccessCount: 1,
+			TargetCount:         1,
+			SuccessCount:        1,
+			AllAssignedDeployed: true,
 		},
 		Time:           time.Now(),
 		State:          model.SummaryStateDone,
@@ -179,8 +180,9 @@ func MockSucessSummaryResult(obj reconcilers.Reconcilable, hash string) *model.S
 func MockFailureSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{
-			TargetCount:  1,
-			SuccessCount: 0,
+			TargetCount:         1,
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
 			TargetResults: map[string]model.TargetResultSpec{
 				"default-target": {
 					Status: "ErrorCode",
@@ -201,8 +203,9 @@ func MockFailureSummaryResult(obj reconcilers.Reconcilable, hash string) *model.
 func MockInProgressSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{
-			TargetCount:  1,
-			SuccessCount: 0,
+			TargetCount:         1,
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
 			TargetResults: map[string]model.TargetResultSpec{
 				"default-target": {
 					Status: "pending",
@@ -223,8 +226,9 @@ func MockInProgressSummaryResult(obj reconcilers.Reconcilable, hash string) *mod
 func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{
-			TargetCount:  1,
-			SuccessCount: 0,
+			TargetCount:         1,
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
 			TargetResults: map[string]model.TargetResultSpec{
 				"default-target": {
 					Status: "pending",
