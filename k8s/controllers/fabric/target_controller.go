@@ -48,6 +48,9 @@ type TargetReconciler struct {
 	m *metrics.Metrics
 
 	dr reconcilers.Reconciler
+
+	// DeleteSyncDelay defines the delay of waiting for status sync back in delete operations
+	DeleteSyncDelay time.Duration
 }
 
 const (
@@ -192,6 +195,7 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithFinalizerName(targetFinalizerName),
 		reconcilers.WithDeploymentErrorBuilder(r.populateProvisioningError),
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
+		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
 		reconcilers.WithDeploymentKeyResolver(func(instance reconcilers.Reconcilable) string {
 			return fmt.Sprintf("target-runtime-%s", instance.GetName())
 		}),

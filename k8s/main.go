@@ -72,6 +72,7 @@ func main() {
 	var deleteTimeOutString string
 	var metricsConfigFile string
 	var disableWebhooksServer bool
+	var deleteSyncDelayString string
 
 	flag.StringVar(&metricsConfigFile, "metrics-config-file", "", "The path to the otel metrics config file.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -85,7 +86,10 @@ func main() {
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
-	flag.StringVar(&deleteTimeOutString, "delete-timeout", "5m", "The timeout in seconds to wait for the target and instance deletion.")
+	// Honor OSS changes: use 1m instead of 5m for delete-timeout
+	flag.StringVar(&deleteTimeOutString, "delete-timeout", "1m", "The timeout in seconds to wait for the target and instance deletion.")
+	// Add new settings for delete sync delay
+	flag.StringVar(&deleteSyncDelayString, "delete-sync-delay", "0s", "The delay in seconds to wait for the status sync back in delete operations.")
 
 	opts := zap.Options{
 		Development: true,
@@ -170,6 +174,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	deleteSyncDelay, err := time.ParseDuration(deleteSyncDelayString)
+	if err != nil {
+		setupLog.Error(err, "unable to parse delete sync delay")
+		os.Exit(1)
+	}
+
 	if err = (&solutioncontrollers.SolutionReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -197,6 +207,7 @@ func main() {
 		ReconciliationInterval: reconcileInterval,
 		DeleteTimeOut:          deleteTimeOut,
 		PollInterval:           pollInterval,
+		DeleteSyncDelay:        deleteSyncDelay,
 		ApiClient:              apiClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
@@ -208,6 +219,7 @@ func main() {
 		ReconciliationInterval: reconcileInterval,
 		DeleteTimeOut:          deleteTimeOut,
 		PollInterval:           pollInterval,
+		DeleteSyncDelay:        deleteSyncDelay,
 		ApiClient:              apiClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Target")

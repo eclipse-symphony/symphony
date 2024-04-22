@@ -54,6 +54,9 @@ type InstanceReconciler struct {
 	m *metrics.Metrics
 
 	dr reconcilers.Reconciler
+
+	// DeleteSyncDelay defines the delay of waiting for status sync back in delete operations
+	DeleteSyncDelay time.Duration
 }
 
 const (
@@ -162,6 +165,7 @@ func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler
 		reconcilers.WithPollInterval(r.PollInterval),
 		reconcilers.WithClient(r.Client),
 		reconcilers.WithReconciliationInterval(r.ReconciliationInterval),
+		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
 		reconcilers.WithFinalizerName(instanceFinalizerName),
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
 	)
