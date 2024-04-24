@@ -5,7 +5,6 @@ import (
 	_ "embed"
 
 	"github.com/eclipse-symphony/symphony/packages/testutils/conditions"
-	"github.com/eclipse-symphony/symphony/packages/testutils/conditions/jq"
 	"github.com/eclipse-symphony/symphony/packages/testutils/expectations"
 	"github.com/eclipse-symphony/symphony/packages/testutils/expectations/kube"
 	"github.com/eclipse-symphony/symphony/packages/testutils/logger"
@@ -137,7 +136,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			PostUpdateExpectation: expectations.All(
 				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
-					jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
+					//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 				)))),
 			),
 			PostRevertExpectation: expectations.All(

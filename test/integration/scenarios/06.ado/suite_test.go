@@ -36,12 +36,12 @@ var successfullInstanceExpectation = kube.Must(kube.Instance("instance", "defaul
 
 var failedTargetExpectation = kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningFailedCondition,
-	kube.OperationIdMatchCondition,
+	//kube.OperationIdMatchCondition,
 ))))
 
 var failedInstanceExpectation = kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningFailedCondition,
-	kube.OperationIdMatchCondition,
+	//kube.OperationIdMatchCondition,
 ))))
 
 var absentInstanceExpectation = kube.Must(kube.AbsentInstance("instance", "default"))

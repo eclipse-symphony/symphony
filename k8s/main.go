@@ -85,7 +85,7 @@ func main() {
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
-	flag.StringVar(&deleteTimeOutString, "delete-timeout", "5m", "The timeout in seconds to wait for the target and instance deletion.")
+	flag.StringVar(&deleteTimeOutString, "delete-timeout", "1m", "The timeout in seconds to wait for the target and instance deletion.")
 
 	opts := zap.Options{
 		Development: true,

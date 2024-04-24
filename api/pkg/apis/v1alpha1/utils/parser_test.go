@@ -1908,8 +1908,10 @@ func TestEqualNumbers(t *testing.T) {
 	assert.Equal(t, true, val)
 }
 func TestEqualNumberString(t *testing.T) {
-	parser := NewParser("${{$equal(123, '123')}}")
-	val, err := parser.Eval(utils.EvaluationContext{})
+	parser := NewParser("${{$equal($property('OS'),'windows')}}")
+	val, err := parser.Eval(utils.EvaluationContext{Properties: map[string]string{
+		"Arch": "arm",
+	}})
 	assert.Nil(t, err)
 	assert.Equal(t, true, val)
 }

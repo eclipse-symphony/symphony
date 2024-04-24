@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/packages/testutils/expectations"
+	"github.com/eclipse-symphony/symphony/packages/testutils/expectations/helm"
 	"github.com/eclipse-symphony/symphony/packages/testutils/logger"
 	"github.com/eclipse-symphony/symphony/packages/testutils/types"
 	"github.com/eclipse-symphony/symphony/test/integration/lib/shell"
@@ -106,6 +107,7 @@ var _ = Describe("Delete", Ordered, func() {
 				PreDeleteExpectation: expectations.All(
 					successfullInstanceExpectation,
 					successfullTargetExpectation,
+					helm.MustNew("simple-chart-1", "azure-iot-operations", helm.WithReleaseCondition(helm.DeployedCondition)),
 				),
 				UnderlyingDeleteCommand: "helm uninstall simple-chart-1 -n azure-iot-operations --wait",
 				OrcResourceToDelete:     &targetBytes,
@@ -124,6 +126,7 @@ var _ = Describe("Delete", Ordered, func() {
 				PreDeleteExpectation: expectations.All(
 					successfullInstanceExpectation,
 					successfullTargetExpectation,
+					helm.MustNew("simple-chart-1", "azure-iot-operations", helm.WithReleaseCondition(helm.DeployedCondition)),
 				),
 				UnderlyingDeleteCommand: "helm uninstall simple-chart-1 -n azure-iot-operations --wait",
 				OrcResourceToDelete:     &instanceBytes,

@@ -159,6 +159,7 @@ func (j JWT) readAuthHeader(ctx *fasthttp.RequestCtx) string {
 func (j *JWT) validateToken(tokenStr string) (map[string]interface{}, []string, error) {
 	ret := make(map[string]interface{})
 	claims := jwt.MapClaims{}
+	fmt.Println("validateToken: Token: %s.", tokenStr)
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
 		claims,
