@@ -9,8 +9,10 @@ package v1
 import (
 	"context"
 	"strings"
+	"time"
 
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/metrics/v1"
 	configutils "gopls-workspace/configutils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +29,7 @@ import (
 var targetlog = logf.Log.WithName("target-resource")
 var myTargetClient client.Client
 var targetValidationPolicies []configv1.ValidationPolicy
+var targetWebhookValidationMetrics *metrics.Metrics
 
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myTargetClient = mgr.GetClient()
@@ -39,6 +42,15 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	dict, _ := configutils.GetValidationPoilicies()
 	if v, ok := dict["target"]; ok {
 		targetValidationPolicies = v
+	}
+
+	// initialize the controller operation metrics
+	if targetWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		targetWebhookValidationMetrics = metrics
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -59,6 +71,10 @@ func (r *Target) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
+
+	if r.Spec.Scope == "" {
+		r.Spec.Scope = "default"
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -71,14 +87,50 @@ var _ webhook.Validator = &Target{}
 func (r *Target) ValidateCreate() error {
 	targetlog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateTarget()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateTarget()
+	if validationError != nil {
+		targetWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.TargetResourceType,
+		)
+	} else {
+		targetWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.TargetResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateUpdate(old runtime.Object) error {
 	targetlog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateTarget()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateTarget()
+	if validationError != nil {
+		targetWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.TargetResourceType,
+		)
+	} else {
+		targetWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.TargetResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -91,71 +143,107 @@ func (r *Target) ValidateDelete() error {
 
 func (r *Target) validateCreateTarget() error {
 	var allErrs field.ErrorList
+
+	if err := r.validateUniqueNameOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateValidationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateReconciliationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+}
+
+func (r *Target) validateUniqueNameOnCreate() *field.Error {
 	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
-		return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+		return field.InternalError(&field.Path{}, err)
 	}
+
 	if len(targets.Items) != 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken"))
-		return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
 	}
+
+	return nil
+}
+
+func (r *Target) validateUniqueNameOnUpdate() *field.Error {
+	var targets TargetList
+	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
+	if err != nil {
+		return field.InternalError(&field.Path{}, err)
+	}
+
+	if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
+		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target name is already taken")
+	}
+
+	return nil
+}
+
+func (r *Target) validateValidationPolicy() *field.Error {
+	var targets TargetList
 	if len(targetValidationPolicies) > 0 {
 		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), &client.ListOptions{})
 		if err != nil {
-			allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
-			return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+			return field.InternalError(&field.Path{}, err)
 		}
 		for _, p := range targetValidationPolicies {
 			pack := extractTargetValidationPack(targets, p)
-			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readTargetValiationTarget(r, p), p.ValidationType, pack)
+			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readTargetValidationTarget(r, p), p.ValidationType, pack)
 			if err != nil {
-				return err
+				return field.InternalError(&field.Path{}, err)
 			}
 			if ret != "" {
-				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))
-				return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+				return field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret))
 			}
 		}
 	}
+	return nil
+}
+
+func (r *Target) validateReconciliationPolicy() *field.Error {
+	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.Interval != nil {
+		if duration, err := time.ParseDuration(*r.Spec.ReconciliationPolicy.Interval); err == nil {
+			if duration != 0 && duration < 1*time.Minute {
+				return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("interval"), r.Spec.ReconciliationPolicy.Interval, "must be a non-negative value with a minimum of 1 minute, e.g. 1m")
+			}
+		} else {
+			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("interval"), r.Spec.ReconciliationPolicy.Interval, "cannot be parsed as type of time.Duration")
+		}
+	}
+
 	return nil
 }
 
 func (r *Target) validateUpdateTarget() error {
 	var allErrs field.ErrorList
-	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
-		return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	if err := r.validateUniqueNameOnUpdate(); err != nil {
+		allErrs = append(allErrs, err)
 	}
-	if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken"))
-		return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	if err := r.validateValidationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
 	}
-	if len(targetValidationPolicies) > 0 {
-		err = myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), &client.ListOptions{})
-		if err != nil {
-			allErrs = append(allErrs, field.InternalError(&field.Path{}, err))
-			return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
-		}
-		for _, p := range targetValidationPolicies {
-			pack := extractTargetValidationPack(targets, p)
-			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readTargetValiationTarget(r, p), p.ValidationType, pack)
-			if err != nil {
-				return err
-			}
-			if ret != "" {
-				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))
-				return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
-			}
-		}
+	if err := r.validateReconciliationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
 	}
-	return nil
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
 }
 
-func readTargetValiationTarget(target *Target, p configv1.ValidationPolicy) string {
+func readTargetValidationTarget(target *Target, p configv1.ValidationPolicy) string {
 	if p.SelectorType == "topologies.bindings" && p.SelectorKey == "provider" {
 		for _, topology := range target.Spec.Topologies {
 			for _, binding := range topology.Bindings {

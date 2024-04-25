@@ -9,17 +9,24 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/apis/metrics/v1"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
 var myInstanceClient client.Client
+var instanceWebhookValidationMetrics *metrics.Metrics
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetClient()
@@ -31,6 +38,16 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		target := rawObj.(*Instance)
 		return []string{target.Spec.Solution}
 	})
+
+	// initialize the controller operation metrics
+	if instanceWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		instanceWebhookValidationMetrics = metrics
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -61,14 +78,50 @@ var _ webhook.Validator = &Instance{}
 func (r *Instance) ValidateCreate() error {
 	instancelog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateInstance()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateInstance()
+	if validationError != nil {
+		instanceWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.InstanceResourceType,
+		)
+	} else {
+		instanceWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.InstanceResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateUpdate(old runtime.Object) error {
 	instancelog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateInstance()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateInstance()
+	if validationError != nil {
+		instanceWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.InstanceResourceType,
+		)
+	} else {
+		instanceWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.InstanceResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -80,22 +133,74 @@ func (r *Instance) ValidateDelete() error {
 }
 
 func (r *Instance) validateCreateInstance() error {
+	var allErrs field.ErrorList
+
+	if err := r.validateUniqueNameOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateReconciliationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+}
+
+func (r *Instance) validateUpdateInstance() error {
+	var allErrs field.ErrorList
+	if err := r.validateUniqueNameOnUpdate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateReconciliationPolicy(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+}
+
+func (r *Instance) validateUniqueNameOnCreate() *field.Error {
 	var instances InstanceList
-	myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
+	if err != nil {
+		return field.InternalError(&field.Path{}, err)
+	}
+
 	if len(instances.Items) != 0 {
-		return fmt.Errorf("instance display name '%s' is already taken", r.Spec.DisplayName)
+		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
 
-func (r *Instance) validateUpdateInstance() error {
+func (r *Instance) validateUniqueNameOnUpdate() *field.Error {
 	var instances InstanceList
-	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return field.InternalError(&field.Path{}, err)
 	}
+
 	if !(len(instances.Items) == 0 || len(instances.Items) == 1 && instances.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("instance display name '%s' is already taken", r.Spec.DisplayName)
+		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
 	}
+	return nil
+}
+
+func (r *Instance) validateReconciliationPolicy() *field.Error {
+	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.Interval != nil {
+		if duration, err := time.ParseDuration(*r.Spec.ReconciliationPolicy.Interval); err == nil {
+			if duration != 0 && duration < 1*time.Minute {
+				return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("interval"), r.Spec.ReconciliationPolicy.Interval, "must be a non-negative value with a minimum of 1 minute, e.g. 1m")
+			}
+		} else {
+			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("interval"), r.Spec.ReconciliationPolicy.Interval, "cannot be parsed as type of time.Duration")
+		}
+	}
+
 	return nil
 }
