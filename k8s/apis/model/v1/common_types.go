@@ -21,7 +21,7 @@ const (
 	ReconciliationPolicy_Inactive ReconciliationPolicyState = "inactive"
 )
 
-// +kubebuilder:validation:Enum=active,inactive;
+// +kubebuilder:validation:Enum=active;inactive;
 type ReconciliationPolicyState string
 
 func (r ReconciliationPolicyState) String() string {
