@@ -803,6 +803,8 @@ func deploymentToComponents(deployment v1.Deployment) ([]model.ComponentSpec, er
 			}
 		}
 	}
+	componentsJson, _ := json.Marshal(components)
+	log.Debugf("  P (K8s Target Provider): deploymentToComponents - components: %s", string(componentsJson))
 	return components, nil
 }
 func convertComponentSpecToSidecar(c model.ComponentSpec) model.SidecarSpec {
