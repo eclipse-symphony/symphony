@@ -34,7 +34,7 @@ var targetWebhookValidationMetrics *metrics.Metrics
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myTargetClient = mgr.GetClient()
 
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, ".spec.displayName", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, "spec.displayName", func(rawObj client.Object) []string {
 		target := rawObj.(*Target)
 		return []string{target.Spec.DisplayName}
 	})
@@ -183,7 +183,7 @@ func (r *Target) validateUniqueNameOnUpdate() *field.Error {
 	}
 
 	if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target name is already taken")
+		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
 	}
 
 	return nil

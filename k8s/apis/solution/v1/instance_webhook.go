@@ -30,7 +30,7 @@ var instanceWebhookValidationMetrics *metrics.Metrics
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, ".spec.displayName", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.displayName", func(rawObj client.Object) []string {
 		target := rawObj.(*Instance)
 		return []string{target.Spec.DisplayName}
 	})
