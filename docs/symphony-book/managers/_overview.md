@@ -17,7 +17,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
   These managers implement CRUD operations on corresponding object types, and they are hosted by corresponding vendors such as the devices vendor and target vendor. These vendors collectively offer Symphony REST API to manage Symphony objects.
 
-  When hosted on Kubernetes, such object operations are delegated to Kubernetes API. In such a case, users interact with Symphony objects through native Kubernetes API instead of through these REST API routes. For an example, see [Run Symphony in standalone mode](../build_deployment/standalone.md).
+  When hosted on Kubernetes, such object operations are delegated to Kubernetes API. In such a case, users interact with Symphony objects through native Kubernetes API instead of through these REST API routes. For an example, see [Run Symphony in kubernetes mode](../build_deployment/symphony_mode.md).
 
 * Solution manager
 
