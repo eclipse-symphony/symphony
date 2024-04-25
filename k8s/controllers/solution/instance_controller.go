@@ -15,6 +15,7 @@ import (
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/controllers/metrics"
+	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 
 	"gopls-workspace/constants"
@@ -183,10 +184,10 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	generationChange := predicate.GenerationChangedPredicate{}
-	annotationChange := predicate.AnnotationChangedPredicate{}
+	operationIdPredicate := predicates.OperationIdPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solution_v1.Instance{}).
-		WithEventFilter(predicate.Or(generationChange, annotationChange)).
+		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
 		Watches(&source.Kind{Type: &solution_v1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
 			r.handleSolution)).
 		Watches(&source.Kind{Type: &fabric_v1.Target{}}, handler.EnqueueRequestsFromMapFunc(

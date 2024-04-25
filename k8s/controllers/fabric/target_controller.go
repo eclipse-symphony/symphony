@@ -14,6 +14,7 @@ import (
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
+	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 
@@ -125,14 +126,14 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	r.m = metrics
 	genChangePredicate := predicate.GenerationChangedPredicate{}
-	annotationPredicate := predicate.AnnotationChangedPredicate{}
+	operationIdPredicate := predicates.OperationIdPredicate{}
 
 	r.dr, err = r.buildDeploymentReconciler()
 	if err != nil {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(predicate.Or(genChangePredicate, annotationPredicate)).
+		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
 		For(&symphonyv1.Target{}).
 		Complete(r)
 }
