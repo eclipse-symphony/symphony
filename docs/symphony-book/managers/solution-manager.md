@@ -62,3 +62,26 @@ Before a deployment step is sent to a provider, Symphony checks the provider's v
 ## Retry
 
 The solution manager has built-in retry logic to attempt a deployment step three times at a fixed interval (5 seconds) before giving up. In future versions, this retry logic will be extended to allow configurable retry counts and backoff delays.
+
+## Integration with K8S reconciliation
+
+In production, symphony-api will deploy with symphony-k8s. Symphony-k8s leverages k8s reonciliation loop for solution-management. 
+
+And Symphony-k8s exposes fine-grained reonciliation policy control to let callers decide how to reconciliate when current spec is converged to termination state. 
+
+In target and instance k8s spec, caller can define an optional property - reconciliationPolicy.
+
+```yaml
+spec:
+    reconciliationPolicy:
+        state: <active or inactive>
+        interval: <optional, e.g. 1m>
+```
+
+By default, symphony-k8s will use periodic reconciliation policy, if the caller doesn't explicitly `reconciliationPolicy.interval`, and doesn't set `reconciliationPolicy.state = 'inactive'`, the default interval will be `30m`. 
+
+The caller can disable the periodic reconciliation policy by setting `reconciliationPolicy.interval = 0` or `reconciliationPolicy.state = 'inactive'`.
+
+Whenever an instance or a target is changed, The generation is bumped by the kubernetes API server which in turn triggers a reconciliation on the controllers. We then go through the following steps,
+
+![img](../images/k8s-reconciler.png)

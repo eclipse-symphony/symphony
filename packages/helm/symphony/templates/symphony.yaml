@@ -480,10 +480,10 @@ spec:
                 properties:
                   interval:
                     type: string
-                  type:
+                  state:
                     type: string
                 required:
-                - type
+                - state
                 type: object
               scope:
                 type: string
@@ -1385,10 +1385,10 @@ spec:
                 properties:
                   interval:
                     type: string
-                  type:
+                  state:
                     type: string
                 required:
-                - type
+                - state
                 type: object
               scope:
                 type: string

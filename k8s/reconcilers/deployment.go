@@ -105,7 +105,8 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	rp := target.GetReconciliationPolicy()
 	reconciliationInterval = r.reconciliationInterval
 	timeout = r.applyTimeOut
-	if rp != nil && rp.Type == k8smodel.ReconciliationPolicy_Periodic {
+	if rp != nil && rp.State.IsActive() {
+		// periodic reconciliation, interval is set
 		if rp.Interval != nil {
 			interval, err := time.ParseDuration(*rp.Interval)
 			if err != nil {
@@ -115,6 +116,11 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 			reconciliationInterval = interval
 		}
 	}
+	if rp != nil && rp.State.IsInActive() {
+		// only reconcile once
+		reconciliationInterval = 0
+	}
+	// no reconciliationPolicy configured, use default reconciliation interval: r.reconciliationInterval
 	return
 }
 
@@ -212,12 +218,12 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 
-		// If the reconcile policy is once, we should not queue a new job and return
+		// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
 		if reconciliationInterval == 0 {
 			return metrics.DeploymentSucceeded, ctrl.Result{}, nil
 		}
 
-		// The reconcile policy is periodic. We should check if the difference
+		// The reconcile policy is periodic (interval > 0 and state == active). We should check if the difference
 		// in time between the summary time and the current time is greater than the reconciliation interval
 		// If it is, we should queue a new job to the api and check back in POLL seconds
 		// else we should queue a reconciliation and check back in the difference between the summary time and the current time
