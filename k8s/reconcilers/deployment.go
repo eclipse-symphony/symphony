@@ -105,22 +105,26 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	rp := target.GetReconciliationPolicy()
 	reconciliationInterval = r.reconciliationInterval
 	timeout = r.applyTimeOut
-	if rp != nil && rp.State.IsActive() {
-		// periodic reconciliation, interval is set
-		if rp.Interval != nil {
-			interval, err := time.ParseDuration(*rp.Interval)
-			if err != nil {
-				log.Info(fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
-				return
+	if rp != nil {
+		// reconciliationPolicy is set, use the interval if it's active
+		if rp.State.IsActive() {
+			// periodic reconciliation, interval is set
+			if rp.Interval != nil {
+				interval, err := time.ParseDuration(*rp.Interval)
+				if err != nil {
+					log.Info(fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
+					return
+				}
+				reconciliationInterval = interval
 			}
-			reconciliationInterval = interval
 		}
+		if rp.State.IsInActive() {
+			// only reconcile once
+			reconciliationInterval = 0
+		}
+
 	}
-	if rp != nil && rp.State.IsInActive() {
-		// only reconcile once
-		reconciliationInterval = 0
-	}
-	// no reconciliationPolicy configured, use default reconciliation interval: r.reconciliationInterval
+	// no reconciliationPolicy configured or reconciliationPolicy.state is invalid, use default reconciliation interval: r.reconciliationInterval
 	return
 }
 

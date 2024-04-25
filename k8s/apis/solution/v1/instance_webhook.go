@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"gopls-workspace/apis/metrics/v1"
+	v1 "gopls-workspace/apis/model/v1"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +66,10 @@ func (r *Instance) Default() {
 
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
+	}
+
+	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
+		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
 }
 
@@ -199,6 +204,12 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 			}
 		} else {
 			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("interval"), r.Spec.ReconciliationPolicy.Interval, "cannot be parsed as type of time.Duration")
+		}
+	}
+
+	if r.Spec.ReconciliationPolicy != nil {
+		if !r.Spec.ReconciliationPolicy.State.IsActive() && !r.Spec.ReconciliationPolicy.State.IsInActive() {
+			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("state"), r.Spec.ReconciliationPolicy.State, "must be either 'active' or 'inactive'")
 		}
 	}
 
