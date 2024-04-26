@@ -197,8 +197,8 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithDeploymentErrorBuilder(r.populateProvisioningError),
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
 		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
-		reconcilers.WithDeploymentKeyResolver(func(instance reconcilers.Reconcilable) string {
-			return fmt.Sprintf("target-runtime-%s", instance.GetName())
+		reconcilers.WithDeploymentKeyResolver(func(target reconcilers.Reconcilable) string {
+			return fmt.Sprintf("target-runtime-%s", target.GetName())
 		}),
 	)
 }
