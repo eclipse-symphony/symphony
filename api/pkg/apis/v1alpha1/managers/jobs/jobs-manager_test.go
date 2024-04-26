@@ -238,7 +238,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Name:     "instance1",
 					Solution: "solution1",
 				},
 			}
@@ -249,7 +248,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Name:     "instance1",
 					Solution: "solution1",
 				},
 			}}

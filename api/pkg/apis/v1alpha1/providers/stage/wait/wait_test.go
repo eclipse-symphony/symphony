@@ -194,11 +194,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/catalogs/registry":
 			response = []model.CatalogState{{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
-				},
-				Spec: &model.CatalogSpec{
 					Name: "hq-catalog1",
 				},
+				Spec: &model.CatalogSpec{},
 			}}
 		default:
 			response = AuthResponse{

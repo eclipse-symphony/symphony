@@ -228,18 +228,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog1",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog1",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog2",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog2",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				}}
 		default:

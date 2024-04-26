@@ -445,7 +445,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				if err != nil {
 					return err
 				} else {
-					return s.apiClient.DeleteInstance(ctx, deployment.Instance.Spec.Name, namespace)
+					return s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -508,7 +508,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					// TODO: how to handle status updates?
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
-							ID: "d_" + deployment.Instance.Spec.Name,
+							ID: "d_" + deployment.Instance.ObjectMeta.Name,
 							Body: LastSuccessTime{
 								Time: time.Now().UTC(),
 							},

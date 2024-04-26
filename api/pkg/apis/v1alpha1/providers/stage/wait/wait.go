@@ -209,7 +209,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, catalog := range catalogs {
 				for _, object := range prefixedNames {
-					if catalog.Spec.Name == object {
+					if catalog.ObjectMeta.Name == object {
 						foundCount++
 					}
 				}

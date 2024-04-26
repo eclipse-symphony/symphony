@@ -135,11 +135,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	creationCount := 0
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
-			if catalog.Spec.Name == object {
+			if catalog.ObjectMeta.Name == object {
 				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
-				name := catalog.Spec.Name
+				name := catalog.ObjectMeta.Name
 				if s, ok := inputs["__origin"]; ok {
-					name = strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", s))
+					name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
 				}
 				switch catalog.Spec.Type {
 				case "instance":
@@ -210,16 +210,12 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					// If inner catalog defines a name, use it as the name
-					if catalogState.Spec.Name != "" {
-						catalogState.ObjectMeta.Name = catalogState.Spec.Name
-					}
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
 					mLog.Debugf("  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
+					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData)
 					if err != nil {
-						mLog.Errorf("Failed to create catalog %s: %s", catalogState.Spec.Name, err.Error())
+						mLog.Errorf("Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++

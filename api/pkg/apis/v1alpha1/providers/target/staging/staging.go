@@ -180,7 +180,6 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		catalog.Spec = &model.CatalogSpec{
 			SiteId: i.Context.SiteInfo.SiteId,
 			Type:   "staged",
-			Name:   catalog.ObjectMeta.Name,
 		}
 	}
 	if catalog.Spec.Properties == nil {
