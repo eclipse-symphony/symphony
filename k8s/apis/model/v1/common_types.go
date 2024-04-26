@@ -72,9 +72,7 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	// Defines the version of a particular resource
-	Version    string `json:"version,omitempty"`
-	Generation string `json:"generation,omitempty"`
+	Generation    string               `json:"generation,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -95,8 +93,6 @@ type InstanceSpec struct {
 	Pipelines   []model.PipelineSpec         `json:"pipelines,omitempty"`
 	Arguments   map[string]map[string]string `json:"arguments,omitempty"`
 	Generation  string                       `json:"generation,omitempty"`
-	// Defines the version of a particular resource
-	Version string `json:"version,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile

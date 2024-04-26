@@ -83,7 +83,6 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 			Constraints:   target.Spec.Constraints,
 			ForceRedeploy: target.Spec.ForceRedeploy,
 			Topologies:    target.Spec.Topologies,
-			Version:       target.Spec.Version,
 			Generation:    target.Spec.Generation,
 		},
 	}
@@ -117,7 +116,6 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 			Parameters:  instance.Spec.Parameters,
 			Metadata:    instance.Spec.Metadata,
 			Generation:  instance.Spec.Generation,
-			Version:     instance.Spec.Version,
 			Topologies:  instance.Spec.Topologies,
 			Pipelines:   instance.Spec.Pipelines,
 		},
