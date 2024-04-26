@@ -196,7 +196,7 @@ if [ -z "$1" ]; then
     echo "Getting the latest Maestro CLI..."
     getLatestRelease
 else
-    retVal=v$1
+    retVal=$1
 fi
 
 verifySupported $retVal
