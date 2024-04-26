@@ -9,6 +9,7 @@ package v1
 import (
 	"context"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/metrics/v1"
 	configutils "gopls-workspace/configutils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +30,7 @@ import (
 var modellog = logf.Log.WithName("model-resource")
 var myModelClient client.Client
 var modelValidationPolicies []configv1.ValidationPolicy
+var modelWebhookValidationMetrics *metrics.Metrics
 
 func (r *Model) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myModelClient = mgr.GetClient()
@@ -39,6 +42,15 @@ func (r *Model) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	dict, _ := configutils.GetValidationPoilicies()
 	if v, ok := dict["model"]; ok {
 		modelValidationPolicies = v
+	}
+
+	// initialize the controller operation metrics
+	if modelWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		modelWebhookValidationMetrics = metrics
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -67,14 +79,50 @@ var _ webhook.Validator = &Model{}
 func (r *Model) ValidateCreate() error {
 	modellog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateModel()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateModel()
+	if validationError != nil {
+		modelWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.ModelResourceType,
+		)
+	} else {
+		modelWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.ModelResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Model) ValidateUpdate(old runtime.Object) error {
 	modellog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateModel()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateModel()
+	if validationError != nil {
+		modelWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.ModelResourceType,
+		)
+	} else {
+		modelWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.ModelResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
