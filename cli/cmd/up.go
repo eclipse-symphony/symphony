@@ -70,9 +70,10 @@ var UpCmd = &cobra.Command{
 				return
 			}
 		} else {
-			if !handleDocker() {
-				return
-			}
+			// we don't need to check for Docker, as we are not using it
+			// if !handleDocker() {
+			//	return
+			// }
 			if !handleKubectl() {
 				return
 			}
