@@ -12,8 +12,9 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	configutils "gopls-workspace/configutils"
 
+	k8smodel "gopls-workspace/apis/model/v1"
+
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	k8smodel "github.com/eclipse-symphony/symphony/k8s/apis/model/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

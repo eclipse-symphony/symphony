@@ -53,7 +53,6 @@ spec:
                     reason:
                       type: string
                     state:
-                      description: State represents a response state
                       type: integer
                   type: object
                 type: object
@@ -67,7 +66,6 @@ spec:
                     reason:
                       type: string
                     state:
-                      description: State represents a response state
                       type: integer
                   type: object
                 type: object
