@@ -145,7 +145,7 @@ func GenerateTestApiResourceList() []*metav1.APIResourceList {
 			},
 		},
 		{
-			GroupVersion: "fabric.symphony",
+			GroupVersion: "fabric.symphony/v1",
 			APIResources: []metav1.APIResource{
 				{
 					Name:         "targets",

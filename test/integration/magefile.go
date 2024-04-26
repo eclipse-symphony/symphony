@@ -13,9 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	//mage:import
-	_ "github.com/eclipse-symphony/symphony/packages/mage"
 )
 
 const (
@@ -40,30 +37,30 @@ type (
 )
 
 // Test runs all integration tests
-// func Test() error {
-// 	fmt.Println("Searching for integration tests")
+func Test() error {
+	fmt.Println("Searching for integration tests")
 
-// 	scenariosPath, err := filepath.Abs("scenarios")
-// 	if err != nil {
-// 		return err
-// 	}
+	scenariosPath, err := filepath.Abs("scenarios")
+	if err != nil {
+		return err
+	}
 
-// 	testFiles, err := listTests(scenariosPath)
-// 	if err != nil {
-// 		return err
-// 	}
+	testFiles, err := listTests(scenariosPath)
+	if err != nil {
+		return err
+	}
 
-// 	for _, testFile := range testFiles {
-// 		fmt.Printf("Running tests in: %s\n", testFile)
+	for _, testFile := range testFiles {
+		fmt.Printf("Running tests in: %s\n", testFile)
 
-// 		err = RunTest(testFile)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
+		err = RunTest(testFile)
+		if err != nil {
+			return err
+		}
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 // Run a test file
 // Deploys once at the start and cleans up at the end
@@ -96,7 +93,11 @@ func listTests(dir string) ([]string, error) {
 	// Read test subfolders
 	for _, entry := range subDirs {
 		if entry.IsDir() {
-			results = append(results, filepath.Join(dir, entry.Name()))
+			dirPath := filepath.Join(dir, entry.Name())
+			filePath := filepath.Join(dirPath, "magefile.go")
+			if _, err := os.Stat(filePath); err == nil {
+				results = append(results, dirPath)
+			}
 		}
 	}
 

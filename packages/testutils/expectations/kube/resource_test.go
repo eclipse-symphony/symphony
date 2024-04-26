@@ -187,13 +187,15 @@ func TestAbsentPodFail(t *testing.T) {
 }
 
 func TestAbsentResourceSuccess(t *testing.T) {
-	e := Must(AbsentResource("nonexistent", "*", helpers.TargetGVK, // tries to find a target that doesn't exist
+	expect, err := AbsentResource("nonexistent", "*", helpers.TargetGVK,
 		WithDynamicClientBuilder(testDynamicClientBuilder),
-		WithDiscoveryClientBuilder(testDiscoveryClientBuilder),
-	))
+		WithDiscoveryClientBuilder(testDiscoveryClientBuilder))
+
+	e := Must(expect, err)
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	require.NoError(t, e.Verify(ctx))
+	err = e.Verify(ctx)
+	require.NoError(t, err)
 }
 
 func TestAbsentResourceFail(t *testing.T) {

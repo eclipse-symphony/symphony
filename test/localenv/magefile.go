@@ -58,7 +58,7 @@ func (Cluster) Deploy() error {
 		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)),
 	}
 	for _, cert := range certsToVerify {
-		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=60s", cert, NAMESPACE)))
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, NAMESPACE)))
 	}
 	return shellcmd.RunAll(commands...)
 }
