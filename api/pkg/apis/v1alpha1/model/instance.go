@@ -34,8 +34,6 @@ type (
 		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
 		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
 		Generation  string                       `json:"generation,omitempty"`
-		// Defines the version of a particular resource
-		Version string `json:"version,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to

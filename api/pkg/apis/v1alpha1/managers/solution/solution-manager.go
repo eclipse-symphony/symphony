@@ -467,8 +467,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	})
 	//}
 
-	summary.IsRemoval = remove
-
 	successCount := 0
 	for _, v := range targetResult {
 		successCount += v
