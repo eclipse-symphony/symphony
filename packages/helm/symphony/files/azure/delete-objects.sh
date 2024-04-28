@@ -1,7 +1,7 @@
 #!/bin/env bash
 set -e
 TIMEOUT="60s"
-GROUP=orchestrator.iotoperations.azure.com
+GROUP=symphony.microsoft.com
 
 function delete_crds {
   local resource_type=$1

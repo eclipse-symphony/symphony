@@ -93,11 +93,9 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 		} else {
 			if j.AuthServer == AuthServerKuberenetes {
-				// TEMP LOG
 				fmt.Println("JWT: Validating token with k8s.")
 				err := j.validateServiceAccountToken(ctx, tokenStr)
 				if err != nil {
-					// TEMP LOG
 					fmt.Println("JWT: Validate token with k8s failed.\n" + err.Error())
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
@@ -107,7 +105,6 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				fmt.Println("JWT: Validating token with username plus pwd.")
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {
-					// TEMP LOG
 					fmt.Println("JWT: Validate token with user creds failed.\n" + err.Error())
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
@@ -216,7 +213,6 @@ func (j *JWT) validateToken(tokenStr string) (map[string]interface{}, []string, 
 func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr string) error {
 	clientset, err := getKubernetesClient()
 	if err != nil {
-		// TEMP LOG
 		fmt.Println("JWT: Could not initialize Kubernetes client.")
 		return v1alpha2.NewCOAError(err, "Could not initialize Kubernetes client", v1alpha2.InternalError)
 	}
