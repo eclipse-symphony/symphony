@@ -22,7 +22,7 @@ type Metrics struct {
 
 func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		startTime := time.Now()
+		startTime := time.Now().UTC()
 
 		next(ctx)
 

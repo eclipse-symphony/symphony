@@ -22,7 +22,7 @@ import (
 )
 
 // The version is auto updated by the release pipeline, do not change it manually
-const SymphonyAPIVersion = "0.48.21"
+const SymphonyAPIVersion = "0.48.22"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
 var (
@@ -70,9 +70,10 @@ var UpCmd = &cobra.Command{
 				return
 			}
 		} else {
-			if !handleDocker() {
-				return
-			}
+			// we don't need to check for Docker, as we are not using it
+			// if !handleDocker() {
+			//	return
+			// }
 			if !handleKubectl() {
 				return
 			}

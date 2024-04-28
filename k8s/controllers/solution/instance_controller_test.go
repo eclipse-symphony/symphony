@@ -86,7 +86,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					BeforeEach(func() {
 						By("mocking the get summary call to return a successful deployment")
 						hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
-						apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(MockSucessSummaryResult(instance, hash), nil)
+						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(instance, hash), nil)
 					})
 
 					It("should not return an error", func() {
@@ -100,10 +100,10 @@ var _ = Describe("Instance controller", Ordered, func() {
 				Context("and the deployment failed due to some error", func() {
 					BeforeEach(func() {
 						By("mocking the get summary call to return a not found error")
-						apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
+						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 						By("mocking a failed deployment to the api")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("some error"))
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("some error"))
 					})
 
 					It("should queue anotther reconciliation as soon as possible", func() {
@@ -121,12 +121,12 @@ var _ = Describe("Instance controller", Ordered, func() {
 					Expect(kubeClient.Delete(ctx, solution)).To(Succeed())
 
 					By("mocking a successful deployment to the api")
-					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				})
 
 				BeforeEach(func() {
 					By("mocking the get summary call to return a not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 				})
 
 				It("should have a status of Reconciling", func() {
@@ -146,10 +146,10 @@ var _ = Describe("Instance controller", Ordered, func() {
 
 				BeforeEach(func() {
 					By("mocking the get summary call to return a not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking a successful deployment to the api")
-					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				})
 
 				It("should have a status of Reconciling", func() {
@@ -195,7 +195,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockSucessSummaryResult(instance, hash)
 					summary.Summary.IsRemoval = true
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should no longer exist in the kubernetes api", func(ctx context.Context) {
@@ -214,7 +214,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					By("simulating a pending delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(instance, hash)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				JustBeforeEach(func(ctx context.Context) {
@@ -238,7 +238,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			Context("and the deletion deployment failed due to random error", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a failed delete deployment from the api")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 				})
 
 				JustBeforeEach(func(ctx context.Context) {

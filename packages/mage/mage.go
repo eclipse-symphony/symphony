@@ -81,14 +81,6 @@ func EnsureAllTools() error {
 	return nil
 }
 
-// EnsureAllTools checks to see if a valid version of the needed tools are
-// installed, and downloads/installs them if not.
-func EnsureAllTools2() error {
-	mg.Deps(ensureFormatter, ensureLinter, ensureDocumenter, ensureGinkgo, ensureGoJUnit)
-
-	return nil
-}
-
 // Format formats the code.
 func Format() error {
 	if err := ensureFormatter(); err != nil {

@@ -118,13 +118,13 @@ var _ = Describe("Attempt Delete", func() {
 	When("the object has not been queued for deletion on the api but has been deployed", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("returning a summary of a deployed but not deleted object from the api")
-			apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 		})
 
 		Context("and it successfully queues a delete job to the api", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning a successful delete job from the api")
-				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			})
 
 			It("should call the api to get summary and queue a delete job", func() {
@@ -144,7 +144,7 @@ var _ = Describe("Attempt Delete", func() {
 		Context("and it fails to queue a delete job to the api due to a non-terminal error", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning a non-terminal error from the api")
-				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test-error"))
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test-error"))
 			})
 
 			It("should call the api to get summary and queue a delete job", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Attempt Delete", func() {
 		Context("and it fails to queue a delete job to the api due to a terminal error", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning a terminal error from the api")
-				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
 
 				By("mocking a delay to allow for deletion error syncing")
 				delayer.On("Sleep", TestDeleteSyncDelay).Return(nil)
@@ -198,7 +198,7 @@ var _ = Describe("Attempt Delete", func() {
 				By("returning an in-progress delete summary from the api")
 				summary := MockInProgressDeleteSummaryResult(object, "test-hash")
 
-				apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
 			It("should have called the api to get summary with the right arguments", func() {
@@ -225,7 +225,7 @@ var _ = Describe("Attempt Delete", func() {
 				By("mocking a delay to allow for deletion error syncing")
 				delayer.On("Sleep", TestDeleteSyncDelay).Return(nil)
 
-				apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
 			It("should have called the api to get summary with the right arguments", func() {
@@ -256,7 +256,7 @@ var _ = Describe("Attempt Delete", func() {
 				summary := MockSucessSummaryResult(object, "test-hash")
 				summary.Summary.IsRemoval = true
 
-				apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
 			It("should have called the api to get summary with the right arguments", func() {
@@ -281,7 +281,7 @@ var _ = Describe("Attempt Delete", func() {
 	When("the delete job summary cannot be fetched from the api due to random error", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("returning an error from the get summary api endpoint")
-			apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, errors.New("test-error"))
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("test-error"))
 		})
 
 		It("should have called the api to get summary with the right arguments", func() {
@@ -300,13 +300,13 @@ var _ = Describe("Attempt Delete", func() {
 	When("the delete job summary cannot be fetched from the api due to not found", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("returning an error from the get summary api endpoint")
-			apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 		})
 
 		Context("so it successfully queues a delete job to the api", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("mocking a successful call to the queue delete job api endpoint")
-				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			})
 
 			It("should have called the api to get summary and queue a job", func() {
@@ -325,7 +325,7 @@ var _ = Describe("Attempt Delete", func() {
 		Context("so it fails to queue a delete job to the api due to a non-terminal error", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("mocking a non-terminal error from the queue delete job api endpoint")
-				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test-error"))
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test-error"))
 			})
 
 			It("should have called the api to get summary and queue a job", func() {
@@ -347,7 +347,7 @@ var _ = Describe("Attempt Delete", func() {
 			By("returning a pending summary from the api")
 			summary := MockInProgressDeleteSummaryResult(object, "test-hash")
 			summary.State = model.SummaryStatePending
-			apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 		})
 
 		It("should have called the api to get summary with the right arguments", func() {

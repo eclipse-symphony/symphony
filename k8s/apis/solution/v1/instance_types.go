@@ -39,11 +39,11 @@ func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }
 
-func (i *Instance) GetStatus() k8smodel.TargetStatus {
+func (i *Instance) GetStatus() k8smodel.InstanceStatus {
 	return i.Status
 }
 
-func (i *Instance) SetStatus(status k8smodel.TargetStatus) {
+func (i *Instance) SetStatus(status k8smodel.InstanceStatus) {
 	i.Status = status
 }
 

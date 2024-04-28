@@ -105,16 +105,26 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	rp := target.GetReconciliationPolicy()
 	reconciliationInterval = r.reconciliationInterval
 	timeout = r.applyTimeOut
-	if rp != nil && rp.Type == k8smodel.ReconciliationPolicy_Periodic {
-		if rp.Interval != nil {
-			interval, err := time.ParseDuration(*rp.Interval)
-			if err != nil {
-				log.Info(fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
-				return
+	if rp != nil {
+		// reconciliationPolicy is set, use the interval if it's active
+		if rp.State.IsActive() {
+			// periodic reconciliation, interval is set
+			if rp.Interval != nil {
+				interval, err := time.ParseDuration(*rp.Interval)
+				if err != nil {
+					log.Info(fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
+					return
+				}
+				reconciliationInterval = interval
 			}
-			reconciliationInterval = interval
 		}
+		if rp.State.IsInActive() {
+			// only reconcile once
+			reconciliationInterval = 0
+		}
+
 	}
+	// no reconciliationPolicy configured or reconciliationPolicy.state is invalid, use default reconciliation interval: r.reconciliationInterval
 	return
 }
 
@@ -153,7 +163,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
 
-	summary, err := r.getDeploymentSummary(object)
+	summary, err := r.getDeploymentSummary(ctx, object)
 	if err != nil {
 		// If the error is anything but 404, we should return the error so the reconciler can retry
 		if !v1alpha2.IsNotFound(err) {
@@ -212,12 +222,12 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 
-		// If the reconcile policy is once, we should not queue a new job and return
+		// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
 		if reconciliationInterval == 0 {
 			return metrics.DeploymentSucceeded, ctrl.Result{}, nil
 		}
 
-		// The reconcile policy is periodic. We should check if the difference
+		// The reconcile policy is periodic (interval > 0 and state == active). We should check if the difference
 		// in time between the summary time and the current time is greater than the reconciliation interval
 		// If it is, we should queue a new job to the api and check back in POLL seconds
 		// else we should queue a reconciliation and check back in the difference between the summary time and the current time
@@ -258,7 +268,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 	}
 
 	// Grab summary
-	summary, err := r.getDeploymentSummary(object)
+	summary, err := r.getDeploymentSummary(ctx, object)
 	// If there was an error and it was not a 404, we should update the status and return the error so the reconciler can retry
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		if _, uErr := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{nonTerminalErr: err}, log); uErr != nil {
@@ -430,15 +440,15 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 	}
 
 	// Send the deployment object to the api to queue a job
-	err = r.apiClient.QueueDeploymentJob(object.GetNamespace(), isRemoval, *deployment)
+	err = r.apiClient.QueueDeploymentJob(ctx, object.GetNamespace(), isRemoval, *deployment)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *DeploymentReconciler) getDeploymentSummary(object Reconcilable) (*model.SummaryResult, error) {
-	return r.apiClient.GetSummary(r.deploymentKeyResolver(object), object.GetNamespace())
+func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object Reconcilable) (*model.SummaryResult, error) {
+	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace())
 }
 
 func (r *DeploymentReconciler) updateCorrelationIdMetaData(ctx context.Context, object Reconcilable, operationStartTimeKey string) error {
@@ -496,11 +506,10 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 	summary := summaryResult.Summary
 	switch summaryResult.State {
 	case model.SummaryStateDone:
-		targetCount := strconv.Itoa(summary.TargetCount)
-		successCount := strconv.Itoa(summary.SuccessCount)
-
+		// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/148
+		// Use AllAssignedDeployed instead of targetCount/successCount to verify deployment.
 		status := utilsmodel.ProvisioningStatusSucceeded
-		if successCount != targetCount {
+		if !summary.AllAssignedDeployed {
 			status = utilsmodel.ProvisioningStatusFailed
 		}
 		return status
@@ -565,7 +574,13 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	for k, v := range summary.TargetResults {
 		objectStatus.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 		for kc, c := range v.ComponentResults {
-			objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			if c.Message == "" {
+				// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/225
+				// If c.Message is empty, only show c.Status.
+				objectStatus.Properties["targets."+k+"."+kc] = c.Status.String()
+			} else {
+				objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+			}
 		}
 	}
 }

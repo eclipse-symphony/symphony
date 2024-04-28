@@ -54,9 +54,9 @@ Symphony doesn’t force customers to be modified how their applications behave 
 * [External configuration sources](./external-sources.md)
 * [Approvals, auditability and other workflows](./approval-and-workflows.md)
 * [Configuration management recommendations](./recommendations.md)
+* [Configuration management samples](../../samples/configuration/README.md)
 
 ## Related topics
 
 * [Define configurations](./define-configurations.md)
 * [Serve configurations](./serve-configurations.md)
-

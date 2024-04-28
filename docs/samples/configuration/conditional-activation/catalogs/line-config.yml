@@ -1,0 +1,11 @@
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line-config
+spec:
+  type: config
+  properties:
+    EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
+      line1: ${{$if($config('line1', 'IS_PREMIUM_LINE'), $config('premium-properties',''), '')}}
+      line2: ${{$if($config('line2', 'IS_PREMIUM_LINE'), $config('premium-properties',''), '')}}

@@ -284,8 +284,9 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		ErrorMessage: "",
 		IsActive:     true,
 	}
+	var provider providers.IProvider
 	factory := symproviders.SymphonyProviderFactory{}
-	provider, err := factory.CreateProvider(triggerData.Provider, triggerData.Config)
+	provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
 	if err != nil {
 		status.Status = v1alpha2.InternalError
 		status.ErrorMessage = err.Error()
@@ -321,7 +322,8 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		return status
 	}
 
-	outputs, _, err := provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+	var outputs map[string]interface{}
+	outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
 
 	result := TaskResult{
 		Outputs: outputs,

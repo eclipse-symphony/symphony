@@ -113,14 +113,15 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 			"kind":      "Solution",
 		},
 	}
-	solutions, _, err := t.StateProvider.List(ctx, listRequest)
+	var solutions []states.StateEntry
+	solutions, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
 		var rt model.SolutionState
-		rt, err = getSolutionState(t.ID, t.Body)
+		rt, err = getSolutionState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -129,33 +130,17 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getSolutionState(id string, body interface{}) (model.SolutionState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.SolutionSpec
-	err := json.Unmarshal(j, &rSpec)
+func getSolutionState(body interface{}) (model.SolutionState, error) {
+	var solutionState model.SolutionState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &solutionState)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.SolutionState{}, err
+	if solutionState.Spec == nil {
+		solutionState.Spec = &model.SolutionSpec{}
 	}
-
-	//construct state
-	state := model.SolutionState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-	}
-	return state, nil
+	return solutionState, nil
 }
 
 func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionState, error) {
@@ -175,12 +160,13 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 			"kind":      "Solution",
 		},
 	}
-	target, err := t.StateProvider.Get(ctx, getRequest)
+	var target states.StateEntry
+	target, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
-
-	ret, err := getSolutionState(id, target.Body)
+	var ret model.SolutionState
+	ret, err = getSolutionState(target.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}

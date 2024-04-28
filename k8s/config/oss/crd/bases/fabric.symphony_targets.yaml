@@ -137,10 +137,10 @@ spec:
                 properties:
                   interval:
                     type: string
-                  type:
+                  state:
                     type: string
                 required:
-                - type
+                - state
                 type: object
               scope:
                 type: string
@@ -173,9 +173,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                description: Defines the version of a particular resource
-                type: string
             type: object
           status:
             properties:

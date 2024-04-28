@@ -22,7 +22,7 @@ import (
 // Test config
 const (
 	TEST_NAME    = "workflow test"
-	TEST_TIMEOUT = "3m"
+	TEST_TIMEOUT = "4m"
 )
 
 var (

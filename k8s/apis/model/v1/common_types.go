@@ -7,18 +7,34 @@
 package v1
 
 import (
+	"strings"
+
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
-	// ReconciliationPolicy_Periodic allows the controller to reconcile periodically
-	ReconciliationPolicy_Periodic ReconciliationPolicy = "periodic"
+	// ReconciliationPolicy_Active allows the controller to reconcile periodically
+	ReconciliationPolicy_Active ReconciliationPolicyState = "active"
+	// ReconciliationPolicy_Inactive disables periodic reconciliation
+	ReconciliationPolicy_Inactive ReconciliationPolicyState = "inactive"
 )
 
-// +kubebuilder:validation:Enum=periodic;
-type ReconciliationPolicy string
+// +kubebuilder:validation:Enum=active;inactive;
+type ReconciliationPolicyState string
+
+func (r ReconciliationPolicyState) String() string {
+	return string(r)
+}
+
+func (r ReconciliationPolicyState) IsActive() bool {
+	return strings.ToLower(r.String()) == ReconciliationPolicy_Active.String()
+}
+
+func (r ReconciliationPolicyState) IsInActive() bool {
+	return strings.ToLower(r.String()) == ReconciliationPolicy_Inactive.String()
+}
 
 // +kubebuilder:object:generate=true
 type SidecarSpec struct {
@@ -56,9 +72,7 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	// Defines the version of a particular resource
-	Version    string `json:"version,omitempty"`
-	Generation string `json:"generation,omitempty"`
+	Generation    string               `json:"generation,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -79,8 +93,6 @@ type InstanceSpec struct {
 	Pipelines   []model.PipelineSpec         `json:"pipelines,omitempty"`
 	Arguments   map[string]map[string]string `json:"arguments,omitempty"`
 	Generation  string                       `json:"generation,omitempty"`
-	// Defines the version of a particular resource
-	Version string `json:"version,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -168,7 +180,7 @@ type TargetStatus = DeployableStatus
 
 // +kubebuilder:object:generate=true
 type ReconciliationPolicySpec struct {
-	Type ReconciliationPolicy `json:"type"`
+	State ReconciliationPolicyState `json:"state"`
 	// +kubebuilder:validation:MinLength=1
 	Interval *string `json:"interval,omitempty"`
 }

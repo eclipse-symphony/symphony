@@ -7,6 +7,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -51,7 +52,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(solutionName, solution1, "default")
+	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default")
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -156,7 +157,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = testApiClient.CreateTarget(targetName, target1, "default")
+	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default")
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -173,13 +174,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateInstance(instanceName, instance1, "default")
+	err = testApiClient.CreateInstance(context.Background(), instanceName, instance1, "default")
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := testApiClient.GetInstances("default")
+	instancesRes, err := testApiClient.GetInstances(context.Background(), "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -189,7 +190,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
 
-	instanceRes, err := testApiClient.GetInstance(instanceName, "default")
+	instanceRes, err := testApiClient.GetInstance(context.Background(), instanceName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -198,13 +199,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
 	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
 
-	err = testApiClient.DeleteTarget(targetName, "default")
+	err = testApiClient.DeleteTarget(context.Background(), targetName, "default")
 	require.NoError(t, err)
 
-	err = testApiClient.DeleteSolution(solutionName, "default")
+	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default")
 	require.NoError(t, err)
 
-	err = testApiClient.DeleteInstance(instanceName, "default")
+	err = testApiClient.DeleteInstance(context.Background(), instanceName, "default")
 	require.NoError(t, err)
 }
 
@@ -231,21 +232,21 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(solutionName, solution1, "default")
+	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default")
 	require.NoError(t, err)
 
-	solutionsRes, err := testApiClient.GetSolutions("default")
+	solutionsRes, err := testApiClient.GetSolutions(context.Background(), "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := testApiClient.GetSolution(solutionName, "default")
+	solutionRes, err := testApiClient.GetSolution(context.Background(), solutionName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = testApiClient.DeleteSolution(solutionName, "default")
+	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default")
 	require.NoError(t, err)
 }
 
@@ -357,13 +358,13 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = testApiClient.CreateTarget(targetName, target1, "default")
+	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default")
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
 	time.Sleep(time.Second)
 
-	targetsRes, err := testApiClient.GetTargets("default")
+	targetsRes, err := testApiClient.GetTargets(context.Background(), "default")
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
@@ -372,7 +373,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
 
-	targetRes, err := testApiClient.GetTarget(targetName, "default")
+	targetRes, err := testApiClient.GetTarget(context.Background(), targetName, "default")
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
@@ -380,7 +381,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetRes.Status.Properties["targets"])
 	require.Equal(t, "OK", targetRes.Status.Properties["status"])
 
-	err = testApiClient.DeleteTarget(targetName, "default")
+	err = testApiClient.DeleteTarget(context.Background(), targetName, "default")
 	require.NoError(t, err)
 }
 

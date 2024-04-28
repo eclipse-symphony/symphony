@@ -1,6 +1,6 @@
 # Symphony quickstart - Deploy a Redis container with standalone Symphony
 
-_(last edit: 9/18/2023)_
+_(last edit: 4/15/2024)_
 
 This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
 
@@ -46,7 +46,7 @@ Define your current machine as a [target](../concepts/unified-object-model/targe
   ```json
   {
     "displayName": "sample-docker-target",
-    "forceRedploy": true,
+    "forceRedeploy": true,
     "topologies": [
       {
         "bindings": [

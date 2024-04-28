@@ -77,7 +77,7 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		if err != nil {
 			return err
 		}
-		clientOptions = append(clientOptions, utils.WithUserPassword(user, password))
+		clientOptions = append(clientOptions, utils.WithUserPassword(context.TODO(), user, password))
 	}
 
 	client, err := utils.NewAPIClient(context.Background(), baseUrl, clientOptions...)
@@ -104,7 +104,8 @@ func (s *JobsManager) pollObjects() []error {
 		return nil
 	}
 
-	instances, err := s.apiClient.GetInstancesForAllNamespaces()
+	var instances []model.InstanceState
+	instances, err = s.apiClient.GetInstancesForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -119,7 +120,8 @@ func (s *JobsManager) pollObjects() []error {
 		})
 		needsPub := true
 		if err == nil {
-			if stamp, ok := entry.Body.(LastSuccessTime); ok {
+			var stamp LastSuccessTime
+			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
 				if time.Since(stamp.Time) > time.Duration(s.interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
@@ -140,7 +142,8 @@ func (s *JobsManager) pollObjects() []error {
 			})
 		}
 	}
-	targets, err := s.apiClient.GetTargetsForAllNamespaces()
+	var targets []model.TargetState
+	targets, err = s.apiClient.GetTargetsForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -156,9 +159,7 @@ func (s *JobsManager) pollObjects() []error {
 		needsPub := true
 		if err == nil {
 			var stamp LastSuccessTime
-			jData, _ := json.Marshal(entry.Body)
-			err = json.Unmarshal(jData, &stamp)
-			if err == nil {
+			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
 				if time.Since(stamp.Time) > time.Duration(s.interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
@@ -207,7 +208,8 @@ func (s *JobsManager) pollSchedules() []error {
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	//TODO: use filters and continue tokens
-	list, _, err := s.StateProvider.List(context, states.ListRequest{})
+	var list []states.StateEntry
+	list, _, err = s.StateProvider.List(context, states.ListRequest{})
 	if err != nil {
 		return []error{err}
 	}
@@ -290,7 +292,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
 	}
 	//check if a manager is working on the job
-	entry, err := s.StateProvider.Get(ctx, states.GetRequest{
+	var entry states.StateEntry
+	entry, err = s.StateProvider.Get(ctx, states.GetRequest{
 		ID: key,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -378,14 +381,15 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err := s.apiClient.GetInstance(instanceName, namespace)
+			instance, err = s.apiClient.GetInstance(ctx, instanceName, namespace)
 			if err != nil {
 				log.Errorf(" M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
 				return err //TODO: instance is gone
 			}
 
 			//get solution
-			solution, err := s.apiClient.GetSolution(instance.Spec.Solution, namespace)
+			var solution model.SolutionState
+			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace)
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
@@ -400,7 +404,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = s.apiClient.GetTargets(namespace)
+			targets, err = s.apiClient.GetTargets(ctx, namespace)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -419,7 +423,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//call api
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err := s.apiClient.Reconcile(deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
@@ -437,18 +441,19 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err := s.apiClient.Reconcile(deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return s.apiClient.DeleteInstance(deployment.Instance.Spec.Name, namespace)
+					return s.apiClient.DeleteInstance(ctx, deployment.Instance.Spec.Name, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "target":
+			var target model.TargetState
 			targetName := job.Id
-			target, err := s.apiClient.GetTarget(targetName, namespace)
+			target, err = s.apiClient.GetTarget(ctx, targetName, namespace)
 			if err != nil {
 				return err
 			}
@@ -459,7 +464,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err := s.apiClient.Reconcile(deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -477,11 +482,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err := s.apiClient.Reconcile(deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return s.apiClient.DeleteTarget(targetName, namespace)
+					return s.apiClient.DeleteTarget(ctx, targetName, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -490,12 +495,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
 			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
 
-			deployment, err := model.ToDeployment(job.Data)
+			var deployment *model.DeploymentSpec
+			deployment, err = model.ToDeployment(job.Data)
 			if err != nil {
 				return err
 			}
 			if job.Action == v1alpha2.JobUpdate {
-				_, err := s.apiClient.Reconcile(*deployment, false, namespace)
+				_, err = s.apiClient.Reconcile(ctx, *deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -514,7 +520,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == v1alpha2.JobDelete {
-				_, err := s.apiClient.Reconcile(*deployment, true, namespace)
+				_, err = s.apiClient.Reconcile(ctx, *deployment, true, namespace)
 				if err != nil {
 					return err
 				}
@@ -522,4 +528,14 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		}
 	}
 	return nil
+}
+
+func getLastSuccessTime(body interface{}) (LastSuccessTime, error) {
+	var lastSuccessTime LastSuccessTime
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &lastSuccessTime)
+	if err != nil {
+		return LastSuccessTime{}, err
+	}
+	return lastSuccessTime, nil
 }

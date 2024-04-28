@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime/debug"
 	"strings"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -90,7 +89,6 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		}
 		tokenStr := j.readAuthHeader(ctx)
 		if tokenStr == "" {
-			// TEMP LOG
 			fmt.Println("JWT: Token is empty.")
 			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 		} else {
@@ -100,22 +98,17 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				err := j.validateServiceAccountToken(ctx, tokenStr)
 				if err != nil {
 					// TEMP LOG
-					fmt.Println("JWT: Validate token with k8s failed.")
-					fmt.Println("JWT: Error: \n" + err.Error())
+					fmt.Println("JWT: Validate token with k8s failed.\n" + err.Error())
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				}
 				next(ctx)
 			} else {
-				// TEMP LOG
-				fmt.Println("JWT: Validating token with cert.")
-				fmt.Println("JWT: authserver: ", j.AuthServer)
-				debug.PrintStack() // Print the stack trace
+				fmt.Println("JWT: Validating token with username plus pwd.")
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {
 					// TEMP LOG
-					fmt.Println("JWT: Validate token with cert failed.")
-					fmt.Println("JWT: error: %s\n" + err.Error())
+					fmt.Println("JWT: Validate token with user creds failed.\n" + err.Error())
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				} else {
@@ -159,7 +152,6 @@ func (j JWT) readAuthHeader(ctx *fasthttp.RequestCtx) string {
 func (j *JWT) validateToken(tokenStr string) (map[string]interface{}, []string, error) {
 	ret := make(map[string]interface{})
 	claims := jwt.MapClaims{}
-	fmt.Println("validateToken: Token: %s\n" + tokenStr)
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
 		claims,
@@ -237,16 +229,12 @@ func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr str
 		},
 	}
 
-	// TEMP LOG
-	fmt.Printf("JWT: Token: %s\n" + tokenStr)
 	result, err := clientset.AuthenticationV1().TokenReviews().Create(ctx, tokenReview, metav1.CreateOptions{})
 	if err != nil {
-		// TEMP LOG
-		fmt.Println("JWT: Token review using kubernetes api server failed. %s\n" + err.Error())
+		fmt.Println("JWT: Token review using kubernetes api server failed.\n" + err.Error())
 		return v1alpha2.NewCOAError(err, "Token review using kubernetes api server failed.", v1alpha2.InternalError)
 	}
 	if !result.Status.Authenticated {
-		// TEMP LOG
 		fmt.Println("JWT: Validate token with k8s failed. K8s returned not authenticated.")
 		return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
 	} else {
@@ -259,8 +247,7 @@ func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr str
 			return err
 		}
 		if result.Status.User.Username != apiUsername && result.Status.User.Username != controllerUsername {
-			// TEMP LOG
-			fmt.Println("JWT: Validate token with k8s failed. K8s returned invalid username. %s\n" + result.Status.User.Username)
+			fmt.Println("JWT: Validate token with k8s failed. K8s returned invalid username. \n" + result.Status.User.Username)
 			return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
 		}
 	}

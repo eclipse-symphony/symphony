@@ -14,6 +14,7 @@ import (
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
+	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 
@@ -48,6 +49,9 @@ type TargetReconciler struct {
 	m *metrics.Metrics
 
 	dr reconcilers.Reconciler
+
+	// DeleteSyncDelay defines the delay of waiting for status sync back in delete operations
+	DeleteSyncDelay time.Duration
 }
 
 const (
@@ -122,14 +126,14 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	r.m = metrics
 	genChangePredicate := predicate.GenerationChangedPredicate{}
-	annotationPredicate := predicate.AnnotationChangedPredicate{}
+	operationIdPredicate := predicates.OperationIdPredicate{}
 
 	r.dr, err = r.buildDeploymentReconciler()
 	if err != nil {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(predicate.Or(genChangePredicate, annotationPredicate)).
+		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
 		For(&symphonyv1.Target{}).
 		Complete(r)
 }
@@ -192,8 +196,9 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithFinalizerName(targetFinalizerName),
 		reconcilers.WithDeploymentErrorBuilder(r.populateProvisioningError),
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
-		reconcilers.WithDeploymentKeyResolver(func(instance reconcilers.Reconcilable) string {
-			return fmt.Sprintf("target-runtime-%s", instance.GetName())
+		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
+		reconcilers.WithDeploymentKeyResolver(func(target reconcilers.Reconcilable) string {
+			return fmt.Sprintf("target-runtime-%s", target.GetName())
 		}),
 	)
 }

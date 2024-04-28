@@ -125,7 +125,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("setting up the api client with a successful response")
 
-				apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
 			It("should add a finalizer to the object", func() {
@@ -147,10 +147,10 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("api returns not found when queried for summary", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with an undeployed response")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("setting up the api client with a successful deployment queued response")
-					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				})
 
 				It("should call api client with correct parameters", func() {
@@ -172,7 +172,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					By("setting up the api client with an pending response")
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.State = model.SummaryStatePending
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should call api client with correct parameters", func() {
@@ -188,7 +188,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("api returns an error when queried for summary", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with an error response")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, errors.New("test error"))
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("test error"))
 				})
 
 				It("should call api client with correct parameters", func() {
@@ -208,8 +208,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("a terminal error occurs when trying to queue deployment job", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with a successful deployment queued response")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
-					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
 				})
 
 				It("should not queue further reconcile jobs", func() {
@@ -221,8 +221,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("a non-terminal error occurs when trying to queue deployment job", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with a successful deployment queued response")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(nil, NotFoundError)
-					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
 				})
 				It("should queue further reconcile jobs due to error", func() {
 					Expect(reconcileError).To(HaveOccurred())
@@ -238,7 +238,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("api returns a summary indicating deployment is in progress", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with a successful deployment queued response")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 				})
 
 				It("should call api client with correct parameters", func() {
@@ -263,12 +263,12 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			When("api returns a summary for a different version of the object", func() {
 				BeforeEach(func() {
 					By("setting up the api client with a summary response for a different version of the object")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "another-hash"), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "another-hash"), nil)
 				})
 				Context("successfully queues a deployment job to api", func() {
 					BeforeEach(func(ctx context.Context) {
 						By("allowing a succesful queued deployment response")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					})
 
 					It("should call api client with correct parameters", func() {
@@ -289,7 +289,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				Context("fails to queue a deployment job due to a non-terminal error", func() {
 					BeforeEach(func(ctx context.Context) {
 						By("mocking a non-terminal error when queuing a deployment job")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
 					})
 
 					It("should call api client with correct parameters", func() {
@@ -310,13 +310,13 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					By("mocking a summary that's older than the reconcile interval")
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Time = summary.Time.Add(-20 * TestReconcileInterval)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				Context("successfully queues a deployment job to api", func() {
 					BeforeEach(func(ctx context.Context) {
 						By("allowing a succesful queued deployment response")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					})
 
 					It("should call api client with correct parameters", func() {
@@ -337,7 +337,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				Context("fails to queue a deployment job due to a non-terminal error", func() {
 					BeforeEach(func(ctx context.Context) {
 						By("mocking a non-terminal error when queuing a deployment job")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
 					})
 
 					It("should call api client with correct parameters", func() {
@@ -355,7 +355,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				Context("fails to queue a deployment job due to a terminal error", func() {
 					BeforeEach(func(ctx context.Context) {
 						By("mocking a terminal error when queuing a deployment job")
-						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
 					})
 
 					It("should call api client with correct parameters", func() {
