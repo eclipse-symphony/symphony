@@ -279,6 +279,10 @@ func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) 
 	}, nil
 }
 
+func (s *HttpStateProvider) GetLatest(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
+	return states.StateEntry{}, v1alpha2.NewCOAError(nil, "Http state store get latest is not implemented", v1alpha2.NotImplemented)
+}
+
 func toHttpStateProviderConfig(config providers.IProviderConfig) (HttpStateProviderConfig, error) {
 	ret := HttpStateProviderConfig{}
 	data, err := json.Marshal(config)

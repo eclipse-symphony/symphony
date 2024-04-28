@@ -122,7 +122,6 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 			// only reconcile once
 			reconciliationInterval = 0
 		}
-
 	}
 	// no reconciliationPolicy configured or reconciliationPolicy.state is invalid, use default reconciliation interval: r.reconciliationInterval
 	return

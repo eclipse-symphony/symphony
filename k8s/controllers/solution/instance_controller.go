@@ -138,7 +138,17 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
+	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>> v2v2: try to get solution %v", instance.Spec.Solution))
+
+	// Get solution
+	solution, err := r.ApiClient.GetSolution(ctx, instance.Spec.Solution, instance.Namespace)
+	//api_utils.GetSolution(ctx, "http://symphony-service:8080/v1alpha2/", instance.Spec.Solution, "admin", "", instance.Namespace)
+	if err != nil {
+		log.Error(v1alpha2.NewCOAError(err, "failed to get solution from symphony", v1alpha2.SolutionGetFailed), "proceed with no solution found")
+	}
+
+	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>>>>: try to get solution response  %v", solution.ObjectMeta.Name))
+	if err := r.Get(ctx, types.NamespacedName{Name: solution.ObjectMeta.Name, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
 	// Get targets
@@ -152,7 +162,8 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "proceed with no target candidates found")
 	}
 
-	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
+	deployment, err = utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
+
 	if err != nil {
 		return nil, err
 	}
@@ -235,18 +246,66 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
+
+	labels := solObj.ObjectMeta.Labels
+	resourceName := labels["rootResource"]
+	version := labels["version"]
+
+	var solutionName string
+	if resourceName == "" || version == "" {
+		solutionName = solObj.Name
+	} else {
+		solutionName = resourceName + ":" + version
+	}
+
+	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> start %s", solutionName))
+
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
-		client.MatchingFields{"spec.solution": solObj.Name},
+		client.MatchingFields{"spec.solution": solutionName},
 	}
 	error := r.List(context.Background(), &instances, options...)
 	if error != nil {
 		log.Log.Error(error, "Failed to list instances")
 		return ret
 	}
+	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> instances count %d", len(instances.Items)))
+	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> label %s", labels["tag"]))
+
+	if labels["tag"] == "latest" {
+		var instancesWithLatest solution_v1.InstanceList
+		solutionName = resourceName + ":" + "latest"
+		options := []client.ListOption{
+			client.InNamespace(solObj.Namespace),
+			client.MatchingFields{"spec.solution": solutionName},
+		}
+
+		error := r.List(context.Background(), &instancesWithLatest, options...)
+		if error != nil {
+			log.Log.Error(error, "Failed to list instances")
+			return ret
+		}
+
+		instances.Items = append(instances.Items, instancesWithLatest.Items...)
+		log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>>222 instances count with latest %d", len(instances.Items)))
+	}
 
 	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
+		var interval time.Duration = 30
+		if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
+			parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
+			if err != nil {
+				log.Log.Error(err, "Instance handlesolution parse interval >>>>>>>>  ")
+				parsedInterval = 30
+			}
+			interval = parsedInterval
+		}
+
+		if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
+			log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> inactive no watch %s", instance.ObjectMeta.Name))
+			continue
+		}
 		ret = append(ret, ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      instance.Name,

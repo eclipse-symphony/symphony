@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -497,7 +498,19 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	if err != nil {
 		return ret, err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+
+	var name string
+	var version string
+
+	parts := strings.Split(solution, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return ret, errors.New("invalid solution name")
+	}
+
+	path := "solutions/" + url.QueryEscape(name) + "/" + url.QueryEscape(version)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
@@ -516,7 +529,23 @@ func UpsertSolution(context context.Context, baseUrl string, solution string, us
 	if err != nil {
 		return err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+
+	var name string
+	var version string
+
+	log.Infof("Symphony API UpsertSolution, solution: %s namespace: %s", solution, namespace)
+
+	parts := strings.Split(solution, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid solution name")
+	}
+
+	log.Infof("Symphony API UpsertSolution, parts: %s, %s", parts[0], parts[1])
+
+	path := "solutions/" + url.QueryEscape(name) + "/" + url.QueryEscape(version)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
@@ -530,7 +559,19 @@ func DeleteSolution(context context.Context, baseUrl string, solution string, us
 	if err != nil {
 		return err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+
+	var name string
+	var version string
+
+	parts := strings.Split(solution, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid solution name")
+	}
+
+	path := "solutions/" + url.QueryEscape(name) + "/" + url.QueryEscape(version)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {

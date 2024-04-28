@@ -269,6 +269,21 @@ func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, i
 	panic("implement me")
 }
 
+// GetInstance implements ApiClient.
+func (*MockApiClient) GetInstance(ctx context.Context, instance string, namespace string) (model.InstanceState, error) {
+	panic("unimplemented")
+}
+
+// GetSolution implements ApiClient.
+func (*MockApiClient) GetSolution(ctx context.Context, solution string, namespace string) (model.SolutionState, error) {
+	panic("unimplemented")
+}
+
+// GetTarget implements ApiClient.
+func (*MockApiClient) GetTarget(ctx context.Context, target string, namespace string) (model.TargetState, error) {
+	panic("unimplemented")
+}
+
 func CreateSimpleDeploymentBuilder() func(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	return func(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 		return &model.DeploymentSpec{

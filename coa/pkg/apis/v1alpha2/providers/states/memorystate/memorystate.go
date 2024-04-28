@@ -436,6 +436,10 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	return states.StateEntry{}, err
 }
 
+func (s *MemoryStateProvider) GetLatest(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
+	return states.StateEntry{}, v1alpha2.NewCOAError(nil, "Memory state store get latest is not implemented", v1alpha2.NotImplemented)
+}
+
 func toMemoryStateProviderConfig(config providers.IProviderConfig) (MemoryStateProviderConfig, error) {
 	ret := MemoryStateProviderConfig{}
 	data, err := json.Marshal(config)

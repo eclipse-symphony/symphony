@@ -25,6 +25,7 @@ type IStateProvider interface {
 	Upsert(context.Context, UpsertRequest) (string, error)
 	Delete(context.Context, DeleteRequest) error
 	Get(context.Context, GetRequest) (StateEntry, error)
+	GetLatest(context.Context, GetRequest) (StateEntry, error)
 	List(context.Context, ListRequest) ([]StateEntry, string, error)
 	SetContext(context *contexts.ManagerContext)
 }

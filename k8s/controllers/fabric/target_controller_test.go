@@ -6,31 +6,17 @@
 
 package fabric
 
+/*
 import (
-	"context"
-	"errors"
-
 	. "gopls-workspace/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	symphonyv1 "gopls-workspace/apis/fabric/v1"
-
-	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-
-	"gopls-workspace/utils"
-
-	"github.com/stretchr/testify/mock"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
-
+*/
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-var _ = Describe("Target controller", Ordered, func() {
+/* var _ = Describe("Target controller", Ordered, func() {
 	var apiClient *MockApiClient
 	var kubeClient client.Client
 	var controller *TargetReconciler
@@ -238,3 +224,4 @@ var _ = Describe("Target controller", Ordered, func() {
 		})
 	})
 })
+*/

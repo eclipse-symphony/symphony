@@ -85,15 +85,6 @@ spec:
             - properties
             - type
             type: object
-          status:
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            required:
-            - properties
-            type: object
         type: object
     served: true
     storage: true

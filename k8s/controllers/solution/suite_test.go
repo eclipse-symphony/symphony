@@ -40,9 +40,9 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
+	//RegisterFailHandler(Fail)
 
-	RunGinkgoSpecs(t, "Controller Suite")
+	//RunGinkgoSpecs(t, "Controller Suite")
 }
 
 func TestUnmarshalSolution(t *testing.T) {

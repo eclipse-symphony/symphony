@@ -31,6 +31,7 @@ type (
 	ApiClient interface {
 		api_utils.SummaryGetter
 		api_utils.Dispatcher
+		api_utils.Getter
 	}
 
 	DeploymentResources struct {

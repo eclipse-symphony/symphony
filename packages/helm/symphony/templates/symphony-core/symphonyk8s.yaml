@@ -381,15 +381,6 @@ spec:
             - properties
             - type
             type: object
-          status:
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            required:
-            - properties
-            type: object
         type: object
     served: true
     storage: true
@@ -1686,6 +1677,596 @@ spec:
               properties:
                 additionalProperties:
                   type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: versionedcampaigns.workflow.symphony
+spec:
+  group: workflow.symphony
+  names:
+    kind: VersionedCampaign
+    listKind: VersionedCampaignList
+    plural: versionedcampaigns
+    singular: versionedcampaign
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VersionedCampaign is the Schema for the campaigns API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - properties
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: versionedcatalogs.federation.symphony
+spec:
+  group: federation.symphony
+  names:
+    kind: VersionedCatalog
+    listKind: VersionedCatalogList
+    plural: versionedcatalogs
+    singular: versionedcatalog
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VersionedCatalog is the Schema for the catalogs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - properties
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: versionedinstances.solution.symphony
+spec:
+  group: solution.symphony
+  names:
+    kind: VersionedInstance
+    listKind: VersionedInstanceList
+    plural: versionedinstances
+    singular: versionedinstance
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VersionedInstance1 is the Schema for the versionedinstances API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - properties
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: versionedsolutions.solution.symphony
+spec:
+  group: solution.symphony
+  names:
+    kind: VersionedSolution
+    listKind: VersionedSolutionList
+    plural: versionedsolutions
+    singular: versionedsolution
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VersionedSolution is the Schema for the VersionedSolution API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - properties
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: versionedtargets.fabric.symphony
+spec:
+  group: fabric.symphony
+  names:
+    kind: VersionedTarget
+    listKind: VersionedTargetList
+    plural: versionedtargets
+    singular: versionedtarget
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.properties.status
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Target is the Schema for the targets API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Defines the desired state of VersionedTargetSpec
+            properties:
+              displayName:
+                type: string
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            description: VersionedTargetStatus defines the observed state of Target
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                description: 'Important: Run "make" to regenerate code after modifying
+                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running

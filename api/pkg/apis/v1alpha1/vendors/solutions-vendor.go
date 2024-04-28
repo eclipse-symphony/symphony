@@ -66,7 +66,13 @@ func (o *SolutionsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route,
 			Version:    o.Version,
 			Handler:    o.onSolutions,
-			Parameters: []string{"name?"},
+			Parameters: []string{"name", "version?"},
+		},
+		{
+			Methods: []string{fasthttp.MethodGet},
+			Route:   route,
+			Version: o.Version,
+			Handler: o.onSolutionsList,
 		},
 	}
 }
@@ -81,23 +87,24 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	if !exist {
 		namespace = constants.DefaultScope
 	}
+	version := request.Parameters["__version"]
+	rootResource := request.Parameters["__name"]
+	id := rootResource + "-" + version
+	uLog.Infof("V (Solutions): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
-		id := request.Parameters["__name"]
+
 		var err error
 		var state interface{}
-		isArray := false
-		if id == "" {
-			// Change namespace back to empty to indicate ListSpec need to query all namespaces
-			if !exist {
-				namespace = ""
-			}
-			state, err = c.SolutionsManager.ListState(ctx, namespace)
-			isArray = true
+
+		if version == "" || version == "latest" {
+			state, err = c.SolutionsManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
+
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -105,7 +112,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				Body:  []byte(err.Error()),
 			})
 		}
-		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
+		jData, _ := utils.FormatObject(state, false, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        jData,
@@ -117,7 +124,15 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
-		id := request.Parameters["__name"]
+
+		if version == "" || version == "latest" {
+			uLog.Infof("V (Solutions): onSolutions failed - version is required for POST, traceId: %s", span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte("version is required for POST"),
+			})
+		}
+
 		embed_type := request.Parameters["embed-type"]
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]
@@ -141,6 +156,8 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 							},
 						},
 					},
+					Version:      version,
+					RootResource: rootResource,
 				},
 			}
 		} else {
@@ -154,6 +171,12 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			}
 			if solution.ObjectMeta.Name == "" {
 				solution.ObjectMeta.Name = id
+			}
+			if solution.Spec.Version == "" && version != "" {
+				solution.Spec.Version = version
+			}
+			if solution.Spec.RootResource == "" && rootResource != "" {
+				solution.Spec.RootResource = rootResource
 			}
 		}
 		err := c.SolutionsManager.UpsertState(ctx, id, solution)
@@ -191,7 +214,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
+		id := rootResource + ":" + version
 		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -205,6 +228,56 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	}
 	uLog.Infof("V (Solutions): onSolutions failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *SolutionsVendor) onSolutionsList(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	pCtx, span := observability.StartSpan("Solutions Vendor", request.Context, &map[string]string{
+		"method": "onSolutions",
+	})
+	defer span.End()
+	uLog.Infof("V (Solutions): onSolutionsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = "default"
+	}
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
+
+		var err error
+		var state interface{}
+		// Change namespace back to empty to indicate ListSpec need to query all namespaces
+		if !exist {
+			namespace = ""
+		}
+		state, err = c.SolutionsManager.ListState(ctx, namespace)
+
+		if err != nil {
+			uLog.Infof("V (Solutions): onSolutionsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		jData, _ := utils.FormatObject(state, true, request.Parameters["path"], request.Parameters["doc-type"])
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        jData,
+			ContentType: "application/json",
+		})
+		if request.Parameters["doc-type"] == "yaml" {
+			resp.ContentType = "application/text"
+		}
+		return resp
+	}
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

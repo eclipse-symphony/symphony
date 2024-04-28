@@ -186,8 +186,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
-						return outputs, false, err
 					}
+					return outputs, false, err
 					creationCount++
 				case "target":
 					var targetState model.TargetState

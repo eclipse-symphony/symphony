@@ -343,6 +343,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Info(" M (Job): handling %v event, event body %v, %v", event.Metadata["objectType"], "job", event.Body)
 
 	namespace := model.ReadProperty(event.Metadata, "namespace", nil)
 	if namespace == "" {
@@ -364,7 +365,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 		switch objectType {
 		case "instance":
-			log.Debugf(" M (Job): handling instance job %s", job.Id)
+			log.Debugf(" M (Job): handling instance job  >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s, %s", job.Id, namespace)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
@@ -374,9 +375,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err //TODO: instance is gone
 			}
 
+			log.Debugf(" M (Job): handling instance job solution name >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s", instance.Spec.Solution)
+
 			//get solution
 			var solution model.SolutionState
 			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace, s.user, s.password)
+			log.Debugf(" M (Job): handling instance job solution after GetSolution >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s", solution.ObjectMeta.Name)
+
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
