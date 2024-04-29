@@ -38,4 +38,4 @@ EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL Debug
 # ENV CONFIG /symphony-api.json
-CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL
+CMD sh -c 'if [ -f /etc/pki/ca-trust/source/anchors/proxy-cert.crt ]; then update-ca-trust; fi && exec /symphony-api -c $CONFIG -l $LOG_LEVEL'

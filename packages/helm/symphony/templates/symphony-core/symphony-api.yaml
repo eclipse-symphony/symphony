@@ -20,6 +20,15 @@ spec:
         {{ toYaml . | indent 8 }}
       {{- end }}
       serviceAccountName: {{ include "symphony.serviceAccountName" . }}
+      {{- if and .Values.Azure.proxySettings.isProxyEnabled .Values.Azure.proxySettings.proxyCert }}
+      initContainers:
+      - name: init-porxy-cert-dir
+        image: mcr.microsoft.com/mirror/docker/library/busybox:1.35
+        command: ['sh', '-c', "mkdir -p /etc/pki/ca-trust/extracted/pem /etc/pki/ca-trust/extracted/openssl /etc/pki/ca-trust/extracted/java /etc/pki/ca-trust/extracted/edk2"]
+        volumeMounts:
+          - name: ssl-certs
+            mountPath: /etc/pki/ca-trust/extracted/
+      {{ end }}
       containers:
       - name: symphony-api
         securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
@@ -47,6 +56,10 @@ spec:
         envFrom:
         - secretRef:
             name: {{ include "symphony.fullname" . }}-auth
+        {{ if .Values.Azure.proxySettings.isProxyEnabled }}
+        - secretRef:
+            name: {{ include "symphony.fullname" . }}-proxy-config
+        {{ end }}
         - configMapRef:
             name: {{ include "symphony.envConfigName" . }}
 
@@ -58,6 +71,14 @@ spec:
         - mountPath: {{ include "symphony.apiServingCertsDir" . }}
           name: serving-cert
           readOnly: true
+        {{- if and .Values.Azure.proxySettings.isProxyEnabled .Values.Azure.proxySettings.proxyCert }}
+        - name: ssl-certs
+          mountPath: /etc/pki/ca-trust/extracted/
+          readOnly: false
+        - mountPath: /etc/pki/ca-trust/source/anchors/proxy-cert.crt
+          subPath: proxy-cert.crt
+          name: proxy-certstore
+        {{- end }}
 
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
@@ -80,3 +101,10 @@ spec:
         - name: serving-cert
           secret:
             secretName: {{ include "symphony.apiServingCertName" . }}
+        {{- if and .Values.Azure.proxySettings.isProxyEnabled .Values.Azure.proxySettings.proxyCert }}
+        - name: proxy-certstore
+          secret:
+            secretName: {{ include "symphony.fullname" . }}-proxy-cert
+        - name: ssl-certs
+          emptyDir: {}
+        {{ end }}

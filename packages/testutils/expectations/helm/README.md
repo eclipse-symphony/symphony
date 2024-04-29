@@ -42,7 +42,7 @@ var (
 ```
 
 <a name="HelmExpectation"></a>
-## type [HelmExpectation](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=27&lineEnd=53&lineStartColumn=2&lineEndColumn=3>)
+## type [HelmExpectation](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L27-L53>)
 
 
 
@@ -53,7 +53,7 @@ type HelmExpectation struct {
 ```
 
 <a name="MustNew"></a>
-### func [MustNew](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=96&lineEnd=96&lineStartColumn=1&lineEndColumn=70>)
+### func [MustNew](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L96>)
 
 ```go
 func MustNew(name, namespace string, opts ...Option) *HelmExpectation
@@ -62,7 +62,7 @@ func MustNew(name, namespace string, opts ...Option) *HelmExpectation
 MustNew creates a new helm expectation. It panics if the expectation cannot be created.
 
 <a name="MustNewAbsent"></a>
-### func [MustNewAbsent](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=105&lineEnd=105&lineStartColumn=1&lineEndColumn=76>)
+### func [MustNewAbsent](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L105>)
 
 ```go
 func MustNewAbsent(name, namespace string, opts ...Option) *HelmExpectation
@@ -71,7 +71,7 @@ func MustNewAbsent(name, namespace string, opts ...Option) *HelmExpectation
 NewPresent creates a new helm expectation that expects the release to be present.
 
 <a name="NewExpectation"></a>
-### func [NewExpectation](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=66&lineEnd=66&lineStartColumn=1&lineEndColumn=89>)
+### func [NewExpectation](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L66>)
 
 ```go
 func NewExpectation(pattern, namespace string, opts ...Option) (*HelmExpectation, error)
@@ -80,7 +80,7 @@ func NewExpectation(pattern, namespace string, opts ...Option) (*HelmExpectation
 NewExpectation creates a new helm expectation.
 
 <a name="HelmExpectation.AsGomegaSubject"></a>
-### func \(\*HelmExpectation\) [AsGomegaSubject](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fgomega.go&version=GBmain&lineStyle=plain&line=15&lineEnd=15&lineStartColumn=1&lineEndColumn=87>)
+### func \(\*HelmExpectation\) [AsGomegaSubject](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/gomega.go#L15>)
 
 ```go
 func (e *HelmExpectation) AsGomegaSubject() func(context.Context) (interface{}, error)
@@ -89,7 +89,7 @@ func (e *HelmExpectation) AsGomegaSubject() func(context.Context) (interface{}, 
 
 
 <a name="HelmExpectation.Description"></a>
-### func \(\*HelmExpectation\) [Description](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=237&lineEnd=237&lineStartColumn=1&lineEndColumn=48>)
+### func \(\*HelmExpectation\) [Description](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L238>)
 
 ```go
 func (he *HelmExpectation) Description() string
@@ -98,7 +98,7 @@ func (he *HelmExpectation) Description() string
 
 
 <a name="HelmExpectation.Id"></a>
-### func \(\*HelmExpectation\) [Id](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=160&lineEnd=160&lineStartColumn=1&lineEndColumn=39>)
+### func \(\*HelmExpectation\) [Id](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L160>)
 
 ```go
 func (he *HelmExpectation) Id() string
@@ -107,7 +107,7 @@ func (he *HelmExpectation) Id() string
 Id implements types.Expectation.
 
 <a name="HelmExpectation.ToGomegaMatcher"></a>
-### func \(\*HelmExpectation\) [ToGomegaMatcher](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fgomega.go&version=GBmain&lineStyle=plain&line=21&lineEnd=21&lineStartColumn=1&lineEndColumn=65>)
+### func \(\*HelmExpectation\) [ToGomegaMatcher](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/gomega.go#L21>)
 
 ```go
 func (e *HelmExpectation) ToGomegaMatcher() gomega.GomegaMatcher
@@ -116,7 +116,7 @@ func (e *HelmExpectation) ToGomegaMatcher() gomega.GomegaMatcher
 
 
 <a name="HelmExpectation.Verify"></a>
-### func \(\*HelmExpectation\) [Verify](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=135&lineEnd=135&lineStartColumn=1&lineEndColumn=59>)
+### func \(\*HelmExpectation\) [Verify](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L135>)
 
 ```go
 func (he *HelmExpectation) Verify(c context.Context) error
@@ -125,7 +125,7 @@ func (he *HelmExpectation) Verify(c context.Context) error
 Verify implements types.Expectation.
 
 <a name="ListRunner"></a>
-## type [ListRunner](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=24&lineEnd=26&lineStartColumn=2&lineEndColumn=3>)
+## type [ListRunner](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L24-L26>)
 
 
 
@@ -136,7 +136,7 @@ type ListRunner interface {
 ```
 
 <a name="Option"></a>
-## type [Option](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Fresource.go&version=GBmain&lineStyle=plain&line=55&lineEnd=55&lineStartColumn=2&lineEndColumn=31>)
+## type [Option](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/resource.go#L55>)
 
 
 
@@ -145,7 +145,7 @@ type Option func(*HelmExpectation)
 ```
 
 <a name="WithDescription"></a>
-### func [WithDescription](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=43&lineEnd=43&lineStartColumn=1&lineEndColumn=48>)
+### func [WithDescription](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L43>)
 
 ```go
 func WithDescription(description string) Option
@@ -154,7 +154,7 @@ func WithDescription(description string) Option
 
 
 <a name="WithListClientBuilder"></a>
-### func [WithListClientBuilder](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=12&lineEnd=12&lineStartColumn=1&lineEndColumn=70>)
+### func [WithListClientBuilder](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L12>)
 
 ```go
 func WithListClientBuilder(builder func() (ListRunner, error)) Option
@@ -163,7 +163,7 @@ func WithListClientBuilder(builder func() (ListRunner, error)) Option
 
 
 <a name="WithLogger"></a>
-### func [WithLogger](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=49&lineEnd=49&lineStartColumn=1&lineEndColumn=72>)
+### func [WithLogger](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L49>)
 
 ```go
 func WithLogger(logger func(format string, args ...interface{})) Option
@@ -172,7 +172,7 @@ func WithLogger(logger func(format string, args ...interface{})) Option
 
 
 <a name="WithReleaseCondition"></a>
-### func [WithReleaseCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=31&lineEnd=31&lineStartColumn=1&lineEndColumn=60>)
+### func [WithReleaseCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L31>)
 
 ```go
 func WithReleaseCondition(condition types.Condition) Option
@@ -181,7 +181,7 @@ func WithReleaseCondition(condition types.Condition) Option
 
 
 <a name="WithReleaseListCondition"></a>
-### func [WithReleaseListCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=37&lineEnd=37&lineStartColumn=1&lineEndColumn=64>)
+### func [WithReleaseListCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L37>)
 
 ```go
 func WithReleaseListCondition(condition types.Condition) Option
@@ -190,7 +190,7 @@ func WithReleaseListCondition(condition types.Condition) Option
 
 
 <a name="WithRemoved"></a>
-### func [WithRemoved](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=6&lineEnd=6&lineStartColumn=1&lineEndColumn=38>)
+### func [WithRemoved](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L6>)
 
 ```go
 func WithRemoved(removed bool) Option
@@ -199,7 +199,7 @@ func WithRemoved(removed bool) Option
 WithRemoved specifies whether the release is expected to be present or not.
 
 <a name="WithValueCondition"></a>
-### func [WithValueCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=24&lineEnd=24&lineStartColumn=1&lineEndColumn=58>)
+### func [WithValueCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L24>)
 
 ```go
 func WithValueCondition(condition types.Condition) Option
@@ -208,7 +208,7 @@ func WithValueCondition(condition types.Condition) Option
 
 
 <a name="WithValueListCondition"></a>
-### func [WithValueListCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fhelm%2Foptions.go&version=GBmain&lineStyle=plain&line=18&lineEnd=18&lineStartColumn=1&lineEndColumn=62>)
+### func [WithValueListCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/helm/options.go#L18>)
 
 ```go
 func WithValueListCondition(condition types.Condition) Option

@@ -59,7 +59,7 @@ var (
     )   // can be used for deployments and statefulsets
 
     // AioManagerLabelCondition is a condition that checks if the resource is managed by the aio orc api
-    AioManagerLabelCondition types.Condition = NewLabelMatchCondition("iotoperations.azure.com/managed-by", "aio-orc-api")
+    AioManagerLabelCondition types.Condition = NewLabelMatchCondition("iotoperations.azure.com/managed-by", "symphony-api")
 
     // ProvisioningSucceededCondition is a condition that checks if the resource has succeeded provisioning
     ProvisioningSucceededCondition types.Condition = jq.Equality(".status.provisioningStatus.status", "Succeeded", statusDescription)
@@ -77,7 +77,7 @@ var (
 ```
 
 <a name="NewAnnotationMatchCondition"></a>
-## func [NewAnnotationMatchCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=123&lineEnd=123&lineStartColumn=1&lineEndColumn=82>)
+## func [NewAnnotationMatchCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L123>)
 
 ```go
 func NewAnnotationMatchCondition(annotation string, value string) types.Condition
@@ -86,7 +86,7 @@ func NewAnnotationMatchCondition(annotation string, value string) types.Conditio
 NewAnnotationMatchCondition returns a condition that checks if the resource has the annotation and value
 
 <a name="NewKubernetesStatusCondition"></a>
-## func [NewKubernetesStatusCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=91&lineEnd=91&lineStartColumn=1&lineEndColumn=85>)
+## func [NewKubernetesStatusCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L91>)
 
 ```go
 func NewKubernetesStatusCondition(conditionType string, status bool) types.Condition
@@ -95,7 +95,7 @@ func NewKubernetesStatusCondition(conditionType string, status bool) types.Condi
 NewKubernetesStatusCondition returns a condition that checks the status of a kubernetes resource's condition
 
 <a name="NewLabelMatchCondition"></a>
-## func [NewLabelMatchCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=104&lineEnd=104&lineStartColumn=1&lineEndColumn=72>)
+## func [NewLabelMatchCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L104>)
 
 ```go
 func NewLabelMatchCondition(label string, value string) types.Condition
@@ -104,7 +104,7 @@ func NewLabelMatchCondition(label string, value string) types.Condition
 NewLabelMatchCondition returns a condition that checks if the resource has the label and value
 
 <a name="ProvisioningStatusComponentOutput"></a>
-## func [ProvisioningStatusComponentOutput](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=112&lineEnd=112&lineStartColumn=1&lineEndColumn=95>)
+## func [ProvisioningStatusComponentOutput](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L112>)
 
 ```go
 func ProvisioningStatusComponentOutput(componentKey string, value interface{}) types.Condition
@@ -113,7 +113,7 @@ func ProvisioningStatusComponentOutput(componentKey string, value interface{}) t
 
 
 <a name="KubeExpectation"></a>
-## type [KubeExpectation](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=24&lineEnd=57&lineStartColumn=2&lineEndColumn=3>)
+## type [KubeExpectation](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L27-L61>)
 
 
 
@@ -124,7 +124,7 @@ type KubeExpectation struct {
 ```
 
 <a name="AbsentInstance"></a>
-### func [AbsentInstance](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=157&lineEnd=157&lineStartColumn=1&lineEndColumn=86>)
+### func [AbsentInstance](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L157>)
 
 ```go
 func AbsentInstance(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -133,7 +133,7 @@ func AbsentInstance(name, namespace string, opts ...Option) (*KubeExpectation, e
 AbsentInstance returns an expectation that the instance\(s\) is/are absent from the cluster
 
 <a name="AbsentPod"></a>
-### func [AbsentPod](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=137&lineEnd=137&lineStartColumn=1&lineEndColumn=81>)
+### func [AbsentPod](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L137>)
 
 ```go
 func AbsentPod(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -142,7 +142,7 @@ func AbsentPod(name, namespace string, opts ...Option) (*KubeExpectation, error)
 AbsentPod returns an expectation that the pod\(s\) is/are absent from the cluster
 
 <a name="AbsentResource"></a>
-### func [AbsentResource](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=117&lineEnd=117&lineStartColumn=1&lineEndColumn=115>)
+### func [AbsentResource](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L117>)
 
 ```go
 func AbsentResource(name, namespace string, gvk schema.GroupVersionKind, opts ...Option) (*KubeExpectation, error)
@@ -151,7 +151,7 @@ func AbsentResource(name, namespace string, gvk schema.GroupVersionKind, opts ..
 AbsentResource returns an expectation for the resources is/are absent from the cluster
 
 <a name="AbsentSolution"></a>
-### func [AbsentSolution](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=167&lineEnd=167&lineStartColumn=1&lineEndColumn=86>)
+### func [AbsentSolution](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L167>)
 
 ```go
 func AbsentSolution(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -160,7 +160,7 @@ func AbsentSolution(name, namespace string, opts ...Option) (*KubeExpectation, e
 AbsentSolution returns an expectation that the solution\(s\) is/are absent from the cluster
 
 <a name="AbsentTarget"></a>
-### func [AbsentTarget](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=147&lineEnd=147&lineStartColumn=1&lineEndColumn=84>)
+### func [AbsentTarget](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L147>)
 
 ```go
 func AbsentTarget(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -169,7 +169,7 @@ func AbsentTarget(name, namespace string, opts ...Option) (*KubeExpectation, err
 AbsentTarget returns an expectation that the target\(s\) is/are absent from the cluster
 
 <a name="Instance"></a>
-### func [Instance](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=152&lineEnd=152&lineStartColumn=1&lineEndColumn=80>)
+### func [Instance](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L152>)
 
 ```go
 func Instance(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -178,7 +178,7 @@ func Instance(name, namespace string, opts ...Option) (*KubeExpectation, error)
 Instance returns an expectation for a instance\(s\) in the cluster
 
 <a name="Must"></a>
-### func [Must](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=172&lineEnd=172&lineStartColumn=1&lineEndColumn=65>)
+### func [Must](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L172>)
 
 ```go
 func Must(resource *KubeExpectation, err error) *KubeExpectation
@@ -187,7 +187,7 @@ func Must(resource *KubeExpectation, err error) *KubeExpectation
 Must returns a resource expectation or panics if there is an error
 
 <a name="Pod"></a>
-### func [Pod](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=132&lineEnd=132&lineStartColumn=1&lineEndColumn=75>)
+### func [Pod](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L132>)
 
 ```go
 func Pod(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -196,7 +196,7 @@ func Pod(name, namespace string, opts ...Option) (*KubeExpectation, error)
 Pod returns an expectation expectation for a pod\(s\) in the cluster
 
 <a name="Resource"></a>
-### func [Resource](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=71&lineEnd=71&lineStartColumn=1&lineEndColumn=112>)
+### func [Resource](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L75>)
 
 ```go
 func Resource(pattern, namespace string, gvk schema.GroupVersionKind, opts ...Option) (*KubeExpectation, error)
@@ -205,7 +205,7 @@ func Resource(pattern, namespace string, gvk schema.GroupVersionKind, opts ...Op
 
 
 <a name="Solution"></a>
-### func [Solution](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=162&lineEnd=162&lineStartColumn=1&lineEndColumn=80>)
+### func [Solution](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L162>)
 
 ```go
 func Solution(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -214,7 +214,7 @@ func Solution(name, namespace string, opts ...Option) (*KubeExpectation, error)
 Solution returns an expectation for a solution\(s\) in the cluster
 
 <a name="Target"></a>
-### func [Target](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fcommons.go&version=GBmain&lineStyle=plain&line=142&lineEnd=142&lineStartColumn=1&lineEndColumn=78>)
+### func [Target](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L142>)
 
 ```go
 func Target(name, namespace string, opts ...Option) (*KubeExpectation, error)
@@ -223,7 +223,7 @@ func Target(name, namespace string, opts ...Option) (*KubeExpectation, error)
 Target returns an expectation for a target\(s\) in the cluster
 
 <a name="KubeExpectation.AsGomegaSubject"></a>
-### func \(\*KubeExpectation\) [AsGomegaSubject](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fgomega.go&version=GBmain&lineStyle=plain&line=17&lineEnd=17&lineStartColumn=1&lineEndColumn=87>)
+### func \(\*KubeExpectation\) [AsGomegaSubject](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/gomega.go#L17>)
 
 ```go
 func (e *KubeExpectation) AsGomegaSubject() func(context.Context) (interface{}, error)
@@ -232,7 +232,7 @@ func (e *KubeExpectation) AsGomegaSubject() func(context.Context) (interface{}, 
 
 
 <a name="KubeExpectation.Description"></a>
-### func \(\*KubeExpectation\) [Description](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=156&lineEnd=156&lineStartColumn=1&lineEndColumn=48>)
+### func \(\*KubeExpectation\) [Description](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L161>)
 
 ```go
 func (re *KubeExpectation) Description() string
@@ -241,7 +241,7 @@ func (re *KubeExpectation) Description() string
 
 
 <a name="KubeExpectation.Id"></a>
-### func \(\*KubeExpectation\) [Id](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=163&lineEnd=163&lineStartColumn=1&lineEndColumn=39>)
+### func \(\*KubeExpectation\) [Id](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L168>)
 
 ```go
 func (re *KubeExpectation) Id() string
@@ -250,7 +250,7 @@ func (re *KubeExpectation) Id() string
 
 
 <a name="KubeExpectation.ToGomegaMatcher"></a>
-### func \(\*KubeExpectation\) [ToGomegaMatcher](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fgomega.go&version=GBmain&lineStyle=plain&line=23&lineEnd=23&lineStartColumn=1&lineEndColumn=65>)
+### func \(\*KubeExpectation\) [ToGomegaMatcher](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/gomega.go#L23>)
 
 ```go
 func (e *KubeExpectation) ToGomegaMatcher() gomega.GomegaMatcher
@@ -259,7 +259,7 @@ func (e *KubeExpectation) ToGomegaMatcher() gomega.GomegaMatcher
 
 
 <a name="KubeExpectation.Verify"></a>
-### func \(\*KubeExpectation\) [Verify](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=140&lineEnd=140&lineStartColumn=1&lineEndColumn=59>)
+### func \(\*KubeExpectation\) [Verify](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L145>)
 
 ```go
 func (re *KubeExpectation) Verify(c context.Context) error
@@ -268,7 +268,7 @@ func (re *KubeExpectation) Verify(c context.Context) error
 Verify implements types.Expectation.
 
 <a name="Option"></a>
-## type [Option](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Fresource.go&version=GBmain&lineStyle=plain&line=59&lineEnd=59&lineStartColumn=2&lineEndColumn=31>)
+## type [Option](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/resource.go#L63>)
 
 
 
@@ -277,7 +277,7 @@ type Option func(*KubeExpectation)
 ```
 
 <a name="IsAbsent"></a>
-### func [IsAbsent](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=57&lineEnd=57&lineStartColumn=1&lineEndColumn=23>)
+### func [IsAbsent](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L57>)
 
 ```go
 func IsAbsent() Option
@@ -286,7 +286,7 @@ func IsAbsent() Option
 
 
 <a name="WithCondition"></a>
-### func [WithCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=12&lineEnd=12&lineStartColumn=1&lineEndColumn=53>)
+### func [WithCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L12>)
 
 ```go
 func WithCondition(condition types.Condition) Option
@@ -295,7 +295,7 @@ func WithCondition(condition types.Condition) Option
 WithCondition specifies the conditions that the resource should satisfy.
 
 <a name="WithDescription"></a>
-### func [WithDescription](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=39&lineEnd=39&lineStartColumn=1&lineEndColumn=48>)
+### func [WithDescription](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L39>)
 
 ```go
 func WithDescription(description string) Option
@@ -304,7 +304,7 @@ func WithDescription(description string) Option
 
 
 <a name="WithDiscoveryClientBuilder"></a>
-### func [WithDiscoveryClientBuilder](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=51&lineEnd=51&lineStartColumn=1&lineEndColumn=93>)
+### func [WithDiscoveryClientBuilder](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L51>)
 
 ```go
 func WithDiscoveryClientBuilder(builder func() (discovery.DiscoveryInterface, error)) Option
@@ -313,7 +313,7 @@ func WithDiscoveryClientBuilder(builder func() (discovery.DiscoveryInterface, er
 
 
 <a name="WithDynamicClientBuilder"></a>
-### func [WithDynamicClientBuilder](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=45&lineEnd=45&lineStartColumn=1&lineEndColumn=80>)
+### func [WithDynamicClientBuilder](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L45>)
 
 ```go
 func WithDynamicClientBuilder(builder func() (dynamic.Interface, error)) Option
@@ -322,7 +322,7 @@ func WithDynamicClientBuilder(builder func() (dynamic.Interface, error)) Option
 
 
 <a name="WithListCondition"></a>
-### func [WithListCondition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=19&lineEnd=19&lineStartColumn=1&lineEndColumn=57>)
+### func [WithListCondition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L19>)
 
 ```go
 func WithListCondition(condition types.Condition) Option
@@ -331,7 +331,7 @@ func WithListCondition(condition types.Condition) Option
 WithListCondition specifies the conditions that the list of matched resources should satisfy.
 
 <a name="WithLogger"></a>
-### func [WithLogger](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=26&lineEnd=26&lineStartColumn=1&lineEndColumn=72>)
+### func [WithLogger](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L26>)
 
 ```go
 func WithLogger(logger func(format string, args ...interface{})) Option
@@ -340,7 +340,7 @@ func WithLogger(logger func(format string, args ...interface{})) Option
 WithLogger specifies the logger to be used.
 
 <a name="WithTick"></a>
-### func [WithTick](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fexpectations%2Fkube%2Foptions.go&version=GBmain&lineStyle=plain&line=33&lineEnd=33&lineStartColumn=1&lineEndColumn=41>)
+### func [WithTick](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/options.go#L33>)
 
 ```go
 func WithTick(tick time.Duration) Option

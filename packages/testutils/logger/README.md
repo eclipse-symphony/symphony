@@ -14,7 +14,7 @@ import "github.com/eclipse-symphony/symphony/packages/testutils/logger"
 
 
 <a name="SetDefaultLogger"></a>
-## func [SetDefaultLogger](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Flogger%2Flogger.go&version=GBmain&lineStyle=plain&line=13&lineEnd=13&lineStartColumn=1&lineEndColumn=37>)
+## func [SetDefaultLogger](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/logger/logger.go#L13>)
 
 ```go
 func SetDefaultLogger(logger Logger)
@@ -23,7 +23,7 @@ func SetDefaultLogger(logger Logger)
 
 
 <a name="Logger"></a>
-## type [Logger](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Flogger%2Flogger.go&version=GBmain&lineStyle=plain&line=6&lineEnd=6&lineStartColumn=2&lineEndColumn=51>)
+## type [Logger](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/logger/logger.go#L6>)
 
 
 
@@ -32,7 +32,7 @@ type Logger = func(format string, args ...interface{})
 ```
 
 <a name="GetDefaultLogger"></a>
-### func [GetDefaultLogger](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Flogger%2Flogger.go&version=GBmain&lineStyle=plain&line=17&lineEnd=17&lineStartColumn=1&lineEndColumn=31>)
+### func [GetDefaultLogger](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/logger/logger.go#L17>)
 
 ```go
 func GetDefaultLogger() Logger

@@ -15,7 +15,7 @@ import "github.com/eclipse-symphony/symphony/packages/testutils/types"
 
 
 <a name="Condition"></a>
-## type [Condition](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Ftypes%2Ftypes.go&version=GBmain&lineStyle=plain&line=26&lineEnd=30&lineStartColumn=2&lineEndColumn=3>)
+## type [Condition](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/types/types.go#L26-L30>)
 
 Condition is a way to define a condition for a resource. It is used to verify whether a resource is in the expected state. It's meant to be used in conjunction with an Expectation. The Expectation is responsible for retrieving the resource and passing it to the Condition to verify that the resource is as expected.
 
@@ -29,7 +29,7 @@ type Condition interface {
 ```
 
 <a name="Expectation"></a>
-## type [Expectation](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Ftypes%2Ftypes.go&version=GBmain&lineStyle=plain&line=17&lineEnd=21&lineStartColumn=2&lineEndColumn=3>)
+## type [Expectation](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/types/types.go#L17-L21>)
 
 Expectation is a way to define expectations for a resource. It is used to verify whether a resource is in the expected state. It's responsible for retrieving the resource and verifying that the resource is as expected.
 
@@ -43,7 +43,7 @@ type Expectation interface {
 ```
 
 <a name="GomegaEventuallySubject"></a>
-## type [GomegaEventuallySubject](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Ftypes%2Ftypes.go&version=GBmain&lineStyle=plain&line=35&lineEnd=38&lineStartColumn=2&lineEndColumn=3>)
+## type [GomegaEventuallySubject](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/types/types.go#L35-L38>)
 
 
 
@@ -55,7 +55,7 @@ type GomegaEventuallySubject interface {
 ```
 
 <a name="GomegaMatchable"></a>
-## type [GomegaMatchable](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Ftypes%2Ftypes.go&version=GBmain&lineStyle=plain&line=32&lineEnd=34&lineStartColumn=2&lineEndColumn=3>)
+## type [GomegaMatchable](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/types/types.go#L32-L34>)
 
 
 

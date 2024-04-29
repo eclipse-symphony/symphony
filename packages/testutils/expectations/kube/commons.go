@@ -38,7 +38,7 @@ var (
 	 */
 
 	// AioManagerLabelCondition is a condition that checks if the resource is managed by the aio orc api
-	AioManagerLabelCondition types.Condition = NewLabelMatchCondition("iotoperations.azure.com/managed-by", "aio-orc-api")
+	AioManagerLabelCondition types.Condition = NewLabelMatchCondition("iotoperations.azure.com/managed-by", "symphony-api")
 
 	// ProvisioningSucceededCondition is a condition that checks if the resource has succeeded provisioning
 	ProvisioningSucceededCondition types.Condition = jq.Equality(".status.provisioningStatus.status", "Succeeded", statusDescription)

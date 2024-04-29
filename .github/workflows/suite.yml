@@ -92,14 +92,21 @@ jobs:
     - name: Run ginkgo suite tests
       run: |
         cd test/integration/scenarios/06.ado/ 
-        ginkgo --cover --junit-report=junit-suite-tests.xml -r 
+        ginkgo --cover --junit-report=junit-suite-tests.xml -r > suite_test.log
       continue-on-error: true    
+
+    - name: Dump SymphonyLogs For ginkgo suite tests
+      run: |
+        cd test/localenv/
+        mage DumpSymphonyLogsForTest ginkgosuite   
     
     - name: Collect and upload symphony test results
       uses: actions/upload-artifact@v2
       with:
         name: symphony-suite-result
         path: |
+          test/integration/scenarios/06.ado/suite_test.log
           test/integration/scenarios/06.ado/junit-suite-tests.xml
+          /tmp/symhony-integration-test-logs/**/*.log
       continue-on-error: true
       if: always()

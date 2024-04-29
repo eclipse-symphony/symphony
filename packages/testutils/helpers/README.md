@@ -37,7 +37,7 @@ var (
 ```
 
 <a name="DiscoveryClient"></a>
-## func [DiscoveryClient](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=63&lineEnd=63&lineStartColumn=1&lineEndColumn=61>)
+## func [DiscoveryClient](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L63>)
 
 ```go
 func DiscoveryClient() (discovery.DiscoveryInterface, error)
@@ -46,7 +46,7 @@ func DiscoveryClient() (discovery.DiscoveryInterface, error)
 DiscoveryClient returns the discovery client from the default kube config
 
 <a name="DynamicClient"></a>
-## func [DynamicClient](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=79&lineEnd=79&lineStartColumn=1&lineEndColumn=48>)
+## func [DynamicClient](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L79>)
 
 ```go
 func DynamicClient() (dynamic.Interface, error)
@@ -55,7 +55,7 @@ func DynamicClient() (dynamic.Interface, error)
 DynamicClient returns the dynamic client from the default kube config
 
 <a name="EnsureNamespace"></a>
-## func [EnsureNamespace](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=113&lineEnd=113&lineStartColumn=1&lineEndColumn=95>)
+## func [EnsureNamespace](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L113>)
 
 ```go
 func EnsureNamespace(ctx context.Context, client kubernetes.Interface, namespace string) error
@@ -64,7 +64,7 @@ func EnsureNamespace(ctx context.Context, client kubernetes.Interface, namespace
 EnsureNamespace ensures that the namespace exists. If it does not exist, it creates it.
 
 <a name="Eventually"></a>
-## func [Eventually](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Feventually.go&version=GBmain&lineStyle=plain&line=38&lineEnd=38&lineStartColumn=1&lineEndColumn=139>)
+## func [Eventually](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/eventually.go#L38>)
 
 ```go
 func Eventually(ctx context.Context, condition func(ctx context.Context) error, tick time.Duration, msg string, args ...interface{}) error
@@ -73,7 +73,7 @@ func Eventually(ctx context.Context, condition func(ctx context.Context) error, 
 
 
 <a name="GVK"></a>
-## func [GVK](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=137&lineEnd=137&lineStartColumn=1&lineEndColumn=62>)
+## func [GVK](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L137>)
 
 ```go
 func GVK(group, version, kind string) schema.GroupVersionKind
@@ -82,7 +82,7 @@ func GVK(group, version, kind string) schema.GroupVersionKind
 GVK creates a GroupVersionKind
 
 <a name="KubeClient"></a>
-## func [KubeClient](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=47&lineEnd=47&lineStartColumn=1&lineEndColumn=48>)
+## func [KubeClient](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L47>)
 
 ```go
 func KubeClient() (kubernetes.Interface, error)
@@ -91,7 +91,7 @@ func KubeClient() (kubernetes.Interface, error)
 KubeClient returns the kubectl client from the default kube config
 
 <a name="RestConfig"></a>
-## func [RestConfig](<https://dev.azure.com/msazure/One/_git/symphony?path=packages%2Ftestutils%2Fhelpers%2Fkubeutil.go&version=GBmain&lineStyle=plain&line=95&lineEnd=95&lineStartColumn=1&lineEndColumn=40>)
+## func [RestConfig](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/helpers/kubeutil.go#L95>)
 
 ```go
 func RestConfig() (*rest.Config, error)

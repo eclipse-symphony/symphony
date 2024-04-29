@@ -1,7 +1,7 @@
 {
     "type": "middleware.http.metrics",
     "properties": {
-      "serviceName": "aio-orc-api",
+      "serviceName": "symphony-api",
       "pipelines": [
         {{- if .Values.otelCollectorAddress }}
         {
