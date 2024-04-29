@@ -652,7 +652,6 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 		},
 		Spec: &model.InstanceSpec{
 			Scope:       scope,
-			Name:        key,
 			DisplayName: key,
 			Solution:    key,
 			Target: model.TargetSelector{
@@ -702,9 +701,6 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.Instance = instance
 	ret.SolutionName = solution.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
-	if ret.Instance.Spec.Name == "" {
-		ret.Instance.Spec.Name = ret.Instance.ObjectMeta.Name
-	}
 
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {

@@ -596,7 +596,6 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
-				Name:        "target-runtime-someTargetName",
 				DisplayName: "target-runtime-someTargetName",
 				Solution:    "target-runtime-someTargetName",
 				Target: model.TargetSelector{
@@ -758,7 +757,6 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				Namespace: "instanceScope",
 			},
 			Spec: &model.InstanceSpec{
-				Name:     "someOtherId",
 				Solution: "",
 				Scope:    "default", // CreateSymphonyDeployment will give default if instance.Spec.Scope is empty
 				Target: model.TargetSelector{

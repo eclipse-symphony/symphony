@@ -199,11 +199,10 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					Spec: &model.CatalogSpec{
 						Type: "instance",
 						Properties: map[string]interface{}{
-							"spec": model.InstanceSpec{
-								Name: "instance1",
-							},
+							"spec": model.InstanceSpec{},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
+								Name:      "instance1",
 							},
 						},
 					},

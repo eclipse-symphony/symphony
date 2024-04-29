@@ -314,8 +314,10 @@ func TestApply(t *testing.T) {
 		SolutionName: "test-solution",
 		Solution:     model.SolutionState{},
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
 			Spec: &model.InstanceSpec{
-				Name:        "test-instance",
 				DisplayName: "test-instance",
 				Solution:    "test-solution",
 				Target: model.TargetSelector{

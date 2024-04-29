@@ -272,7 +272,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Kubectl Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
@@ -361,7 +361,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Kubectl Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	functionName := utils.GetFunctionName()
 	applyTime := time.Now().UTC()
@@ -414,7 +414,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							}
 
 							i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, *deployment.Instance.Spec)
+							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, deployment.Instance)
 							if err != nil {
 								sLog.Errorf("  P (Kubectl Target):  failed to apply Yaml: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 								err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply Yaml", providerName), v1alpha2.ApplyYamlFailed)
@@ -500,7 +500,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 
 					i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, *deployment.Instance.Spec)
+					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, deployment.Instance)
 					if err != nil {
 						sLog.Errorf("  P (Kubectl Target):  failed to apply custom resource: %+v, traceId: %s", err, err, span.SpanContext().TraceID().String())
 						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply custom resource", providerName), v1alpha2.ApplyResourceFailed)
@@ -1038,7 +1038,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, namespace string, instance model.InstanceSpec) error {
+func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, namespace string, instance model.InstanceState) error {
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.Errorf("  P (Kubectl Target): failed to build a new dynamic client: %+v", err)

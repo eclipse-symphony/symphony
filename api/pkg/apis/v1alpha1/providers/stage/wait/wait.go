@@ -181,7 +181,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, instance := range instances {
 				for _, object := range prefixedNames {
-					if instance.Spec.Name == object {
+					if instance.ObjectMeta.Name == object {
 						foundCount++
 					}
 				}

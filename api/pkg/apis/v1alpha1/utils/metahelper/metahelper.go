@@ -15,11 +15,11 @@ import (
 
 type (
 	MetaPopulator interface {
-		PopulateMeta(object metaV1.Object, instance model.InstanceSpec) error
+		PopulateMeta(object metaV1.Object, instance model.InstanceState) error
 	}
 	metaPopulator struct {
-		annotationPopulators []func(instance model.InstanceSpec) (map[string]string, error)
-		labelPopulators      []func(instance model.InstanceSpec) (map[string]string, error)
+		annotationPopulators []func(instance model.InstanceState) (map[string]string, error)
+		labelPopulators      []func(instance model.InstanceState) (map[string]string, error)
 	}
 	Option func(*metaPopulator)
 )
@@ -39,7 +39,7 @@ func WithDefaultPopulators() Option {
 	}
 }
 
-func (m *metaPopulator) PopulateMeta(object metaV1.Object, instance model.InstanceSpec) error {
+func (m *metaPopulator) PopulateMeta(object metaV1.Object, instance model.InstanceState) error {
 	if err := m.populateLabels(object, instance); err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (m *metaPopulator) PopulateMeta(object metaV1.Object, instance model.Instan
 	return nil
 }
 
-func (m *metaPopulator) populateLabels(object metaV1.Object, instance model.InstanceSpec) error {
+func (m *metaPopulator) populateLabels(object metaV1.Object, instance model.InstanceState) error {
 	var labels []map[string]string
 	labels = append(labels, object.GetLabels())
 	for _, f := range m.labelPopulators {
@@ -63,7 +63,7 @@ func (m *metaPopulator) populateLabels(object metaV1.Object, instance model.Inst
 	return nil
 }
 
-func (m *metaPopulator) populateAnnotations(object metaV1.Object, instance model.InstanceSpec) error {
+func (m *metaPopulator) populateAnnotations(object metaV1.Object, instance model.InstanceState) error {
 	var annotations []map[string]string
 	annotations = append(annotations, object.GetAnnotations())
 	for _, f := range m.annotationPopulators {
@@ -77,14 +77,14 @@ func (m *metaPopulator) populateAnnotations(object metaV1.Object, instance model
 	return nil
 }
 
-func populateDefaultLabels(instance model.InstanceSpec) (map[string]string, error) {
+func populateDefaultLabels(instance model.InstanceState) (map[string]string, error) {
 	labels := make(map[string]string)
 	labels[constants.ManagerMetaKey] = constants.API
 	return labels, nil
 }
 
-func populateDefaultAnnotations(instance model.InstanceSpec) (map[string]string, error) {
+func populateDefaultAnnotations(instance model.InstanceState) (map[string]string, error) {
 	annotations := make(map[string]string)
-	annotations[constants.InstanceMetaKey] = instance.Name
+	annotations[constants.InstanceMetaKey] = instance.ObjectMeta.Name
 	return annotations, nil
 }

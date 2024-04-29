@@ -80,9 +80,10 @@ func createSolutionVendor() SolutionVendor {
 func createDockerDeployment(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "instance-docker",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -123,9 +124,10 @@ func createDockerDeployment(id string) model.DeploymentSpec {
 func createDeployment2Mocks1Target(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "instance1",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{

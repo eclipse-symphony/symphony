@@ -290,13 +290,13 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): getting artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	var components []model.ComponentSpec
 
 	switch i.Config.DeploymentStrategy {
 	case "", SINGLE_POD:
-		components, err = i.getDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
+		components, err = i.getDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 		if err != nil {
 			log.Debugf("  P (K8s Target Provider): failed to get - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get components from deployment spec", componentName), v1alpha2.GetComponentSpecFailed)
@@ -306,7 +306,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 		components = make([]model.ComponentSpec, 0)
 		scope := dep.Instance.Spec.Scope
 		if i.Config.DeploymentStrategy == SERVICES_NS {
-			scope = dep.Instance.Spec.Name
+			scope = dep.Instance.ObjectMeta.Name
 		}
 		slice := dep.GetComponentSlice()
 		for _, component := range slice {
@@ -651,7 +651,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	log.Infof("  P (K8s Target Provider): applying artifacts: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
@@ -677,7 +677,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	case "", SINGLE_POD:
 		updated := step.GetUpdatedComponents()
 		if len(updated) > 0 {
-			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.Spec.Name, dep.Instance.Spec.Metadata, components, projector, dep.Instance.Spec.Name)
+			err = i.deployComponents(ctx, span, dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name, dep.Instance.Spec.Metadata, components, projector, dep.Instance.ObjectMeta.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
@@ -686,7 +686,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		}
 		deleted := step.GetDeletedComponents()
 		if len(deleted) > 0 {
-			serviceName := dep.Instance.Spec.Name
+			serviceName := dep.Instance.ObjectMeta.Name
 			if v, ok := dep.Instance.Spec.Metadata["service.name"]; ok && v != "" {
 				serviceName = v
 			}
@@ -696,7 +696,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s service", componentName), v1alpha2.K8sRemoveServiceFailed)
 				return ret, err
 			}
-			err = i.removeDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.Spec.Name)
+			err = i.removeDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 			if err != nil {
 				log.Debugf("  P (K8s Target Provider): failed to remove deployment: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s deployment", componentName), v1alpha2.K8sRemoveDeploymentFailed)
@@ -714,7 +714,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		if len(updated) > 0 {
 			scope := dep.Instance.Spec.Scope
 			if i.Config.DeploymentStrategy == SERVICES_NS {
-				scope = dep.Instance.Spec.Name
+				scope = dep.Instance.ObjectMeta.Name
 			}
 			for _, component := range components {
 				if dep.Instance.Spec.Metadata != nil {
@@ -725,7 +725,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						component.Metadata[ENV_NAME] = v
 					}
 				}
-				err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.Spec.Name)
+				err = i.deployComponents(ctx, span, scope, component.Name, component.Metadata, []model.ComponentSpec{component}, projector, dep.Instance.ObjectMeta.Name)
 				if err != nil {
 					log.Debugf("  P (K8s Target Provider): failed to apply components: %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
@@ -737,7 +737,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		if len(deleted) > 0 {
 			scope := dep.Instance.Spec.Scope
 			if i.Config.DeploymentStrategy == SERVICES_NS {
-				scope = dep.Instance.Spec.Name
+				scope = dep.Instance.ObjectMeta.Name
 			}
 			for _, component := range deleted {
 				serviceName := component.Name

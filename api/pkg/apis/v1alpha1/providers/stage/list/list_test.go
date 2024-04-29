@@ -192,18 +192,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance1",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance1",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance2",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance2",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				}}
 		case "/federation/registry":

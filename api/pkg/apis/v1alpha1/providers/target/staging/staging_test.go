@@ -64,9 +64,10 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 	}, []model.ComponentStep{
 		{
@@ -116,9 +117,10 @@ func TestStagingTargetProviderApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -175,9 +177,10 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -266,9 +269,10 @@ func TestApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -364,9 +368,10 @@ func TestGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -433,9 +438,10 @@ func TestGetCatalogsFailed(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
