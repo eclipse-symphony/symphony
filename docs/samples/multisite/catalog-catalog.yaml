@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: catalog
-  name: site-catalog
   properties:
     spec: 
       type: config

@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: target
-  name: target
   properties:
     spec:
       properties:

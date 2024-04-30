@@ -20,7 +20,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: l3-config
   metadata:
     asset: l3
   properties:
@@ -35,7 +34,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: l4-config
   metadata:
     asset: l4
   properties:
@@ -50,7 +48,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: csad-config
   parentName: global-config
   metadata:
     asset: use-case
@@ -65,7 +62,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: site-config
   metadata:
     asset: site
   parentName: csad-config
@@ -81,7 +77,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: line-a-config
   metadata:
     asset: line-a
   parentName: site-config
@@ -96,7 +91,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: line-b-config
   metadata:
     asset: line-b
   parentName: site-config
