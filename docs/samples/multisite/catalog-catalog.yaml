@@ -6,9 +6,10 @@ spec:
   siteId: hq
   type: catalog
   properties:
+    metadata: 
+      name: web-app-config
     spec: 
       type: config
-      name: web-app-config
       properties:
         image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
         serviceType: "LoadBalancer"

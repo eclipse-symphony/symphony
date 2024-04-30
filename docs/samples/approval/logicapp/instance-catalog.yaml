@@ -7,7 +7,6 @@ spec:
   type: instance
   properties:
     spec: 
-      name: gated-prometheus-instance
       solution: gated-prometheus-server
       target:
         name: gated-k8s-target
