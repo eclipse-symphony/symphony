@@ -212,7 +212,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": {{ include "symphony.url" . }},
+              "baseUrl": {{ include "symphony.url" . | quote}},
               "user": "admin",
               "password": "",
               "interval": "#15",
