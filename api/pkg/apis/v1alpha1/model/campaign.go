@@ -125,7 +125,6 @@ func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
 }
 
 type CampaignSpec struct {
-	Name        string               `json:"name,omitempty"`
 	FirstStage  string               `json:"firstStage,omitempty"`
 	Stages      map[string]StageSpec `json:"stages,omitempty"`
 	SelfDriving bool                 `json:"selfDriving,omitempty"`
@@ -135,10 +134,6 @@ func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(CampaignSpec)
 	if !ok {
 		return false, errors.New("parameter is not a CampaignSpec type")
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
 	}
 
 	if c.FirstStage != otherC.FirstStage {

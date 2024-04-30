@@ -15,7 +15,6 @@ import (
 
 func TestCampaignMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -36,7 +35,6 @@ func TestCampaignMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -62,33 +60,17 @@ func TestCampaignMatch(t *testing.T) {
 }
 
 func TestCampaignMatchOneEmpty(t *testing.T) {
-	campaign1 := CampaignSpec{
-		Name: "name",
-	}
+	campaign1 := CampaignSpec{}
 	res, err := campaign1.DeepEquals(nil)
 	assert.EqualError(t, err, "parameter is not a CampaignSpec type")
 	assert.False(t, res)
 }
 
-func TestCampaignNameNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
-		Name: "name",
-	}
-	campaign2 := CampaignSpec{
-		Name: "name1",
-	}
-	equal, err := campaign1.DeepEquals(campaign2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-}
-
 func TestCampaignFirstStageNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:       "name",
 		FirstStage: "list",
 	}
 	campaign2 := CampaignSpec{
-		Name:       "name",
 		FirstStage: "list1",
 	}
 	equal, err := campaign1.DeepEquals(campaign2)
@@ -98,12 +80,10 @@ func TestCampaignFirstStageNotMatch(t *testing.T) {
 
 func TestCampaignSelfDrivingNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: false,
 	}
@@ -114,7 +94,6 @@ func TestCampaignSelfDrivingNotMatch(t *testing.T) {
 
 func TestCampaignStagesLengthNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -125,7 +104,6 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -146,7 +124,6 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 
 func TestCampaignStagesNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -157,7 +134,6 @@ func TestCampaignStagesNotMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
