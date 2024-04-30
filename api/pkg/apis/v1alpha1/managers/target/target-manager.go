@@ -133,7 +133,10 @@ func (s *TargetManager) Poll() []error {
 			ip = i
 		}
 		name := device.Object.Metadata["name"].(string)
-		namespace := device.Object.Metadata["namespace"].(string)
+		namespace, ok := device.Object.Metadata["namespace"].(string)
+		if !ok {
+			namespace = "default"
+		}
 		if ip != "" {
 			if user != "" && password != "" {
 				log.Debugf("taking snapshot from rtsp://%s:%s@%s...", user, "<password>", strings.ReplaceAll(ip, "rtsp://", ""))
