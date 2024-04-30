@@ -134,7 +134,6 @@ type StageSpec struct {
 // +kubebuilder:object:generate=true
 type ActivationSpec struct {
 	Campaign string `json:"campaign,omitempty"`
-	Name     string `json:"name,omitempty"`
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless

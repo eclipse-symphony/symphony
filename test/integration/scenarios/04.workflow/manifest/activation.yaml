@@ -4,5 +4,4 @@ metadata:
   name: 04workflow
 spec:
   campaign: "04campaign"
-  name: "04workflow"
   

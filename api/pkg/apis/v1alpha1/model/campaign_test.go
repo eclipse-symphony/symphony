@@ -266,9 +266,7 @@ func TestStageMatchOneEmpty(t *testing.T) {
 }
 
 func TestActivationMatchOneEmpty(t *testing.T) {
-	activation1 := ActivationSpec{
-		Name: "name",
-	}
+	activation1 := ActivationSpec{}
 	res, err := activation1.DeepEquals(nil)
 	assert.EqualError(t, err, "parameter is not a ActivationSpec type")
 	assert.False(t, res)
@@ -276,7 +274,6 @@ func TestActivationMatchOneEmpty(t *testing.T) {
 
 func TestActivationMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Name:     "multisite-deploy",
 		Campaign: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
@@ -284,7 +281,6 @@ func TestActivationMatch(t *testing.T) {
 		},
 	}
 	activation2 := ActivationSpec{
-		Name:     "multisite-deploy",
 		Campaign: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
@@ -298,22 +294,14 @@ func TestActivationMatch(t *testing.T) {
 
 func TestActivationNotMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Name: "multisite-deploy",
+		Campaign: "site-apps",
 	}
 	activation2 := ActivationSpec{
-		Name: "multisite-deploy2",
+		Campaign: "site-apps2",
 	}
 
-	// name not match
-	equal, err := activation1.DeepEquals(activation2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
 	// compaign not match
-	activation2.Name = "multisite-deploy"
-	activation1.Campaign = "site-apps"
-	activation2.Campaign = "site-apps2"
-	equal, err = activation1.DeepEquals(activation2)
+	equal, err := activation1.DeepEquals(activation2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 

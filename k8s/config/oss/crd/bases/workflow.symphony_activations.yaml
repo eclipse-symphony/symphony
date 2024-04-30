@@ -47,8 +47,6 @@ spec:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
-              name:
-                type: string
               stage:
                 type: string
             type: object

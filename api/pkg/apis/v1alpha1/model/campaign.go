@@ -81,7 +81,6 @@ type ActivationStatus struct {
 
 type ActivationSpec struct {
 	Campaign   string                 `json:"campaign,omitempty"`
-	Name       string                 `json:"name,omitempty"`
 	Stage      string                 `json:"stage,omitempty"`
 	Inputs     map[string]interface{} `json:"inputs,omitempty"`
 	Generation string                 `json:"generation,omitempty"`
@@ -94,10 +93,6 @@ func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Campaign != otherC.Campaign {
-		return false, nil
-	}
-
-	if c.Name != otherC.Name {
 		return false, nil
 	}
 
