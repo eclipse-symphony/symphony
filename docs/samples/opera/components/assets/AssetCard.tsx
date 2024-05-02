@@ -9,7 +9,7 @@ import { FaGithub } from 'react-icons/fa';
 
 interface AssetCardProps {
     catalog: CatalogState;
-    refCatalog: CatalogState;
+    refCatalog?: CatalogState | null | undefined;
 }
 function AssetCard(props: AssetCardProps) {
     const { catalog, refCatalog } = props;
@@ -29,10 +29,10 @@ function AssetCard(props: AssetCardProps) {
             </CardHeader>
             <Divider/>
             <CardBody>
-                {(catalog.spec.type === 'config' && !catalog.spec.objectRef.name) && (
+                {(catalog.spec.type === 'config' && !catalog.spec.objectRef?.name) && (
                     <PropertyTable properties={catalog.spec.properties} refProperties={refCatalog?.spec.properties} />
                 )}
-                {(catalog.spec.type === 'config' && catalog.spec.objectRef.name) && (
+                {(catalog.spec.type === 'config' && catalog.spec.objectRef?.name) && (
                     <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}><FaGithub />{catalog.spec.objectRef.address}</div>                    
                 )}
                 {catalog.spec.type === 'solution' && (

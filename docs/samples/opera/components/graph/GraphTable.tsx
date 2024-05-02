@@ -56,7 +56,7 @@ function BuildTreeNodeLabel(catalog: CatalogState) {
 function GraphTable(props: GraphTableProps) {
     const [visibleNodes, setVisibleNodes] = useState<string[]>([]);
     const { catalogs, columns } = props;
-    const treeViewRef = useRef<typeof TreeView>(null);
+    const treeViewRef = useRef<HTMLDivElement>(null);
     
     const updateVisibleNodes = () => {
         const visibleNodes: string[] = [];
@@ -68,17 +68,18 @@ function GraphTable(props: GraphTableProps) {
         setVisibleNodes(visibleNodes);
     }
 
-    const mergedCatalogs = [];
+    const mergedCatalogs: CatalogState[] = [];
    
-    const mergedColumns = [];
+    const mergedColumns: any[] = [];
     if (columns) {
         for (const [_, cols] of Object.entries(columns)) {
             mergedColumns.push(cols);
         }
     }
-    for (const [_, cats] of Object.entries(catalogs)) {
-        mergedCatalogs.push(...cats);
-    }
+    // for (const [_, cats] of Object.entries(catalogs)) {
+    //     mergedCatalogs.push(...cats);
+    // }
+    mergedCatalogs.push(...catalogs);
 
     useEffect(() => {
         const observer = new MutationObserver(() => {
@@ -120,7 +121,7 @@ function GraphTable(props: GraphTableProps) {
        updateVisibleNodes();
     };
 
-    const treeNodes = BuildForest(catalogs);
+    const treeNodes = BuildForest({"FIX-ME": catalogs});
     if (mergedColumns?.length) {
     return (
         <div className='graph_container'>
@@ -145,6 +146,7 @@ function GraphTable(props: GraphTableProps) {
                         )}
                     </TableHeader>
                     <TableBody>
+                        <span></span>
                     </TableBody>
                 </Table>
             </TableContainer>
