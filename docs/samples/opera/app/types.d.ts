@@ -64,7 +64,7 @@ export interface CatalogSpec {
     properties: Record<string, any>;
     metadata: Record<string, string>;
     parentName: string;
-    objectRef: ObjectRef;
+    objectRef?: ObjectRef | null | undefined;
     generation: string;
 }
 
@@ -76,6 +76,79 @@ export interface CatalogState {
     id: string;
     spec: CatalogSpec;
     status: CatalogStatus;
+}
+
+export interface BindingSpec {
+    role: string;
+    provider: string;
+    config: Record<string, string>;
+}
+
+export interface TopologySpec {
+    device: string;
+    selector: Record<string, string>;
+    bindings: BindingSpec[];
+}
+
+export interface TargetSpec {
+    displayName: string;
+    scope: string;
+    metadata: Record<string, string>;
+    properties: Record<string, string>;
+    components: ComponentSpec[];
+    constraints: string;
+    topologies: TopologySpec[];
+    forceRedeploy: boolean;
+    generation: string;
+    version: string; 
+}
+
+export interface ComponentError {
+    code: string;
+    message: string;
+    target: string;
+}
+
+export interface TargetError {
+    code: string;
+    message: string;
+    target: string;
+    details: ComponentError[];
+}
+
+export interface ErrorType {
+    code: string;
+    message: string;
+    target: string;
+    details: TargetError[];
+}
+
+export interface ProvisioningStatus{
+    operationId: string;
+    status: string;
+    failureCause: string;
+    logErrors: boolean;
+    error: ErrorType;
+    output: Record<string, string>;
+}
+
+export interface DeployableStatus {
+    properties: Record<string, string>;
+    ProvisioningStatus: ProvisioningStatus;
+    lastModified: Date;
+}
+
+export interface ObjectMeta {
+    namespace: string;
+    name: string;
+    labels: Record<string, string>;
+    annotations: Record<string, string>;
+}
+
+export interface TargetState {
+    metadata: ObjectMeta;
+    spec: TargetSpec;
+    status: DeployableStatus;
 }
 
 export interface SolutionState {
@@ -160,7 +233,7 @@ export interface User {
     email?: string | nulll | undefined;
     image?: string | null | undefined;
     username?: string;
-    tokenType: string;
+    tokenType?: string | null | undefined;
     roles?: string[] | undefined;
 }
 

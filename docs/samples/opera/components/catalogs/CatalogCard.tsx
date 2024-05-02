@@ -29,10 +29,10 @@ function CatalogCard(props: CatalogCardProps) {
             </CardHeader>
             <Divider/>
             <CardBody>
-                {(catalog.spec.type === 'config' && !catalog.spec.objectRef.name) && (
+                {(catalog.spec.type === 'config' && !catalog.spec.objectRef?.name) && (
                     <PropertyTable properties={catalog.spec.properties} refProperties={refCatalog?.spec.properties} />
                 )}
-                {(catalog.spec.type === 'config' && catalog.spec.objectRef.name) && (
+                {(catalog.spec.type === 'config' && catalog.spec.objectRef?.name) && (
                     <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}><FaGithub />{catalog.spec.objectRef.address}</div>                    
                 )}
                 {catalog.spec.type === 'solution' && (

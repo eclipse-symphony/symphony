@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import {SolutionState} from "../../../../types";
 import { getServerSession } from 'next-auth';
-import { options } from '../../../auth/[...nextauth]/options';
-import { User } from '../../../../types';
+import { options } from '../auth/[...nextauth]/options';
+import { User } from '../../types';
 
 export async function GET(
     request: Request,
