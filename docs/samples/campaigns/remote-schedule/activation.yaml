@@ -4,4 +4,3 @@ metadata:
   name: scheduled-activation
 spec:
   campaign: "scheduled-campaign"
-  name: "scheduled-activation"

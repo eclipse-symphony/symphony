@@ -164,9 +164,11 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 					},
 				},
 				Instance: model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "test-instance",
+					},
 					Spec: &model.InstanceSpec{
 						Scope: defaultTestScope,
-						Name:  "test-instance",
 					},
 				},
 			}
@@ -198,9 +200,11 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
 			Spec: &model.InstanceSpec{
 				Scope: defaultTestScope,
-				Name:  "test-instance",
 			},
 		},
 		Solution: model.SolutionState{
@@ -319,9 +323,11 @@ func TestHelmTargetProvider_NonOciChart(t *testing.T) {
 					},
 				},
 				Instance: model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "test-instance-no-oci",
+					},
 					Spec: &model.InstanceSpec{
 						Scope: defaultTestScope,
-						Name:  "test-instance-no-oci",
 					},
 				},
 			}
@@ -444,9 +450,11 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
 			Spec: &model.InstanceSpec{
 				Scope: defaultTestScope,
-				Name:  "test-instance",
 			},
 		},
 		Solution: model.SolutionState{
@@ -490,9 +498,11 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
 			Spec: &model.InstanceSpec{
 				Scope: defaultTestScope,
-				Name:  "test-instance",
 			},
 		},
 		Solution: model.SolutionState{

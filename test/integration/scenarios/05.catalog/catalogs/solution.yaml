@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: solution
-  name: solution
   properties:
     spec: 
       displayName: site-app

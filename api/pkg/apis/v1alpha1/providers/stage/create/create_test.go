@@ -235,9 +235,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
 				},
-				Spec: &model.InstanceSpec{
-					Name: "instance1",
-				},
+				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
 			}
 		case "/solution/queue":
@@ -270,9 +268,7 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
 				},
-				Spec: &model.InstanceSpec{
-					Name: "instance1",
-				},
+				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
 			}
 		case "/solution/queue":

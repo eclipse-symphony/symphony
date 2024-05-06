@@ -104,7 +104,6 @@ func TestActivationsOnActivations(t *testing.T) {
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
 	activationState := model.ActivationState{
 		Spec: &model.ActivationSpec{
-			Name:     activationName,
 			Campaign: campaignName,
 		},
 		ObjectMeta: model.ObjectMeta{

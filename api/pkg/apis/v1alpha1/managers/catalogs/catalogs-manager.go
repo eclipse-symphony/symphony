@@ -179,7 +179,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			"objectType": state.Spec.Type,
 		},
 		Body: v1alpha2.JobData{
-			Id:     state.Spec.Name,
+			Id:     state.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   state,
 		},

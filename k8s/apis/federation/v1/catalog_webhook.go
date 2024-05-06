@@ -28,7 +28,7 @@ var catalogWebhookValidationMetrics *metrics.Metrics
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.name", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
 		target := rawObj.(*Catalog)
 		return []string{target.Name}
 	})
@@ -127,7 +127,7 @@ func (r *Catalog) checkSchema() error {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
-			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".spec.name": schemaName})
+			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
 				return v1alpha2.NewCOAError(err, "schema not found", v1alpha2.NotFound)

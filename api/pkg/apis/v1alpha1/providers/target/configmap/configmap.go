@@ -208,7 +208,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
@@ -250,7 +250,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)

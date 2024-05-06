@@ -333,10 +333,9 @@ func TestDeployment(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "default",
+				Name:      "name",
 			},
-			Spec: &model.InstanceSpec{
-				Name: "name",
-			},
+			Spec: &model.InstanceSpec{},
 		},
 	}
 	_, err = provider.Get(context.Background(), deployment, []model.ComponentStep{})
@@ -372,10 +371,9 @@ func TestDeployment(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "default",
+				Name:      "name",
 			},
-			Spec: &model.InstanceSpec{
-				Name: "name",
-			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{

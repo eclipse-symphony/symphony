@@ -283,7 +283,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error
 	var actionConfig *action.Configuration
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
 		sLog.Error(err)
@@ -392,7 +392,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	functionName := utils.GetFunctionName()
 	applyTime := time.Now().UTC()
@@ -499,7 +499,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
 
 			postRender := &PostRenderer{
-				instance:  *deployment.Instance.Spec,
+				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
 			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)

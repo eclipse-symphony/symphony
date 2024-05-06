@@ -103,10 +103,10 @@ func (s *StagingManager) Poll() []error {
 			continue
 		}
 		if err != nil && !v1alpha2.IsNotFound(err) {
-			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.Spec.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
-			Id:     catalog.Spec.Name,
+			Id:     catalog.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
@@ -123,7 +123,7 @@ func (s *StagingManager) Poll() []error {
 			},
 		})
 		if err != nil {
-			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.Spec.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 	}
 	return nil
