@@ -16,9 +16,9 @@ func TestInstanceDeepEquals(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -38,9 +38,9 @@ func TestInstanceDeepEquals(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -66,9 +66,9 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -97,9 +97,9 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -122,9 +122,9 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName1",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName1",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -153,9 +153,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -178,9 +178,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName1",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -209,9 +209,9 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -234,9 +234,9 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default1",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -265,9 +265,9 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -290,9 +290,9 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -321,9 +321,9 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -346,9 +346,9 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -377,9 +377,9 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -402,9 +402,9 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -433,9 +433,9 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -458,9 +458,9 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -489,9 +489,9 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -514,9 +514,9 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{

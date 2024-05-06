@@ -1252,9 +1252,10 @@ func TestConfigInExpression(t *testing.T) {
 	parser := NewParser("[{\"name\":\"port${{$config(line-config-$instance(), SERVICE_PORT)}}\",\"port\": ${{$config(line-config-$instance(), SERVICE_PORT)}},\"targetPort\":5000}]")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "instance1",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 	}})
 	assert.Nil(t, err)
@@ -1270,9 +1271,10 @@ func TestConfigObjectInExpression(t *testing.T) {
 	parser := NewParser("${{$config('<' + 'line-config-' + $instance() + '>', \"\")}}")
 	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "instance1",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 	}})
 	assert.Nil(t, err)
@@ -1568,9 +1570,10 @@ func TestEvaulateInstance(t *testing.T) {
 	val, err := parser.Eval(utils.EvaluationContext{
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
-				Spec: &model.InstanceSpec{
+				ObjectMeta: model.ObjectMeta{
 					Name: "instance-1",
 				},
+				Spec: &model.InstanceSpec{},
 			},
 			SolutionName: "fake-solution",
 			Solution: model.SolutionState{

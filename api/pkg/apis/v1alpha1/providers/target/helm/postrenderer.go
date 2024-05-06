@@ -19,7 +19,7 @@ import (
 type (
 	PostRenderer struct {
 		populator metahelper.MetaPopulator
-		instance  model.InstanceSpec
+		instance  model.InstanceState
 	}
 	encodable interface{ UnstructuredContent() map[string]interface{} }
 )

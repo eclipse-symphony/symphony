@@ -10,7 +10,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: robot-config
   properties:
     name: my-robot
     os_version: "1.34"

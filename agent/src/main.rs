@@ -34,7 +34,7 @@ fn main()  {
                             let status: ExitStatus = ExitStatus::from_raw(0);
                             match component.component_type.as_str() {
                                 "docker" => {
-                                    let status = deploy_docker(&catalog.spec.name, &component);
+                                    let status = deploy_docker(&catalog.metadata.name, &component);
                                     if status.success() {
                                         println!("Docker deployment is done.");
                                     } else {
@@ -42,7 +42,7 @@ fn main()  {
                                     }
                                 },
                                 "wasm" => {
-                                    let status = deploy_wasmedge(&catalog.spec.name, &component);
+                                    let status = deploy_wasmedge(&catalog.metadata.name, &component);
                                     if status.success() {
                                         println!("WASM deployment is done.");
                                     } else {
@@ -50,7 +50,7 @@ fn main()  {
                                     }
                                 },
                                 "ebpf" => {
-                                    let status = deploy_ebpf(&catalog.spec.name, &component);
+                                    let status = deploy_ebpf(&catalog.metadata.name, &component);
                                     if status.success() {
                                         println!("eBPF deployment is done.");
                                     } else {
@@ -68,7 +68,7 @@ fn main()  {
                             }
                         }
                     } else {
-                        println!("No components found in catalog {}", catalog.spec.name);
+                        println!("No components found in catalog {}", catalog.metadata.name);
                     }
                 }
             }

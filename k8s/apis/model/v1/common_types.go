@@ -82,7 +82,6 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
-	Name        string                       `json:"name"`
 	DisplayName string                       `json:"displayName,omitempty"`
 	Scope       string                       `json:"scope,omitempty"`
 	Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
@@ -135,7 +134,6 @@ type StageSpec struct {
 // +kubebuilder:object:generate=true
 type ActivationSpec struct {
 	Campaign string `json:"campaign,omitempty"`
-	Name     string `json:"name,omitempty"`
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
@@ -155,7 +153,6 @@ type CampaignSpec struct {
 type CatalogSpec struct {
 	SiteId   string            `json:"siteId"`
 	Type     string            `json:"type"`
-	Name     string            `json:"name"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless

@@ -138,7 +138,6 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				},
 				Spec: &model.InstanceSpec{
 					DisplayName: id,
-					Name:        id,
 					Solution:    solution,
 				},
 			}
@@ -172,9 +171,6 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			}
 			if instance.ObjectMeta.Name == "" {
 				instance.ObjectMeta.Name = id
-			}
-			if instance.Spec.Name == "" {
-				instance.Spec.Name = id
 			}
 		}
 		err := c.InstancesManager.UpsertState(ctx, id, instance)

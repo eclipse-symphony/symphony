@@ -44,7 +44,6 @@ pub struct StagedProperties {
 pub struct CatalogSpec {
     #[serde(rename = "siteId")]
     site_id: String,
-    pub name: String,
     #[serde(rename = "type")]
     pub catalog_type: String,
     pub properties: StagedProperties,
@@ -59,13 +58,13 @@ pub struct CatalogStatus {
 #[derive(Serialize, Deserialize)]
 pub struct ObjectMeta {
     namespace: Option<String>,
-    name: Option<String>,
+    pub name: String,
     labels: Option<HashMap<String, String>>,
     annotations: Option<HashMap<String, String>>,
 }
 #[derive(Serialize, Deserialize)]
 pub struct CatalogState {
-    metadata: ObjectMeta,
+    pub metadata: ObjectMeta,
     pub spec: CatalogSpec,
     status: Option<CatalogStatus>,
 }
