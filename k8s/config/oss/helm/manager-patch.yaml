@@ -28,8 +28,31 @@ spec:
           value: "{{ .Chart.AppVersion }}"
         - name: CONFIG_NAME
           value: '{{ include "symphony.fullname" . }}-manager-config'
+        - name: SERVICE_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: USE_SERVICE_ACCOUNT_TOKENS
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: '{{ include "symphony.envConfigName" . }}'
       volumes:
       - name: cert
         secret:
           defaultMode: 420
           secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
+      - name: symphony-api-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: '{{ include "symphony.url" . }}'
+              expirationSeconds: 600
+              path: symphony-api-token
+      - name: api-ca-cert
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+          secretName: '{{ include "symphony.apiServingCertName" . }}'
