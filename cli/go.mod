@@ -6,7 +6,7 @@ replace github.com/eclipse-symphony/symphony/api => ../api
 
 replace github.com/eclipse-symphony/symphony/coa => ../coa
 
-require github.com/spf13/cobra v1.6.1
+require github.com/spf13/cobra v1.7.0
 
 require (
 	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
@@ -26,7 +26,7 @@ require (
 
 require (
 	github.com/eclipse-symphony/symphony/api v0.0.0
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.4.2
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
