@@ -40,8 +40,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              name:
-                type: string
               objectRef:
                 properties:
                   address:
@@ -82,7 +80,6 @@ spec:
               type:
                 type: string
             required:
-            - name
             - properties
             - siteId
             - type

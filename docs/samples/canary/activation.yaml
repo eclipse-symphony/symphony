@@ -4,5 +4,3 @@ metadata:
   name: canary-deployment
 spec:
   campaign: "canary"
-  name: "canary-deployment"
-  

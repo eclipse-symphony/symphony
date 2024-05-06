@@ -176,11 +176,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/instances":
 			response = []model.InstanceState{{
 				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
-				},
-				Spec: &model.InstanceSpec{
 					Name: "hq-instance1",
 				},
+				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
 			}}
 		case "/federation/registry":
@@ -194,11 +192,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/catalogs/registry":
 			response = []model.CatalogState{{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
-				},
-				Spec: &model.CatalogSpec{
 					Name: "hq-catalog1",
 				},
+				Spec: &model.CatalogSpec{},
 			}}
 		default:
 			response = AuthResponse{

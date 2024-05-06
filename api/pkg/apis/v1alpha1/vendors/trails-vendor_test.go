@@ -162,8 +162,11 @@ func TestTrailsVendorOnTrails_PostTrailsArrayAsBody(t *testing.T) {
 			Catalog: "catalog1",
 			Type:    "solutions.solution.symphony/v1",
 			Properties: map[string]interface{}{
-				"post": model.CatalogSpec{
-					Name: "test1",
+				"post": model.CatalogState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "test1",
+					},
+					Spec: &model.CatalogSpec{},
 				},
 			},
 		},
@@ -172,8 +175,11 @@ func TestTrailsVendorOnTrails_PostTrailsArrayAsBody(t *testing.T) {
 			Catalog: "catalog2",
 			Type:    "solutions.solution.symphony/v1",
 			Properties: map[string]interface{}{
-				"post": model.CatalogSpec{
-					Name: "test2",
+				"post": model.CatalogState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "test2",
+					},
+					Spec: &model.CatalogSpec{},
 				},
 			},
 		},

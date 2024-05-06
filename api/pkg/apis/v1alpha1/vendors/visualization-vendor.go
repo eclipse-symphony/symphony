@@ -155,7 +155,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 }
 
 func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
-	catalog.Spec.Name = name
+	catalog.ObjectMeta.Name = name
 	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {

@@ -421,7 +421,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 	case fasthttp.MethodPost:
 		objectType := request.Parameters["objectType"]
 		if objectType == "catalog" {
-			var catalog model.CatalogSpec
+			var catalog model.CatalogState
 			err := json.Unmarshal(request.Body, &catalog)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -431,10 +431,10 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 			err = f.Vendor.Context.Publish("catalog", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Type,
+					"objectType": catalog.Spec.Type,
 				},
 				Body: v1alpha2.JobData{
-					Id:     catalog.Name,
+					Id:     catalog.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},

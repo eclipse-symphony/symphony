@@ -17,7 +17,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: line-app-config
   properties:
     cat: leory
     dog: snoopy
@@ -29,7 +28,6 @@ metadata:
 spec:  
   siteId: hq
   type: solution
-  name: site-app
   properties:
     spec: 
       displayName: site-app
@@ -55,7 +53,6 @@ metadata:
 spec:  
   siteId: hq
   type: solution
-  name: line-app
   properties:
     spec: 
       components:
@@ -143,7 +140,6 @@ metadata:
 spec:  
   siteId: hq
   type: solution
-  name: smart-fridge
   properties:
     spec: 
       displayName: smart-fridge
@@ -171,7 +167,6 @@ metadata:
 spec:  
   siteId: hq
   type: instance
-  name: site-instance
   properties:
     spec: 
       solution: site-app

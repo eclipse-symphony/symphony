@@ -58,8 +58,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              name:
-                type: string
               parameters:
                 additionalProperties:
                   type: string
@@ -139,7 +137,6 @@ spec:
                   type: object
                 type: array
             required:
-            - name
             - solution
             type: object
           status:
