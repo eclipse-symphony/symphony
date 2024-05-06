@@ -152,7 +152,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 					Body:        []byte(fmt.Sprintf(`{"result":"%s"}`, err.Error())),
 				})
 			}
-			instance = deployment.Instance.Spec.Name
+			instance = deployment.Instance.ObjectMeta.Name
 		}
 
 		if instance == "" {

@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -25,7 +24,6 @@ metadata:
 spec:  
   siteId: tokyo
   type: asset
-  name: tokyo
   properties:
     name: "東京"
     address: "東京都港区港南 2-16-3"
@@ -45,7 +43,6 @@ metadata:
 spec:  
   siteId: new-york
   type: asset
-  name: new-york
   properties:
     name: "New York"
     address: "11 Times Square"
@@ -65,7 +62,6 @@ metadata:
 spec:  
   siteId: munchen
   type: asset
-  name: munchen
   properties:
     name: "München"
     address: "Walter-Gropius-Straße 5"
@@ -85,7 +81,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq-adr
   properties:
     name: "HQ Azure Device Registry"    
   parentName: hq
@@ -107,7 +102,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq-arc-1
   properties:
     name: "HQ Azure Arc Cluster 1"
   parentName: hq
@@ -129,7 +123,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq-arc-2
   properties:
     name: "HQ Azure Arc Cluster 2"
   parentName: hq
@@ -151,7 +144,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq-doe-site
   properties:
     name: "HQ DOE Site"
   parentName: hq
@@ -173,7 +165,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: hq-iot-hub
   properties:
     name: "HQ IoT Hub Tenant"
   parentName: hq
@@ -195,7 +186,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: area-1
   properties:
     name: "Area 1"
   parentName: hq-doe-site
@@ -207,7 +197,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: area-2
   properties:
     name: "Area 2"
   parentName: hq-doe-site
@@ -219,7 +208,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: line-1
   properties:
     name: "Production Line 1"
   parentName: area-1
@@ -231,7 +219,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: line-2
   properties:
     name: "Production Line 2"
   parentName: area-1

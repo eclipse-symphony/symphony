@@ -109,7 +109,6 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 		},
 		Spec: &apimodel.InstanceSpec{
 			Scope:       instance.Spec.Scope,
-			Name:        instance.Spec.Name,
 			DisplayName: instance.Spec.DisplayName,
 			Solution:    instance.Spec.Solution,
 			Target:      instance.Spec.Target,

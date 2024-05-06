@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: asset
-  name: asset
   properties:
     name: "東京"
     address: "東京都港区港南 2-16-3"

@@ -22,7 +22,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: grafana-config
   properties:
     host: localhost
     port: 3000
@@ -37,7 +36,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: e4k-config
   properties:
     host: localhost
     port: 3000
@@ -52,7 +50,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: bluefin-config
   properties:
     host: localhost
     port: 3000
@@ -67,7 +64,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: ai-config
   metadata:
     asset: hq
   properties:
@@ -82,7 +78,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: ai-config-site
   parentName: ai-config
   metadata:
     asset: hq-doe-site
@@ -97,7 +92,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: ai-config-line
   metadata:
     asset: line-1
   parentName: ai-config-site
@@ -111,7 +105,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: combined  
   properties:
     foo: bar
     ai: "<ai-config>"
@@ -128,8 +121,7 @@ metadata:
   name: combined-1
 spec:  
   siteId: hq
-  type: config
-  name: combined-1  
+  type: config 
   properties:
     foo: <combined-2>.foo
     loop: <combined-2>.loop
@@ -141,7 +133,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: combined-2  
   properties:
     foo: bar2   
     loop: <combined>.loop
@@ -153,7 +144,6 @@ metadata:
 spec:  
   siteId: hq
   type: config
-  name: external  
   properties:
     foo: far
   objectRef:

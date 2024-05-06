@@ -23,7 +23,6 @@ type (
 	// InstanceSpec defines the spec property of the InstanceState
 	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
-		Name        string                       `json:"name"`
 		DisplayName string                       `json:"displayName,omitempty"`
 		Scope       string                       `json:"scope,omitempty"`
 		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
@@ -115,10 +114,6 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(InstanceSpec)
 	if !ok {
 		return false, errors.New("parameter is not a InstanceSpec type")
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
 	}
 
 	if c.DisplayName != otherC.DisplayName {

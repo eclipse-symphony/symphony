@@ -4,5 +4,4 @@ metadata:
   name: multisite-deploy
 spec:
   campaign: "site-apps"
-  name: "multisite-deploy"
   

@@ -192,18 +192,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance1",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance1",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance2",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance2",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				}}
 		case "/federation/registry":
@@ -228,18 +224,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog1",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog1",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog2",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog2",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				}}
 		default:

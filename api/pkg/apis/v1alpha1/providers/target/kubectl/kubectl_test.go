@@ -168,9 +168,11 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
 			Spec: &model.InstanceSpec{
 				Scope: "nginx-deployment",
-				Name:  "nginx",
 			},
 		},
 		Solution: model.SolutionState{
@@ -261,8 +263,10 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx-deployment",
+			},
 			Spec: &model.InstanceSpec{
-				Name:  "nginx-deployment",
 				Scope: "default",
 			},
 		},
@@ -342,8 +346,10 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance-iu",
+			},
 			Spec: &model.InstanceSpec{
-				Name:  "test-instance-iu",
 				Scope: "test-scope-iu",
 			},
 		},
@@ -445,8 +451,10 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance-spa",
+			},
 			Spec: &model.InstanceSpec{
-				Name:  "test-instance-spa",
 				Scope: "test-scope-spa",
 			},
 		},
@@ -553,9 +561,10 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "gatekeeper",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -600,9 +609,10 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "policies",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -680,9 +690,10 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "nginx-deployment",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -727,9 +738,10 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "policies",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -799,9 +811,11 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
 			Spec: &model.InstanceSpec{
 				Scope: "nginx-system",
-				Name:  "nginx",
 			},
 		},
 		Solution: model.SolutionState{
@@ -862,9 +876,10 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "policies",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
@@ -896,8 +911,10 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 	}
 	deployment = model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
 			Spec: &model.InstanceSpec{
-				Name:  "nginx",
 				Scope: "nginx-system",
 			},
 		},

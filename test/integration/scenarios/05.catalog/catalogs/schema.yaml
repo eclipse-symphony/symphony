@@ -5,7 +5,6 @@ metadata:
 spec:  
   siteId: hq
   type: schema
-  name: schema
   properties:
     spec:
       rules:

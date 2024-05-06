@@ -794,7 +794,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
-				return deploymentSpec.Instance.Spec.Name, nil
+				return deploymentSpec.Instance.ObjectMeta.Name, nil
 			}
 			return nil, errors.New("deployment spec is not found")
 		}

@@ -54,7 +54,6 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -115,7 +114,6 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -173,7 +171,6 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -232,7 +229,6 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -292,7 +288,6 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -358,7 +353,6 @@ func TestCampaignWithDelay(t *testing.T) {
 	timeStamp := time.Now().UTC()
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -415,7 +409,6 @@ func TestErrorHandler(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -479,7 +472,6 @@ func TestErrorHandlerNotSet(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -535,7 +527,6 @@ func TestAccessingPreviousStage(t *testing.T) {
 	}
 	for {
 		_, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -590,7 +581,6 @@ func TestAccessingStageStatus(t *testing.T) {
 	var status model.ActivationStatus
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -646,7 +636,6 @@ func TestIntentionalError(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -701,7 +690,6 @@ func TestIntentionalErrorState(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -756,7 +744,6 @@ func TestIntentionalErrorString(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -810,7 +797,6 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -866,7 +852,6 @@ func TestAccessingPreviousStageInExpression(t *testing.T) {
 	var status model.ActivationStatus
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -940,7 +925,6 @@ func TestResumeStage(t *testing.T) {
 		Outputs: output,
 	}
 	campaign := model.CampaignSpec{
-		Name:        campaignName,
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1006,7 +990,6 @@ func TestResumeStageFailed(t *testing.T) {
 		Outputs: output,
 	}
 	campaign := model.CampaignSpec{
-		Name:        campaignName,
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1146,7 +1129,6 @@ func TestHandleActivationEvent(t *testing.T) {
 	}
 
 	campaign := model.CampaignSpec{
-		Name:        "test-campaign",
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1224,7 +1206,6 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 	}
 
 	status, _ := manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-		Name:        "test-campaign",
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{

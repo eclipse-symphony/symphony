@@ -5,10 +5,8 @@ metadata:
 spec:  
   siteId: hq
   type: instance
-  name: gated-prometheus-instance
   properties:
     spec: 
-      name: gated-prometheus-instance
       solution: gated-prometheus-server
       target:
         name: gated-k8s-target
