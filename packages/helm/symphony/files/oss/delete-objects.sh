@@ -5,6 +5,7 @@ SOLUTION_GROUP=solution.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony
+FEDERATION_GROUP=federation.symphony
 
 function delete_crds {
   local resource_type=$1
@@ -24,3 +25,5 @@ delete_crds "devices.$FABRIC_GROUP"
 delete_crds "models.$AI_GROUP"
 delete_crds "skills.$AI_GROUP"
 delete_crds "skillpackages.$AI_GROUP"
+delete_crds "catalogs.$FEDERATION_GROUP"
+delete_crds "sites.$FEDERATION_GROUP"

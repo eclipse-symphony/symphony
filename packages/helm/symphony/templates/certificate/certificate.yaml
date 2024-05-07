@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "symphony.apiServingCertName" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  issuerRef:
+    name: {{ include "symphony.apiServingCertIssuerName" . }}
+    kind: Issuer
+  secretName: {{ include "symphony.apiServingCertName" . }}
+  dnsNames:
+  - {{ include "symphony.serviceName" . }}
+  - {{ printf "%s.%s" (include "symphony.serviceName" .) .Release.Namespace }}
+  - {{ printf "%s.%s.svc" (include "symphony.serviceName" .) .Release.Namespace }}
+  - {{ printf "%s.%s.svc.cluster.local" (include "symphony.serviceName" .) .Release.Namespace }}

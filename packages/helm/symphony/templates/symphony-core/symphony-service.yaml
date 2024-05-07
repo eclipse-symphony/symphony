@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.serviceName" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: symphony-api
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: {{ .Values.symphony.incluster.httpport }}
+    targetPort: {{ include "symphony.apiContainerPortHttp" . }}
+    name: http
+  - protocol: TCP
+    port: {{ .Values.symphony.incluster.httpsport }}
+    targetPort: {{ include "symphony.apiContainerPortHttps" . }}
+    name: https

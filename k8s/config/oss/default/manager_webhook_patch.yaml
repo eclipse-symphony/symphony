@@ -18,6 +18,11 @@ spec:
           name: webhook-server
           protocol: TCP
         volumeMounts:
+        - mountPath: /var/run/secrets/tokens
+          name: symphony-api-token
+        - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
+          name: api-ca-cert
+          readOnly: true
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
