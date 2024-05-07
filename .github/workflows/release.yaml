@@ -2,11 +2,19 @@ name: Release
 
 on:
   workflow_dispatch:
-permissions: write-all
+permissions:
+  contents: write
+  packages: write
 env:
   ContainerRegistry: "ghcr.io"
   ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+  BOT_USER_NAME: eclipse-symphoy-bot
+  BOT_EMAIL_ID: symphony-bot@eclipse.org
+  IMAGE_NAME: ${{ github.repository }}
 
+# Two users are used in this pipeline
+# BOT_USER_NAME (eclipse-symphoy-bot) / secrets.BOT_GITHUB_TOKEN is used to checkout/commit/push the changes to the repository
+# github.repository_owner / secrets.GITHUB_TOKEN is used to login to the docker registry and helm registry and to create the release
 jobs:
   build:
     if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
@@ -14,6 +22,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+      - name: Git config
+        run: |
+            git config user.name ${{ env.BOT_USER_NAME }}
+            git config user.email ${{ env.BOT_EMAIL_ID }}
 
       - name: Install dependencies
         run: |
@@ -150,7 +165,7 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
           branch: main
 
       - name: Create Release
