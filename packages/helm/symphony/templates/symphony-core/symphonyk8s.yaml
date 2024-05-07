@@ -2068,6 +2068,15 @@ spec:
           value: '{{ .Chart.AppVersion }}'
         - name: CONFIG_NAME
           value: '{{ include "symphony.fullname" . }}-manager-config'
+        - name: SERVICE_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: USE_SERVICE_ACCOUNT_TOKENS
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: '{{ include "symphony.envConfigName" . }}'
         image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
           }}'
         imagePullPolicy: '{{ .Values.symphonyImage.pullPolicy }}'
@@ -2098,6 +2107,11 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
+        - mountPath: /var/run/secrets/tokens
+          name: symphony-api-token
+        - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
+          name: api-ca-cert
+          readOnly: true
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
@@ -2128,6 +2142,20 @@ spec:
         secret:
           defaultMode: 420
           secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
+      - name: symphony-api-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: '{{ include "symphony.url" . }}'
+              expirationSeconds: 600
+              path: symphony-api-token
+      - name: api-ca-cert
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+          secretName: '{{ include "symphony.apiServingCertName" . }}'
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate

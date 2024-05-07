@@ -212,7 +212,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "baseUrl": {{ include "symphony.url" . | quote}},
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -584,7 +584,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8080,
+        "port": {{ include "symphony.apiContainerPortHttp" . }},
         "pipeline": [
           {{- include "symphony.zipkinMiddleware" . | indent 10 }}
           {
@@ -673,12 +673,52 @@
     {
       "type": "bindings.http",
       "config": {
-          "port": 8081,
+          "port": {{ include "symphony.apiContainerPortHttps" . }},
           "tls": true,
           "certProvider": {
-          "type": "certs.autogen",
-          "config":{}
-          }
+            "type": "certs.localfile",
+            "config": {
+              "name": "symphony-serving-cert",
+              "cert": "{{- include "symphony.apiServingCert" . -}}",
+              "key": "{{- include "symphony.apiServingKey" . -}}"
+            }
+          },
+          "pipeline": [
+            {{- include "symphony.zipkinMiddleware" . | indent 10 }}
+            {
+              "type": "middleware.http.cors",
+              "properties": {
+                "Access-Control-Allow-Headers": "authorization,Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+                "Access-Control-Allow-Origin": "*"
+              }
+            },
+            {
+              "type": "middleware.http.jwt",
+              "properties": {
+                "ignorePaths": [
+                  "/v1alpha2/users/auth",
+                  "/v1alpha2/solution/instances",
+                  "/v1alpha2/agent/references",
+                  "/v1alpha2/greetings",
+                  "/v1alpha2/agent/config"
+                ],
+                "verifyKey": "SymphonyKey",
+                "authServer": "kubernetes",
+                "enableRBAC": false
+              }
+            },
+            {
+              "type": "middleware.http.telemetry",
+              "properties": {
+                "enabled": true,
+                "maxBatchSize": 8192,
+                "maxBatchIntervalSeconds": 2,
+                "client": "my-dev-machine"
+              }
+            }
+          ]
       }
     }
   ]

@@ -1,4 +1,4 @@
-{{ if .Values.global.azure.identity.enabled -}}
+{{ if .Values.global.azure.identity.isEnabled -}}
 apiVersion: clusterconfig.azure.com/v1beta1
 kind: AzureExtensionIdentity
 metadata:

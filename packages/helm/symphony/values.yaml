@@ -12,7 +12,7 @@ installServiceExt: true
 global:
   azure:
     identity:
-      enabled: false
+      isEnabled: false
 observability:
   tracing:
     exporter:
@@ -32,3 +32,20 @@ parent:
   password:
 siteId: hq
 imagePrivateRegistryUrl: ghcr.io
+api:
+  apiContainerPortHttp: 8080
+  apiContainerPortHttps: 8081
+symphony:
+  incluster:
+    httpsport: 8081
+    httpport: 8080
+  extension:
+    httpsport: 8081
+    httpport: 8080
+Azure:
+  proxySettings:
+    isProxyEnabled: false
+    httpProxy: ""
+    httpsProxy: ""
+    noProxy: ""
+    proxyCert: ""

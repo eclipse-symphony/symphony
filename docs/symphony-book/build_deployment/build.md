@@ -165,7 +165,7 @@ docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
 ```bash
 cd k8s
 mage helmTemplate
-# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony.yaml.
+# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml.
 ```
 
 > **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.

@@ -26,7 +26,7 @@
               "providers.target": "script",
               "providers.state": "mem-state",
               "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"  
+              "providers.secret": "mock-secret"
             },
             "providers": {
               "script": {

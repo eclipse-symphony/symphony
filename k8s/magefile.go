@@ -99,7 +99,7 @@ func Run() error {
 // Kustomize startup symphony yaml for helm chart.
 func HelmTemplate() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return kustomize.Command("build config/oss/helm -o ../packages/helm/symphony/templates/symphony.yaml").Run()
+	return kustomize.Command("build config/oss/helm -o ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml").Run()
 }
 
 // Install CRDs into the K8s cluster specified in ~/.kube/config.
