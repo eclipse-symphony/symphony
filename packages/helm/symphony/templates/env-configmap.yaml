@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "symphony.envConfigName" . }}
+  namespace: {{ .Release.Namespace }}
+data:
+  APP_VERSION: {{ .Chart.AppVersion }}
+  CHART_VERSION: {{ .Chart.Version }}
+  API_SERVING_CA: {{ include "symphony.apiServingCA" . }}
+  SYMPHONY_API_URL: {{ include "symphony.url" . }}
+  USE_SERVICE_ACCOUNT_TOKENS: "true"

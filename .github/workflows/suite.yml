@@ -1,0 +1,112 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: suite
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+env:
+    ContainerRegistry: "ghcr.io"
+    ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21
+        
+    - name: Set up custom GOPATH
+      run: |
+        mkdir -p /home/runner/go
+        echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
+        echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
+        source $HOME/.bashrc
+
+    - name: Install make
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+
+    - name: Check docker version and images
+      run: docker --version && docker images
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        kubectl version --client
+        kubectl config view
+
+    - name: Install Helm
+      run: |
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+
+    - name: Install minikube
+      run: | 
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/local/bin/
+        minikube start
+        kubectl config view
+    
+    - name: Install Mage
+      run: |
+        cd ..
+        git clone https://github.com/magefile/mage
+        cd mage
+        go run bootstrap.go
+        cd ..
+
+    - name: Install Ginkgo
+      run: |
+        go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.1
+        export PATH=$PATH:$(go env GOPATH)/bin
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.ContainerRegistry }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build docker images
+      run: |
+        cd test/localenv/
+        mage build:all
+        mage cluster:up
+    
+    - name: Go work init
+      run: |
+        mv go.work.bk go.work
+
+    - name: Run ginkgo suite tests
+      run: |
+        cd test/integration/scenarios/06.ado/ 
+        ginkgo --cover --junit-report=junit-suite-tests.xml -r 
+      continue-on-error: true    
+
+    - name: Dump SymphonyLogs For ginkgo suite tests
+      run: |
+        cd test/localenv/
+        mage DumpSymphonyLogsForTest ginkgosuite
+      continue-on-error: true   
+    
+    - name: Collect and upload symphony test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: symphony-suite-result
+        path: |
+          test/integration/scenarios/06.ado/junit-suite-tests.xml
+          /tmp/symhony-integration-test-logs/**/*.log
+      continue-on-error: true
+      if: always()

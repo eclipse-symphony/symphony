@@ -1,0 +1,16 @@
+{
+    "type": "middleware.http.tracing",
+    "properties": {
+      "serviceName": "symphony-api",
+      "pipelines": [
+        {{- if .Values.otelCollectorAddress }}
+        {
+          "exporter": {
+            "type": "tracing.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otelCollectorAddress $ }}"
+          }
+        }
+        {{- end }}
+      ]
+    }
+  }

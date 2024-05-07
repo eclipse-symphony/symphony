@@ -52,8 +52,30 @@ type License mg.Namespace
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube\n")
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)
-	return shellcmd.Command(helmUpgrade).Run()
+	mg.Deps(ensureMinikubeUp)
+	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
+	commands := []shellcmd.Command{
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)),
+	}
+	for _, cert := range certsToVerify {
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, NAMESPACE)))
+	}
+	return shellcmd.RunAll(commands...)
+}
+
+// Deploys the symphony ecosystem to your local Minikube cluster with the provided settings. Note that this would also deploy cert-manager separately.
+// E.g. mage deployWithSettings '--set some.key=some_value --set another.key=another_value'
+func (Cluster) DeployWithSettings(values string) error {
+	fmt.Printf("Deploying symphony to minikube with settings, %s\n", values)
+	mg.Deps(ensureMinikubeUp)
+	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
+	commands := []shellcmd.Command{
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=latest --set paiImage.tag=latest %s", RELEASE_NAME, CHART_PATH, NAMESPACE, values)),
+	}
+	for _, cert := range certsToVerify {
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, NAMESPACE)))
+	}
+	return shellcmd.RunAll(commands...)
 }
 
 // Up brings the minikube cluster up with symphony deployed
