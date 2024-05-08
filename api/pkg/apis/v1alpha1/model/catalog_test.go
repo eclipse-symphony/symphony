@@ -30,7 +30,6 @@ func TestIntefaceConvertion(t *testing.T) {
 }
 func TestCatalogMatch(t *testing.T) {
 	catalog1 := CatalogSpec{
-		SiteId:     "siteId",
 		ParentName: "parentName",
 		Generation: "1",
 		Properties: map[string]interface{}{
@@ -38,7 +37,6 @@ func TestCatalogMatch(t *testing.T) {
 		},
 	}
 	catalog2 := CatalogSpec{
-		SiteId:     "siteId",
 		ParentName: "parentName",
 		Generation: "1",
 		Properties: map[string]interface{}{
@@ -63,25 +61,13 @@ func TestCatalogMatchOneEmpty(t *testing.T) {
 }
 
 func TestCatalogNotMatch(t *testing.T) {
-	catalog1 := CatalogSpec{
-		SiteId: "siteId",
-	}
-	catalog2 := CatalogSpec{
-		SiteId: "siteId2",
-	}
-
-	// siteId not match
-	catalog1.SiteId = "siteId"
-	catalog2.SiteId = "siteId2"
-	equal, err := catalog1.DeepEquals(catalog2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
+	catalog1 := CatalogSpec{}
+	catalog2 := CatalogSpec{}
 
 	// parentName not match
-	catalog2.SiteId = "siteId"
 	catalog1.ParentName = "parentName"
 	catalog2.ParentName = "parentName2"
-	equal, err = catalog1.DeepEquals(catalog2)
+	equal, err := catalog1.DeepEquals(catalog2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 

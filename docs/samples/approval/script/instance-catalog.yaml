@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: gated-prometheus-instance
-spec:  
-  siteId: hq
+spec:
   type: instance
   properties:
     spec: 
