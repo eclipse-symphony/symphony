@@ -42,8 +42,6 @@ pub struct StagedProperties {
 }
 #[derive(Serialize, Deserialize)]
 pub struct CatalogSpec {
-    #[serde(rename = "siteId")]
-    site_id: String,
     #[serde(rename = "type")]
     pub catalog_type: String,
     pub properties: StagedProperties,

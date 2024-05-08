@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: solution
-spec:  
-  siteId: hq
+spec:
   type: solution
   properties:
     spec: 

@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: global-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   name: global-config
   metadata:
@@ -17,8 +16,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: l3-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   metadata:
     asset: l3
@@ -31,8 +29,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: l4-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   metadata:
     asset: l4
@@ -45,8 +42,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: csad-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   parentName: global-config
   metadata:
@@ -59,8 +55,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: site-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   metadata:
     asset: site
@@ -74,8 +69,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-a-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   metadata:
     asset: line-a
@@ -88,8 +82,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-b-config
-spec:  
-  siteId: hq
+spec: 
   type: config
   metadata:
     asset: line-b

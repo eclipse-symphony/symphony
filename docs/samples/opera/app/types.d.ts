@@ -46,7 +46,7 @@ export interface CampaignSpec {
 }
 
 export interface ObjectRef {
-	siteId: string;
+    siteId: string;
     name: string;
     group: string;
     version: string;
@@ -58,7 +58,6 @@ export interface ObjectRef {
 }
 
 export interface CatalogSpec {
-    siteId: string;
     name: string;
     type: string;
     properties: Record<string, any>;
