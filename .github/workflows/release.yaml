@@ -25,11 +25,6 @@ jobs:
         with:
           token: ${{ secrets.BOT_GITHUB_TOKEN }}
 
-      - name: Git config
-        run: |
-            git config user.name ${{ env.BOT_USER_NAME }}
-            git config user.email ${{ env.BOT_EMAIL_ID }}
-
       - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y make gcc
@@ -155,8 +150,8 @@ jobs:
 
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.name ${{ env.BOT_USER_NAME }}
+          git config --local user.email ${{ env.BOT_EMAIL_ID }}
           git add .github/version/versions.txt
           git add packages/helm/symphony/Chart.yaml
           git add cli/cmd/up.go
