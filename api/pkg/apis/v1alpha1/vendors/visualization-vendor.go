@@ -199,8 +199,7 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.Catalo
 func convertVisualizationPacketToCatalog(site string, packet model.Packet) (model.CatalogState, error) {
 	catalog := model.CatalogState{
 		Spec: &model.CatalogSpec{
-			SiteId: site,
-			Type:   "topology",
+			Type: "topology",
 			Properties: map[string]interface{}{
 				packet.From: map[string]model.Packet{
 					packet.To: packet,
