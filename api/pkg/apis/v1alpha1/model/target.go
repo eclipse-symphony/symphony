@@ -31,6 +31,8 @@ type (
 		Topologies    []TopologySpec    `json:"topologies,omitempty"`
 		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
 		Generation    string            `json:"generation,omitempty"`
+		Version       string            `json:"version,omitempty"`
+		RootResource  string            `json:"rootResource,omitempty"`
 	}
 )
 
