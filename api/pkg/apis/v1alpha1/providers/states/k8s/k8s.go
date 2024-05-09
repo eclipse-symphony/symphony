@@ -236,9 +236,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
 			return "", err
 		}
-		unc.SetName(metadata.Name)
-		unc.SetNamespace(metadata.Namespace)
-		unc.SetAnnotations(metadata.Annotations)
 
 		if refreshLabels {
 			latestFilterValue := "tag=latest"
@@ -275,8 +272,12 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			}
 
 			metadata.Labels["tag"] = "latest"
-			unc.SetLabels(metadata.Labels)
 		}
+
+		unc.SetName(metadata.Name)
+		unc.SetNamespace(metadata.Namespace)
+		unc.SetAnnotations(metadata.Annotations)
+		unc.SetLabels(metadata.Labels)
 
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
