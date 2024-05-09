@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -65,6 +66,70 @@ func GetSymphonyAPIAddressBase() string {
 		return SymphonyAPIAddressBase
 	}
 	return symphonyAPIAddressBase
+}
+
+var getApiClientOnce sync.Once
+var apiClient *APIClient
+var err error
+
+func GetApiClient() (*APIClient, error) {
+	getApiClientOnce.Do(func() {
+		apiClient, err = getApiClient()
+	})
+	return apiClient, err
+}
+
+// For testing purpose only
+func UpdateApiClientUrl(url string) {
+	if apiClient == nil {
+		GetApiClient()
+	}
+	apiClient.baseUrl = url
+}
+
+func getApiClient() (*APIClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	baseUrl := GetSymphonyAPIAddressBase()
+	if err != nil {
+		return nil, err
+	}
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	if ShouldUseSATokens() {
+		clientOptions = append(clientOptions, WithServiceAccountToken())
+	} else {
+		user := "admin"
+		password := ""
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), user, password))
+	}
+
+	client, err := NewAPIClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetUPApiClient(baseUrl string) (*APIClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	if err != nil {
+		return nil, err
+	}
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	user := "admin"
+	password := ""
+
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), user, password))
+	client, err := NewAPIClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func ShouldUseSATokens() bool {

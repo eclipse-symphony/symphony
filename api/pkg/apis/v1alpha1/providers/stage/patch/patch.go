@@ -26,14 +26,12 @@ var msLock sync.Mutex
 var sLog = logger.NewLogger("coa.runtime")
 
 type PatchStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
-	User     string `json:"user"`
-	Password string `json:"password"`
 }
 
 type PatchStageProvider struct {
-	Config  PatchStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    PatchStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient *utils.APIClient
 }
 
 func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
@@ -44,6 +42,7 @@ func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
 	return nil
 }
 func (s *PatchStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -67,27 +66,6 @@ func (i *PatchStageProvider) InitWithMap(properties map[string]string) error {
 }
 func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStageProviderConfig, error) {
 	ret := PatchStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
-	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
 func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
@@ -168,7 +146,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
-			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password, objectNamespace)
+			catalog, err = i.ApiClient.GetCatalog(ctx, v, objectNamespace)
 
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
@@ -226,7 +204,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	switch objectType {
 	case "solution":
 		var solution model.SolutionState
-		solution, err = utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
+		solution, err = i.ApiClient.GetSolution(ctx, objectName, objectNamespace)
 		if err != nil {
 			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
 			return nil, false, err
@@ -341,7 +319,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 		if udpated {
 			jData, _ := json.Marshal(solution)
-			err = utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectNamespace)
+			err = i.ApiClient.UpsertSolution(ctx, objectName, jData, objectNamespace)
 			if err != nil {
 				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
 				return nil, false, err

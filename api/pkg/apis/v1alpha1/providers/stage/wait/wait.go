@@ -30,16 +30,14 @@ var mwLock sync.Mutex
 var log = logger.NewLogger("coa.runtime")
 
 type WaitStageProviderConfig struct {
-	BaseUrl      string `json:"baseUrl"`
-	User         string `json:"user"`
-	Password     string `json:"password"`
-	WaitInterval int    `json:"wait.interval,omitempty"`
-	WaitCount    int    `json:"wait.count,omitempty"`
+	WaitInterval int `json:"wait.interval,omitempty"`
+	WaitCount    int `json:"wait.count,omitempty"`
 }
 
 type WaitStageProvider struct {
-	Config  WaitStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    WaitStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient *utils.APIClient
 }
 
 func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
@@ -50,6 +48,7 @@ func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
 	return nil
 }
 func (s *WaitStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -89,34 +88,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 
 	log.Info("  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get baseUrl: %v", err)
-		return ret, err
-	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		log.Errorf("  P (Wait Processor): baseUrl is required")
-		err = v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-		return ret, err
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get user: %v", err)
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		log.Errorf("  P (Wait Processor): user is required")
-		err = v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-		return ret, err
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get password: %v", err)
-		return ret, err
-	}
-	ret.Password = password
+
 	if v, ok := properties["wait.interval"]; ok {
 		var interval int
 		interval, err = strconv.Atoi(v)
@@ -174,7 +146,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		switch objectType {
 		case "instance":
 			var instances []model.InstanceState
-			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+			instances, err = i.ApiClient.GetInstances(ctx, namespace)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
 				return nil, false, err
@@ -188,7 +160,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		case "sites":
 			var sites []model.SiteState
-			sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			sites, err = i.ApiClient.GetSites(ctx)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
 				return nil, false, err
@@ -202,7 +174,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		case "catalogs":
 			var catalogs []model.CatalogState
-			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+			catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
 				return nil, false, err

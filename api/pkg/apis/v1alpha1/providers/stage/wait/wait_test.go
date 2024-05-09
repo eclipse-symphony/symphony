@@ -14,69 +14,28 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWaitInitFromVendorMap(t *testing.T) {
 	input := map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"wait.user":          "admin",
-		"wait.password":      "",
 		"wait.wait.interval": "15",
 		"wait.wait.count":    "10",
 	}
 	config, err := WaitStageProviderConfigFromVendorMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", config.BaseUrl)
-	assert.Equal(t, "admin", config.User)
-	assert.Equal(t, "", config.Password)
 	assert.Equal(t, 15, config.WaitInterval)
 	assert.Equal(t, 10, config.WaitCount)
 
-	input = map[string]string{}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
 	input = map[string]string{
-		"wait.baseUrl": "",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"wait.user":    "",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"wait.user":    "admin",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"wait.user":          "admin",
-		"wait.password":      "",
 		"wait.wait.interval": "abc",
 	}
 	config, err = WaitStageProviderConfigFromVendorMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"wait.user":          "admin",
-		"wait.password":      "",
 		"wait.wait.interval": "15",
 		"wait.wait.count":    "abc",
 	}
@@ -86,6 +45,7 @@ func TestWaitInitFromVendorMap(t *testing.T) {
 
 func TestWaitProcess(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	config := map[string]string{
 		"baseUrl":       ts.URL + "/",
 		"user":          "admin",

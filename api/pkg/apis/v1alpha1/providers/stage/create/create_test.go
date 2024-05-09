@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,9 +27,6 @@ func TestDeployInstance(t *testing.T) {
 	}
 	provider := CreateStageProvider{}
 	err := provider.Init(CreateStageProviderConfig{
-		BaseUrl:      "http://localhost:8082/v1alpha2/",
-		User:         "admin",
-		Password:     "",
 		WaitCount:    3,
 		WaitInterval: 5,
 	})
@@ -59,9 +57,6 @@ func TestCreateInitFromVendorMap(t *testing.T) {
 	}
 	config, err := SymphonyStageProviderConfigFromMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", config.BaseUrl)
-	assert.Equal(t, "admin", config.User)
-	assert.Equal(t, "", config.Password)
 	assert.Equal(t, 1, config.WaitInterval)
 	assert.Equal(t, 3, config.WaitCount)
 	err = provider.InitWithMap(input)
@@ -126,6 +121,7 @@ type AuthResponse struct {
 
 func TestCreateProcessCreate(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -149,6 +145,7 @@ func TestCreateProcessCreate(t *testing.T) {
 
 func TestCreateProcessCreateFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPIFailedCase()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -173,6 +170,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 
 func TestCreateProcessRemove(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",

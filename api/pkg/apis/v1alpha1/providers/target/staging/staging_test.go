@@ -16,6 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
@@ -250,6 +251,7 @@ func TestApply(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{
@@ -349,6 +351,7 @@ func TestGet(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{
@@ -419,6 +422,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{

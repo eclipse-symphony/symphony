@@ -19,14 +19,15 @@ import (
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ActivationReconciler reconciles a Campaign object
 type ActivationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	ApiClient utils.ApiClient
 }
 
 //+kubebuilder:rbac:groups=workflow.symphony,resources=activations,verbs=get;list;watch;create;update;patch;delete
@@ -59,7 +60,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
 		if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
-			err := api_utils.PublishActivationEvent(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", v1alpha2.ActivationData{
+			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,
 				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),

@@ -13,9 +13,7 @@
       "lng": "-122.12826"
     },
     "currentSite": {
-      "baseUrl": "http://symphony-service:8080/v1alpha2/",
-      "username": "admin",
-      "password": ""
+      "baseUrl": {{ include "symphony.httpsUrl" . | quote }}
     }
     {{- if .Values.parent.url }}
     ,
@@ -60,11 +58,7 @@
             "providers": {
               "catalog": {
                 "type": "providers.config.catalog",
-                "config": {
-                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
-                  "user": "admin",
-                  "password": ""
-                }
+                "config": {}
               }
             }
           }
@@ -78,9 +72,6 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
-              "user": "admin",
-              "password": "",
               "providers.state": "k8s-state"          
             },
             "providers": {
@@ -124,9 +115,6 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-          "wait.user": "admin",
-          "wait.password": "",
           "wait.wait.interval": "15",
           "wait.wait.count": "10"
         }
@@ -212,9 +200,6 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": {{ include "symphony.url" . | quote}},
-              "user": "admin",
-              "password": "",
               "interval": "#15",
               "poll.enabled": "false",
               "schedule.enabled": "true"                            
@@ -518,10 +503,7 @@
             "type": "managers.symphony.sync",
             "properties": {
               "interval": "#15",
-              "sync.enabled": "true",               
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
-              "user": "admin",
-              "password": ""
+              "sync.enabled": "true"           
             }
           }
         ]

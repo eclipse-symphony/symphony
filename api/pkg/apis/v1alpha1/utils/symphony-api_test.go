@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	testApiClient ApiClient = &apiClient{
+	testApiClient ApiClient = &APIClient{
 		baseUrl: baseUrl,
 	}
 )

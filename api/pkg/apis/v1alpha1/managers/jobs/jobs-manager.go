@@ -10,10 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -31,7 +29,7 @@ var log = logger.NewLogger("coa.runtime")
 type JobsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-	apiClient     utils.ApiClient
+	apiClient     *utils.APIClient
 	interval      int32
 }
 
@@ -52,40 +50,9 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		return err
 	}
 
-	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
-	if err != nil {
-		return err
-	}
-
 	s.interval = utils.ReadInt32(s.Manager.Config.Properties, "interval", 0)
 
-	clientOptions := make([]utils.ApiClientOption, 0)
-
-	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
-		clientOptions = append(clientOptions, utils.WithCertAuth(caCert))
-	}
-
-	if utils.ShouldUseSATokens() {
-		clientOptions = append(clientOptions, utils.WithServiceAccountToken())
-	} else {
-		user, err := utils.GetString(s.Manager.Config.Properties, "user")
-		if err != nil {
-			return err
-		}
-
-		password, err := utils.GetString(s.Manager.Config.Properties, "password")
-		if err != nil {
-			return err
-		}
-		clientOptions = append(clientOptions, utils.WithUserPassword(context.TODO(), user, password))
-	}
-
-	client, err := utils.NewAPIClient(context.Background(), baseUrl, clientOptions...)
-	if err != nil {
-		return err
-	}
-
-	s.apiClient = client
+	s.apiClient, err = utils.GetApiClient()
 	return nil
 }
 

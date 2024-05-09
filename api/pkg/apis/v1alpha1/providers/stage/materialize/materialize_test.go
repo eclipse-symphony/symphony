@@ -15,54 +15,11 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMaterializeInit(t *testing.T) {
-	provider := MaterializeStageProvider{}
-	input := map[string]string{
-		"baseUrl":  "http://symphony-service:8080/v1alpha2/",
-		"user":     "admin",
-		"password": "",
-	}
-	err := provider.InitWithMap(input)
-	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
-	assert.Equal(t, "admin", provider.Config.User)
-	assert.Equal(t, "", provider.Config.Password)
-
-	input = map[string]string{}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "admin",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-}
 
 func TestMaterializeInitFromVendorMap(t *testing.T) {
 	input := map[string]string{
@@ -74,13 +31,11 @@ func TestMaterializeInitFromVendorMap(t *testing.T) {
 	assert.Nil(t, err)
 	provider := MaterializeStageProvider{}
 	provider.Init(config)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
-	assert.Equal(t, "admin", provider.Config.User)
-	assert.Equal(t, "", provider.Config.Password)
 }
 func TestMaterializeProcessWithStageNs(t *testing.T) {
 	stageNs := "testns"
 	ts := InitializeMockSymphonyAPI(t, stageNs)
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -105,6 +60,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 
 func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -128,6 +84,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 
 func TestMaterializeProcessFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
+	utils.UpdateApiClientUrl(ts.URL + "/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
