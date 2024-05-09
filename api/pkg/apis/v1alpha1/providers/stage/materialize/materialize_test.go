@@ -82,7 +82,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":           []interface{}{"instance1", "target1", "solution1", "catalog1"},
+		"names":           []interface{}{"instance1", "target1", "solution1:v1", "catalog1"},
 		"__origin":        "hq",
 		"objectNamespace": stageNs,
 	})
@@ -107,7 +107,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1", "target1", "solution1", "catalog1"},
+		"names":    []interface{}{"instance1", "target1", "solution1:v1", "catalog1"},
 		"__origin": "hq",
 	})
 	assert.Nil(t, err)
@@ -127,7 +127,7 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1", "target1", "solution1, target2"},
+		"names":    []interface{}{"instance1", "target1", "solution1:v1, target2"},
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
@@ -157,7 +157,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
 			response = target
-		case "/solutions/solution1":
+		case "/solutions/solution1/v1":
 			var solution model.SolutionState
 			err := json.Unmarshal(body, &solution)
 			assert.Nil(t, err)
@@ -198,13 +198,13 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "hq-solution1",
+						Name: "hq-solution1-v1",
 					},
 					Spec: &model.CatalogSpec{
 						Type: "solution",
 						Properties: map[string]interface{}{
 							"spec": model.SolutionSpec{
-								DisplayName: "solution1",
+								DisplayName: "solution1-v1",
 							},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",

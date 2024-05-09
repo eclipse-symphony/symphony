@@ -142,7 +142,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	creationCount := 0
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
-			if catalog.ObjectMeta.Name == object {
+			objectName := object
+			if strings.Contains(objectName, ":") {
+				objectName = strings.ReplaceAll(objectName, ":", "-")
+			}
+			if catalog.ObjectMeta.Name == objectName {
 				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 				name := catalog.ObjectMeta.Name
 				if s, ok := inputs["__origin"]; ok {
@@ -183,11 +187,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(solutionState)
 					mLog.Debugf("  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-					err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+					err = i.ApiClient.UpsertSolution(ctx, object, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
+						return outputs, false, err
 					}
-					return outputs, false, err
 					creationCount++
 				case "target":
 					var targetState model.TargetState
@@ -203,7 +207,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(targetState)
 					mLog.Debugf("  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
-					err = i.ApiClient.CreateTarget(ctx, targetState.ObjectMeta.Name, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+					err = i.ApiClient.CreateTarget(ctx, object, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
@@ -220,7 +224,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
 					mLog.Debugf("  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
+					err = i.ApiClient.UpsertCatalog(ctx, object, objectData, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
 						return outputs, false, err

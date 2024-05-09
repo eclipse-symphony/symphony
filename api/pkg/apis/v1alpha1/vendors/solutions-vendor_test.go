@@ -28,7 +28,7 @@ func TestSolutionsEndpoints(t *testing.T) {
 	vendor := createSolutionsVendor()
 	vendor.Route = "solutions"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 1, len(endpoints))
+	assert.Equal(t, 2, len(endpoints))
 }
 
 func TestSolutionsInfo(t *testing.T) {
@@ -82,7 +82,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	solution := model.SolutionState{
 		Spec: &model.SolutionSpec{},
 		ObjectMeta: model.ObjectMeta{
-			Name:      "solutions1",
+			Name:      "solutions1-v1",
 			Namespace: "scope1",
 		},
 	}
@@ -92,6 +92,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 		Body:   data,
 		Parameters: map[string]string{
 			"__name":    "solutions1",
+			"__version": "v1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
@@ -102,6 +103,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
 			"__name":    "solutions1",
+			"__version": "v1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
@@ -110,10 +112,10 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	err := json.Unmarshal(resp.Body, &solutions)
 	assert.Nil(t, err)
-	assert.Equal(t, "solutions1", solutions.ObjectMeta.Name)
+	assert.Equal(t, "solutions1-v1", solutions.ObjectMeta.Name)
 	assert.Equal(t, "scope1", solutions.ObjectMeta.Namespace)
 
-	resp = vendor.onSolutions(v1alpha2.COARequest{
+	resp = vendor.onSolutionsList(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
 			"namespace": "scope1",
@@ -125,13 +127,14 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &solutionsList)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(solutionsList))
-	assert.Equal(t, "solutions1", solutionsList[0].ObjectMeta.Name)
+	assert.Equal(t, "solutions1-v1", solutionsList[0].ObjectMeta.Name)
 	assert.Equal(t, "scope1", solutionsList[0].ObjectMeta.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
 			"__name":    "solutions1",
+			"__version": "v1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),

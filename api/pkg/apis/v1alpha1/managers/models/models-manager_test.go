@@ -306,6 +306,10 @@ func (m *MemoryStateProviderFail) Get(ctx context.Context, getRequest states.Get
 	return states.StateEntry{}, err
 }
 
+func (m *MemoryStateProviderFail) GetLatest(ctx context.Context, getRequest states.GetRequest) (states.StateEntry, error) {
+	return states.StateEntry{}, nil
+}
+
 func (m *MemoryStateProviderFail) List(context.Context, states.ListRequest) ([]states.StateEntry, string, error) {
 	if (m.Data == nil) || (len(m.Data) == 0) {
 		return nil, "", assert.AnError

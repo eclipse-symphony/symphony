@@ -55,17 +55,18 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespa
 
 	var rootResource string
 	var version string
+	var id string
 	parts := strings.Split(name, ":")
 	if len(parts) == 2 {
 		rootResource = parts[0]
 		version = parts[1]
+		id = rootResource + "-" + version
 	} else {
-		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Solution name is invalid in the request (%s)", name), v1alpha2.BadRequest)
+		id = name
 	}
 
 	sLog.Info("  M (Solution manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
 
-	id := rootResource + "-" + version
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: id,
 		Metadata: map[string]interface{}{
@@ -87,34 +88,42 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
 
 	var rootResource string
-	version := state.Spec.Version
-	if state.Spec.RootResource == "" && version != "" {
-		suffix := "-" + version
-		rootResource = strings.TrimSuffix(name, suffix)
-	} else {
-		rootResource = state.Spec.RootResource
-	}
+	var version string
+	var refreshLabels bool
+	var versionLabelExists bool
+	var rootLabelExists bool
+	if state.Spec != nil {
+		//sLog.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
 
-	if state.ObjectMeta.Labels == nil {
-		state.ObjectMeta.Labels = make(map[string]string)
-	}
+		if state.Spec.Version != "" {
+			version = state.Spec.Version
+		}
+		if state.Spec.RootResource == "" && version != "" {
+			suffix := "-" + version
+			rootResource = strings.TrimSuffix(name, suffix)
+		} else {
+			rootResource = state.Spec.RootResource
+		}
 
-	_, versionLabelExists := state.ObjectMeta.Labels["version"]
-	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
-	refreshLabels := false
-	if !versionLabelExists || !rootLabelExists {
-		sLog.Info("  M (Solution manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
 
-		state.ObjectMeta.Labels["rootResource"] = rootResource
-		state.ObjectMeta.Labels["version"] = version
-		refreshLabels = true
+		_, versionLabelExists := state.ObjectMeta.Labels["version"]
+		_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+		if !versionLabelExists || !rootLabelExists {
+			sLog.Info("  M (Solution manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+
+			state.ObjectMeta.Labels["rootResource"] = rootResource
+			state.ObjectMeta.Labels["version"] = version
+			refreshLabels = true
+		}
 	}
 
 	sLog.Info("  M (Solution manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", refreshLabels, versionLabelExists, rootLabelExists)

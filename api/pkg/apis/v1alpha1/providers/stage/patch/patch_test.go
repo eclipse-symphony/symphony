@@ -154,7 +154,7 @@ func TestPatchProcessInline(t *testing.T) {
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectName":  "solution1:v1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -178,7 +178,7 @@ func TestPatchProcessInline(t *testing.T) {
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectName":  "solution1:v1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -220,7 +220,7 @@ func TestPatchProcessCatalog(t *testing.T) {
 	// Step 1: first add component to solution spec
 	provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectName":  "solution1:v1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -241,7 +241,7 @@ func TestPatchProcessCatalog(t *testing.T) {
 	// Step 2: update solution with config in catalog
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType":   "solution",
-		"objectName":   "solution1",
+		"objectName":   "solution1:v1",
 		"patchSource":  "catalog",
 		"patchContent": "catalog1",
 		"patchAction":  "add",
@@ -275,11 +275,11 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/solutions/solution1":
+		case "/solutions/solution1/v1":
 			if r.Method == "GET" {
 				response = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
-						Name: "solution1",
+						Name: "solution1-v1",
 					},
 					Spec: testSolution.Spec,
 				}
