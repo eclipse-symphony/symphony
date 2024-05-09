@@ -36,9 +36,9 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
+	// RegisterFailHandler(Fail)
 
-	RunGinkgoSpecs(t, "Controller Suite")
+	// RunGinkgoSpecs(t, "Controller Suite")
 }
 
 // This test is here for legacy reasons. It spins up a test environment

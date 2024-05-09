@@ -32,6 +32,7 @@ type (
 		api_utils.SummaryGetter
 		api_utils.Dispatcher
 		api_utils.Getter
+		api_utils.Setter
 	}
 
 	DeploymentResources struct {

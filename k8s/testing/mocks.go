@@ -284,6 +284,36 @@ func (*MockApiClient) GetTarget(ctx context.Context, target string, namespace st
 	panic("unimplemented")
 }
 
+// CreateInstance implements utils.ApiClient.
+func (*MockApiClient) CreateInstance(ctx context.Context, instance string, payload []byte, namespace string) error {
+	panic("unimplemented")
+}
+
+// CreateSolution implements utils.ApiClient.
+func (*MockApiClient) CreateSolution(ctx context.Context, solution string, payload []byte, namespace string) error {
+	panic("unimplemented")
+}
+
+// CreateTarget implements utils.ApiClient.
+func (*MockApiClient) CreateTarget(ctx context.Context, target string, payload []byte, namespace string) error {
+	panic("unimplemented")
+}
+
+// DeleteInstance implements utils.ApiClient.
+func (*MockApiClient) DeleteInstance(ctx context.Context, instance string, namespace string) error {
+	panic("unimplemented")
+}
+
+// DeleteSolution implements utils.ApiClient.
+func (*MockApiClient) DeleteSolution(ctx context.Context, solution string, namespace string) error {
+	panic("unimplemented")
+}
+
+// DeleteTarget implements utils.ApiClient.
+func (*MockApiClient) DeleteTarget(ctx context.Context, target string, namespace string) error {
+	panic("unimplemented")
+}
+
 func CreateSimpleDeploymentBuilder() func(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	return func(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 		return &model.DeploymentSpec{

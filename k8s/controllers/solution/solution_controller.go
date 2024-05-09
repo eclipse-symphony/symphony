@@ -18,8 +18,8 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	solutionv1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/utils"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -27,6 +27,9 @@ import (
 type SolutionReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	// ApiClient is the client for Symphony API
+	ApiClient utils.ApiClient
 }
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=solutions,verbs=get;list;watch;create;update;patch;delete
@@ -64,7 +67,7 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	solutionName := name + ":" + version
 	jData, _ := json.Marshal(solution)
 	log.Info(fmt.Sprintf("Reconcile Solution: %v %v", solutionName, version))
-	// log.Info(fmt.Sprintf("Reconcile Solution jdata: %v", solution))
+	log.Info(fmt.Sprintf("Reconcile Solution jdata: %v", solution))
 
 	log.Info(fmt.Sprintf("Solution.Labels: %v", solution.Labels["version"]))
 
@@ -82,7 +85,7 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Info(fmt.Sprintf("Solution update: exists version tag, %v", exists))
 		if !exists && version != "" && name != "" {
 			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert solution")
-			err := api_utils.UpsertSolution(ctx, "http://symphony-service:8080/v1alpha2/", solutionName, "admin", "", jData, req.Namespace)
+			err := r.ApiClient.CreateSolution(ctx, solutionName, jData, req.Namespace)
 			if err != nil {
 				log.Error(err, "Upsert solution failed")
 				return ctrl.Result{}, nil
@@ -94,7 +97,7 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		if exists && value == "latest" {
 			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete solution")
-			err := api_utils.DeleteSolution(ctx, "http://symphony-service:8080/v1alpha2/", solutionName, "admin", "", req.Namespace)
+			err := r.ApiClient.DeleteSolution(ctx, solutionName, req.Namespace)
 			if err != nil {
 				log.Error(err, "Delete solution failed")
 				return ctrl.Result{}, nil

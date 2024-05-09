@@ -57,21 +57,25 @@ type (
 		GetTarget(ctx context.Context, target string, namespace string) (model.TargetState, error)
 	}
 
+	Setter interface {
+		CreateInstance(ctx context.Context, instance string, payload []byte, namespace string) error
+		DeleteInstance(ctx context.Context, instance string, namespace string) error
+		DeleteTarget(ctx context.Context, target string, namespace string) error
+		CreateSolution(ctx context.Context, solution string, payload []byte, namespace string) error
+		DeleteSolution(ctx context.Context, solution string, namespace string) error
+		CreateTarget(ctx context.Context, target string, payload []byte, namespace string) error
+	}
+
 	ApiClient interface {
 		SummaryGetter
 		Dispatcher
 		Getter
+		Setter
 		GetInstancesForAllNamespaces(ctx context.Context, user string, password string) ([]model.InstanceState, error)
 		GetInstances(ctx context.Context, namespace string, user string, password string) ([]model.InstanceState, error)
-		CreateInstance(ctx context.Context, instance string, payload []byte, namespace string, user string, password string) error
-		DeleteInstance(ctx context.Context, instance string, namespace string, user string, password string) error
-		DeleteTarget(ctx context.Context, target string, namespace string, user string, password string) error
 		GetSolutions(ctx context.Context, namespace string, user string, password string) ([]model.SolutionState, error)
-		CreateSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error
-		DeleteSolution(ctx context.Context, solution string, namespace string, user string, password string) error
 		GetTargetsForAllNamespaces(ctx context.Context, user string, password string) ([]model.TargetState, error)
 		GetTargets(ctx context.Context, namespace string, user string, password string) ([]model.TargetState, error)
-		CreateTarget(ctx context.Context, target string, payload []byte, namespace string, user string, password string) error
 		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error)
 		CatalogHook(ctx context.Context, payload []byte, user string, password string) error
 		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
@@ -323,7 +327,20 @@ func (a *apiClient) CreateSolution(ctx context.Context, solution string, payload
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solution)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	var name string
+	var version string
+
+	log.Infof("Symphony API UpsertSolution, solution: %s namespace: %s", solution, namespace)
+
+	parts := strings.Split(solution, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid solution name")
+	}
+
+	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -337,7 +354,18 @@ func (a *apiClient) DeleteSolution(ctx context.Context, solution string, namespa
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solution)+"?namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	var name string
+	var version string
+
+	parts := strings.Split(solution, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid solution name")
+	}
+
+	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
