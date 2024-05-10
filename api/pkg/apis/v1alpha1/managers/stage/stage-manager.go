@@ -50,6 +50,13 @@ func (t *TaskResult) GetError() error {
 		switch sv := v.(type) {
 		case v1alpha2.State:
 			break
+		case float64:
+			state := v1alpha2.State(int(sv))
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %v", sv)
+			}
+			t.Outputs["__status"] = state
 		case int:
 			state := v1alpha2.State(sv)
 			stateValue := reflect.ValueOf(state)
@@ -232,6 +239,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						TriggeringStage:      stage,
 						Schedule:             cam.Stages[nextStage].Schedule,
 						Namespace:            namespace,
+						Proxy:                cam.Stages[nextStage].Proxy,
 					}
 					log.Debugf(" M (Stage): Activating next stage: %s\n", activationData.Stage)
 					return activationData, nil
@@ -323,7 +331,21 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	}
 
 	var outputs map[string]interface{}
-	outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+	if triggerData.Proxy != nil {
+		proxyProvider, err := factory.CreateProvider(triggerData.Proxy.Provider, nil)
+		if err != nil {
+			status.Status = v1alpha2.InternalError
+			status.ErrorMessage = err.Error()
+			status.IsActive = false
+			return status
+		}
+		if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
+			proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+		}
+		outputs, _, err = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
+	} else {
+		outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+	}
 
 	result := TaskResult{
 		Outputs: outputs,
@@ -349,6 +371,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	status.Outputs["__status"] = v1alpha2.OK
 	status.Status = v1alpha2.Done
 	status.IsActive = false
+
 	return status
 }
 func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site string) map[string]interface{} {
@@ -564,8 +587,23 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				} else {
 					var outputs map[string]interface{}
 					var pause bool
-					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
-
+					if triggerData.Proxy != nil {
+						proxyProvider, err := factory.CreateProvider(triggerData.Proxy.Provider, nil)
+						if err != nil {
+							results <- TaskResult{
+								Outputs: nil,
+								Error:   err,
+								Site:    site,
+							}
+							return
+						}
+						if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
+							proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+						}
+						outputs, pause, err = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
+					} else {
+						outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+					}
 					if pause {
 						pauseRequested = true
 					}
@@ -689,6 +727,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							TriggeringStage:      triggerData.Stage,
 							Schedule:             nextStage.Schedule,
 							Namespace:            triggerData.Namespace,
+							Proxy:                nextStage.Proxy,
 						}
 					} else {
 						status.Status = v1alpha2.InternalError
@@ -808,6 +847,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			TriggeringStage:      stage,
 			Schedule:             stageSpec.Schedule,
 			Namespace:            actData.Namespace,
+			Proxy:                stageSpec.Proxy,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)
