@@ -115,9 +115,7 @@ func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 							Name: "catalog1",
 						},
 						Spec: &model.CatalogSpec{
-							SiteId: "parent",
-							Name:   "catalog1",
-							Type:   "Instance",
+							Type: "Instance",
 							Properties: map[string]interface{}{
 								"foo": "bar",
 							},
@@ -200,6 +198,6 @@ func TestPoll(t *testing.T) {
 	<-sig2
 	assert.Equal(t, 1, catalogCnt)
 	assert.Equal(t, 1, jobCount)
-	assert.Equal(t, "catalog1", catalog1.Spec.Name)
+	assert.Equal(t, "catalog1", catalog1.ObjectMeta.Name)
 	assert.Equal(t, "job1", job1.Id)
 }

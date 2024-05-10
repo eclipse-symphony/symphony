@@ -108,7 +108,7 @@ func (s *TargetManager) Poll() []error {
 	target := s.ReferenceProvider.TargetID()
 	log.Infof(" M (Target): Poll target- %s", target)
 
-	ret, err := s.ReferenceProvider.List(target+"=true", "", "default", model.FabricGroup, "devices", "v1", "v1alpha2.ReferenceK8sCRD")
+	ret, err := s.ReferenceProvider.List(target+"=true", "", "", model.FabricGroup, "devices", "v1", "v1alpha2.ReferenceK8sCRD")
 	if err != nil {
 		return []error{err}
 	}
@@ -133,6 +133,10 @@ func (s *TargetManager) Poll() []error {
 			ip = i
 		}
 		name := device.Object.Metadata["name"].(string)
+		namespace, ok := device.Object.Metadata["namespace"].(string)
+		if !ok {
+			namespace = "default"
+		}
 		if ip != "" {
 			if user != "" && password != "" {
 				log.Debugf("taking snapshot from rtsp://%s:%s@%s...", user, "<password>", strings.ReplaceAll(ip, "rtsp://", ""))
@@ -143,7 +147,7 @@ func (s *TargetManager) Poll() []error {
 			if err != nil {
 				log.Debugf("failed to probe device: %s", err.Error())
 				errors = append(errors, err)
-				errors = append(errors, s.reportStatus(name, target, "", "disconnected", "disconnected", first, err.Error())...)
+				errors = append(errors, s.reportStatus(name, namespace, target, "", "disconnected", "disconnected", first, err.Error())...)
 				continue
 			}
 			if v, ok := ret["snapshot"]; ok {
@@ -151,14 +155,14 @@ func (s *TargetManager) Poll() []error {
 				if err != nil {
 					log.Debugf("failed to open local file: %s", err.Error())
 					errors = append(errors, err)
-					errors = append(errors, s.reportStatus(name, target, "", "connected", "connected", first, err.Error())...)
+					errors = append(errors, s.reportStatus(name, namespace, target, "", "connected", "connected", first, err.Error())...)
 					continue
 				}
 				data, err := ioutil.ReadAll(file)
 				if err != nil {
 					log.Debugf("failed to read local file: %s", err.Error())
 					errors = append(errors, err)
-					errors = append(errors, s.reportStatus(name, target, "", "connected", "connected", first, err.Error())...)
+					errors = append(errors, s.reportStatus(name, namespace, target, "", "connected", "connected", first, err.Error())...)
 					continue
 				}
 				fileName := filepath.Base(v)
@@ -166,20 +170,23 @@ func (s *TargetManager) Poll() []error {
 				if err != nil {
 					log.Debugf("failed to upload snapshot: %s", err.Error())
 					errors = append(errors, err)
-					errors = append(errors, s.reportStatus(name, target, "", "connected", "connected", first, err.Error())...)
+					errors = append(errors, s.reportStatus(name, namespace, target, "", "connected", "connected", first, err.Error())...)
 					continue
 				}
 				log.Debugf("file is uploaded to %s", str)
-				errors = append(errors, s.reportStatus(name, target, str, "connected", "connected", first, "")...)
+				errors = append(errors, s.reportStatus(name, namespace, target, str, "connected", "connected", first, "")...)
 			}
 		} else {
-			errors = append(errors, s.reportStatus(name, target, "", "disconnected", "disconnected", first, "device ip is not set")...)
+			errors = append(errors, s.reportStatus(name, namespace, target, "", "disconnected", "disconnected", first, "device ip is not set")...)
 		}
 		first = false
 	}
+	for _, err := range errors {
+		log.Errorf(" M (Target): polling error: %s", err.Error())
+	}
 	return errors
 }
-func (s *TargetManager) reportStatus(deviceName string, targetName string, snapshot string, targetStatus string, deviceStatus string, overwrite bool, errStr string) []error {
+func (s *TargetManager) reportStatus(deviceName string, namespace string, targetName string, snapshot string, targetStatus string, deviceStatus string, overwrite bool, errStr string) []error {
 	log.Infof(" M (Target): reportStatus deviceName- %s, targetName - %s, snapshot -%s targetStatus -%s, deviceStatus -%s, overwrite -%s", deviceName, targetName, snapshot, targetStatus, deviceStatus, overwrite)
 
 	ret := make([]error, 0)
@@ -191,7 +198,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[targetName+".err"] = errStr
 	}
-	err := s.Reporter.Report(deviceName, "default", model.FabricGroup, "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
+	err := s.Reporter.Report(deviceName, namespace, model.FabricGroup, "devices", "v1", report, false) //can't overwrite device state properties as other targets may be reporting as well
 	if err != nil {
 		log.Debugf("failed to report device status: %s", err.Error())
 		ret = append(ret, err)
@@ -201,7 +208,7 @@ func (s *TargetManager) reportStatus(deviceName string, targetName string, snaps
 	if errStr != "" {
 		report[deviceName+".err"] = errStr
 	}
-	err = s.Reporter.Report(targetName, "default", model.FabricGroup, "targets", "v1", report, overwrite)
+	err = s.Reporter.Report(targetName, namespace, model.FabricGroup, "targets", "v1", report, overwrite)
 	if err != nil {
 		log.Debugf("failed to report target status: %s", err.Error())
 		ret = append(ret, err)

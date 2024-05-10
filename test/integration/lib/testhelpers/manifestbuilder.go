@@ -9,191 +9,10 @@ package testhelpers
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"gopkg.in/yaml.v2"
-)
-
-type (
-	Metadata struct {
-		Annotations map[string]string `yaml:"annotations,omitempty"`
-		Name        string            `yaml:"name,omitempty"`
-	}
-
-	// Solution describes the structure of symphony solution yaml file
-	Solution struct {
-		ApiVersion string       `yaml:"apiVersion"`
-		Kind       string       `yaml:"kind"`
-		Metadata   Metadata     `yaml:"metadata"`
-		Spec       SolutionSpec `yaml:"spec"`
-	}
-
-	SolutionSpec struct {
-		DisplayName string            `yaml:"displayName,omitempty"`
-		Metadata    map[string]string `yaml:"metadata,omitempty"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
-	}
-
-	// Target describes the structure of symphony target yaml file
-	Target struct {
-		ApiVersion string     `yaml:"apiVersion"`
-		Kind       string     `yaml:"kind"`
-		Metadata   Metadata   `yaml:"metadata"`
-		Spec       TargetSpec `yaml:"spec"`
-	}
-
-	TargetSpec struct {
-		DisplayName string          `yaml:"displayName"`
-		Scope       string          `yaml:"scope,omitempty"`
-		Components  []ComponentSpec `yaml:"components,omitempty"`
-		Topologies  []Topology      `yaml:"topologies"`
-	}
-
-	Topology struct {
-		Bindings []Binding `yaml:"bindings"`
-	}
-
-	Binding struct {
-		Config   Config `yaml:"config"`
-		Provider string `yaml:"provider"`
-		Role     string `yaml:"role"`
-	}
-
-	Config struct {
-		InCluster string `yaml:"inCluster"`
-	}
-
-	ComponentSpec struct {
-		Name       string                 `yaml:"name"`
-		Properties map[string]interface{} `yaml:"properties"`
-		Type       string                 `yaml:"type"`
-	}
-)
-
-var (
-	ComponetsMap = map[string]ComponentSpec{
-		"e4k": {
-			Name: "e4k",
-			Properties: map[string]interface{}{
-				"chart": map[string]interface{}{
-					"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
-					"version": "0.3.0",
-				},
-			},
-			Type: "helm.v3",
-		},
-		"e4k-broker": {
-			Name: "e4k-high-availability-broker",
-			Properties: map[string]interface{}{
-				"chart": map[string]interface{}{
-					"repo":    "symphonycr.azurecr.io/az-e4k-broker",
-					"version": "0.1.0",
-				},
-			},
-			Type: "helm.v3",
-		},
-		"bluefin-extension": {
-			Name: "bluefin",
-			Properties: map[string]interface{}{
-				"chart": map[string]interface{}{
-					"repo":    "azbluefin.azurecr.io/helm/bluefin-arc-extension",
-					"version": "0.2.0-20230706.3-develop",
-				},
-			},
-			Type: "helm.v3",
-		},
-		"bluefin-instance": {
-			Name: "bluefin-instance",
-			Properties: map[string]interface{}{
-				"resource": map[string]interface{}{
-					"apiVersion": "bluefin.az-bluefin.com/v1",
-					"kind":       "Instance",
-					"metadata": map[string]interface{}{
-						"name":      "bf-instance",
-						"namespace": "default",
-					},
-					"spec": map[string]interface{}{
-						"displayName":          "Test Instance",
-						"otelCollectorAddress": "otel-collector.alice-springs.svc.cluster.local:4317",
-					},
-				},
-			},
-			Type: "yaml.k8s",
-		},
-
-		"bluefin-pipeline": {
-			Name: "test-pipeline",
-			Properties: map[string]interface{}{
-				"resource": map[string]interface{}{
-					"apiVersion": "bluefin.az-bluefin.com/v1",
-					"kind":       "Pipeline",
-					"metadata": map[string]interface{}{
-						"name":      "bf-pipeline",
-						"namespace": "default",
-					},
-					"spec": map[string]interface{}{
-						"displayName": "bf-pipeline",
-						"enabled":     true,
-						"input": map[string]interface{}{
-							"description": "Read from topic Thermostat 3",
-							"displayName": "E4K",
-							"format":      map[string]interface{}{"type": "json"},
-							"mqttConnectionInfo": map[string]interface{}{
-								"broker":   "tcp://azedge-dmqtt-frontend:1883",
-								"password": "password",
-								"username": "client1",
-							},
-							"next": []interface{}{"node-22f2"},
-							"topics": []interface{}{
-								map[string]interface{}{
-									"name": "alice-springs/data/opc-ua-connector/opc-ua-connector/thermostat-sample-3",
-								},
-							},
-							"type": "input/mqtt@v1",
-							"viewOptions": map[string]interface{}{
-								"position": map[string]interface{}{
-									"x": 0,
-									"y": 80,
-								},
-							},
-						},
-						"partitionCount": 6,
-						"stages": map[string]interface{}{
-							"node-22f2": map[string]interface{}{
-								"displayName": "No-op",
-								"next":        []interface{}{"output"},
-								"query":       ".",
-								"type":        "processor/transform@v1",
-								"viewOptions": map[string]interface{}{
-									"position": map[string]interface{}{
-										"x": 0,
-										"y": 208,
-									},
-								},
-							},
-							"output": map[string]interface{}{
-								"broker":      "tcp://azedge-dmqtt-frontend:1883",
-								"description": "Publish to topic demo-output-topic",
-								"displayName": "E4K",
-								"format":      map[string]interface{}{"type": "json"},
-								"password":    "password",
-								"timeout":     "45ms",
-								"topic":       "alice-springs/data/demo-output",
-								"type":        "output/mqtt@v1",
-								"username":    "client1",
-								"viewOptions": map[string]interface{}{
-									"position": map[string]interface{}{
-										"x": 0,
-										"y": 336,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Type: "yaml.k8s",
-		},
-	}
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 // BuildManifestFile modifies the target/solution manifest files
@@ -282,4 +101,160 @@ func addComponentsToTarget(data []byte, components []string) (Target, error) {
 	target.Spec.Components = yamlComponents
 
 	return target, nil
+}
+
+type (
+	InstanceOptions struct {
+		NamePostfix string
+		Scope       string
+		Namespace   string
+		Parameters  map[string]interface{}
+		PostProcess func(*Instance)
+		Solution    string
+	}
+
+	SolutionOptions struct {
+		NamePostfix    string
+		ComponentNames []string
+		Namespace      string
+		PostProcess    func(*Solution)
+		SolutionName   string
+	}
+
+	TargetOptions = struct {
+		NamePostfix    string
+		Scope          string
+		Namespace      string
+		ComponentNames []string
+		Properties     map[string]string
+		PostProcess    func(*Target)
+	}
+)
+
+const (
+	AzureOperationIdKey = "management.azure.com/operationId"
+)
+
+var leadingDash = regexp.MustCompile(`^-`)
+
+func PatchSolution(data []byte, opts SolutionOptions) ([]byte, error) {
+	var solution Solution
+	err := yaml.Unmarshal(data, &solution)
+	if err != nil {
+		return nil, err
+	}
+	yamlComponents := make([]ComponentSpec, 0)
+	for _, name := range opts.ComponentNames {
+		if val, ok := ComponetsMap[name]; ok {
+			yamlComponents = append(yamlComponents, val)
+		} else {
+			return nil, fmt.Errorf("component %s not found", name)
+		}
+	}
+
+	if solution.Metadata.Annotations == nil {
+		solution.Metadata.Annotations = make(map[string]string)
+	}
+
+	if opts.NamePostfix != "" {
+		solution.Metadata.Name = fmt.Sprintf("%s-%s", solution.Metadata.Name, opts.NamePostfix)
+		solution.Metadata.Name = leadingDash.ReplaceAllString(solution.Metadata.Name, "")
+	}
+
+	if opts.Namespace != "" {
+		solution.Metadata.Namespace = opts.Namespace
+	}
+
+	if opts.SolutionName != "" {
+		solution.Metadata.Name = opts.SolutionName
+	}
+
+	solution.Metadata.Annotations[AzureOperationIdKey] = string(uuid.NewUUID())
+	solution.Spec.Components = yamlComponents
+	if opts.PostProcess != nil {
+		opts.PostProcess(&solution)
+	}
+	return yaml.Marshal(solution)
+}
+
+func PatchTarget(data []byte, opts TargetOptions) ([]byte, error) {
+	var target Target
+	err := yaml.Unmarshal(data, &target)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range opts.ComponentNames {
+		if val, ok := ComponetsMap[name]; ok {
+			target.Spec.Components = append(target.Spec.Components, val)
+		} else {
+			return nil, fmt.Errorf("component %s not found", name)
+		}
+	}
+	if opts.NamePostfix != "" {
+		target.Metadata.Name = fmt.Sprintf("%s-%s", target.Metadata.Name, opts.NamePostfix)
+		target.Metadata.Name = leadingDash.ReplaceAllString(target.Metadata.Name, "")
+	}
+
+	if opts.Namespace != "" {
+		target.Metadata.Namespace = opts.Namespace
+	}
+
+	if opts.Scope != "" {
+		target.Spec.Scope = opts.Scope
+	}
+
+	if target.Metadata.Annotations == nil {
+		target.Metadata.Annotations = make(map[string]string)
+	}
+
+	if opts.Properties != nil {
+		target.Spec.Properties = opts.Properties
+	}
+
+	target.Metadata.Annotations[AzureOperationIdKey] = string(uuid.NewUUID())
+	if opts.PostProcess != nil {
+		opts.PostProcess(&target)
+	}
+
+	return yaml.Marshal(target)
+}
+
+func PatchInstance(data []byte, opts InstanceOptions) ([]byte, error) {
+	var instance Instance
+	err := yaml.Unmarshal(data, &instance)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.NamePostfix != "" {
+		instance.Metadata.Name = fmt.Sprintf("%s-%s", instance.Metadata.Name, opts.NamePostfix)
+		instance.Metadata.Name = leadingDash.ReplaceAllString(instance.Metadata.Name, "")
+	}
+
+	if opts.Namespace != "" {
+		instance.Metadata.Namespace = opts.Namespace
+	}
+
+	if opts.Scope != "" {
+		instance.Spec.Scope = opts.Scope
+	}
+
+	if opts.Solution != "" {
+		instance.Spec.Solution = opts.Solution
+	}
+
+	if opts.Parameters != nil {
+		instance.Spec.Parameters = opts.Parameters
+	}
+
+	if instance.Metadata.Annotations == nil {
+		instance.Metadata.Annotations = make(map[string]string)
+	}
+
+	instance.Metadata.Annotations[AzureOperationIdKey] = string(uuid.NewUUID())
+	if opts.PostProcess != nil {
+		opts.PostProcess(&instance)
+	}
+	return yaml.Marshal(instance)
 }

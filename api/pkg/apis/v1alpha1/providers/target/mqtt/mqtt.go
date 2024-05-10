@@ -25,7 +25,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.mqtt"
+
+var sLog = logger.NewLogger(loggerName)
 
 type MQTTTargetProviderConfig struct {
 	Name               string `json:"name"`
@@ -233,7 +235,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (MQTT Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (MQTT Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	data, _ := json.Marshal(deployment)
 	request := v1alpha2.COARequest{
@@ -289,7 +291,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (MQTT Target): deleting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (MQTT Target): deleting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	data, _ := json.Marshal(deployment)
 	request := v1alpha2.COARequest{
@@ -333,7 +335,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)

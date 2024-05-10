@@ -48,7 +48,7 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		jData, _ := json.Marshal(catalog.Spec)
+		jData, _ := json.Marshal(catalog)
 		err := api_utils.CatalogHook(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", jData)
 		if err != nil {
 			return ctrl.Result{}, err

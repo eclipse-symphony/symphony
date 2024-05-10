@@ -9,6 +9,8 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"gopls-workspace/apis/metrics/v1"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -22,13 +24,24 @@ import (
 // log is for logging in this package.
 var cataloglog = logf.Log.WithName("catalog-resource")
 var myCatalogClient client.Client
+var catalogWebhookValidationMetrics *metrics.Metrics
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.name", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
 		target := rawObj.(*Catalog)
 		return []string{target.Name}
 	})
+
+	// initialize the controller operation metrics
+	if catalogWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		catalogWebhookValidationMetrics = metrics
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -55,14 +68,46 @@ var _ webhook.Validator = &Catalog{}
 func (r *Catalog) ValidateCreate() error {
 	cataloglog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateCatalog()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateCatalog()
+	if validationError != nil {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.CatalogResourceType)
+	} else {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.CatalogResourceType)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Catalog) ValidateUpdate(old runtime.Object) error {
 	cataloglog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateCatalog()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateCatalog()
+	if validationError != nil {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.CatalogResourceType)
+	} else {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.CatalogResourceType)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -82,7 +127,7 @@ func (r *Catalog) checkSchema() error {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
-			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".spec.name": schemaName})
+			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
 				return v1alpha2.NewCOAError(err, "schema not found", v1alpha2.NotFound)

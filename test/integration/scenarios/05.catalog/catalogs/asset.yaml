@@ -2,10 +2,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: asset
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: asset
   properties:
     name: "東京"
     address: "東京都港区港南 2-16-3"

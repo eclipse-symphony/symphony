@@ -20,7 +20,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.staging"
+
+var sLog = logger.NewLogger(loggerName)
 
 type StagingTargetProviderConfig struct {
 	Name       string `json:"name"`
@@ -98,7 +100,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	catalog, err := utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
+		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
 		scope)
@@ -163,7 +165,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog, err = utils.GetCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
+		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password,
 		scope)
@@ -174,11 +176,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	if catalog.Spec == nil {
-		catalog.ObjectMeta.Name = deployment.Instance.Spec.Name + "-" + i.Config.TargetName
+		catalog.ObjectMeta.Name = deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
 		catalog.Spec = &model.CatalogSpec{
-			SiteId: i.Context.SiteInfo.SiteId,
 			Type:   "staged",
-			Name:   catalog.ObjectMeta.Name,
 		}
 	}
 	if catalog.Spec.Properties == nil {
@@ -272,7 +272,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	err = utils.UpsertCatalog(
 		ctx,
 		i.Context.SiteInfo.CurrentSite.BaseUrl,
-		deployment.Instance.Spec.Name+"-"+i.Config.TargetName,
+		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password, jData)
 	if err != nil {

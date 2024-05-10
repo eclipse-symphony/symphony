@@ -131,6 +131,7 @@ func Verify() error {
 
 // Clean up
 func Cleanup() {
+	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
 

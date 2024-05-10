@@ -98,9 +98,14 @@ func (m *HTTPReporter) Report(id string, namespace string, group string, kind st
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	var body []byte
+	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return v1alpha2.NewCOAError(nil, string(body), v1alpha2.State(resp.StatusCode))
 	}
 	return nil
 }

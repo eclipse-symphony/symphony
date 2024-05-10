@@ -9,6 +9,8 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/apis/metrics/v1"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -20,6 +22,7 @@ import (
 // log is for logging in this package.
 var skilllog = logf.Log.WithName("skill-resource")
 var mySkillClient client.Client
+var skillWebhookValidationMetrics *metrics.Metrics
 
 func (r *Skill) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySkillClient = mgr.GetClient()
@@ -27,6 +30,16 @@ func (r *Skill) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		skill := rawObj.(*Skill)
 		return []string{skill.Spec.DisplayName}
 	})
+
+	// initialize the controller operation metrics
+	if skillWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		skillWebhookValidationMetrics = metrics
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -53,14 +66,52 @@ var _ webhook.Validator = &Skill{}
 func (r *Skill) ValidateCreate() error {
 	skilllog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateSkill()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateSkill()
+
+	if validationError != nil {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.SkillResourceType,
+		)
+	} else {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.SkillResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Skill) ValidateUpdate(old runtime.Object) error {
 	skilllog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateSkill()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateSkill()
+
+	if validationError != nil {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.SkillResourceType,
+		)
+	} else {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.SkillResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

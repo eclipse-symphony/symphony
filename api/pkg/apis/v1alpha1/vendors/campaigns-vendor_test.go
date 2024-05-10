@@ -69,9 +69,7 @@ func TestCampaignsInfo(t *testing.T) {
 }
 func TestCampaignsOnCampaigns(t *testing.T) {
 	vendor := createCampaignsVendor()
-	campaignSpec := model.CampaignSpec{
-		Name: "campaign1",
-	}
+	campaignSpec := model.CampaignSpec{}
 	data, _ := json.Marshal(campaignSpec)
 	resp := vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -118,9 +116,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 }
 func TestCampaignsOnCampaignsFailure(t *testing.T) {
 	vendor := createCampaignsVendor()
-	campaignSpec := model.CampaignSpec{
-		Name: "campaign1",
-	}
+	campaignSpec := model.CampaignSpec{}
 	data, _ := json.Marshal(campaignSpec)
 	resp := vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
@@ -158,9 +154,7 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 
 func TestCampaignsWrongMethod(t *testing.T) {
 	vendor := createCampaignsVendor()
-	campaignSpec := model.CampaignSpec{
-		Name: "campaign1",
-	}
+	campaignSpec := model.CampaignSpec{}
 	data, _ := json.Marshal(campaignSpec)
 	resp := vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodPut,

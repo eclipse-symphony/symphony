@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: site-app-config
-spec:  
-  siteId: hq
+spec:
   type: config
   name: site-app-config
   properties:
@@ -14,10 +13,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-app-config
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: line-app-config
   properties:
     cat: leory
     dog: snoopy
@@ -26,10 +23,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: site-app
-spec:  
-  siteId: hq
+spec:
   type: solution
-  name: site-app
   properties:
     spec: 
       displayName: site-app
@@ -52,10 +47,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-app
-spec:  
-  siteId: hq
+spec:
   type: solution
-  name: line-app
   properties:
     spec: 
       components:
@@ -140,10 +133,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: smart-fridge
-spec:  
-  siteId: hq
+spec:
   type: solution
-  name: smart-fridge
   properties:
     spec: 
       displayName: smart-fridge
@@ -168,10 +159,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: site-instance
-spec:  
-  siteId: hq
+spec:
   type: instance
-  name: site-instance
   properties:
     spec: 
       solution: site-app

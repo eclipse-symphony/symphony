@@ -22,7 +22,7 @@ import (
 // Test config
 const (
 	TEST_NAME    = "workflow test"
-	TEST_TIMEOUT = "3m"
+	TEST_TIMEOUT = "4m"
 )
 
 var (
@@ -177,6 +177,7 @@ func Verify() error {
 
 // Clean up
 func Cleanup() {
+	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
 

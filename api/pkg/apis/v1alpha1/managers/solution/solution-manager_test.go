@@ -284,9 +284,10 @@ func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "instance",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{

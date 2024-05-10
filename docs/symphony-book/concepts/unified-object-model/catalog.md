@@ -10,9 +10,7 @@ kind: Catalog
 metadata:
   name: hq
 spec:  
-  siteId: hq
   type: asset
-  name: hq
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -36,9 +34,7 @@ kind: Catalog
 metadata:
   name: edges
 spec:  
-  siteId: hq
   type: edge
-  name: edges
   properties:
     node1: node2
     node2: node3
@@ -54,9 +50,7 @@ kind: Catalog
 metadata:
   name: app-config
 spec:  
-  siteId: hq
   type: config
-  name: app-config
   parentName: global-config
   metadata:
     asset: use-case

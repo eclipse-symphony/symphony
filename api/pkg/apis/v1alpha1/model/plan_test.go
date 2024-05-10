@@ -7,6 +7,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -218,8 +219,8 @@ func createSampleDeploymentStepWithDeleteComponent() DeploymentStep {
 func TestPrepareResultMap(t *testing.T) {
 	s := createSampleDeploymentStepWithUpdateComponent()
 	resultMap := s.PrepareResultMap()
-	assert.Equal(t, resultMap["sample-grpc-solution"].Status, v1alpha2.Untouched)
-	assert.Equal(t, resultMap["sample-grpc-solution"].Message, "")
+	assert.Equal(t, v1alpha2.Untouched, resultMap["sample-grpc-solution"].Status)
+	assert.Equal(t, fmt.Sprintf("No error. %s is untouched", "sample-grpc-solution"), resultMap["sample-grpc-solution"].Message)
 }
 
 func TestGetComponents(t *testing.T) {

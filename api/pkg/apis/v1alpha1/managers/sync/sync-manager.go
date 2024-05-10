@@ -61,7 +61,7 @@ func (s *SyncManager) Poll() []error {
 					"origin":     batch.Origin,
 				},
 				Body: v1alpha2.JobData{
-					Id:     catalog.Spec.Name,
+					Id:     catalog.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},

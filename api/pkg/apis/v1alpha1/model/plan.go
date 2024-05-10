@@ -7,6 +7,7 @@
 package model
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -55,7 +56,7 @@ func (s DeploymentStep) PrepareResultMap() map[string]ComponentResultSpec {
 	for _, c := range s.Components {
 		ret[c.Component.Name] = ComponentResultSpec{
 			Status:  v1alpha2.Untouched,
-			Message: "",
+			Message: fmt.Sprintf("No error. %s is untouched", c.Component.Name),
 		}
 	}
 	return ret

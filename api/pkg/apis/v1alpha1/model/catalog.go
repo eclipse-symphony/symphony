@@ -31,8 +31,6 @@ type ObjectRef struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	SiteId     string                 `json:"siteId"`
-	Name       string                 `json:"name"`
 	Type       string                 `json:"type"`
 	Metadata   map[string]string      `json:"metadata,omitempty"`
 	Properties map[string]interface{} `json:"properties"`
@@ -49,14 +47,6 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(CatalogSpec)
 	if !ok {
 		return false, errors.New("parameter is not a CatalogSpec type")
-	}
-
-	if c.SiteId != otherC.SiteId {
-		return false, nil
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
 	}
 
 	if c.ParentName != otherC.ParentName {

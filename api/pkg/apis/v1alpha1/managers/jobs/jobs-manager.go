@@ -10,8 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -29,14 +31,16 @@ var log = logger.NewLogger("coa.runtime")
 type JobsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
+	interval      int32
 }
 
 type LastSuccessTime struct {
 	Time time.Time `json:"time"`
 }
 
-func (s *JobsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	err := s.Manager.Init(context, config, providers)
+func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(vContext, config, providers)
 	if err != nil {
 		return err
 	}
@@ -47,6 +51,41 @@ func (s *JobsManager) Init(context *contexts.VendorContext, config managers.Mana
 	} else {
 		return err
 	}
+
+	baseUrl, err := utils.GetString(s.Manager.Config.Properties, "baseUrl")
+	if err != nil {
+		return err
+	}
+
+	s.interval = utils.ReadInt32(s.Manager.Config.Properties, "interval", 0)
+
+	clientOptions := make([]utils.ApiClientOption, 0)
+
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, utils.WithCertAuth(caCert))
+	}
+
+	if utils.ShouldUseSATokens() {
+		clientOptions = append(clientOptions, utils.WithServiceAccountToken())
+	} else {
+		user, err := utils.GetString(s.Manager.Config.Properties, "user")
+		if err != nil {
+			return err
+		}
+
+		password, err := utils.GetString(s.Manager.Config.Properties, "password")
+		if err != nil {
+			return err
+		}
+		clientOptions = append(clientOptions, utils.WithUserPassword(context.TODO(), user, password))
+	}
+
+	client, err := utils.NewAPIClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return err
+	}
+
+	s.apiClient = client
 	return nil
 }
 
@@ -61,26 +100,12 @@ func (s *JobsManager) pollObjects() []error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	var baseUrl, user, password string
-	baseUrl, err = utils.GetString(s.Manager.Config.Properties, "baseUrl")
-	if err != nil {
-		return []error{err}
-	}
-	user, err = utils.GetString(s.Manager.Config.Properties, "user")
-	if err != nil {
-		return []error{err}
-	}
-	password, err = utils.GetString(s.Manager.Config.Properties, "password")
-	if err != nil {
-		return []error{err}
-	}
-	interval := utils.ReadInt32(s.Manager.Config.Properties, "interval", 0)
-	if interval == 0 {
+	if s.interval == 0 {
 		return nil
 	}
 
 	var instances []model.InstanceState
-	instances, err = utils.GetInstancesForAllNamespaces(context, baseUrl, user, password)
+	instances, err = s.apiClient.GetInstancesForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -89,12 +114,15 @@ func (s *JobsManager) pollObjects() []error {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
 			ID: "i_" + instance.ObjectMeta.Name,
+			Metadata: map[string]interface{}{
+				"namespace": instance.ObjectMeta.Namespace,
+			},
 		})
 		needsPub := true
 		if err == nil {
 			var stamp LastSuccessTime
 			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
-				if time.Since(stamp.Time) > time.Duration(interval)*time.Second { //TODO: compare object hash as well?
+				if time.Since(stamp.Time) > time.Duration(s.interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
 					needsPub = false
@@ -109,12 +137,13 @@ func (s *JobsManager) pollObjects() []error {
 				Body: v1alpha2.JobData{
 					Id:     instance.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate,
+					Scope:  instance.ObjectMeta.Namespace,
 				},
 			})
 		}
 	}
 	var targets []model.TargetState
-	targets, err = utils.GetTargetsForAllNamespaces(context, baseUrl, user, password)
+	targets, err = s.apiClient.GetTargetsForAllNamespaces(context)
 	if err != nil {
 		fmt.Println(err.Error())
 		return []error{err}
@@ -123,12 +152,15 @@ func (s *JobsManager) pollObjects() []error {
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(context, states.GetRequest{
 			ID: "t_" + target.ObjectMeta.Name,
+			Metadata: map[string]interface{}{
+				"namespace": target.ObjectMeta.Namespace,
+			},
 		})
 		needsPub := true
 		if err == nil {
 			var stamp LastSuccessTime
 			if stamp, err = getLastSuccessTime(entry.Body); err == nil {
-				if time.Since(stamp.Time) > time.Duration(interval)*time.Second { //TODO: compare object hash as well?
+				if time.Since(stamp.Time) > time.Duration(s.interval)*time.Second { //TODO: compare object hash as well?
 					needsPub = true
 				} else {
 					needsPub = false
@@ -143,6 +175,7 @@ func (s *JobsManager) pollObjects() []error {
 				Body: v1alpha2.JobData{
 					Id:     target.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate,
+					Scope:  target.ObjectMeta.Namespace,
 				},
 			})
 		}
@@ -234,6 +267,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
+	log.Debugf(" M (Job): handling heartbeat h_%s", heartbeat.JobId)
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
@@ -267,8 +301,10 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
+			log.Errorf(" M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
+		log.Debugf(" M (Job): found heartbeat %s, entry: %+v", key, entry)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
@@ -328,9 +364,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 	if objectType, ok := event.Metadata["objectType"]; ok {
 		var job v1alpha2.JobData
-		var baseUrl string
-		var user string
-		var password string
 		jData, _ := json.Marshal(event.Body)
 		err = json.Unmarshal(jData, &job)
 		if err != nil {
@@ -342,33 +375,21 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return err
 		}
 
-		baseUrl, err = utils.GetString(s.Manager.Config.Properties, "baseUrl")
-		if err != nil {
-			return err
-		}
-		user, err = utils.GetString(s.Manager.Config.Properties, "user")
-		if err != nil {
-			return err
-		}
-		password, err = utils.GetString(s.Manager.Config.Properties, "password")
-		if err != nil {
-			return err
-		}
 		switch objectType {
 		case "instance":
 			log.Debugf(" M (Job): handling instance job %s", job.Id)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
-			instance, err = utils.GetInstance(ctx, baseUrl, instanceName, user, password, namespace)
+			instance, err = s.apiClient.GetInstance(ctx, instanceName, namespace)
 			if err != nil {
-				log.Errorf(" M (Job): error getting instance %s: %s", instanceName, err.Error())
+				log.Errorf(" M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
 				return err //TODO: instance is gone
 			}
 
 			//get solution
 			var solution model.SolutionState
-			solution, err = utils.GetSolution(ctx, baseUrl, instance.Spec.Solution, user, password, namespace)
+			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace)
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
@@ -383,7 +404,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get targets
 			var targets []model.TargetState
-			targets, err = utils.GetTargets(ctx, baseUrl, user, password, namespace)
+			targets, err = s.apiClient.GetTargets(ctx, namespace)
 			if err != nil {
 				targets = make([]model.TargetState, 0)
 			}
@@ -393,7 +414,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//create deployment spec
 			var deployment model.DeploymentSpec
-			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil)
+			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil, namespace)
 			if err != nil {
 				log.Errorf(" M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
@@ -402,7 +423,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			//call api
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
@@ -420,11 +441,11 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteInstance(ctx, baseUrl, deployment.Instance.Spec.Name, user, password, namespace)
+					return s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -432,18 +453,18 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		case "target":
 			var target model.TargetState
 			targetName := job.Id
-			target, err = utils.GetTarget(ctx, baseUrl, targetName, user, password, namespace)
+			target, err = s.apiClient.GetTarget(ctx, targetName, namespace)
 			if err != nil {
 				return err
 			}
 			var deployment model.DeploymentSpec
-			deployment, err = utils.CreateSymphonyDeploymentFromTarget(target)
+			deployment, err = utils.CreateSymphonyDeploymentFromTarget(target, namespace)
 			if err != nil {
 				return err
 			}
 			switch job.Action {
 			case v1alpha2.JobUpdate:
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, false)
+				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace)
 				if err != nil {
 					return err
 				} else {
@@ -461,14 +482,48 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					})
 				}
 			case v1alpha2.JobDelete:
-				_, err = utils.Reconcile(ctx, baseUrl, user, password, deployment, namespace, true)
+				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace)
 				if err != nil {
 					return err
 				} else {
-					return utils.DeleteTarget(ctx, baseUrl, targetName, user, password, namespace)
+					return s.apiClient.DeleteTarget(ctx, targetName, namespace)
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
+			}
+		case "deployment":
+			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
+			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
+
+			var deployment *model.DeploymentSpec
+			deployment, err = model.ToDeployment(job.Data)
+			if err != nil {
+				return err
+			}
+			if job.Action == v1alpha2.JobUpdate {
+				_, err = s.apiClient.Reconcile(ctx, *deployment, false, namespace)
+				if err != nil {
+					return err
+				} else {
+					// TODO: how to handle status updates?
+					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+						Value: states.StateEntry{
+							ID: "d_" + deployment.Instance.ObjectMeta.Name,
+							Body: LastSuccessTime{
+								Time: time.Now().UTC(),
+							},
+						},
+						Metadata: map[string]interface{}{
+							"namespace": namespace,
+						},
+					})
+				}
+			}
+			if job.Action == v1alpha2.JobDelete {
+				_, err = s.apiClient.Reconcile(ctx, *deployment, true, namespace)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

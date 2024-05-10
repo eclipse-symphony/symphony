@@ -9,6 +9,8 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/apis/metrics/v1"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -20,6 +22,7 @@ import (
 // log is for logging in this package.
 var devicelog = logf.Log.WithName("device-resource")
 var myDeviceClient client.Client
+var deviceWebhookValidationMetrics *metrics.Metrics
 
 func (r *Device) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myDeviceClient = mgr.GetClient()
@@ -28,6 +31,16 @@ func (r *Device) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		device := rawObj.(*Device)
 		return []string{device.Spec.DisplayName}
 	})
+
+	// initialize the controller operation metrics
+	if deviceWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		deviceWebhookValidationMetrics = metrics
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -54,14 +67,52 @@ var _ webhook.Validator = &Device{}
 func (r *Device) ValidateCreate() error {
 	devicelog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateDevice()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateDevice()
+
+	if validationError != nil {
+		deviceWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.DeviceResourceType,
+		)
+	} else {
+		deviceWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.DeviceResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Device) ValidateUpdate(old runtime.Object) error {
 	devicelog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateDevice()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateDevice()
+
+	if validationError != nil {
+		deviceWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.DeviceResourceType,
+		)
+	} else {
+		deviceWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.DeviceResourceType,
+		)
+	}
+
+	return validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
