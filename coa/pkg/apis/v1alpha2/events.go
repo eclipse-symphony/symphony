@@ -50,6 +50,7 @@ type ActivationData struct {
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 	Schedule             *ScheduleSpec                     `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`
+	Proxy                *ProxySpec                        `json:"proxy,omitempty"`
 }
 
 type HeartBeatAction string
@@ -69,6 +70,16 @@ type ScheduleSpec struct {
 	Date string `json:"date"`
 	Time string `json:"time"`
 	Zone string `json:"zone"`
+}
+
+type ProxyConfigSpec struct {
+	BaseUrl  string `json:"baseUrl,omitempty"`
+	User     string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+type ProxySpec struct {
+	Provider string          `json:"provider,omitempty"`
+	Config   ProxyConfigSpec `json:"config,omitempty"`
 }
 
 func (s ScheduleSpec) ShouldFireNow() (bool, error) {
