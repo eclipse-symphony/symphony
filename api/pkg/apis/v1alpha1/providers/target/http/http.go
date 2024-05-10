@@ -23,7 +23,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.http"
+
+var sLog = logger.NewLogger(loggerName)
 
 type HttpTargetProviderConfig struct {
 	Name string `json:"name"`
@@ -178,6 +180,11 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				err = errors.New("HTTP request didn't respond 200 OK")
 				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
+			}
+
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "HTTP request succeeded",
 			}
 		}
 	}

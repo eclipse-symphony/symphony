@@ -20,7 +20,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.staging"
+
+var sLog = logger.NewLogger(loggerName)
 
 type StagingTargetProviderConfig struct {
 	Name       string `json:"name"`

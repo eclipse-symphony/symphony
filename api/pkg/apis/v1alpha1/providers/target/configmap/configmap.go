@@ -334,7 +334,7 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 				Name: namespace,
 			},
 		}, metav1.CreateOptions{})
-		if err != nil {
+		if err != nil && !kerrors.IsAlreadyExists(err) {
 			sLog.Errorf("  P (ConfigMap Target): failed to create namespace: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 			return err
 		}

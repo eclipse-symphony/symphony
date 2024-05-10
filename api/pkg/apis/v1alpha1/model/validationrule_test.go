@@ -667,3 +667,93 @@ func TestCheckSidecarEnvVarChange(t *testing.T) {
 	equal := validationRule.IsComponentChanged(components1, components2)
 	assert.True(t, equal)
 }
+
+func TestValidateChangeDetectionNoChange(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", IgnoreCase: false, SkipIfMissing: true},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.False(t, rule.IsComponentChanged(oldComponent, newComponent))
+}
+
+func TestValidateChangeDetectionWithChange(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", IgnoreCase: false, SkipIfMissing: true},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "changed valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.True(t, rule.IsComponentChanged(oldComponent, newComponent))
+}
+
+func TestValidateChangeDetectionWithCustomComparator(t *testing.T) {
+	rule := ValidationRule{
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionProperties: []PropertyDesc{
+				{Name: "prop", PropChanged: func(_, _ any) bool {
+					// always return true
+					return true
+				}},
+			},
+		},
+	}
+	oldComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	newComponent := ComponentSpec{
+		Properties: map[string]interface{}{
+			"prop": map[string]interface{}{
+				"propa": "valuea",
+				"propb": "valueb",
+			},
+		},
+		Name: "comp",
+	}
+	assert.True(t, rule.IsComponentChanged(oldComponent, newComponent))
+}

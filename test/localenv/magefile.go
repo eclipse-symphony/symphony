@@ -166,6 +166,49 @@ func BuildUp() error {
 	return nil
 }
 
+// Run a command with | or other things that do not work in shellcmd
+func shellExec(cmd string, printCmdOrNot bool) error {
+	if printCmdOrNot {
+		fmt.Println(">", cmd)
+	}
+
+	execCmd := exec.Command("sh", "-c", cmd)
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+
+	return execCmd.Run()
+}
+
+// Collect Symphony logs to a log folder provided
+func Logs(logRootFolder string) error {
+	// api logs
+	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
+	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
+
+	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", NAMESPACE, apiLogFile), true)
+
+	if err != nil {
+		return err
+	}
+
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", NAMESPACE, k8sLogFile), true)
+
+	return err
+}
+
+// Dump symphony api and k8s logs for tests
+func DumpSymphonyLogsForTest(testName string) {
+	normalizedTestName := strings.Replace(testName, "/", "_", -1)
+	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
+
+	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
+	logRootFolder := fmt.Sprintf("/tmp/symhony-integration-test-logs/%s", logFolderName)
+
+	_ = shellcmd.Command(fmt.Sprintf("mkdir -p %s", logRootFolder)).Run()
+
+	_ = Logs(logRootFolder)
+}
+
 // Uninstall all components, e.g. mage destroy all
 func Destroy(flags string) error {
 	err := shellcmd.RunAll(
@@ -213,6 +256,27 @@ func (Build) All() error {
 	}
 
 	return nil
+}
+
+// Store the docker images to tar files
+func (Build) Save() error {
+	defer logTime(time.Now(), "build:save")
+
+	err := saveDockerImageToTarFile("symphony-k8s:latest.tar", "ghcr.io/eclipse-symphony/symphony-k8s:latest")
+	if err != nil {
+		return err
+	}
+
+	err = saveDockerImageToTarFile("symphony-api:latest.tar", "ghcr.io/eclipse-symphony/symphony-api:latest")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func saveDockerImageToTarFile(tarFilePath string, imageTag string) error {
+	return shellcmd.Command(fmt.Sprintf("docker image save -o %s %s", tarFilePath, imageTag)).Run()
 }
 
 // Build api container
@@ -431,7 +495,7 @@ func GhcrLogin() error {
 
 // Remove Symphony resource
 func Remove(resourceType, resourceName string) error {
-	fmt.Println("Deleting resource %s %s", resourceType, resourceName)
+	fmt.Printf("Deleting resource %s %s\n", resourceType, resourceName)
 	err := shellcmd.RunAll(shellcmd.Command(fmt.Sprintf("kubectl delete %s %s", resourceType, resourceName)))
 	if err != nil {
 		return err
@@ -531,7 +595,7 @@ func waitForServiceCleanup() error {
 			return fmt.Errorf("Failed to clean up all the resources!")
 		}
 
-		o, err := shellcmd.Command.Output(`kubectl get pods -A --no-headers`)
+		o, err := shellcmd.Command.Output(`kubectl get pods -A --output=jsonpath='{range .items[*]}{@.metadata.namespace}{"|"}{@.metadata.name}{"\n"}{end}'`)
 		if err != nil {
 			return err
 		}
@@ -540,13 +604,11 @@ func waitForServiceCleanup() error {
 		notReady := make([]string, 0)
 
 		for _, pod := range pods {
-			if len(strings.TrimSpace(pod)) > 3 && !strings.Contains(pod, "kube-system") {
-				parts := strings.Split(pod, " ")
-				name := pod
-				if len(parts) >= 2 {
-					name = parts[1]
-				}
-				notReady = append(notReady, name)
+			parts := strings.Split(pod, "|")
+			pod = parts[1]
+			namespace := parts[0]
+			if namespace != "kube-system" {
+				notReady = append(notReady, pod)
 			}
 		}
 

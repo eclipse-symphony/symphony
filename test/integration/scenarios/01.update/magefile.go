@@ -93,6 +93,7 @@ func Cleanup() {
 
 	_ = shellcmd.Command("rm -rf ./manifestForTestingOnly/oss").Run()
 
+	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
 
