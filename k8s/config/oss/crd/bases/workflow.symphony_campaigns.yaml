@@ -53,6 +53,20 @@ spec:
                       type: string
                     provider:
                       type: string
+                    proxy:
+                      properties:
+                        config:
+                          properties:
+                            baseUrl:
+                              type: string
+                            password:
+                              type: string
+                            user:
+                              type: string
+                          type: object
+                        provider:
+                          type: string
+                      type: object
                     schedule:
                       properties:
                         date:
