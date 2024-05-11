@@ -310,6 +310,18 @@ func DockerBuild() error {
 	return shellcmd.Command("docker-compose -f docker-compose.yaml build").Run()
 }
 
+func DockerBuildWithOverrideImg(buildBaseImg string, targetBaseImg string) error {
+	var arg string
+	if buildBaseImg != "" {
+		arg += fmt.Sprintf(" --build-arg BUILD_BASE_IMAGE=%s", buildBaseImg)
+	}
+	if targetBaseImg != "" {
+		arg += fmt.Sprintf(" --build-arg TARGET_BASE_IMAGE=%s", targetBaseImg)
+	}
+
+	return shellcmd.Command(fmt.Sprintf("docker-compose -f docker-compose.yaml build %s", arg)).Run()
+}
+
 // Run a command with | or other things that do not work in shellcmd
 func shellExec(cmd string, printCmdOrNot bool) error {
 	if printCmdOrNot {

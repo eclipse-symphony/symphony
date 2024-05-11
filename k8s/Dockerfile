@@ -9,7 +9,10 @@
 ##   docker build -f k8s/Dockerfile .
 ## Or build with docker-compose file of k8s
 
-FROM --platform=$BUILDPLATFORM golang:1.20.2-alpine AS builder
+ARG BUILD_BASE_IMAGE=golang:1.20.2-alpine
+ARG TARGET_BASE_IMAGE=mcr.microsoft.com/mirror/docker/library/alpine:3.16
+
+FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -33,7 +36,7 @@ WORKDIR /k8s
 RUN CGO_ENABLED=1 mage generate operatorTest
 # Build
 RUN CGO_ENABLED=0 mage build
-FROM mcr.microsoft.com/mirror/docker/library/alpine:3.16 AS manager
+FROM ${TARGET_BASE_IMAGE} AS manager
 WORKDIR /
 COPY --from=builder /k8s/bin/manager .
 USER 65532:65532
