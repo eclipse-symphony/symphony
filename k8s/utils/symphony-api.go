@@ -166,8 +166,11 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
-
-			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+			targetName := instance.Spec.Target.Name
+			if strings.Contains(targetName, ":") {
+				targetName = strings.ReplaceAll(targetName, ":", "-")
+			}
+			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}

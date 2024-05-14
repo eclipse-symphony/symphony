@@ -375,7 +375,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err //TODO: instance is gone
 			}
 
-			log.Debugf(" M (Job): handling instance job solution name >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s", instance.Spec.Solution)
+			// log.Debugf(" M (Job): handling instance job name >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s, %s", instance.Spec.Solution, instance.Spec.Target.Name)
 
 			//get solution
 			var solution model.SolutionState
@@ -463,7 +463,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					// TODO: how to handle status updates?
 					s.StateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
-							ID: "t_" + targetName,
+							ID: "t_" + target.ObjectMeta.Name,
 							Body: LastSuccessTime{
 								Time: time.Now().UTC(),
 							},

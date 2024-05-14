@@ -87,6 +87,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	if !exist {
 		namespace = constants.DefaultScope
 	}
+
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	id := rootResource + "-" + version
@@ -214,7 +215,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
-		id := rootResource + ":" + version
+		id = rootResource + ":" + version
 		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -249,7 +250,7 @@ func (c *SolutionsVendor) onSolutionsList(request v1alpha2.COARequest) v1alpha2.
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
-		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
+		ctx, span := observability.StartSpan("onSolutionsList-GET", pCtx, nil)
 
 		var err error
 		var state interface{}

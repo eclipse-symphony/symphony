@@ -61,7 +61,7 @@ func TestInstancesEndpoints(t *testing.T) {
 	vendor := createInstancesVendor()
 	vendor.Route = "instances"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 1, len(endpoints))
+	assert.Equal(t, 2, len(endpoints))
 }
 func TestInstancesInfo(t *testing.T) {
 	vendor := createInstancesVendor()
@@ -87,7 +87,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		err := json.Unmarshal(jData, &job)
 		assert.Nil(t, err)
 		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "instance1", job.Id)
+		assert.Equal(t, "instance1-v1", job.Id)
 		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		succeededCount += 1
 		sig <- true
@@ -99,9 +99,10 @@ func TestInstancesOnInstances(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":   "instance1",
-			"target":   "target1",
-			"solution": "solution1",
+			"__name":    "instance1",
+			"__version": "v1",
+			"target":    "target1",
+			"solution":  "solution1",
 		},
 		Context: context.Background(),
 	})
@@ -111,7 +112,8 @@ func TestInstancesOnInstances(t *testing.T) {
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name":    "instance1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -119,10 +121,10 @@ func TestInstancesOnInstances(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.ObjectMeta.Name)
+	assert.Equal(t, "instance1-v1", instance.ObjectMeta.Name)
 	assert.Equal(t, "target1", instance.Spec.Target.Name)
 
-	resp = vendor.onInstances(v1alpha2.COARequest{
+	resp = vendor.onInstancesList(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 	})
@@ -131,13 +133,14 @@ func TestInstancesOnInstances(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	assert.Equal(t, 1, len(instances))
-	assert.Equal(t, "instance1", instances[0].ObjectMeta.Name)
+	assert.Equal(t, "instance1-v1", instances[0].ObjectMeta.Name)
 	assert.Equal(t, "target1", instances[0].Spec.Target.Name)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name":    "instance1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -152,13 +155,14 @@ func TestInstancesOnInstances(t *testing.T) {
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name":    "instance1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 
-	resp = vendor.onInstances(v1alpha2.COARequest{
+	resp = vendor.onInstancesList(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 	})
@@ -182,6 +186,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 		Body:   data,
 		Parameters: map[string]string{
 			"__name":          "instance1",
+			"__version":       "v1",
 			"target-selector": "property1=value1",
 			"solution":        "solution1",
 		},
@@ -192,7 +197,8 @@ func TestInstancesTargetSelector(t *testing.T) {
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name":    "instance1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -200,7 +206,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.ObjectMeta.Name)
+	assert.Equal(t, "instance1-v1", instance.ObjectMeta.Name)
 	assert.Equal(t, "value1", instance.Spec.Target.Selector["property1"])
 }
 

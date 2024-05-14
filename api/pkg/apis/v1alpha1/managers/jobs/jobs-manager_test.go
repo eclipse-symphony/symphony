@@ -82,12 +82,12 @@ func TestHandleJobEvent(t *testing.T) {
 			"objectType": "instance",
 		},
 		Body: v1alpha2.JobData{
-			Id:     "instance1",
+			Id:     "instance1:v1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
 	assert.Nil(t, errs)
-	instance, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "i_instance1"})
+	instance, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "i_instance1-v1"})
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 
@@ -96,12 +96,12 @@ func TestHandleJobEvent(t *testing.T) {
 			"objectType": "target",
 		},
 		Body: v1alpha2.JobData{
-			Id:     "target1",
+			Id:     "target1:v1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
 	assert.Nil(t, errs)
-	target, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "t_target1"})
+	target, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "t_target1-v1"})
 	assert.Nil(t, err)
 	assert.NotNil(t, target)
 }
@@ -234,14 +234,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		var response interface{}
 		log.Info("Mock Symphony API called", "path", r.URL.Path)
 		switch r.URL.Path {
-		case "/instances/instance1":
+		case "/instances/instance1/v1":
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name:      "instance1",
+					Name:      "instance1-v1",
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Solution: "solution1",
+					Solution: "solution1-v1",
 				},
 			}
 		case "/instances":
@@ -264,20 +264,20 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					DisplayName: "target1",
 				},
 			}}
-		case "/targets/registry/target1":
+		case "/targets/registry/target1/v1":
 			response = model.TargetState{
 				ObjectMeta: model.ObjectMeta{
-					Name:      "target1",
+					Name:      "target1-v1",
 					Namespace: "default",
 				},
 				Spec: &model.TargetSpec{
-					DisplayName: "target1",
+					DisplayName: "target1-v1",
 				},
 			}
-		case "/solutions/solution1":
+		case "/solutions/solution1/v1":
 			response = model.SolutionState{
 				ObjectMeta: model.ObjectMeta{
-					Name:      "solution1",
+					Name:      "solution1-v1",
 					Namespace: "default",
 				},
 				Spec: &model.SolutionSpec{},

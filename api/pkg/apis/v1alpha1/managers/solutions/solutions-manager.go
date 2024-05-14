@@ -96,37 +96,33 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	var rootResource string
 	var version string
 	var refreshLabels bool
-	var versionLabelExists bool
-	var rootLabelExists bool
-	if state.Spec != nil {
-		//sLog.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
+	sLog.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
 
-		if state.Spec.Version != "" {
-			version = state.Spec.Version
-		}
-		if state.Spec.RootResource == "" && version != "" {
-			suffix := "-" + version
-			rootResource = strings.TrimSuffix(name, suffix)
-		} else {
-			rootResource = state.Spec.RootResource
-		}
-
-		if state.ObjectMeta.Labels == nil {
-			state.ObjectMeta.Labels = make(map[string]string)
-		}
-
-		_, versionLabelExists := state.ObjectMeta.Labels["version"]
-		_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
-		if !versionLabelExists || !rootLabelExists {
-			sLog.Info("  M (Solution manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
-
-			state.ObjectMeta.Labels["rootResource"] = rootResource
-			state.ObjectMeta.Labels["version"] = version
-			refreshLabels = true
-		}
+	if state.Spec.Version != "" {
+		version = state.Spec.Version
+	}
+	if state.Spec.RootResource == "" && version != "" {
+		suffix := "-" + version
+		rootResource = strings.TrimSuffix(name, suffix)
+	} else {
+		rootResource = state.Spec.RootResource
 	}
 
-	sLog.Info("  M (Solution manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", refreshLabels, versionLabelExists, rootLabelExists)
+	if state.ObjectMeta.Labels == nil {
+		state.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	_, versionLabelExists := state.ObjectMeta.Labels["version"]
+	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+	if !versionLabelExists || !rootLabelExists {
+		sLog.Info("  M (Solution manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+
+		state.ObjectMeta.Labels["rootResource"] = rootResource
+		state.ObjectMeta.Labels["version"] = version
+		refreshLabels = true
+	}
+	sLog.Info("  M (Solution manager): update labels to versionLabelExists, rootLabelExists >>>>>>>>>>>>>>>>>>>>  %v, %v", versionLabelExists, rootLabelExists)
+	sLog.Info("  M (Solution manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v", refreshLabels)
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",

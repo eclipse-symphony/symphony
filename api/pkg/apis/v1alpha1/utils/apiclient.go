@@ -214,7 +214,19 @@ func (a *apiClient) GetInstance(ctx context.Context, instance string, namespace 
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	var name string
+	var version string
+	log.Infof("Symphony API GetInstance, instance: %s namespace: %s", instance, namespace)
+
+	parts := strings.Split(instance, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return ret, errors.New("invalid target name")
+	}
+
+	response, err := a.callRestAPI(ctx, "instances/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -232,8 +244,21 @@ func (a *apiClient) CreateInstance(ctx context.Context, instance string, payload
 	if err != nil {
 		return err
 	}
+
+	var name string
+	var version string
+	log.Infof("Symphony API CreateInstance, instance: %s namespace: %s", instance, namespace)
+
+	parts := strings.Split(instance, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid target name")
+	}
+
 	//use proper url encoding in the following statement
-	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -247,7 +272,18 @@ func (a *apiClient) DeleteInstance(ctx context.Context, instance string, namespa
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	var name string
+	var version string
+	log.Infof("Symphony API DeleteInstance, instance: %s namespace: %s", instance, namespace)
+	parts := strings.Split(instance, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid target name")
+	}
+
+	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -261,7 +297,17 @@ func (a *apiClient) DeleteTarget(ctx context.Context, target string, namespace s
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	var name string
+	var version string
+	parts := strings.Split(target, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid target name")
+	}
+
+	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -356,7 +402,6 @@ func (a *apiClient) DeleteSolution(ctx context.Context, solution string, namespa
 
 	var name string
 	var version string
-
 	parts := strings.Split(solution, ":")
 	if len(parts) == 2 {
 		name = parts[0]
@@ -380,7 +425,17 @@ func (a *apiClient) GetTarget(ctx context.Context, target string, namespace stri
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	var name string
+	var version string
+	parts := strings.Split(target, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return ret, errors.New("invalid target name")
+	}
+
+	response, err := a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -439,7 +494,19 @@ func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []b
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	var name string
+	var version string
+	log.Infof("Symphony API CreateTarget, target: %s namespace: %s", target, namespace)
+
+	parts := strings.Split(target, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid target name")
+	}
+
+	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
 	if err != nil {
 		return err
 	}

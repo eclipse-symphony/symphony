@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -19,9 +21,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
@@ -51,14 +56,29 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	var rootResource string
+	var version string
+	var id string
+	parts := strings.Split(name, ":")
+	if len(parts) == 2 {
+		rootResource = parts[0]
+		version = parts[1]
+		id = rootResource + "-" + version
+	} else {
+		id = name
+	}
+
+	log.Info("  M (Target manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
+
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
-		ID: name,
+		ID: id,
 		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
+			"namespace":    namespace,
+			"group":        model.FabricGroup,
+			"version":      "v1",
+			"resource":     "targets",
+			"kind":         "Target",
+			"rootResource": rootResource,
 		},
 	})
 	return err
@@ -68,6 +88,9 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
+
+	log.Info("  M (Target manager): upsert state >>>>>>>>>>>>>>>>>>>>parts  %v ", name)
+
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
@@ -75,6 +98,37 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	var rootResource string
+	var version string
+	var refreshLabels bool
+	if state.Spec != nil {
+		log.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
+
+		if state.Spec.Version != "" {
+			version = state.Spec.Version
+		}
+		if state.Spec.RootResource == "" && version != "" {
+			suffix := "-" + version
+			rootResource = strings.TrimSuffix(name, suffix)
+		} else {
+			rootResource = state.Spec.RootResource
+		}
+
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+
+		_, versionLabelExists := state.ObjectMeta.Labels["version"]
+		_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+		if !versionLabelExists || !rootLabelExists {
+			log.Info("  M (Target manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+
+			state.ObjectMeta.Labels["rootResource"] = rootResource
+			state.ObjectMeta.Labels["version"] = version
+			refreshLabels = true
+		}
+	}
 
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
@@ -90,11 +144,13 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 			ETag: state.Spec.Generation,
 		},
 		Metadata: map[string]interface{}{
-			"namespace": state.ObjectMeta.Namespace,
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
+			"namespace":     state.ObjectMeta.Namespace,
+			"group":         model.FabricGroup,
+			"version":       "v1",
+			"resource":      "targets",
+			"kind":          "Target",
+			"rootResource":  rootResource,
+			"refreshLabels": strconv.FormatBool(refreshLabels),
 		},
 	}
 
@@ -214,7 +270,7 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 
 func (t *TargetsManager) GetState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -237,6 +293,37 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 
 	var ret model.TargetState
 	ret, err = getTargetState(target.Body, target.ETag)
+	if err != nil {
+		return model.TargetState{}, err
+	}
+	return ret, nil
+}
+
+func (t *TargetsManager) GetLatestState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
+	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
+		"method": "GetLatest",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.Info("  M (Target manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+
+	getRequest := states.GetRequest{
+		ID: id,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": namespace,
+			"kind":      "Target",
+		},
+	}
+	target, err := t.StateProvider.GetLatest(ctx, getRequest)
+	if err != nil {
+		return model.TargetState{}, err
+	}
+
+	ret, err := getTargetState(target.Body, target.ETag)
 	if err != nil {
 		return model.TargetState{}, err
 	}

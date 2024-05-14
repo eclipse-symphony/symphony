@@ -18,6 +18,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	solutionv1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/constants"
 	"gopls-workspace/utils"
 
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -31,6 +32,10 @@ type SolutionReconciler struct {
 	// ApiClient is the client for Symphony API
 	ApiClient utils.ApiClient
 }
+
+const (
+	solutionFinalizerName = "solution.solution." + constants.FinalizerPostfix
+)
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=solutions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solution.symphony,resources=solutions/status,verbs=get;update;patch
@@ -48,8 +53,6 @@ type SolutionReconciler struct {
 func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Solution")
-
-	myFinalizerName := "solution.solution.symphony/finalizer"
 
 	// Get instance
 	solution := &solutionv1.Solution{}
@@ -72,9 +75,9 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	log.Info(fmt.Sprintf("Solution.Labels: %v", solution.Labels["version"]))
 
 	if solution.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		if !controllerutil.ContainsFinalizer(solution, myFinalizerName) {
+		if !controllerutil.ContainsFinalizer(solution, solutionFinalizerName) {
 			log.Info("Add Solution finalizer")
-			controllerutil.AddFinalizer(solution, myFinalizerName)
+			controllerutil.AddFinalizer(solution, solutionFinalizerName)
 			if err := r.Client.Update(ctx, solution); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -105,7 +108,7 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		log.Info("Remove finalizer")
-		controllerutil.RemoveFinalizer(solution, myFinalizerName)
+		controllerutil.RemoveFinalizer(solution, solutionFinalizerName)
 		if err := r.Client.Update(ctx, solution); err != nil {
 			return ctrl.Result{}, err
 		}

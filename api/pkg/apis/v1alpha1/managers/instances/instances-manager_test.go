@@ -22,7 +22,7 @@ func TestCreateGetDeleteInstancesState(t *testing.T) {
 	manager := InstancesManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertState(context.Background(), "test", model.InstanceState{})
+	err := manager.UpsertState(context.Background(), "test", model.InstanceState{Spec: &model.InstanceSpec{}})
 	assert.Nil(t, err)
 	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)

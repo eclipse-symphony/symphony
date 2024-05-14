@@ -8,6 +8,7 @@ package fabric
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -56,6 +57,7 @@ type TargetReconciler struct {
 
 const (
 	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
+	targetTagFinalizerName      = "targettag.fabric." + constants.FinalizerPostfix
 	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
 )
 
@@ -93,13 +95,57 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	deploymentOperationType := metrics.DeploymentQueued
 	var err error
 
+	version := target.Spec.Version
+	name := target.Spec.RootResource
+	targetName := name + ":" + version
+	jData, _ := json.Marshal(target)
+	log.Info(fmt.Sprintf("Reconcile target: %v %v", targetName, version))
+
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
+		log.Info("Target update")
+		_, exists := target.Labels["version"]
+		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
+		if !exists && version != "" && name != "" {
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert target update")
+			err := r.ApiClient.CreateTarget(ctx, targetName, jData, req.Namespace)
+			if err != nil {
+				log.Error(err, "Upsert target failed")
+				return ctrl.Result{}, err
+			}
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to upsert target update, fetch again")
+
+			if err := r.Get(ctx, req.NamespacedName, target); err != nil {
+				log.Error(err, "unable to fetch Target object after target update")
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+		}
+
 		reconciliationType = metrics.UpdateOperationType
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, log, targetOperationStartTimeKey)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
+		log.Info("Target remove")
+
+		value, exists := target.Labels["tag"]
+		log.Info(fmt.Sprintf("target update: %v, %v", value, exists))
+
+		if exists && value == "latest" {
+			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete target")
+			err := r.ApiClient.DeleteTarget(ctx, targetName, req.Namespace)
+			if err != nil {
+				log.Error(err, "Delete target failed")
+				return ctrl.Result{}, err
+			}
+
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to delete target update, fetch again")
+			if err := r.Get(ctx, req.NamespacedName, target); err != nil {
+				log.Error(err, "unable to fetch Target object after target update")
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+		}
+
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, target, log, targetOperationStartTimeKey)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult

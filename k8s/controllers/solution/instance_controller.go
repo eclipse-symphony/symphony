@@ -8,6 +8,7 @@ package solution
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -98,13 +99,57 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	deploymentOperationType := metrics.DeploymentQueued
 	var err error
 
+	version := instance.Spec.Version
+	name := instance.Spec.RootResource
+	instanceName := name + ":" + version
+	jData, _ := json.Marshal(instance)
+	log.Info(fmt.Sprintf("Reconcile instance: %v %v", instanceName, version))
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
+		log.Info("Instance update")
+		_, exists := instance.Labels["version"]
+		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
+		if !exists && version != "" && name != "" {
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert instance update")
+			err := r.ApiClient.CreateInstance(ctx, instanceName, jData, req.Namespace)
+			if err != nil {
+				log.Error(err, "Upsert instance failed")
+				return ctrl.Result{}, err
+			}
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to upsert instance update, fetch again")
+
+			if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+				log.Error(err, "unable to fetch Instance object after Instance update")
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+		}
+
 		reconciliationType = metrics.UpdateOperationType
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
+		log.Info("Instance remove")
+
+		value, exists := instance.Labels["tag"]
+		log.Info(fmt.Sprintf("instance update: %v, %v", value, exists))
+
+		if exists && value == "latest" {
+			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete instance")
+			err := r.ApiClient.DeleteInstance(ctx, instanceName, req.Namespace)
+			if err != nil {
+				log.Error(err, "Delete solution failed")
+				return ctrl.Result{}, err
+			}
+
+			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to delete instance update, fetch again")
+			if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+				log.Error(err, "unable to fetch Instance object after instance update")
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+		}
+
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
@@ -217,6 +262,7 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 		log.Log.Error(err, "Failed to list instances")
 		return ret
 	}
+	log.Log.Info(fmt.Sprintf("Instance handleTarget >>>>>>>> start %s", tarObj.GetObjectMeta().GetName()))
 
 	targetList := fabric_v1.TargetList{}
 	targetList.Items = append(targetList.Items, *tarObj)

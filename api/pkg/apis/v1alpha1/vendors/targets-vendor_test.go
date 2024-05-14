@@ -28,7 +28,7 @@ func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
 	vendor.Route = "targets"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 5, len(endpoints))
+	assert.Equal(t, 6, len(endpoints))
 }
 
 func TestTargetsInfo(t *testing.T) {
@@ -99,6 +99,7 @@ func TestTargetsOnRegistry(t *testing.T) {
 		Body:   data,
 		Parameters: map[string]string{
 			"__name":       "target1",
+			"__version":    "v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -108,17 +109,18 @@ func TestTargetsOnRegistry(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name":    "target1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
 	var targets model.TargetState
 	json.Unmarshal(resp.Body, &targets)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "target1", targets.ObjectMeta.Name)
+	assert.Equal(t, "target1-v1", targets.ObjectMeta.Name)
 	assert.Equal(t, 1, len(targets.Spec.Topologies))
 
-	resp = vendor.onRegistry(v1alpha2.COARequest{
+	resp = vendor.onRegistryList(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 	})
@@ -130,7 +132,8 @@ func TestTargetsOnRegistry(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name":    "target1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -190,6 +193,7 @@ func TestTargetsOnStatus(t *testing.T) {
 		Body:   data,
 		Parameters: map[string]string{
 			"__name":       "target1",
+			"__version":    "v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -209,7 +213,8 @@ func TestTargetsOnStatus(t *testing.T) {
 		Method: fasthttp.MethodPut,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name":    "target1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -245,6 +250,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 		Body:   data,
 		Parameters: map[string]string{
 			"__name":       "target1",
+			"__version":    "v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -254,7 +260,8 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	resp = vendor.onHeartBeat(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name":    "target1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
@@ -263,7 +270,8 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name":    "target1",
+			"__version": "v1",
 		},
 		Context: context.Background(),
 	})
