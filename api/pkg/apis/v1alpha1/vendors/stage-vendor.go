@@ -106,12 +106,13 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	s.Vendor.Context.Subscribe("trigger", func(topic string, event v1alpha2.Event) error {
 		log.Info("V (Stage): handling trigger event")
 		status := model.ActivationStatus{
-			Stage:        "",
-			NextStage:    "",
-			Outputs:      map[string]interface{}{},
-			Status:       v1alpha2.Untouched,
-			ErrorMessage: "",
-			IsActive:     true,
+			Stage:         "",
+			NextStage:     "",
+			Outputs:       map[string]interface{}{},
+			Status:        v1alpha2.Untouched,
+			StatusMessage: v1alpha2.Untouched.String(),
+			ErrorMessage:  "",
+			IsActive:      true,
 		}
 		triggerData := v1alpha2.ActivationData{}
 		jData, _ := json.Marshal(event.Body)
@@ -119,6 +120,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			err = v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 			status.Status = v1alpha2.BadRequest
+			status.StatusMessage = v1alpha2.BadRequest.String()
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			sLog.Errorf("V (Stage): failed to deserialize activation data: %v", err)
@@ -132,6 +134,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		campaign, err := s.CampaignsManager.GetState(context.TODO(), triggerData.Campaign, triggerData.Namespace)
 		if err != nil {
 			status.Status = v1alpha2.BadRequest
+			status.StatusMessage = v1alpha2.BadRequest.String()
 			status.ErrorMessage = err.Error()
 			status.IsActive = false
 			sLog.Errorf("V (Stage): failed to get campaign spec: %v", err)
@@ -144,6 +147,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		status.ActivationGeneration = triggerData.ActivationGeneration
 		status.ErrorMessage = ""
 		status.Status = v1alpha2.Running
+		status.StatusMessage = v1alpha2.Running.String()
 		if triggerData.NeedsReport {
 			sLog.Debugf("V (Stage): reporting status: %v", status)
 			s.Vendor.Context.Publish("report", v1alpha2.Event{
@@ -210,6 +214,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				activation, err := s.StageManager.ResumeStage(status, *campaign.Spec)
 				if err != nil {
 					status.Status = v1alpha2.InternalError
+					status.StatusMessage = v1alpha2.InternalError.String()
 					status.IsActive = false
 					status.ErrorMessage = fmt.Sprintf("failed to resume stage: %v", err)
 					sLog.Errorf("V (Stage): failed to resume stage: %v", err)
