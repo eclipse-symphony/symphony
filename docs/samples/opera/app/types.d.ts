@@ -214,6 +214,7 @@ export interface ActivationStatus {
     inputs: Record<string, any>;
     outputs: Record<string, any>;
     status: number;
+    statusMessage: string;
     errorMessage: string;
     isActive: boolean;
     activationGeneration: string;

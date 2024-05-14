@@ -24,6 +24,7 @@ type ActivationStatus struct {
 	// +kubebuilder:validation:Schemaless
 	Outputs              runtime.RawExtension `json:"outputs,omitempty"`
 	Status               v1alpha2.State       `json:"status,omitempty"`
+	StatusMessage        string               `json:"statusMessage,omitempty"`
 	ErrorMessage         string               `json:"errorMessage,omitempty"`
 	IsActive             bool                 `json:"isActive,omitempty"`
 	ActivationGeneration string               `json:"activationGeneration,omitempty"`
@@ -33,7 +34,7 @@ type ActivationStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Next Stage",type=string,JSONPath=`.status.nextStage`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.statusMessage`
 // Activation is the Schema for the activations API
 type Activation struct {
 	metav1.TypeMeta   `json:",inline"`
