@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +47,10 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 	spec, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.ObjectMeta.Name)
-	err = manager.ReportStatus(context.Background(), "test", "default", model.ActivationStatus{Status: 9996})
+	err = manager.ReportStatus(context.Background(), "test", "default", model.ActivationStatus{
+		Status:        v1alpha2.Done,
+		StatusMessage: v1alpha2.Done.String(),
+	})
 	assert.Nil(t, err)
 	errList := cleanupmanager.Poll()
 	assert.Empty(t, errList)

@@ -243,6 +243,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 			"output2": "value2",
 		},
 		Status:               v1alpha2.OK,
+		StatusMessage:        v1alpha2.OK.String(),
 		IsActive:             true,
 		ActivationGeneration: "1",
 		UpdateTime:           "exampleUpdateTime",

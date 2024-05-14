@@ -73,6 +73,7 @@ type ActivationStatus struct {
 	Inputs               map[string]interface{} `json:"inputs,omitempty"`
 	Outputs              map[string]interface{} `json:"outputs,omitempty"`
 	Status               v1alpha2.State         `json:"status,omitempty"`
+	StatusMessage        string                 `json:"statusMessage,omitempty"`
 	ErrorMessage         string                 `json:"errorMessage,omitempty"`
 	IsActive             bool                   `json:"isActive,omitempty"`
 	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
