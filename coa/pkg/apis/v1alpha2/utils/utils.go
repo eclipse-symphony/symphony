@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -120,5 +121,31 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 		return result[0], nil
 	} else {
 		return result, nil
+	}
+}
+func FormatAsString(val interface{}) string {
+	switch tv := val.(type) {
+	case string:
+		return tv
+	case int:
+		return strconv.Itoa(tv)
+	case int32:
+		return strconv.Itoa(int(tv))
+	case int64:
+		return strconv.Itoa(int(tv))
+	case float32:
+		return strconv.FormatFloat(float64(tv), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(tv, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(tv)
+	case map[string]interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	case []interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	default:
+		return fmt.Sprintf("%v", tv)
 	}
 }
