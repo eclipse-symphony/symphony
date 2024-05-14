@@ -17,7 +17,7 @@ type CampaignContainerStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// CampaignContainer is the Schema for the campaigns API
+// CampaignContainer is the Schema for the CampaignContainers API
 type CampaignContainer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -27,7 +27,7 @@ type CampaignContainer struct {
 }
 
 // +kubebuilder:object:root=true
-// CampaignContainerList contains a list of Campaign
+// CampaignContainerList contains a list of CampaignContainer
 type CampaignContainerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

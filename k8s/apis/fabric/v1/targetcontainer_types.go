@@ -19,7 +19,7 @@ type TargetContainerStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// Target is the Schema for the targets API
+// TargetContainer is the Schema for the TargetContainers API
 type TargetContainer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -29,7 +29,7 @@ type TargetContainer struct {
 }
 
 // +kubebuilder:object:root=true
-// TargetList contains a list of Target
+// TargetContainerList contains a list of TargetContainer
 type TargetContainerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
