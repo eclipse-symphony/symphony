@@ -132,7 +132,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			return err
 		}
 	}
-	s.ApiClientHttp, err = api_utils.GetUPApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

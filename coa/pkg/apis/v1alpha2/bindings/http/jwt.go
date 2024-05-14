@@ -233,13 +233,13 @@ func decodeJWTTokenForIssuer(tokenString string) (string, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		issuer, ok := claims["iss"].(string)
 		if !ok {
-			fmt.Println("The iss claim is not a string")
+			log.Debugf("The iss claim is not a string")
 			return "", errors.New("the iss claim is not a string")
 		}
-		fmt.Println("Issuer:", issuer)
+		log.Debugf("Issuer: %s", issuer)
 		return issuer, nil
 	} else {
-		fmt.Println("Invalid token")
+		log.Debugf("Invalid token")
 		return "", errors.New("invalid token")
 	}
 }

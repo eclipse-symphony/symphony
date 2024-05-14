@@ -31,7 +31,10 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	if s.Context.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
 	}
-	s.apiClient, err = utils.GetUPApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *SyncManager) Enabled() bool {

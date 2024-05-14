@@ -79,8 +79,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if f.CatalogsManager == nil {
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
-	f.apiClient, err = utils.GetUPApiClient(f.Vendor.Context.SiteInfo.ParentSite.BaseUrl)
-
+	f.apiClient, err = utils.GetParentApiClient(f.Vendor.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		sites, err := f.SitesManager.ListState(context.TODO())
 		if err != nil {

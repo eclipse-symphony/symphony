@@ -27,10 +27,10 @@ redis:
   image: redis/redis-stack-server:latest
   port: 6379
 parent:
-  url: http://57.151.43.118:8080/v1alpha2/
+  url:
   username: admin
   password:
-siteId: jesseminikube
+siteId: hq
 imagePrivateRegistryUrl: ghcr.io
 api:
   apiContainerPortHttp: 8080

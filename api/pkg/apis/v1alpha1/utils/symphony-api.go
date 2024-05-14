@@ -107,7 +107,7 @@ func getApiClient() (*apiClient, error) {
 	return client, nil
 }
 
-func GetUPApiClient(baseUrl string) (*apiClient, error) {
+func GetParentApiClient(baseUrl string) (*apiClient, error) {
 	clientOptions := make([]ApiClientOption, 0)
 
 	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {

@@ -40,7 +40,10 @@ func (s *SitesManager) Init(context *contexts.VendorContext, config managers.Man
 	} else {
 		return err
 	}
-	s.apiClient, err = utils.GetUPApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
