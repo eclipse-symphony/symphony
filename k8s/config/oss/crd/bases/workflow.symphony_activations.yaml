@@ -19,7 +19,7 @@ spec:
     - jsonPath: .status.nextStage
       name: Next Stage
       type: string
-    - jsonPath: .status.status
+    - jsonPath: .status.statusMessage
       name: Status
       type: string
     name: v1
@@ -68,6 +68,8 @@ spec:
                 type: string
               status:
                 type: integer
+              statusMessage:
+                type: string
               updateTime:
                 type: string
             required:
