@@ -38,7 +38,7 @@ type FederationVendor struct {
 	StagingManager  *staging.StagingManager
 	SyncManager     *sync.SyncManager
 	TrailsManager   *trails.TrailsManager
-	apiClient       *utils.APIClient
+	apiClient       utils.ApiClient
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -108,7 +108,9 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		var status model.ActivationStatus
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
-			err := f.apiClient.SyncActivationStatus(context.TODO(), status)
+			err := f.apiClient.SyncActivationStatus(context.TODO(), status,
+				f.Vendor.Context.SiteInfo.ParentSite.Username,
+				f.Vendor.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
 				fLog.Errorf("V (Federation): error while syncing activation status: %v", err)
 				return err

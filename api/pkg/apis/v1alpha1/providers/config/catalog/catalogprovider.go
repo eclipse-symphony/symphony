@@ -23,12 +23,14 @@ import (
 var msLock sync.Mutex
 
 type CatalogConfigProviderConfig struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
 }
 
 type CatalogConfigProvider struct {
 	Config    CatalogConfigProviderConfig
 	Context   *contexts.ManagerContext
-	ApiClient *utils.APIClient
+	ApiClient utils.ApiClient
 }
 
 func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
@@ -40,6 +42,9 @@ func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
 	}
 	s.Config = mockConfig
 	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *CatalogConfigProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -64,10 +69,25 @@ func (i *CatalogConfigProvider) InitWithMap(properties map[string]string) error 
 }
 func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogConfigProviderConfig, error) {
 	ret := CatalogConfigProviderConfig{}
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		if err != nil {
+			return ret, err
+		}
+		ret.Password = password
+	}
 	return ret, nil
 }
 func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +102,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +126,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +223,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 	}
 	catalog.Spec.Properties[field] = value
 	data, _ := json.Marshal(catalog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
@@ -215,7 +235,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 		catalog.Spec.Properties[k] = v
 	}
 	data, _ := json.Marshal(catalog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
@@ -227,12 +247,12 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	}
 	delete(catlog.Spec.Properties, field)
 	data, _ := json.Marshal(catlog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
-	return m.ApiClient.DeleteCatalog(context.TODO(), object)
+	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
 }
 
 func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {
-	return m.ApiClient.GetCatalog(context, catalog, "")
+	return m.ApiClient.GetCatalog(context, catalog, "", m.Config.User, m.Config.Password)
 }

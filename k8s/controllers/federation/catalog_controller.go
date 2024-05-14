@@ -51,7 +51,7 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		jData, _ := json.Marshal(catalog)
-		err := r.ApiClient.CatalogHook(ctx, jData)
+		err := r.ApiClient.CatalogHook(ctx, jData, "", "")
 		if err != nil {
 			return ctrl.Result{}, err
 		}

@@ -11,31 +11,61 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWaitInitFromVendorMap(t *testing.T) {
+func TestWaitInitFromVendorMapForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	input := map[string]string{
+		"wait.user":          "admin",
+		"wait.password":      "",
 		"wait.wait.interval": "15",
 		"wait.wait.count":    "10",
 	}
 	config, err := WaitStageProviderConfigFromVendorMap(input)
 	assert.Nil(t, err)
+	assert.Equal(t, "admin", config.User)
+	assert.Equal(t, "", config.Password)
 	assert.Equal(t, 15, config.WaitInterval)
 	assert.Equal(t, 10, config.WaitCount)
 
+	input = map[string]string{}
+	config, err = WaitStageProviderConfigFromVendorMap(input)
+	assert.NotNil(t, err)
+
 	input = map[string]string{
+		"wait.user": "",
+	}
+	config, err = WaitStageProviderConfigFromVendorMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"wait.user": "admin",
+	}
+	config, err = WaitStageProviderConfigFromVendorMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"wait.user":          "admin",
+		"wait.password":      "",
 		"wait.wait.interval": "abc",
 	}
 	config, err = WaitStageProviderConfigFromVendorMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
+		"wait.user":          "admin",
+		"wait.password":      "",
 		"wait.wait.interval": "15",
 		"wait.wait.count":    "abc",
 	}

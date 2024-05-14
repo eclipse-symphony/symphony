@@ -26,7 +26,7 @@ var cvLog = logger.NewLogger("coa.runtime")
 
 type VisualizationClientVendor struct {
 	vendors.Vendor
-	apiClient *utils.APIClient
+	apiClient utils.ApiClient
 }
 
 func (s *VisualizationClientVendor) GetInfo() vendors.VendorInfo {
@@ -43,6 +43,9 @@ func (e *VisualizationClientVendor) Init(config vendors.VendorConfig, factories 
 		return err
 	}
 	e.apiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -90,7 +93,9 @@ func (c *VisualizationClientVendor) onVisClient(request v1alpha2.COARequest) v1a
 		}
 
 		jData, _ := json.Marshal(packet)
-		err = c.apiClient.SendVisualizationPacket(ctx, jData)
+		err = c.apiClient.SendVisualizationPacket(ctx, jData,
+			c.Vendor.Context.SiteInfo.CurrentSite.Username,
+			c.Vendor.Context.SiteInfo.CurrentSite.Password)
 
 		if err != nil {
 			cvLog.Errorf("V (VisualizationClient): onVisClient failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())

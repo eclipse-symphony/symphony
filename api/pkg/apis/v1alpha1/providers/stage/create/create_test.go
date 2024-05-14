@@ -14,6 +14,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -49,9 +50,6 @@ func TestDeployInstance(t *testing.T) {
 func TestCreateInitFromVendorMap(t *testing.T) {
 	provider := CreateStageProvider{}
 	input := map[string]string{
-		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"user":          "admin",
-		"password":      "",
 		"wait.interval": "1",
 		"wait.count":    "3",
 	}
@@ -67,16 +65,38 @@ func TestCreateInitFromVendorMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"wait.count": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
+		"wait.count":    "15",
+		"wait.interval": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
+}
+
+func TestCreateInitFromVendorMapForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	config, err := SymphonyStageProviderConfigFromMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, "admin", config.User)
+	assert.Equal(t, 1, config.WaitInterval)
+	assert.Equal(t, 3, config.WaitCount)
+	err = provider.InitWithMap(input)
+	assert.Nil(t, err)
 
 	input = map[string]string{
 		"baseUrl": "http://symphony-service:8080/v1alpha2/",
@@ -84,29 +104,9 @@ func TestCreateInitFromVendorMap(t *testing.T) {
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
-
 	input = map[string]string{
 		"baseUrl": "http://symphony-service:8080/v1alpha2/",
 		"user":    "admin",
-	}
-	config, err = SymphonyStageProviderConfigFromMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl":    "http://symphony-service:8080/v1alpha2/",
-		"user":       "admin",
-		"password":   "",
-		"wait.count": "abc",
-	}
-	config, err = SymphonyStageProviderConfigFromMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"user":          "admin",
-		"password":      "",
-		"wait.count":    "15",
-		"wait.interval": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)

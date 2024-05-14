@@ -146,7 +146,7 @@ func main() {
 		apiClientOptions = append(apiClientOptions, utils.WithUserPassword(ctx, "admin", ""))
 	}
 
-	apiClient, err := utils.NewAPIClient(
+	apiClient, err := utils.NewApiClient(
 		ctx,
 		utils.GetSymphonyAPIAddressBase(),
 		apiClientOptions...,

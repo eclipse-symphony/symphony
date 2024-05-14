@@ -13,7 +13,9 @@
       "lng": "-122.12826"
     },
     "currentSite": {
-      "baseUrl": {{ include "symphony.httpsUrl" . | quote }}
+      "baseUrl": {{ include "symphony.httpsUrl" . | quote }},
+      "username": "admin",
+      "password": ""
     }
     {{- if .Values.parent.url }}
     ,
@@ -58,7 +60,10 @@
             "providers": {
               "catalog": {
                 "type": "providers.config.catalog",
-                "config": {}
+                "config": {
+                  "user": "admin",
+                  "password": ""
+                }
               }
             }
           }
@@ -71,7 +76,9 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {   
+            "properties": { 
+              "user": "admin",
+              "password": "",  
               "providers.state": "k8s-state"          
             },
             "providers": {
@@ -115,6 +122,8 @@
           }
         ],
         "properties": {
+          "wait.user": "admin",
+          "wait.password": "",
           "wait.wait.interval": "15",
           "wait.wait.count": "10"
         }
@@ -200,6 +209,8 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
+              "user": "admin",
+              "password": "",
               "interval": "#15",
               "poll.enabled": "false",
               "schedule.enabled": "true"                            
@@ -503,7 +514,9 @@
             "type": "managers.symphony.sync",
             "properties": {
               "interval": "#15",
-              "sync.enabled": "true"           
+              "sync.enabled": "true"  ,
+              "user": "admin",
+              "password": ""         
             }
           }
         ]

@@ -20,7 +20,7 @@ import (
 
 type SyncManager struct {
 	managers.Manager
-	apiClient *utils.APIClient
+	apiClient utils.ApiClient
 }
 
 func (s *SyncManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -46,7 +46,9 @@ func (s *SyncManager) Poll() []error {
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}
-	batch, err := s.apiClient.GetABatchForSite(ctx, s.VendorContext.SiteInfo.SiteId)
+	batch, err := s.apiClient.GetABatchForSite(ctx, s.VendorContext.SiteInfo.SiteId,
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password)
 	if err != nil {
 		return []error{err}
 	}

@@ -11,13 +11,45 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestListInitFromMap(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
+	provider := ListStageProvider{}
+	input := map[string]string{
+		"user":     "admin",
+		"password": "",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+
+	input = map[string]string{}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"user": "",
+	}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"user": "admin",
+	}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
+}
 
 func TestListProcessInstances(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()

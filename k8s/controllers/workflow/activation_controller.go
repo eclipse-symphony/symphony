@@ -67,7 +67,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				Stage:                "",
 				Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
 				Namespace:            activation.Namespace,
-			})
+			}, "", "")
 			if err != nil {
 				return ctrl.Result{}, err
 			}

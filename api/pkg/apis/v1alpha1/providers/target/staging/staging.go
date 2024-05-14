@@ -32,7 +32,7 @@ type StagingTargetProviderConfig struct {
 type StagingTargetProvider struct {
 	Config    StagingTargetProviderConfig
 	Context   *contexts.ManagerContext
-	ApiClient *utils.APIClient
+	ApiClient utils.ApiClient
 }
 
 func StagingProviderConfigFromMap(properties map[string]string) (StagingTargetProviderConfig, error) {
@@ -75,6 +75,9 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	}
 	i.Config = updateConfig
 	i.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTargetProviderConfig, error) {
@@ -102,7 +105,9 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	catalog, err := i.ApiClient.GetCatalog(
 		ctx,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
-		scope)
+		scope,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password)
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
@@ -164,7 +169,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	catalog, err = i.ApiClient.GetCatalog(
 		ctx,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
-		scope)
+		scope,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password)
 
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -268,7 +275,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	err = i.ApiClient.UpsertCatalog(
 		ctx,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
-		jData)
+		jData,
+		i.Context.SiteInfo.CurrentSite.Username,
+		i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		sLog.Errorf("  P (Staging Target): failed to upsert staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 	}

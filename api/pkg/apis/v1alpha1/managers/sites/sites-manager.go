@@ -26,7 +26,7 @@ import (
 type SitesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-	apiClient     *utils.APIClient
+	apiClient     utils.ApiClient
 }
 
 func (s *SitesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -264,7 +264,8 @@ func (s *SitesManager) Poll() []error {
 		ctx,
 		s.VendorContext.SiteInfo.SiteId,
 		jData,
-	)
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password)
 	return nil
 }
 func (s *SitesManager) Reconcil() []error {

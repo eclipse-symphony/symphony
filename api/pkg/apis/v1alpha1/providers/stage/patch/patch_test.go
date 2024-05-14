@@ -15,6 +15,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -101,6 +102,38 @@ func TestPatchSolutionWholeComponent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, outputs)
 	assert.Equal(t, "OK", outputs["status"])
+}
+
+func TestPatchInitFromMap(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
+	provider := PatchStageProvider{}
+	input := map[string]string{
+		"user":     "admin",
+		"password": "",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, "admin", provider.Config.User)
+	assert.Equal(t, "", provider.Config.Password)
+
+	input = map[string]string{}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"user": "",
+	}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
+
+	input = map[string]string{
+		"user": "admin",
+	}
+	err = provider.InitWithMap(input)
+	assert.NotNil(t, err)
 }
 
 func TestPatchProcessInline(t *testing.T) {

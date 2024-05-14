@@ -28,14 +28,16 @@ import (
 var msLock sync.Mutex
 
 type CreateStageProviderConfig struct {
-	WaitCount    int `json:"wait.count,omitempty"`
-	WaitInterval int `json:"wait.interval,omitempty"`
+	User         string `json:"user"`
+	Password     string `json:"password"`
+	WaitCount    int    `json:"wait.count,omitempty"`
+	WaitInterval int    `json:"wait.interval,omitempty"`
 }
 
 type CreateStageProvider struct {
 	Config    CreateStageProviderConfig
 	Context   *contexts.ManagerContext
-	ApiClient *utils.APIClient
+	ApiClient utils.ApiClient
 }
 
 const (
@@ -52,6 +54,9 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	s.Config = mockConfig
 	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *CreateStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -75,6 +80,21 @@ func (i *CreateStageProvider) InitWithMap(properties map[string]string) error {
 }
 func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateStageProviderConfig, error) {
 	ret := CreateStageProviderConfig{}
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" && !utils.ShouldUseSATokens() {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		ret.Password = password
+		if err != nil {
+			return ret, err
+		}
+	}
 	waitStr, err := utils.GetString(properties, "wait.count")
 	if err != nil {
 		return ret, err
@@ -124,18 +144,18 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		}
 
 		if strings.EqualFold(action, RemoveAction) {
-			err = i.ApiClient.DeleteInstance(ctx, objectName, objectNamespace)
+			err = i.ApiClient.DeleteInstance(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
-			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace)
+			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				var summary *model.SummaryResult
-				summary, err = i.ApiClient.GetSummary(ctx, objectName, objectNamespace)
+				summary, err = i.ApiClient.GetSummary(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err

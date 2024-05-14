@@ -69,30 +69,27 @@ func GetSymphonyAPIAddressBase() string {
 }
 
 var getApiClientOnce sync.Once
-var apiClient *APIClient
-var err error
+var symphonyApiClient *apiClient
+var apiClientError error
 
-func GetApiClient() (*APIClient, error) {
+func GetApiClient() (*apiClient, error) {
 	getApiClientOnce.Do(func() {
-		apiClient, err = getApiClient()
+		symphonyApiClient, apiClientError = getApiClient()
 	})
-	return apiClient, err
+	return symphonyApiClient, apiClientError
 }
 
 // For testing purpose only
 func UpdateApiClientUrl(url string) {
-	if apiClient == nil {
+	if symphonyApiClient == nil {
 		GetApiClient()
 	}
-	apiClient.baseUrl = url
+	symphonyApiClient.baseUrl = url
 }
 
-func getApiClient() (*APIClient, error) {
+func getApiClient() (*apiClient, error) {
 	clientOptions := make([]ApiClientOption, 0)
 	baseUrl := GetSymphonyAPIAddressBase()
-	if err != nil {
-		return nil, err
-	}
 	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
 		clientOptions = append(clientOptions, WithCertAuth(caCert))
 	}
@@ -100,32 +97,25 @@ func getApiClient() (*APIClient, error) {
 	if ShouldUseSATokens() {
 		clientOptions = append(clientOptions, WithServiceAccountToken())
 	} else {
-		user := "admin"
-		password := ""
-		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), user, password))
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
 	}
 
-	client, err := NewAPIClient(context.Background(), baseUrl, clientOptions...)
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
 	if err != nil {
 		return nil, err
 	}
 	return client, nil
 }
 
-func GetUPApiClient(baseUrl string) (*APIClient, error) {
+func GetUPApiClient(baseUrl string) (*apiClient, error) {
 	clientOptions := make([]ApiClientOption, 0)
-	if err != nil {
-		return nil, err
-	}
+
 	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
 		clientOptions = append(clientOptions, WithCertAuth(caCert))
 	}
 
-	user := "admin"
-	password := ""
-
-	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), user, password))
-	client, err := NewAPIClient(context.Background(), baseUrl, clientOptions...)
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +124,10 @@ func GetUPApiClient(baseUrl string) (*APIClient, error) {
 
 func ShouldUseSATokens() bool {
 	return useSAToken == "true"
+}
+
+func ShouldUseUserCreds() bool {
+	return useSAToken == "false"
 }
 
 var log = logger.NewLogger("coa.runtime")

@@ -30,7 +30,7 @@ type StagingManager struct {
 	managers.Manager
 	QueueProvider queue.IQueueProvider
 	StateProvider states.IStateProvider
-	apiClient     *utils.APIClient
+	apiClient     utils.ApiClient
 }
 
 const Site_Job_Queue = "site-job-queue"
@@ -53,6 +53,9 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 		return err
 	}
 	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *StagingManager) Enabled() bool {
@@ -77,7 +80,9 @@ func (s *StagingManager) Poll() []error {
 	}
 	siteId := site.(string)
 	var catalogs []model.CatalogState
-	catalogs, err = s.apiClient.GetCatalogs(ctx, "")
+	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
+		s.VendorContext.SiteInfo.CurrentSite.Username,
+		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
 		observ_utils.CloseSpanWithError(span, &err)
