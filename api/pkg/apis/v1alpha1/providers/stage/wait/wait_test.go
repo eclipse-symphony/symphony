@@ -16,7 +16,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -75,7 +74,7 @@ func TestWaitInitFromVendorMapForNonServiceAccount(t *testing.T) {
 
 func TestWaitProcess(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
-	utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	config := map[string]string{
 		"baseUrl":       ts.URL + "/",
 		"user":          "admin",

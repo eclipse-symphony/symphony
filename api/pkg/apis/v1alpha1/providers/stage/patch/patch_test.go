@@ -17,7 +17,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
@@ -138,7 +137,7 @@ func TestPatchInitFromMap(t *testing.T) {
 
 func TestPatchProcessInline(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := PatchStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -198,7 +197,7 @@ func TestPatchProcessInline(t *testing.T) {
 
 func TestPatchProcessCatalog(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := PatchStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",

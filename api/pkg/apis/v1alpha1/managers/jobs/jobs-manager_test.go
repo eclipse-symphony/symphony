@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -62,7 +62,7 @@ func TestHandleJobEvent(t *testing.T) {
 
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
-	utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -163,7 +163,7 @@ func TestPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
-	utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -193,7 +193,7 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
-	utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{

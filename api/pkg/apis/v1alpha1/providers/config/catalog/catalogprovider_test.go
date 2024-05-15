@@ -10,10 +10,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -83,7 +84,7 @@ func TestRead(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -156,7 +157,7 @@ func TestReadObject(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -208,7 +209,7 @@ func TestSetandRemove(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -266,7 +267,7 @@ func TestSetandRemoveObject(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	api_utils.UpdateApiClientUrl(ts.URL + "/")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{

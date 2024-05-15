@@ -29,7 +29,6 @@ import (
 
 var (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
-	symphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
@@ -62,29 +61,37 @@ func (e *SummarySpecError) Error() string {
 }
 
 func GetSymphonyAPIAddressBase() string {
-	if symphonyAPIAddressBase == "" {
+	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
 	}
-	return symphonyAPIAddressBase
+	return os.Getenv(constants.SymphonyAPIUrlEnvName)
 }
 
-var getApiClientOnce sync.Once
-var symphonyApiClient *apiClient
-var apiClientError error
+var symphonyApiClients sync.Map
 
 func GetApiClient() (*apiClient, error) {
-	getApiClientOnce.Do(func() {
-		symphonyApiClient, apiClientError = getApiClient()
-	})
-	return symphonyApiClient, apiClientError
-}
-
-// For testing purpose only
-func UpdateApiClientUrl(url string) {
-	if symphonyApiClient == nil {
-		GetApiClient()
+	symphonyBaseUrl := os.Getenv(constants.SymphonyAPIUrlEnvName)
+	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
+		client, ok := value.(*apiClient)
+		if !ok {
+			log.Infof("Symphony base url apiclient is broken. Recreating it.")
+			client, err := getApiClient()
+			if err != nil {
+				log.Errorf("Failed to recreate the apiclient. %s\n", err.Error())
+				return nil, err
+			}
+			symphonyApiClients.Store(symphonyBaseUrl, client)
+		}
+		return client, nil
 	}
-	symphonyApiClient.baseUrl = url
+	log.Infof("Creating the symphony base url apiclient.")
+	client, err := getApiClient()
+	if err != nil {
+		log.Errorf("Failed to create the apiclient. %s\n", err.Error())
+		return nil, err
+	}
+	symphonyApiClients.Store(symphonyBaseUrl, client)
+	return client, nil
 }
 
 func getApiClient() (*apiClient, error) {
