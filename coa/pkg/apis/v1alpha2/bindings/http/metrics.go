@@ -12,6 +12,7 @@ import (
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -29,7 +30,7 @@ func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		endpoint := ctx.UserValue(router.MatchedRoutePathParam)
 
 		if endpoint != nil {
-			endpointString := endpoint.(string)
+			endpointString := utils.FormatAsString(endpoint)
 
 			if ctx.Response.StatusCode() >= 400 {
 				ApiOperationMetrics.ApiOperationErrors(

@@ -39,7 +39,6 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://localhost:8082/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }
@@ -56,7 +55,6 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
-              "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
               "providers.state": "k8s-state"        
@@ -98,7 +96,6 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",
@@ -182,7 +179,6 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -397,15 +393,11 @@
               },
               "http-reference": {
                 "type": "providers.reference.http",
-                "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
-                }
+                "config": {}
               },
               "http-reporter": {
                 "type": "providers.reporter.http",
-                "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
-                }
+                "config": {}
               }
             }
           }

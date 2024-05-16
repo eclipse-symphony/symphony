@@ -81,7 +81,7 @@ func (t *TaskResult) GetError() error {
 
 		if t.Outputs["__status"] != v1alpha2.OK {
 			if v, ok := t.Outputs["__error"]; ok {
-				return v1alpha2.NewCOAError(nil, v.(string), t.Outputs["__status"].(v1alpha2.State))
+				return v1alpha2.NewCOAError(nil, utils.FormatAsString(v), t.Outputs["__status"].(v1alpha2.State))
 			} else {
 				return fmt.Errorf("stage returned unsuccessful status without an error")
 			}
@@ -214,9 +214,10 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 					if err != nil {
 						return nil, err
 					}
+
 					sVal := ""
 					if val != nil {
-						sVal = val.(string)
+						sVal = utils.FormatAsString(val)
 					}
 					if sVal != "" {
 						if _, ok := cam.Stages[sVal]; ok {
@@ -225,6 +226,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 							return nil, fmt.Errorf("stage %s is not found", sVal)
 						}
 					}
+
 				}
 				if nextStage != "" {
 					activationData := &v1alpha2.ActivationData{
@@ -439,17 +441,17 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				log.Errorf(" M (Stage): failed to evaluate context: %v", err)
 				return status, activationData
 			}
-			if _, ok := val.([]string); ok {
-				sites = val.([]string)
-			} else if _, ok := val.([]interface{}); ok {
-				for _, v := range val.([]interface{}) {
-					sites = append(sites, v.(string))
+			if valStringList, ok := val.([]string); ok {
+				sites = valStringList
+			} else if valList, ok := val.([]interface{}); ok {
+				for _, v := range valList {
+					sites = append(sites, utils.FormatAsString(v))
 				}
-			} else if _, ok := val.(string); ok {
-				sites = append(sites, val.(string))
+			} else if valString, ok := val.(string); ok {
+				sites = append(sites, valString)
 			} else {
-				status.Status = v1alpha2.InternalError
-				status.StatusMessage = v1alpha2.InternalError.String()
+				status.Status = v1alpha2.BadConfig
+				status.StatusMessage = v1alpha2.BadConfig.String()
 				status.ErrorMessage = fmt.Sprintf("invalid context %s", currentStage.Contexts)
 				status.IsActive = false
 				log.Errorf(" M (Stage): invalid context: %v", currentStage.Contexts)
@@ -693,10 +695,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				log.Errorf(" M (Stage): failed to evaluate stage selector: %v", err)
 				return status, activationData
 			}
+
 			sVal := ""
 			if val != nil {
-				sVal = val.(string)
+				sVal = utils.FormatAsString(val)
 			}
+
 			if sVal != "" {
 				if nextStage, ok := campaign.Stages[sVal]; ok {
 					if !delayedExit || nextStage.HandleErrors {

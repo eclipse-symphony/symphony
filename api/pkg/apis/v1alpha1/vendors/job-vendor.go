@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -53,7 +54,7 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 	}
 	e.myMessages = make([]string, 0)
 	e.Vendor.Context.Subscribe("trace", func(topic string, event v1alpha2.Event) error {
-		msg := event.Body.(string)
+		msg := utils.FormatAsString(event.Body)
 		e.myMessages = append(e.myMessages, msg)
 		if len(e.myMessages) > 20 {
 			e.myMessages = e.myMessages[1:]

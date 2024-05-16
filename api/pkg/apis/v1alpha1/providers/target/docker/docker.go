@@ -18,6 +18,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -252,7 +253,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			env := make([]string, 0)
 			for k, v := range component.Component.Properties {
 				if strings.HasPrefix(k, "env.") {
-					env = append(env, strings.TrimPrefix(k, "env.")+"="+v.(string))
+					env = append(env, strings.TrimPrefix(k, "env.")+"="+utils.FormatAsString(v))
 				}
 			}
 

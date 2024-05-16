@@ -44,22 +44,22 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 		if v.Type != "" {
 			if val, ok := properties[k]; ok {
 				if v.Type == "int" {
-					if _, err := strconv.Atoi(val.(string)); err != nil {
+					if _, err := strconv.Atoi(FormatAsString(val)); err != nil {
 						ret.Valid = false
 						ret.Errors[k] = RuleResult{Valid: false, Error: "property is not an int"}
 					}
 				} else if v.Type == "float" {
-					if _, err := strconv.ParseFloat(val.(string), 64); err != nil {
+					if _, err := strconv.ParseFloat(FormatAsString(val), 64); err != nil {
 						ret.Valid = false
 						ret.Errors[k] = RuleResult{Valid: false, Error: "property is not a float"}
 					}
 				} else if v.Type == "bool" {
-					if _, err := strconv.ParseBool(val.(string)); err != nil {
+					if _, err := strconv.ParseBool(FormatAsString(val)); err != nil {
 						ret.Valid = false
 						ret.Errors[k] = RuleResult{Valid: false, Error: "property is not a bool"}
 					}
 				} else if v.Type == "uint" {
-					if _, err := strconv.ParseUint(val.(string), 10, 64); err != nil {
+					if _, err := strconv.ParseUint(FormatAsString(val), 10, 64); err != nil {
 						ret.Valid = false
 						ret.Errors[k] = RuleResult{Valid: false, Error: "property is not a uint"}
 					}
@@ -79,7 +79,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 		}
 		if v.Pattern != "" {
 			if val, ok := properties[k]; ok {
-				match, err := s.matchPattern(val.(string), v.Pattern)
+				match, err := s.matchPattern(FormatAsString(val), v.Pattern)
 				if err != nil {
 					ret.Valid = false
 					ret.Errors[k] = RuleResult{Valid: false, Error: "error matching pattern: " + err.Error()}

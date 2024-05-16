@@ -46,7 +46,7 @@ spec:
         projected:
           sources:
           - serviceAccountToken:
-              audience: '{{ include "symphony.url" . }}'
+              audience: '{{ include "symphony.httpsUrl" . }}'
               expirationSeconds: 600
               path: symphony-api-token
       - name: api-ca-cert
