@@ -78,7 +78,7 @@ func (s *StagingManager) Poll() []error {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
 	}
-	siteId := site.(string)
+	siteId := utils.FormatAsString(site)
 	var catalogs []model.CatalogState
 	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
 		s.VendorContext.SiteInfo.CurrentSite.Username,

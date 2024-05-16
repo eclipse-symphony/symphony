@@ -199,7 +199,7 @@ func (i *RedisPubSubProvider) worker() {
 }
 func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
 	var evt v1alpha2.Event
-	err := json.Unmarshal([]byte(msg.Message.(string)), &evt)
+	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)
 	if err != nil {
 		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
 	}
