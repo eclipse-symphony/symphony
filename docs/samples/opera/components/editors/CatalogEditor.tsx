@@ -11,11 +11,23 @@ interface CatalogEditorProps {
     schemas: CatalogState[];
 }
 
+interface Field {
+    name: string;
+}
+
+interface Fields {
+    [key: string]: Field;
+}
+
+interface Error {
+    error: string;
+}
+
 function CatalogEditor(props: CatalogEditorProps) {
     const { schemas } = props;
-    const [fields, setFields] = useState({});
-    const [errors, setErrors] = useState({});
-    const [moreFields, setMoreFields] = useState({});
+    const [fields, setFields] = useState<Record<string,Rule>>({});
+    const [errors, setErrors] = useState<Record<string,Error>>({});
+    const [moreFields, setMoreFields] = useState<Fields>({});
     useEffect(() => {
         if (schemas.length == 0) {
             schemaSelected(schemas[0].spec.name);
@@ -41,20 +53,24 @@ function CatalogEditor(props: CatalogEditorProps) {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const data = Object.fromEntries(formData.entries());
-        const catalog = {
-            name: data.name,
-            type: "config"
+        const catalog: CatalogSpec = {
+            name: typeof data.name === 'string' ? data.name : '',
+            parentName: "",
+            type: "config",
+            metadata: {},
+            properties: {},
+            generation: ""
         };
         if (data.schema) {
             catalog.metadata = {
-                "schema": data.schema
+                "schema": typeof data.schema === 'string' ? data.schema: ''
             }
         }
         catalog.properties = {};
         Object.keys(data).forEach((key: string) => {
             if (key.includes("-name")) {
                 const id = key.split("-")[0];
-                const name = data[key];
+                const name: string = typeof data[key] === 'string' ? data[key] as string: '';
                 const value = data[`${id}-value`];
                 if (name && value) {
                     catalog.properties[name] = value;
@@ -100,7 +116,8 @@ function CatalogEditor(props: CatalogEditorProps) {
     const removeRow = (event: React.MouseEvent<HTMLDivElement, MouseEvent>)  => {
         event.preventDefault();
         const newFields = {...moreFields};
-        const id = event.target.id;
+        const target = event.target as HTMLElement;
+        const id = target.id; 
         delete newFields[id];
         setMoreFields(newFields);
     }
