@@ -75,19 +75,14 @@ func GetApiClient() (*apiClient, error) {
 		client, ok := value.(*apiClient)
 		if !ok {
 			log.Infof("Symphony base url apiclient is broken. Recreating it.")
-			client, err := getApiClient()
-			if err != nil {
-				log.Errorf("Failed to recreate the apiclient. %s\n", err.Error())
-				return nil, err
-			}
-			symphonyApiClients.Store(symphonyBaseUrl, client)
+		} else {
+			return client, nil
 		}
-		return client, nil
 	}
 	log.Infof("Creating the symphony base url apiclient.")
 	client, err := getApiClient()
 	if err != nil {
-		log.Errorf("Failed to create the apiclient. %s\n", err.Error())
+		log.Errorf("Failed to create the apiclient: %+v", err.Error())
 		return nil, err
 	}
 	symphonyApiClients.Store(symphonyBaseUrl, client)
