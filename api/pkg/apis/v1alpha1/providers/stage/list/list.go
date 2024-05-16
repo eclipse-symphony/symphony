@@ -27,14 +27,14 @@ var msLock sync.Mutex
 var log = logger.NewLogger("coa.runtime")
 
 type ListStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
 type ListStageProvider struct {
-	Config  ListStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    ListStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func (s *ListStageProvider) Init(config providers.IProviderConfig) error {
@@ -45,6 +45,10 @@ func (s *ListStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *ListStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -68,27 +72,21 @@ func (i *ListStageProvider) InitWithMap(properties map[string]string) error {
 }
 func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProviderConfig, error) {
 	ret := ListStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		if err != nil {
+			return ret, err
+		}
+		ret.Password = password
 	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
 func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
@@ -121,7 +119,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	switch objectType {
 	case "instance":
 		var instances []model.InstanceState
-		instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
+		instances, err = i.ApiClient.GetInstances(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err
@@ -137,7 +135,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	case "sites":
 		var sites []model.SiteState
-		sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		sites, err = i.ApiClient.GetSites(ctx, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get sites: %v", err)
 			return nil, false, err
@@ -159,7 +157,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	case "catalogs":
 		var catalogs []model.CatalogState
-		catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
+		catalogs, err = i.ApiClient.GetCatalogs(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			log.Errorf("  P (List Processor): failed to get catalogs: %v", err)
 			return nil, false, err

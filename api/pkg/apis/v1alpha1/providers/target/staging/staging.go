@@ -30,8 +30,9 @@ type StagingTargetProviderConfig struct {
 }
 
 type StagingTargetProvider struct {
-	Config  StagingTargetProviderConfig
-	Context *contexts.ManagerContext
+	Config    StagingTargetProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func StagingProviderConfigFromMap(properties map[string]string) (StagingTargetProviderConfig, error) {
@@ -73,6 +74,10 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	i.Config = updateConfig
+	i.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTargetProviderConfig, error) {
@@ -97,13 +102,12 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	if scope == "" {
 		scope = "default"
 	}
-	catalog, err := utils.GetCatalog(
+	catalog, err := i.ApiClient.GetCatalog(
 		ctx,
-		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		scope,
 		i.Context.SiteInfo.CurrentSite.Username,
-		i.Context.SiteInfo.CurrentSite.Password,
-		scope)
+		i.Context.SiteInfo.CurrentSite.Password)
 
 	if err != nil {
 		if v1alpha2.IsNotFound(err) {
@@ -162,13 +166,12 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	var catalog model.CatalogState
 
-	catalog, err = utils.GetCatalog(
+	catalog, err = i.ApiClient.GetCatalog(
 		ctx,
-		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		scope,
 		i.Context.SiteInfo.CurrentSite.Username,
-		i.Context.SiteInfo.CurrentSite.Password,
-		scope)
+		i.Context.SiteInfo.CurrentSite.Password)
 
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		sLog.Errorf("  P (Staging Target): failed to get staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -178,7 +181,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.Spec == nil {
 		catalog.ObjectMeta.Name = deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
 		catalog.Spec = &model.CatalogSpec{
-			Type:   "staged",
+			Type: "staged",
 		}
 	}
 	if catalog.Spec.Properties == nil {
@@ -269,12 +272,12 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		"removed-components": deleted,
 	}
 	jData, _ := json.Marshal(catalog)
-	err = utils.UpsertCatalog(
+	err = i.ApiClient.UpsertCatalog(
 		ctx,
-		i.Context.SiteInfo.CurrentSite.BaseUrl,
 		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		jData,
 		i.Context.SiteInfo.CurrentSite.Username,
-		i.Context.SiteInfo.CurrentSite.Password, jData)
+		i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		sLog.Errorf("  P (Staging Target): failed to upsert staged artifact: %v, traceId: %s", err, span.SpanContext().TraceID().String())
 	}

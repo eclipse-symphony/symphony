@@ -440,7 +440,7 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 	}
 
 	// Send the deployment object to the api to queue a job
-	err = r.apiClient.QueueDeploymentJob(ctx, object.GetNamespace(), isRemoval, *deployment)
+	err = r.apiClient.QueueDeploymentJob(ctx, object.GetNamespace(), isRemoval, *deployment, "", "")
 	if err != nil {
 		return err
 	}
@@ -448,7 +448,7 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 }
 
 func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object Reconcilable) (*model.SummaryResult, error) {
-	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace())
+	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
 }
 
 func (r *DeploymentReconciler) updateCorrelationIdMetaData(ctx context.Context, object Reconcilable, operationStartTimeKey string) error {
