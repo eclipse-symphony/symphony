@@ -773,6 +773,13 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 		ret.Assignments[k] = v
 	}
 
+	// Remove targets not in assignments
+	for targetName := range ret.Targets {
+		if _, ok := ret.Assignments[targetName]; !ok {
+			delete(ret.Targets, targetName)
+		}
+	}
+
 	return ret, nil
 }
 
@@ -780,7 +787,7 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
-		ret[key] = ""
+		assignments := ""
 		for _, component := range components {
 			match := true
 			if component.Constraints != "" {
@@ -794,8 +801,12 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 				match = (val == "true" || val == true)
 			}
 			if match {
-				ret[key] += "{" + component.Name + "}"
+				assignments += "{" + component.Name + "}"
 			}
+		}
+		// Only add the key to the map if assignments is not empty
+		if assignments != "" {
+			ret[key] = assignments
 		}
 	}
 

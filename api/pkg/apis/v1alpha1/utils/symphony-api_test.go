@@ -644,6 +644,65 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	require.True(t, ret)
 }
 
+func TestCreateSymphonyDeploymentTargetTrim(t *testing.T) {
+	res, err := CreateSymphonyDeployment(model.InstanceState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "someInstance",
+		},
+		Spec: &model.InstanceSpec{
+			Target: model.TargetSelector{
+				Selector: map[string]string{
+					"OS": "windows",
+				},
+			},
+		},
+		Status: model.InstanceStatus{},
+	}, model.SolutionState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "someSolution",
+		},
+		Spec: &model.SolutionSpec{
+			Components: []model.ComponentSpec{
+				{
+					Name:        "com1",
+					Type:        "type1",
+					Constraints: "${{$equal($property(OS),windows)}}",
+				},
+				{
+					Name:        "com2",
+					Type:        "type2",
+					Constraints: "${{$equal($property(OS),windows)}}",
+				},
+			},
+		},
+	}, []model.TargetState{
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name: "target1",
+			},
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "windows",
+				},
+			},
+		},
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name: "target2",
+			},
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "linux",
+				},
+			},
+		},
+	}, []model.DeviceState{}, "default")
+	require.NoError(t, err)
+	// If a target is not assigned, it should be excluded in the final deployment
+	require.Equal(t, 1, len(res.Targets))
+	require.Equal(t, 1, len(res.Assignments))
+}
+
 func TestCreateSymphonyDeployment(t *testing.T) {
 	res, err := CreateSymphonyDeployment(model.InstanceState{
 		ObjectMeta: model.ObjectMeta{
