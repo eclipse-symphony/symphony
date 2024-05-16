@@ -9,6 +9,7 @@ package target
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -132,7 +134,12 @@ func (s *TargetManager) Poll() []error {
 		if i, ok := device.Object.Spec.Properties["ip"]; ok {
 			ip = i
 		}
-		name := device.Object.Metadata["name"].(string)
+		name, ok := device.Object.Metadata["name"].(string)
+		if !ok || name == "" {
+			err := v1alpha2.NewCOAError(nil, fmt.Sprintf("device name is not valid: %v", device.Object.Metadata["name"]), v1alpha2.InternalError)
+			errors = append(errors, err)
+			continue
+		}
 		namespace, ok := device.Object.Metadata["namespace"].(string)
 		if !ok {
 			namespace = "default"

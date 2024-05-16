@@ -110,13 +110,22 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.Info("  P (Materialize Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
-	objects := inputs["names"].([]interface{})
+	objects, ok := inputs["names"].([]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, "input names is not a valid list", v1alpha2.BadRequest)
+		return outputs, false, err
+	}
 	prefixedNames := make([]string, len(objects))
 	for i, object := range objects {
+		objString, ok := object.(string)
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("input name is not a valid string: %v", objects), v1alpha2.BadRequest)
+			return outputs, false, err
+		}
 		if s, ok := inputs["__origin"]; ok {
-			prefixedNames[i] = fmt.Sprintf("%s-%s", s, object.(string))
+			prefixedNames[i] = fmt.Sprintf("%s-%s", s, objString)
 		} else {
-			prefixedNames[i] = object.(string)
+			prefixedNames[i] = objString
 		}
 	}
 	namespace := stage.GetNamespace(inputs)

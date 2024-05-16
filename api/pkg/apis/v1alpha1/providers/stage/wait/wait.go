@@ -150,8 +150,16 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
-	objectType := inputs["objectType"].(string)
-	objects := inputs["names"].([]interface{})
+	objectType, ok := inputs["objectType"].(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("objectType is not a valid string: %v", inputs["objectType"]), v1alpha2.BadRequest)
+		return nil, false, err
+	}
+	objects, ok := inputs["names"].([]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, "input names is not a valid list", v1alpha2.BadRequest)
+		return outputs, false, err
+	}
 	prefixedNames := make([]string, len(objects))
 	if inputs["__origin"] == nil || inputs["__origin"] == "" {
 		for i, object := range objects {

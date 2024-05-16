@@ -9,6 +9,7 @@ package remote
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -86,9 +87,16 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		return nil, false, err
 	}
 
+	siteString, ok := v.(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("site name is not a valid string: %v", v), v1alpha2.BadRequest)
+		log.Errorf("  P (Remote Processor): %v", err)
+		return nil, false, err
+	}
+
 	err = mgrContext.Publish("remote", v1alpha2.Event{
 		Metadata: map[string]string{
-			"site":       v.(string),
+			"site":       siteString,
 			"objectType": "task",
 			"origin":     mgrContext.SiteInfo.SiteId,
 		},

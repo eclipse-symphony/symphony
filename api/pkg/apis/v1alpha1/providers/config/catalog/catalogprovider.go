@@ -94,7 +94,11 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 		return "", err
 	}
 	if v, ok := catalog.Spec.Properties[field]; ok {
-		return v.(string), nil
+		if vstring, ok := v.(string); ok {
+			return vstring, nil
+		} else {
+			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' doesn't has a valid value in configuration'%s'", field, override), v1alpha2.BadConfig)
+		}
 	}
 	if catalog.Spec.ParentName != "" {
 		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace)

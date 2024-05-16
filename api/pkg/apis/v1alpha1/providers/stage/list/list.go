@@ -102,11 +102,15 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 
 	outputs := make(map[string]interface{})
 
-	objectType := inputs["objectType"].(string)
+	objectType, ok := inputs["objectType"].(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("objectType is not a valid string: %v", inputs["objectType"]), v1alpha2.BadRequest)
+		return nil, false, err
+	}
 	namesOnly := false
 	if v, ok := inputs["namesOnly"]; ok {
-		if v.(bool) {
-			namesOnly = v.(bool)
+		if vbool, ok := v.(bool); ok {
+			namesOnly = vbool
 		}
 	}
 	objectNamespace := stage.GetNamespace(inputs)

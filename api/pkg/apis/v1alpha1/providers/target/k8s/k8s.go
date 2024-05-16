@@ -993,7 +993,7 @@ func createContainerSpec(name string, properties map[string]interface{}, metadat
 	}
 	container := &apiv1.Container{
 		Name:            name,
-		Image:           properties[model.ContainerImage].(string),
+		Image:           utils.FormatAsString(properties[model.ContainerImage]),
 		Ports:           ports,
 		ImagePullPolicy: apiv1.PullPolicy(utils.ReadStringFromMapCompat(properties, "container.imagePullPolicy", "Always")),
 	}

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -75,7 +76,11 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})
 	if state, ok := inputs["__state"]; ok {
-		selfState = state.(map[string]interface{})
+		selfState, ok = state.(map[string]interface{})
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, "input state is not a valid map[string]interface{}", v1alpha2.BadRequest)
+			return outputs, false, err
+		}
 	}
 
 	for k, v := range inputs {
