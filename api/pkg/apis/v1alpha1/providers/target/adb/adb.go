@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -159,7 +160,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 					if !isDryRun {
 						params := make([]string, 0)
 						params = append(params, "install")
-						params = append(params, p.(string))
+						params = append(params, utils.FormatAsString(p))
 						cmd := exec.Command("adb", params...)
 						err = cmd.Run()
 						if err != nil {
@@ -182,7 +183,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 				if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
 					params := make([]string, 0)
 					params = append(params, "uninstall")
-					params = append(params, p.(string))
+					params = append(params, utils.FormatAsString(p))
 
 					cmd := exec.Command("adb", params...)
 					err = cmd.Run()

@@ -35,7 +35,7 @@ func (s *TrailsManager) Init(context *contexts.VendorContext, config managers.Ma
 	s.LedgerProviders = make([]ledger.ILedgerProvider, 0)
 	for _, provider := range providers {
 		if p, ok := provider.(ledger.ILedgerProvider); ok {
-			s.LedgerProviders = append(s.LedgerProviders, p.(ledger.ILedgerProvider))
+			s.LedgerProviders = append(s.LedgerProviders, p)
 		}
 	}
 	return nil

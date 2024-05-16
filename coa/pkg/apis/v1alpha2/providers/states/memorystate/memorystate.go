@@ -140,7 +140,13 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 		if mapRef["status"] == nil {
 			mapRef["status"] = make(map[string]interface{})
 		}
-		for k, v := range mapType["status"].(map[string]interface{}) {
+		statusMap, ok := mapType["status"].(map[string]interface{})
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid status", entry.Value.ID), v1alpha2.InternalError)
+			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			return "", err
+		}
+		for k, v := range statusMap {
 			mapRef["status"].(map[string]interface{})[k] = v
 		}
 

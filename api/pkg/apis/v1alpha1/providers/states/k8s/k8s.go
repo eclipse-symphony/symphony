@@ -262,20 +262,25 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			}
 		}
 		if v, ok := dict["status"]; ok {
-			status := &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": group + "/" + version,
-					"kind":       "Status",
-					"metadata": map[string]interface{}{
-						"name": entry.Value.ID,
+			if vMap, ok := v.(map[string]interface{}); ok {
+				status := &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": group + "/" + version,
+						"kind":       "Status",
+						"metadata": map[string]interface{}{
+							"name": entry.Value.ID,
+						},
+						"status": vMap,
 					},
-					"status": v.(map[string]interface{}),
-				},
-			}
-			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).UpdateStatus(ctx, status, v1.UpdateOptions{})
-			if err != nil {
-				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
+				}
+				status.SetResourceVersion(item.GetResourceVersion())
+				_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).UpdateStatus(ctx, status, v1.UpdateOptions{})
+				if err != nil {
+					sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
+					return "", err
+				}
+			} else {
+				err = v1alpha2.NewCOAError(nil, "status field is not a valid map[string]interface{}", v1alpha2.BadRequest)
 				return "", err
 			}
 		}
