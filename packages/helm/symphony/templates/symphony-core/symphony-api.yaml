@@ -97,7 +97,7 @@ spec:
             - serviceAccountToken:
                 path: symphony-api-token
                 expirationSeconds: 600
-                audience: {{ include "symphony.url" . }}
+                audience: {{ include "symphony.httpsUrl" . }}
         - name: serving-cert
           secret:
             secretName: {{ include "symphony.apiServingCertName" . }}

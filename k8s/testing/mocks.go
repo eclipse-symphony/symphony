@@ -248,7 +248,7 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 }
 
 // GetSummary implements ApiClient.
-func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string) (*model.SummaryResult, error) {
+func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	args := c.Called(ctx, id, namespace)
 	summary := args.Get(0)
 	if summary == nil {
@@ -258,14 +258,14 @@ func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace str
 }
 
 // QueueDeploymentJob implements utils.ApiClient.
-func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec) error {
+func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {
 	args := c.Called(ctx, namespace, isDelete, deployment)
 	return args.Error(0)
 }
 
 // QueueJob implements ApiClient.
 // Deprecated and not used.
-func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, isDelete bool, isTarget bool) error {
+func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, isDelete bool, isTarget bool, user string, password string) error {
 	panic("implement me")
 }
 

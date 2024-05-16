@@ -14,6 +14,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +27,6 @@ func TestDeployInstance(t *testing.T) {
 	}
 	provider := CreateStageProvider{}
 	err := provider.Init(CreateStageProviderConfig{
-		BaseUrl:      "http://localhost:8082/v1alpha2/",
-		User:         "admin",
-		Password:     "",
 		WaitCount:    3,
 		WaitInterval: 5,
 	})
@@ -51,17 +49,11 @@ func TestDeployInstance(t *testing.T) {
 func TestCreateInitFromVendorMap(t *testing.T) {
 	provider := CreateStageProvider{}
 	input := map[string]string{
-		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"user":          "admin",
-		"password":      "",
 		"wait.interval": "1",
 		"wait.count":    "3",
 	}
 	config, err := SymphonyStageProviderConfigFromMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", config.BaseUrl)
-	assert.Equal(t, "admin", config.User)
-	assert.Equal(t, "", config.Password)
 	assert.Equal(t, 1, config.WaitInterval)
 	assert.Equal(t, 3, config.WaitCount)
 	err = provider.InitWithMap(input)
@@ -72,16 +64,38 @@ func TestCreateInitFromVendorMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"wait.count": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
+		"wait.count":    "15",
+		"wait.interval": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
+}
+
+func TestCreateInitFromVendorMapForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	config, err := SymphonyStageProviderConfigFromMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, "admin", config.User)
+	assert.Equal(t, 1, config.WaitInterval)
+	assert.Equal(t, 3, config.WaitCount)
+	err = provider.InitWithMap(input)
+	assert.Nil(t, err)
 
 	input = map[string]string{
 		"baseUrl": "http://symphony-service:8080/v1alpha2/",
@@ -89,29 +103,9 @@ func TestCreateInitFromVendorMap(t *testing.T) {
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
-
 	input = map[string]string{
 		"baseUrl": "http://symphony-service:8080/v1alpha2/",
 		"user":    "admin",
-	}
-	config, err = SymphonyStageProviderConfigFromMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl":    "http://symphony-service:8080/v1alpha2/",
-		"user":       "admin",
-		"password":   "",
-		"wait.count": "abc",
-	}
-	config, err = SymphonyStageProviderConfigFromMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl":       "http://symphony-service:8080/v1alpha2/",
-		"user":          "admin",
-		"password":      "",
-		"wait.count":    "15",
-		"wait.interval": "abc",
 	}
 	config, err = SymphonyStageProviderConfigFromMap(input)
 	assert.NotNil(t, err)
@@ -126,6 +120,7 @@ type AuthResponse struct {
 
 func TestCreateProcessCreate(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -149,6 +144,7 @@ func TestCreateProcessCreate(t *testing.T) {
 
 func TestCreateProcessCreateFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPIFailedCase()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -173,6 +169,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 
 func TestCreateProcessRemove(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",

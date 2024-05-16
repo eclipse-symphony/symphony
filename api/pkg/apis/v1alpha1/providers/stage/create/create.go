@@ -28,7 +28,6 @@ import (
 var msLock sync.Mutex
 
 type CreateStageProviderConfig struct {
-	BaseUrl      string `json:"baseUrl"`
 	User         string `json:"user"`
 	Password     string `json:"password"`
 	WaitCount    int    `json:"wait.count,omitempty"`
@@ -36,8 +35,9 @@ type CreateStageProviderConfig struct {
 }
 
 type CreateStageProvider struct {
-	Config  CreateStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    CreateStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 const (
@@ -53,6 +53,10 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *CreateStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -76,25 +80,20 @@ func (i *CreateStageProvider) InitWithMap(properties map[string]string) error {
 }
 func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateStageProviderConfig, error) {
 	ret := CreateStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
-	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" && !utils.ShouldUseSATokens() {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		ret.Password = password
+		if err != nil {
+			return ret, err
+		}
 	}
 	waitStr, err := utils.GetString(properties, "wait.count")
 	if err != nil {
@@ -114,7 +113,6 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (CreateSta
 		return ret, v1alpha2.NewCOAError(err, "wait.interval must be an integer", v1alpha2.BadConfig)
 	}
 	ret.WaitInterval = waitInterval
-	ret.Password = password
 	if waitCount <= 0 {
 		waitCount = 1
 	}
@@ -146,18 +144,18 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		}
 
 		if strings.EqualFold(action, RemoveAction) {
-			err = utils.DeleteInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectNamespace)
+			err = i.ApiClient.DeleteInstance(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
-			err = utils.CreateInstance(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, oData, objectNamespace)
+			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				var summary model.SummaryResult
-				summary, err = utils.GetSummary(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectName, objectNamespace)
+				var summary *model.SummaryResult
+				summary, err = i.ApiClient.GetSummary(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err

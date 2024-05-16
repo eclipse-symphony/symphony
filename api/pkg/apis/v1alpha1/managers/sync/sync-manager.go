@@ -20,6 +20,7 @@ import (
 
 type SyncManager struct {
 	managers.Manager
+	apiClient utils.ApiClient
 }
 
 func (s *SyncManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -29,6 +30,10 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	}
 	if s.Context.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
+	}
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -44,10 +49,7 @@ func (s *SyncManager) Poll() []error {
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}
-	batch, err := utils.GetABatchForSite(
-		ctx,
-		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
-		s.VendorContext.SiteInfo.SiteId,
+	batch, err := s.apiClient.GetABatchForSite(ctx, s.VendorContext.SiteInfo.SiteId,
 		s.VendorContext.SiteInfo.ParentSite.Username,
 		s.VendorContext.SiteInfo.ParentSite.Password)
 	if err != nil {

@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -28,7 +29,6 @@ import (
 
 var (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
-	symphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
@@ -61,14 +61,75 @@ func (e *SummarySpecError) Error() string {
 }
 
 func GetSymphonyAPIAddressBase() string {
-	if symphonyAPIAddressBase == "" {
+	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
 	}
-	return symphonyAPIAddressBase
+	return os.Getenv(constants.SymphonyAPIUrlEnvName)
+}
+
+var symphonyApiClients sync.Map
+
+func GetApiClient() (*apiClient, error) {
+	symphonyBaseUrl := os.Getenv(constants.SymphonyAPIUrlEnvName)
+	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
+		client, ok := value.(*apiClient)
+		if !ok {
+			log.Infof("Symphony base url apiclient is broken. Recreating it.")
+		} else {
+			return client, nil
+		}
+	}
+	log.Infof("Creating the symphony base url apiclient.")
+	client, err := getApiClient()
+	if err != nil {
+		log.Errorf("Failed to create the apiclient: %+v", err.Error())
+		return nil, err
+	}
+	symphonyApiClients.Store(symphonyBaseUrl, client)
+	return client, nil
+}
+
+func getApiClient() (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	baseUrl := GetSymphonyAPIAddressBase()
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	if ShouldUseSATokens() {
+		clientOptions = append(clientOptions, WithServiceAccountToken())
+	} else {
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	}
+
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetParentApiClient(baseUrl string) (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func ShouldUseSATokens() bool {
 	return useSAToken == "true"
+}
+
+func ShouldUseUserCreds() bool {
+	return useSAToken == "false"
 }
 
 var log = logger.NewLogger("coa.runtime")

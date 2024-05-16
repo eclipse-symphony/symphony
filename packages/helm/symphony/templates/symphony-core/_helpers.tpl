@@ -147,8 +147,15 @@ Symphony API ServingCertIssuerName
 {{/*
 Symphony full url Endpoint
 */}}
-{{- define "symphony.url" -}}
+{{- define "symphony.httpsUrl" -}}
 {{- printf "https://%s:%s/v1alpha2/" (include "symphony.serviceName" .)  (include "symphony.apiContainerPortHttps" .) }}
+{{- end }}
+
+{{/*
+Symphony full url Endpoint
+*/}}
+{{- define "symphony.httpUrl" -}}
+{{- printf "http://%s:%s/v1alpha2/" (include "symphony.serviceName" .)  (include "symphony.apiContainerPortHttp" .) }}
 {{- end }}
 
 {{/* Symphony Env Config Name */}}

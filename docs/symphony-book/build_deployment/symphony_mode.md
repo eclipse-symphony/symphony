@@ -50,7 +50,7 @@ And under standalone mode, the reconciliation policy is not configured on indivi
 Symphony runs as a single process in standalone mode. To launch Symphony in standalone mode, simply launch the `symphony-api` binary with a configuration file and an optional tracing level switch (such as `Error`, `Info` and `Debug`):
 
 ```bash
-./symphony-api -c ~/symphony-api-no-k8s.json -l Debug
+SYMPHONY_API_URL="http://localhost:8082/v1alpha2/" USE_SERVICE_ACCOUNT_TOKENS="false"  ./bin/symphony-api -c symphony-api-no-k8s.json -l Debug
 ```
 
 Once launched, you can access Symphony's [REST API](../api/_overview.md) using any web clients.

@@ -38,6 +38,7 @@ type FederationVendor struct {
 	StagingManager  *staging.StagingManager
 	SyncManager     *sync.SyncManager
 	TrailsManager   *trails.TrailsManager
+	apiClient       utils.ApiClient
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -78,6 +79,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if f.CatalogsManager == nil {
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
+	f.apiClient, err = utils.GetParentApiClient(f.Vendor.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		sites, err := f.SitesManager.ListState(context.TODO())
 		if err != nil {
@@ -105,11 +110,9 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		var status model.ActivationStatus
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
-			err := utils.SyncActivationStatus(
-				context.TODO(),
-				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
+			err := f.apiClient.SyncActivationStatus(context.TODO(), status,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
-				f.Vendor.Context.SiteInfo.ParentSite.Password, status)
+				f.Vendor.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
 				fLog.Errorf("V (Federation): error while syncing activation status: %v", err)
 				return err
