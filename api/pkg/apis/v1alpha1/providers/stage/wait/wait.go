@@ -30,7 +30,6 @@ var mwLock sync.Mutex
 var log = logger.NewLogger("coa.runtime")
 
 type WaitStageProviderConfig struct {
-	BaseUrl      string `json:"baseUrl"`
 	User         string `json:"user"`
 	Password     string `json:"password"`
 	WaitInterval int    `json:"wait.interval,omitempty"`
@@ -38,8 +37,9 @@ type WaitStageProviderConfig struct {
 }
 
 type WaitStageProvider struct {
-	Config  WaitStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    WaitStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
@@ -50,6 +50,10 @@ func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *WaitStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -89,17 +93,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 
 	log.Info("  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get baseUrl: %v", err)
-		return ret, err
-	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		log.Errorf("  P (Wait Processor): baseUrl is required")
-		err = v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-		return ret, err
-	}
+
 	user, err := utils.GetString(properties, "user")
 	if err != nil {
 		log.Errorf("  P (Wait Processor): failed to get user: %v", err)
@@ -117,6 +111,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 		return ret, err
 	}
 	ret.Password = password
+
 	if v, ok := properties["wait.interval"]; ok {
 		var interval int
 		interval, err = strconv.Atoi(v)
@@ -150,8 +145,16 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	log.Info("  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
-	objectType := inputs["objectType"].(string)
-	objects := inputs["names"].([]interface{})
+	objectType, ok := inputs["objectType"].(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("objectType is not a valid string: %v", inputs["objectType"]), v1alpha2.BadRequest)
+		return nil, false, err
+	}
+	objects, ok := inputs["names"].([]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, "input names is not a valid list", v1alpha2.BadRequest)
+		return outputs, false, err
+	}
 	prefixedNames := make([]string, len(objects))
 	if inputs["__origin"] == nil || inputs["__origin"] == "" {
 		for i, object := range objects {
@@ -174,7 +177,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		switch objectType {
 		case "instance":
 			var instances []model.InstanceState
-			instances, err = utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+			instances, err = i.ApiClient.GetInstances(ctx, namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
 				return nil, false, err
@@ -188,7 +191,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		case "sites":
 			var sites []model.SiteState
-			sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+			sites, err = i.ApiClient.GetSites(ctx, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
 				return nil, false, err
@@ -202,7 +205,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		case "catalogs":
 			var catalogs []model.CatalogState
-			catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+			catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
 				return nil, false, err

@@ -371,9 +371,13 @@ func toComponent(hubTwin ModuleTwin, twin ModuleTwin, name string, module Module
 	}
 
 	if v, ok := hubTwin.Properties.Desired["routes"]; ok {
-		routes := v.(map[string]interface{})
+		routes, ok := v.(map[string]interface{})
+		if !ok {
+			err := v1alpha2.NewCOAError(nil, "hubTwin.Properties.Desired['routes'] is not a valid map", v1alpha2.BadRequest)
+			return component, err
+		}
 		for k, iv := range routes {
-			def := iv.(string)
+			def := utils.FormatAsString(iv)
 			if strings.Contains(def, "modules/"+twin.ModuleId+"/") { //TODO: this check is not necessarily safe
 				reducedRoute, _ := reduceKey(k, name)
 				reducedDef, _ := replaceKey(def, name)
@@ -390,7 +394,7 @@ func toComponent(hubTwin ModuleTwin, twin ModuleTwin, name string, module Module
 
 	component.Properties["container.restartPolicy"] = module.RestartPolicy
 	if module.Version != nil {
-		component.Properties["container.version"] = module.Version.(string)
+		component.Properties["container.version"] = utils.FormatAsString(module.Version)
 	}
 	component.Properties["container.type"] = module.Type
 	if v, ok := module.Settings["createOptions"]; ok {
@@ -706,9 +710,10 @@ func updateDeployment(deployment *IoTEdgeDeployment, name string, modules map[st
 	rd := deployment.ModulesContent["$edgeHub"].DesiredProperties["routes"].(map[string]string)
 
 	if v, ok := hubRef.Properties.Desired["routes"]; ok {
-		routes := v.(map[string]interface{})
-		for ik, iv := range routes {
-			rd[ik] = iv.(string)
+		if routes, ok := v.(map[string]interface{}); ok {
+			for ik, iv := range routes {
+				rd[ik] = utils.FormatAsString(iv)
+			}
 		}
 	}
 
@@ -756,9 +761,10 @@ func reduceDeployment(deployment *IoTEdgeDeployment, name string, modules map[st
 	rd := deployment.ModulesContent["$edgeHub"].DesiredProperties["routes"].(map[string]string)
 
 	if v, ok := hubRef.Properties.Desired["routes"]; ok {
-		routes := v.(map[string]interface{})
-		for ik, iv := range routes {
-			rd[ik] = iv.(string)
+		if routes, ok := v.(map[string]interface{}); ok {
+			for ik, iv := range routes {
+				rd[ik] = utils.FormatAsString(iv)
+			}
 		}
 	}
 

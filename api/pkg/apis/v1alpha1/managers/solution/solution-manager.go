@@ -60,6 +60,7 @@ type SolutionManager struct {
 	SecretProvider  secret.ISecretProvider
 	IsTarget        bool
 	TargetNames     []string
+	ApiClientHttp   api_utils.ApiClient
 }
 
 type SolutionManagerDeploymentState struct {
@@ -131,7 +132,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			return err
 		}
 	}
-
+	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -647,9 +651,10 @@ func (s *SolutionManager) Enabled() bool {
 }
 func (s *SolutionManager) Poll() []error {
 	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
-		symphonyUrl := s.Context.SiteInfo.ParentSite.BaseUrl
 		for _, target := range s.TargetNames {
-			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "", "label", "staged_target="+target)
+			catalogs, err := s.ApiClientHttp.GetCatalogsWithFilter(context.Background(), "", "label", "staged_target="+target,
+				s.Context.SiteInfo.ParentSite.Username,
+				s.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
 				return []error{err}
 			}
@@ -679,7 +684,11 @@ func (s *SolutionManager) Poll() []error {
 					if err != nil {
 						return []error{err}
 					}
-					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, deployment.Instance.ObjectMeta.Name+"-"+target, components)
+					err = s.ApiClientHttp.ReportCatalogs(context.Background(),
+						deployment.Instance.ObjectMeta.Name+"-"+target,
+						components,
+						s.Context.SiteInfo.ParentSite.Username,
+						s.Context.SiteInfo.ParentSite.Password)
 					if err != nil {
 						return []error{err}
 					}

@@ -18,6 +18,7 @@ import (
 	autogen "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
 	localfile "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	routing "github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -141,7 +142,7 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			if v == nil {
 				req.Parameters[k] = "" //TODO: chance to report on missing required parameters
 			} else {
-				req.Parameters[k] = v.(string)
+				req.Parameters[k] = utils.FormatAsString(v)
 			}
 		}
 

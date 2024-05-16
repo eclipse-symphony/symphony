@@ -27,7 +27,7 @@ redis:
   image: redis/redis-stack-server:latest
   port: 6379
 parent:
-  url: 
+  url:
   username: admin
   password:
 siteId: hq
