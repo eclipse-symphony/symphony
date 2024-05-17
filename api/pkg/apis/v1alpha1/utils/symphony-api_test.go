@@ -700,7 +700,7 @@ func TestCreateSymphonyDeploymentTargetTrim(t *testing.T) {
 	require.NoError(t, err)
 	// If a target is not assigned, it should be excluded in the final deployment
 	require.Equal(t, 1, len(res.Targets))
-	require.Equal(t, 2, len(res.Assignments))
+	require.Equal(t, 1, len(res.Assignments))
 }
 
 func TestCreateSymphonyDeployment(t *testing.T) {
