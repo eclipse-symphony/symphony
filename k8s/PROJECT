@@ -152,4 +152,49 @@ resources:
     defaulting: true
     validation: true
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: solution
+  kind: InstanceContainer
+  path: gopls-workspace/apis/solution/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: solution
+  kind: SolutionContainer
+  path: gopls-workspace/apis/solution/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: fabric
+  kind: TargetContainer
+  path: gopls-workspace/apis/fabric/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: federation
+  kind: CatalogContainer
+  path: gopls-workspace/apis/federation/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: workflow
+  kind: CampaignContainer
+  path: gopls-workspace/apis/workflow/v1
+  version: v1
 version: "3"

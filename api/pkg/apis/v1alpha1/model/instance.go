@@ -23,16 +23,18 @@ type (
 	// InstanceSpec defines the spec property of the InstanceState
 	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
-		DisplayName string                       `json:"displayName,omitempty"`
-		Scope       string                       `json:"scope,omitempty"`
-		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string            `json:"metadata,omitempty"`
-		Solution    string                       `json:"solution"`
-		Target      TargetSelector               `json:"target,omitempty"`
-		Topologies  []TopologySpec               `json:"topologies,omitempty"`
-		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
-		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
-		Generation  string                       `json:"generation,omitempty"`
+		DisplayName  string                       `json:"displayName,omitempty"`
+		Scope        string                       `json:"scope,omitempty"`
+		Parameters   map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata     map[string]string            `json:"metadata,omitempty"`
+		Solution     string                       `json:"solution"`
+		Target       TargetSelector               `json:"target,omitempty"`
+		Topologies   []TopologySpec               `json:"topologies,omitempty"`
+		Pipelines    []PipelineSpec               `json:"pipelines,omitempty"`
+		Arguments    map[string]map[string]string `json:"arguments,omitempty"`
+		Generation   string                       `json:"generation,omitempty"`
+		Version      string                       `json:"version,omitempty"`
+		RootResource string                       `json:"rootResource,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
