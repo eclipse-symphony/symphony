@@ -75,7 +75,11 @@ spec:
               properties:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+              rootResource:
+                type: string
               type:
+                type: string
+              version:
                 type: string
             required:
             - properties
