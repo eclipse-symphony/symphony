@@ -127,7 +127,12 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if namesOnly {
 			names := make([]string, 0)
 			for _, instance := range instances {
-				names = append(names, instance.ObjectMeta.Name)
+				name := instance.ObjectMeta.Name
+				if instance.ObjectMeta.Labels["version"] != "" && instance.ObjectMeta.Labels["rootResource"] != "" {
+					name = instance.ObjectMeta.Labels["rootResource"] + ":" + instance.ObjectMeta.Labels["version"]
+				}
+				log.Infof("  P (List Processor): >>>>>> append catalog name %v", name)
+				names = append(names, name)
 			}
 			outputs["items"] = names
 		} else {
@@ -165,7 +170,12 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if namesOnly {
 			names := make([]string, 0)
 			for _, catalog := range catalogs {
-				names = append(names, catalog.ObjectMeta.Name)
+				name := catalog.ObjectMeta.Name
+				if catalog.ObjectMeta.Labels["version"] != "" && catalog.ObjectMeta.Labels["rootResource"] != "" {
+					name = catalog.ObjectMeta.Labels["rootResource"] + ":" + catalog.ObjectMeta.Labels["version"]
+				}
+				log.Infof("  P (List Processor): >>>>>> append catalog name %v", name)
+				names = append(names, name)
 			}
 			outputs["items"] = names
 		} else {

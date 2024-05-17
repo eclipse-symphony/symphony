@@ -61,14 +61,21 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			jData, _ = json.Marshal(job.Body)
 			err = json.Unmarshal(jData, &catalog)
 			origin := event.Metadata["origin"]
+			iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  catalog-sync origin: %v", origin)
+
 			if err == nil {
 				name := fmt.Sprintf("%s-%s", origin, catalog.ObjectMeta.Name)
+				iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  catalog-sync: %v", name)
+
 				catalog.ObjectMeta.Name = name
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
+				iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog-sync  UpsertState: %v", name)
+
 				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
+					iLog.Errorf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog-sync error UpsertState: %v", err)
 					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
 				}
 			} else {
@@ -94,7 +101,13 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route + "/registry",
 			Version:    e.Version,
 			Handler:    e.onCatalogs,
-			Parameters: []string{"name?"},
+			Parameters: []string{"name", "version?"},
+		},
+		{
+			Methods: []string{fasthttp.MethodGet},
+			Route:   route + "/registry",
+			Version: e.Version,
+			Handler: e.onCatalogsList,
 		},
 		{
 			Methods: []string{fasthttp.MethodGet},
@@ -113,7 +126,7 @@ func (e *CatalogsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route + "/status",
 			Version:    e.Version,
 			Handler:    e.onStatus,
-			Parameters: []string{"name"},
+			Parameters: []string{"name", "version?"},
 		},
 	}
 }
@@ -124,6 +137,16 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	defer span.End()
 
 	lLog.Infof("V (Catalogs Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+
+	version := request.Parameters["__version"]
+	rootResource := request.Parameters["__name"]
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
+	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -140,7 +163,6 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 				Body:  []byte(err.Error()),
 			})
 		}
-		id := request.Parameters["__name"]
 		if id == "" {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
@@ -175,6 +197,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
+
 func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
 		"method": "onCheck",
@@ -300,22 +323,28 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		namespace = "default"
 	}
 
+	version := request.Parameters["__version"]
+	rootResource := request.Parameters["__name"]
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
+	uLog.Infof("V (Catalogs): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogs-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
-		isArray := false
-		if id == "" {
-			if !namesapceSupplied {
-				namespace = ""
-			}
-			state, err = e.CatalogsManager.ListState(ctx, namespace, request.Parameters["filterType"], request.Parameters["filterValue"])
-			isArray = true
+
+		if version == "latest" {
+			state, err = e.CatalogsManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = e.CatalogsManager.GetState(ctx, id, namespace)
 		}
+
 		if err != nil {
 			if !v1alpha2.IsNotFound(err) {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -329,7 +358,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 				})
 			}
 		}
-		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
+		jData, _ := utils.FormatObject(state, false, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        jData,
@@ -341,7 +370,6 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCatalogs-POST", pCtx, nil)
-		id := request.Parameters["__name"]
 		if id == "" {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
@@ -370,7 +398,6 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -382,6 +409,55 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			State: v1alpha2.OK,
 		})
 	}
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *CatalogsVendor) onCatalogsList(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	pCtx, span := observability.StartSpan("Catalogs Vendor", request.Context, &map[string]string{
+		"method": "onCatalogsList",
+	})
+	defer span.End()
+	uLog.Infof("V (Catalogs): onCatalogsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	namespace, namesapceSupplied := request.Parameters["namespace"]
+	if !namesapceSupplied {
+		namespace = "default"
+	}
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onCatalogsList-GET", pCtx, nil)
+
+		var err error
+		var state interface{}
+		if !namesapceSupplied {
+			namespace = ""
+		}
+		state, err = c.CatalogsManager.ListState(ctx, namespace, request.Parameters["filterType"], request.Parameters["filterValue"])
+
+		if err != nil {
+			uLog.Infof("V (Catalogs): onCatalogsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		jData, _ := utils.FormatObject(state, true, request.Parameters["path"], request.Parameters["doc-type"])
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        jData,
+			ContentType: "application/json",
+		})
+		if request.Parameters["doc-type"] == "yaml" {
+			resp.ContentType = "application/text"
+		}
+		return resp
+	}
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

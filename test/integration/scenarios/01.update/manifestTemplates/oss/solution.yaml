@@ -7,6 +7,8 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   annotations: {}
-  name: my-sol
+  name: my-sol-v1
 spec:
-  displayName: My solution
+  version: v1
+  rootResource: my-sol
+  displayName: my-sol-v1

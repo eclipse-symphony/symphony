@@ -1,12 +1,14 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-catalog
+  name: site-catalog-v1
 spec:
+  version: v1
+  rootResource: site-catalog
   type: catalog
   properties:
     metadata: 
-      name: web-app-config
+      name: web-app-config:v1
     spec: 
       type: config
       properties:

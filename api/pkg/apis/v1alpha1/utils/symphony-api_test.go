@@ -52,7 +52,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = testApiClient.UpsertSolution(context.Background(), solutionName, solution1, "default", user, password)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -232,7 +232,7 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = testApiClient.UpsertSolution(context.Background(), solutionName, solution1, "default", user, password)
 	require.NoError(t, err)
 
 	solutionsRes, err := testApiClient.GetSolutions(context.Background(), "default", user, password)

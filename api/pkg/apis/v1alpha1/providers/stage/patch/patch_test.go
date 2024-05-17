@@ -243,7 +243,7 @@ func TestPatchProcessCatalog(t *testing.T) {
 		"objectType":   "solution",
 		"objectName":   "solution1:v1",
 		"patchSource":  "catalog",
-		"patchContent": "catalog1",
+		"patchContent": "catalog1:v1",
 		"patchAction":  "add",
 		"component":    "ebpf-module",
 		"property":     "input",
@@ -295,10 +295,10 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Spec: testSolution.Spec,
 				}
 			}
-		case "/catalogs/registry/catalog1":
+		case "/catalogs/registry/catalog1/v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "catalog1-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Type: "config",

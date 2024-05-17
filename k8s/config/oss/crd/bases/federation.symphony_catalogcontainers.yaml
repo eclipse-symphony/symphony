@@ -18,7 +18,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogContainer is the Schema for the catalogs API
+        description: CatalogContainer is the Schema for the CatalogContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

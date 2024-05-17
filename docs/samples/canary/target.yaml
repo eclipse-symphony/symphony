@@ -1,8 +1,10 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: sample-k8s-target        
-spec:  
+  name: sample-k8s-target-v1      
+spec:
+  version: v1
+  rootResource: sample-k8s-target  
   topologies:
   - bindings:
     - role: instance

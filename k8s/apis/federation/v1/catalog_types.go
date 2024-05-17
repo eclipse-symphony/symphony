@@ -12,6 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type CatalogStatus struct {
+	Properties map[string]string `json:"properties"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // Catalog is the Schema for the catalogs API
@@ -19,7 +23,8 @@ type Catalog struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec k8smodel.CatalogSpec `json:"spec,omitempty"`
+	Spec   k8smodel.CatalogSpec `json:"spec,omitempty"`
+	Status CatalogStatus        `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
@@ -79,6 +80,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		err := json.Unmarshal(jData, &actData)
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
+		}
+
+		if strings.Contains(actData.Campaign, ":") {
+			actData.Campaign = strings.ReplaceAll(actData.Campaign, ":", "-")
 		}
 		campaign, err := s.CampaignsManager.GetState(context.TODO(), actData.Campaign, actData.Namespace)
 		if err != nil {

@@ -170,7 +170,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		namespace = "default"
 	}
 
-	log.Debugf("  P (Wait Processor): waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
+	log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
 	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
@@ -184,8 +184,15 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, instance := range instances {
 				for _, object := range prefixedNames {
-					if instance.ObjectMeta.Name == object {
+					objectName := object
+					if strings.Contains(object, ":") {
+						objectName = strings.ReplaceAll(objectName, ":", "-")
+					}
+					log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> instance check， %v, %v", instance.ObjectMeta.Name, objectName)
+
+					if instance.ObjectMeta.Name == objectName {
 						foundCount++
+						log.Debugf("  P (Wait Processor): instance count++ %d", foundCount)
 					}
 				}
 			}
@@ -200,6 +207,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				for _, object := range prefixedNames {
 					if site.Spec.Name == object {
 						foundCount++
+						log.Debugf("  P (Wait Processor): sites count++ %d", foundCount)
 					}
 				}
 			}
@@ -212,8 +220,14 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, catalog := range catalogs {
 				for _, object := range prefixedNames {
-					if catalog.ObjectMeta.Name == object {
+					objectName := object
+					if strings.Contains(object, ":") {
+						objectName = strings.ReplaceAll(objectName, ":", "-")
+					}
+					log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog check， %v, %v", catalog.ObjectMeta.Name, objectName)
+					if catalog.ObjectMeta.Name == objectName {
 						foundCount++
+						log.Debugf("  P (Wait Processor): catalog count++ %d", foundCount)
 					}
 				}
 			}
@@ -225,6 +239,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			return outputs, false, nil
 		}
 		counter++
+		time.Sleep(10 * time.Second)
 		if i.Config.WaitInterval > 0 {
 			time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 		}

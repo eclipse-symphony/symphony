@@ -9,8 +9,10 @@ metadata:
   annotations: {}
   name: INSTANCENAME
 spec:
+  version: VERSION
+  rootResource: INSTANCEROOT
   displayName: INSTANCENAME
   scope: SCOPENAME
-  solution: SOLUTIONNAME
+  solution: SOLUTIONREFNAME
   target:
-    name: TARGETNAME
+    name: TARGETREFNAME

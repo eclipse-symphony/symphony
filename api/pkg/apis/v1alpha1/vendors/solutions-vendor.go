@@ -90,17 +90,22 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
-	id := rootResource + "-" + version
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
+
 	uLog.Infof("V (Solutions): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
-
 		var err error
 		var state interface{}
 
-		if version == "" || version == "latest" {
+		if version == "latest" {
 			state, err = c.SolutionsManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
@@ -254,7 +259,6 @@ func (c *SolutionsVendor) onSolutionsList(request v1alpha2.COARequest) v1alpha2.
 
 		var err error
 		var state interface{}
-		// Change namespace back to empty to indicate ListSpec need to query all namespaces
 		if !exist {
 			namespace = ""
 		}

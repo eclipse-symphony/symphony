@@ -44,8 +44,8 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
-		Expect(err).ToNot(HaveOccurred())
+		//err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		//Expect(err).ToNot(HaveOccurred())
 	})
 
 	JustAfterEach(func(ctx context.Context) {

@@ -61,10 +61,6 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if solution.Status.Properties == nil {
-		solution.Status.Properties = make(map[string]string)
-	}
-
 	version := solution.Spec.Version
 	name := solution.Spec.RootResource
 	solutionName := name + ":" + version
@@ -88,10 +84,10 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Info(fmt.Sprintf("Solution update: exists version tag, %v", exists))
 		if !exists && version != "" && name != "" {
 			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert solution")
-			err := r.ApiClient.CreateSolution(ctx, solutionName, jData, req.Namespace)
+			err := r.ApiClient.UpsertSolution(ctx, solutionName, jData, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Upsert solution failed")
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
 		}
 	} else { // delete
@@ -100,10 +96,10 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		if exists && value == "latest" {
 			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete solution")
-			err := r.ApiClient.DeleteSolution(ctx, solutionName, req.Namespace)
+			err := r.ApiClient.DeleteSolution(ctx, solutionName, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Delete solution failed")
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
 		}
 

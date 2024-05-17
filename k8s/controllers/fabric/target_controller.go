@@ -107,7 +107,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
 		if !exists && version != "" && name != "" {
 			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert target update")
-			err := r.ApiClient.CreateTarget(ctx, targetName, jData, req.Namespace)
+			err := r.ApiClient.CreateTarget(ctx, targetName, jData, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Upsert target failed")
 				return ctrl.Result{}, err
@@ -133,7 +133,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if exists && value == "latest" {
 			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete target")
-			err := r.ApiClient.DeleteTarget(ctx, targetName, req.Namespace)
+			err := r.ApiClient.DeleteTarget(ctx, targetName, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Delete target failed")
 				return ctrl.Result{}, err

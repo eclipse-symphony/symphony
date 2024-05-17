@@ -25,7 +25,7 @@ import (
 
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1",
+		Name: "name1-v1",
 	},
 	Spec: &model.CatalogSpec{
 		Type: "catalog",
@@ -198,7 +198,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
 	catalogState.ObjectMeta = model.ObjectMeta{
-		Name: "test1",
+		Name: "test1-v1",
 	}
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
@@ -219,21 +219,22 @@ func TestCatalogOnCheck(t *testing.T) {
 	catalogState.Spec.Properties = map[string]interface{}{
 		"spec": schema,
 	}
-	catalogState.ObjectMeta.Name = "EmailCheckSchema"
+	catalogState.ObjectMeta.Name = "EmailCheckSchema-v1"
 	catalogState.Spec.ParentName = ""
 	catalogState.Spec.Metadata = nil
 	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	requestPost.Parameters = map[string]string{
-		"__name": catalogState.ObjectMeta.Name,
+		"__name":    "EmailCheckSchema",
+		"__version": "v1",
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	catalogState.Spec.Metadata = map[string]string{
-		"schema": "EmailCheckSchema",
+		"schema": "EmailCheckSchema-v1",
 	}
 	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
@@ -264,14 +265,15 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
@@ -279,7 +281,8 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 		Context: context.Background(),
 		Body:    b,
 		Parameters: map[string]string{
-			"__name": catalogState.ObjectMeta.Name,
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 
@@ -295,7 +298,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	assert.Equal(t, catalogState.ObjectMeta.Name, summary.ObjectMeta.Name)
 
 	requestGet.Parameters = nil
-	response = vendor.onCatalogs(*requestGet)
+	response = vendor.onCatalogsList(*requestGet)
 	assert.Equal(t, v1alpha2.OK, response.State)
 	var summarys []model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
@@ -312,23 +315,25 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Context: context.Background(),
 		Body:    []byte("wrongObject"),
 		Parameters: map[string]string{
-			"__name": catalogState.ObjectMeta.Name,
+			"__name":    "name1",
+			"__version": "v1",
 		},
 	}
 
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	requestPost.Parameters = nil
-	response = vendor.onCatalogs(*requestPost)
-	assert.Equal(t, v1alpha2.BadRequest, response.State)
+	response = vendor.onCatalogsList(*requestPost)
+	assert.Equal(t, v1alpha2.MethodNotAllowed, response.State)
 
 	requestPost.Parameters = map[string]string{
-		"__name": catalogState.ObjectMeta.Name,
+		"__name":    "test1",
+		"__version": "v1",
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
@@ -337,7 +342,8 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -355,11 +361,12 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": catalogState.ObjectMeta.Name,
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -367,7 +374,8 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, response.State)
 
 	requestPost.Parameters = map[string]string{
-		"__name": catalogState.ObjectMeta.Name,
+		"__name":    "test1",
+		"__version": "v1",
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
@@ -376,7 +384,8 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodDelete,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestDelete)
@@ -386,7 +395,8 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name":    "test1",
+			"__version": "v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -483,6 +493,25 @@ func TestCatalogOnCatalogsGraphMethodNotAllowed(t *testing.T) {
 }
 
 func TestCatalogSubscribe(t *testing.T) {
+	catalogSyncState := model.CatalogState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "sync1-v1",
+		},
+		Spec: &model.CatalogSpec{
+			Type: "catalog",
+			Properties: map[string]interface{}{
+				"property1": "value1",
+				"property2": "value2",
+			},
+			ParentName: "parent1",
+			Generation: "1",
+			Metadata: map[string]string{
+				"metadata1": "value1",
+				"metadata2": "value2",
+			},
+		},
+	}
+
 	vendor := CatalogVendorInit()
 	origin := "parent"
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{
@@ -491,9 +520,9 @@ func TestCatalogSubscribe(t *testing.T) {
 			"origin":     origin,
 		},
 		Body: v1alpha2.JobData{
-			Id:     catalogState.ObjectMeta.Name,
+			Id:     "sync-v1",
 			Action: v1alpha2.JobUpdate,
-			Body:   catalogState,
+			Body:   catalogSyncState,
 		},
 	})
 
@@ -501,7 +530,8 @@ func TestCatalogSubscribe(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": fmt.Sprintf("%s-%s", origin, catalogState.ObjectMeta.Name),
+			"__name":    fmt.Sprintf("%s-%s", origin, "sync1"),
+			"__version": "v1",
 		},
 	}
 	response := vendor.onCatalogs(*requestGet)

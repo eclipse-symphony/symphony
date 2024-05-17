@@ -1,11 +1,15 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: target
+  name: target-v1
 spec:
+  version: v1
+  rootResource: target
   type: target
   properties:
     spec:
+      version: v1
+      rootResource: target
       properties:
         group: site
       topologies:

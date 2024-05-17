@@ -18,9 +18,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var log = logger.NewLogger("coa.runtime")
 
 type CatalogConfigProviderConfig struct {
 	User     string `json:"user"`
@@ -105,6 +107,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
+	log.Infof("P (Catalog Config): Read %v, %d", object, namespace)
 
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -129,6 +132,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
+	log.Infof("P (Catalog Config): ReadObject %v, %d", object, namespace)
 
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -254,7 +258,7 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
-	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
+	return m.ApiClient.DeleteCatalog(context.TODO(), object, "", m.Config.User, m.Config.Password)
 }
 
 func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {

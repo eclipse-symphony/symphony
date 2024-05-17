@@ -1,8 +1,10 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: target
+  name: target-v1
 spec:
+  version: v1
+  rootResource: target
   scope: azure-iot-operations
   components: []
   topologies:

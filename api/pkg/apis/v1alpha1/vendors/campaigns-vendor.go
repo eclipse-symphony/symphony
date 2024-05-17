@@ -65,7 +65,13 @@ func (o *CampaignsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route,
 			Version:    o.Version,
 			Handler:    o.onCampaigns,
-			Parameters: []string{"name?"},
+			Parameters: []string{"name", "version?"},
+		},
+		{
+			Methods: []string{fasthttp.MethodGet},
+			Route:   route,
+			Version: o.Version,
+			Handler: o.onCampaignsList,
 		},
 	}
 }
@@ -82,22 +88,28 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		namespace = "default"
 	}
 
+	version := request.Parameters["__version"]
+	rootResource := request.Parameters["__name"]
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
+	uLog.Infof("V (Campaigns): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCampaigns-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
-		isArray := false
-		if id == "" {
-			if !namespaceSupplied {
-				namespace = ""
-			}
-			state, err = c.CampaignsManager.ListState(ctx, namespace)
-			isArray = true
+
+		if version == "latest" {
+			state, err = c.CampaignsManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = c.CampaignsManager.GetState(ctx, id, namespace)
 		}
+
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -105,7 +117,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 				Body:  []byte(err.Error()),
 			})
 		}
-		jData, _ := utils.FormatObject(state, isArray, request.Parameters["path"], request.Parameters["doc-type"])
+		jData, _ := utils.FormatObject(state, false, request.Parameters["path"], request.Parameters["doc-type"])
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        jData,
@@ -117,8 +129,6 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCampaigns-POST", pCtx, nil)
-		id := request.Parameters["__name"]
-
 		var campaign model.CampaignState
 
 		err := json.Unmarshal(request.Body, &campaign)
@@ -143,7 +153,6 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		err := c.CampaignsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
@@ -157,6 +166,55 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	}
 	cLog.Infof("V (Campaigns): onCampaigns failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *CampaignsVendor) onCampaignsList(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	pCtx, span := observability.StartSpan("Campaigns Vendor", request.Context, &map[string]string{
+		"method": "onCampaignsList",
+	})
+	defer span.End()
+	uLog.Infof("V (Campaigns): onCampaignsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = "default"
+	}
+	switch request.Method {
+	case fasthttp.MethodGet:
+		ctx, span := observability.StartSpan("onCampaignsList-GET", pCtx, nil)
+
+		var err error
+		var state interface{}
+		if !exist {
+			namespace = ""
+		}
+		state, err = c.CampaignsManager.ListState(ctx, namespace)
+
+		if err != nil {
+			uLog.Infof("V (Solutions): onCampaignsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		jData, _ := utils.FormatObject(state, true, request.Parameters["path"], request.Parameters["doc-type"])
+		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        jData,
+			ContentType: "application/json",
+		})
+		if request.Parameters["doc-type"] == "yaml" {
+			resp.ContentType = "application/text"
+		}
+		return resp
+	}
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

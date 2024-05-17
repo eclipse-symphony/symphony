@@ -135,7 +135,7 @@ func TestCreateProcessCreate(t *testing.T) {
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
-		"objectName": "instance1",
+		"objectName": "instance1:v1",
 		"action":     "create",
 		"object":     instance,
 	})
@@ -159,7 +159,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
-		"objectName": "instance1",
+		"objectName": "instance1:v1",
 		"action":     "create",
 		"object":     instance,
 	})
@@ -184,7 +184,7 @@ func TestCreateProcessRemove(t *testing.T) {
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
-		"objectName": "instance1",
+		"objectName": "instance1:v1",
 		"action":     "remove",
 		"object":     instance,
 	})
@@ -203,7 +203,7 @@ func TestCreateProcessUnsupported(t *testing.T) {
 	provider.InitWithMap(input)
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
-		"objectName": "instance1",
+		"objectName": "instance1:v1",
 		"action":     "upsert",
 		"object": model.InstanceSpec{
 			DisplayName: "instance1",
@@ -214,7 +214,7 @@ func TestCreateProcessUnsupported(t *testing.T) {
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "solution",
-		"objectName": "solution1",
+		"objectName": "solution1:v1",
 		"action":     "delete",
 		"object":     model.SolutionSpec{},
 	})
@@ -227,10 +227,10 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/instances/instance1":
+		case "/instances/instance1/v1":
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
+					Name: "instance1-v1",
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
@@ -260,10 +260,10 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/instances/instance1":
+		case "/instances/instance1/v1":
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
+					Name: "instance1-v1",
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},

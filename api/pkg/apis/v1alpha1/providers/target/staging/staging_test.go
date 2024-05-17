@@ -49,7 +49,7 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	}
 	config := StagingTargetProviderConfig{
 		Name:       "tiny",
-		TargetName: "tiny-edge",
+		TargetName: "tiny-edge:v1",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -66,7 +66,7 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
 			Spec: &model.InstanceSpec{},
 		},
@@ -95,7 +95,7 @@ func TestStagingTargetProviderApply(t *testing.T) {
 	}
 	config := StagingTargetProviderConfig{
 		Name:       "tiny",
-		TargetName: "tiny-edge",
+		TargetName: "tiny-edge:v1",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -119,12 +119,13 @@ func TestStagingTargetProviderApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
+				Name:      "policies-v1",
 				Namespace: "",
 			},
 			Spec: &model.SolutionSpec{
@@ -155,7 +156,7 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 	}
 	config := StagingTargetProviderConfig{
 		Name:       "tiny",
-		TargetName: "tiny-edge",
+		TargetName: "tiny-edge:v1",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -179,12 +180,13 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
+				Name:      "policies-v1",
 				Namespace: "",
 			},
 			Spec: &model.SolutionSpec{
@@ -216,10 +218,10 @@ func TestApply(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-v1-target/v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "abc",
+					Name: "abc-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -230,6 +232,8 @@ func TestApply(t *testing.T) {
 							},
 						},
 					},
+					Version:      "v1",
+					RootResource: "abc",
 				},
 			}
 		default:
@@ -248,7 +252,7 @@ func TestApply(t *testing.T) {
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",
-		TargetName: "target",
+		TargetName: "target:v1",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -271,17 +275,22 @@ func TestApply(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
-			Spec: &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Version:      "v1",
+				RootResource: "test",
+			},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
-				Namespace: "",
+				Namespace: "name-v1",
 			},
 			Spec: &model.SolutionSpec{
-				DisplayName: "name",
-				Components:  []model.ComponentSpec{component},
+				DisplayName:  "name-v1",
+				Components:   []model.ComponentSpec{component},
+				Version:      "v1",
+				RootResource: "name",
 			},
 		},
 	}
@@ -312,10 +321,10 @@ func TestGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-v1-target/v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "abc",
+					Name: "test-v1-target-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -328,6 +337,8 @@ func TestGet(t *testing.T) {
 							},
 						},
 					},
+					Version:      "v1",
+					RootResource: "test-target",
 				},
 			}
 		default:
@@ -346,7 +357,7 @@ func TestGet(t *testing.T) {
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",
-		TargetName: "target",
+		TargetName: "target:v1",
 	}
 	provider := StagingTargetProvider{}
 	err := provider.Init(config)
@@ -368,17 +379,22 @@ func TestGet(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
-			Spec: &model.InstanceSpec{},
+			Spec: &model.InstanceSpec{
+				Version:      "v1",
+				RootResource: "test",
+			},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
-				Namespace: "",
+				Namespace: "name-v1",
 			},
 			Spec: &model.SolutionSpec{
-				DisplayName: "name",
-				Components:  []model.ComponentSpec{component},
+				DisplayName:  "name-v1",
+				Components:   []model.ComponentSpec{component},
+				Version:      "v1",
+				RootResource: "name",
 			},
 		},
 	}
@@ -396,7 +412,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-v1-target/v1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:
@@ -439,12 +455,13 @@ func TestGetCatalogsFailed(t *testing.T) {
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
-				Name: "test",
+				Name: "test-v1",
 			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
+				Name:      "name-v1",
 				Namespace: "",
 			},
 			Spec: &model.SolutionSpec{

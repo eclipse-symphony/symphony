@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -19,7 +21,10 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type CampaignsManager struct {
 	managers.Manager
@@ -96,6 +101,37 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	var rootResource string
+	var version string
+	var refreshLabels bool
+	log.Info("  M (Campaign manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
+
+	if state.Spec.Version != "" {
+		version = state.Spec.Version
+	}
+	if state.Spec.RootResource == "" && version != "" {
+		suffix := "-" + version
+		rootResource = strings.TrimSuffix(name, suffix)
+	} else {
+		rootResource = state.Spec.RootResource
+	}
+
+	if state.ObjectMeta.Labels == nil {
+		state.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	_, versionLabelExists := state.ObjectMeta.Labels["version"]
+	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+	if (!versionLabelExists || !rootLabelExists) && version != "" && rootResource != "" {
+		log.Info("  M (Campaign manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+
+		state.ObjectMeta.Labels["rootResource"] = rootResource
+		state.ObjectMeta.Labels["version"] = version
+		refreshLabels = true
+	}
+	log.Info("  M (Campaign manager): update labels to versionLabelExists, rootLabelExists >>>>>>>>>>>>>>>>>>>>  %v, %v", versionLabelExists, rootLabelExists)
+	log.Info("  M (Campaign manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v", refreshLabels)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -107,11 +143,13 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 			},
 		},
 		Metadata: map[string]interface{}{
-			"namespace": state.ObjectMeta.Namespace,
-			"group":     model.WorkflowGroup,
-			"version":   "v1",
-			"resource":  "campaigns",
-			"kind":      "Campaign",
+			"namespace":     state.ObjectMeta.Namespace,
+			"group":         model.WorkflowGroup,
+			"version":       "v1",
+			"resource":      "campaigns",
+			"kind":          "Campaign",
+			"rootResource":  rootResource,
+			"refreshLabels": strconv.FormatBool(refreshLabels),
 		},
 	}
 
@@ -126,14 +164,28 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	var rootResource string
+	var version string
+	var id string
+	parts := strings.Split(name, ":")
+	if len(parts) == 2 {
+		rootResource = parts[0]
+		version = parts[1]
+		id = rootResource + "-" + version
+	} else {
+		id = name
+	}
+	log.Info("  M (Catalog manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
+
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
-		ID: name,
+		ID: id,
 		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     model.WorkflowGroup,
-			"version":   "v1",
-			"resource":  "campaigns",
-			"kind":      "Campaign",
+			"namespace":    namespace,
+			"group":        model.WorkflowGroup,
+			"version":      "v1",
+			"resource":     "campaigns",
+			"kind":         "Campaign",
+			"rootResource": rootResource,
 		},
 	})
 	return err
@@ -168,6 +220,37 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 			return nil, err
 		}
 		ret = append(ret, rt)
+	}
+	return ret, nil
+}
+
+func (t *CampaignsManager) GetLatestState(ctx context.Context, id string, namespace string) (model.CampaignState, error) {
+	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+		"method": "GetLatest",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.Info("  M (Campaign manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+
+	getRequest := states.GetRequest{
+		ID: id,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": namespace,
+			"kind":      "Campaign",
+		},
+	}
+	entry, err := t.StateProvider.GetLatest(ctx, getRequest)
+	if err != nil {
+		return model.CampaignState{}, err
+	}
+
+	ret, err := getCampaignState(entry.Body)
+	if err != nil {
+		return model.CampaignState{}, err
 	}
 	return ret, nil
 }

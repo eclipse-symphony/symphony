@@ -1,12 +1,14 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: instance
+  name: instance-v1
 spec:
+  version: v1
+  rootResource: instance
   type: instance
   properties:
-    spec: 
-      solution: app
+    spec:
+      solution: app:v1
       target:
         selector:
           group: site

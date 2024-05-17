@@ -29,7 +29,7 @@ import (
 var manager CatalogsManager
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1",
+		Name: "name1-v1",
 	},
 	Spec: &model.CatalogSpec{
 		Type: "catalog",
@@ -154,7 +154,7 @@ func TestUpsertAndGet(t *testing.T) {
 		err := json.Unmarshal(jData, &job)
 		assert.Nil(t, err)
 		assert.Equal(t, "catalog", event.Metadata["objectType"])
-		assert.Equal(t, "name1", job.Id)
+		assert.Equal(t, "name1-v1", job.Id)
 		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})

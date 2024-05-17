@@ -111,7 +111,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
 		if !exists && version != "" && name != "" {
 			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert instance update")
-			err := r.ApiClient.CreateInstance(ctx, instanceName, jData, req.Namespace)
+			err := r.ApiClient.CreateInstance(ctx, instanceName, jData, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Upsert instance failed")
 				return ctrl.Result{}, err
@@ -137,7 +137,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		if exists && value == "latest" {
 			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete instance")
-			err := r.ApiClient.DeleteInstance(ctx, instanceName, req.Namespace)
+			err := r.ApiClient.DeleteInstance(ctx, instanceName, req.Namespace, "", "")
 			if err != nil {
 				log.Error(err, "Delete solution failed")
 				return ctrl.Result{}, err
@@ -186,7 +186,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>> v2v2: try to get solution %v", instance.Spec.Solution))
 
 	// Get solution
-	solution, err := r.ApiClient.GetSolution(ctx, instance.Spec.Solution, instance.Namespace)
+	solution, err := r.ApiClient.GetSolution(ctx, instance.Spec.Solution, instance.Namespace, "", "")
 	//api_utils.GetSolution(ctx, "http://symphony-service:8080/v1alpha2/", instance.Spec.Solution, "admin", "", instance.Namespace)
 	if err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution from symphony", v1alpha2.SolutionGetFailed), "proceed with no solution found")
@@ -202,6 +202,8 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	}
 
 	// Get target candidates
+	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>>>>: match targets  %v", solution.ObjectMeta.Name))
+
 	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
 	if len(deploymentResources.TargetCandidates) == 0 {
 		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "proceed with no target candidates found")
@@ -269,6 +271,10 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 
 	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
+		if !utils.NeedWatchInstance(instance) {
+			continue
+		}
+
 		targetCandidates := utils.MatchTargets(instance, targetList)
 		if len(targetCandidates) > 0 {
 			ret = append(ret, ctrl.Request{
@@ -338,20 +344,10 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 
 	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
-		var interval time.Duration = 30
-		if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
-			parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
-			if err != nil {
-				log.Log.Error(err, "Instance handlesolution parse interval >>>>>>>>  ")
-				parsedInterval = 30
-			}
-			interval = parsedInterval
-		}
-
-		if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
-			log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> inactive no watch %s", instance.ObjectMeta.Name))
+		if !utils.NeedWatchInstance(instance) {
 			continue
 		}
+
 		ret = append(ret, ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      instance.Name,

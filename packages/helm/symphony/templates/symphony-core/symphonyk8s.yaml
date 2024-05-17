@@ -110,7 +110,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the campaigns API
+        description: CampaignContainer is the Schema for the CampaignContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -253,7 +253,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogContainer is the Schema for the catalogs API
+        description: CatalogContainer is the Schema for the CatalogContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -380,6 +380,15 @@ spec:
             required:
             - properties
             - type
+            type: object
+          status:
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+            required:
+            - properties
             type: object
         type: object
     served: true
@@ -1447,7 +1456,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: TargetContainer is the Schema for the TargetContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

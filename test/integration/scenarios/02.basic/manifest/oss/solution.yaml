@@ -9,6 +9,8 @@ metadata:
   annotations: {}
   name: SOLUTIONNAME
 spec:
+  version: VERSION
+  rootResource: SOLUTIONROOT
   components:
   - name: e4k-high-availability-broker
     properties:

@@ -91,7 +91,12 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
-	id := rootResource + "-" + version
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
 	uLog.Infof("V (Instances): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
 
 	switch request.Method {
@@ -101,7 +106,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		var err error
 		var state interface{}
 
-		if version == "" || version == "latest" {
+		if version == "latest" {
 			state, err = c.InstancesManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = c.InstancesManager.GetState(ctx, id, namespace)

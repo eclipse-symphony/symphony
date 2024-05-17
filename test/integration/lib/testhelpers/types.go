@@ -17,10 +17,12 @@ type (
 	}
 
 	SolutionSpec struct {
-		DisplayName string            `yaml:"displayName,omitempty"`
-		Scope       string            `yaml:"scope,omitempty"`
-		Metadata    map[string]string `yaml:"metadata,omitempty"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
+		DisplayName  string            `yaml:"displayName,omitempty"`
+		Scope        string            `yaml:"scope,omitempty"`
+		Metadata     map[string]string `yaml:"metadata,omitempty"`
+		Components   []ComponentSpec   `yaml:"components,omitempty"`
+		Version      string            `yaml:"version,omitempty"`
+		RootResource string            `yaml:"rootResource,omitempty"`
 	}
 
 	// Target describes the structure of symphony target yaml file
@@ -32,11 +34,13 @@ type (
 	}
 
 	TargetSpec struct {
-		DisplayName string            `yaml:"displayName"`
-		Scope       string            `yaml:"scope"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
-		Topologies  []Topology        `yaml:"topologies"`
-		Properties  map[string]string `yaml:"properties,omitempty"`
+		DisplayName  string            `yaml:"displayName"`
+		Scope        string            `yaml:"scope"`
+		Components   []ComponentSpec   `yaml:"components,omitempty"`
+		Topologies   []Topology        `yaml:"topologies"`
+		Properties   map[string]string `yaml:"properties,omitempty"`
+		Version      string            `yaml:"version,omitempty"`
+		RootResource string            `yaml:"rootResource,omitempty"`
 	}
 
 	Topology struct {
@@ -70,11 +74,13 @@ type (
 	}
 
 	InstanceSpec struct {
-		DisplayName string                 `yaml:"displayName"`
-		Target      TargetSelector         `yaml:"target"`
-		Solution    string                 `yaml:"solution"`
-		Scope       string                 `yaml:"scope"`
-		Parameters  map[string]interface{} `yaml:"parameters,omitempty"`
+		DisplayName  string                 `yaml:"displayName"`
+		Target       TargetSelector         `yaml:"target"`
+		Solution     string                 `yaml:"solution"`
+		Scope        string                 `yaml:"scope"`
+		Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
+		Version      string                 `yaml:"version,omitempty"`
+		RootResource string                 `yaml:"rootResource,omitempty"`
 	}
 
 	TargetSelector struct {

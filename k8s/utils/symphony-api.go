@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -175,6 +176,15 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 			}
 		}
 	}
+	if strings.Contains(instance.Spec.Target.Name, ":") && strings.Contains(instance.Spec.Target.Name, "latest") {
+		parts := strings.Split(instance.Spec.Target.Name, ":")
+		resourceName := parts[0]
+		for _, t := range targets.Items {
+			if t.Labels["tag"] == "latest" && t.Labels["rootResource"] == resourceName {
+				ret[t.ObjectMeta.Name] = t
+			}
+		}
+	}
 	if len(instance.Spec.Target.Selector) > 0 {
 		for _, t := range targets.Items {
 			fullMatch := true
@@ -193,6 +203,23 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 		slice = append(slice, v)
 	}
 	return slice
+}
+
+func NeedWatchInstance(instance solution_v1.Instance) bool {
+	var interval time.Duration = 30
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
+		parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
+		if err != nil {
+			parsedInterval = 30
+		}
+		interval = parsedInterval
+	}
+
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
+		return false
+	}
+
+	return true
 }
 
 func CreateSymphonyDeploymentFromTarget(target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {

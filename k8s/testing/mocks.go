@@ -269,48 +269,68 @@ func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, i
 	panic("implement me")
 }
 
-// GetInstance implements ApiClient.
-func (*MockApiClient) GetInstance(ctx context.Context, instance string, namespace string) (model.InstanceState, error) {
-	panic("unimplemented")
-}
-
-// GetSolution implements ApiClient.
-func (*MockApiClient) GetSolution(ctx context.Context, solution string, namespace string) (model.SolutionState, error) {
-	panic("unimplemented")
-}
-
-// GetTarget implements ApiClient.
-func (*MockApiClient) GetTarget(ctx context.Context, target string, namespace string) (model.TargetState, error) {
+// CreateCampaign implements utils.ApiClient.
+func (*MockApiClient) CreateCampaign(ctx context.Context, target string, payload []byte, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 
 // CreateInstance implements utils.ApiClient.
-func (*MockApiClient) CreateInstance(ctx context.Context, instance string, payload []byte, namespace string) error {
-	panic("unimplemented")
-}
-
-// CreateSolution implements utils.ApiClient.
-func (*MockApiClient) CreateSolution(ctx context.Context, solution string, payload []byte, namespace string) error {
+func (*MockApiClient) CreateInstance(ctx context.Context, instance string, payload []byte, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 
 // CreateTarget implements utils.ApiClient.
-func (*MockApiClient) CreateTarget(ctx context.Context, target string, payload []byte, namespace string) error {
+func (*MockApiClient) CreateTarget(ctx context.Context, target string, payload []byte, namespace string, user string, password string) error {
+	panic("unimplemented")
+}
+
+// DeleteCampaign implements utils.ApiClient.
+func (*MockApiClient) DeleteCampaign(ctx context.Context, solution string, namespace string, user string, password string) error {
+	panic("unimplemented")
+}
+
+// DeleteCatalog implements utils.ApiClient.
+func (*MockApiClient) DeleteCatalog(ctx context.Context, solution string, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 
 // DeleteInstance implements utils.ApiClient.
-func (*MockApiClient) DeleteInstance(ctx context.Context, instance string, namespace string) error {
+func (*MockApiClient) DeleteInstance(ctx context.Context, instance string, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 
 // DeleteSolution implements utils.ApiClient.
-func (*MockApiClient) DeleteSolution(ctx context.Context, solution string, namespace string) error {
+func (*MockApiClient) DeleteSolution(ctx context.Context, solution string, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 
 // DeleteTarget implements utils.ApiClient.
-func (*MockApiClient) DeleteTarget(ctx context.Context, target string, namespace string) error {
+func (*MockApiClient) DeleteTarget(ctx context.Context, target string, namespace string, user string, password string) error {
+	panic("unimplemented")
+}
+
+// GetInstance implements utils.ApiClient.
+func (*MockApiClient) GetInstance(ctx context.Context, instance string, namespace string, user string, password string) (model.InstanceState, error) {
+	panic("unimplemented")
+}
+
+// GetSolution implements utils.ApiClient.
+func (*MockApiClient) GetSolution(ctx context.Context, solution string, namespace string, user string, password string) (model.SolutionState, error) {
+	panic("unimplemented")
+}
+
+// GetTarget implements utils.ApiClient.
+func (*MockApiClient) GetTarget(ctx context.Context, target string, namespace string, user string, password string) (model.TargetState, error) {
+	panic("unimplemented")
+}
+
+// UpsertCatalog implements utils.ApiClient.
+func (*MockApiClient) UpsertCatalog(ctx context.Context, catalog string, payload []byte, user string, password string) error {
+	panic("unimplemented")
+}
+
+// UpsertSolution implements utils.ApiClient.
+func (*MockApiClient) UpsertSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error {
 	panic("unimplemented")
 }
 

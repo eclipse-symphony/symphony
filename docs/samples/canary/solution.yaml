@@ -1,8 +1,10 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: test-app
-spec:  
+  name: test-app-v1
+spec:
+  version: v1
+  rootResource: test-app
   components:
   - name: nginx-ingress  
     properties:

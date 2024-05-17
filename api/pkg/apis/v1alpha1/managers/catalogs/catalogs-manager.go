@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph"
@@ -76,6 +78,37 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 	}
 	var ret model.CatalogState
 	ret, err = getCatalogState(entry.Body, entry.ETag)
+	if err != nil {
+		return model.CatalogState{}, err
+	}
+	return ret, nil
+}
+
+func (t *CatalogsManager) GetLatestState(ctx context.Context, id string, namespace string) (model.CatalogState, error) {
+	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
+		"method": "GetLatest",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.Info("  M (Catalog manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+
+	getRequest := states.GetRequest{
+		ID: id,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogs",
+			"namespace": namespace,
+			"kind":      "Catalog",
+		},
+	}
+	entry, err := t.StateProvider.GetLatest(ctx, getRequest)
+	if err != nil {
+		return model.CatalogState{}, err
+	}
+
+	ret, err := getCatalogState(entry.Body, entry.ETag)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
@@ -152,6 +185,37 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 		return err
 	}
 
+	var rootResource string
+	var version string
+	var refreshLabels bool
+	log.Info("  M (Catalog manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
+
+	if state.Spec.Version != "" {
+		version = state.Spec.Version
+	}
+	if state.Spec.RootResource == "" && version != "" {
+		suffix := "-" + version
+		rootResource = strings.TrimSuffix(name, suffix)
+	} else {
+		rootResource = state.Spec.RootResource
+	}
+
+	if state.ObjectMeta.Labels == nil {
+		state.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	_, versionLabelExists := state.ObjectMeta.Labels["version"]
+	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+	if (!versionLabelExists || !rootLabelExists) && version != "" && rootResource != "" {
+		log.Info("  M (Catalog manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
+
+		state.ObjectMeta.Labels["rootResource"] = rootResource
+		state.ObjectMeta.Labels["version"] = version
+		refreshLabels = true
+	}
+	log.Info("  M (Catalog manager): update labels to versionLabelExists, rootLabelExists >>>>>>>>>>>>>>>>>>>>  %v, %v", versionLabelExists, rootLabelExists)
+	log.Info("  M (Catalog manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v", refreshLabels)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -163,13 +227,16 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			},
 		},
 		Metadata: map[string]interface{}{
-			"namespace": state.ObjectMeta.Namespace,
-			"group":     model.FederationGroup,
-			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"namespace":     state.ObjectMeta.Namespace,
+			"group":         model.FederationGroup,
+			"version":       "v1",
+			"resource":      "catalogs",
+			"kind":          "Catalog",
+			"rootResource":  rootResource,
+			"refreshLabels": strconv.FormatBool(refreshLabels),
 		},
 	}
+
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
@@ -194,15 +261,30 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string, namespac
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	var rootResource string
+	var version string
+	var id string
+	parts := strings.Split(name, ":")
+	if len(parts) == 2 {
+		rootResource = parts[0]
+		version = parts[1]
+		id = rootResource + "-" + version
+	} else {
+		id = name
+	}
+
+	log.Info("  M (Catalog manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
+
 	//TODO: publish DELETE event
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
-		ID: name,
+		ID: id,
 		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     model.FederationGroup,
-			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"namespace":    namespace,
+			"group":        model.FederationGroup,
+			"version":      "v1",
+			"resource":     "catalogs",
+			"kind":         "Catalog",
+			"rootResource": rootResource,
 		},
 	})
 	return err

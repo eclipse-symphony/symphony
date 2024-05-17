@@ -1,12 +1,16 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: solution
+  name: solution-v1
 spec:
+  version: v1
+  rootResource: solution
   type: solution
   properties:
     spec: 
-      displayName: site-app
+      displayName: site-app-v1
+      version: v1
+      rootResource: site-app
       components:
       - name: influxdb
         type: container

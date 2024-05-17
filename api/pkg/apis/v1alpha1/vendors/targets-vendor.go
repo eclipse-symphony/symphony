@@ -129,7 +129,12 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
-	id := rootResource + "-" + version
+	var id string
+	if version != "" {
+		id = rootResource + "-" + version
+	} else {
+		id = rootResource
+	}
 	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
 
 	switch request.Method {
@@ -138,7 +143,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		var err error
 		var state interface{}
 
-		if version == "" || version == "latest" {
+		if version == "latest" {
 			state, err = c.TargetsManager.GetLatestState(ctx, rootResource, namespace)
 		} else {
 			state, err = c.TargetsManager.GetState(ctx, id, namespace)
