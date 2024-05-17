@@ -4,7 +4,6 @@ metadata:
   name: counter-activation
 spec:
   campaign: "counter-campaign"
-  name: "counter-activation"
   stage: ""
   inputs:
     val.init: 10
