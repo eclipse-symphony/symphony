@@ -114,8 +114,9 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              rootResource:
+                type: string
               version:
-                description: Defines the version of a particular resource
                 type: string
             type: object
           status:

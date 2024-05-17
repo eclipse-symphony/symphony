@@ -1,0 +1,12 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  labels:
+    app.kubernetes.io/name: solutioncontainer
+    app.kubernetes.io/instance: solutioncontainer-sample
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: symphony-k8s
+  name: solutioncontainer-sample
+spec:
+  # TODO(user): Add fields here
