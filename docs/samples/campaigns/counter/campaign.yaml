@@ -1,0 +1,12 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: counter-campaign
+spec:
+  firstStage: "counter"
+  selfDriving: true
+  stages:
+    counter:
+      name: "counter"
+      provider: "providers.stage.counter"      
+      stageSelector: "${{$if($lt($output(counter,val), 20), counter, '')}}"

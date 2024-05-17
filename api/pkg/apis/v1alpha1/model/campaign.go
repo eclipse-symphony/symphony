@@ -23,6 +23,7 @@ type ActivationState struct {
 	Spec       *ActivationSpec   `json:"spec,omitempty"`
 	Status     *ActivationStatus `json:"status,omitempty"`
 }
+
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
 	Contexts      string                 `json:"contexts,omitempty"`
@@ -32,6 +33,7 @@ type StageSpec struct {
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Schedule      *v1alpha2.ScheduleSpec `json:"schedule,omitempty"`
+	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -63,7 +65,17 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !reflect.DeepEqual(s.Schedule, otherS.Schedule) {
 		return false, nil
 	}
-
+	if s.Proxy == nil && otherS.Proxy != nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy == nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy != nil {
+		if !reflect.DeepEqual(s.Proxy.Provider, otherS.Proxy.Provider) {
+			return false, nil
+		}
+	}
 	return true, nil
 }
 

@@ -132,6 +132,19 @@ type ScheduleSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type ProxyConfigSpec struct {
+	BaseUrl  string `json:"baseUrl,omitempty"`
+	User     string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ProxySpec struct {
+	Provider string          `json:"provider,omitempty"`
+	Config   ProxyConfigSpec `json:"config,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type StageSpec struct {
 	Name     string `json:"name,omitempty"`
 	Contexts string `json:"contexts,omitempty"`
@@ -145,6 +158,7 @@ type StageSpec struct {
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
 	Schedule        *ScheduleSpec        `json:"schedule,omitempty"`
+	Proxy           *ProxySpec           `json:"proxy,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
