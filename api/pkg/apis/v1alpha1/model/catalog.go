@@ -31,12 +31,14 @@ type ObjectRef struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	Type       string                 `json:"type"`
-	Metadata   map[string]string      `json:"metadata,omitempty"`
-	Properties map[string]interface{} `json:"properties"`
-	ParentName string                 `json:"parentName,omitempty"`
-	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	Type         string                 `json:"type"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
+	Properties   map[string]interface{} `json:"properties"`
+	ParentName   string                 `json:"parentName,omitempty"`
+	ObjectRef    ObjectRef              `json:"objectRef,omitempty"`
+	Generation   string                 `json:"generation,omitempty"`
+	Version      string                 `json:"version,omitempty"`
+	RootResource string                 `json:"rootResource,omitempty"`
 }
 
 type CatalogStatus struct {

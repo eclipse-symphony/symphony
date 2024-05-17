@@ -38,6 +38,8 @@ spec:
                 type: string
               name:
                 type: string
+              rootResource:
+                type: string
               selfDriving:
                 type: boolean
               stages:
@@ -72,6 +74,8 @@ spec:
                       type: string
                   type: object
                 type: object
+              version:
+                type: string
             type: object
         type: object
     served: true

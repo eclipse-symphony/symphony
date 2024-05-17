@@ -73,6 +73,8 @@ type TargetSpec struct {
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
 	Generation    string               `json:"generation,omitempty"`
+	Version       string               `json:"version,omitempty"`
+	RootResource  string               `json:"rootResource,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -82,16 +84,18 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
-	DisplayName string                       `json:"displayName,omitempty"`
-	Scope       string                       `json:"scope,omitempty"`
-	Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-	Metadata    map[string]string            `json:"metadata,omitempty"`
-	Solution    string                       `json:"solution"`
-	Target      model.TargetSelector         `json:"target,omitempty"`
-	Topologies  []model.TopologySpec         `json:"topologies,omitempty"`
-	Pipelines   []model.PipelineSpec         `json:"pipelines,omitempty"`
-	Arguments   map[string]map[string]string `json:"arguments,omitempty"`
-	Generation  string                       `json:"generation,omitempty"`
+	DisplayName  string                       `json:"displayName,omitempty"`
+	Scope        string                       `json:"scope,omitempty"`
+	Parameters   map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata     map[string]string            `json:"metadata,omitempty"`
+	Solution     string                       `json:"solution"`
+	Target       model.TargetSelector         `json:"target,omitempty"`
+	Topologies   []model.TopologySpec         `json:"topologies,omitempty"`
+	Pipelines    []model.PipelineSpec         `json:"pipelines,omitempty"`
+	Arguments    map[string]map[string]string `json:"arguments,omitempty"`
+	Generation   string                       `json:"generation,omitempty"`
+	Version      string                       `json:"version,omitempty"`
+	RootResource string                       `json:"rootResource,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -100,12 +104,24 @@ type InstanceSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type TargetContainerSpec struct {
+}
+
+// +kubebuilder:object:generate=true
+type InstanceContainerSpec struct {
+}
+
+// +kubebuilder:object:generate=true
 type SolutionSpec struct {
-	DisplayName string            `json:"displayName,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Components  []ComponentSpec   `json:"components,omitempty"`
-	// Defines the version of a particular resource
-	Version string `json:"version,omitempty"`
+	DisplayName  string            `json:"displayName,omitempty"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
+	Components   []ComponentSpec   `json:"components,omitempty"`
+	Version      string            `json:"version,omitempty"`
+	RootResource string            `json:"rootResource,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
@@ -143,10 +159,16 @@ type ActivationSpec struct {
 
 // +kubebuilder:object:generate=true
 type CampaignSpec struct {
-	Name        string               `json:"name,omitempty"`
-	FirstStage  string               `json:"firstStage,omitempty"`
-	Stages      map[string]StageSpec `json:"stages,omitempty"`
-	SelfDriving bool                 `json:"selfDriving,omitempty"`
+	Name         string               `json:"name,omitempty"`
+	FirstStage   string               `json:"firstStage,omitempty"`
+	Stages       map[string]StageSpec `json:"stages,omitempty"`
+	SelfDriving  bool                 `json:"selfDriving,omitempty"`
+	Version      string               `json:"version,omitempty"`
+	RootResource string               `json:"rootResource,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type CampaignContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
@@ -155,10 +177,16 @@ type CatalogSpec struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Properties runtime.RawExtension `json:"properties"`
-	ParentName string               `json:"parentName,omitempty"`
-	ObjectRef  model.ObjectRef      `json:"objectRef,omitempty"`
-	Generation string               `json:"generation,omitempty"`
+	Properties   runtime.RawExtension `json:"properties"`
+	ParentName   string               `json:"parentName,omitempty"`
+	ObjectRef    model.ObjectRef      `json:"objectRef,omitempty"`
+	Generation   string               `json:"generation,omitempty"`
+	Version      string               `json:"version,omitempty"`
+	RootResource string               `json:"rootResource,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type CatalogContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true

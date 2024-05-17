@@ -126,9 +126,11 @@ func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
 }
 
 type CampaignSpec struct {
-	FirstStage  string               `json:"firstStage,omitempty"`
-	Stages      map[string]StageSpec `json:"stages,omitempty"`
-	SelfDriving bool                 `json:"selfDriving,omitempty"`
+	FirstStage   string               `json:"firstStage,omitempty"`
+	Stages       map[string]StageSpec `json:"stages,omitempty"`
+	SelfDriving  bool                 `json:"selfDriving,omitempty"`
+	Version      string               `json:"version,omitempty"`
+	RootResource string               `json:"rootResource,omitempty"`
 }
 
 func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
