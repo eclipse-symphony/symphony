@@ -38,6 +38,17 @@ const (
 	GITHUB_PAT             = "CR_PAT"
 )
 
+func PrintParams() error {
+	fmt.Println("OSS_CONTAINER_REGISTRY: ", getContainerRegistry())
+	fmt.Println("DOCKER_TAG: ", getDockerTag())
+	fmt.Println("NAMESPACE: ", getNamespace())
+	fmt.Println("RELEASE_NAME: ", getReleaseName())
+	fmt.Println("CHART_PATH: ", getChartPath())
+	fmt.Println("SKIP_GHCR_VALUES: ", skipGhcrValues())
+	fmt.Println("GHCR_VALUES_OPTIONS: ", ghcrValuesOptions())
+	return nil
+}
+
 // global variables
 func getContainerRegistry() string {
 	if os.Getenv("OSS_CONTAINER_REGISTRY") != "" {
