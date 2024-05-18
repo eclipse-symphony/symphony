@@ -38,6 +38,7 @@ const (
 	GITHUB_PAT             = "CR_PAT"
 )
 
+// Print parameters for mage local testing
 func PrintParams() error {
 	fmt.Println("OSS_CONTAINER_REGISTRY: ", getContainerRegistry())
 	fmt.Println("DOCKER_TAG: ", getDockerTag())
