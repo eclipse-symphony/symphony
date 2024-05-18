@@ -79,6 +79,17 @@ func getChartPath() string {
 	}
 }
 
+func skipGhcrValues() bool {
+	return os.Getenv("SKIP_GHCR_VALUES") == "true"
+}
+
+func ghcrValuesOptions() string {
+	if skipGhcrValues() {
+		return ""
+	}
+	return "-f symphony-ghcr-values.yaml"
+}
+
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
 
 type Minikube mg.Namespace
@@ -96,7 +107,7 @@ func (Cluster) Deploy() error {
 	mg.Deps(ensureMinikubeUp)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
-		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getNamespace(), getDockerTag(), getDockerTag())),
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
 	}
 	for _, cert := range certsToVerify {
 		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getNamespace())))
@@ -111,7 +122,7 @@ func (Cluster) DeployWithSettings(values string) error {
 	mg.Deps(ensureMinikubeUp)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
-		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getNamespace(), getDockerTag(), getDockerTag(), values)),
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag(), values)),
 	}
 	for _, cert := range certsToVerify {
 		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getNamespace())))
