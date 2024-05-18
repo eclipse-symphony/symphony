@@ -276,7 +276,7 @@ func DumpSymphonyLogsForTest(testName string) {
 	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
 
 	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
-	logRootFolder := fmt.Sprintf("/tmp/symhony-integration-test-logs/%s", logFolderName)
+	logRootFolder := fmt.Sprintf("/tmp/symphony-integration-test-logs/%s", logFolderName)
 
 	_ = shellcmd.Command(fmt.Sprintf("mkdir -p %s", logRootFolder)).Run()
 
