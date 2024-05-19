@@ -46,9 +46,11 @@ func raceOpt() string {
 }
 
 func testHelper() error {
+	testClean := "go clean -testcache"
+	testCmd := fmt.Sprintf("go test %s -timeout 5m -cover -coverprofile=coverage.out ./...", raceOpt())
 	if err := shellcmd.RunAll(
-		"go clean -testcache",
-		fmt.Sprintf("go test %s -timeout 5m -cover -coverprofile=coverage.out ./...", raceOpt()),
+		shellcmd.Command(testClean),
+		shellcmd.Command(testCmd),
 	); err != nil {
 		return err
 	}

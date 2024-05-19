@@ -42,7 +42,7 @@ const (
 func PrintParams() error {
 	fmt.Println("OSS_CONTAINER_REGISTRY: ", getContainerRegistry())
 	fmt.Println("DOCKER_TAG: ", getDockerTag())
-	fmt.Println("NAMESPACE: ", getNamespace())
+	fmt.Println("CHART_NAMESPACE: ", getChartNamespace())
 	fmt.Println("RELEASE_NAME: ", getReleaseName())
 	fmt.Println("CHART_PATH: ", getChartPath())
 	fmt.Println("SKIP_GHCR_VALUES: ", skipGhcrValues())
@@ -67,9 +67,9 @@ func getDockerTag() string {
 	}
 }
 
-func getNamespace() string {
-	if os.Getenv("NAMESPACE") != "" {
-		return os.Getenv("NAMESPACE")
+func getChartNamespace() string {
+	if os.Getenv("CHART_NAMESPACE") != "" {
+		return os.Getenv("CHART_NAMESPACE")
 	} else {
 		return NAMESPACE
 	}
@@ -119,10 +119,10 @@ func (Cluster) Deploy() error {
 	mg.Deps(ensureMinikubeUp)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
-		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
 	}
 	for _, cert := range certsToVerify {
-		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getNamespace())))
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getChartNamespace())))
 	}
 	return shellcmd.RunAll(commands...)
 }
@@ -134,10 +134,10 @@ func (Cluster) DeployWithSettings(values string) error {
 	mg.Deps(ensureMinikubeUp)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
-		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag(), values)),
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag(), values)),
 	}
 	for _, cert := range certsToVerify {
-		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getNamespace())))
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getChartNamespace())))
 	}
 	return shellcmd.RunAll(commands...)
 }
@@ -271,13 +271,13 @@ func Logs(logRootFolder string) error {
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
 
-	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", getNamespace(), apiLogFile), true)
+	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", getChartNamespace(), apiLogFile), true)
 
 	if err != nil {
 		return err
 	}
 
-	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getNamespace(), k8sLogFile), true)
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
 
 	return err
 }
@@ -298,7 +298,7 @@ func DumpSymphonyLogsForTest(testName string) {
 // Uninstall all components, e.g. mage destroy all
 func Destroy(flags string) error {
 	err := shellcmd.RunAll(
-		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", getReleaseName(), getNamespace())),
+		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", getReleaseName(), getChartNamespace())),
 	)
 	if err != nil {
 		return err
@@ -524,8 +524,8 @@ func (Cluster) Status() {
 	shellcmd.Command("kubectl get events -A").Run()
 
 	fmt.Println("Describing failed pods")
-	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl describe pod {} -n %s", getNamespace()))
-	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl logs {} -n %s", getNamespace()))
+	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl describe pod {} -n %s", getChartNamespace()))
+	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl logs {} -n %s", getChartNamespace()))
 	fmt.Println("**************************************************")
 }
 
