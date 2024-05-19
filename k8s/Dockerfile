@@ -21,8 +21,17 @@ ARG TARGETARCH
 
 ENV CGO_ENABLED=0
 
+ARG BUILD_BASE_IMAGE
+
 # Install gcc, g++ and other necessary build tools
-RUN apk add --no-cache gcc musl-dev
+RUN if echo "${BUILD_BASE_IMAGE}" | grep "alpine"; then \
+        apk add --no-cache gcc musl-dev; \
+    elif echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
+        tdnf install -y gcc glibc-devel && tdnf clean all; \
+    else \
+        echo "Unsupported base image"; \
+        exit 1; \
+    fi
 
 RUN go install github.com/magefile/mage@latest
 WORKDIR /
@@ -33,7 +42,14 @@ COPY packages/ packages/
 COPY k8s/ k8s/
 WORKDIR /k8s
 # Test
-RUN CGO_ENABLED=1 mage generate operatorTest
+# Mariner images doesn't support TSan which is the required for go test -race.
+RUN if echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
+        export SKIP_RACE_CHECK=true; \
+        CGO_ENABLED=1 mage generate operatorTest; \
+    else \
+        CGO_ENABLED=1 mage generate operatorTest; \
+    fi
+
 # Build
 RUN CGO_ENABLED=0 mage build
 FROM ${TARGET_BASE_IMAGE} AS manager
