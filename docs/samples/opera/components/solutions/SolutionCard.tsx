@@ -32,8 +32,8 @@ function SolutionCard(props: SolutionCardProps) {
 
     const { solution } = props;
     const [activeView, setActiveView] = useState('properties');
-    const [nodes, setNodes] = useState([]);
-    const [edges, setEdges] = useState([]);
+    const [nodes, setNodes] = useState<any[]>([]);
+    const [edges, setEdges] = useState<any[]>([]);
 
     // const initialNodes = [
     //     { id: '1', position: { x: 0, y: 0 }, data: { label: '1' } },

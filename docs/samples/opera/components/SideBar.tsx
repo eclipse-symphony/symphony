@@ -53,7 +53,7 @@ function SideBar() {
         },
         {
             name: "Targets",
-            href: "/coming-soon",
+            href: "/targets",
             icon: FiServer,
         },
         {

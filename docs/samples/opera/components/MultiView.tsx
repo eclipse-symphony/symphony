@@ -17,9 +17,11 @@ import {useState} from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
 import SiteCardList from "./sites/SiteCardList";
 import SolutionCardList from "./solutions/SolutionCardList";
+import TargetCardList from "./targets/TargetCardList";
 import SiteMap from "./sites/SiteMap";
 import AssetList from "./assets/AssetList";
 import GraphTable from "./graph/GraphTable";
+import Filter from "./Filter";
 
 interface MenuInfo {
     name: string;
@@ -47,7 +49,8 @@ interface MultiViewProps {
 function MultiView(props: MultiViewProps) {
     const { params } = props;
     const [selected, setSelected] = useState("");
-    const [selectedColumn, setSelectedColumn] = useState("");
+    const [selectedColumn, setSelectedColumn] = useState("");    
+    const [selectedFilter, setSelectedFilter] = useState(""); // State to hold selected filter
 
     function handleSelectionChange(key: any) {
         setSelected(key.toString());
@@ -56,6 +59,10 @@ function MultiView(props: MultiViewProps) {
     function handleColumnSelectionChange(key: any) {
         setSelectedColumn(key.toString());
     }
+
+    const handleFilterChange = (filter: string) => {
+        setSelectedFilter(filter); // Update selected filter state
+    };
 
     return (
         <div>
@@ -115,6 +122,7 @@ function MultiView(props: MultiViewProps) {
                         </Tabs>
                     </NavbarContent>
                 )}
+                <Filter onSelectFilter={handleFilterChange} />     
             </Navbar>
             <div className='view_container'>
                 <Tabs isDisabled aria-label="Options" selectedKey={`c${selected}`}>
@@ -129,6 +137,7 @@ function MultiView(props: MultiViewProps) {
                                     </div>}>
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
                             {view === 'cards' && params.type === 'solutions' && <SolutionCardList solutions={params.items}  />}
+                            {view === 'cards' && params.type === 'targets' && <TargetCardList targets={params.items} filter={selectedFilter} />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                             {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}
