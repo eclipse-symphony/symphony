@@ -36,6 +36,7 @@ const (
 	DOCKER_TAG             = "latest"
 	CHART_PATH             = "../../packages/helm/symphony"
 	GITHUB_PAT             = "CR_PAT"
+	LOG_ROOT               = "/tmp/symphony-integration-test-logs"
 )
 
 // Print parameters for mage local testing
@@ -47,10 +48,19 @@ func PrintParams() error {
 	fmt.Println("CHART_PATH: ", getChartPath())
 	fmt.Println("SKIP_GHCR_VALUES: ", skipGhcrValues())
 	fmt.Println("GHCR_VALUES_OPTIONS: ", ghcrValuesOptions())
+	fmt.Println("LOG_ROOT: ", getLogRoot())
 	return nil
 }
 
 // global variables
+func getLogRoot() string {
+	if os.Getenv("LOG_ROOT") != "" {
+		return os.Getenv("LOG_ROOT")
+	} else {
+		return LOG_ROOT
+	}
+}
+
 func getContainerRegistry() string {
 	if os.Getenv("OSS_CONTAINER_REGISTRY") != "" {
 		return os.Getenv("OSS_CONTAINER_REGISTRY")
@@ -288,7 +298,7 @@ func DumpSymphonyLogsForTest(testName string) {
 	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
 
 	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
-	logRootFolder := fmt.Sprintf("/tmp/symphony-integration-test-logs/%s", logFolderName)
+	logRootFolder := fmt.Sprintf("%s/%s", getLogRoot(), logFolderName)
 
 	_ = shellcmd.Command(fmt.Sprintf("mkdir -p %s", logRootFolder)).Run()
 
