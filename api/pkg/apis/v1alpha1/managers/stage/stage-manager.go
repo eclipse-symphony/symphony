@@ -50,6 +50,13 @@ func (t *TaskResult) GetError() error {
 		switch sv := v.(type) {
 		case v1alpha2.State:
 			break
+		case float64:
+			state := v1alpha2.State(int(sv))
+			stateValue := reflect.ValueOf(state)
+			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+				return fmt.Errorf("invalid state %v", sv)
+			}
+			t.Outputs["__status"] = state
 		case int:
 			state := v1alpha2.State(sv)
 			stateValue := reflect.ValueOf(state)
