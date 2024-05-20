@@ -26,7 +26,7 @@ redis:
   enabled: true
   asSidecar: false
   image: redis/redis-stack-server:latest
-  port: 6379
+  port: "6379"
 parent:
   url:
   username: admin
