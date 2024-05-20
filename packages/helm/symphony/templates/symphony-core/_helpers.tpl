@@ -162,3 +162,12 @@ Symphony full url Endpoint
 {{- define "symphony.envConfigName" -}}
 {{- printf "%s-env-config" (include "symphony.fullname" .) }}
 {{- end }}
+
+{{/* Symphony Redis host*/}}
+{{- define "symphony.redisHost" -}}
+{{- if .Values.redis.asSidecar }}
+{{- printf "localhost:%s" .Values.redis.port }}
+{{- else }}
+{{- printf "%s-redis:%s" (include "symphony.name" .) .Values.redis.port }}
+{{- end }}
+{{- end }}
