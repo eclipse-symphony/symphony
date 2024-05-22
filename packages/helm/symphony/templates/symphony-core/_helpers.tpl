@@ -166,7 +166,7 @@ Symphony full url Endpoint
 {{/* Symphony Redis host*/}}
 {{- define "symphony.redisHost" -}}
 {{- if .Values.redis.asSidecar }}
-{{- printf "localhost:%s" .Values.redis.port }}
+{{- printf "localhost:%d" (.Values.redis.port | int) }}
 {{- else }}
 {{- printf "%s-redis:%d" (include "symphony.name" .) (.Values.redis.port | int)}}
 {{- end }}
