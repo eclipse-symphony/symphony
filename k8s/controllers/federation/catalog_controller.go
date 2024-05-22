@@ -64,13 +64,9 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	name := catalog.Spec.RootResource
 	jData, _ := json.Marshal(catalog)
 	catalogName := name + ":" + version
-	log.Info(fmt.Sprintf("Reconcile Catalog: %v %v", catalogName, version))
-	log.Info(fmt.Sprintf("Reconcile Catalog jdata: %v", catalog))
-	log.Info(fmt.Sprintf("Catalog .Labels: %v", catalog.Labels["version"]))
 
 	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(catalog, catalogFinalizerName) {
-			log.Info("Add catalog finalizer")
 			controllerutil.AddFinalizer(catalog, catalogFinalizerName)
 			if err := r.Client.Update(ctx, catalog); err != nil {
 				return ctrl.Result{}, err
@@ -78,16 +74,14 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		_, exists := catalog.Labels["version"]
-		log.Info(fmt.Sprintf("Catalog update: exists version tag, %v", exists))
+		log.Info(fmt.Sprintf("Catalog update: version tag exists -  %v", exists))
 		if !exists && version != "" && name != "" {
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert Catalog")
 			err := r.ApiClient.UpsertCatalog(ctx, catalogName, jData, "", "")
 			if err != nil {
-				log.Error(err, "Upsert Catalog failed")
+				log.Error(err, "upsert Catalog failed")
 				return ctrl.Result{}, err
 			}
 
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to upsert catalog update, fetch again")
 			if err := r.Get(ctx, req.NamespacedName, catalog); err != nil {
 				log.Error(err, "unable to fetch catalog object after catalog update")
 				return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -101,18 +95,16 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	} else { // delete
 		value, exists := catalog.Labels["tag"]
-		log.Info(fmt.Sprintf("Solution update: %v, %v", value, exists))
+		log.Info(fmt.Sprintf("Solution remove: latest tag - %v, %v", value, exists))
 
 		if exists && value == "latest" {
-			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete solution")
 			err := r.ApiClient.DeleteCatalog(ctx, catalogName, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Delete solution failed")
+				log.Error(err, "failed to delete catalog latest tag")
 				return ctrl.Result{}, err
 			}
 		}
 
-		log.Info("Remove finalizer")
 		controllerutil.RemoveFinalizer(catalog, catalogFinalizerName)
 		if err := r.Client.Update(ctx, catalog); err != nil {
 			return ctrl.Result{}, err

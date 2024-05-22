@@ -67,8 +67,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	} else {
 		id = name
 	}
-
-	log.Info("  M (Target manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
+	log.Infof("  M (Targets): DeleteState, id: %v, namespace: %v, rootResource: %v, version: %v, traceId: %s", id, namespace, version, span.SpanContext().TraceID().String())
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: id,
@@ -88,11 +87,9 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
-
-	log.Info("  M (Target manager): upsert state >>>>>>>>>>>>>>>>>>>>parts  %v ", name)
-
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof(" M (Targets): UpsertState, name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -102,33 +99,28 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	var rootResource string
 	var version string
 	var refreshLabels bool
-	if state.Spec != nil {
-		log.Info("  M (Solution manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
-
-		if state.Spec.Version != "" {
-			version = state.Spec.Version
-		}
-		if state.Spec.RootResource == "" && version != "" {
-			suffix := "-" + version
-			rootResource = strings.TrimSuffix(name, suffix)
-		} else {
-			rootResource = state.Spec.RootResource
-		}
-
-		if state.ObjectMeta.Labels == nil {
-			state.ObjectMeta.Labels = make(map[string]string)
-		}
-
-		_, versionLabelExists := state.ObjectMeta.Labels["version"]
-		_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
-		if !versionLabelExists || !rootLabelExists {
-			log.Info("  M (Target manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
-
-			state.ObjectMeta.Labels["rootResource"] = rootResource
-			state.ObjectMeta.Labels["version"] = version
-			refreshLabels = true
-		}
+	if state.Spec.Version != "" {
+		version = state.Spec.Version
 	}
+	if state.Spec.RootResource == "" && version != "" {
+		suffix := "-" + version
+		rootResource = strings.TrimSuffix(name, suffix)
+	} else {
+		rootResource = state.Spec.RootResource
+	}
+
+	if state.ObjectMeta.Labels == nil {
+		state.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	_, versionLabelExists := state.ObjectMeta.Labels["version"]
+	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
+	if !versionLabelExists || !rootLabelExists {
+		state.ObjectMeta.Labels["rootResource"] = rootResource
+		state.ObjectMeta.Labels["version"] = version
+		refreshLabels = true
+	}
+	log.Infof("  M (Targets): UpsertState, version %v, rootResource: %v, versionLabelExists: %v, rootLabelExists: %v", version, rootResource, versionLabelExists, rootLabelExists)
 
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
@@ -165,6 +157,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("  M (Targets): ReportState, name %s, traceId: %s", current.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: current.ObjectMeta.Name,
@@ -227,6 +220,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("  M (Targets): ListState, namespace: %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -274,6 +268,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("  M (Targets): GetState, id: %s, namespace: %s, traceId: %s", id, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -301,12 +296,11 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 
 func (t *TargetsManager) GetLatestState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
 	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
-		"method": "GetLatest",
+		"method": "GetLatestState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	log.Info("  M (Target manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+	log.Infof("  M (Targets): GetLatestState, id: %s, namespace: %s, traceId: %s", id, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,

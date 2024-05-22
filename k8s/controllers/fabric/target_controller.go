@@ -99,20 +99,16 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	name := target.Spec.RootResource
 	targetName := name + ":" + version
 	jData, _ := json.Marshal(target)
-	log.Info(fmt.Sprintf("Reconcile target: %v %v", targetName, version))
 
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		log.Info("Target update")
 		_, exists := target.Labels["version"]
-		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
+		log.Info(fmt.Sprintf("Target update: version tag exists - %v", exists))
 		if !exists && version != "" && name != "" {
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert target update")
 			err := r.ApiClient.CreateTarget(ctx, targetName, jData, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Upsert target failed")
+				log.Error(err, "upsert target failed")
 				return ctrl.Result{}, err
 			}
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to upsert target update, fetch again")
 
 			if err := r.Get(ctx, req.NamespacedName, target); err != nil {
 				log.Error(err, "unable to fetch Target object after target update")
@@ -126,22 +122,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
-		log.Info("Target remove")
-
 		value, exists := target.Labels["tag"]
-		log.Info(fmt.Sprintf("target update: %v, %v", value, exists))
+		log.Info(fmt.Sprintf("Target remove update: latest tag - %v, %v", value, exists))
 
 		if exists && value == "latest" {
-			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete target")
 			err := r.ApiClient.DeleteTarget(ctx, targetName, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Delete target failed")
+				log.Error(err, "failed to delete target latest tag")
 				return ctrl.Result{}, err
 			}
 
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to delete target update, fetch again")
 			if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-				log.Error(err, "unable to fetch Target object after target update")
+				log.Error(err, "unable to fetch Target object after target tag removal")
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 		}

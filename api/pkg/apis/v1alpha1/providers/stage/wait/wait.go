@@ -170,7 +170,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		namespace = "default"
 	}
 
-	log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
+	log.Debugf("  P (Wait Processor): waiting for object type %v %v in namespace %s", objectType, prefixedNames, namespace)
 	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
@@ -188,8 +188,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 					if strings.Contains(object, ":") {
 						objectName = strings.ReplaceAll(objectName, ":", "-")
 					}
-					log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> instance check， %v, %v", instance.ObjectMeta.Name, objectName)
-
 					if instance.ObjectMeta.Name == objectName {
 						foundCount++
 						log.Debugf("  P (Wait Processor): instance count++ %d", foundCount)
@@ -224,7 +222,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 					if strings.Contains(object, ":") {
 						objectName = strings.ReplaceAll(objectName, ":", "-")
 					}
-					log.Debugf("  P (Wait Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog check， %v, %v", catalog.ObjectMeta.Name, objectName)
 					if catalog.ObjectMeta.Name == objectName {
 						foundCount++
 						log.Debugf("  P (Wait Processor): catalog count++ %d", foundCount)

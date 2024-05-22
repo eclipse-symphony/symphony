@@ -343,8 +343,6 @@ func (a *apiClient) GetSolution(ctx context.Context, solution string, namespace 
 		return ret, err
 	}
 
-	log.Infof("apiClient.GetSolution:>>>>>>>>>>>>  solution: %s, namespace: %s", solution, namespace)
-
 	var name string
 	var version string
 	parts := strings.Split(solution, ":")
@@ -810,12 +808,23 @@ func (a *apiClient) GetCatalogs(ctx context.Context, namespace string, user stri
 	return a.GetCatalogsWithFilter(ctx, namespace, "", "", user, password)
 }
 
-func (a *apiClient) ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error {
+func (a *apiClient) ReportCatalogs(ctx context.Context, catalog string, components []model.ComponentSpec, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
-	path := "catalogs/status/" + url.QueryEscape(instance)
+
+	var name string
+	var version string
+	parts := strings.Split(catalog, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid catalog name")
+	}
+
+	path := "catalogs/status/" + url.QueryEscape(name) + "/" + url.QueryEscape(version)
 	jData, _ := json.Marshal(components)
 	_, err = a.callRestAPI(ctx, path, "POST", jData, token)
 	if err != nil {
@@ -912,8 +921,6 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 		"http.method": method,
 		"http.url":    urlString,
 	})
-
-	log.Debugf("apiClient.callRestAPI:>>>>>>>>>>>>  route: %s, urlString: %s, method: %s", route, urlString, method)
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)

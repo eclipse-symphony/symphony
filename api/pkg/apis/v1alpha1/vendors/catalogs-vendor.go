@@ -61,29 +61,27 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			jData, _ = json.Marshal(job.Body)
 			err = json.Unmarshal(jData, &catalog)
 			origin := event.Metadata["origin"]
-			iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  catalog-sync origin: %v", origin)
 
 			if err == nil {
 				name := fmt.Sprintf("%s-%s", origin, catalog.ObjectMeta.Name)
-				iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  catalog-sync: %v", name)
+				lLog.Infof("Catalog-sync subscribe: name %v", name)
 
 				catalog.ObjectMeta.Name = name
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
-				iLog.Infof(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog-sync  UpsertState: %v", name)
 
 				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
-					iLog.Errorf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> catalog-sync error UpsertState: %v", err)
+					lLog.Errorf("Failed to upsert catalog: %v", err)
 					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
 				}
 			} else {
-				iLog.Errorf("Failed to unmarshal job body: %v", err)
+				lLog.Errorf("Failed to unmarshal job body: %v", err)
 				return err
 			}
 		} else {
-			iLog.Errorf("Failed to unmarshal job data: %v", err)
+			lLog.Errorf("Failed to unmarshal job data: %v", err)
 			return err
 		}
 		return nil
@@ -135,8 +133,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 		"method": "onStatus",
 	})
 	defer span.End()
-
-	lLog.Infof("V (Catalogs Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.Infof("V (Catalogs): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
@@ -146,7 +143,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	} else {
 		id = rootResource
 	}
-	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	lLog.Infof("V (Catalogs): onStatus, id: %s, version: %s", id, version)
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -204,7 +201,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCheck, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.Infof("V (Catalogs): onCheck, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var catalog model.CatalogState
@@ -250,8 +247,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 		"method": "onCatalogsGraph",
 	})
 	defer span.End()
-
-	lLog.Infof("V (Catalogs Vendor): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.Infof("V (Catalogs): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -316,7 +312,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.Infof("V (Catalogs): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -326,12 +322,15 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	var id string
+	var resourceId string
 	if version != "" {
 		id = rootResource + "-" + version
+		resourceId = rootResource + ":" + version
 	} else {
 		id = rootResource
+		resourceId = rootResource
 	}
-	uLog.Infof("V (Catalogs): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	lLog.Infof("V (Catalogs): onCatalogs, id: %s, version: %s ", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -346,6 +345,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		}
 
 		if err != nil {
+			lLog.Infof("V (Catalogs): onCatalogs Get failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			if !v1alpha2.IsNotFound(err) {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
@@ -380,6 +380,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 
 		err := json.Unmarshal(request.Body, &catalog)
 		if err != nil {
+			lLog.Infof("V (Catalogs): onCatalogs Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -388,6 +389,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 
 		err = e.CatalogsManager.UpsertState(ctx, id, catalog)
 		if err != nil {
+			lLog.Infof("V (Catalogs): onCatalogs Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -398,8 +400,9 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
-		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
+		err := e.CatalogsManager.DeleteState(ctx, resourceId, namespace)
 		if err != nil {
+			lLog.Infof("V (Catalogs): onCatalogs Delete failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -409,6 +412,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			State: v1alpha2.OK,
 		})
 	}
+	lLog.Infof("V (Catalogs): onCatalogs failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -423,7 +427,7 @@ func (c *CatalogsVendor) onCatalogsList(request v1alpha2.COARequest) v1alpha2.CO
 		"method": "onCatalogsList",
 	})
 	defer span.End()
-	uLog.Infof("V (Catalogs): onCatalogsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	lLog.Infof("V (Catalogs): onCatalogsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
 		namespace = "default"
@@ -440,7 +444,7 @@ func (c *CatalogsVendor) onCatalogsList(request v1alpha2.COARequest) v1alpha2.CO
 		state, err = c.CatalogsManager.ListState(ctx, namespace, request.Parameters["filterType"], request.Parameters["filterValue"])
 
 		if err != nil {
-			uLog.Infof("V (Catalogs): onCatalogsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			lLog.Infof("V (Catalogs): onCatalogsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

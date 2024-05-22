@@ -205,12 +205,22 @@ func SyncActivationStatus(context context.Context, baseUrl string, user string, 
 
 	return nil
 }
-func ReportCatalogs(context context.Context, baseUrl string, user string, password string, instance string, components []model.ComponentSpec) error {
+func ReportCatalogs(context context.Context, baseUrl string, user string, password string, catalog string, components []model.ComponentSpec) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "catalogs/status/" + url.QueryEscape(instance)
+	var name string
+	var version string
+	parts := strings.Split(catalog, ":")
+	if len(parts) == 2 {
+		name = parts[0]
+		version = parts[1]
+	} else {
+		return errors.New("invalid catalog name")
+	}
+
+	path := "catalogs/status/" + url.QueryEscape(name) + "/" + url.QueryEscape(version)
 	jData, _ := json.Marshal(components)
 	_, err = callRestAPI(context, baseUrl, path, "POST", jData, token)
 	if err != nil {
@@ -406,6 +416,7 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 	}
 	return ret, nil
 }
+
 func UpsertCatalog(context context.Context, baseUrl string, catalog string, user string, password string, payload []byte) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -422,7 +433,7 @@ func UpsertCatalog(context context.Context, baseUrl string, catalog string, user
 		return errors.New("invalid catalog name")
 	}
 
-	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(name)+"/"+url.QueryEscape(version)+url.QueryEscape(catalog), "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(name)+"/"+url.QueryEscape(version), "POST", payload, token)
 	if err != nil {
 		return err
 	}

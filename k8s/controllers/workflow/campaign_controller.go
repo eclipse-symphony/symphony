@@ -64,45 +64,36 @@ func (r *CampaignReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	name := campaign.Spec.RootResource
 	campaignName := name + ":" + version
 	jData, _ := json.Marshal(campaign)
-	log.Info(fmt.Sprintf("Reconcile campaign: %v %v", campaignName, version))
-	log.Info(fmt.Sprintf("Reconcile campaign jdata: %v", campaign))
-
-	log.Info(fmt.Sprintf("campaign.Labels: %v", campaign.Labels["version"]))
 
 	if campaign.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(campaign, campaignFinalizerName) {
-			log.Info("Add campaign finalizer")
 			controllerutil.AddFinalizer(campaign, campaignFinalizerName)
 			if err := r.Client.Update(ctx, campaign); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 
-		log.Info("campaign update")
 		_, exists := campaign.Labels["version"]
-		log.Info(fmt.Sprintf("campaign update: exists version tag, %v", exists))
+		log.Info(fmt.Sprintf("Campaign update: version tag exists - %v", exists))
 		if !exists && version != "" && name != "" {
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert campaign")
 			err := r.ApiClient.CreateCampaign(ctx, campaignName, jData, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Upsert campaign failed")
+				log.Error(err, "upsert campaign failed")
 				return ctrl.Result{}, err
 			}
 		}
 	} else { // delete
 		value, exists := campaign.Labels["tag"]
-		log.Info(fmt.Sprintf("campaign update: %v, %v", value, exists))
+		log.Info(fmt.Sprintf("Campaign remove: latest tag - %v, %v", value, exists))
 
 		if exists && value == "latest" {
-			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete campaign")
 			err := r.ApiClient.DeleteCampaign(ctx, campaignName, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Delete campaign failed")
+				log.Error(err, "failed to delete campaign latest tag")
 				return ctrl.Result{}, err
 			}
 		}
 
-		log.Info("Remove finalizer")
 		controllerutil.RemoveFinalizer(campaign, campaignFinalizerName)
 		if err := r.Client.Update(ctx, campaign); err != nil {
 			return ctrl.Result{}, err

@@ -105,7 +105,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	mLog.Info("  P (Materialize Processor): processing inputs")
+	mLog.Infof("  P (Materialize Processor): processing inputs, traceId: %s", span.SpanContext().TraceID().String())
 	outputs := make(map[string]interface{})
 
 	objects, ok := inputs["names"].([]interface{})
@@ -132,7 +132,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	mLog.Debugf("  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
-
 	var catalogs []model.CatalogState
 	catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
 
@@ -143,8 +142,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
 			objectName := object
-			mLog.Debugf("  P (Materialize Processor): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> objectName %v ", objectName)
-
 			if strings.Contains(objectName, ":") {
 				objectName = strings.ReplaceAll(objectName, ":", "-")
 			}
@@ -164,27 +161,22 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 
 					if instanceState.ObjectMeta.Name == "" {
-						mLog.Errorf("Instance name is empty %s", name)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: %s", name), v1alpha2.BadRequest)
+						mLog.Errorf("Instance name is empty: catalog - %s", name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					instanceName := object
-					if instanceState.ObjectMeta.Name != name {
-						instanceName = instanceState.ObjectMeta.Name
-						var rootResource string
-						var version string
-						parts := strings.Split(instanceName, ":")
-						if len(parts) == 2 {
-							rootResource = parts[0]
-							version = parts[1]
-						} else {
-							mLog.Errorf("Instance name is invalid %s", instanceName)
-							return outputs, false, err
-						}
-						if (instanceState.Spec.RootResource == "" || instanceState.Spec.Version == "") && rootResource != "" && version != "" {
-							instanceState.Spec.RootResource = rootResource
-							instanceState.Spec.Version = version
-						}
+					instanceName := instanceState.ObjectMeta.Name
+					var rootResource string
+					var version string
+					parts := strings.Split(instanceName, ":")
+					if len(parts) == 2 {
+						rootResource = parts[0]
+						version = parts[1]
+						instanceState.Spec.RootResource = rootResource
+						instanceState.Spec.Version = version
+					} else {
+						mLog.Errorf("Instance name is invalid: instance - %s, catalog - %s", instanceName, name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance name is invalid: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
@@ -205,27 +197,22 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 
 					if solutionState.ObjectMeta.Name == "" {
-						mLog.Errorf("Solution name is empty %s", name)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solution name: %s", name), v1alpha2.BadRequest)
+						mLog.Errorf("Solution name is empty: catalog - %s", name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solution name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					solutionName := object
-					if solutionState.ObjectMeta.Name != name {
-						solutionName = solutionState.ObjectMeta.Name
-						var rootResource string
-						var version string
-						parts := strings.Split(solutionName, ":")
-						if len(parts) == 2 {
-							rootResource = parts[0]
-							version = parts[1]
-						} else {
-							mLog.Errorf("Instance name is invalid %s", solutionName)
-							return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid instance name: %s", name), v1alpha2.BadRequest)
-						}
-						if (solutionState.Spec.RootResource == "" || solutionState.Spec.Version == "") && rootResource != "" && version != "" {
-							solutionState.Spec.RootResource = rootResource
-							solutionState.Spec.Version = version
-						}
+					solutionName := solutionState.ObjectMeta.Name
+					var rootResource string
+					var version string
+					parts := strings.Split(solutionName, ":")
+					if len(parts) == 2 {
+						rootResource = parts[0]
+						version = parts[1]
+						solutionState.Spec.RootResource = rootResource
+						solutionState.Spec.Version = version
+					} else {
+						mLog.Errorf("Solution name is invalid: solution - %s, catalog - %s", solutionName, name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
@@ -246,27 +233,22 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 
 					if targetState.ObjectMeta.Name == "" {
-						mLog.Errorf("Target name is empty %s", name)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: %s", name), v1alpha2.BadRequest)
+						mLog.Errorf("Target name is empty: catalog - %s", name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					targetName := object
-					if targetState.ObjectMeta.Name != name {
-						targetName = targetState.ObjectMeta.Name
-						var rootResource string
-						var version string
-						parts := strings.Split(targetName, ":")
-						if len(parts) == 2 {
-							rootResource = parts[0]
-							version = parts[1]
-						} else {
-							mLog.Errorf("Instance name is invalid %s", targetName)
-							return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid target name: %s", name), v1alpha2.BadRequest)
-						}
-						if (targetState.Spec.RootResource == "" || targetState.Spec.Version == "") && rootResource != "" && version != "" {
-							targetState.Spec.RootResource = rootResource
-							targetState.Spec.Version = version
-						}
+					targetName := targetState.ObjectMeta.Name
+					var rootResource string
+					var version string
+					parts := strings.Split(targetName, ":")
+					if len(parts) == 2 {
+						rootResource = parts[0]
+						version = parts[1]
+						targetState.Spec.RootResource = rootResource
+						targetState.Spec.Version = version
+					} else {
+						mLog.Errorf("Target name is invalid: target - %s, catalog - %s", targetName, name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid target name: %s", name), v1alpha2.BadRequest)
 					}
 
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
@@ -292,30 +274,23 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty catalog name: %s", name), v1alpha2.BadRequest)
 					}
 
-					catalogName := object
-					if catalogState.ObjectMeta.Name != name {
-						catalogName = catalogState.ObjectMeta.Name
-						var rootResource string
-						var version string
-						parts := strings.Split(catalogName, ":")
-						if len(parts) == 2 {
-							rootResource = parts[0]
-							version = parts[1]
-						} else {
-							mLog.Errorf("Catalog name is invalid %s", catalogName)
-							return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: %s", name), v1alpha2.BadRequest)
-						}
-						if (catalogState.Spec.RootResource == "" || catalogState.Spec.Version == "") && rootResource != "" && version != "" {
-							catalogState.Spec.RootResource = rootResource
-							catalogState.Spec.Version = version
-						}
+					catalogName := catalogState.ObjectMeta.Name
+					var rootResource string
+					var version string
+					parts := strings.Split(catalogName, ":")
+					if len(parts) == 2 {
+						rootResource = parts[0]
+						version = parts[1]
+						catalogState.Spec.RootResource = rootResource
+						catalogState.Spec.Version = version
+					} else {
+						mLog.Errorf("Catalog name is invalid: catalog - %s, parent catalog - %s", catalogName, name)
+						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
 					mLog.Debugf("  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					mLog.Debugf("  P (Materialize Processor): >>>>>>>>..>>> debug material, %s, %s", catalogState.ObjectMeta.Name, name)
-
 					err = i.ApiClient.UpsertCatalog(ctx, catalogName, objectData, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())

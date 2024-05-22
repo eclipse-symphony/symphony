@@ -365,7 +365,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 		switch objectType {
 		case "instance":
-			log.Debugf(" M (Job): handling instance job  >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s, %s", job.Id, namespace)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
@@ -375,14 +374,12 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err //TODO: instance is gone
 			}
 
-			// log.Debugf(" M (Job): handling instance job name >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s, %s", instance.Spec.Solution, instance.Spec.Target.Name)
-
 			//get solution
 			var solution model.SolutionState
 			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace, s.user, s.password)
-			log.Debugf(" M (Job): handling instance job solution after GetSolution >>>>>>>>>>>>>>>>>>>>>>>>>>>>  %s", solution.ObjectMeta.Name)
 
 			if err != nil {
+				log.Debugf(" M (Job): error getting solution %s, namespace: %s: %s", instance.Spec.Solution, namespace, err.Error())
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{
 						Name:      instance.Spec.Solution,
@@ -398,6 +395,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var targets []model.TargetState
 			targets, err = s.apiClient.GetTargets(ctx, namespace, s.user, s.password)
 			if err != nil {
+				log.Debugf(" M (Job): error getting targets, namespace: %s: %s", namespace, err.Error())
 				targets = make([]model.TargetState, 0)
 			}
 

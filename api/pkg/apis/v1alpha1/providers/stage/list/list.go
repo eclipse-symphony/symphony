@@ -131,9 +131,9 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				if instance.ObjectMeta.Labels["version"] != "" && instance.ObjectMeta.Labels["rootResource"] != "" {
 					name = instance.ObjectMeta.Labels["rootResource"] + ":" + instance.ObjectMeta.Labels["version"]
 				}
-				log.Infof("  P (List Processor): >>>>>> append catalog name %v", name)
 				names = append(names, name)
 			}
+			log.Debugf("  P (List Processor): list instances %v with namesOnly", names)
 			outputs["items"] = names
 		} else {
 			outputs["items"] = instances
@@ -174,9 +174,9 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				if catalog.ObjectMeta.Labels["version"] != "" && catalog.ObjectMeta.Labels["rootResource"] != "" {
 					name = catalog.ObjectMeta.Labels["rootResource"] + ":" + catalog.ObjectMeta.Labels["version"]
 				}
-				log.Infof("  P (List Processor): >>>>>> append catalog name %v", name)
 				names = append(names, name)
 			}
+			log.Debugf("  P (List Processor): list catalogs %v with namesOnly", names)
 			outputs["items"] = names
 		} else {
 			outputs["items"] = catalogs

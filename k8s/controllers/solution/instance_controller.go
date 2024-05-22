@@ -103,23 +103,19 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	name := instance.Spec.RootResource
 	instanceName := name + ":" + version
 	jData, _ := json.Marshal(instance)
-	log.Info(fmt.Sprintf("Reconcile instance: %v %v", instanceName, version))
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		log.Info("Instance update")
 		_, exists := instance.Labels["version"]
-		log.Info(fmt.Sprintf("Target update: exists version tag, %v", exists))
+		log.Info(fmt.Sprintf("Instance update: version tag exists - %v", exists))
 		if !exists && version != "" && name != "" {
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert instance update")
 			err := r.ApiClient.CreateInstance(ctx, instanceName, jData, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Upsert instance failed")
+				log.Error(err, "upsert instance failed")
 				return ctrl.Result{}, err
 			}
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to upsert instance update, fetch again")
 
 			if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-				log.Error(err, "unable to fetch Instance object after Instance update")
+				log.Error(err, "unable to fetch instance object after instance update")
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 		}
@@ -130,22 +126,18 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
-		log.Info("Instance remove")
-
 		value, exists := instance.Labels["tag"]
-		log.Info(fmt.Sprintf("instance update: %v, %v", value, exists))
+		log.Info(fmt.Sprintf("Instance remove: latest tag - %v, %v", value, exists))
 
 		if exists && value == "latest" {
-			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete instance")
 			err := r.ApiClient.DeleteInstance(ctx, instanceName, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Delete solution failed")
+				log.Error(err, "failed to delete instance latest tag")
 				return ctrl.Result{}, err
 			}
 
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> End API to delete instance update, fetch again")
 			if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-				log.Error(err, "unable to fetch Instance object after instance update")
+				log.Error(err, "unable to fetch Instance object after instance tag removal")
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 		}
@@ -183,27 +175,23 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>> v2v2: try to get solution %v", instance.Spec.Solution))
-
 	// Get solution
 	solution, err := r.ApiClient.GetSolution(ctx, instance.Spec.Solution, instance.Namespace, "", "")
-	//api_utils.GetSolution(ctx, "http://symphony-service:8080/v1alpha2/", instance.Spec.Solution, "admin", "", instance.Namespace)
 	if err != nil {
-		log.Error(v1alpha2.NewCOAError(err, "failed to get solution from symphony", v1alpha2.SolutionGetFailed), "proceed with no solution found")
+		log.Error(v1alpha2.NewCOAError(err, "failed to get solution from API", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
 
-	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>>>>: try to get solution response  %v", solution.ObjectMeta.Name))
+	log.Info(fmt.Sprintf("Building deployment: get solution object - %v", solution.ObjectMeta.Name))
 	if err := r.Get(ctx, types.NamespacedName{Name: solution.ObjectMeta.Name, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
+
 	// Get targets
 	if err := r.List(ctx, &deploymentResources.TargetList, client.InNamespace(instance.Namespace)); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to list targets", v1alpha2.TargetListGetFailed), "proceed with no targets found")
 	}
 
 	// Get target candidates
-	log.Info(fmt.Sprintf("Instance controller>>>>>>>>>>>>>>>>>>>>>>>: match targets  %v", solution.ObjectMeta.Name))
-
 	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
 	if len(deploymentResources.TargetCandidates) == 0 {
 		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "proceed with no target candidates found")
@@ -264,7 +252,6 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 		log.Log.Error(err, "Failed to list instances")
 		return ret
 	}
-	log.Log.Info(fmt.Sprintf("Instance handleTarget >>>>>>>> start %s", tarObj.GetObjectMeta().GetName()))
 
 	targetList := fabric_v1.TargetList{}
 	targetList.Items = append(targetList.Items, *tarObj)
@@ -289,6 +276,8 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 
 	if len(ret) > 0 {
 		log.Log.Info(fmt.Sprintf("Watched target %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", tarObj.Name, tarObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+	} else {
+		log.Log.Info(fmt.Sprintf("Watched target %s under namespace %s is updated, no instance needs to requeue", tarObj.Name, tarObj.Namespace))
 	}
 
 	return ret
@@ -300,17 +289,9 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 	var instances solution_v1.InstanceList
 
 	labels := solObj.ObjectMeta.Labels
-	resourceName := labels["rootResource"]
-	version := labels["version"]
-
-	var solutionName string
-	if resourceName == "" || version == "" {
-		solutionName = solObj.Name
-	} else {
-		solutionName = resourceName + ":" + version
-	}
-
-	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> start %s", solutionName))
+	resourceName := solObj.Spec.RootResource
+	version := solObj.Spec.Version
+	solutionName := resourceName + ":" + version
 
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
@@ -321,8 +302,6 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 		log.Log.Error(error, "Failed to list instances")
 		return ret
 	}
-	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> instances count %d", len(instances.Items)))
-	log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>> label %s", labels["tag"]))
 
 	if labels["tag"] == "latest" {
 		var instancesWithLatest solution_v1.InstanceList
@@ -339,7 +318,6 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 		}
 
 		instances.Items = append(instances.Items, instancesWithLatest.Items...)
-		log.Log.Info(fmt.Sprintf("Instance handlesolution >>>>>>>>222 instances count with latest %d", len(instances.Items)))
 	}
 
 	updatedInstanceNames := make([]string, 0)
@@ -359,6 +337,8 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 
 	if len(ret) > 0 {
 		log.Log.Info(fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solObj.Name, solObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+	} else {
+		log.Log.Info(fmt.Sprintf("Watched solution %s under namespace %s is updated, no instance needs to requeue", solObj.Name, solObj.Namespace))
 	}
 
 	return ret

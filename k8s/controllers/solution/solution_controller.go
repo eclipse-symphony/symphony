@@ -65,45 +65,36 @@ func (r *SolutionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	name := solution.Spec.RootResource
 	solutionName := name + ":" + version
 	jData, _ := json.Marshal(solution)
-	log.Info(fmt.Sprintf("Reconcile Solution: %v %v", solutionName, version))
-	log.Info(fmt.Sprintf("Reconcile Solution jdata: %v", solution))
-
-	log.Info(fmt.Sprintf("Solution.Labels: %v", solution.Labels["version"]))
 
 	if solution.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		if !controllerutil.ContainsFinalizer(solution, solutionFinalizerName) {
-			log.Info("Add Solution finalizer")
 			controllerutil.AddFinalizer(solution, solutionFinalizerName)
 			if err := r.Client.Update(ctx, solution); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 
-		log.Info("Solution update")
 		_, exists := solution.Labels["version"]
-		log.Info(fmt.Sprintf("Solution update: exists version tag, %v", exists))
+		log.Info(fmt.Sprintf("Solution update: version tag exists - %v", exists))
 		if !exists && version != "" && name != "" {
-			log.Info(">>>>>>>>>>>>>>>>>>>>>>>>>> Call API to upsert solution")
 			err := r.ApiClient.UpsertSolution(ctx, solutionName, jData, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Upsert solution failed")
+				log.Error(err, "upsert solution failed")
 				return ctrl.Result{}, err
 			}
 		}
 	} else { // delete
 		value, exists := solution.Labels["tag"]
-		log.Info(fmt.Sprintf("Solution update: %v, %v", value, exists))
+		log.Info(fmt.Sprintf("Solution remove: latest tag - %v, %v", value, exists))
 
 		if exists && value == "latest" {
-			log.Info(">>>>>>>>>>>>>>>>>>> Call API to delete solution")
 			err := r.ApiClient.DeleteSolution(ctx, solutionName, req.Namespace, "", "")
 			if err != nil {
-				log.Error(err, "Delete solution failed")
+				log.Error(err, "failed to delete solution latest tag")
 				return ctrl.Result{}, err
 			}
 		}
 
-		log.Info("Remove finalizer")
 		controllerutil.RemoveFinalizer(solution, solutionFinalizerName)
 		if err := r.Client.Update(ctx, solution); err != nil {
 			return ctrl.Result{}, err

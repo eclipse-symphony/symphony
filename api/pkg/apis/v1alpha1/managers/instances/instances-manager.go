@@ -64,6 +64,7 @@ func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespa
 	} else {
 		id = name
 	}
+	log.Infof("  M (Instances): DeleteState, id: %v, namespace: %v, rootResource: %v, version: %v, traceId: %s", id, namespace, version, span.SpanContext().TraceID().String())
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: id,
@@ -85,6 +86,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof(" M (Instances): UpsertState, name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -94,8 +96,6 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	var rootResource string
 	var version string
 	var refreshLabels bool
-	log.Info("  M (Instance manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
-
 	if state.Spec.Version != "" {
 		version = state.Spec.Version
 	}
@@ -113,14 +113,11 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	_, versionLabelExists := state.ObjectMeta.Labels["version"]
 	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
 	if !versionLabelExists || !rootLabelExists {
-		log.Info("  M (Instance manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
-
 		state.ObjectMeta.Labels["rootResource"] = rootResource
 		state.ObjectMeta.Labels["version"] = version
 		refreshLabels = true
 	}
-	log.Info("  M (Instance manager): update labels to versionLabelExists, rootLabelExists >>>>>>>>>>>>>>>>>>>>  %v, %v", versionLabelExists, rootLabelExists)
-	log.Info("  M (Instance manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v", refreshLabels)
+	log.Infof("  M (Instances): UpsertState, version %v, rootResource: %v, versionLabelExists: %v, rootLabelExists: %v", version, rootResource, versionLabelExists, rootLabelExists)
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
@@ -161,6 +158,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Info("  M (Instances): ListState, namespace: %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -208,6 +206,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("  M (Instances): GetState, id: %s, namespace: %s, traceId: %s", id, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -238,8 +237,7 @@ func (t *InstancesManager) GetLatestState(ctx context.Context, id string, namesp
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	log.Info("  M (Instance manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+	log.Infof("  M (Instances): GetLatestState, id: %s, namespace: %s, traceId: %s", id, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,

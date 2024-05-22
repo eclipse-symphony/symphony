@@ -91,13 +91,15 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	var id string
+	var resourceId string
 	if version != "" {
 		id = rootResource + "-" + version
+		resourceId = rootResource + ":" + version
 	} else {
 		id = rootResource
+		resourceId = rootResource
 	}
-
-	uLog.Infof("V (Solutions): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	uLog.Infof("V (Solutions): onSolutions, id: %s, version: %s", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -112,7 +114,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.Infof("V (Solutions): onSolutions Get failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -132,7 +134,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
 
 		if version == "" || version == "latest" {
-			uLog.Infof("V (Solutions): onSolutions failed - version is required for POST, traceId: %s", span.SpanContext().TraceID().String())
+			uLog.Infof("V (Solutions): onSolutions Post failed - version is required for POST, traceId: %s", span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte("version is required for POST"),
@@ -169,7 +171,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		} else {
 			err := json.Unmarshal(request.Body, &solution)
 			if err != nil {
-				uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				uLog.Infof("V (Solutions): onSolutions Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -187,7 +189,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		err := c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.Infof("V (Solutions): onSolutions Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -220,10 +222,9 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
-		id = rootResource + ":" + version
-		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
+		err := c.SolutionsManager.DeleteState(ctx, resourceId, namespace)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.Infof("V (Solutions): onSolutions Delete failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -245,7 +246,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 
 func (c *SolutionsVendor) onSolutionsList(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Solutions Vendor", request.Context, &map[string]string{
-		"method": "onSolutions",
+		"method": "onSolutionsList",
 	})
 	defer span.End()
 	uLog.Infof("V (Solutions): onSolutionsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())

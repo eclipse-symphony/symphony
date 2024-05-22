@@ -91,12 +91,15 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	var id string
+	var resourceId string
 	if version != "" {
 		id = rootResource + "-" + version
+		resourceId = rootResource + ":" + version
 	} else {
 		id = rootResource
+		resourceId = rootResource
 	}
-	uLog.Infof("V (Campaigns): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	cLog.Infof("V (Campaigns): onCampaigns, id: %s, version: %s", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -111,7 +114,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 
 		if err != nil {
-			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cLog.Infof("V (Campaigns): onCampaigns Get failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -133,7 +136,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 
 		err := json.Unmarshal(request.Body, &campaign)
 		if err != nil {
-			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cLog.Infof("V (Campaigns): onCampaigns Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,7 +145,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 
 		err = c.CampaignsManager.UpsertState(ctx, id, campaign)
 		if err != nil {
-			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cLog.Infof("V (Campaigns): onCampaigns Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -153,9 +156,9 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
-		err := c.CampaignsManager.DeleteState(ctx, id, namespace)
+		err := c.CampaignsManager.DeleteState(ctx, resourceId, namespace)
 		if err != nil {
-			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cLog.Infof("V (Campaigns): onCampaigns Delete failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -180,7 +183,7 @@ func (c *CampaignsVendor) onCampaignsList(request v1alpha2.COARequest) v1alpha2.
 		"method": "onCampaignsList",
 	})
 	defer span.End()
-	uLog.Infof("V (Campaigns): onCampaignsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	cLog.Infof("V (Campaigns): onCampaignsList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = "default"
@@ -197,7 +200,7 @@ func (c *CampaignsVendor) onCampaignsList(request v1alpha2.COARequest) v1alpha2.
 		state, err = c.CampaignsManager.ListState(ctx, namespace)
 
 		if err != nil {
-			uLog.Infof("V (Solutions): onCampaignsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cLog.Infof("V (Campaigns): onCampaignsList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

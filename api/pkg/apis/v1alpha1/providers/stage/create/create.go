@@ -135,6 +135,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	if object != nil {
 		oData, _ = json.Marshal(object)
 	}
+	name := objectName
+	if strings.Contains(name, ":") {
+		name = strings.ReplaceAll(name, ":", "-")
+	}
+
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":
@@ -155,7 +160,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				var summary *model.SummaryResult
-				summary, err = i.ApiClient.GetSummary(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
+				summary, err = i.ApiClient.GetSummary(ctx, name, objectNamespace, i.Config.User, i.Config.Password)
 				lastSummaryMessage = summary.Summary.SummaryMessage
 				if err != nil {
 					return nil, false, err

@@ -52,6 +52,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof(" M (Campaigns): GetState, name: %s, namespace: %s, traceId: %s", name, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -95,6 +96,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof(" M (Campaigns): UpsertState, name %s, traceId: %s", name, span.SpanContext().TraceID().String())
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -104,8 +106,6 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	var rootResource string
 	var version string
 	var refreshLabels bool
-	log.Info("  M (Campaign manager): debug upsert state >>>>>>>>>>>>>>>>>>>>  %v, %v, %v", state.Spec.Version, state.Spec.RootResource, name)
-
 	if state.Spec.Version != "" {
 		version = state.Spec.Version
 	}
@@ -119,18 +119,14 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	if state.ObjectMeta.Labels == nil {
 		state.ObjectMeta.Labels = make(map[string]string)
 	}
-
 	_, versionLabelExists := state.ObjectMeta.Labels["version"]
 	_, rootLabelExists := state.ObjectMeta.Labels["rootResource"]
 	if (!versionLabelExists || !rootLabelExists) && version != "" && rootResource != "" {
-		log.Info("  M (Campaign manager): update labels to true >>>>>>>>>>>>>>>>>>>>  %v, %v", rootResource, version)
-
 		state.ObjectMeta.Labels["rootResource"] = rootResource
 		state.ObjectMeta.Labels["version"] = version
 		refreshLabels = true
 	}
-	log.Info("  M (Campaign manager): update labels to versionLabelExists, rootLabelExists >>>>>>>>>>>>>>>>>>>>  %v, %v", versionLabelExists, rootLabelExists)
-	log.Info("  M (Campaign manager): debug refresh >>>>>>>>>>>>>>>>>>>>  %v", refreshLabels)
+	log.Infof("  M (Campaigns): UpsertState, version %v, rootResource: %v, versionLabelExists: %v, rootLabelExists: %v", version, rootResource, versionLabelExists, rootLabelExists)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -175,7 +171,7 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	} else {
 		id = name
 	}
-	log.Info("  M (Catalog manager): delete state >>>>>>>>>>>>>>>>>>>>parts  %v, %v", rootResource, version)
+	log.Infof("  M (Campaigns): DeleteState, id: %v, namespace: %v, rootResource: %v, version: %v, traceId: %s", id, namespace, version, span.SpanContext().TraceID().String())
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: id,
@@ -197,6 +193,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	log.Infof("  M (Campaigns): ListState, namespace: %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -225,13 +222,12 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 }
 
 func (t *CampaignsManager) GetLatestState(ctx context.Context, id string, namespace string) (model.CampaignState, error) {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
 		"method": "GetLatest",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	log.Info("  M (Campaign manager): debug get latest state >>>>>>>>>>>>>>>>>>>>  %v, %v", id, namespace)
+	log.Infof("  M (Campaigns): GetLatestState, id: %s, namespace: %s, traceId: %s", id, namespace, span.SpanContext().TraceID().String())
 
 	getRequest := states.GetRequest{
 		ID: id,

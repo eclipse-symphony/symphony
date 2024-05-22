@@ -130,12 +130,15 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	var id string
+	var resourceId string
 	if version != "" {
 		id = rootResource + "-" + version
+		resourceId = rootResource + ":" + version
 	} else {
 		id = rootResource
+		resourceId = rootResource
 	}
-	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	tLog.Infof("V (Targets): onCampaigns, id: %s, version: %s", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -150,7 +153,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		}
 
 		if err != nil {
-			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.Infof("V (Targets) : onRegistry Get failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -170,7 +173,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 
 		if version == "" || version == "latest" {
-			uLog.Infof("V (Solutions): onRegistry failed - version is required for POST, traceId: %s", span.SpanContext().TraceID().String())
+			tLog.Infof("V (Targets): onRegistry Post failed - version is required for POST, traceId: %s", span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte("version is required for POST"),
@@ -181,7 +184,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		var target model.TargetState
 		err := json.Unmarshal(request.Body, &target)
 		if err != nil {
-			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.Infof("V (Targets) : onRegistry Post failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -254,7 +257,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
-					Id:     id,
+					Id:     resourceId,
 					Action: v1alpha2.JobUpdate,
 					Scope:  namespace,
 				},
@@ -274,7 +277,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
-					Id:     id,
+					Id:     resourceId,
 					Action: v1alpha2.JobDelete,
 					Scope:  namespace,
 				},
@@ -283,10 +286,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				State: v1alpha2.OK,
 			})
 		} else {
-			id = rootResource + ":" + version
-			err := c.TargetsManager.DeleteSpec(ctx, id, namespace)
+			err := c.TargetsManager.DeleteSpec(ctx, resourceId, namespace)
 			if err != nil {
-				tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				tLog.Infof("V (Targets) : onRegistry Delete failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -312,14 +314,14 @@ func (c *TargetsVendor) onRegistryList(request v1alpha2.COARequest) v1alpha2.COA
 		"method": "onRegistryList",
 	})
 	defer span.End()
-	uLog.Infof("V (Targets): onRegistryList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.Infof("V (Targets): onRegistryList, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = "default"
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
-		ctx, span := observability.StartSpan("onRegistry-GET", pCtx, nil)
+		ctx, span := observability.StartSpan("onRegistryList-GET", pCtx, nil)
 
 		var err error
 		var state interface{}
@@ -330,7 +332,7 @@ func (c *TargetsVendor) onRegistryList(request v1alpha2.COARequest) v1alpha2.COA
 		state, err = c.TargetsManager.ListState(ctx, namespace)
 
 		if err != nil {
-			uLog.Infof("V (Targets): onRegistryList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.Infof("V (Targets): onRegistryList failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -421,7 +423,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	id := rootResource + "-" + version
-	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	tLog.Infof("V (Targets): onCampaigns, id: %s, version: %s", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodPut:
@@ -496,7 +498,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 	version := request.Parameters["__version"]
 	rootResource := request.Parameters["__name"]
 	id := rootResource + "-" + version
-	uLog.Infof("V (Targets): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> id ", id)
+	tLog.Infof("V (Targets): onDownload, id: %s, version: %s", id, version)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
