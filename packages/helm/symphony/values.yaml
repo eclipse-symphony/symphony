@@ -31,7 +31,6 @@ parent:
   username: admin
   password:
 siteId: hq
-imagePrivateRegistryUrl: ghcr.io
 api:
   apiContainerPortHttp: 8080
   apiContainerPortHttps: 8081
