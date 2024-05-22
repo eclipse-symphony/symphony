@@ -168,6 +168,15 @@ Symphony full url Endpoint
 {{- if .Values.redis.asSidecar }}
 {{- printf "localhost:%s" .Values.redis.port }}
 {{- else }}
-{{- printf "%s-redis:%s" (include "symphony.name" .) .Values.redis.port }}
+{{- printf "%s-redis:%d" (include "symphony.name" .) (.Values.redis.port | int)}}
+{{- end }}
+{{- end }}
+
+{{/* Symphony Redis protected-mode*/}}
+{{- define "symphony.protectedMode" -}}
+{{- if .Values.redis.asSidecar}}
+{{- printf "yes" }}
+{{- else }}
+{{- printf "no" }}
 {{- end }}
 {{- end }}

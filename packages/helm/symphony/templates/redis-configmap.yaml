@@ -4,5 +4,6 @@ metadata:
   name: redis-config-map
 data:
   redis.conf: |
-    protected-mode yes
+    protected-mode {{ include "symphony.protectedMode" . }}
+    port {{ .Values.redis.port }}
   
