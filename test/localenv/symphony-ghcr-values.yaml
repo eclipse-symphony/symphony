@@ -10,4 +10,3 @@ paiImage:
   pullPolicy: Never
   repository: ghcr.io/eclipse-symphony/symphony-api
 installServiceExt: false
-imagePrivateRegistryUrl: ghcr.io
