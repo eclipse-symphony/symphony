@@ -82,14 +82,14 @@ jobs:
       - name: Build Symphony Api
         run: |
           cd api
-          mage dockerBuildMultiPlatform
+          mage dockerBuildAPIMultiPlatform
           mage dockerBuildTargetAgentMultiPlatform
           mage dockerBuildPollAgentMultiPlatform
       
       - name: Build Symphony k8s
         run: | 
           cd k8s
-          mage dockerBuildMultiPlatform
+          mage dockerBuildK8sMultiPlatform
 
       - name: Replace version in cli/cmd/up.go
         run: |
