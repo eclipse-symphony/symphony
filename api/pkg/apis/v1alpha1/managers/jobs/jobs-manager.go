@@ -218,6 +218,9 @@ func (s *JobsManager) pollSchedules() []error {
 				activationData.Schedule = ""
 				err = s.StateProvider.Delete(context, states.DeleteRequest{
 					ID: entry.ID,
+					Metadata: map[string]interface{}{
+						"namespace": activationData.Namespace,
+					},
 				})
 				if err != nil {
 					return []error{err}
