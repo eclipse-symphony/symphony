@@ -7,7 +7,10 @@
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,13 +128,6 @@ type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type ScheduleSpec struct {
-	Date string `json:"date"`
-	Time string `json:"time"`
-	Zone string `json:"zone"`
-}
-
-// +kubebuilder:object:generate=true
 type StageSpec struct {
 	Name     string `json:"name,omitempty"`
 	Contexts string `json:"contexts,omitempty"`
@@ -144,7 +140,38 @@ type StageSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
-	Schedule        *ScheduleSpec        `json:"schedule,omitempty"`
+	Schedule        string               `json:"schedule,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for StageSpec
+func (s *StageSpec) UnmarshalJSON(data []byte) error {
+	type Alias StageSpec
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// validate if Schedule meet RFC 3339
+	if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+		return fmt.Errorf("invalid timestamp format: %v", err)
+	}
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for StageSpec
+func (s StageSpec) MarshalJSON() ([]byte, error) {
+	type Alias StageSpec
+	if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+		return nil, fmt.Errorf("invalid timestamp format: %v", err)
+	}
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&s),
+	})
 }
 
 // +kubebuilder:object:generate=true
