@@ -248,12 +248,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 
 		// restore schedule
-		var schedule *v1alpha2.ScheduleSpec
+		var schedule = ""
 		if v, ok := dataPackage.Inputs["__schedule"]; ok {
-			err = json.Unmarshal([]byte(v.(string)), &schedule)
-			if err != nil {
-				return err
-			}
+			schedule = v.(string)
 		}
 
 		triggerData := v1alpha2.ActivationData{
