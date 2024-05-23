@@ -24,6 +24,7 @@ cert-manager:
 flavor: oss
 redis:
   enabled: true
+  asSidecar: false
   image: redis/redis-stack-server:latest
   port: 6379
 parent:

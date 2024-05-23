@@ -1,4 +1,4 @@
-{{- if .Values.redis.enabled }}
+{{- if and .Values.redis.enabled (not .Values.redis.asSidecar)}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,10 +16,21 @@ spec:
         app: {{ include "symphony.name" . }}-redis
     spec:
       containers:
-        - name: redis
-          image: {{ .Values.redis.image }}
-          ports:
-            - containerPort: {{ .Values.redis.port }}
+      - name: redis
+        image: {{ .Values.redis.image }}
+        ports:
+          - containerPort: {{ .Values.redis.port }}
+        command: ["redis-server", "/usr/var/redis/redis.conf"]
+        volumeMounts:
+        - name: redis-config
+          mountPath: /usr/var/redis
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config-map
+          items:
+          - key: redis.conf
+            path: redis.conf
 ---
 apiVersion: v1
 kind: Service

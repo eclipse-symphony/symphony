@@ -79,7 +79,16 @@ spec:
           subPath: proxy-cert.crt
           name: proxy-certstore
         {{- end }}
-
+      {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
+      - name: redis
+        image: {{ .Values.redis.image }}
+        command: ["redis-server", "/usr/var/redis/redis.conf"]
+        ports:
+        - containerPort: {{ .Values.redis.port }}
+        volumeMounts:
+        - name: redis-config
+          mountPath: /usr/var/redis
+      {{- end}}
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
         env:
@@ -108,3 +117,11 @@ spec:
         - name: ssl-certs
           emptyDir: {}
         {{ end }}
+        {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
+        - name: redis-config
+          configMap:
+            name: redis-config-map
+            items:
+            - key: redis.conf
+              path: redis.conf
+        {{- end }}
