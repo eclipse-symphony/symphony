@@ -155,7 +155,8 @@ func (r *Model) validateCreateModel() error {
 			pack := extractModelValidationPack(models, p)
 			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readModelValiationTarget(r, p), p.ValidationType, pack)
 			if err != nil {
-				return err
+				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", "Validation encountered an unexpected error.")))
+				return apierrors.NewInvalid(schema.GroupKind{Group: "ai.symphony", Kind: "Model"}, r.Name, allErrs)
 			}
 			if ret != "" {
 				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))
@@ -188,7 +189,8 @@ func (r *Model) validateUpdateModel() error {
 			pack := extractModelValidationPack(models, p)
 			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readModelValiationTarget(r, p), p.ValidationType, pack)
 			if err != nil {
-				return err
+				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", "Validation encountered an unexpected error.")))
+				return apierrors.NewInvalid(schema.GroupKind{Group: "ai.symphony", Kind: "Model"}, r.Name, allErrs)
 			}
 			if ret != "" {
 				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))
