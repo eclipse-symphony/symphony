@@ -363,17 +363,17 @@ func DockerBuild() error {
 
 // Build Symphony API multi-platfrom docker image
 func DockerBuildAPIMultiPlatform() error {
-	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-api-multi")
+	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-api-multi:latest")
 }
 
 // Build Symphony K8s multi-platfrom docker image
 func DockerBuildK8sMultiPlatform() error {
-	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-k8s-multi")
+	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-k8s-multi:latest")
 }
 
 // Build Symphony target agent multi-platfrom docker image
 func DockerBuildTargetAgentMultiPlatform() error {
-	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-target-agent-multi")
+	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-target-agent-multi:latest")
 }
 func DockerBuildTargetAgent() error {
 	return buildWithDockerCompose("docker-compose-target-agent.yaml")
@@ -381,7 +381,7 @@ func DockerBuildTargetAgent() error {
 
 // Build Symphony poll agent multi-platfrom docker image
 func DockerBuildPollAgentMultiPlatform() error {
-	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-poll-agent-multi")
+	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-poll-agent-multi:latest")
 }
 func DockerBuildPollAgent() error {
 	return buildWithDockerCompose("docker-compose-poll-agent.yaml")
