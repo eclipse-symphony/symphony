@@ -482,8 +482,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__previousStage"] = triggerData.TriggeringStage
 		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
 		if triggerData.Schedule != "" {
-			jSchedule, _ := json.Marshal(triggerData.Schedule)
-			inputs["__schedule"] = string(jSchedule)
+			inputs["__schedule"] = triggerData.Schedule
 		}
 		for k, v := range inputs {
 			var val interface{}
