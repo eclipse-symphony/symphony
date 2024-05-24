@@ -173,8 +173,8 @@ type CampaignContainerSpec struct {
 
 // +kubebuilder:object:generate=true
 type CatalogSpec struct {
-	Type     string            `json:"type"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	CatalogType string            `json:"catalogType"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties   runtime.RawExtension `json:"properties"`
