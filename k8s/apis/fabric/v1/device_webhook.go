@@ -12,6 +12,7 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -126,7 +127,7 @@ func (r *Device) validateCreateDevice() error {
 	var devices DeviceList
 	myDeviceClient.List(context.Background(), &devices, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if len(devices.Items) != 0 {
-		return fmt.Errorf("device display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("device display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
@@ -135,10 +136,10 @@ func (r *Device) validateUpdateDevice() error {
 	var devices DeviceList
 	err := myDeviceClient.List(context.Background(), &devices, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return apierrors.NewInternalError(err)
 	}
 	if !(len(devices.Items) == 0 || len(devices.Items) == 1 && devices.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("device display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("device display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }

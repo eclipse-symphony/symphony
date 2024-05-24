@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,7 +79,7 @@ func (r *Solution) validateCreateSolution() error {
 	var solutions SolutionList
 	mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if len(solutions.Items) != 0 {
-		return fmt.Errorf("solution display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("solution display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
@@ -87,10 +88,10 @@ func (r *Solution) validateUpdateSolution() error {
 	var solutions SolutionList
 	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return apierrors.NewInternalError(err)
 	}
 	if !(len(solutions.Items) == 0 || len(solutions.Items) == 1 && solutions.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("solution display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("solution display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
