@@ -12,6 +12,7 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -126,7 +127,7 @@ func (r *Skill) validateCreateSkill() error {
 	var skills SkillList
 	mySkillClient.List(context.Background(), &skills, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if len(skills.Items) != 0 {
-		return fmt.Errorf("skill display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("skill display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
@@ -135,10 +136,10 @@ func (r *Skill) validateUpdateSkill() error {
 	var skills SkillList
 	err := mySkillClient.List(context.Background(), &skills, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return apierrors.NewInternalError(err)
 	}
 	if !(len(skills.Items) == 0 || len(skills.Items) == 1 && skills.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("skill display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("skill display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
