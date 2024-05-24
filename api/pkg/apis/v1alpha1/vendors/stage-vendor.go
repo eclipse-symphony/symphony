@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -250,19 +251,19 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		// restore schedule
 		var schedule = ""
 		if v, ok := dataPackage.Inputs["__schedule"]; ok {
-			schedule = v.(string)
+			schedule = utils.FormatAsString(v)
 		}
 
 		triggerData := v1alpha2.ActivationData{
-			Activation:           dataPackage.Inputs["__activation"].(string),
-			ActivationGeneration: dataPackage.Inputs["__activationGeneration"].(string),
-			Campaign:             dataPackage.Inputs["__campaign"].(string),
-			Stage:                dataPackage.Inputs["__stage"].(string),
+			Activation:           utils.FormatAsString(dataPackage.Inputs["__activation"]),
+			ActivationGeneration: utils.FormatAsString(dataPackage.Inputs["__activationGeneration"]),
+			Campaign:             utils.FormatAsString(dataPackage.Inputs["__campaign"]),
+			Stage:                utils.FormatAsString(dataPackage.Inputs["__stage"]),
 			Inputs:               dataPackage.Inputs,
 			Outputs:              dataPackage.Outputs,
 			Schedule:             schedule,
 			NeedsReport:          true,
-			Namespace:            dataPackage.Inputs["__namespace"].(string),
+			Namespace:            utils.FormatAsString(dataPackage.Inputs["__namespace"]),
 		}
 
 		triggerData.Inputs["__origin"] = event.Metadata["origin"]
