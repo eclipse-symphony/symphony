@@ -87,7 +87,7 @@ func main() {
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
 	// Honor OSS changes: use 1m instead of 5m for delete-timeout
-	flag.StringVar(&deleteTimeOutString, "delete-timeout", "1m", "The timeout in seconds to wait for the target and instance deletion.")
+	flag.StringVar(&deleteTimeOutString, "delete-timeout", "60m", "The timeout in seconds to wait for the target and instance deletion.")
 	// Add new settings for delete sync delay
 	flag.StringVar(&deleteSyncDelayString, "delete-sync-delay", "0s", "The delay in seconds to wait for the status sync back in delete operations.")
 
