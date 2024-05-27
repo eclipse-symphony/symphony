@@ -18,7 +18,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: TargetContainer is the Schema for the TargetContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

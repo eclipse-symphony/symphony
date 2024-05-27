@@ -208,16 +208,19 @@ func (s *JobsManager) pollSchedules() []error {
 		if err != nil {
 			return []error{err}
 		}
-		if activationData.Schedule != nil {
+		if activationData.Schedule != "" {
 			var fire bool
-			fire, err = activationData.Schedule.ShouldFireNow()
+			fire, err = activationData.ShouldFireNow()
 			if err != nil {
 				return []error{err}
 			}
 			if fire {
-				activationData.Schedule = nil
+				activationData.Schedule = ""
 				err = s.StateProvider.Delete(context, states.DeleteRequest{
 					ID: entry.ID,
+					Metadata: map[string]interface{}{
+						"namespace": activationData.Namespace,
+					},
 				})
 				if err != nil {
 					return []error{err}

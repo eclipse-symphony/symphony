@@ -1104,11 +1104,7 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 		},
 		Outputs:  nil,
 		Provider: "providers.stage.counter",
-		Schedule: &v1alpha2.ScheduleSpec{
-			Date: "2020-01-01",
-			Time: "12:00:00PM",
-			Zone: "PST",
-		},
+		Schedule: "2020-01-01T12:00:00-08:00",
 	}
 	status := manager.HandleDirectTriggerEvent(context.Background(), activation)
 	assert.Equal(t, v1alpha2.Paused, status.Status)
@@ -1214,11 +1210,7 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 		},
 		Outputs:  nil,
 		Provider: "providers.stage.mock",
-		Schedule: &v1alpha2.ScheduleSpec{
-			Date: "2020-01-01",
-			Time: "12:00:00PM",
-			Zone: "PST",
-		},
+		Schedule: "2020-01-01T12:00:00-08:00",
 	}
 
 	status, _ := manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
