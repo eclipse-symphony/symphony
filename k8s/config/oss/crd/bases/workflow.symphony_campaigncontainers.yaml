@@ -18,7 +18,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the campaigns API
+        description: CampaignContainer is the Schema for the CampaignContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -180,7 +180,7 @@ func TestPoll(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleScheduleEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: &v1alpha2.ScheduleSpec{Time: "03:04:05PM", Date: "2006-01-02"}},
+		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: "2006-01-02T15:04:05Z"},
 	})
 	enabled := jobManager.Enabled()
 	assert.True(t, enabled)

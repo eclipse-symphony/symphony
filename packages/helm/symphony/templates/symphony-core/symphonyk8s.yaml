@@ -110,7 +110,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the campaigns API
+        description: CampaignContainer is the Schema for the CampaignContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -209,18 +209,7 @@ spec:
                     provider:
                       type: string
                     schedule:
-                      properties:
-                        date:
-                          type: string
-                        time:
-                          type: string
-                        zone:
-                          type: string
-                      required:
-                      - date
-                      - time
-                      - zone
-                      type: object
+                      type: string
                     stageSelector:
                       type: string
                     triggeringStage:
@@ -253,7 +242,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogContainer is the Schema for the catalogs API
+        description: CatalogContainer is the Schema for the CatalogContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -1456,7 +1445,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: TargetContainer is the Schema for the TargetContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
