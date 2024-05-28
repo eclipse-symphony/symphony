@@ -7,8 +7,11 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
@@ -31,7 +34,42 @@ type StageSpec struct {
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
-	Schedule      *v1alpha2.ScheduleSpec `json:"schedule,omitempty"`
+	Schedule      string                 `json:"schedule,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for StageSpec
+func (s *StageSpec) UnmarshalJSON(data []byte) error {
+	type Alias StageSpec
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// validate if Schedule meet RFC 3339
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return fmt.Errorf("invalid timestamp format: %v", err)
+		}
+	}
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for StageSpec
+func (s StageSpec) MarshalJSON() ([]byte, error) {
+	type Alias StageSpec
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return nil, fmt.Errorf("invalid timestamp format: %v", err)
+		}
+	}
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&s),
+	})
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {

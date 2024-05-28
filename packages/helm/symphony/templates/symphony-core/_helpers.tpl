@@ -162,3 +162,21 @@ Symphony full url Endpoint
 {{- define "symphony.envConfigName" -}}
 {{- printf "%s-env-config" (include "symphony.fullname" .) }}
 {{- end }}
+
+{{/* Symphony Redis host*/}}
+{{- define "symphony.redisHost" -}}
+{{- if .Values.redis.asSidecar }}
+{{- printf "localhost:%d" (.Values.redis.port | int) }}
+{{- else }}
+{{- printf "%s-redis:%d" (include "symphony.name" .) (.Values.redis.port | int)}}
+{{- end }}
+{{- end }}
+
+{{/* Symphony Redis protected-mode*/}}
+{{- define "symphony.protectedMode" -}}
+{{- if .Values.redis.asSidecar}}
+{{- printf "yes" }}
+{{- else }}
+{{- printf "no" }}
+{{- end }}
+{{- end }}

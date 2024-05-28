@@ -34,7 +34,7 @@
         "type": "providers.pubsub.redis",
         "config": {
           "name": "redis",
-          "host": "symphony-redis:6379",
+          "host": "{{ include "symphony.redisHost" . }}",
           "requireTLS": false,
           "password": "",
           "numberOfWorkers": 1

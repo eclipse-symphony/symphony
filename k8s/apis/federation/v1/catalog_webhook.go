@@ -9,11 +9,12 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -130,7 +131,7 @@ func (r *Catalog) checkSchema() error {
 			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
-				return v1alpha2.NewCOAError(err, "schema not found", v1alpha2.NotFound)
+				return apierrors.NewBadRequest(fmt.Sprintf("Could not find the required schema, %s.", schemaName))
 			}
 
 			jData, _ := json.Marshal(catalogs.Items[0].Spec.Properties)
@@ -138,7 +139,7 @@ func (r *Catalog) checkSchema() error {
 			err = json.Unmarshal(jData, &properties)
 			if err != nil {
 				cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-				return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+				return apierrors.NewBadRequest(fmt.Sprintf("Invalid schema, %s.", schemaName))
 			}
 			if spec, ok := properties["spec"]; ok {
 				var schemaObj utils.Schema
@@ -146,23 +147,23 @@ func (r *Catalog) checkSchema() error {
 				err := json.Unmarshal(jData, &schemaObj)
 				if err != nil {
 					cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-					return v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
+					return apierrors.NewBadRequest(fmt.Sprintf("Invalid schema, %s.", schemaName))
 				}
 				jData, _ = json.Marshal(r.Spec.Properties)
 				var properties map[string]interface{}
 				err = json.Unmarshal(jData, &properties)
 				if err != nil {
 					cataloglog.Error(err, "Validating failed.")
-					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+					return apierrors.NewBadRequest("Invalid properties of the catalog.")
 				}
 				result, err := schemaObj.CheckProperties(properties, nil)
 				if err != nil {
 					cataloglog.Error(err, "Validating failed.")
-					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+					return apierrors.NewBadRequest("Validate failed for the catalog.")
 				}
 				if !result.Valid {
 					cataloglog.Error(err, "Validating failed.")
-					return v1alpha2.NewCOAError(err, "invalid properties", v1alpha2.ValidateFailed)
+					return apierrors.NewBadRequest("This is not a valid catalog according to the schema.")
 				}
 			}
 			cataloglog.Info("Validation finished.", "name", r.Name)

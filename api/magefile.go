@@ -9,6 +9,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	//mage:import
@@ -33,10 +34,23 @@ func TestWithCoa() error {
 	return nil
 }
 
+func raceCheckSkipped() bool {
+	return os.Getenv("SKIP_RACE_CHECK") == "true"
+}
+
+func raceOpt() string {
+	if raceCheckSkipped() {
+		return ""
+	}
+	return "-race"
+}
+
 func testHelper() error {
+	testClean := "go clean -testcache"
+	testCmd := fmt.Sprintf("go test %s -timeout 5m -cover -coverprofile=coverage.out ./...", raceOpt())
 	if err := shellcmd.RunAll(
-		"go clean -testcache",
-		"go test -race -timeout 5m -cover -coverprofile=coverage.out ./...",
+		shellcmd.Command(testClean),
+		shellcmd.Command(testCmd),
 	); err != nil {
 		return err
 	}

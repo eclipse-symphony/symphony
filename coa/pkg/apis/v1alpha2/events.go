@@ -8,6 +8,7 @@ package v1alpha2
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -48,8 +49,43 @@ type ActivationData struct {
 	Provider             string                            `json:"provider,omitempty"`
 	Config               interface{}                       `json:"config,omitempty"`
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
-	Schedule             *ScheduleSpec                     `json:"schedule,omitempty"`
+	Schedule             string                            `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for ActivationData
+func (s *ActivationData) UnmarshalJSON(data []byte) error {
+	type Alias ActivationData
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// validate if Schedule meet RFC 3339
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return fmt.Errorf("invalid timestamp format: %v", err)
+		}
+	}
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for ActivationData
+func (s ActivationData) MarshalJSON() ([]byte, error) {
+	type Alias ActivationData
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return nil, fmt.Errorf("invalid timestamp format: %v", err)
+		}
+	}
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&s),
+	})
 }
 
 type HeartBeatAction string
@@ -65,56 +101,15 @@ type HeartBeatData struct {
 	Action HeartBeatAction `json:"action"`
 	Time   time.Time       `json:"time"`
 }
-type ScheduleSpec struct {
-	Date string `json:"date"`
-	Time string `json:"time"`
-	Zone string `json:"zone"`
-}
 
-func (s ScheduleSpec) ShouldFireNow() (bool, error) {
-	dt, err := s.GetTime()
+func (s ActivationData) ShouldFireNow() (bool, error) {
+	dt, err := time.Parse(time.RFC3339, s.Schedule)
 	if err != nil {
 		return false, err
 	}
 	dtNow := time.Now().UTC()
 	dtUTC := dt.In(time.UTC)
 	return dtUTC.Before(dtNow), nil
-}
-func (s ScheduleSpec) GetTime() (time.Time, error) {
-	dt, err := parseTimeWithZone(s.Time, s.Date, s.Zone)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return dt, nil
-}
-
-func parseTimeWithZone(timeStr string, dateStr string, zoneStr string) (time.Time, error) {
-	dtStr := dateStr + " " + timeStr
-
-	switch zoneStr {
-	case "LOCAL":
-		zoneStr = ""
-	case "PST", "PDT":
-		zoneStr = "America/Los_Angeles"
-	case "EST", "EDT":
-		zoneStr = "America/New_York"
-	case "CST", "CDT":
-		zoneStr = "America/Chicago"
-	case "MST", "MDT":
-		zoneStr = "America/Denver"
-	}
-
-	loc, err := time.LoadLocation(zoneStr)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	dt, err := time.ParseInLocation("2006-01-02 3:04:05PM", dtStr, loc)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return dt, nil
 }
 
 type InputOutputData struct {

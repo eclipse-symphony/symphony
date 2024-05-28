@@ -107,6 +107,6 @@ jobs:
         name: symphony-suite-result
         path: |
           test/integration/scenarios/06.ado/junit-suite-tests.xml
-          /tmp/symhony-integration-test-logs/**/*.log
+          /tmp/symphony-integration-test-logs/**/*.log
       continue-on-error: true
       if: always()
