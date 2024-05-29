@@ -131,29 +131,29 @@ jobs:
       - name: Push symphony api images
         run: |
           docker pull ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:latest
-          docker pull ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} --amend ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-api:latest --amend ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-api:latest          
+          docker pull ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest          
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} --amend ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest --amend ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
           docker pull ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} --amend ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest --amend ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
 
       - name: Push symphony k8s images
         run: |
           docker pull ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} --amend ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
+          docker manifest create ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest --amend ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          docker manifest push ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
+          
       - name: Push symphony helm package
         run: |
           cd packages/helm
