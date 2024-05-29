@@ -17,13 +17,21 @@ env:
 # github.repository_owner / secrets.GITHUB_TOKEN is used to login to the docker registry and helm registry and to create the release
 jobs:
   build:
-    if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
+    if: github.repository == 'eclipse-symphony/symphony' && github.event_name != 'pull_request' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.BOT_GITHUB_TOKEN }}
+      
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+        
+      - name: Print branch name
+        run: echo ${{ steps.extract_branch.outputs.branch }}
 
       - name: Install dependencies
         run: |
@@ -161,7 +169,7 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
-          branch: main
+          branch: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Create Release
         id: create_release
