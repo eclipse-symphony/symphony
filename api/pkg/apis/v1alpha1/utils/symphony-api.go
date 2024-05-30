@@ -27,8 +27,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var (	
-	symphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
+var (
+	SymphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
@@ -61,12 +61,6 @@ func (e *SummarySpecError) Error() string {
 }
 
 func GetSymphonyAPIAddressBase() string {
-<<<<<<< HEAD
-	if symphonyAPIAddressBase == "" {
-		return SymphonyAPIAddressBase
-	}
-	return symphonyAPIAddressBase
-=======
 	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
 	}
@@ -128,19 +122,15 @@ func GetParentApiClient(baseUrl string) (*apiClient, error) {
 		return nil, err
 	}
 	return client, nil
->>>>>>> main
 }
 
 func ShouldUseSATokens() bool {
 	return useSAToken == "true"
 }
-<<<<<<< HEAD
-=======
 
 func ShouldUseUserCreds() bool {
 	return useSAToken == "false"
 }
->>>>>>> main
 
 var log = logger.NewLogger("coa.runtime")
 

@@ -157,11 +157,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-<<<<<<< HEAD
-	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default")
-=======
 	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -178,21 +174,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-<<<<<<< HEAD
-	err = testApiClient.CreateInstance(context.Background(), instanceName, instance1, "default")
-=======
 	err = testApiClient.CreateInstance(context.Background(), instanceName, instance1, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-<<<<<<< HEAD
-	instancesRes, err := testApiClient.GetInstances(context.Background(), "default")
-=======
 	instancesRes, err := testApiClient.GetInstances(context.Background(), "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -202,11 +190,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
 
-<<<<<<< HEAD
-	instanceRes, err := testApiClient.GetInstance(context.Background(), instanceName, "default")
-=======
 	instanceRes, err := testApiClient.GetInstance(context.Background(), instanceName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -215,15 +199,6 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
 	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
 
-<<<<<<< HEAD
-	err = testApiClient.DeleteTarget(context.Background(), targetName, "default")
-	require.NoError(t, err)
-
-	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default")
-	require.NoError(t, err)
-
-	err = testApiClient.DeleteInstance(context.Background(), instanceName, "default")
-=======
 	err = testApiClient.DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
@@ -231,7 +206,6 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.NoError(t, err)
 
 	err = testApiClient.DeleteInstance(context.Background(), instanceName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 }
 
@@ -258,36 +232,21 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		panic(err)
 	}
 
-<<<<<<< HEAD
-	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default")
-	require.NoError(t, err)
-
-	solutionsRes, err := testApiClient.GetSolutions(context.Background(), "default")
-=======
 	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
 	require.NoError(t, err)
 
 	solutionsRes, err := testApiClient.GetSolutions(context.Background(), "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-<<<<<<< HEAD
-	solutionRes, err := testApiClient.GetSolution(context.Background(), solutionName, "default")
-=======
 	solutionRes, err := testApiClient.GetSolution(context.Background(), solutionName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-<<<<<<< HEAD
-	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default")
-=======
 	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 }
 
@@ -399,21 +358,13 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-<<<<<<< HEAD
-	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default")
-=======
 	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
 	time.Sleep(time.Second)
 
-<<<<<<< HEAD
-	targetsRes, err := testApiClient.GetTargets(context.Background(), "default")
-=======
 	targetsRes, err := testApiClient.GetTargets(context.Background(), "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
@@ -422,11 +373,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
 
-<<<<<<< HEAD
-	targetRes, err := testApiClient.GetTarget(context.Background(), targetName, "default")
-=======
 	targetRes, err := testApiClient.GetTarget(context.Background(), targetName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
@@ -434,11 +381,7 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	require.Equal(t, "1", targetRes.Status.Properties["targets"])
 	require.Equal(t, "OK", targetRes.Status.Properties["status"])
 
-<<<<<<< HEAD
-	err = testApiClient.DeleteTarget(context.Background(), targetName, "default")
-=======
 	err = testApiClient.DeleteTarget(context.Background(), targetName, "default", user, password)
->>>>>>> main
 	require.NoError(t, err)
 }
 
