@@ -1652,11 +1652,6 @@ func TestEvaulateParamArgumentOverride(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1686,11 +1681,6 @@ func TestEvaulateParamWrongComponentName(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1719,11 +1709,6 @@ func TestEvaulateParamMissing(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1752,11 +1737,6 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1785,11 +1765,6 @@ func TestEvaluateDeployment(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1825,11 +1800,6 @@ func TestEvaluateDeploymentMetadata(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",
@@ -1875,11 +1845,6 @@ func TestEvaluateDeploymentConfig(t *testing.T) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
 					Solution: "fake-solution",
-					Arguments: map[string]map[string]string{
-						"component-1": {
-							"a": "new-value",
-						},
-					},
 				},
 			},
 			SolutionName: "fake-solution",

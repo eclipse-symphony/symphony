@@ -176,7 +176,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	}
 	m.Context.Publish("catalog", v1alpha2.Event{
 		Metadata: map[string]string{
-			"objectType": state.Spec.Type,
+			"objectType": state.Spec.CatalogType,
 		},
 		Body: v1alpha2.JobData{
 			Id:     state.ObjectMeta.Name,

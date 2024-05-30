@@ -110,7 +110,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the campaigns API
+        description: CampaignContainer is the Schema for the CampaignContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -253,7 +253,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogContainer is the Schema for the catalogs API
+        description: CatalogContainer is the Schema for the CatalogContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -330,6 +330,8 @@ spec:
             type: object
           spec:
             properties:
+              catalogType:
+                type: string
               generation:
                 type: string
               metadata:
@@ -373,13 +375,11 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               rootResource:
                 type: string
-              type:
-                type: string
               version:
                 type: string
             required:
+            - catalogType
             - properties
-            - type
             type: object
           status:
             properties:
@@ -587,15 +587,7 @@ spec:
             type: object
           spec:
             properties:
-              arguments:
-                additionalProperties:
-                  additionalProperties:
-                    type: string
-                  type: object
-                type: object
               displayName:
-                type: string
-              generation:
                 type: string
               metadata:
                 additionalProperties:
@@ -1456,7 +1448,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Target is the Schema for the targets API
+        description: TargetContainer is the Schema for the TargetContainers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -25,6 +25,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -725,8 +726,6 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
-	// set the target generation to the deployment
-	ret.Generation = target.Spec.Generation
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -820,7 +819,9 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 		}
 	}
 
-	log.Infof("Summary result: %s", string(ret))
+	log2 := ctrllog.FromContext(context)
+	log2.Info("Summary result: " + string(ret))
+	log.Infof("Summary result original: %s", string(ret))
 
 	return result, nil
 }

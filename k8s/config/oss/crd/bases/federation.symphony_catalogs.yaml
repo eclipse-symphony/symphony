@@ -34,6 +34,8 @@ spec:
             type: object
           spec:
             properties:
+              catalogType:
+                type: string
               generation:
                 type: string
               metadata:
@@ -77,13 +79,11 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               rootResource:
                 type: string
-              type:
-                type: string
               version:
                 type: string
             required:
+            - catalogType
             - properties
-            - type
             type: object
           status:
             properties:

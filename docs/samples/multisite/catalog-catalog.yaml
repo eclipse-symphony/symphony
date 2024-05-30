@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: site-catalog
 spec:
-  type: catalog
+  catalogType: catalog
   properties:
     metadata: 
       name: web-app-config

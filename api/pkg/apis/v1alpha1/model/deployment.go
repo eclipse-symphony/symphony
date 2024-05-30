@@ -22,7 +22,6 @@ type DeploymentSpec struct {
 	ComponentStartIndex int                    `json:"componentStartIndex,omitempty"`
 	ComponentEndIndex   int                    `json:"componentEndIndex,omitempty"`
 	ActiveTarget        string                 `json:"activeTarget,omitempty"`
-	Generation          string                 `json:"generation,omitempty"`
 	ObjectNamespace     string                 `json:"objectNamespace,omitempty"`
 	Hash                string                 `json:"hash,omitempty"`
 }
