@@ -16,6 +16,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -105,7 +106,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	mLog.Info("  P (Materialize Processor): processing inputs")
+	mLog.Infof("  P (Materialize Processor): processing inputs, traceId: %s", span.SpanContext().TraceID().String())
+
 	outputs := make(map[string]interface{})
 
 	objects, ok := inputs["names"].([]interface{})
@@ -142,6 +144,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	creationCount := 0
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
+			object := api_utils.ReplaceSeperator(object)
 			if catalog.ObjectMeta.Name == object {
 				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 				name := catalog.ObjectMeta.Name

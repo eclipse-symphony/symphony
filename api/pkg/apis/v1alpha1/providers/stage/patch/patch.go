@@ -14,6 +14,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -141,7 +142,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
-	objectName := stage.ReadInputString(inputs, "objectName")
+	objectName := api_utils.ReplaceSeperator(stage.ReadInputString(inputs, "objectName"))
 	patchSource := stage.ReadInputString(inputs, "patchSource")
 	var patchContent interface{}
 	if v, ok := inputs["patchContent"]; ok {
@@ -166,6 +167,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
+			v := api_utils.ReplaceSeperator(v)
 			catalog, err = i.ApiClient.GetCatalog(ctx, v, objectNamespace, i.Config.User, i.Config.Password)
 
 			if err != nil {

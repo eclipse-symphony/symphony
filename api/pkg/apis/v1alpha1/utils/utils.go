@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -318,4 +319,20 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	} else {
 		return result, nil
 	}
+}
+
+func GetUnescapaedString(name string) (string, error) {
+	unescapedId, err := url.PathUnescape(name)
+	if err != nil {
+		return "", err
+	}
+	id := ReplaceSeperator(unescapedId)
+	return id, nil
+}
+
+func ReplaceSeperator(name string) string {
+	if strings.Contains(name, ":") {
+		name = strings.ReplaceAll(name, ":", "-")
+	}
+	return name
 }

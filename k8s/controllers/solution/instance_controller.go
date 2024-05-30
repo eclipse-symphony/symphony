@@ -138,7 +138,8 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Solution, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
+	solutionName := utils.ReplaceLastSeperator(instance.Spec.Solution, ":", "-")
+	if err := r.Get(ctx, types.NamespacedName{Name: solutionName, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
 	// Get targets
@@ -212,6 +213,10 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 
 	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
+		if !utils.NeedWatchInstance(instance) {
+			continue
+		}
+
 		targetCandidates := utils.MatchTargets(instance, targetList)
 		if len(targetCandidates) > 0 {
 			ret = append(ret, ctrl.Request{
@@ -235,9 +240,11 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
+
+	solutionName := utils.ReplaceLastSeperator(solObj.Name, "-", ":")
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
-		client.MatchingFields{"spec.solution": solObj.Name},
+		client.MatchingFields{"spec.solution": solutionName},
 	}
 	error := r.List(context.Background(), &instances, options...)
 	if error != nil {
@@ -247,6 +254,10 @@ func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
 
 	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
+		if !utils.NeedWatchInstance(instance) {
+			continue
+		}
+
 		ret = append(ret, ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      instance.Name,

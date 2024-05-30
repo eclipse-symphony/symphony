@@ -120,10 +120,12 @@ func DeployManifests(namespace string) error {
 			return err
 		}
 		stringYaml := string(data)
-		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance-v1")
 		stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
-		stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target-v1")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v1")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target:v1")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:v1")
 
 		err = writeYamlStringsToFile(stringYaml, "./test.yaml")
 		if err != nil {
@@ -157,9 +159,9 @@ func Verify() error {
 }
 
 func CleanUpSymphonyObjects(namespace string) error {
-	instanceName := namespace + "instance"
-	targetName := namespace + "target"
-	solutionName := namespace + "solution"
+	instanceName := namespace + "instance-v1"
+	targetName := namespace + "target-v1"
+	solutionName := namespace + "solution-v1"
 	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
 	if err != nil {
 		return err
