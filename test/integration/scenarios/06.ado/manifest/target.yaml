@@ -1,0 +1,25 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target
+spec:
+  scope: azure-iot-operations
+  components: []
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.k8s
+      role: instance
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3
+    - config:
+        inCluster: "true"
+      provider: providers.target.kubectl
+      role: yaml.k8s
+    - config:
+        inCluster: "true"
+      provider: providers.target.http
+      role: http

@@ -243,6 +243,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 			"output2": "value2",
 		},
 		Status:               v1alpha2.OK,
+		StatusMessage:        v1alpha2.OK.String(),
 		IsActive:             true,
 		ActivationGeneration: "1",
 		UpdateTime:           "exampleUpdateTime",
@@ -374,9 +375,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			Name: "catalog1",
 		},
 		Spec: &model.CatalogSpec{
-			SiteId: vendor.Config.SiteInfo.SiteId,
-			Name:   "catalog1",
-			Type:   "catalog",
+			Type: "catalog",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -389,7 +388,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			},
 		},
 	}
-	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
 	vendor.Context.PubsubProvider.Publish("catalog", v1alpha2.Event{
 		Metadata: map[string]string{
@@ -415,7 +414,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 		err = json.Unmarshal(response.Body, &summary)
 		assert.Nil(t, err)
 		if len(summary.Catalogs) == 1 {
-			assert.Equal(t, catalogState.Spec.Name, summary.Catalogs[0].Spec.Name)
+			assert.Equal(t, catalogState.ObjectMeta.Name, summary.Catalogs[0].ObjectMeta.Name)
 			break
 		} else {
 			time.Sleep(time.Second)
@@ -471,9 +470,7 @@ func TestFederationOnK8SHook(t *testing.T) {
 			Name: "catalog1",
 		},
 		Spec: &model.CatalogSpec{
-			SiteId: vendor.Config.SiteInfo.SiteId,
-			Name:   "catalog1",
-			Type:   "catalog",
+			Type: "catalog",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",

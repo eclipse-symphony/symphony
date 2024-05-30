@@ -19,7 +19,7 @@ spec:
     - jsonPath: .status.nextStage
       name: Next Stage
       type: string
-    - jsonPath: .status.status
+    - jsonPath: .status.statusMessage
       name: Status
       type: string
     name: v1
@@ -47,8 +47,6 @@ spec:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
-              name:
-                type: string
               stage:
                 type: string
             type: object
@@ -69,8 +67,9 @@ spec:
               stage:
                 type: string
               status:
-                description: State represents a response state
                 type: integer
+              statusMessage:
+                type: string
               updateTime:
                 type: string
             required:

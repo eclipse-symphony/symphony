@@ -30,6 +30,7 @@ type StagingManager struct {
 	managers.Manager
 	QueueProvider queue.IQueueProvider
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 const Site_Job_Queue = "site-job-queue"
@@ -49,6 +50,10 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -73,14 +78,11 @@ func (s *StagingManager) Poll() []error {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
 	}
-	siteId := site.(string)
+	siteId := utils.FormatAsString(site)
 	var catalogs []model.CatalogState
-	catalogs, err = utils.GetCatalogs(
-		ctx,
-		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
+	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
 		s.VendorContext.SiteInfo.CurrentSite.Username,
-		s.VendorContext.SiteInfo.CurrentSite.Password,
-		"")
+		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
 		observ_utils.CloseSpanWithError(span, &err)
@@ -103,10 +105,10 @@ func (s *StagingManager) Poll() []error {
 			continue
 		}
 		if err != nil && !v1alpha2.IsNotFound(err) {
-			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.Spec.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
-			Id:     catalog.Spec.Name,
+			Id:     catalog.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
@@ -123,7 +125,7 @@ func (s *StagingManager) Poll() []error {
 			},
 		})
 		if err != nil {
-			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.Spec.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 	}
 	return nil

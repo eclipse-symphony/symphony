@@ -23,14 +23,14 @@ import (
 var msLock sync.Mutex
 
 type CatalogConfigProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
 type CatalogConfigProvider struct {
-	Config  CatalogConfigProviderConfig
-	Context *contexts.ManagerContext
+	Config    CatalogConfigProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
@@ -41,6 +41,10 @@ func (s *CatalogConfigProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *CatalogConfigProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -65,36 +69,34 @@ func (i *CatalogConfigProvider) InitWithMap(properties map[string]string) error 
 }
 func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogConfigProviderConfig, error) {
 	ret := CatalogConfigProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		if err != nil {
+			return ret, err
+		}
+		ret.Password = password
 	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
 func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, override, m.Config.User, m.Config.Password, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
 	if v, ok := catalog.Spec.Properties[field]; ok {
-		return v.(string), nil
+		if vstring, ok := v.(string); ok {
+			return vstring, nil
+		} else {
+			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' doesn't has a valid value in configuration'%s'", field, override), v1alpha2.BadConfig)
+		}
 	}
 	if catalog.Spec.ParentName != "" {
 		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
@@ -104,7 +106,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
@@ -128,7 +130,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	namespace := m.getNamespaceFromContext(localcontext)
 
-	catalog, err := utils.GetCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, namespace)
+	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -219,16 +221,16 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 // TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
 // so we can get rid of getCatalogInDefaultNamespace.
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
-	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
 	}
 	catalog.Spec.Properties[field] = value
 	data, _ := json.Marshal(catalog)
-	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
-	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
 	}
@@ -237,10 +239,10 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 		catalog.Spec.Properties[k] = v
 	}
 	data, _ := json.Marshal(catalog)
-	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
-	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
 	}
@@ -249,12 +251,12 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	}
 	delete(catlog.Spec.Properties, field)
 	data, _ := json.Marshal(catlog)
-	return utils.UpsertCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password, data)
+	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
-	return utils.DeleteCatalog(context.TODO(), m.Config.BaseUrl, object, m.Config.User, m.Config.Password)
+	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
 }
 
-func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
-	return utils.GetCatalog(context, baseUrl, catalog, user, password, "")
+func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {
+	return m.ApiClient.GetCatalog(context, catalog, "", m.Config.User, m.Config.Password)
 }

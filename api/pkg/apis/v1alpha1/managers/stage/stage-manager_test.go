@@ -54,7 +54,6 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -74,6 +73,7 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(5), status.Outputs["foo"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
@@ -115,7 +115,6 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -131,6 +130,7 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(5), status.Outputs["foo"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
@@ -173,7 +173,6 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -189,6 +188,7 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(-50), status.Outputs["foo"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
@@ -232,7 +232,6 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -252,6 +251,7 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(5), status.Outputs["foo"])
 	assert.Equal(t, int64(5), status.Outputs["bar"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
@@ -292,7 +292,6 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -319,6 +318,7 @@ func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(5), status.Outputs["success"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
@@ -358,7 +358,6 @@ func TestCampaignWithDelay(t *testing.T) {
 	timeStamp := time.Now().UTC()
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -376,6 +375,7 @@ func TestCampaignWithDelay(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, v1alpha2.OK, status.Outputs[v1alpha2.StatusOutput])
 	assert.True(t, time.Now().UTC().Sub(timeStamp) > 5*time.Second)
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
@@ -415,7 +415,6 @@ func TestErrorHandler(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -443,6 +442,7 @@ func TestErrorHandler(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, int64(0), status.Outputs["success"])
 	assert.Equal(t, "fakens", status.Outputs["__namespace"])
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
@@ -479,7 +479,6 @@ func TestErrorHandlerNotSet(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -507,6 +506,7 @@ func TestErrorHandlerNotSet(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.InternalError, status.Status)
+	assert.True(t, v1alpha2.InternalError.EqualsWithString(status.StatusMessage))
 }
 func TestAccessingPreviousStage(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -535,7 +535,6 @@ func TestAccessingPreviousStage(t *testing.T) {
 	}
 	for {
 		_, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -590,7 +589,6 @@ func TestAccessingStageStatus(t *testing.T) {
 	var status model.ActivationStatus
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -646,7 +644,6 @@ func TestIntentionalError(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -672,6 +669,7 @@ func TestIntentionalError(t *testing.T) {
 		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 }
 func TestIntentionalErrorState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -701,7 +699,6 @@ func TestIntentionalErrorState(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -727,6 +724,7 @@ func TestIntentionalErrorState(t *testing.T) {
 		assert.Equal(t, v1alpha2.DeleteFailed, status.Outputs["__status"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 }
 func TestIntentionalErrorString(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -756,7 +754,6 @@ func TestIntentionalErrorString(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -781,6 +778,7 @@ func TestIntentionalErrorString(t *testing.T) {
 		assert.Equal(t, v1alpha2.InternalError, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 }
 func TestIntentionalErrorStringProper(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -810,7 +808,6 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -837,6 +834,7 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 		assert.Equal(t, "Bad Request: this_is_an_error", status.Outputs["__error"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 }
 func TestAccessingPreviousStageInExpression(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -866,7 +864,6 @@ func TestAccessingPreviousStageInExpression(t *testing.T) {
 	var status model.ActivationStatus
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-			Name:        "test-campaign",
 			SelfDriving: true,
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
@@ -935,12 +932,12 @@ func TestResumeStage(t *testing.T) {
 		},
 	})
 	activation := model.ActivationStatus{
-		Status:  v1alpha2.Done,
-		Stage:   "test",
-		Outputs: output,
+		Status:        v1alpha2.Done,
+		StatusMessage: v1alpha2.Done.String(),
+		Stage:         "test",
+		Outputs:       output,
 	}
 	campaign := model.CampaignSpec{
-		Name:        campaignName,
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1001,12 +998,12 @@ func TestResumeStageFailed(t *testing.T) {
 		},
 	})
 	activation := model.ActivationStatus{
-		Status:  v1alpha2.Done,
-		Stage:   "test",
-		Outputs: output,
+		Status:        v1alpha2.Done,
+		StatusMessage: v1alpha2.Done.String(),
+		Stage:         "test",
+		Outputs:       output,
 	}
 	campaign := model.CampaignSpec{
-		Name:        campaignName,
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1067,6 +1064,7 @@ func TestHandleDirectTriggerEvent(t *testing.T) {
 	}
 	status := manager.HandleDirectTriggerEvent(context.Background(), activation)
 	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, "test-campaign", status.Outputs["__campaign"])
 	assert.Equal(t, "test-activation", status.Outputs["__activation"])
 	assert.Equal(t, "1", status.Outputs["__activationGeneration"])
@@ -1106,14 +1104,11 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 		},
 		Outputs:  nil,
 		Provider: "providers.stage.counter",
-		Schedule: &v1alpha2.ScheduleSpec{
-			Date: "2020-01-01",
-			Time: "12:00:00PM",
-			Zone: "PST",
-		},
+		Schedule: "2020-01-01T12:00:00-08:00",
 	}
 	status := manager.HandleDirectTriggerEvent(context.Background(), activation)
 	assert.Equal(t, v1alpha2.Paused, status.Status)
+	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 
 	assert.Equal(t, v1alpha2.Delayed, status.Outputs["__status"])
 	assert.Equal(t, false, status.IsActive)
@@ -1146,7 +1141,6 @@ func TestHandleActivationEvent(t *testing.T) {
 	}
 
 	campaign := model.CampaignSpec{
-		Name:        "test-campaign",
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1216,15 +1210,10 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 		},
 		Outputs:  nil,
 		Provider: "providers.stage.mock",
-		Schedule: &v1alpha2.ScheduleSpec{
-			Date: "2020-01-01",
-			Time: "12:00:00PM",
-			Zone: "PST",
-		},
+		Schedule: "2020-01-01T12:00:00-08:00",
 	}
 
 	status, _ := manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
-		Name:        "test-campaign",
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -1239,5 +1228,6 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 		},
 	}, *activation)
 	assert.Equal(t, v1alpha2.Paused, status.Status)
+	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, false, status.IsActive)
 }

@@ -60,6 +60,7 @@ type SolutionManager struct {
 	SecretProvider  secret.ISecretProvider
 	IsTarget        bool
 	TargetNames     []string
+	ApiClientHttp   api_utils.ApiClient
 }
 
 type SolutionManagerDeploymentState struct {
@@ -131,7 +132,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			return err
 		}
 	}
-
+	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -223,7 +227,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.Spec.Name, namespace, remove, stopCh)
+	go s.sendHeartbeat(deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
@@ -232,7 +236,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Infof(" M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, traceId: %s",
-		deployment.Instance.Spec.Name,
+		deployment.Instance.ObjectMeta.Name,
 		deployment.SolutionName,
 		remove,
 		namespace,
@@ -284,7 +288,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 	}
 
-	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Spec.Name, namespace)
+	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.ObjectMeta.Name, namespace)
 
 	var currentDesiredState, currentState model.DeploymentState
 	currentDesiredState, err = NewDeploymentState(deployment)
@@ -447,7 +451,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	// if len(mergedState.TargetComponent) == 0 {
 	// 	log.Infof(" M (Solution): no assigned components to manage, deleting state")
 	// 	s.StateProvider.Delete(iCtx, states.DeleteRequest{
-	// 		ID: deployment.Instance.Spec.Name,
+	// 		ID: deployment.Instance.ObjectMeta.Name,
 	// 		Metadata: map[string]interface{}{
 	// 			"namespace": namespace,
 	// 		},
@@ -455,7 +459,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	// } else {
 	s.StateProvider.Upsert(iCtx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: deployment.Instance.Spec.Name,
+			ID: deployment.Instance.ObjectMeta.Name,
 			Body: SolutionManagerDeploymentState{
 				Spec:  deployment,
 				State: mergedState,
@@ -466,8 +470,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		},
 	})
 	//}
-
-	summary.IsRemoval = remove
 
 	successCount := 0
 	for _, v := range targetResult {
@@ -503,7 +505,7 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.Spec.Name),
+			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.ObjectMeta.Name),
 			Body: model.SummaryResult{
 				Summary:        summary,
 				Generation:     deployment.Generation,
@@ -563,7 +565,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	log.Infof(" M (Solution): getting deployment.InstanceName: %s, deployment.SolutionName: %s, targetName: %s, traceId: %s",
-		deployment.Instance.Spec.Name,
+		deployment.Instance.ObjectMeta.Name,
 		deployment.SolutionName,
 		targetName,
 		span.SpanContext().TraceID().String())
@@ -649,9 +651,10 @@ func (s *SolutionManager) Enabled() bool {
 }
 func (s *SolutionManager) Poll() []error {
 	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
-		symphonyUrl := s.Context.SiteInfo.ParentSite.BaseUrl
 		for _, target := range s.TargetNames {
-			catalogs, err := api_utils.GetCatalogsWithFilter(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, "", "label", "staged_target="+target)
+			catalogs, err := s.ApiClientHttp.GetCatalogsWithFilter(context.Background(), "", "label", "staged_target="+target,
+				s.Context.SiteInfo.ParentSite.Username,
+				s.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
 				return []error{err}
 			}
@@ -681,7 +684,11 @@ func (s *SolutionManager) Poll() []error {
 					if err != nil {
 						return []error{err}
 					}
-					err = api_utils.ReportCatalogs(context.Background(), symphonyUrl, s.Context.SiteInfo.ParentSite.Username, s.Context.SiteInfo.ParentSite.Password, deployment.Instance.Spec.Name+"-"+target, components)
+					err = s.ApiClientHttp.ReportCatalogs(context.Background(),
+						deployment.Instance.ObjectMeta.Name+"-"+target,
+						components,
+						s.Context.SiteInfo.ParentSite.Username,
+						s.Context.SiteInfo.ParentSite.Password)
 					if err != nil {
 						return []error{err}
 					}

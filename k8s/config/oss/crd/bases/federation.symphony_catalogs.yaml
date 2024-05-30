@@ -40,8 +40,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              name:
-                type: string
               objectRef:
                 properties:
                   address:
@@ -77,14 +75,14 @@ spec:
               properties:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
-              siteId:
+              rootResource:
                 type: string
               type:
                 type: string
+              version:
+                type: string
             required:
-            - name
             - properties
-            - siteId
             - type
             type: object
           status:

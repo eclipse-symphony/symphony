@@ -36,7 +36,81 @@ const (
 	DOCKER_TAG             = "latest"
 	CHART_PATH             = "../../packages/helm/symphony"
 	GITHUB_PAT             = "CR_PAT"
+	LOG_ROOT               = "/tmp/symphony-integration-test-logs"
 )
+
+// Print parameters for mage local testing
+func PrintParams() error {
+	fmt.Println("OSS_CONTAINER_REGISTRY: ", getContainerRegistry())
+	fmt.Println("DOCKER_TAG: ", getDockerTag())
+	fmt.Println("CHART_NAMESPACE: ", getChartNamespace())
+	fmt.Println("RELEASE_NAME: ", getReleaseName())
+	fmt.Println("CHART_PATH: ", getChartPath())
+	fmt.Println("SKIP_GHCR_VALUES: ", skipGhcrValues())
+	fmt.Println("GHCR_VALUES_OPTIONS: ", ghcrValuesOptions())
+	fmt.Println("LOG_ROOT: ", getLogRoot())
+	return nil
+}
+
+// global variables
+func getLogRoot() string {
+	if os.Getenv("LOG_ROOT") != "" {
+		return os.Getenv("LOG_ROOT")
+	} else {
+		return LOG_ROOT
+	}
+}
+
+func getContainerRegistry() string {
+	if os.Getenv("OSS_CONTAINER_REGISTRY") != "" {
+		return os.Getenv("OSS_CONTAINER_REGISTRY")
+	} else {
+		return OSS_CONTAINER_REGISTRY
+	}
+}
+
+func getDockerTag() string {
+	if os.Getenv("DOCKER_TAG") != "" {
+		return os.Getenv("DOCKER_TAG")
+	} else {
+		return DOCKER_TAG
+	}
+}
+
+func getChartNamespace() string {
+	if os.Getenv("CHART_NAMESPACE") != "" {
+		return os.Getenv("CHART_NAMESPACE")
+	} else {
+		return NAMESPACE
+	}
+}
+
+func getReleaseName() string {
+	if os.Getenv("RELEASE_NAME") != "" {
+		return os.Getenv("RELEASE_NAME")
+	} else {
+		return RELEASE_NAME
+	}
+}
+
+func getChartPath() string {
+	if os.Getenv("CHART_PATH") != "" {
+		return os.Getenv("CHART_PATH")
+	} else {
+		return CHART_PATH
+	}
+}
+
+func skipGhcrValues() bool {
+	return os.Getenv("SKIP_GHCR_VALUES") == "true"
+}
+
+func ghcrValuesOptions() string {
+	if skipGhcrValues() {
+		return ""
+	}
+	return "-f symphony-ghcr-values.yaml"
+}
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
 
@@ -52,8 +126,30 @@ type License mg.Namespace
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube\n")
-	helmUpgrade := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml -f symphony-ghcr-values.yaml --set symphonyImage.tag=%s --set paiImage.tag=%s", RELEASE_NAME, CHART_PATH, NAMESPACE, DOCKER_TAG, DOCKER_TAG)
-	return shellcmd.Command(helmUpgrade).Run()
+	mg.Deps(ensureMinikubeUp)
+	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
+	commands := []shellcmd.Command{
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
+	}
+	for _, cert := range certsToVerify {
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getChartNamespace())))
+	}
+	return shellcmd.RunAll(commands...)
+}
+
+// Deploys the symphony ecosystem to your local Minikube cluster with the provided settings. Note that this would also deploy cert-manager separately.
+// E.g. mage deployWithSettings '--set some.key=some_value --set another.key=another_value'
+func (Cluster) DeployWithSettings(values string) error {
+	fmt.Printf("Deploying symphony to minikube with settings, %s\n", values)
+	mg.Deps(ensureMinikubeUp)
+	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
+	commands := []shellcmd.Command{
+		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag(), values)),
+	}
+	for _, cert := range certsToVerify {
+		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getChartNamespace())))
+	}
+	return shellcmd.RunAll(commands...)
 }
 
 // Up brings the minikube cluster up with symphony deployed
@@ -185,13 +281,13 @@ func Logs(logRootFolder string) error {
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
 
-	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", NAMESPACE, apiLogFile), true)
+	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", getChartNamespace(), apiLogFile), true)
 
 	if err != nil {
 		return err
 	}
 
-	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", NAMESPACE, k8sLogFile), true)
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
 
 	return err
 }
@@ -202,7 +298,7 @@ func DumpSymphonyLogsForTest(testName string) {
 	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
 
 	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
-	logRootFolder := fmt.Sprintf("/tmp/symhony-integration-test-logs/%s", logFolderName)
+	logRootFolder := fmt.Sprintf("%s/%s", getLogRoot(), logFolderName)
 
 	_ = shellcmd.Command(fmt.Sprintf("mkdir -p %s", logRootFolder)).Run()
 
@@ -212,7 +308,7 @@ func DumpSymphonyLogsForTest(testName string) {
 // Uninstall all components, e.g. mage destroy all
 func Destroy(flags string) error {
 	err := shellcmd.RunAll(
-		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", RELEASE_NAME, NAMESPACE)),
+		shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", getReleaseName(), getChartNamespace())),
 	)
 	if err != nil {
 		return err
@@ -262,12 +358,16 @@ func (Build) All() error {
 func (Build) Save() error {
 	defer logTime(time.Now(), "build:save")
 
-	err := saveDockerImageToTarFile("symphony-k8s:latest.tar", "ghcr.io/eclipse-symphony/symphony-k8s:latest")
+	k8s_tar_file := fmt.Sprintf("symphony-k8s:%s.tar", getDockerTag())
+	api_tar_file := fmt.Sprintf("symphony-api:%s.tar", getDockerTag())
+	k8s_image_tag := fmt.Sprintf("%s/symphony-k8s:%s", getContainerRegistry(), getDockerTag())
+	api_image_tag := fmt.Sprintf("%s/symphony-api:%s", getContainerRegistry(), getDockerTag())
+	err := saveDockerImageToTarFile(k8s_tar_file, k8s_image_tag)
 	if err != nil {
 		return err
 	}
 
-	err = saveDockerImageToTarFile("symphony-api:latest.tar", "ghcr.io/eclipse-symphony/symphony-api:latest")
+	err = saveDockerImageToTarFile(api_tar_file, api_image_tag)
 	if err != nil {
 		return err
 	}
@@ -357,8 +457,8 @@ func (Minikube) Stop() error {
 // Loads symphony component docker images onto the Minikube VM.
 func (Minikube) Load() error {
 	return shellcmd.RunAll(load(
-		fmt.Sprintf("symphony-api:%s", DOCKER_TAG),
-		fmt.Sprintf("symphony-k8s:%s", DOCKER_TAG))...)
+		fmt.Sprintf("symphony-api:%s", getDockerTag()),
+		fmt.Sprintf("symphony-k8s:%s", getDockerTag()))...)
 }
 
 // Deletes the Minikube cluster from you dev box.
@@ -434,8 +534,8 @@ func (Cluster) Status() {
 	shellcmd.Command("kubectl get events -A").Run()
 
 	fmt.Println("Describing failed pods")
-	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl describe pod {} -n %s", NAMESPACE))
-	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl logs {} -n %s", NAMESPACE))
+	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl describe pod {} -n %s", getChartNamespace()))
+	dumpShellOutput(fmt.Sprintf("kubectl get pods --all-namespaces | grep -E 'CrashLoopBackOff|Error|ImagePullBackOff|InvalidImageName|Pending' | awk '{print $2}' | xargs -I {} kubectl logs {} -n %s", getChartNamespace()))
 	fmt.Println("**************************************************")
 }
 
@@ -541,7 +641,7 @@ func runParallel(commands ...shellcmd.Command) error {
 func load(names ...string) []shellcmd.Command {
 	loads := make([]shellcmd.Command, len(names))
 	for i, name := range names {
-		shellcmd.Command(fmt.Sprintf("docker image save -o %s.tar %s/%s", name, OSS_CONTAINER_REGISTRY, name)).Run()
+		shellcmd.Command(fmt.Sprintf("docker image save -o %s.tar %s/%s", name, getContainerRegistry(), name)).Run()
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"minikube image load %s.tar",
 			name,
@@ -557,7 +657,7 @@ func pull(names ...string) []shellcmd.Command {
 	for i, name := range names {
 		loads[i] = shellcmd.Command(fmt.Sprintf(
 			"docker pull %s/%s",
-			OSS_CONTAINER_REGISTRY,
+			getContainerRegistry(),
 			name,
 		))
 	}

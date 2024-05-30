@@ -99,7 +99,6 @@ func TestActivationUpsert(t *testing.T) {
 				},
 				"spec": model.ActivationSpec{
 					Campaign: "c1",
-					Name:     "a1",
 					Stage:    "s1",
 				},
 			},
@@ -134,7 +133,6 @@ func TestActivationList(t *testing.T) {
 			ID: "a1",
 			Body: model.ActivationSpec{
 				Campaign: "c1",
-				Name:     "a1",
 				Stage:    "s1",
 			},
 		},
@@ -236,7 +234,6 @@ func TestActivationGet(t *testing.T) {
 				},
 				"spec": model.ActivationSpec{
 					Campaign: "c1",
-					Name:     "a1",
 					Stage:    "s1",
 				},
 			},
@@ -295,7 +292,6 @@ func TestActivationUpsertWithState(t *testing.T) {
 				},
 				"spec": model.ActivationSpec{
 					Campaign: "c1",
-					Name:     "a1",
 					Stage:    "s1",
 				},
 				"status": dict,

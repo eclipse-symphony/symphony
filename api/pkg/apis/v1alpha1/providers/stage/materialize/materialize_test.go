@@ -12,24 +12,28 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaterializeInit(t *testing.T) {
+func TestMaterializeInitForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
-		"baseUrl":  "http://symphony-service:8080/v1alpha2/",
 		"user":     "admin",
 		"password": "",
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
 	assert.Equal(t, "admin", provider.Config.User)
 	assert.Equal(t, "", provider.Config.Password)
 
@@ -38,32 +42,17 @@ func TestMaterializeInit(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"user": "",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "admin",
+		"user": "admin",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 }
-
 func TestMaterializeInitFromVendorMap(t *testing.T) {
 	input := map[string]string{
 		"wait.baseUrl":  "http://symphony-service:8080/v1alpha2/",
@@ -74,13 +63,11 @@ func TestMaterializeInitFromVendorMap(t *testing.T) {
 	assert.Nil(t, err)
 	provider := MaterializeStageProvider{}
 	provider.Init(config)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
-	assert.Equal(t, "admin", provider.Config.User)
-	assert.Equal(t, "", provider.Config.Password)
 }
 func TestMaterializeProcessWithStageNs(t *testing.T) {
 	stageNs := "testns"
 	ts := InitializeMockSymphonyAPI(t, stageNs)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -105,6 +92,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 
 func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -128,6 +116,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 
 func TestMaterializeProcessFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -182,7 +171,6 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 					Spec: &model.CatalogSpec{
 						Type: "target",
-						Name: "hq-target1",
 						Properties: map[string]interface{}{
 							"spec": &model.TargetSpec{
 								DisplayName: "target1",
@@ -199,13 +187,11 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 					Spec: &model.CatalogSpec{
 						Type: "instance",
-						Name: "hq-instance1",
 						Properties: map[string]interface{}{
-							"spec": model.InstanceSpec{
-								Name: "instance1",
-							},
+							"spec": model.InstanceSpec{},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
+								Name:      "instance1",
 							},
 						},
 					},
@@ -216,7 +202,6 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 					Spec: &model.CatalogSpec{
 						Type: "solution",
-						Name: "hq-solution1",
 						Properties: map[string]interface{}{
 							"spec": model.SolutionSpec{
 								DisplayName: "solution1",
@@ -233,15 +218,14 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 					Spec: &model.CatalogSpec{
 						Type: "catalog",
-						Name: "hq-catalog1",
 						Properties: map[string]interface{}{
 							"spec": model.CatalogSpec{
-								Name:       "catalog1",
 								Type:       "config",
 								Properties: map[string]interface{}{},
 							},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
+								Name:      "catalog1",
 							},
 						},
 					},

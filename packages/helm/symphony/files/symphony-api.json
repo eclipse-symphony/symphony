@@ -13,7 +13,7 @@
       "lng": "-122.12826"
     },
     "currentSite": {
-      "baseUrl": "http://symphony-service:8080/v1alpha2/",
+      "baseUrl": {{ include "symphony.httpsUrl" . | quote }},
       "username": "admin",
       "password": ""
     }
@@ -34,7 +34,7 @@
         "type": "providers.pubsub.redis",
         "config": {
           "name": "redis",
-          "host": "symphony-redis:6379",
+          "host": "{{ include "symphony.redisHost" . }}",
           "requireTLS": false,
           "password": "",
           "numberOfWorkers": 1
@@ -61,7 +61,6 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }
@@ -77,10 +76,9 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {   
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+            "properties": { 
               "user": "admin",
-              "password": "",
+              "password": "",  
               "providers.state": "k8s-state"          
             },
             "providers": {
@@ -124,7 +122,6 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",
@@ -212,7 +209,6 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -518,10 +514,9 @@
             "type": "managers.symphony.sync",
             "properties": {
               "interval": "#15",
-              "sync.enabled": "true",               
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "sync.enabled": "true"  ,
               "user": "admin",
-              "password": ""
+              "password": ""         
             }
           }
         ]
@@ -584,7 +579,7 @@
     {
       "type": "bindings.http",
       "config": {
-        "port": 8080,
+        "port": {{ include "symphony.apiContainerPortHttp" . }},
         "pipeline": [
           {{- include "symphony.zipkinMiddleware" . | indent 10 }}
           {
@@ -673,12 +668,52 @@
     {
       "type": "bindings.http",
       "config": {
-          "port": 8081,
+          "port": {{ include "symphony.apiContainerPortHttps" . }},
           "tls": true,
           "certProvider": {
-          "type": "certs.autogen",
-          "config":{}
-          }
+            "type": "certs.localfile",
+            "config": {
+              "name": "symphony-serving-cert",
+              "cert": "{{- include "symphony.apiServingCert" . -}}",
+              "key": "{{- include "symphony.apiServingKey" . -}}"
+            }
+          },
+          "pipeline": [
+            {{- include "symphony.zipkinMiddleware" . | indent 10 }}
+            {
+              "type": "middleware.http.cors",
+              "properties": {
+                "Access-Control-Allow-Headers": "authorization,Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+                "Access-Control-Allow-Origin": "*"
+              }
+            },
+            {
+              "type": "middleware.http.jwt",
+              "properties": {
+                "ignorePaths": [
+                  "/v1alpha2/users/auth",
+                  "/v1alpha2/solution/instances",
+                  "/v1alpha2/agent/references",
+                  "/v1alpha2/greetings",
+                  "/v1alpha2/agent/config"
+                ],
+                "verifyKey": "SymphonyKey",
+                "authServer": "kubernetes",
+                "enableRBAC": false
+              }
+            },
+            {
+              "type": "middleware.http.telemetry",
+              "properties": {
+                "enabled": true,
+                "maxBatchSize": 8192,
+                "maxBatchIntervalSeconds": 2,
+                "client": "my-dev-machine"
+              }
+            }
+          ]
       }
     }
   ]

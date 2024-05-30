@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ai
+package ai_test
 
 import (
 	"path/filepath"
 	"testing"
 
+	api "gopls-workspace/apis/ai/v1"
 	. "gopls-workspace/testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -21,8 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	aiv1 "gopls-workspace/apis/ai/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -34,19 +33,17 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
-	t.Skip("Skipping tests for now as they are no longer relevant")
 	RegisterFailHandler(Fail)
 
 	RunGinkgoSpecs(t, "Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
-	Skip("Skipping tests for now as they are no longer relevant")
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "oss", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -54,7 +51,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = aiv1.AddToScheme(scheme.Scheme)
+	err = api.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -66,7 +63,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	Skip("Skipping tests for now as they are no longer relevant")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

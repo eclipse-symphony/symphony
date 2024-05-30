@@ -147,9 +147,20 @@ func docCfg() (func(), error) {
 	return TmpFile(".gomarkdoc.yml", data.String())
 }
 
+func raceCheckSkipped() bool {
+	return os.Getenv("SKIP_RACE_CHECK") == "true"
+}
+
+func raceOpt() string {
+	if raceCheckSkipped() {
+		return ""
+	}
+	return "-race"
+}
+
 // Test runs the unit tests.
 func Test() error {
-	return shellcmd.Command(`go test -race -timeout 5m -cover -coverprofile=coverage.out ./...`).Run()
+	return shellcmd.Command(fmt.Sprintf(`go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())).Run()
 }
 
 // TestRace runs unit tests without the test cache.
@@ -165,7 +176,7 @@ func TestRace() error {
 func CleanTest() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		`go test -race -timeout 5m -coverprofile=coverage.out ./...`,
+		shellcmd.Command(fmt.Sprintf(`go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())),
 	)
 }
 
@@ -205,7 +216,7 @@ func UnitTest() error {
 	bld := strings.Builder{}
 	os.Setenv("GOUNIT", "true")
 	defer os.Unsetenv("GOUNIT")
-	bld.WriteString("go test -v -cover -coverprofile=coverage.out -race -timeout 5m ./...")
+	bld.WriteString(fmt.Sprintf("go test -v -cover -coverprofile=coverage.out %s -timeout 5m ./...", raceOpt()))
 	if isCI() {
 		mg.Deps(ensureGoJUnit)
 		bld.WriteString(" 2>&1 | bin/go-junit-report -set-exit-code -iocopy -out junit-unit-tests.xml")
@@ -308,6 +319,18 @@ func CIVerify() error {
 // Build docker image with docker compose.
 func DockerBuild() error {
 	return shellcmd.Command("docker-compose -f docker-compose.yaml build").Run()
+}
+
+func DockerBuildWithOverrideImg(buildBaseImg string, targetBaseImg string) error {
+	var arg string
+	if buildBaseImg != "" {
+		arg += fmt.Sprintf(" --build-arg BUILD_BASE_IMAGE=%s", buildBaseImg)
+	}
+	if targetBaseImg != "" {
+		arg += fmt.Sprintf(" --build-arg TARGET_BASE_IMAGE=%s", targetBaseImg)
+	}
+
+	return shellcmd.Command(fmt.Sprintf("docker-compose -f docker-compose.yaml build %s", arg)).Run()
 }
 
 // Run a command with | or other things that do not work in shellcmd

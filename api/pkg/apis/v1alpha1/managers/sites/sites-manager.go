@@ -26,6 +26,7 @@ import (
 type SitesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 func (s *SitesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -37,6 +38,10 @@ func (s *SitesManager) Init(context *contexts.VendorContext, config managers.Man
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -258,14 +263,12 @@ func (s *SitesManager) Poll() []error {
 	}
 	thisSite.Spec.IsSelf = false
 	jData, _ := json.Marshal(thisSite)
-	utils.UpdateSite(
+	s.apiClient.UpdateSite(
 		ctx,
-		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
 		s.VendorContext.SiteInfo.SiteId,
-		s.VendorContext.SiteInfo.ParentSite.Username,
-		s.VendorContext.SiteInfo.ParentSite.Password,
 		jData,
-	)
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password)
 	return nil
 }
 func (s *SitesManager) Reconcil() []error {

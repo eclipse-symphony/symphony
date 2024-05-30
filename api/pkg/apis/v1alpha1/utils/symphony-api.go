@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -26,8 +27,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var (
-	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
+var (	
 	symphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
@@ -61,15 +61,86 @@ func (e *SummarySpecError) Error() string {
 }
 
 func GetSymphonyAPIAddressBase() string {
+<<<<<<< HEAD
 	if symphonyAPIAddressBase == "" {
 		return SymphonyAPIAddressBase
 	}
 	return symphonyAPIAddressBase
+=======
+	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
+		return SymphonyAPIAddressBase
+	}
+	return os.Getenv(constants.SymphonyAPIUrlEnvName)
+}
+
+var symphonyApiClients sync.Map
+
+func GetApiClient() (*apiClient, error) {
+	symphonyBaseUrl := os.Getenv(constants.SymphonyAPIUrlEnvName)
+	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
+		client, ok := value.(*apiClient)
+		if !ok {
+			log.Infof("Symphony base url apiclient is broken. Recreating it.")
+		} else {
+			return client, nil
+		}
+	}
+	log.Infof("Creating the symphony base url apiclient.")
+	client, err := getApiClient()
+	if err != nil {
+		log.Errorf("Failed to create the apiclient: %+v", err.Error())
+		return nil, err
+	}
+	symphonyApiClients.Store(symphonyBaseUrl, client)
+	return client, nil
+}
+
+func getApiClient() (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	baseUrl := GetSymphonyAPIAddressBase()
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	if ShouldUseSATokens() {
+		clientOptions = append(clientOptions, WithServiceAccountToken())
+	} else {
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	}
+
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetParentApiClient(baseUrl string) (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+>>>>>>> main
 }
 
 func ShouldUseSATokens() bool {
 	return useSAToken == "true"
 }
+<<<<<<< HEAD
+=======
+
+func ShouldUseUserCreds() bool {
+	return useSAToken == "false"
+}
+>>>>>>> main
 
 var log = logger.NewLogger("coa.runtime")
 
@@ -671,7 +742,6 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 		},
 		Spec: &model.InstanceSpec{
 			Scope:       scope,
-			Name:        key,
 			DisplayName: key,
 			Solution:    key,
 			Target: model.TargetSelector{
@@ -721,9 +791,6 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.Instance = instance
 	ret.SolutionName = solution.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
-	if ret.Instance.Spec.Name == "" {
-		ret.Instance.Spec.Name = ret.Instance.ObjectMeta.Name
-	}
 
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {

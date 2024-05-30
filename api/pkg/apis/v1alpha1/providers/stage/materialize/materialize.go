@@ -28,14 +28,14 @@ var maLock sync.Mutex
 var mLog = logger.NewLogger("coa.runtime")
 
 type MaterializeStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
 type MaterializeStageProvider struct {
-	Config  MaterializeStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    MaterializeStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func (s *MaterializeStageProvider) Init(config providers.IProviderConfig) error {
@@ -46,6 +46,10 @@ func (s *MaterializeStageProvider) Init(config providers.IProviderConfig) error 
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *MaterializeStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -78,27 +82,21 @@ func MaterializeStageProviderConfigFromVendorMap(properties map[string]string) (
 }
 func MaterialieStageProviderConfigFromMap(properties map[string]string) (MaterializeStageProviderConfig, error) {
 	ret := MaterializeStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		if err != nil {
+			return ret, err
+		}
+		ret.Password = password
 	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
@@ -110,13 +108,22 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.Info("  P (Materialize Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
-	objects := inputs["names"].([]interface{})
+	objects, ok := inputs["names"].([]interface{})
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, "input names is not a valid list", v1alpha2.BadRequest)
+		return outputs, false, err
+	}
 	prefixedNames := make([]string, len(objects))
 	for i, object := range objects {
+		objString, ok := object.(string)
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("input name is not a valid string: %v", objects), v1alpha2.BadRequest)
+			return outputs, false, err
+		}
 		if s, ok := inputs["__origin"]; ok {
-			prefixedNames[i] = fmt.Sprintf("%s-%s", s, object.(string))
+			prefixedNames[i] = fmt.Sprintf("%s-%s", s, objString)
 		} else {
-			prefixedNames[i] = object.(string)
+			prefixedNames[i] = objString
 		}
 	}
 	namespace := stage.GetNamespace(inputs)
@@ -127,7 +134,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.Debugf("  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
 
 	var catalogs []model.CatalogState
-	catalogs, err = utils.GetCatalogs(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, namespace)
+	catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
 
 	if err != nil {
 		return outputs, false, err
@@ -135,11 +142,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	creationCount := 0
 	for _, catalog := range catalogs {
 		for _, object := range prefixedNames {
-			if catalog.Spec.Name == object {
+			if catalog.ObjectMeta.Name == object {
 				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
-				name := catalog.Spec.Name
+				name := catalog.ObjectMeta.Name
 				if s, ok := inputs["__origin"]; ok {
-					name = strings.TrimPrefix(catalog.Spec.Name, fmt.Sprintf("%s-", s))
+					name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
 				}
 				switch catalog.Spec.Type {
 				case "instance":
@@ -156,7 +163,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(instanceState)
 					mLog.Debugf("  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
-					err = utils.CreateInstance(ctx, i.Config.BaseUrl, instanceState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, instanceState.ObjectMeta.Namespace)
+					err = i.ApiClient.CreateInstance(ctx, instanceState.ObjectMeta.Name, objectData, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create instance %s: %s", name, err.Error())
 						return outputs, false, err
@@ -176,7 +183,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(solutionState)
 					mLog.Debugf("  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-					err = utils.UpsertSolution(ctx, i.Config.BaseUrl, solutionState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, solutionState.ObjectMeta.Namespace)
+					err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create solution %s: %s", name, err.Error())
 						return outputs, false, err
@@ -196,7 +203,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(targetState)
 					mLog.Debugf("  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
-					err = utils.CreateTarget(ctx, i.Config.BaseUrl, targetState.ObjectMeta.Name, i.Config.User, i.Config.Password, objectData, targetState.ObjectMeta.Namespace)
+					err = i.ApiClient.CreateTarget(ctx, targetState.ObjectMeta.Name, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.Errorf("Failed to create target %s: %s", name, err.Error())
 						return outputs, false, err
@@ -210,16 +217,12 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.Errorf("Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 						return outputs, false, err
 					}
-					// If inner catalog defines a name, use it as the name
-					if catalogState.Spec.Name != "" {
-						catalogState.ObjectMeta.Name = catalogState.Spec.Name
-					}
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs, name)
 					objectData, _ := json.Marshal(catalogState)
 					mLog.Debugf("  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					err = utils.UpsertCatalog(ctx, i.Config.BaseUrl, catalogState.Spec.Name, i.Config.User, i.Config.Password, objectData)
+					err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
 					if err != nil {
-						mLog.Errorf("Failed to create catalog %s: %s", catalogState.Spec.Name, err.Error())
+						mLog.Errorf("Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
 						return outputs, false, err
 					}
 					creationCount++

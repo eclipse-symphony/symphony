@@ -28,9 +28,7 @@ var catalogState = model.CatalogState{
 		Name: "name1",
 	},
 	Spec: &model.CatalogSpec{
-		SiteId: "site1",
-		Name:   "name1",
-		Type:   "catalog",
+		Type: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
@@ -54,21 +52,19 @@ func CreateSimpleChain(root string, length int, CTManager catalogs.CatalogsManag
 	json.Unmarshal(jData, &newCatalog)
 
 	newCatalog.ObjectMeta.Name = root
-	newCatalog.Spec.Name = root
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
 	for i := 1; i < length; i++ {
-		tmp := newCatalog.Spec.Name
+		tmp := newCatalog.ObjectMeta.Name
 		var childCatalog model.CatalogState
 		jData, _ := json.Marshal(newCatalog)
 		json.Unmarshal(jData, &childCatalog)
-		childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, i)
+		childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, i)
 		childCatalog.Spec.ParentName = tmp
-		childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
-		err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+		err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 		if err != nil {
 			return err
 		}
@@ -86,10 +82,9 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager catalogs.CatalogsM
 	jData, _ := json.Marshal(catalog)
 	json.Unmarshal(jData, &newCatalog)
 
-	newCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, 0)
-	newCatalog.ObjectMeta.Name = newCatalog.Spec.Name
+	newCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, 0)
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
@@ -101,10 +96,9 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager catalogs.CatalogsM
 			var childCatalog model.CatalogState
 			jData, _ := json.Marshal(newCatalog)
 			json.Unmarshal(jData, &childCatalog)
-			childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, count)
-			childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
+			childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, count)
 			childCatalog.Spec.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+			err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 			if err != nil {
 				return err
 			}
@@ -179,8 +173,7 @@ func TestCatalogOnCheck(t *testing.T) {
 
 	var catalogState = model.CatalogState{
 		Spec: &model.CatalogSpec{
-			SiteId: "site1",
-			Type:   "catalog",
+			Type: "catalog",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -204,7 +197,9 @@ func TestCatalogOnCheck(t *testing.T) {
 	response = vendor.onCheck(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.Spec.Name = "test1"
+	catalogState.ObjectMeta = model.ObjectMeta{
+		Name: "test1",
+	}
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
 	}
@@ -224,8 +219,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	catalogState.Spec.Properties = map[string]interface{}{
 		"spec": schema,
 	}
-	catalogState.Spec.Name = "EmailCheckSchema"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "EmailCheckSchema"
 	catalogState.Spec.ParentName = ""
 	catalogState.Spec.Metadata = nil
 	b, err = json.Marshal(catalogState)
@@ -237,8 +231,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "test1"
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
 	}
@@ -278,8 +271,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "test1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
@@ -300,7 +292,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	var summary model.CatalogState
 	err = json.Unmarshal(response.Body, &summary)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogState.Spec.Name, summary.Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summary.ObjectMeta.Name)
 
 	requestGet.Parameters = nil
 	response = vendor.onCatalogs(*requestGet)
@@ -309,7 +301,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(summarys))
-	assert.Equal(t, catalogState.Spec.Name, summarys[0].Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summarys[0].ObjectMeta.Name)
 }
 
 func TestCatalogOnCatalogsPost(t *testing.T) {
@@ -320,15 +312,14 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Context: context.Background(),
 		Body:    []byte("wrongObject"),
 		Parameters: map[string]string{
-			"__name": catalogState.Spec.Name,
+			"__name": catalogState.ObjectMeta.Name,
 		},
 	}
 
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "test1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -354,7 +345,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 	var summarys model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogState.Spec.Name, summarys.Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summarys.ObjectMeta.Name)
 }
 
 func TestCatalogOnCatalogsDelete(t *testing.T) {
@@ -368,8 +359,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "test1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -511,7 +501,7 @@ func TestCatalogSubscribe(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": fmt.Sprintf("%s-%s", origin, catalogState.Spec.Name),
+			"__name": fmt.Sprintf("%s-%s", origin, catalogState.ObjectMeta.Name),
 		},
 	}
 	response := vendor.onCatalogs(*requestGet)

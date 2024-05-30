@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -94,7 +95,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 		aLog.Errorf("  P (Android ADB): failed to get deployment, error: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 		return nil, err
 	}
-	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	ret := make([]model.ComponentSpec, 0)
 
@@ -137,7 +138,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	aLog.Infof("  P (Android ADB Provider): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	components := step.GetComponents()
 
@@ -159,7 +160,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 					if !isDryRun {
 						params := make([]string, 0)
 						params = append(params, "install")
-						params = append(params, p.(string))
+						params = append(params, utils.FormatAsString(p))
 						cmd := exec.Command("adb", params...)
 						err = cmd.Run()
 						if err != nil {
@@ -182,7 +183,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 				if p, ok := component.Properties[model.AppPackage]; ok && p != "" {
 					params := make([]string, 0)
 					params = append(params, "uninstall")
-					params = append(params, p.(string))
+					params = append(params, utils.FormatAsString(p))
 
 					cmd := exec.Command("adb", params...)
 					err = cmd.Run()

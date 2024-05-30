@@ -38,6 +38,8 @@ spec:
                 type: string
               name:
                 type: string
+              rootResource:
+                type: string
               selfDriving:
                 type: boolean
               stages:
@@ -68,24 +70,15 @@ spec:
                           type: string
                       type: object
                     schedule:
-                      properties:
-                        date:
-                          type: string
-                        time:
-                          type: string
-                        zone:
-                          type: string
-                      required:
-                      - date
-                      - time
-                      - zone
-                      type: object
+                      type: string
                     stageSelector:
                       type: string
                     triggeringStage:
                       type: string
                   type: object
                 type: object
+              version:
+                type: string
             type: object
         type: object
     served: true

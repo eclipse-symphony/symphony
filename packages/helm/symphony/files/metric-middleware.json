@@ -1,0 +1,29 @@
+{
+    "type": "middleware.http.metrics",
+    "properties": {
+      "serviceName": "symphony-api",
+      "pipelines": [
+        {{- if .Values.otelCollectorAddress }}
+        {
+          "exporter": {
+            "type": "metrics.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otelCollectorAddress $ }}",
+            "temporality": false
+          }
+        }
+        {{- end }}
+        {{- if .Values.genevaCollectorAddress }}
+        {{- if .Values.otelCollectorAddress }}
+        ,
+        {{- end }}
+        {
+          "exporter": {
+            "type": "metrics.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.genevaCollectorAddress $ }}",
+            "temporality": true
+          }
+        }
+        {{- end }}
+      ]
+    }
+  }

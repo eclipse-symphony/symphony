@@ -3,7 +3,11 @@
 ## Licensed under the MIT license.
 ## SPDX-License-Identifier: MIT
 ##
-FROM --platform=$BUILDPLATFORM golang:1.20.2-alpine AS build
+
+ARG BUILD_BASE_IMAGE=golang:1.20.2-alpine
+ARG TARGET_BASE_IMAGE=ubuntu:latest
+
+FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS build
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -21,7 +25,7 @@ WORKDIR /workspace/api
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
-FROM ubuntu:latest
+FROM ${TARGET_BASE_IMAGE}
 RUN \
     set -x \
     && apt-get update \
@@ -38,4 +42,4 @@ EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL Debug
 # ENV CONFIG /symphony-api.json
-CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL
+CMD sh -c 'if [ -f /etc/pki/ca-trust/source/anchors/proxy-cert.crt ]; then update-ca-trust; fi && exec /symphony-api -c $CONFIG -l $LOG_LEVEL'

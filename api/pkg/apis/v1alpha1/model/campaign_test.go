@@ -9,13 +9,11 @@ package model
 import (
 	"testing"
 
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCampaignMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -36,7 +34,6 @@ func TestCampaignMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -62,33 +59,17 @@ func TestCampaignMatch(t *testing.T) {
 }
 
 func TestCampaignMatchOneEmpty(t *testing.T) {
-	campaign1 := CampaignSpec{
-		Name: "name",
-	}
+	campaign1 := CampaignSpec{}
 	res, err := campaign1.DeepEquals(nil)
 	assert.EqualError(t, err, "parameter is not a CampaignSpec type")
 	assert.False(t, res)
 }
 
-func TestCampaignNameNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
-		Name: "name",
-	}
-	campaign2 := CampaignSpec{
-		Name: "name1",
-	}
-	equal, err := campaign1.DeepEquals(campaign2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-}
-
 func TestCampaignFirstStageNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:       "name",
 		FirstStage: "list",
 	}
 	campaign2 := CampaignSpec{
-		Name:       "name",
 		FirstStage: "list1",
 	}
 	equal, err := campaign1.DeepEquals(campaign2)
@@ -98,12 +79,10 @@ func TestCampaignFirstStageNotMatch(t *testing.T) {
 
 func TestCampaignSelfDrivingNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: true,
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "list",
 		SelfDriving: false,
 	}
@@ -114,7 +93,6 @@ func TestCampaignSelfDrivingNotMatch(t *testing.T) {
 
 func TestCampaignStagesLengthNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -125,7 +103,6 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -146,7 +123,6 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 
 func TestCampaignStagesNotMatch(t *testing.T) {
 	campaign1 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -157,7 +133,6 @@ func TestCampaignStagesNotMatch(t *testing.T) {
 		},
 	}
 	campaign2 := CampaignSpec{
-		Name:        "name",
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -241,16 +216,8 @@ func TestStageNotMatch(t *testing.T) {
 		"objectType":  "sites",
 		"namesObject": true,
 	}
-	stage1.Schedule = &v1alpha2.ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PDT",
-	}
-	stage2.Schedule = &v1alpha2.ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PST",
-	}
+	stage1.Schedule = "2020-10-31T12:00:00-07:00"
+	stage2.Schedule = "2020-10-31T12:00:00-08:00"
 	equal, err = stage1.DeepEquals(stage2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
@@ -266,9 +233,7 @@ func TestStageMatchOneEmpty(t *testing.T) {
 }
 
 func TestActivationMatchOneEmpty(t *testing.T) {
-	activation1 := ActivationSpec{
-		Name: "name",
-	}
+	activation1 := ActivationSpec{}
 	res, err := activation1.DeepEquals(nil)
 	assert.EqualError(t, err, "parameter is not a ActivationSpec type")
 	assert.False(t, res)
@@ -276,7 +241,6 @@ func TestActivationMatchOneEmpty(t *testing.T) {
 
 func TestActivationMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Name:     "multisite-deploy",
 		Campaign: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
@@ -284,7 +248,6 @@ func TestActivationMatch(t *testing.T) {
 		},
 	}
 	activation2 := ActivationSpec{
-		Name:     "multisite-deploy",
 		Campaign: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
@@ -298,22 +261,14 @@ func TestActivationMatch(t *testing.T) {
 
 func TestActivationNotMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Name: "multisite-deploy",
+		Campaign: "site-apps",
 	}
 	activation2 := ActivationSpec{
-		Name: "multisite-deploy2",
+		Campaign: "site-apps2",
 	}
 
-	// name not match
-	equal, err := activation1.DeepEquals(activation2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
 	// compaign not match
-	activation2.Name = "multisite-deploy"
-	activation1.Campaign = "site-apps"
-	activation2.Campaign = "site-apps2"
-	equal, err = activation1.DeepEquals(activation2)
+	equal, err := activation1.DeepEquals(activation2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 

@@ -4,7 +4,6 @@ import AssetCard from './AssetCard';
 interface AssetListProps {
     catalogs: CatalogState[];
 }
-
 function AssetList({ catalogs }: AssetListProps) {
     // Create a map of catalogs by name for easy reference
     const references: Record<string, CatalogState> = {};

@@ -32,9 +32,7 @@ var catalogState = model.CatalogState{
 		Name: "name1",
 	},
 	Spec: &model.CatalogSpec{
-		SiteId: "site1",
-		Name:   "name1",
-		Type:   "catalog",
+		Type: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
@@ -82,21 +80,19 @@ func CreateSimpleChain(root string, length int, CTManager CatalogsManager, catal
 	json.Unmarshal(jData, &newCatalog)
 
 	newCatalog.ObjectMeta.Name = root
-	newCatalog.Spec.Name = root
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
 	for i := 1; i < length; i++ {
-		tmp := newCatalog.Spec.Name
+		tmp := newCatalog.ObjectMeta.Name
 		var childCatalog model.CatalogState
 		jData, _ := json.Marshal(newCatalog)
 		json.Unmarshal(jData, &childCatalog)
-		childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, i)
+		childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, i)
 		childCatalog.Spec.ParentName = tmp
-		childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
-		err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+		err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 		if err != nil {
 			return err
 		}
@@ -114,10 +110,9 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 	jData, _ := json.Marshal(catalog)
 	json.Unmarshal(jData, &newCatalog)
 
-	newCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, 0)
-	newCatalog.ObjectMeta.Name = newCatalog.Spec.Name
+	newCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, 0)
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
@@ -129,10 +124,9 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager CatalogsManager, c
 			var childCatalog model.CatalogState
 			jData, _ := json.Marshal(newCatalog)
 			json.Unmarshal(jData, &childCatalog)
-			childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, count)
-			childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
+			childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, count)
 			childCatalog.Spec.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+			err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 			if err != nil {
 				return err
 			}
@@ -152,7 +146,7 @@ func TestUpsertAndGet(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -164,7 +158,7 @@ func TestUpsertAndGet(t *testing.T) {
 		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
-	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
+	val, err := manager.GetState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	equal, err := catalogState.DeepEquals(val)
 	assert.Nil(t, err)
@@ -175,7 +169,7 @@ func TestList(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -199,7 +193,7 @@ func TestDelete(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 
-	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
 	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
 		var job v1alpha2.JobData
@@ -211,16 +205,16 @@ func TestDelete(t *testing.T) {
 		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
 		return nil
 	})
-	val, err := manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
+	val, err := manager.GetState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	equal, err := catalogState.DeepEquals(val)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 
-	err = manager.DeleteState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
+	err = manager.DeleteState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	val, err = manager.GetState(context.Background(), catalogState.Spec.Name, catalogState.ObjectMeta.Namespace)
+	val, err = manager.GetState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.NotNil(t, err)
 	assert.Empty(t, val)
 }
@@ -237,7 +231,7 @@ func TestGetChains(t *testing.T) {
 	tk, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace, "", "")
 	assert.Nil(t, err)
 	for _, v := range tk {
-		fmt.Println(v.Spec.Name)
+		fmt.Println(v.ObjectMeta.Name)
 	}
 
 	val, err := manager.GetChains(context.Background(), catalogState.Spec.Type, catalogState.ObjectMeta.Namespace)
@@ -273,15 +267,13 @@ func TestSchemaCheck(t *testing.T) {
 	catalogState.Spec.Properties = map[string]interface{}{
 		"spec": schema,
 	}
-	catalogState.Spec.Name = "EmailCheckSchema"
 	catalogState.Spec.ParentName = ""
 	catalogState.ObjectMeta = model.ObjectMeta{
 		Name: "EmailCheckSchema",
 	}
-	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
 
-	catalogState.Spec.Name = "Email"
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
 	}
@@ -292,7 +284,7 @@ func TestSchemaCheck(t *testing.T) {
 		"email": "This is an invalid email",
 	}
 
-	err = manager.UpsertState(context.Background(), catalogState.Spec.Name, catalogState)
+	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "schema validation error"))
 }

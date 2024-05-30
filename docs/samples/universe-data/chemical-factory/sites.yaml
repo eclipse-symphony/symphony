@@ -2,10 +2,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -22,10 +20,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: tokyo
-spec:  
-  siteId: tokyo
+spec:
   type: asset
-  name: tokyo
   properties:
     name: "東京"
     address: "東京都港区港南 2-16-3"
@@ -42,10 +38,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: new-york
-spec:  
-  siteId: new-york
+spec:
   type: asset
-  name: new-york
   properties:
     name: "New York"
     address: "11 Times Square"
@@ -62,10 +56,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: munchen
-spec:  
-  siteId: munchen
+spec:
   type: asset
-  name: munchen
   properties:
     name: "München"
     address: "Walter-Gropius-Straße 5"
@@ -82,10 +74,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-adr
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq-adr
   properties:
     name: "HQ Azure Device Registry"    
   parentName: hq
@@ -104,10 +94,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-arc-1
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq-arc-1
   properties:
     name: "HQ Azure Arc Cluster 1"
   parentName: hq
@@ -126,10 +114,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-arc-2
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq-arc-2
   properties:
     name: "HQ Azure Arc Cluster 2"
   parentName: hq
@@ -148,10 +134,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-doe-site
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq-doe-site
   properties:
     name: "HQ DOE Site"
   parentName: hq
@@ -170,10 +154,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: hq-iot-hub
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: hq-iot-hub
   properties:
     name: "HQ IoT Hub Tenant"
   parentName: hq
@@ -192,10 +174,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: area-1
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: area-1
   properties:
     name: "Area 1"
   parentName: hq-doe-site
@@ -204,10 +184,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: area-2
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: area-2
   properties:
     name: "Area 2"
   parentName: hq-doe-site
@@ -216,10 +194,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-1
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: line-1
   properties:
     name: "Production Line 1"
   parentName: area-1
@@ -228,10 +204,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: line-2
-spec:  
-  siteId: hq
+spec:
   type: asset
-  name: line-2
   properties:
     name: "Production Line 2"
   parentName: area-1

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -61,7 +62,7 @@ func TestHandleJobEvent(t *testing.T) {
 
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -162,6 +163,7 @@ func TestPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -178,7 +180,7 @@ func TestPoll(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleScheduleEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: &v1alpha2.ScheduleSpec{Time: "03:04:05PM", Date: "2006-01-02"}},
+		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: "2006-01-02T15:04:05Z"},
 	})
 	enabled := jobManager.Enabled()
 	assert.True(t, enabled)
@@ -191,6 +193,7 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -238,7 +241,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Name:     "instance1",
 					Solution: "solution1",
 				},
 			}
@@ -249,7 +251,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Name:     "instance1",
 					Solution: "solution1",
 				},
 			}}

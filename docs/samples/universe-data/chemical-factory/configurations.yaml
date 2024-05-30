@@ -2,8 +2,7 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: influx-db-config
-spec:  
-  siteId: hq
+spec:
   type: config
   name: influx-db-config
   properties:
@@ -19,10 +18,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: grafana-config
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: grafana-config
   properties:
     host: localhost
     port: 3000
@@ -34,10 +31,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: e4k-config
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: e4k-config
   properties:
     host: localhost
     port: 3000
@@ -49,10 +44,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: bluefin-config
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: bluefin-config
   properties:
     host: localhost
     port: 3000
@@ -64,10 +57,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: ai-config
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: ai-config
   metadata:
     asset: hq
   properties:
@@ -79,10 +70,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: ai-config-site
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: ai-config-site
   parentName: ai-config
   metadata:
     asset: hq-doe-site
@@ -94,10 +83,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: ai-config-line
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: ai-config-line
   metadata:
     asset: line-1
   parentName: ai-config-site
@@ -108,10 +95,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: combined
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: combined  
   properties:
     foo: bar
     ai: "<ai-config>"
@@ -126,10 +111,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: combined-1
-spec:  
-  siteId: hq
-  type: config
-  name: combined-1  
+spec:
+  type: config 
   properties:
     foo: <combined-2>.foo
     loop: <combined-2>.loop
@@ -138,10 +121,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: combined-2
-spec:  
-  siteId: hq
+spec: 
   type: config
-  name: combined-2  
   properties:
     foo: bar2   
     loop: <combined>.loop
@@ -150,10 +131,8 @@ apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: external
-spec:  
-  siteId: hq
+spec:
   type: config
-  name: external  
   properties:
     foo: far
   objectRef:

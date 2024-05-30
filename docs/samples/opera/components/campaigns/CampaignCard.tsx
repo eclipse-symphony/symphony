@@ -85,7 +85,7 @@ function CampaignCard(props: CampaignCardProps) {
             <CardFooter  className="flex gap-3 justify-between">                
                 <button className="btn btn-primary" onClick={()=>ActivateCampaign(campaign)}><BiPlay/></button>
                 {activation && (
-                    <div className="flex gap-2">{` ${stateToString(activation.status.status)} ${activation.status.stage === '' ? '': 'stage (' + activation.status.stage + ')'}`}</div>
+                    <div className="flex gap-2">{` ${activation.status.statusMessage} ${activation.status.stage === '' ? '': 'stage (' + activation.status.stage + ')'}`}</div>
                 )}
             </CardFooter>
         </Card>

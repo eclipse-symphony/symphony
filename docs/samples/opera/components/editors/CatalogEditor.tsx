@@ -54,7 +54,6 @@ function CatalogEditor(props: CatalogEditorProps) {
         const formData = new FormData(event.currentTarget);
         const data = Object.fromEntries(formData.entries());
         const catalog: CatalogSpec = {
-            siteId: process.env.SYMPHONY_SITE || '',
             name: typeof data.name === 'string' ? data.name : '',
             parentName: "",
             type: "config",
@@ -119,7 +118,7 @@ function CatalogEditor(props: CatalogEditorProps) {
         event.preventDefault();
         const newFields = {...moreFields};
         const target = event.target as HTMLElement;
-        const id = target.id;        
+        const id = target.id; 
         delete newFields[id];
         setMoreFields(newFields);
     }

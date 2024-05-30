@@ -76,9 +76,9 @@ function GraphTable(props: GraphTableProps) {
             mergedColumns.push(cols);
         }
     }
-    // for (const [_, cats] of Object.entries(catalogs)) {
-    //     mergedCatalogs.push(...cats);
-    // }
+    //for (const [_, cats] of Object.entries(catalogs)) {
+    //    mergedCatalogs.push(...cats);
+    //}
     mergedCatalogs.push(...catalogs);
 
     useEffect(() => {

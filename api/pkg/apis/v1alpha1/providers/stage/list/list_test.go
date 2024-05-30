@@ -11,17 +11,22 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestListInitFromMap(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	provider := ListStageProvider{}
 	input := map[string]string{
-		"baseUrl":  "http://symphony-service:8080/v1alpha2/",
 		"user":     "admin",
 		"password": "",
 	}
@@ -33,33 +38,21 @@ func TestListInitFromMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"user": "",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "admin",
+		"user": "admin",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 }
+
 func TestListProcessInstances(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := ListStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -93,6 +86,7 @@ func TestListProcessInstances(t *testing.T) {
 
 func TestListProcessSites(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := ListStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -126,6 +120,7 @@ func TestListProcessSites(t *testing.T) {
 
 func TestListProcessCatalogs(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := ListStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -192,18 +187,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance1",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance1",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "instance2",
 					},
-					Spec: &model.InstanceSpec{
-						Name: "instance2",
-					},
+					Spec:   &model.InstanceSpec{},
 					Status: model.InstanceStatus{},
 				}}
 		case "/federation/registry":
@@ -228,18 +219,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog1",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog1",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
 						Name: "catalog2",
 					},
-					Spec: &model.CatalogSpec{
-						Name: "catalog2",
-					},
+					Spec:   &model.CatalogSpec{},
 					Status: &model.CatalogStatus{},
 				}}
 		default:

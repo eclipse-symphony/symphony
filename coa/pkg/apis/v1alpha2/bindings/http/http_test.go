@@ -314,7 +314,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 						ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 						IssuedAt:  jwt.NewNumericDate(time.Now()),
 						NotBefore: jwt.NewNumericDate(time.Now()),
-						Issuer:    "test",
+						Issuer:    "symphony",
 						Subject:   "test",
 						ID:        "1",
 						Audience:  []string{"*"},

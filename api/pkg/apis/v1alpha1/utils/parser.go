@@ -519,7 +519,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			property, err := readProperty(context.Properties, key.(string))
+			property, err := readProperty(context.Properties, FormatAsString(key))
 			if err != nil {
 				return nil, err
 			}
@@ -535,7 +535,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			property, err := readPropertyInterface(context.Inputs, key.(string))
+			property, err := readPropertyInterface(context.Inputs, FormatAsString(key))
 			if err != nil {
 				return nil, err
 			}
@@ -556,10 +556,10 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := context.Outputs[step.(string)]; !ok {
-				return nil, fmt.Errorf("step %s is not found in output collection", step.(string))
+			if _, ok := context.Outputs[FormatAsString(step)]; !ok {
+				return nil, fmt.Errorf("step %s is not found in output collection", FormatAsString(step))
 			}
-			property, err := readPropertyInterface(context.Outputs[step.(string)], key.(string))
+			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], FormatAsString(key))
 			if err != nil {
 				return nil, err
 			}
@@ -768,11 +768,11 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 					if err != nil {
 						return nil, err
 					}
-					overlays = append(overlays, overlay.(string))
+					overlays = append(overlays, FormatAsString(overlay))
 				}
 			}
 
-			return context.ConfigProvider.Get(obj.(string), field.(string), overlays, context)
+			return context.ConfigProvider.Get(FormatAsString(obj), FormatAsString(field), overlays, context)
 		}
 		return nil, fmt.Errorf("$config() expects 2 arguments, found %d", len(n.Args))
 	case "secret":
@@ -788,13 +788,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			return context.SecretProvider.Get(obj.(string), field.(string))
+			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field))
 		}
 		return nil, fmt.Errorf("$secret() expects 2 arguments, found %d", len(n.Args))
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
-				return deploymentSpec.Instance.Spec.Name, nil
+				return deploymentSpec.Instance.ObjectMeta.Name, nil
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
@@ -808,9 +808,9 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			path := obj.(string)
+			path := FormatAsString(obj)
 			if strings.HasPrefix(path, "$") || strings.HasPrefix(path, "{$") {
-				result, err := JsonPathQuery(context.Value, obj.(string))
+				result, err := JsonPathQuery(context.Value, FormatAsString(obj))
 				if err != nil {
 					return nil, err
 				}

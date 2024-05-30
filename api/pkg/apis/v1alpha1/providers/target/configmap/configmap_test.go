@@ -162,9 +162,9 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "configs",
+				Name:      "config-test",
 			},
 			Spec: &model.InstanceSpec{
-				Name:  "config-test",
 				Scope: "configs",
 			},
 		},
@@ -209,9 +209,9 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "configs",
+				Name:      "config-test",
 			},
 			Spec: &model.InstanceSpec{
-				Name:  "config-test",
 				Scope: "configs",
 			},
 		},
@@ -268,9 +268,9 @@ func TestConfigMapTargetProviderDelete(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "configs",
+				Name:      "config-test",
 			},
 			Spec: &model.InstanceSpec{
-				Name:  "config-test",
 				Scope: "configs",
 			},
 		},
@@ -319,9 +319,9 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "configs",
+				Name:      "config-test",
 			},
 			Spec: &model.InstanceSpec{
-				Name:  "config-test",
 				Scope: "configs",
 			},
 		},

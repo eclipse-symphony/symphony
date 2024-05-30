@@ -18,6 +18,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -93,7 +94,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -172,10 +173,10 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.Spec.Name,
+		InstanceId: deployment.Instance.ObjectMeta.Name,
 		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
@@ -252,7 +253,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			env := make([]string, 0)
 			for k, v := range component.Component.Properties {
 				if strings.HasPrefix(k, "env.") {
-					env = append(env, strings.TrimPrefix(k, "env.")+"="+v.(string))
+					env = append(env, strings.TrimPrefix(k, "env.")+"="+utils.FormatAsString(v))
 				}
 			}
 

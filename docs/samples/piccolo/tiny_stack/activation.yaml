@@ -4,4 +4,3 @@ metadata:
   name: ebpf-approval
 spec:
   campaign: ebpf-approval
-  name: ebpf-approval

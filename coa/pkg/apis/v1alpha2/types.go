@@ -99,6 +99,10 @@ const (
 	TargetPropertyNotFound State = 12000
 )
 
+func (s State) EqualsWithString(str string) bool {
+	return s.String() == str
+}
+
 func (s State) String() string {
 	switch s {
 	case OK:

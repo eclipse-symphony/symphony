@@ -14,6 +14,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -64,9 +65,10 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 	}, []model.ComponentStep{
 		{
@@ -116,9 +118,10 @@ func TestStagingTargetProviderApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -175,9 +178,10 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -209,13 +213,6 @@ type AuthResponse struct {
 }
 
 func TestApply(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
@@ -247,7 +244,14 @@ func TestApply(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
@@ -266,9 +270,10 @@ func TestApply(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -304,14 +309,6 @@ func TestApply(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
@@ -345,8 +342,14 @@ func TestGet(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
 			CurrentSite: v1alpha2.SiteConnection{
@@ -364,9 +367,10 @@ func TestGet(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
@@ -389,13 +393,6 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetCatalogsFailed(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
@@ -414,6 +411,14 @@ func TestGetCatalogsFailed(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{
@@ -433,9 +438,10 @@ func TestGetCatalogsFailed(t *testing.T) {
 	}
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{
+			ObjectMeta: model.ObjectMeta{
 				Name: "test",
 			},
+			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			ObjectMeta: model.ObjectMeta{

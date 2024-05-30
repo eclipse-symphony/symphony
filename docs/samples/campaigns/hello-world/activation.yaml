@@ -4,6 +4,5 @@ metadata:
   name: hello-world-activation
 spec:
   campaign: "hello-world"
-  name: "hello-world-activation"
   inputs:
-        foo: "bar"        
+        foo: "bar" 
