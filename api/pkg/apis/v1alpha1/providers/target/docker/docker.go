@@ -231,7 +231,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
-				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
+				err = cli.ContainerStop(context.TODO(), component.Component.Name, container.StopOptions{})
 				if err != nil {
 					if !client.IsErrNotFound(err) {
 						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
@@ -277,7 +277,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Resources: resourceSpec,
 				}
 			}
-			var container container.ContainerCreateCreatedBody
+			var container container.CreateResponse
 			container, err = cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -301,7 +301,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				Message: "",
 			}
 		} else {
-			err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
+			err = cli.ContainerStop(context.TODO(), component.Component.Name, container.StopOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
 					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v, traceId: %s", err, span.SpanContext().TraceID().String())

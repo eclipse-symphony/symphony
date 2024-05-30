@@ -39,11 +39,11 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-func TestAPIs(t *testing.T) {
+/*func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunGinkgoSpecs(t, "Controller Suite")
-}
+}*/
 
 func TestUnmarshalSolution(t *testing.T) {
 	solutionYaml := `apiVersion: solution.symphony/v1

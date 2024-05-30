@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -66,7 +67,7 @@ func (r *Catalog) Default() {
 var _ webhook.Validator = &Catalog{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Catalog) ValidateCreate() error {
+func (r *Catalog) ValidateCreate() (admission.Warnings, error) {
 	cataloglog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -85,11 +86,11 @@ func (r *Catalog) ValidateCreate() error {
 			metrics.CatalogResourceType)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Catalog) ValidateUpdate(old runtime.Object) error {
+func (r *Catalog) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	cataloglog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -108,14 +109,14 @@ func (r *Catalog) ValidateUpdate(old runtime.Object) error {
 			metrics.CatalogResourceType)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Catalog) ValidateDelete() error {
+func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
 	cataloglog.Info("validate delete", "name", r.Name)
 
-	return nil
+	return nil, nil
 }
 
 func (r *Catalog) validateCreateCatalog() error {

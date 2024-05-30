@@ -26,7 +26,7 @@ const (
 var (
 	controllerGen = bintool.Must(bintool.NewGo(
 		"sigs.k8s.io/controller-tools/cmd/controller-gen",
-		"v0.11.1",
+		"v0.15.0",
 	))
 
 	envTest = bintool.Must(bintool.NewGo(

@@ -87,9 +87,15 @@ func CreateFakeKubeClientForSolutionAndFabricGroup(objects ...client.Object) cli
 
 	_ = solution_v1.AddToScheme(scheme)
 	_ = fabric_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&solution_v1.Instance{},
+		&fabric_v1.Target{},
+		&solution_v1.Solution{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
 		Build()
 }
 
@@ -103,9 +109,14 @@ func CreateFakeKubeClientForSolutionGroup(objects ...client.Object) client.Clien
 	}
 
 	_ = solution_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&solution_v1.Instance{},
+		&solution_v1.Solution{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
 		Build()
 }
 
@@ -118,9 +129,13 @@ func CreateFakeKubeClientForFabricGroup(objects ...client.Object) client.Client 
 	}
 
 	_ = fabric_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&fabric_v1.Target{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
 		Build()
 }
 

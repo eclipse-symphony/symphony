@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -89,7 +90,7 @@ func (r *Target) Default() {
 var _ webhook.Validator = &Target{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Target) ValidateCreate() error {
+func (r *Target) ValidateCreate() (admission.Warnings, error) {
 	targetlog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -110,11 +111,11 @@ func (r *Target) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Target) ValidateUpdate(old runtime.Object) error {
+func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	targetlog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -135,15 +136,15 @@ func (r *Target) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Target) ValidateDelete() error {
+func (r *Target) ValidateDelete() (admission.Warnings, error) {
 	targetlog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 func (r *Target) validateCreateTarget() error {
