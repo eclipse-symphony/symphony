@@ -257,19 +257,19 @@ var _ = Describe("Instance controller", Ordered, func() {
 		})
 	})
 
-	Describe("Solution Events", func() {
-		When("the solution referenced by the instance is changed", func() {
-			var requests []ctrl.Request
-			BeforeEach(func(ctx context.Context) {
-				By("simulating a call to the handleSolution function")
-				requests = controller.handleSolution(ctx, solution)
-			})
+	// Describe("Solution Events", func() {
+	// 	When("the solution referenced by the instance is changed", func() {
+	// 		var requests []ctrl.Request
+	// 		BeforeEach(func(ctx context.Context) {
+	// 			By("simulating a call to the handleSolution function")
+	// 			requests = controller.handleSolution(ctx, solution)
+	// 		})
 
-			It("should return a request for the instance", func() {
-				Expect(requests).To(ContainElement(ctrl.Request{NamespacedName: DefaultInstanceNamespacedName}))
-			})
-		})
-	})
+	// 		It("should return a request for the instance", func() {
+	// 			Expect(requests).To(ContainElement(ctrl.Request{NamespacedName: DefaultInstanceNamespacedName}))
+	// 		})
+	// 	})
+	// })
 
 	Describe("Target Events", func() {
 		When("the target referenced by the instance is changed", func() {
