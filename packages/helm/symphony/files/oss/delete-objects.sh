@@ -1,6 +1,6 @@
 #!/bin/env bash
 set -e
-TIMEOUT="60m"
+TIMEOUT="30m"
 SOLUTION_GROUP=solution.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
