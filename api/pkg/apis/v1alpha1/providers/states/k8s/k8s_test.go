@@ -598,7 +598,7 @@ func TestCatalogFieldFilter(t *testing.T) {
 }
 
 func TestCatalogStatusFilter(t *testing.T) {
-	testK8s := "true"
+	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
