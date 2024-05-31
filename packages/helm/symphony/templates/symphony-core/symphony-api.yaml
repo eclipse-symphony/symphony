@@ -52,7 +52,12 @@ spec:
                 fieldPath: spec.serviceAccountName
           - name: SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME
             value: '{{ include "symphony.fullname" . }}-controller-manager'
-
+          {{- if and .Values.api.labelKey .Values.api.labelValue }}
+          - name: LABEL_KEY
+            value: {{ .Values.api.labelKey }}
+          - name: LABEL_VALUE
+            value: {{ .Values.api.labelValue }}
+          {{- end }}
         envFrom:
         - secretRef:
             name: {{ include "symphony.fullname" . }}-auth

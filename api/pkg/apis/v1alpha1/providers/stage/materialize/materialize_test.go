@@ -127,7 +127,6 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"names":    []interface{}{"instance1:v1", "target1:v1", "solution1:v1, target2:v1"},
 		"__origin": "hq",
