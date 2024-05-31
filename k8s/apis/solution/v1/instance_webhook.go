@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -80,7 +81,7 @@ func (r *Instance) Default() {
 var _ webhook.Validator = &Instance{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Instance) ValidateCreate() error {
+func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 	instancelog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -101,11 +102,11 @@ func (r *Instance) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Instance) ValidateUpdate(old runtime.Object) error {
+func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	instancelog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -126,15 +127,15 @@ func (r *Instance) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Instance) ValidateDelete() error {
+func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 	instancelog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 func (r *Instance) validateCreateInstance() error {

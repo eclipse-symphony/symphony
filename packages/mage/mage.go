@@ -38,7 +38,7 @@ var (
 
 	ginkgo = bintool.Must(bintool.NewGo(
 		"github.com/onsi/ginkgo/v2/ginkgo",
-		"v2.13.1",
+		"v2.15.0",
 		bintool.WithVersionCmd("{{.FullCmd}} version"),
 	))
 
