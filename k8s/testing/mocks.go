@@ -96,6 +96,10 @@ func CreateFakeKubeClientForSolutionAndFabricGroup(objects ...client.Object) cli
 		WithObjects(objects...).
 		WithScheme(scheme).
 		WithStatusSubresource(clientObj...).
+		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
+			instance := rawObj.(*solution_v1.Instance)
+			return []string{instance.Spec.Solution}
+		}).
 		Build()
 }
 
@@ -117,6 +121,10 @@ func CreateFakeKubeClientForSolutionGroup(objects ...client.Object) client.Clien
 		WithObjects(objects...).
 		WithScheme(scheme).
 		WithStatusSubresource(clientObj...).
+		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
+			instance := rawObj.(*solution_v1.Instance)
+			return []string{instance.Spec.Solution}
+		}).
 		Build()
 }
 
