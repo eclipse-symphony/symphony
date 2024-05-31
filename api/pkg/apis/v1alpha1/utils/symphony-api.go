@@ -743,7 +743,6 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.Spec.Generation
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)

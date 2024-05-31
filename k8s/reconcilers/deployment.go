@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -137,7 +138,8 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 	}
-
+	log2 := ctrllog.FromContext(ctx)
+	log2.Info("Summary 1")
 	if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 		r.patchOperationStartTime(object, operationStartTimeKey)
 		if err := r.kubeClient.Update(ctx, object); err != nil {
@@ -145,6 +147,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 	}
 
+	log2.Info("Summary 2")
 	// Get reconciliation interval
 	reconciliationInterval, timeout := r.deriveReconcileInterval(log, object)
 
@@ -162,7 +165,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
-
+	log2.Info("Summary 3")
 	summary, err := r.getDeploymentSummary(ctx, object)
 	if err != nil {
 		// If the error is anything but 404, we should return the error so the reconciler can retry

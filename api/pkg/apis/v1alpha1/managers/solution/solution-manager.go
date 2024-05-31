@@ -508,6 +508,7 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.ObjectMeta.Name),
 			Body: model.SummaryResult{
 				Summary:        summary,
+				Generation:     deployment.Generation,
 				Time:           time.Now().UTC(),
 				State:          state,
 				DeploymentHash: deployment.Hash,
