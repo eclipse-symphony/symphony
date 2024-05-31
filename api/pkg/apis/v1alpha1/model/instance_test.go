@@ -80,9 +80,6 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -111,9 +108,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -136,9 +130,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -167,9 +158,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -192,9 +180,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -223,9 +208,6 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -248,9 +230,6 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -279,9 +258,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -304,9 +280,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -335,9 +308,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -360,9 +330,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -391,9 +358,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -416,9 +380,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName1",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -447,9 +408,6 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -472,9 +430,6 @@ func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo1": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -503,9 +458,6 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -528,9 +480,6 @@ func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo1": "bar1"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
