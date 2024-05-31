@@ -134,7 +134,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
-				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
+				kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
 					//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 				)))),
