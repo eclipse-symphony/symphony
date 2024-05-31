@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: instance
 spec:
-  type: instance
+  catalogType: instance
   properties:
     spec: 
       solution: app

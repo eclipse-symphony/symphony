@@ -170,7 +170,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						Name: "hq-target1",
 					},
 					Spec: &model.CatalogSpec{
-						Type: "target",
+						CatalogType: "target",
 						Properties: map[string]interface{}{
 							"spec": &model.TargetSpec{
 								DisplayName: "target1",
@@ -186,7 +186,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						Name: "hq-instance1",
 					},
 					Spec: &model.CatalogSpec{
-						Type: "instance",
+						CatalogType: "instance",
 						Properties: map[string]interface{}{
 							"spec": model.InstanceSpec{},
 							"metadata": &model.ObjectMeta{
@@ -201,7 +201,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						Name: "hq-solution1",
 					},
 					Spec: &model.CatalogSpec{
-						Type: "solution",
+						CatalogType: "solution",
 						Properties: map[string]interface{}{
 							"spec": model.SolutionSpec{
 								DisplayName: "solution1",
@@ -217,11 +217,11 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						Name: "hq-catalog1",
 					},
 					Spec: &model.CatalogSpec{
-						Type: "catalog",
+						CatalogType: "catalog",
 						Properties: map[string]interface{}{
 							"spec": model.CatalogSpec{
-								Type:       "config",
-								Properties: map[string]interface{}{},
+								CatalogType: "config",
+								Properties:  map[string]interface{}{},
 							},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",

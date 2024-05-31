@@ -225,23 +225,6 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Arguments != nil {
-		in, out := &in.Arguments, &out.Arguments
-		*out = make(map[string]map[string]string, len(*in))
-		for key, val := range *in {
-			var outVal map[string]string
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = make(map[string]string, len(*in))
-				for key, val := range *in {
-					(*out)[key] = val
-				}
-			}
-			(*out)[key] = outVal
-		}
-	}
 	if in.ReconciliationPolicy != nil {
 		in, out := &in.ReconciliationPolicy, &out.ReconciliationPolicy
 		*out = new(ReconciliationPolicySpec)

@@ -148,7 +148,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				if s, ok := inputs["__origin"]; ok {
 					name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
 				}
-				switch catalog.Spec.Type {
+				switch catalog.Spec.CatalogType {
 				case "instance":
 					var instanceState model.InstanceState
 					err = json.Unmarshal(objectData, &instanceState)

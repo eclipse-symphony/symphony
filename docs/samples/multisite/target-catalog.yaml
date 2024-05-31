@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: site-k8s-target
 spec: 
-  type: target
+  catalogType: target
   properties:
     spec:
       properties:

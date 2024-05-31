@@ -59,7 +59,7 @@ func (s *SyncManager) Poll() []error {
 		for _, catalog := range batch.Catalogs {
 			s.Context.Publish("catalog-sync", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Spec.Type,
+					"objectType": catalog.Spec.CatalogType,
 					"origin":     batch.Origin,
 				},
 				Body: v1alpha2.JobData{

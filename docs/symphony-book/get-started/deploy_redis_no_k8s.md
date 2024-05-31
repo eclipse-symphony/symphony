@@ -45,20 +45,23 @@ Define your current machine as a [target](../concepts/unified-object-model/targe
 
   ```json
   {
-    "displayName": "sample-docker-target",
-    "forceRedeploy": true,
-    "topologies": [
-      {
-        "bindings": [
-          {
-            "role": "instance",
-            "provider": "providers.target.docker",
-            "config": {}
-          }
-        ]
-      }
-    ]
+    "spec": {
+      "displayName": "sample-docker-target",
+      "forceRedeploy": true,
+      "topologies": [
+        {
+          "bindings": [
+            {
+              "role": "instance",
+              "provider": "providers.target.docker",
+              "config": {}
+            }
+          ]
+        }
+      ]
+    }
   }
+
   ```
 
 ## Define a solution
@@ -71,16 +74,18 @@ Define a [solution](../concepts/unified-object-model/solution.md) with a single 
 
   ```json
   {
-    "displayName": "sample-redis",
-    "components": [
-      {
-        "name": "sample-redis",
-        "type": "container",
-        "properties": {
-          "container.image": "redis:latest"
-        }
+    "spec": {
+      "displayName": "sample-redis",
+      "components": [
+        {
+          "name": "sample-redis",
+          "type": "container",
+          "properties": {
+            "container.image": "redis:latest"
+          }
       }
-    ]
+      ]
+    }
   }
   ```
 
@@ -94,12 +99,14 @@ Define an [instance](../concepts/unified-object-model/instance.md), which trigge
 
   ```json
   {
-    "displayName": "redis-server",
-    "name": "default",
-    "solution": "sample-redis",
-    "target": {
-      "name": "sample-docker-target"
-    }        
+    "spec": {
+      "displayName": "redis-server",
+      "name": "default",
+      "solution": "sample-redis",
+      "target": {
+        "name": "sample-docker-target"
+      }        
+    }
   }
   ```
 
@@ -131,11 +138,13 @@ To delete the container, send a `DELETE` request:
 
   ```json
   {
-    "displayName": "redis-server",
-    "solution": "sample-redis",
-    "target": {
-      "name": "sample-docker-target"
-    }        
+    "spec": {
+      "displayName": "redis-server",
+      "solution": "sample-redis",
+      "target": {
+        "name": "sample-docker-target"
+      }        
+    }
   }
   ```
 

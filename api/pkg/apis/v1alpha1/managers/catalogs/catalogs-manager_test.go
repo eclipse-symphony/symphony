@@ -32,7 +32,7 @@ var catalogState = model.CatalogState{
 		Name: "name1",
 	},
 	Spec: &model.CatalogSpec{
-		Type: "catalog",
+		CatalogType: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
@@ -234,7 +234,7 @@ func TestGetChains(t *testing.T) {
 		fmt.Println(v.ObjectMeta.Name)
 	}
 
-	val, err := manager.GetChains(context.Background(), catalogState.Spec.Type, catalogState.ObjectMeta.Namespace)
+	val, err := manager.GetChains(context.Background(), catalogState.Spec.CatalogType, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(val["root"]))
 }
@@ -248,7 +248,7 @@ func TestGetTrees(t *testing.T) {
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
-	val, err := manager.GetTrees(context.Background(), catalogState.Spec.Type, catalogState.ObjectMeta.Namespace)
+	val, err := manager.GetTrees(context.Background(), catalogState.Spec.CatalogType, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(val["root-0"]))
 }

@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: schema
 spec:
-  type: schema
+  catalogType: schema
   properties:
     spec:
       rules:

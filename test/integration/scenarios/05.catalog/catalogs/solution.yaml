@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: solution
 spec:
-  type: solution
+  catalogType: solution
   properties:
     spec: 
       displayName: site-app
