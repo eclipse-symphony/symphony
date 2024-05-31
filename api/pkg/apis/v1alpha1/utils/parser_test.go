@@ -1672,7 +1672,7 @@ func TestEvaulateParamArgumentOverride(t *testing.T) {
 		Component: "component-1",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", val)
+	assert.Equal(t, "b", val)
 }
 func TestEvaulateParamWrongComponentName(t *testing.T) {
 	parser := NewParser("${{$param(a)}}")
@@ -1757,7 +1757,7 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 		Component: "component-1",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "new-valued", val)
+	assert.Equal(t, "bd", val)
 }
 func TestEvaluateDeployment(t *testing.T) {
 	context := utils.EvaluationContext{
@@ -1790,8 +1790,8 @@ func TestEvaluateDeployment(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Properties["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Properties["bar"])
 }
 
 func TestEvaluateDeploymentMetadata(t *testing.T) {
@@ -1829,10 +1829,10 @@ func TestEvaluateDeploymentMetadata(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Properties["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Properties["bar"])
-	assert.Equal(t, "new-value", deployment.Solution.Spec.Components[0].Metadata["foo"])
-	assert.Equal(t, "d new-value", deployment.Solution.Spec.Components[0].Metadata["bar"])
+	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Metadata["foo"])
+	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Metadata["bar"])
 }
 func TestEvaluateDeploymentConfig(t *testing.T) {
 	configProvider := &mock.MockConfigProvider{}

@@ -31,7 +31,7 @@ type ObjectRef struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	CatalogType  string                 `json:"catalogtype"`
+	CatalogType  string                 `json:"catalogType"`
 	Metadata     map[string]string      `json:"metadata,omitempty"`
 	Properties   map[string]interface{} `json:"properties"`
 	ParentName   string                 `json:"parentName,omitempty"`
