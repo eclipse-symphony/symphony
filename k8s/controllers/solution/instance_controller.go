@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -188,14 +187,14 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solution_v1.Instance{}).
 		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
-		Watches(&source.Kind{Type: &solution_v1.Solution{}}, handler.EnqueueRequestsFromMapFunc(
+		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
 			r.handleSolution)).
-		Watches(&source.Kind{Type: &fabric_v1.Target{}}, handler.EnqueueRequestsFromMapFunc(
+		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
 			r.handleTarget)).
 		Complete(r)
 }
 
-func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
+func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	tarObj := obj.(*fabric_v1.Target)
 	var instances solution_v1.InstanceList
@@ -231,7 +230,7 @@ func (r *InstanceReconciler) handleTarget(obj client.Object) []ctrl.Request {
 	return ret
 }
 
-func (r *InstanceReconciler) handleSolution(obj client.Object) []ctrl.Request {
+func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
