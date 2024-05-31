@@ -336,7 +336,11 @@ func Destroy(flags string) error {
 func (Build) All() error {
 	defer logTime(time.Now(), "build:all")
 
-	err := buildAPI()
+	err := ensureBuildxBuilder()
+	if err != nil {
+		return err
+	}
+	err = buildAPI()
 	if err != nil {
 		return err
 	}
@@ -384,13 +388,13 @@ func (Build) Api() error {
 	return buildAPI()
 }
 func buildAPI() error {
-	return shellcmd.Command("docker compose -f ../../api/docker-compose.yaml build").Run() //oss
+	return shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile -t \"ghcr.io/eclipse-symphony/symphony-api\" \"../..\" --load").Run() //oss
 }
 
 func buildAgent() error {
 	return shellcmd.RunAll(
-		shellcmd.Command("docker compose -f ../../api/docker-compose-poll-agent.yaml build"),
-		shellcmd.Command("docker compose -f ../../api/docker-compose-target-agent.yaml build"),
+		shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile.poll-agent -t \"ghcr.io/eclipse-symphony/symphony-poll-agent\" \"../..\" --load"),
+		shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile.target-agent -t \"ghcr.io/eclipse-symphony/symphony-target-agent\" \"../..\" --load"),
 	) //oss
 }
 
@@ -399,7 +403,7 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
-	return shellcmd.Command("docker compose -f ../../k8s/docker-compose.yaml build").Run() //oss
+	return shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../k8s/Dockerfile -t \"ghcr.io/eclipse-symphony/symphony-k8s\" \"../..\" --load").Run() //oss
 }
 
 /******************** Minikube ********************/
@@ -811,4 +815,23 @@ func ensureMinikubeContext() error {
 
 func logTime(start time.Time, name string) {
 	fmt.Printf("[DONE] (%s) '%s'\n", time.Since(start), name)
+}
+
+func ensureBuildxBuilder() error {
+	checkCmd := exec.Command("docker", "buildx", "ls")
+	output, err := checkCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to list buildx builders: %v, output: %s", err, output)
+	}
+	if !strings.Contains(string(output), "default") {
+		createCmd := exec.Command("docker", "buildx", "create", "--use", "--name", "default")
+		createOutput, err := createCmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to create buildx builder: %v, output: %s", err, createOutput)
+		}
+		fmt.Println("Created buildx builder:", string(createOutput))
+	} else {
+		fmt.Println("Buildx builder 'default' already exists.")
+	}
+	return nil
 }
