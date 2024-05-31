@@ -56,10 +56,3 @@ func testHelper() error {
 	}
 	return nil
 }
-
-func DockerBuildTargetAgent() error {
-	return shellcmd.Command("docker-compose -f docker-compose-target-agent.yaml build").Run()
-}
-func DockerBuildPollAgent() error {
-	return shellcmd.Command("docker-compose -f docker-compose-poll-agent.yaml build").Run()
-}

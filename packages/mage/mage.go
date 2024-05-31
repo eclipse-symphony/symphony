@@ -316,9 +316,86 @@ func CIVerify() error {
 	return nil
 }
 
+// ensureBuildxBuilder ensures that buildx is created and set up.
+func ensureBuildxBuilder() error {
+	checkCmd := exec.Command("docker", "buildx", "ls")
+	output, err := checkCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to list buildx builders: %v, output: %s", err, output)
+	}
+	if !strings.Contains(string(output), "default") {
+		createCmd := exec.Command("docker", "buildx", "create", "--use", "--name", "default")
+		createOutput, err := createCmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to create buildx builder: %v, output: %s", err, createOutput)
+		}
+		fmt.Println("Created buildx builder:", string(createOutput))
+	} else {
+		fmt.Println("Buildx builder 'default' already exists.")
+	}
+	return nil
+}
+
+// buildAndPushDockerImage builds and pushes the Docker image for all specified platforms.
+func buildAndPushDockerImage(dockerFile, buildContext, imageTag string) error {
+	if err := ensureBuildxBuilder(); err != nil {
+		return err
+	}
+
+	platforms := "linux/amd64,linux/arm64,linux/arm/v7"
+	buildCmd := exec.Command("docker", "buildx", "build", "--platform", platforms, "-f", dockerFile, "-t", imageTag, buildContext, "--push")
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(output))
+		return fmt.Errorf("failed to build and push image with Dockerfile %s: %v, output: %s", dockerFile, err, output)
+	}
+	fmt.Println("Build and push output:", string(output)) // Debugging line
+
+	return nil
+}
+
+// buildWithDockerCompose builds the Docker image using Docker Compose.
+func buildWithDockerCompose(composeFile string) error {
+	buildCmd := exec.Command("docker", "compose", "-f", composeFile, "build")
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(output))
+		return fmt.Errorf("failed to build with Docker Compose file %s: %v, output: %s", composeFile, err, output)
+	}
+	fmt.Println("Docker Compose build output:", string(output)) // Debugging line
+
+	return nil
+}
+
 // Build docker image with docker compose.
 func DockerBuild() error {
-	return shellcmd.Command("docker-compose -f docker-compose.yaml build").Run()
+	return buildWithDockerCompose("docker-compose.yaml")
+}
+
+// Build Symphony API multi-platfrom docker image
+func DockerBuildAPIMultiPlatform() error {
+	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-api-multi:latest")
+}
+
+// Build Symphony K8s multi-platfrom docker image
+func DockerBuildK8sMultiPlatform() error {
+	return buildAndPushDockerImage("Dockerfile", "..", "ghcr.io/eclipse-symphony/symphony-k8s-multi:latest")
+}
+
+// Build Symphony target agent multi-platfrom docker image
+func DockerBuildTargetAgentMultiPlatform() error {
+	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-target-agent-multi:latest")
+}
+func DockerBuildTargetAgent() error {
+	return buildWithDockerCompose("docker-compose-target-agent.yaml")
+}
+
+// Build Symphony poll agent multi-platfrom docker image
+func DockerBuildPollAgentMultiPlatform() error {
+	return buildAndPushDockerImage("Dockerfile.target-agent", "..", "ghcr.io/eclipse-symphony/symphony-poll-agent-multi:latest")
+}
+func DockerBuildPollAgent() error {
+	return buildWithDockerCompose("docker-compose-poll-agent.yaml")
 }
 
 func DockerBuildWithOverrideImg(buildBaseImg string, targetBaseImg string) error {
