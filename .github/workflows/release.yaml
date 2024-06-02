@@ -17,13 +17,21 @@ env:
 # github.repository_owner / secrets.GITHUB_TOKEN is used to login to the docker registry and helm registry and to create the release
 jobs:
   build:
-    if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
+    if: github.repository == 'eclipse-symphony/symphony' && github.event_name != 'pull_request' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+      
+      - name: Print branch name
+        run: echo ${{ steps.extract_branch.outputs.branch }}
 
       - name: Install dependencies
         run: |
@@ -52,7 +60,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.21  # Replace with your desired Go version
+          go-version: 1.22.3  # Replace with your desired Go version
 
       - name: Install Kubebuilder
         run: |
@@ -82,14 +90,14 @@ jobs:
       - name: Build Symphony Api
         run: |
           cd api
-          mage dockerBuild
-          mage dockerBuildTargetAgent
-          mage dockerBuildPollAgent
+          mage dockerBuildAPIMultiPlatform
+          mage dockerBuildTargetAgentMultiPlatform
+          mage dockerBuildPollAgentMultiPlatform
       
       - name: Build Symphony k8s
         run: | 
           cd k8s
-          mage dockerBuild
+          mage dockerBuildK8sMultiPlatform
 
       - name: Replace version in cli/cmd/up.go
         run: |
@@ -122,26 +130,18 @@ jobs:
       
       - name: Push symphony api images
         run: |
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-api:latest ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
 
       - name: Push symphony k8s images
         run: |
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          
       - name: Push symphony helm package
         run: |
           cd packages/helm

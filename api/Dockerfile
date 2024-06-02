@@ -4,7 +4,7 @@
 ## SPDX-License-Identifier: MIT
 ##
 
-ARG BUILD_BASE_IMAGE=golang:1.20.2-alpine
+ARG BUILD_BASE_IMAGE=golang:1.22.3-alpine
 ARG TARGET_BASE_IMAGE=ubuntu:latest
 
 FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS build

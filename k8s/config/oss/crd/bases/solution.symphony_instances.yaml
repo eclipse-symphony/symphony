@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: instances.solution.symphony
 spec:
   group: solution.symphony
@@ -31,14 +30,19 @@ spec:
         description: Instance is the Schema for the instances API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -80,14 +84,18 @@ spec:
                   type: object
                 type: array
               reconciliationPolicy:
-                description: Optional ReconcilicationPolicy to specify how target
-                  controller should reconcile. Now only periodic reconciliation is
-                  supported. If the interval is 0, it will only reconcile when the
-                  instance is created or updated.
+                description: |-
+                  Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                  Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                  when the instance is created or updated.
                 properties:
                   interval:
+                    minLength: 1
                     type: string
                   state:
+                    enum:
+                    - active
+                    - inactive
                     type: string
                 required:
                 - state
