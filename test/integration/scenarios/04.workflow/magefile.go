@@ -35,10 +35,10 @@ var (
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
-		"docs/samples/multisite/catalog-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
-		"docs/samples/multisite/solution-catalog.yaml",
-		"docs/samples/multisite/target-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",
 	}
 
 	testCampaign = []string{
