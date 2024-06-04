@@ -336,19 +336,19 @@ func TestObjectDeleteWithProviderSpecified(t *testing.T) {
 		"key2": 42,
 		"key3": true,
 	}
-	manager.SetObject("memory:obj", object)
+	manager.SetObject("memory::obj", object)
 
 	// Delete field
-	err = manager.Delete("memory:obj", "key1")
+	err = manager.Delete("memory::obj", "key1")
 	assert.Nil(t, err)
-	val, err := manager.Get("memory:obj", "key1", nil, nil)
+	val, err := manager.Get("memory::obj", "key1", nil, nil)
 	assert.NotNil(t, err)
 	assert.Empty(t, val)
 
 	// Delete object
-	err2 := manager.DeleteObject("memory:obj")
+	err2 := manager.DeleteObject("memory::obj")
 	assert.Nil(t, err2)
-	val2, err2 := manager.GetObject("memory:obj", nil, nil)
+	val2, err2 := manager.GetObject("memory::obj", nil, nil)
 	assert.NotNil(t, err2)
 	assert.Empty(t, val2)
 }
@@ -421,5 +421,46 @@ func TestObjectDeleteWithMoreProviders(t *testing.T) {
 	val2, err2 := manager.GetObject("obj", nil, nil)
 	assert.NotNil(t, err2)
 	assert.Empty(t, val2)
+}
 
+func TestObjectReference(t *testing.T) {
+	provider1 := memory.MemoryConfigProvider{}
+	err := provider1.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	provider2 := memory.MemoryConfigProvider{}
+	err = provider2.Init(memory.MemoryConfigProviderConfig{})
+	assert.Nil(t, err)
+	manager := ConfigsManager{
+		ConfigProviders: map[string]config.IConfigProvider{
+			"memory1": &provider1,
+			"memory2": &provider2,
+		},
+		Precedence: []string{"memory1", "memory2"},
+	}
+	assert.Nil(t, err)
+
+	object := map[string]interface{}{
+		"key1": "value1",
+		"key2": 42,
+		"key3": true,
+	}
+	// Get field
+	manager.SetObject("memory1::obj:v1", object)
+	val, err := manager.Get("obj:v1", "key1", nil, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, "value1", val)
+
+	// Delete field
+	err = manager.Delete("memory1::obj:v1", "key1")
+	assert.Nil(t, err)
+	val, err = manager.Get("memory1::obj:v1", "key1", nil, nil)
+	assert.NotNil(t, err)
+	assert.Empty(t, val)
+
+	// Delete object
+	err2 := manager.DeleteObject("memory1::obj:v1")
+	assert.Nil(t, err2)
+	val2, err2 := manager.GetObject("memory1::obj:v1", nil, nil)
+	assert.NotNil(t, err2)
+	assert.Empty(t, val2)
 }

@@ -1,7 +1,7 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: target
+  name: target-v1
 spec:
   type: target
   properties:
