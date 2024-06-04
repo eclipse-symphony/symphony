@@ -116,14 +116,16 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 	})
 	defer span.End()
 	tLog.Infof("V (Targets) : onRegistry, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
+	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = constants.DefaultScope
 	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onRegistry-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
@@ -156,7 +158,6 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
-		id := request.Parameters["__name"]
 		binding := request.Parameters["with-binding"]
 		var target model.TargetState
 		err := json.Unmarshal(request.Body, &target)
@@ -238,7 +239,6 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onRegistry-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
 
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {

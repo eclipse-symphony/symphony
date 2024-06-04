@@ -77,16 +77,18 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		"method": "onInstances",
 	})
 	defer span.End()
+	iLog.Infof("V (Instances): onInstances, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
 
 	iLog.Infof("V (Instances): onInstances, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onInstances-GET", pCtx, nil)
-		id := request.Parameters["__name"]
-		namespace, exist := request.Parameters["namespace"]
-		if !exist {
-			namespace = constants.DefaultScope
-		}
 		var err error
 		var state interface{}
 		isArray := false
@@ -101,7 +103,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = c.InstancesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.Errorf("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -119,11 +121,6 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onInstances-POST", pCtx, nil)
-		id := request.Parameters["__name"]
-		namespace, exist := request.Parameters["namespace"]
-		if !exist {
-			namespace = constants.DefaultScope
-		}
 		solution := request.Parameters["solution"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
@@ -199,12 +196,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onInstances-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
-		namespace, exist := request.Parameters["namespace"]
-		if !exist {
-			namespace = constants.DefaultScope
-		}
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
