@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,8 @@ const (
 	GITHUB_PAT             = "CR_PAT"
 	LOG_ROOT               = "/tmp/symphony-integration-test-logs"
 )
+
+var platform = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
 // Print parameters for mage local testing
 func PrintParams() error {
@@ -388,13 +391,16 @@ func (Build) Api() error {
 	return buildAPI()
 }
 func buildAPI() error {
-	return shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile -t \"ghcr.io/eclipse-symphony/symphony-api\" \"../..\" --load").Run() //oss
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func buildAgent() error {
+	pollAgentImageName := "ghcr.io/eclipse-symphony/symphony-poll-agent"
+	targetAgentImageName := "ghcr.io/eclipse-symphony/symphony-target-agent"
 	return shellcmd.RunAll(
-		shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile.poll-agent -t \"ghcr.io/eclipse-symphony/symphony-poll-agent\" \"../..\" --load"),
-		shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../api/Dockerfile.target-agent -t \"ghcr.io/eclipse-symphony/symphony-target-agent\" \"../..\" --load"),
+		shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile.poll-agent -t %s \"../..\" --load", platform, pollAgentImageName)),
+		shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile.target-agent -t %s \"../..\" --load", platform, targetAgentImageName)),
 	) //oss
 }
 
@@ -403,7 +409,8 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
-	return shellcmd.Command("docker buildx build --platform \"linux/amd64\" -f ../../k8s/Dockerfile -t \"ghcr.io/eclipse-symphony/symphony-k8s\" \"../..\" --load").Run() //oss
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 /******************** Minikube ********************/
