@@ -14,13 +14,16 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var clog = logger.NewLogger("coa.runtime")
 
 type CatalogConfigProviderConfig struct {
 	User     string `json:"user"`
@@ -87,6 +90,7 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	return ret, nil
 }
 func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
+	override = api_utils.ReplaceSeperator(override)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
@@ -104,8 +108,9 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
+	clog.Debug(" M (Catalog): Read, object: %s, field: %s", object, field)
 	namespace := m.getNamespaceFromContext(localcontext)
-
+	object = api_utils.ReplaceSeperator(object)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
@@ -128,7 +133,9 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 }
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
+	clog.Debug(" M (Catalog): ReadObject, object: %s", object)
 	namespace := m.getNamespaceFromContext(localcontext)
+	object = api_utils.ReplaceSeperator(object)
 
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -221,6 +228,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 // TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
 // so we can get rid of getCatalogInDefaultNamespace.
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
+	clog.Debug(" M (Catalog): Set, object: %s, field: %s", object, field)
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
@@ -230,6 +238,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
+	clog.Debug(" M (Catalog): SetObject, object: %s", object)
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
@@ -242,6 +251,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
+	clog.Debug(" M (Catalog): Remove, object: %s, field: %s", object, field)
 	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
@@ -254,9 +264,12 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
+	clog.Debug(" M (Catalog): RemoveObject, object: %s", object)
+	object = api_utils.ReplaceSeperator(object)
 	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
 }
 
 func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {
+	catalog = api_utils.ReplaceSeperator(catalog)
 	return m.ApiClient.GetCatalog(context, catalog, "", m.Config.User, m.Config.Password)
 }

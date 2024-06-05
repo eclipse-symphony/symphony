@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: solution03
+  name: solution03-v1
 spec:  
   metadata:
     deployment.replicas: "#1"
