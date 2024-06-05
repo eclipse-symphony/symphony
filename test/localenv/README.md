@@ -44,8 +44,8 @@ Example:
 
 ```shell
 # Go installation
-curl -LO "https://go.dev/dl/go1.21.3.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz
+curl -LO "https://go.dev/dl/go1.22.3.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.3.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
 
@@ -179,6 +179,11 @@ To remove symphony from the cluster use
 
 ```
 mage Destroy all,nowait
+```
+
+If packages version in go.mod is updated, prepare dependencies using
+```
+go mod tidy
 ```
 
 # Troubleshooting
