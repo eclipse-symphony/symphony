@@ -77,6 +77,8 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+
+	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = constants.DefaultScope
@@ -84,7 +86,6 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
@@ -117,7 +118,6 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
-		id := request.Parameters["__name"]
 		embed_type := request.Parameters["embed-type"]
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]
@@ -191,7 +191,6 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())

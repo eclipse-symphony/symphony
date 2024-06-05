@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -64,7 +65,7 @@ func (r *Skill) Default() {
 var _ webhook.Validator = &Skill{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateCreate() error {
+func (r *Skill) ValidateCreate() (admission.Warnings, error) {
 	skilllog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -86,11 +87,11 @@ func (r *Skill) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateUpdate(old runtime.Object) error {
+func (r *Skill) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	skilllog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -112,15 +113,15 @@ func (r *Skill) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateDelete() error {
+func (r *Skill) ValidateDelete() (admission.Warnings, error) {
 	skilllog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 func (r *Skill) validateCreateSkill() error {

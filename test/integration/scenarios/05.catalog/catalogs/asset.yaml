@@ -1,7 +1,7 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: asset
+  name: asset-v1
 spec:
   catalogType: asset
   properties:

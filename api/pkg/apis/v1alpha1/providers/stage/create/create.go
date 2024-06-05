@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -135,6 +136,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	if object != nil {
 		oData, _ = json.Marshal(object)
 	}
+	objectName = api_utils.ReplaceSeperator(objectName)
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":

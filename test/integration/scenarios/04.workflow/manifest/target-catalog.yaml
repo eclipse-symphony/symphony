@@ -1,9 +1,9 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: target-v1
-spec:
-  catalogType: target
+  name: site-k8s-target-v1
+spec: 
+  type: target
   properties:
     spec:
       properties:

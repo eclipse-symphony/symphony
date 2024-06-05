@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -55,24 +56,24 @@ func (r *Solution) Default() {
 var _ webhook.Validator = &Solution{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Solution) ValidateCreate() error {
+func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 	solutionlog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateSolution()
+	return nil, r.validateCreateSolution()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Solution) ValidateUpdate(old runtime.Object) error {
+func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	solutionlog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateSolution()
+	return nil, r.validateUpdateSolution()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Solution) ValidateDelete() error {
+func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 	solutionlog.Info("validate delete", "name", r.Name)
 
-	return nil
+	return nil, nil
 }
 
 func (r *Solution) validateCreateSolution() error {

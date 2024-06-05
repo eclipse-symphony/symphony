@@ -262,7 +262,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			var requests []ctrl.Request
 			BeforeEach(func(ctx context.Context) {
 				By("simulating a call to the handleSolution function")
-				requests = controller.handleSolution(solution)
+				requests = controller.handleSolution(ctx, solution)
 			})
 
 			It("should return a request for the instance", func() {
@@ -276,7 +276,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			var requests []ctrl.Request
 			BeforeEach(func(ctx context.Context) {
 				By("simulating a call to the handleTarget function")
-				requests = controller.handleTarget(target)
+				requests = controller.handleTarget(ctx, target)
 			})
 
 			It("should return a request for the instance", func() {

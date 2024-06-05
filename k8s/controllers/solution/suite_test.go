@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 
+	fabric_api "gopls-workspace/apis/fabric/v1"
 	api "gopls-workspace/apis/solution/v1"
 	controllers "gopls-workspace/controllers/solution"
 
@@ -115,6 +116,9 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 
 		//+kubebuilder:scaffold:scheme
 		err = api.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = fabric_api.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		// The default client created by calling client.New behaves slightly different

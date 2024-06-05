@@ -229,7 +229,6 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	defer span.End()
 
 	lLog.Infof("V (Catalogs Vendor): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
-
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
 		namespace = ""
@@ -295,6 +294,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 
 	lLog.Infof("V (Catalogs Vendor): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
+	id := request.Parameters["__name"]
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
 		namespace = "default"
@@ -303,7 +303,6 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCatalogs-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
@@ -341,7 +340,6 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCatalogs-POST", pCtx, nil)
-		id := request.Parameters["__name"]
 		if id == "" {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
@@ -370,7 +368,6 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCatalogs-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
