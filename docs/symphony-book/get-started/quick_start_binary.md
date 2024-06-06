@@ -21,7 +21,7 @@ go build -o ./symphony-api
 Launch Symphony with a [configuration file](../hosts/_overview.md):
 
 ```bash
-./symphony-api -c ./symphony-api-no-k8s.json -l Debug
+SYMPHONY_API_URL="http://localhost:8082/v1alpha2/" USE_SERVICE_ACCOUNT_TOKENS="false" ./symphony-api -c ./symphony-api-no-k8s.json -l Debug
 ```
 
 ## More topics

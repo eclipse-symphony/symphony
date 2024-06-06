@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: target-v1
 spec:
-  type: target
+  catalogType: target
   properties:
     spec:
       properties:

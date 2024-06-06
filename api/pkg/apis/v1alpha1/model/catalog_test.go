@@ -50,7 +50,7 @@ func TestCatalogMatch(t *testing.T) {
 
 func TestCatalogMatchOneEmpty(t *testing.T) {
 	catalog1 := CatalogSpec{
-		Type: "type",
+		CatalogType: "type",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
@@ -132,7 +132,7 @@ func TestGetProperties(t *testing.T) {
 func TestGetType(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "type",
+			CatalogType: "type",
 		},
 	}
 	assert.Equal(t, catalog.GetType(), "type")
@@ -144,7 +144,7 @@ func TestGetType(t *testing.T) {
 func TestGetFrom(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "edge",
+			CatalogType: "edge",
 			Metadata: map[string]string{
 				"from": "from",
 			},
@@ -159,7 +159,7 @@ func TestGetFrom(t *testing.T) {
 func TestGetTo(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "edge",
+			CatalogType: "edge",
 			Metadata: map[string]string{
 				"to": "to",
 			},

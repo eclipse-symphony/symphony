@@ -6,7 +6,7 @@ metadata:
   labels:
     version: "1"
 spec:
-  type: config
+  catalogType: config
   properties:
     premium_settings:
       premium_key1: "premium1"

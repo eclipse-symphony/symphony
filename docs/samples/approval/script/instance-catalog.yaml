@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: gated-prometheus-instance
 spec:
-  type: instance
+  catalogType: instance
   properties:
     spec: 
       solution: gated-prometheus-server

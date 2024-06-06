@@ -112,7 +112,7 @@ func TestConvertVisualizationPacketToCatalog(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.Type)
+	assert.Equal(t, "topology", catalog.Spec.CatalogType)
 
 	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
@@ -130,7 +130,7 @@ func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
 		To:       "to-1",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.Type)
+	assert.Equal(t, "topology", catalog.Spec.CatalogType)
 
 	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
@@ -148,7 +148,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.Type)
+	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
 	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
@@ -159,7 +159,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.Type)
+	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
 
 	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
 	assert.Nil(t, err)
@@ -186,7 +186,7 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.Type)
+	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
 	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
@@ -197,7 +197,7 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.Type)
+	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
 
 	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
 	assert.Nil(t, err)

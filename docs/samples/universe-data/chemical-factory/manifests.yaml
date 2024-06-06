@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: site-app-config
 spec:
-  type: config
+  catalogType: config
   name: site-app-config
   properties:
     foo: bar
@@ -14,7 +14,7 @@ kind: Catalog
 metadata:
   name: line-app-config
 spec:
-  type: config
+  catalogType: config
   properties:
     cat: leory
     dog: snoopy
@@ -24,7 +24,7 @@ kind: Catalog
 metadata:
   name: site-app
 spec:
-  type: solution
+  catalogType: solution
   properties:
     spec: 
       displayName: site-app
@@ -48,7 +48,7 @@ kind: Catalog
 metadata:
   name: line-app
 spec:
-  type: solution
+  catalogType: solution
   properties:
     spec: 
       components:
@@ -134,7 +134,7 @@ kind: Catalog
 metadata:
   name: smart-fridge
 spec:
-  type: solution
+  catalogType: solution
   properties:
     spec: 
       displayName: smart-fridge
@@ -160,7 +160,7 @@ kind: Catalog
 metadata:
   name: site-instance
 spec:
-  type: instance
+  catalogType: instance
   properties:
     spec: 
       solution: site-app

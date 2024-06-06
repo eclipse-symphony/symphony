@@ -4,7 +4,7 @@ kind: Catalog
 metadata:
   name: line2-config
 spec:
-  type: config
+  catalogType: config
   properties:
     line2:
       name: "Line 2"

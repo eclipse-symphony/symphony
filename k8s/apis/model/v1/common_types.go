@@ -87,18 +87,17 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
-	DisplayName  string                       `json:"displayName,omitempty"`
-	Scope        string                       `json:"scope,omitempty"`
-	Parameters   map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-	Metadata     map[string]string            `json:"metadata,omitempty"`
-	Solution     string                       `json:"solution"`
-	Target       model.TargetSelector         `json:"target,omitempty"`
-	Topologies   []model.TopologySpec         `json:"topologies,omitempty"`
-	Pipelines    []model.PipelineSpec         `json:"pipelines,omitempty"`
-	Arguments    map[string]map[string]string `json:"arguments,omitempty"`
-	Generation   string                       `json:"generation,omitempty"`
-	Version      string                       `json:"version,omitempty"`
-	RootResource string                       `json:"rootResource,omitempty"`
+	DisplayName  string               `json:"displayName,omitempty"`
+	Scope        string               `json:"scope,omitempty"`
+	Parameters   map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata     map[string]string    `json:"metadata,omitempty"`
+	Solution     string               `json:"solution"`
+	Target       model.TargetSelector `json:"target,omitempty"`
+	Topologies   []model.TopologySpec `json:"topologies,omitempty"`
+	Pipelines    []model.PipelineSpec `json:"pipelines,omitempty"`
+	Generation   string               `json:"generation,omitempty"`
+	Version      string               `json:"version,omitempty"`
+	RootResource string               `json:"rootResource,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -204,8 +203,8 @@ type CampaignContainerSpec struct {
 
 // +kubebuilder:object:generate=true
 type CatalogSpec struct {
-	Type     string            `json:"type"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	CatalogType string            `json:"catalogType"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties   runtime.RawExtension `json:"properties"`

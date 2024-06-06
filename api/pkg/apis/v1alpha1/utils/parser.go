@@ -414,13 +414,6 @@ func readPropertyInterface(properties map[string]interface{}, key string) (inter
 	return "", fmt.Errorf("property %s is not found", key)
 }
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
-
-	arguments := deployment.Instance.Spec.Arguments
-	if ca, ok := arguments[component]; ok {
-		if a, ok := ca[key]; ok {
-			return a, nil
-		}
-	}
 	components := deployment.Solution.Spec.Components
 	for _, c := range components {
 		if c.Name == component {
