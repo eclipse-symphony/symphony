@@ -77,6 +77,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	defer span.End()
 	cLog.Infof("V (Campaigns): onCampaigns, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
 
+	id := request.Parameters["__name"]
 	namespace, namespaceSupplied := request.Parameters["namespace"]
 	if !namespaceSupplied {
 		namespace = "default"
@@ -85,7 +86,6 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCampaigns-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
@@ -117,8 +117,6 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCampaigns-POST", pCtx, nil)
-		id := request.Parameters["__name"]
-
 		var campaign model.CampaignState
 
 		err := json.Unmarshal(request.Body, &campaign)
@@ -143,7 +141,6 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		err := c.CampaignsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			cLog.Infof("V (Campaigns): onCampaigns failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())

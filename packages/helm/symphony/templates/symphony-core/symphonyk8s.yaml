@@ -356,6 +356,8 @@ spec:
             type: object
           spec:
             properties:
+              catalogType:
+                type: string
               generation:
                 type: string
               metadata:
@@ -398,13 +400,11 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               rootResource:
                 type: string
-              type:
-                type: string
               version:
                 type: string
             required:
+            - catalogType
             - properties
-            - type
             type: object
           status:
             properties:
@@ -626,12 +626,6 @@ spec:
             type: object
           spec:
             properties:
-              arguments:
-                additionalProperties:
-                  additionalProperties:
-                    type: string
-                  type: object
-                type: object
               displayName:
                 type: string
               generation:
@@ -2598,7 +2592,7 @@ spec:
         - --upstream=http://127.0.0.1:8080/
         - --logtostderr=true
         - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+        image: '{{ .Values.kubeRbacProxy.image }}'
         name: kube-rbac-proxy
         ports:
         - containerPort: 8443

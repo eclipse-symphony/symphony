@@ -4,7 +4,7 @@ kind: Catalog
 metadata:
   name: segment
 spec:
-  type: config
+  catalogType: config
   properties:
     common-key1: "common-value1"
     common-key2: "common-value2"

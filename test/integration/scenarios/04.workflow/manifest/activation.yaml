@@ -3,5 +3,5 @@ kind: Activation
 metadata:
   name: 04workflow
 spec:
-  campaign: "04campaign"
+  campaign: "04campaign:v1"
   

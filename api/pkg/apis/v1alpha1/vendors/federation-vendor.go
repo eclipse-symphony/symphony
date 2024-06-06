@@ -434,7 +434,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 			err = f.Vendor.Context.Publish("catalog", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Spec.Type,
+					"objectType": catalog.Spec.CatalogType,
 				},
 				Body: v1alpha2.JobData{
 					Id:     catalog.ObjectMeta.Name,

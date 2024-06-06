@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -164,8 +165,8 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
-
-			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+			targetName := ReplaceLastSeperator(instance.Spec.Target.Name, ":", "-")
+			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}
@@ -237,4 +238,29 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
 
 	return ret, err
+}
+
+func NeedWatchInstance(instance solution_v1.Instance) bool {
+	var interval time.Duration = 30
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
+		parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
+		if err != nil {
+			parsedInterval = 30
+		}
+		interval = parsedInterval
+	}
+
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
+		return false
+	}
+
+	return true
+}
+
+func ReplaceLastSeperator(name string, seperatorBefore string, seperatorAfter string) string {
+	i := strings.LastIndex(name, seperatorBefore)
+	if i == -1 {
+		return name
+	}
+	return name[:i] + seperatorAfter + name[i+1:]
 }

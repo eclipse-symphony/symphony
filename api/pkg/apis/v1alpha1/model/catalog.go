@@ -31,7 +31,7 @@ type ObjectRef struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	Type         string                 `json:"type"`
+	CatalogType  string                 `json:"catalogType"`
 	Metadata     map[string]string      `json:"metadata,omitempty"`
 	Properties   map[string]interface{} `json:"properties"`
 	ParentName   string                 `json:"parentName,omitempty"`
@@ -97,7 +97,7 @@ func (s CatalogState) GetParent() string {
 }
 func (s CatalogState) GetType() string {
 	if s.Spec != nil {
-		return s.Spec.Type
+		return s.Spec.CatalogType
 	}
 	return ""
 }
@@ -111,7 +111,7 @@ func (s CatalogState) GetProperties() map[string]interface{} {
 // IEdge interface
 func (s CatalogState) GetFrom() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if from, ok := s.Spec.Metadata["from"]; ok {
 					return from
@@ -124,7 +124,7 @@ func (s CatalogState) GetFrom() string {
 
 func (s CatalogState) GetTo() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if to, ok := s.Spec.Metadata["to"]; ok {
 					return to
