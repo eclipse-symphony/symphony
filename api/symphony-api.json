@@ -13,17 +13,23 @@
       "lng": "-122.12826"
     },
     "currentSite": {
-      "baseUrl": "http://symphony-service:8080/v1alpha2/",
+      "baseUrl": "https://symphony-service:8081/v1alpha2/",
       "username": "admin",
       "password": ""
-    }
+    }  
   },
   "api": {
     "pubsub": {
       "shared": true,
       "provider": {
-        "type": "providers.pubsub.memory",
-        "config": {}
+        "type": "providers.pubsub.redis",
+        "config": {
+          "name": "redis",
+          "host": "symphony-redis:6379",
+          "requireTLS": false,
+          "password": "",
+          "numberOfWorkers": 1
+        }
       }
     },
     "vendors": [
@@ -40,7 +46,6 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://symphony-service:8080/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }
@@ -56,8 +61,10 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": {   
-              "providers.state": "k8s-state"        
+            "properties": { 
+              "user": "admin",
+              "password": "",  
+              "providers.state": "k8s-state"          
             },
             "providers": {
               "k8s-state": {
@@ -98,7 +105,13 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
       },
       {
         "type": "vendors.activations",
@@ -167,6 +180,27 @@
         ]
       },
       {
+        "type": "vendors.campaigncontainers",
+        "route": "campaigncontainers",
+        "managers": [
+          {
+            "name": "campaign-container-manager",
+            "type": "managers.symphony.campaigncontainers",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.echo",
         "route": "greetings",
         "managers": []
@@ -181,12 +215,11 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.state": "mem-state",
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
               "user": "admin",
               "password": "",
               "interval": "#15",
               "poll.enabled": "false",
-              "schedule.enabled": "true"                     
+              "schedule.enabled": "true"                            
             },
             "providers": {
               "mem-state": {
@@ -204,6 +237,27 @@
           {
             "name": "targets-manager",
             "type": "managers.symphony.targets",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.targetcontainers",
+        "route": "targetcontainers",
+        "managers": [
+          {
+            "name": "target-container-manager",
+            "type": "managers.symphony.targetcontainers",
             "properties": {
               "providers.state": "k8s-state"
             },
@@ -240,6 +294,27 @@
         ]
       },
       {
+        "type": "vendors.solutioncontainers",
+        "route": "solutioncontainers",
+        "managers": [
+          {
+            "name": "solution-container-manager",
+            "type": "managers.symphony.solutioncontainers",
+            "properties": {
+              "providers.state": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
         "type": "vendors.instances",
         "route": "instances",
         "managers": [
@@ -248,6 +323,27 @@
             "type": "managers.symphony.instances",
             "properties": {
               "providers.state": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.instancecontainers",
+        "route": "instancecontainers",
+        "managers": [
+          {
+            "name": "instance-container-manager",
+            "type": "managers.symphony.instancecontainers",
+            "properties": {
+              "providers.state": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -468,15 +564,15 @@
             "properties": {
               "poll.enabled": "true",
               "interval": "#15",
-              "providers.queue": "memeory-queue",
+              "providers.queue": "memory-queue",
               "providers.state": "memory-state"              
             },
             "providers": {
-              "memeory-queue": {
+              "memory-queue": {
                 "type": "providers.queue.memory",
                 "config": {}
               },
-              "mem-state": {
+              "memory-state": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -487,10 +583,9 @@
             "type": "managers.symphony.sync",
             "properties": {
               "interval": "#15",
-              "sync.enabled": "true",               
-              "baseUrl": "http://symphony-service:8080/v1alpha2/",
+              "sync.enabled": "true"  ,
               "user": "admin",
-              "password": ""
+              "password": ""         
             }
           }
         ]
@@ -516,6 +611,28 @@
               "graph": {
                 "type": "providers.graph.memory",
                 "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogcontainers",
+        "route": "catalogcontainers",
+        "managers": [
+          {
+            "name": "catalog-container-manager",
+            "type": "managers.symphony.catalogcontainers",
+            "properties": {
+              "providers.state": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -554,7 +671,23 @@
       "type": "bindings.http",
       "config": {
         "port": 8080,
-        "pipeline": [
+        "pipeline": [          
+          {
+            "type": "middleware.http.tracing",
+            "properties": {
+              "pipeline": [
+                {
+                  "exporter": {
+                    "type": "tracing.exporters.zipkin",
+                    "backendUrl": "http://symphony-zipkin.default.svc.cluster.local:9411/api/v2/spans",
+                    "sampler": {
+                      "sampleRate": "always"
+                    }
+                  }
+                }
+              ]
+            }
+          },
           {
             "type": "middleware.http.cors",
             "properties": {
@@ -644,9 +777,64 @@
           "port": 8081,
           "tls": true,
           "certProvider": {
-          "type": "certs.autogen",
-          "config":{}
-          }
+            "type": "certs.localfile",
+            "config": {
+              "name": "symphony-serving-cert",
+              "cert": "/etc/symphony-api/tls/tls.crt",
+              "key": "/etc/symphony-api/tls/tls.key"
+            }
+          },
+          "pipeline": [          
+          {
+            "type": "middleware.http.tracing",
+            "properties": {
+              "pipeline": [
+                {
+                  "exporter": {
+                    "type": "tracing.exporters.zipkin",
+                    "backendUrl": "http://symphony-zipkin.default.svc.cluster.local:9411/api/v2/spans",
+                    "sampler": {
+                      "sampleRate": "always"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+            {
+              "type": "middleware.http.cors",
+              "properties": {
+                "Access-Control-Allow-Headers": "authorization,Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+                "Access-Control-Allow-Origin": "*"
+              }
+            },
+            {
+              "type": "middleware.http.jwt",
+              "properties": {
+                "ignorePaths": [
+                  "/v1alpha2/users/auth",
+                  "/v1alpha2/solution/instances",
+                  "/v1alpha2/agent/references",
+                  "/v1alpha2/greetings",
+                  "/v1alpha2/agent/config"
+                ],
+                "verifyKey": "SymphonyKey",
+                "authServer": "kubernetes",
+                "enableRBAC": false
+              }
+            },
+            {
+              "type": "middleware.http.telemetry",
+              "properties": {
+                "enabled": true,
+                "maxBatchSize": 8192,
+                "maxBatchIntervalSeconds": 2,
+                "client": "my-dev-machine"
+              }
+            }
+          ]
       }
     }
   ]

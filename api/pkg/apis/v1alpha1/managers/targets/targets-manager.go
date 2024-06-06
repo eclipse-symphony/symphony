@@ -19,12 +19,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
-
-var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
@@ -84,51 +81,6 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		"kind":       "Target",
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
-	}
-
-	if state.Spec != nil {
-		rootResource := state.Spec.RootResource
-		if rootResource != "" {
-			log.Debugf(" M (Targets): target root resource: %s, target: %s", rootResource, name)
-			resourceName := "targetcontainers"
-			kind := "TargetContainer"
-			containerMetadata := map[string]interface{}{
-				"version":   "v1",
-				"group":     model.FabricGroup,
-				"resource":  resourceName,
-				"namespace": state.ObjectMeta.Namespace,
-				"kind":      kind,
-			}
-			getRequest := states.GetRequest{
-				ID:       rootResource,
-				Metadata: containerMetadata,
-			}
-			_, err = t.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				log.Debugf(" M (Targets): get target container %s, err %v", rootResource, err)
-				cErr, ok := err.(v1alpha2.COAError)
-				if ok && cErr.State == v1alpha2.NotFound {
-					containerBody := map[string]interface{}{
-						"apiVersion": model.FabricGroup + "/v1",
-						"kind":       kind,
-						"metadata":   model.ObjectMeta{Namespace: state.ObjectMeta.Namespace, Name: rootResource},
-						"spec":       model.TargetContainerSpec{},
-					}
-					containerUpsertRequest := states.UpsertRequest{
-						Value: states.StateEntry{
-							ID:   rootResource,
-							Body: containerBody,
-						},
-						Metadata: containerMetadata,
-					}
-					_, err = t.StateProvider.Upsert(ctx, containerUpsertRequest)
-					if err != nil {
-						log.Errorf(" M (Targets): failed to create target container %s, namespace: %v, err %v", rootResource, state.ObjectMeta.Namespace, err)
-						return err
-					}
-				}
-			}
-		}
 	}
 
 	upsertRequest := states.UpsertRequest{

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package instances
+package catalogcontainers
 
 import (
 	"context"
@@ -17,17 +17,20 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
-type InstancesManager struct {
+var log = logger.NewLogger("coa.runtime")
+
+type CatalogContainersManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
 }
 
-func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+func (s *CatalogContainersManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
 		return err
@@ -41,9 +44,9 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespace string) error {
-	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+func (t *CatalogContainersManager) DeleteState(ctx context.Context, name string, namespace string) error {
+	ctx, span := observability.StartSpan("CatalogContainersManager", ctx, &map[string]string{
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -52,18 +55,18 @@ func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespa
 		ID: name,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
-			"group":     model.SolutionGroup,
+			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "instances",
-			"kind":      "Instance",
+			"resource":  "catalogcontainers",
+			"kind":      "CatalogContainer",
 		},
 	})
 	return err
 }
 
-func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState) error {
-	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string, state model.CatalogContainerState) error {
+	ctx, span := observability.StartSpan("CatalogContainersManager", ctx, &map[string]string{
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -74,27 +77,24 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	state.ObjectMeta.FixNames(name)
 
 	body := map[string]interface{}{
-		"apiVersion": model.SolutionGroup + "/v1",
-		"kind":       "Instance",
+		"apiVersion": model.FederationGroup + "/v1",
+		"kind":       "CatalogContainer",
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
-	generation := ""
-	if state.Spec != nil {
-		generation = state.Spec.Generation
-	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: generation,
+			ETag: "",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
-			"group":     model.SolutionGroup,
+			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "instances",
-			"kind":      "Instance",
+			"resource":  "catalogcontainers",
+			"kind":      "CatalogContainer",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -104,9 +104,9 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	return nil
 }
 
-func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]model.InstanceState, error) {
-	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+func (t *CatalogContainersManager) ListState(ctx context.Context, namespace string) ([]model.CatalogContainerState, error) {
+	ctx, span := observability.StartSpan("CatalogContainersManager", ctx, &map[string]string{
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -114,21 +114,21 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
-			"resource":  "instances",
+			"group":     model.FederationGroup,
+			"resource":  "catalogcontainers",
 			"namespace": namespace,
-			"kind":      "Instance",
+			"kind":      "CatalogContainer",
 		},
 	}
-	var instances []states.StateEntry
-	instances, _, err = t.StateProvider.List(ctx, listRequest)
+	var catalogcontainers []states.StateEntry
+	catalogcontainers, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]model.InstanceState, 0)
-	for _, t := range instances {
-		var rt model.InstanceState
-		rt, err = getInstanceState(t.Body, t.ETag)
+	ret := make([]model.CatalogContainerState, 0)
+	for _, t := range catalogcontainers {
+		var rt model.CatalogContainerState
+		rt, err = getCatalogContainerState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -137,22 +137,21 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getInstanceState(body interface{}, etag string) (model.InstanceState, error) {
-	var instanceState model.InstanceState
+func getCatalogContainerState(body interface{}, etag string) (model.CatalogContainerState, error) {
+	var CatalogContainerState model.CatalogContainerState
 	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &instanceState)
+	err := json.Unmarshal(bytes, &CatalogContainerState)
 	if err != nil {
-		return model.InstanceState{}, err
+		return model.CatalogContainerState{}, err
 	}
-	if instanceState.Spec == nil {
-		instanceState.Spec = &model.InstanceSpec{}
+	if CatalogContainerState.Spec == nil {
+		CatalogContainerState.Spec = &model.CatalogContainerSpec{}
 	}
-	instanceState.Spec.Generation = etag
-	return instanceState, nil
+	return CatalogContainerState, nil
 }
 
-func (t *InstancesManager) GetState(ctx context.Context, id string, namespace string) (model.InstanceState, error) {
-	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
+func (t *CatalogContainersManager) GetState(ctx context.Context, id string, namespace string) (model.CatalogContainerState, error) {
+	ctx, span := observability.StartSpan("CatalogContainersManager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
 	var err error = nil
@@ -162,21 +161,21 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		ID: id,
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
-			"resource":  "instances",
+			"group":     model.FederationGroup,
+			"resource":  "catalogcontainers",
 			"namespace": namespace,
-			"kind":      "Instance",
+			"kind":      "CatalogContainer",
 		},
 	}
-	var instance states.StateEntry
-	instance, err = t.StateProvider.Get(ctx, getRequest)
+	var Campaign states.StateEntry
+	Campaign, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return model.InstanceState{}, err
+		return model.CatalogContainerState{}, err
 	}
-	var ret model.InstanceState
-	ret, err = getInstanceState(instance.Body, instance.ETag)
+	var ret model.CatalogContainerState
+	ret, err = getCatalogContainerState(Campaign.Body, Campaign.ETag)
 	if err != nil {
-		return model.InstanceState{}, err
+		return model.CatalogContainerState{}, err
 	}
 	return ret, nil
 }

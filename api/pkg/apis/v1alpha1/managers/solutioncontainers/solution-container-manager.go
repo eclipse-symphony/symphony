@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutions
+package solutioncontainers
 
 import (
 	"context"
@@ -17,17 +17,20 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
-type SolutionsManager struct {
+var log = logger.NewLogger("coa.runtime")
+
+type SolutionContainersManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
 }
 
-func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+func (s *SolutionContainersManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
 		return err
@@ -41,9 +44,9 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	return nil
 }
 
-func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespace string) error {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+func (t *SolutionContainersManager) DeleteState(ctx context.Context, name string, namespace string) error {
+	ctx, span := observability.StartSpan("SolutionContainersManager", ctx, &map[string]string{
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -54,15 +57,15 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespa
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
-			"resource":  "solutions",
-			"kind":      "Solution",
+			"resource":  "solutioncontainers",
+			"kind":      "SolutionContainer",
 		},
 	})
 	return err
 }
 
-func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state model.SolutionState) error {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+func (t *SolutionContainersManager) UpsertState(ctx context.Context, name string, state model.SolutionContainerState) error {
+	ctx, span := observability.StartSpan("SolutionContainersManager", ctx, &map[string]string{
 		"method": "UpsertState",
 	})
 	var err error = nil
@@ -75,31 +78,35 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
-		"kind":       "Solution",
+		"kind":       "SolutionContainer",
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
+			ETag: "",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
-			"resource":  "solutions",
-			"kind":      "Solution",
+			"resource":  "solutioncontainers",
+			"kind":      "SolutionContainer",
 		},
 	}
-
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]model.SolutionState, error) {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+func (t *SolutionContainersManager) ListState(ctx context.Context, namespace string) ([]model.SolutionContainerState, error) {
+	ctx, span := observability.StartSpan("SolutionContainersManager", ctx, &map[string]string{
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -108,20 +115,20 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
-			"resource":  "solutions",
+			"resource":  "solutioncontainers",
 			"namespace": namespace,
-			"kind":      "Solution",
+			"kind":      "SolutionContainer",
 		},
 	}
-	var solutions []states.StateEntry
-	solutions, _, err = t.StateProvider.List(ctx, listRequest)
+	var solutioncontainers []states.StateEntry
+	solutioncontainers, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]model.SolutionState, 0)
-	for _, t := range solutions {
-		var rt model.SolutionState
-		rt, err = getSolutionState(t.Body)
+	ret := make([]model.SolutionContainerState, 0)
+	for _, t := range solutioncontainers {
+		var rt model.SolutionContainerState
+		rt, err = getSolutionContainerState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -130,21 +137,21 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getSolutionState(body interface{}) (model.SolutionState, error) {
-	var solutionState model.SolutionState
+func getSolutionContainerState(body interface{}, etag string) (model.SolutionContainerState, error) {
+	var SolutionContainerState model.SolutionContainerState
 	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &solutionState)
+	err := json.Unmarshal(bytes, &SolutionContainerState)
 	if err != nil {
-		return model.SolutionState{}, err
+		return model.SolutionContainerState{}, err
 	}
-	if solutionState.Spec == nil {
-		solutionState.Spec = &model.SolutionSpec{}
+	if SolutionContainerState.Spec == nil {
+		SolutionContainerState.Spec = &model.SolutionContainerSpec{}
 	}
-	return solutionState, nil
+	return SolutionContainerState, nil
 }
 
-func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionState, error) {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+func (t *SolutionContainersManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionContainerState, error) {
+	ctx, span := observability.StartSpan("SolutionContainersManager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
 	var err error = nil
@@ -155,20 +162,20 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		Metadata: map[string]interface{}{
 			"version":   "v1",
 			"group":     model.SolutionGroup,
-			"resource":  "solutions",
+			"resource":  "solutioncontainers",
 			"namespace": namespace,
-			"kind":      "Solution",
+			"kind":      "SolutionContainer",
 		},
 	}
-	var target states.StateEntry
-	target, err = t.StateProvider.Get(ctx, getRequest)
+	var Solution states.StateEntry
+	Solution, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return model.SolutionState{}, err
+		return model.SolutionContainerState{}, err
 	}
-	var ret model.SolutionState
-	ret, err = getSolutionState(target.Body)
+	var ret model.SolutionContainerState
+	ret, err = getSolutionContainerState(Solution.Body, Solution.ETag)
 	if err != nil {
-		return model.SolutionState{}, err
+		return model.SolutionContainerState{}, err
 	}
 	return ret, nil
 }

@@ -19,10 +19,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
-
-var log = logger.NewLogger("coa.runtime")
 
 type CampaignsManager struct {
 	managers.Manager
@@ -98,51 +95,6 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
-
-	if state.Spec != nil {
-		rootResource := state.Spec.RootResource
-		if rootResource != "" {
-			log.Debugf(" M (Campaigns): campaign root resource: %s, campaign: %s", rootResource, name)
-			resourceName := "campaigncontainers"
-			kind := "CampaignContainer"
-			containerMetadata := map[string]interface{}{
-				"version":   "v1",
-				"group":     model.WorkflowGroup,
-				"resource":  resourceName,
-				"namespace": state.ObjectMeta.Namespace,
-				"kind":      kind,
-			}
-			getRequest := states.GetRequest{
-				ID:       rootResource,
-				Metadata: containerMetadata,
-			}
-			_, err = m.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				log.Debugf(" M (Campaigns): get campaign container %s, err %v", rootResource, err)
-				cErr, ok := err.(v1alpha2.COAError)
-				if ok && cErr.State == v1alpha2.NotFound {
-					containerBody := map[string]interface{}{
-						"apiVersion": model.WorkflowGroup + "/v1",
-						"kind":       kind,
-						"metadata":   model.ObjectMeta{Namespace: state.ObjectMeta.Namespace, Name: rootResource},
-						"spec":       model.CampaignContainerSpec{},
-					}
-					containerUpsertRequest := states.UpsertRequest{
-						Value: states.StateEntry{
-							ID:   rootResource,
-							Body: containerBody,
-						},
-						Metadata: containerMetadata,
-					}
-					_, err = m.StateProvider.Upsert(ctx, containerUpsertRequest)
-					if err != nil {
-						log.Errorf(" M (Campaigns): failed to create campaign container %s, namespace: %v, err %v", rootResource, state.ObjectMeta.Namespace, err)
-						return err
-					}
-				}
-			}
-		}
-	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
