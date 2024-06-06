@@ -143,7 +143,7 @@ func main() {
 	if utils.ShouldUseSATokens() {
 		apiClientOptions = append(apiClientOptions, utils.WithServiceAccountToken())
 	} else {
-		apiClientOptions = append(apiClientOptions, utils.WithUserPassword(ctx, "admin", ""))
+		apiClientOptions = append(apiClientOptions, utils.WithUserPassword(ctx))
 	}
 
 	apiClient, err := utils.NewApiClient(

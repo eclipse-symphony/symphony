@@ -89,7 +89,7 @@ func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, u
 	return "", nil
 }
 
-func WithUserPassword(ctx context.Context, user string, password string) ApiClientOption {
+func WithUserPassword(ctx context.Context) ApiClientOption {
 	return func(a *apiClient) {
 		a.tokenProvider = func(ctx context.Context, baseUrl string, _ *http.Client, user string, password string) (string, error) {
 			request := authRequest{Username: user, Password: password}
