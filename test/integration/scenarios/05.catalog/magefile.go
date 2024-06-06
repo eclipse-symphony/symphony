@@ -35,6 +35,13 @@ const (
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
+		"catalogs/instance-container.yaml",
+		"catalogs/solution-container.yaml",
+		"catalogs/target-container.yaml",
+		"catalogs/asset-container.yaml",
+		"catalogs/config-container.yaml",
+		"catalogs/schema-container.yaml",
+
 		"catalogs/instance.yaml",
 		"catalogs/solution.yaml",
 		"catalogs/target.yaml",

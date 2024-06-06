@@ -152,6 +152,51 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 		return err
 	}
 
+	if state.Spec != nil {
+		rootResource := state.Spec.RootResource
+		if rootResource != "" {
+			log.Debugf(" M (Catalogs): catalog root resource: %s, catalog: %s", rootResource, name)
+			resourceName := "catalogcontainers"
+			kind := "CatalogContainer"
+			containerMetadata := map[string]interface{}{
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  resourceName,
+				"namespace": state.ObjectMeta.Namespace,
+				"kind":      kind,
+			}
+			getRequest := states.GetRequest{
+				ID:       rootResource,
+				Metadata: containerMetadata,
+			}
+			_, err = m.StateProvider.Get(ctx, getRequest)
+			if err != nil {
+				log.Debugf(" M (Catalogs): get catalog container %s, err %v", rootResource, err)
+				cErr, ok := err.(v1alpha2.COAError)
+				if ok && cErr.State == v1alpha2.NotFound {
+					containerBody := map[string]interface{}{
+						"apiVersion": model.FederationGroup + "/v1",
+						"kind":       kind,
+						"metadata":   model.ObjectMeta{Namespace: state.ObjectMeta.Namespace, Name: rootResource},
+						"spec":       model.CatalogContainerSpec{},
+					}
+					containerUpsertRequest := states.UpsertRequest{
+						Value: states.StateEntry{
+							ID:   rootResource,
+							Body: containerBody,
+						},
+						Metadata: containerMetadata,
+					}
+					_, err = m.StateProvider.Upsert(ctx, containerUpsertRequest)
+					if err != nil {
+						log.Errorf(" M (Catalogs): failed to create catalog container %s, namespace: %v, err %v", rootResource, state.ObjectMeta.Namespace, err)
+						return err
+					}
+				}
+			}
+		}
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,

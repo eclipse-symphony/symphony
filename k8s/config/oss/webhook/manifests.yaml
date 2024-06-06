@@ -70,6 +70,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: mcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigns
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-federation-symphony-v1-catalog
   failurePolicy: Fail
   name: mcatalog.kb.io
@@ -149,6 +169,26 @@ webhooks:
     - UPDATE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: vcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigns
   sideEffects: None
 - admissionReviewVersions:
   - v1

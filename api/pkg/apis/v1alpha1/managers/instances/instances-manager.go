@@ -17,10 +17,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type InstancesManager struct {
 	managers.Manager
@@ -80,8 +83,58 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		"spec":       state.Spec,
 	}
 	generation := ""
+
 	if state.Spec != nil {
 		generation = state.Spec.Generation
+		rootResource := state.Spec.RootResource
+		if rootResource != "" {
+			log.Debugf(" M (Instances): instance root resource: %s, instance: %s", rootResource, name)
+			resourceName := "instancecontainers"
+			kind := "InstanceContainer"
+			containerMetadata := map[string]interface{}{
+				"version":   "v1",
+				"group":     model.SolutionGroup,
+				"resource":  resourceName,
+				"namespace": state.ObjectMeta.Namespace,
+				"kind":      kind,
+			}
+			getRequest := states.GetRequest{
+				ID: rootResource,
+				Metadata: map[string]interface{}{
+					"version":   "v1",
+					"group":     model.SolutionGroup,
+					"resource":  resourceName,
+					"namespace": state.ObjectMeta.Namespace,
+					"kind":      kind,
+				},
+			}
+			_, err = t.StateProvider.Get(ctx, getRequest)
+			if err != nil {
+				coae := err.(v1alpha2.COAError)
+				log.Infof(" M (Instances): get instance container %s, err %v, namespace: %v", rootResource, err, coae.State)
+				cErr, ok := err.(v1alpha2.COAError)
+				if ok && cErr.State == v1alpha2.NotFound {
+					containerBody := map[string]interface{}{
+						"apiVersion": model.SolutionGroup + "/v1",
+						"kind":       kind,
+						"metadata":   model.ObjectMeta{Namespace: state.ObjectMeta.Namespace, Name: rootResource},
+						"spec":       model.InstanceContainerSpec{},
+					}
+					containerUpsertRequest := states.UpsertRequest{
+						Value: states.StateEntry{
+							ID:   rootResource,
+							Body: containerBody,
+						},
+						Metadata: containerMetadata,
+					}
+					_, err = t.StateProvider.Upsert(ctx, containerUpsertRequest)
+					if err != nil {
+						log.Errorf(" M (Instances): failed to create instance container %s, namespace: %v, err %v", rootResource, state.ObjectMeta.Namespace, err)
+						return err
+					}
+				}
+			}
+		}
 	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{

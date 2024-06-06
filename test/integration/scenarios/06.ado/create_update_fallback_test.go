@@ -28,6 +28,9 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionBytesV2 []byte
+	var instanceContainerBytes []byte
+	var targetContainerBytes []byte
+	var solutionContainerBytes []byte
 	var targetProps map[string]string
 
 	BeforeAll(func(ctx context.Context) {
@@ -52,9 +55,27 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	})
 
 	runner := func(ctx context.Context, testcase TestCase) {
-		By("setting the components for the target")
 		var err error
 
+		By("deploy solution container")
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.InstanceOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploy target container")
+		targetContainerBytes, err = testhelpers.PatchTargetContainer(defaultTargetContainerManifest, testhelpers.InstanceOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploy instance container")
+		instanceContainerBytes, err = testhelpers.PatchInstanceContainer(defaultInstanceContainerManifest, testhelpers.InstanceOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("setting the components for the target")
 		props := targetProps
 		if testcase.TargetProperties != nil {
 			props = testcase.TargetProperties
