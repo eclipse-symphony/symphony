@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,8 @@ const (
 	GITHUB_PAT             = "CR_PAT"
 	LOG_ROOT               = "/tmp/symphony-integration-test-logs"
 )
+
+var platform = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
 // Print parameters for mage local testing
 func PrintParams() error {
@@ -336,7 +339,11 @@ func Destroy(flags string) error {
 func (Build) All() error {
 	defer logTime(time.Now(), "build:all")
 
-	err := buildAPI()
+	err := ensureBuildxBuilder()
+	if err != nil {
+		return err
+	}
+	err = buildAPI()
 	if err != nil {
 		return err
 	}
@@ -384,13 +391,16 @@ func (Build) Api() error {
 	return buildAPI()
 }
 func buildAPI() error {
-	return shellcmd.Command("docker compose -f ../../api/docker-compose.yaml build").Run() //oss
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func buildAgent() error {
+	pollAgentImageName := "ghcr.io/eclipse-symphony/symphony-poll-agent"
+	targetAgentImageName := "ghcr.io/eclipse-symphony/symphony-target-agent"
 	return shellcmd.RunAll(
-		shellcmd.Command("docker compose -f ../../api/docker-compose-poll-agent.yaml build"),
-		shellcmd.Command("docker compose -f ../../api/docker-compose-target-agent.yaml build"),
+		shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile.poll-agent -t %s \"../..\" --load", platform, pollAgentImageName)),
+		shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile.target-agent -t %s \"../..\" --load", platform, targetAgentImageName)),
 	) //oss
 }
 
@@ -399,7 +409,8 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
-	return shellcmd.Command("docker compose -f ../../k8s/docker-compose.yaml build").Run() //oss
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 /******************** Minikube ********************/
@@ -811,4 +822,23 @@ func ensureMinikubeContext() error {
 
 func logTime(start time.Time, name string) {
 	fmt.Printf("[DONE] (%s) '%s'\n", time.Since(start), name)
+}
+
+func ensureBuildxBuilder() error {
+	checkCmd := exec.Command("docker", "buildx", "ls")
+	output, err := checkCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to list buildx builders: %v, output: %s", err, output)
+	}
+	if !strings.Contains(string(output), "default") {
+		createCmd := exec.Command("docker", "buildx", "create", "--use", "--name", "default")
+		createOutput, err := createCmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to create buildx builder: %v, output: %s", err, createOutput)
+		}
+		fmt.Println("Created buildx builder:", string(createOutput))
+	} else {
+		fmt.Println("Buildx builder 'default' already exists.")
+	}
+	return nil
 }
