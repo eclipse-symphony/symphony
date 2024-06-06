@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: hq
 spec:
-  type: asset
+  catalogType: asset
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -21,7 +21,7 @@ kind: Catalog
 metadata:
   name: infrastructure
 spec:
-  type: asset
+  catalogType: asset
   properties:
     name: "Infrastructure"    
   parentName: hq
@@ -31,7 +31,7 @@ kind: Catalog
 metadata:
   name: l3
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Level 3"    
   parentName: infrastructure
@@ -41,7 +41,7 @@ kind: Catalog
 metadata:
   name: l4
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Level 4"    
   parentName: infrastructure
@@ -51,7 +51,7 @@ kind: Catalog
 metadata:
   name: use-cases
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Use Cases"    
   parentName: hq
@@ -61,7 +61,7 @@ kind: Catalog
 metadata:
   name: csad
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "CSAD"    
   parentName: use-cases
@@ -71,7 +71,7 @@ kind: Catalog
 metadata:
   name: site
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Site"    
   parentName: csad
@@ -81,7 +81,7 @@ kind: Catalog
 metadata:
   name: line-a
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Line A"    
   parentName: site
@@ -91,7 +91,7 @@ kind: Catalog
 metadata:
   name: line-b
 spec: 
-  type: asset
+  catalogType: asset
   properties:
     name: "Line B"    
   parentName: site

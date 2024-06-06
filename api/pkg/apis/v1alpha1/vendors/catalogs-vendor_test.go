@@ -28,7 +28,7 @@ var catalogState = model.CatalogState{
 		Name: "name1-v1",
 	},
 	Spec: &model.CatalogSpec{
-		Type: "catalog",
+		CatalogType: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
@@ -173,7 +173,7 @@ func TestCatalogOnCheck(t *testing.T) {
 
 	var catalogState = model.CatalogState{
 		Spec: &model.CatalogSpec{
-			Type: "catalog",
+			CatalogType: "catalog",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -419,7 +419,7 @@ func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Type = "config"
+	catalogState.Spec.CatalogType = "config"
 	err := CreateSimpleChain("root", 4, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
@@ -441,7 +441,7 @@ func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Type = "asset"
+	catalogState.Spec.CatalogType = "asset"
 	err := CreateSimpleBinaryTree("root", 3, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
@@ -487,7 +487,7 @@ func TestCatalogSubscribe(t *testing.T) {
 	origin := "parent"
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{
 		Metadata: map[string]string{
-			"objectType": catalogState.Spec.Type,
+			"objectType": catalogState.Spec.CatalogType,
 			"origin":     origin,
 		},
 		Body: v1alpha2.JobData{

@@ -48,12 +48,6 @@ spec:
             type: object
           spec:
             properties:
-              arguments:
-                additionalProperties:
-                  additionalProperties:
-                    type: string
-                  type: object
-                type: object
               displayName:
                 type: string
               generation:

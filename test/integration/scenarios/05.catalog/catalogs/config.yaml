@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: config-v1
 spec: 
-  type: config
+  catalogType: config
   metadata:
     schema: schema-v1
   properties:

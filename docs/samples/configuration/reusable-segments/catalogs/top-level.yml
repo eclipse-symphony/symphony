@@ -4,7 +4,7 @@ kind: Catalog
 metadata:
   name: top-level
 spec:
-  type: config
+  catalogType: config
   properties:
     reusable-segment: ${{$config('segment', '')}}
     key1: "value1"
