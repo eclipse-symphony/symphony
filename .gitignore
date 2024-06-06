@@ -16,5 +16,6 @@
 # vendor/
 
 piccolo/target
-
+api/pkg/apis/v1alpha1/providers/target/rust/target
 go.work
+Cargo.lock
