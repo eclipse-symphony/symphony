@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// write test case to create a CampaignSpec using the manager
-func TestCreateGetDeleteCampaignContainersState(t *testing.T) {
+// write test case to create a CatalogContainerSpec using the manager
+func TestCreateGetDeleteCatalogContainersState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CatalogContainersManager{

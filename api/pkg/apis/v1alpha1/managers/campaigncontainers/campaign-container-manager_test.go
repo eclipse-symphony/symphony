@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// write test case to create a CampaignSpec using the manager
+// write test case to create a CampaignContainerSpec using the manager
 func TestCreateGetDeleteCampaignContainersState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})

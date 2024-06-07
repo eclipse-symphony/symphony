@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// write test case to create a InstanceSpec using the manager
+// write test case to create a InstanceContainerSpec using the manager
 func TestCreateGetDeleteInstanceContainersState(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
