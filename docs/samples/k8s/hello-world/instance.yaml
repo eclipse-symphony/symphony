@@ -3,6 +3,7 @@ kind: Instance
 metadata:
   name: sampleprometheusinstance-v1
 spec:
+  rootResource: sampleprometheusinstance
   scope: sample-k8s-scope  
   solution: sampleprometheusserver:v1
   target: 

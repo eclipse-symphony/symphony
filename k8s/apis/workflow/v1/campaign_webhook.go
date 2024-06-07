@@ -35,6 +35,10 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		campaign := rawObj.(*Campaign)
 		return []string{campaign.Name}
 	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Campaign{}, ".spec.rootResource", func(rawObj client.Object) []string {
+		campaign := rawObj.(*Campaign)
+		return []string{campaign.Spec.RootResource}
+	})
 
 	// initialize the controller operation metrics
 	if catalogWebhookValidationMetrics == nil {
@@ -151,7 +155,6 @@ func (r *Campaign) validateRootResource() *field.Error {
 		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid campaign container")
 	}
 
-	campaignlog.Info("validate OwnerReferences", "name", r.Name)
 	if len(r.ObjectMeta.OwnerReferences) == 0 {
 		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
 	}

@@ -41,6 +41,10 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		target := rawObj.(*Target)
 		return []string{target.Spec.DisplayName}
 	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, ".spec.rootResource", func(rawObj client.Object) []string {
+		target := rawObj.(*Target)
+		return []string{target.Spec.RootResource}
+	})
 
 	dict, _ := configutils.GetValidationPoilicies()
 	if v, ok := dict["target"]; ok {

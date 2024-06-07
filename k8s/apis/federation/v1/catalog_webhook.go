@@ -34,8 +34,12 @@ var catalogWebhookValidationMetrics *metrics.Metrics
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
-		target := rawObj.(*Catalog)
-		return []string{target.Name}
+		catalog := rawObj.(*Catalog)
+		return []string{catalog.Name}
+	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.rootResource", func(rawObj client.Object) []string {
+		catalog := rawObj.(*Catalog)
+		return []string{catalog.Spec.RootResource}
 	})
 
 	// initialize the controller operation metrics
