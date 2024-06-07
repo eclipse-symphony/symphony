@@ -55,7 +55,7 @@ func (t *CampaignContainersManager) DeleteState(ctx context.Context, name string
 		ID: name,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
-			"group":     model.SolutionGroup,
+			"group":     model.WorkflowGroup,
 			"version":   "v1",
 			"resource":  "campaigncontainers",
 			"kind":      "CampaignContainer",
@@ -114,7 +114,7 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
+			"group":     model.WorkflowGroup,
 			"resource":  "campaigncontainers",
 			"namespace": namespace,
 			"kind":      "CampaignContainer",
@@ -161,7 +161,7 @@ func (t *CampaignContainersManager) GetState(ctx context.Context, id string, nam
 		ID: id,
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
+			"group":     model.WorkflowGroup,
 			"resource":  "campaigncontainers",
 			"namespace": namespace,
 			"kind":      "CampaignContainer",

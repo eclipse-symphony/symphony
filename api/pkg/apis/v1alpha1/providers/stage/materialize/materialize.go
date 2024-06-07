@@ -179,7 +179,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					mLog.Debugf("  P (Materialize Processor): check instance contains %v, namespace %s", instanceState.ObjectMeta.Name, namespace)
 					_, err := i.ApiClient.GetInstanceContainer(ctx, instanceState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Failed to get instance container %s: %s", instanceState.Spec.RootResource, err.Error())
+						mLog.Debugf("Instance container %s doesn't exist: %s", instanceState.Spec.RootResource, err.Error())
 						instanceContainerState := model.InstanceContainerState{ObjectMeta: model.ObjectMeta{Name: instanceState.Spec.RootResource, Namespace: namespace}}
 						containerObjectData, _ := json.Marshal(instanceContainerState)
 						err = i.ApiClient.CreateInstanceContainer(ctx, instanceState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
@@ -187,6 +187,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 							mLog.Errorf("Failed to create instance container %s: %s", instanceState.Spec.RootResource, err.Error())
 							return outputs, false, err
 						}
+					} else if err != nil {
+						mLog.Errorf("Failed to get instance container %s: %s", instanceState.Spec.RootResource, err.Error())
+						return outputs, false, err
 					}
 
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
@@ -224,7 +227,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					mLog.Debugf("  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 					_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+						mLog.Debugf("Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
 						solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace}}
 						containerObjectData, _ := json.Marshal(solutionContainerState)
 						err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
@@ -232,6 +235,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 							mLog.Errorf("Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
 							return outputs, false, err
 						}
+					} else if err != nil {
+						mLog.Errorf("Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+						return outputs, false, err
 					}
 
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
@@ -269,7 +275,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					mLog.Debugf("  P (Materialize Processor): check target contains %v, namespace %s", targetState.Spec.RootResource, namespace)
 					_, err := i.ApiClient.GetTargetContainer(ctx, targetState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Failed to get target container %s: %s", targetState.Spec.RootResource, err.Error())
+						mLog.Debugf("Target container %s doesn't exist: %s", targetState.Spec.RootResource, err.Error())
 						targetContainerState := model.TargetContainerState{ObjectMeta: model.ObjectMeta{Name: targetState.Spec.RootResource, Namespace: namespace}}
 						containerObjectData, _ := json.Marshal(targetContainerState)
 						err = i.ApiClient.CreateTargetContainer(ctx, targetState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
@@ -277,6 +283,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 							mLog.Errorf("Failed to create target container %s: %s", targetState.Spec.RootResource, err.Error())
 							return outputs, false, err
 						}
+					} else if err != nil {
+						mLog.Errorf("Failed to get target container %s: %s", targetState.Spec.RootResource, err.Error())
+						return outputs, false, err
 					}
 
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
@@ -315,7 +324,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					mLog.Debugf("  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 					_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Failed to get catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+						mLog.Debugf("Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
 						catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace}}
 						containerObjectData, _ := json.Marshal(catalogContainerState)
 						err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
@@ -323,6 +332,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 							mLog.Errorf("Failed to create catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
 							return outputs, false, err
 						}
+					} else if err != nil {
+						mLog.Errorf("Failed to get catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+						return outputs, false, err
 					}
 
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs)
