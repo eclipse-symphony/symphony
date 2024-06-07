@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: global-config
 spec: 
-  type: config
+  catalogType: config
   name: global-config
   metadata:
     asset: hq
@@ -17,7 +17,7 @@ kind: Catalog
 metadata:
   name: l3-config
 spec: 
-  type: config
+  catalogType: config
   metadata:
     asset: l3
   properties:
@@ -30,7 +30,7 @@ kind: Catalog
 metadata:
   name: l4-config
 spec: 
-  type: config
+  catalogType: config
   metadata:
     asset: l4
   properties:
@@ -43,7 +43,7 @@ kind: Catalog
 metadata:
   name: csad-config
 spec: 
-  type: config
+  catalogType: config
   parentName: global-config
   metadata:
     asset: use-case
@@ -56,7 +56,7 @@ kind: Catalog
 metadata:
   name: site-config
 spec: 
-  type: config
+  catalogType: config
   metadata:
     asset: site
   parentName: csad-config
@@ -70,7 +70,7 @@ kind: Catalog
 metadata:
   name: line-a-config
 spec: 
-  type: config
+  catalogType: config
   metadata:
     asset: line-a
   parentName: site-config
@@ -83,7 +83,7 @@ kind: Catalog
 metadata:
   name: line-b-config
 spec: 
-  type: config
+  catalogType: config
   metadata:
     asset: line-b
   parentName: site-config

@@ -302,7 +302,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Name: "catalog1",
 				},
 				Spec: &model.CatalogSpec{
-					Type: "config",
+					CatalogType: "config",
 					Properties: map[string]interface{}{
 						"testkey":  "0",
 						"testdict": []string{"1"},

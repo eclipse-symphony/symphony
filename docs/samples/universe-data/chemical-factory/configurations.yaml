@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: influx-db-config
 spec:
-  type: config
+  catalogType: config
   name: influx-db-config
   properties:
     host: localhost
@@ -19,7 +19,7 @@ kind: Catalog
 metadata:
   name: grafana-config
 spec:
-  type: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -32,7 +32,7 @@ kind: Catalog
 metadata:
   name: e4k-config
 spec:
-  type: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -45,7 +45,7 @@ kind: Catalog
 metadata:
   name: bluefin-config
 spec:
-  type: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -58,7 +58,7 @@ kind: Catalog
 metadata:
   name: ai-config
 spec:
-  type: config
+  catalogType: config
   metadata:
     asset: hq
   properties:
@@ -71,7 +71,7 @@ kind: Catalog
 metadata:
   name: ai-config-site
 spec:
-  type: config
+  catalogType: config
   parentName: ai-config
   metadata:
     asset: hq-doe-site
@@ -84,7 +84,7 @@ kind: Catalog
 metadata:
   name: ai-config-line
 spec:
-  type: config
+  catalogType: config
   metadata:
     asset: line-1
   parentName: ai-config-site
@@ -96,7 +96,7 @@ kind: Catalog
 metadata:
   name: combined
 spec:
-  type: config
+  catalogType: config
   properties:
     foo: bar
     ai: "<ai-config>"
@@ -112,7 +112,7 @@ kind: Catalog
 metadata:
   name: combined-1
 spec:
-  type: config 
+  catalogType: config 
   properties:
     foo: <combined-2>.foo
     loop: <combined-2>.loop
@@ -122,7 +122,7 @@ kind: Catalog
 metadata:
   name: combined-2
 spec: 
-  type: config
+  catalogType: config
   properties:
     foo: bar2   
     loop: <combined>.loop
@@ -132,7 +132,7 @@ kind: Catalog
 metadata:
   name: external
 spec:
-  type: config
+  catalogType: config
   properties:
     foo: far
   objectRef:

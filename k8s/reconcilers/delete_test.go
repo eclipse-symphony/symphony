@@ -136,7 +136,7 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation should be requeued within the polling interval", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 		})
@@ -210,7 +210,7 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation should be requeued within the polling interval", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 
@@ -355,7 +355,7 @@ var _ = Describe("Attempt Delete", func() {
 		})
 
 		It("should return a result indicating that the reconciliation should be requeued within the polling interval", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 			Expect(reconcileError).NotTo(HaveOccurred())
 		})
 

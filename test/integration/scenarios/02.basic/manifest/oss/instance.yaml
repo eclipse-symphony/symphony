@@ -11,6 +11,6 @@ metadata:
 spec:
   displayName: INSTANCENAME
   scope: SCOPENAME
-  solution: SOLUTIONNAME
+  solution: SOLUTIONREFNAME
   target:
-    name: TARGETNAME
+    name: TARGETREFNAME

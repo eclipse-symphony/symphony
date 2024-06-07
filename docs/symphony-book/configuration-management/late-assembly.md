@@ -34,7 +34,7 @@ metadata:
   name: robot-config
 spec:  
   siteId: hq
-  type: config
+  catalogType: config
   properties:
     some-object: "${{$json($config('<config-obj>', ''))}}"
     some-value: "${{$config('other-config','some-field)}}"

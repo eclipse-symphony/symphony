@@ -1,10 +1,10 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config
+  name: config-v1
 spec: 
-  type: config
+  catalogType: config
   metadata:
-    schema: schema
+    schema: schema-v1
   properties:
     email: "sample@sample.com"

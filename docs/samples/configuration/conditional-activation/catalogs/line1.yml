@@ -4,6 +4,6 @@ kind: Catalog
 metadata:
   name: line1
 spec:
-  type: config
+  catalogType: config
   properties:
     IS_PREMIUM_LINE: true

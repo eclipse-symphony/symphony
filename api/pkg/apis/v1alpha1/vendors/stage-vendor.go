@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -81,7 +82,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
-		campaign, err := s.CampaignsManager.GetState(context.TODO(), actData.Campaign, actData.Namespace)
+		campaignName := api_utils.ReplaceSeperator(actData.Campaign)
+		campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, actData.Namespace)
 		if err != nil {
 			log.Error("V (Stage): unable to find campaign: %+v", err)
 			return err
@@ -132,7 +134,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 		status.Outputs["__namespace"] = triggerData.Namespace
 
-		campaign, err := s.CampaignsManager.GetState(context.TODO(), triggerData.Campaign, triggerData.Namespace)
+		campaignName := api_utils.ReplaceSeperator(triggerData.Campaign)
+		campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, triggerData.Namespace)
 		if err != nil {
 			status.Status = v1alpha2.BadRequest
 			status.StatusMessage = v1alpha2.BadRequest.String()
@@ -206,7 +209,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return fmt.Errorf("job-report: activation is not valid")
 		}
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
-			campaign, err := s.CampaignsManager.GetState(context.TODO(), campaign, namespace)
+			campaignName := api_utils.ReplaceSeperator(campaign)
+			campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, namespace)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to get campaign spec '%s': %v", campaign, err)
 				return err
