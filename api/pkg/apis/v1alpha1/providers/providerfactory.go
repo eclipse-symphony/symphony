@@ -57,6 +57,7 @@ import (
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/redisstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
@@ -93,6 +94,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.state.k8s":
 		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.state.redis":
+		mProvider := &redisstate.RedisStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -502,6 +509,15 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
+					return provider, nil
+				case "providers.state.redis":
+					provider := &redisstate.RedisStateProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
 					return provider, nil
 				case "providers.ledger.mock":
 					provider := &mockledger.MockLedgerProvider{}

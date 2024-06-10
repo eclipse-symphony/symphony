@@ -285,6 +285,11 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 							Config:   map[string]string{},
 						},
 						{
+							Role:     "redisstate",
+							Provider: "providers.state.redis",
+							Config:   map[string]string{},
+						},
+						{
 							Role:     "k8scatalog",
 							Provider: "providers.config.k8scatalog",
 							Config:   map[string]string{},
