@@ -129,8 +129,9 @@ func (r *Activation) validateCampaignOnCreate() *field.Error {
 	if r.Spec.Campaign == "" {
 		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign must not be empty")
 	}
+	campaignName := strings.Replace(r.Spec.Campaign, ":", "-", -1)
 	var campaign Campaign
-	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.Campaign, Namespace: r.Namespace}, &campaign)
+	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: campaignName, Namespace: r.Namespace}, &campaign)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign doesn't exist")
 	}
