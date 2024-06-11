@@ -1,0 +1,138 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package v1
+
+import (
+	"context"
+	"gopls-workspace/apis/metrics/v1"
+	"strings"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+)
+
+// log is for logging in this package.
+var activationlog = logf.Log.WithName("activation-resource")
+var myActivationClient client.Client
+var catalogWebhookValidationMetrics *metrics.Metrics
+
+func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	myActivationClient = mgr.GetClient()
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Activation{}, ".metadata.name", func(rawObj client.Object) []string {
+		activation := rawObj.(*Activation)
+		return []string{activation.Name}
+	})
+
+	// initialize the controller operation metrics
+	if catalogWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		catalogWebhookValidationMetrics = metrics
+	}
+
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}
+
+// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+
+//+kubebuilder:webhook:path=/mutate-workflow-symphony-v1-activation,mutating=true,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=mactivation.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Defaulter = &Activation{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *Activation) Default() {
+	activationlog.Info("default", "name", r.Name)
+}
+
+// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
+
+//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-activation,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=mactivation.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Validator = &Activation{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *Activation) ValidateCreate() (admission.Warnings, error) {
+	activationlog.Info("validate create", "name", r.Name)
+
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateActivation()
+	if validationError != nil {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.CatalogResourceType)
+	} else {
+		catalogWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.CatalogResourceType)
+	}
+
+	return nil, validationError
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	activationlog.Info("validate update", "name", r.Name)
+
+	return nil, nil
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *Activation) ValidateDelete() (admission.Warnings, error) {
+	activationlog.Info("validate delete", "name", r.Name)
+
+	return nil, nil
+}
+
+func (r *Activation) validateCreateActivation() error {
+	var allErrs field.ErrorList
+
+	if err := r.validateNameOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateCampaignOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
+}
+
+func (r *Activation) validateNameOnCreate() *field.Error {
+	if strings.Contains(r.ObjectMeta.Name, "-") {
+		return field.Invalid(field.NewPath("metadata").Child("name"), r.ObjectMeta.Name, "name must not contain '-'")
+	}
+	return nil
+}
+func (r *Activation) validateCampaignOnCreate() *field.Error {
+	if r.Spec.Campaign == "" {
+		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign must not be empty")
+	}
+	var campaign Campaign
+	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.Campaign, Namespace: r.Namespace}, &campaign)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign doesn't exist")
+	}
+	return nil
+}
