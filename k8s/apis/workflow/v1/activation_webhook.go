@@ -26,7 +26,7 @@ import (
 // log is for logging in this package.
 var activationlog = logf.Log.WithName("activation-resource")
 var myActivationClient client.Client
-var catalogWebhookValidationMetrics *metrics.Metrics
+var activationWebhookValidationMetrics *metrics.Metrics
 
 func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myActivationClient = mgr.GetClient()
@@ -36,12 +36,12 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	})
 
 	// initialize the controller operation metrics
-	if catalogWebhookValidationMetrics == nil {
+	if activationWebhookValidationMetrics == nil {
 		metrics, err := metrics.New()
 		if err != nil {
 			return err
 		}
-		catalogWebhookValidationMetrics = metrics
+		activationWebhookValidationMetrics = metrics
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -73,13 +73,13 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateActivation()
 	if validationError != nil {
-		catalogWebhookValidationMetrics.ControllerValidationLatency(
+		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
 			metrics.CatalogResourceType)
 	} else {
-		catalogWebhookValidationMetrics.ControllerValidationLatency(
+		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
