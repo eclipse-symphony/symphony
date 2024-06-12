@@ -110,26 +110,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-workflow-symphony-v1-activation
-  failurePolicy: Fail
-  name: mactivation.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - activations
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-solution-symphony-v1-solutioncontainer
   failurePolicy: Fail
   name: msolutioncontainer.kb.io
@@ -143,6 +123,26 @@ webhooks:
     - UPDATE
     resources:
     - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -338,26 +338,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-workflow-symphony-v1-activation
-  failurePolicy: Fail
-  name: mactivation.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - activations
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /validate-solution-symphony-v1-solutioncontainer
   failurePolicy: Fail
   name: vsolutioncontainer.kb.io
@@ -372,6 +352,26 @@ webhooks:
     - DELETE
     resources:
     - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
   sideEffects: None
 - admissionReviewVersions:
   - v1

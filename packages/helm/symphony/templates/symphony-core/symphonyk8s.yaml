@@ -2751,26 +2751,6 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-workflow-symphony-v1-activation
-  failurePolicy: Fail
-  name: mactivation.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - activations
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
       path: /mutate-solution-symphony-v1-solutioncontainer
   failurePolicy: Fail
   name: msolutioncontainer.kb.io
@@ -2784,6 +2764,26 @@ webhooks:
     - UPDATE
     resources:
     - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -2982,26 +2982,6 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-workflow-symphony-v1-activation
-  failurePolicy: Fail
-  name: mactivation.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - activations
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
       path: /validate-solution-symphony-v1-solutioncontainer
   failurePolicy: Fail
   name: vsolutioncontainer.kb.io
@@ -3016,6 +2996,26 @@ webhooks:
     - DELETE
     resources:
     - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
   sideEffects: None
 - admissionReviewVersions:
   - v1
