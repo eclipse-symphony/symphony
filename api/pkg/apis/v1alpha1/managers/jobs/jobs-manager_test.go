@@ -63,6 +63,7 @@ func TestHandleJobEvent(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
@@ -164,6 +165,7 @@ func TestPoll(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{

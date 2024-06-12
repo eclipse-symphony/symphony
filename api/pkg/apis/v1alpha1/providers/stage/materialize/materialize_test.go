@@ -68,6 +68,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 	stageNs := "testns"
 	ts := InitializeMockSymphonyAPI(t, stageNs)
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -93,6 +94,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",

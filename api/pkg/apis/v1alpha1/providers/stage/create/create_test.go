@@ -121,6 +121,7 @@ type AuthResponse struct {
 func TestCreateProcessCreate(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -145,6 +146,7 @@ func TestCreateProcessCreate(t *testing.T) {
 func TestCreateProcessCreateFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPIFailedCase()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
@@ -170,6 +172,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 func TestCreateProcessRemove(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CreateStageProvider{}
 	input := map[string]string{
 		"baseUrl":       ts.URL + "/",
