@@ -99,7 +99,7 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 		return nil, fmt.Errorf("expected an Activation object")
 	}
 	// Compare the Spec of the current and old Activation objects
-	validationError := oldActivation.validateSpecOnUpdate(oldActivation)
+	validationError := r.validateSpecOnUpdate(oldActivation)
 	if validationError != nil {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
