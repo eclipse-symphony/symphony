@@ -8,6 +8,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	"strings"
 	"time"
@@ -92,8 +93,29 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	activationlog.Info("validate update", "name", r.Name)
-
-	return nil, nil
+	validateUpdateTime := time.Now()
+	oldActivation, ok := old.(*Activation)
+	if !ok {
+		return nil, fmt.Errorf("expected an Activation object")
+	}
+	// Compare the Spec of the current and old Activation objects
+	validationError := oldActivation.validateSpecOnUpdate(oldActivation)
+	if validationError != nil {
+		activationWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.InstanceResourceType,
+		)
+	} else {
+		activationWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.InstanceResourceType,
+		)
+	}
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -134,6 +156,22 @@ func (r *Activation) validateCampaignOnCreate() *field.Error {
 	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: campaignName, Namespace: r.Namespace}, &campaign)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign doesn't exist")
+	}
+	return nil
+}
+
+func (r *Activation) validateSpecOnUpdate(oldActivation *Activation) *field.Error {
+	if r.Spec.Campaign != oldActivation.Spec.Campaign {
+		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "updates to activation spec.Campaign are not allowed")
+	}
+	if r.Spec.Stage != oldActivation.Spec.Stage {
+		return field.Invalid(field.NewPath("spec").Child("stage"), r.Spec.Stage, "updates to activation spec.Stage are not allowed")
+	}
+	if r.Spec.Inputs.String() != oldActivation.Spec.Inputs.String() {
+		return field.Invalid(field.NewPath("spec").Child("inputs"), r.Spec.Inputs, "updates to activation spec.Inputs are not allowed")
+	}
+	if r.Spec.Generation != oldActivation.Spec.Generation {
+		return field.Invalid(field.NewPath("spec").Child("generation"), r.Spec.Generation, "updates to activation spec.Generation are not allowed")
 	}
 	return nil
 }

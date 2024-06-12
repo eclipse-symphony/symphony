@@ -216,6 +216,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	}
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
+	activationState.Spec = nil
 	activationState.Status = &current
 
 	entry.Body = activationState

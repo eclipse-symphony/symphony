@@ -197,7 +197,8 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	}
 
 	j, _ := json.Marshal(entry.Value.Body)
-	item, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
+	var item *unstructured.Unstructured
+	item, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
 		template := fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "%s", "metadata": {}}`, group, kind)
 		var unc *unstructured.Unstructured
@@ -252,6 +253,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			item.SetLabels(metadata.Labels)
 			item.SetAnnotations(metadata.Annotations)
 		}
+		getResourceVersion := false
 		if v, ok := dict["spec"]; ok {
 			item.Object["spec"] = v
 
@@ -260,8 +262,18 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				sLog.Errorf("  P (K8s State): failed to update object: %v", err)
 				return "", err
 			}
+			getResourceVersion = true
 		}
 		if v, ok := dict["status"]; ok {
+			if getResourceVersion {
+				// Get latest resource version in case the the object spec is also updated
+				item, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
+				if err != nil {
+					sLog.Errorf("  P (K8s State): failed to get object when trying to update status: %v", err)
+					return "", err
+				}
+			}
+
 			if vMap, ok := v.(map[string]interface{}); ok {
 				status := &unstructured.Unstructured{
 					Object: map[string]interface{}{
