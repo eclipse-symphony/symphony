@@ -17,10 +17,11 @@ type (
 	}
 
 	SolutionSpec struct {
-		DisplayName string            `yaml:"displayName,omitempty"`
-		Scope       string            `yaml:"scope,omitempty"`
-		Metadata    map[string]string `yaml:"metadata,omitempty"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
+		DisplayName  string            `yaml:"displayName,omitempty"`
+		Scope        string            `yaml:"scope,omitempty"`
+		Metadata     map[string]string `yaml:"metadata,omitempty"`
+		Components   []ComponentSpec   `yaml:"components,omitempty"`
+		RootResource string            `yaml:"rootResource"`
 	}
 
 	// Target describes the structure of symphony target yaml file
@@ -32,11 +33,12 @@ type (
 	}
 
 	TargetSpec struct {
-		DisplayName string            `yaml:"displayName"`
-		Scope       string            `yaml:"scope"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
-		Topologies  []Topology        `yaml:"topologies"`
-		Properties  map[string]string `yaml:"properties,omitempty"`
+		DisplayName  string            `yaml:"displayName"`
+		Scope        string            `yaml:"scope"`
+		Components   []ComponentSpec   `yaml:"components,omitempty"`
+		Topologies   []Topology        `yaml:"topologies"`
+		Properties   map[string]string `yaml:"properties,omitempty"`
+		RootResource string            `yaml:"rootResource"`
 	}
 
 	Topology struct {
@@ -70,11 +72,12 @@ type (
 	}
 
 	InstanceSpec struct {
-		DisplayName string                 `yaml:"displayName"`
-		Target      TargetSelector         `yaml:"target"`
-		Solution    string                 `yaml:"solution"`
-		Scope       string                 `yaml:"scope"`
-		Parameters  map[string]interface{} `yaml:"parameters,omitempty"`
+		DisplayName  string                 `yaml:"displayName"`
+		Target       TargetSelector         `yaml:"target"`
+		Solution     string                 `yaml:"solution"`
+		Scope        string                 `yaml:"scope"`
+		Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
+		RootResource string                 `yaml:"rootResource"`
 	}
 
 	TargetSelector struct {
@@ -85,5 +88,35 @@ type (
 	ParameterDefinition struct {
 		Type         string      `yaml:"type"`
 		DefaultValue interface{} `yaml:"default"`
+	}
+
+	InstanceContainer struct {
+		ApiVersion string                `yaml:"apiVersion"`
+		Kind       string                `yaml:"kind"`
+		Metadata   Metadata              `yaml:"metadata"`
+		Spec       InstanceContainerSpec `yaml:"spec"`
+	}
+
+	InstanceContainerSpec struct {
+	}
+
+	SolutionContainer struct {
+		ApiVersion string                `yaml:"apiVersion"`
+		Kind       string                `yaml:"kind"`
+		Metadata   Metadata              `yaml:"metadata"`
+		Spec       SolutionContainerSpec `yaml:"spec"`
+	}
+
+	SolutionContainerSpec struct {
+	}
+
+	TargetContainer struct {
+		ApiVersion string              `yaml:"apiVersion"`
+		Kind       string              `yaml:"kind"`
+		Metadata   Metadata            `yaml:"metadata"`
+		Spec       TargetContainerSpec `yaml:"spec"`
+	}
+
+	TargetContainerSpec struct {
 	}
 )

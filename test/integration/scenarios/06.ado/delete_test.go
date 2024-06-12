@@ -19,6 +19,9 @@ var _ = Describe("Delete", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
 	var solutionBytes []byte
+	var instanceContainerBytes []byte
+	var targetContainerBytes []byte
+	var solutionContainerBytes []byte
 	var specTimeout = 2 * time.Minute
 
 	type DeleteTestCase struct {
@@ -53,8 +56,27 @@ var _ = Describe("Delete", Ordered, func() {
 
 	DescribeTable("when performing create/update operations", Ordered,
 		func(ctx context.Context, testcase DeleteTestCase) {
-			By("setting the components for the target")
 			var err error
+
+			By("deploy solution container")
+			solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.InstanceOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("deploy target container")
+			targetContainerBytes, err = testhelpers.PatchTargetContainer(defaultTargetContainerManifest, testhelpers.InstanceOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", targetContainerBytes)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("deploy instance container")
+			instanceContainerBytes, err = testhelpers.PatchInstanceContainer(defaultInstanceContainerManifest, testhelpers.InstanceOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceContainerBytes)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("setting the components for the target")
 			targetBytes, err = testhelpers.PatchTarget(defaultTargetManifest, testhelpers.TargetOptions{
 				ComponentNames: testcase.TargetComponents,
 			})
