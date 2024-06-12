@@ -14,6 +14,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -208,16 +209,19 @@ func (s *JobsManager) pollSchedules() []error {
 		if err != nil {
 			return []error{err}
 		}
-		if activationData.Schedule != nil {
+		if activationData.Schedule != "" {
 			var fire bool
-			fire, err = activationData.Schedule.ShouldFireNow()
+			fire, err = activationData.ShouldFireNow()
 			if err != nil {
 				return []error{err}
 			}
 			if fire {
-				activationData.Schedule = nil
+				activationData.Schedule = ""
 				err = s.StateProvider.Delete(context, states.DeleteRequest{
 					ID: entry.ID,
+					Metadata: map[string]interface{}{
+						"namespace": activationData.Namespace,
+					},
 				})
 				if err != nil {
 					return []error{err}
@@ -376,7 +380,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get solution
 			var solution model.SolutionState
-			solution, err = s.apiClient.GetSolution(ctx, instance.Spec.Solution, namespace, s.user, s.password)
+			solutionName := api_utils.ReplaceSeperator(instance.Spec.Solution)
+			solution, err = s.apiClient.GetSolution(ctx, solutionName, namespace, s.user, s.password)
 			if err != nil {
 				solution = model.SolutionState{
 					ObjectMeta: model.ObjectMeta{

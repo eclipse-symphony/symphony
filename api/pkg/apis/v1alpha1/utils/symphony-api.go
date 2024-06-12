@@ -643,7 +643,8 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+			targetName := ReplaceSeperator(instance.Spec.Target.Name)
+			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}

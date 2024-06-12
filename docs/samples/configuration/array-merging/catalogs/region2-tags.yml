@@ -4,7 +4,7 @@ kind: Catalog
 metadata:
   name: region2-tags
 spec:
-  type: config
+  catalogType: config
   properties:
     tags: [
       "Tag6",
@@ -17,7 +17,7 @@ kind: Catalog
 metadata:
   name: region2-config
 spec:
-  type: config
+  catalogType: config
   properties:
     name: "tags-region2"
     # This will combine the two arrays of strings into one.  The double dollar sign on the second config object is required

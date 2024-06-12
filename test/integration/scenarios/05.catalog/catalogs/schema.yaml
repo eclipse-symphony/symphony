@@ -1,9 +1,9 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: schema
+  name: schema-v1
 spec:
-  type: schema
+  catalogType: schema
   properties:
     spec:
       rules:

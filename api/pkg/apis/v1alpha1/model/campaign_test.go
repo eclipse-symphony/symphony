@@ -9,7 +9,6 @@ package model
 import (
 	"testing"
 
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -217,16 +216,8 @@ func TestStageNotMatch(t *testing.T) {
 		"objectType":  "sites",
 		"namesObject": true,
 	}
-	stage1.Schedule = &v1alpha2.ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PDT",
-	}
-	stage2.Schedule = &v1alpha2.ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PST",
-	}
+	stage1.Schedule = "2020-10-31T12:00:00-07:00"
+	stage2.Schedule = "2020-10-31T12:00:00-08:00"
 	equal, err = stage1.DeepEquals(stage2)
 	assert.Nil(t, err)
 	assert.False(t, equal)

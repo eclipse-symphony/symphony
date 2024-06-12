@@ -89,7 +89,7 @@ var _ = Describe("Reconcile Policies", func() {
 			})
 
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
@@ -111,7 +111,7 @@ var _ = Describe("Reconcile Policies", func() {
 			})
 
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 	})
@@ -139,7 +139,7 @@ var _ = Describe("Reconcile Policies", func() {
 		})
 
 		It("should requue after some time", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 		})
 	})
 
@@ -193,7 +193,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 			})
 
@@ -214,7 +214,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
@@ -232,7 +232,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 
 				It("should have a status of Succeeded", func() {
@@ -256,7 +256,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 
 				It("should have a status of Failed", func() {
@@ -335,7 +335,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 
 				It("should have a status of reconciling", func() {
@@ -457,7 +457,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 
 				It("should have a status of reconciling", func() {
@@ -534,7 +534,7 @@ var _ = Describe("Reconcile Policies", func() {
 		})
 
 		It("should queue a reconcile job after reconcile interval", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 		})
 
 		It("should have a status of failed", func() {

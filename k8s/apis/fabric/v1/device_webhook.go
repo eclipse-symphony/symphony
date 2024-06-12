@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -65,7 +66,7 @@ func (r *Device) Default() {
 var _ webhook.Validator = &Device{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateCreate() error {
+func (r *Device) ValidateCreate() (admission.Warnings, error) {
 	devicelog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -87,11 +88,11 @@ func (r *Device) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateUpdate(old runtime.Object) error {
+func (r *Device) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	devicelog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -113,14 +114,14 @@ func (r *Device) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateDelete() error {
+func (r *Device) ValidateDelete() (admission.Warnings, error) {
 	devicelog.Info("validate delete", "name", r.Name)
 
-	return nil
+	return nil, nil
 }
 
 func (r *Device) validateCreateDevice() error {

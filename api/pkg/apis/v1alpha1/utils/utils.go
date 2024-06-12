@@ -319,3 +319,10 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 		return result, nil
 	}
 }
+
+func ReplaceSeperator(name string) string {
+	if strings.Contains(name, ":") {
+		name = strings.ReplaceAll(name, ":", "-")
+	}
+	return name
+}

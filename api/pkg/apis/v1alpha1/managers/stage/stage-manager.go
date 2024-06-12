@@ -324,7 +324,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 	}
 
-	if triggerData.Schedule != nil && !isRemote {
+	if triggerData.Schedule != "" && !isRemote {
 		s.Context.Publish("schedule", v1alpha2.Event{
 			Body: triggerData,
 		})
@@ -481,9 +481,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs["__activationGeneration"] = triggerData.ActivationGeneration
 		inputs["__previousStage"] = triggerData.TriggeringStage
 		inputs["__site"] = s.VendorContext.SiteInfo.SiteId
-		if triggerData.Schedule != nil {
-			jSchedule, _ := json.Marshal(triggerData.Schedule)
-			inputs["__schedule"] = string(jSchedule)
+		if triggerData.Schedule != "" {
+			inputs["__schedule"] = triggerData.Schedule
 		}
 		for k, v := range inputs {
 			var val interface{}
@@ -573,7 +572,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
 				}
 
-				if triggerData.Schedule != nil {
+				if triggerData.Schedule != "" {
 					s.Context.Publish("schedule", v1alpha2.Event{
 						Body: triggerData,
 					})

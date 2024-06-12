@@ -25,7 +25,7 @@ import (
 
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1",
+		Name: "name1-v1",
 	},
 	Spec: &model.CatalogSpec{
 		CatalogType: "catalog",
@@ -198,7 +198,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
 	catalogState.ObjectMeta = model.ObjectMeta{
-		Name: "test1",
+		Name: "test1-v1",
 	}
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
@@ -231,7 +231,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	catalogState.Spec.Metadata = map[string]string{
 		"schema": "EmailCheckSchema",
 	}
@@ -264,14 +264,14 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "test1-v1",
 		},
 	}
 
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
@@ -319,7 +319,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -337,7 +337,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "test1-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -359,7 +359,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		},
 	}
 
-	catalogState.ObjectMeta.Name = "test1"
+	catalogState.ObjectMeta.Name = "test1-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -376,7 +376,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodDelete,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "test1-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestDelete)
@@ -386,7 +386,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "test1-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)

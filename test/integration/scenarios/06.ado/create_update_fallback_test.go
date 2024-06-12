@@ -101,7 +101,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("preparing the instance bytes with a new operation id for Solution V2")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution-v2",
+			Solution: "solution:v2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -115,7 +115,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("reverting the Instance to use Solution V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution",
+			Solution: "solution:v1",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -134,7 +134,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
-				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
+				kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
 					//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 				)))),

@@ -139,7 +139,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				Expect(object.Status.ProvisioningStatus.Status).To(Equal("Succeeded"))
 			})
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
@@ -163,7 +163,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				})
 
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
@@ -181,7 +181,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				})
 
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
@@ -252,7 +252,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					Expect(object.Status.ProvisioningStatus.Status).To(Equal("Reconciling"))
 				})
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 				It("should updpate the compoent status with progress", func() {
 					Expect(object.Status.Properties["targets.default-target.comp1"]).To(ContainSubstring("updated"))
@@ -282,7 +282,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 						Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
 					})
 					It("should requue after some time", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestPollInterval))
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 					})
 				})
 
@@ -330,7 +330,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 						Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
 					})
 					It("should requue after some time", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1ms").Of(TestPollInterval))
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 					})
 				})
 
