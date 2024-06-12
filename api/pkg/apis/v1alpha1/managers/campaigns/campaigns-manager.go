@@ -155,13 +155,13 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 			"kind":      "Campaign",
 		},
 	}
-	var solutions []states.StateEntry
-	solutions, _, err = t.StateProvider.List(ctx, listRequest)
+	var campaigns []states.StateEntry
+	campaigns, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.CampaignState, 0)
-	for _, t := range solutions {
+	for _, t := range campaigns {
 		var rt model.CampaignState
 		rt, err = getCampaignState(t.Body)
 		if err != nil {

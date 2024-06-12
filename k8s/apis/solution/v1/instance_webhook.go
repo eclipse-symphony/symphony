@@ -11,8 +11,11 @@ import (
 	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
+	"gopls-workspace/configutils"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -21,8 +24,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // log is for logging in this package.
@@ -33,12 +34,16 @@ var instanceWebhookValidationMetrics *metrics.Metrics
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.displayName", func(rawObj client.Object) []string {
-		target := rawObj.(*Instance)
-		return []string{target.Spec.DisplayName}
+		instance := rawObj.(*Instance)
+		return []string{instance.Spec.DisplayName}
 	})
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
-		target := rawObj.(*Instance)
-		return []string{target.Spec.Solution}
+		instance := rawObj.(*Instance)
+		return []string{instance.Spec.Solution}
+	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, ".spec.rootResource", func(rawObj client.Object) []string {
+		instance := rawObj.(*Instance)
+		return []string{instance.Spec.RootResource}
 	})
 
 	// initialize the controller operation metrics
@@ -71,6 +76,25 @@ func (r *Instance) Default() {
 
 	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
+	}
+
+	if r.Spec.RootResource != "" {
+		var instanceContainer InstanceContainer
+		err := myInstanceClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instanceContainer)
+		if err != nil {
+			instancelog.Error(err, "failed to get instance container", "name", r.Spec.RootResource)
+		} else {
+			ownerReference := metav1.OwnerReference{
+				APIVersion: instanceContainer.APIVersion,
+				Kind:       instanceContainer.Kind,
+				Name:       instanceContainer.Name,
+				UID:        instanceContainer.UID,
+			}
+
+			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
+				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
+			}
+		}
 	}
 }
 
@@ -147,6 +171,12 @@ func (r *Instance) validateCreateInstance() error {
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
+	if err := r.validateNameOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateRootResource(); err != nil {
+		allErrs = append(allErrs, err)
+	}
 
 	if len(allErrs) == 0 {
 		return nil
@@ -212,6 +242,24 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 		if !r.Spec.ReconciliationPolicy.State.IsActive() && !r.Spec.ReconciliationPolicy.State.IsInActive() {
 			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("state"), r.Spec.ReconciliationPolicy.State, "must be either 'active' or 'inactive'")
 		}
+	}
+
+	return nil
+}
+
+func (r *Instance) validateNameOnCreate() *field.Error {
+	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
+}
+
+func (r *Instance) validateRootResource() *field.Error {
+	var instanceContainer InstanceContainer
+	err := myInstanceClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instanceContainer)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid instance container")
+	}
+
+	if len(r.ObjectMeta.OwnerReferences) == 0 {
+		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
 	}
 
 	return nil

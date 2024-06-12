@@ -3,6 +3,7 @@ kind: Instance
 metadata:
   name: instance03-v1
 spec:
+  rootResource: instance03
   scope: k8s-scope  
   solution: solution03:v1
   target: 

@@ -3,4 +3,5 @@ kind: Solution
 metadata:
   name: solution-v1
 spec:
+  rootResource: solution
   components: []

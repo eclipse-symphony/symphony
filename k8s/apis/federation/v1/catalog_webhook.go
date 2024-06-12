@@ -9,13 +9,16 @@ package v1
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"gopls-workspace/apis/metrics/v1"
+	"gopls-workspace/configutils"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -31,8 +34,12 @@ var catalogWebhookValidationMetrics *metrics.Metrics
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
-		target := rawObj.(*Catalog)
-		return []string{target.Name}
+		catalog := rawObj.(*Catalog)
+		return []string{catalog.Name}
+	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.rootResource", func(rawObj client.Object) []string {
+		catalog := rawObj.(*Catalog)
+		return []string{catalog.Spec.RootResource}
 	})
 
 	// initialize the controller operation metrics
@@ -58,6 +65,25 @@ var _ webhook.Defaulter = &Catalog{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Catalog) Default() {
 	cataloglog.Info("default", "name", r.Name)
+
+	if r.Spec.RootResource != "" {
+		var catalogContainer CatalogContainer
+		err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+		if err != nil {
+			cataloglog.Error(err, "failed to get catalog container", "name", r.Spec.RootResource)
+		} else {
+			ownerReference := metav1.OwnerReference{
+				APIVersion: catalogContainer.APIVersion,
+				Kind:       catalogContainer.Kind,
+				Name:       catalogContainer.Name,
+				UID:        catalogContainer.UID,
+			}
+
+			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
+				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
+			}
+		}
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -120,11 +146,26 @@ func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *Catalog) validateCreateCatalog() error {
-	return r.checkSchema()
+	var allErrs field.ErrorList
+
+	if err := r.checkSchema(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateNameOnCreate(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := r.validateRootResource(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
 }
 
-func (r *Catalog) checkSchema() error {
-
+func (r *Catalog) checkSchema() *field.Error {
 	if r.Spec.Metadata != nil {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
 			cataloglog.Info("Find schema name", "name", schemaName)
@@ -132,7 +173,7 @@ func (r *Catalog) checkSchema() error {
 			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
-				return apierrors.NewBadRequest(fmt.Sprintf("Could not find the required schema, %s.", schemaName))
+				return field.Invalid(field.NewPath("spec").Child("Metadata"), schemaName, "could not find the required schema")
 			}
 
 			jData, _ := json.Marshal(catalogs.Items[0].Spec.Properties)
@@ -140,7 +181,7 @@ func (r *Catalog) checkSchema() error {
 			err = json.Unmarshal(jData, &properties)
 			if err != nil {
 				cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-				return apierrors.NewBadRequest(fmt.Sprintf("Invalid schema, %s.", schemaName))
+				return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid catalog properties")
 			}
 			if spec, ok := properties["spec"]; ok {
 				var schemaObj utils.Schema
@@ -148,23 +189,23 @@ func (r *Catalog) checkSchema() error {
 				err := json.Unmarshal(jData, &schemaObj)
 				if err != nil {
 					cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-					return apierrors.NewBadRequest(fmt.Sprintf("Invalid schema, %s.", schemaName))
+					return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid schema")
 				}
 				jData, _ = json.Marshal(r.Spec.Properties)
 				var properties map[string]interface{}
 				err = json.Unmarshal(jData, &properties)
 				if err != nil {
 					cataloglog.Error(err, "Validating failed.")
-					return apierrors.NewBadRequest("Invalid properties of the catalog.")
+					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "unable to unmarshall properties of the catalog")
 				}
 				result, err := schemaObj.CheckProperties(properties, nil)
 				if err != nil {
 					cataloglog.Error(err, "Validating failed.")
-					return apierrors.NewBadRequest("Validate failed for the catalog.")
+					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "invalid properties of the catalog schema")
 				}
 				if !result.Valid {
 					cataloglog.Error(err, "Validating failed.")
-					return apierrors.NewBadRequest("This is not a valid catalog according to the schema.")
+					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "invalid schema result")
 				}
 			}
 			cataloglog.Info("Validation finished.", "name", r.Name)
@@ -174,6 +215,35 @@ func (r *Catalog) checkSchema() error {
 	}
 	return nil
 }
+
 func (r *Catalog) validateUpdateCatalog() error {
-	return r.checkSchema()
+	var allErrs field.ErrorList
+
+	if err := r.checkSchema(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+}
+
+func (r *Catalog) validateNameOnCreate() *field.Error {
+	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
+}
+
+func (r *Catalog) validateRootResource() *field.Error {
+	var catalogContainer CatalogContainer
+	err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid catalog container")
+	}
+
+	if len(r.ObjectMeta.OwnerReferences) == 0 {
+		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
+	}
+
+	return nil
 }

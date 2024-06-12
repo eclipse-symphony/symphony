@@ -298,6 +298,30 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
 			os.Exit(1)
 		}
+		if err = (&workflowv1.Campaign{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
+			os.Exit(1)
+		}
+		if err = (&workflowv1.CampaignContainer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CampaignContainer")
+			os.Exit(1)
+		}
+		if err = (&federationv1.CatalogContainer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogContainer")
+			os.Exit(1)
+		}
+		if err = (&solutionv1.InstanceContainer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "InstanceContainer")
+			os.Exit(1)
+		}
+		if err = (&solutionv1.SolutionContainer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "SolutionContainer")
+			os.Exit(1)
+		}
+		if err = (&fabricv1.TargetContainer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "TargetContainer")
+			os.Exit(1)
+		}
 	}
 	if err = (&solutioncontrollers.SolutionContainerReconciler{
 		Client: mgr.GetClient(),

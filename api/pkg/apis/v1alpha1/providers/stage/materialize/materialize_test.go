@@ -146,13 +146,21 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
 		case "/instances/instance1-v1":
-			var instance model.InstanceState
+			instance := model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1-v1",
+				},
+			}
 			err := json.Unmarshal(body, &instance)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
 			response = instance
 		case "/targets/registry/target1-v1":
-			var target model.TargetState
+			target := model.TargetState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "target1-v1",
+				},
+			}
 			err := json.Unmarshal(body, &target)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
@@ -176,6 +184,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 								DisplayName: "target1",
 							},
 							"metadata": &model.ObjectMeta{
+								Name:      "target1:v1",
 								Namespace: "objNS",
 							},
 						},
@@ -191,7 +200,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 							"spec": model.InstanceSpec{},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
-								Name:      "instance1",
+								Name:      "instance1:v1",
 							},
 						},
 					},
@@ -208,6 +217,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 							},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
+								Name:      "instance1:v1",
 							},
 						},
 					},
@@ -225,7 +235,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 							},
 							"metadata": &model.ObjectMeta{
 								Namespace: "objNS",
-								Name:      "catalog1",
+								Name:      "catalog1:v1",
 							},
 						},
 					},

@@ -9,6 +9,7 @@ metadata:
   name: self-v1
   annotations: {}
 spec:
+  rootResource: self
   displayName: int-virtual-02-v1
   scope: alice-springs
   topologies:
