@@ -25,7 +25,6 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -819,9 +818,7 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 		}
 	}
 
-	log2 := ctrllog.FromContext(context)
-	log2.Info("Summary result: " + string(ret))
-	log.Infof("Summary result original: %s", string(ret))
+	log.Infof("Summary result: %s", string(ret))
 
 	return result, nil
 }

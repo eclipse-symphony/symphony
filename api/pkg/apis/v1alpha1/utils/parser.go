@@ -413,6 +413,17 @@ func readPropertyInterface(properties map[string]interface{}, key string) (inter
 	}
 	return "", fmt.Errorf("property %s is not found", key)
 }
+func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
+	components := deployment.Solution.Spec.Components
+	for _, c := range components {
+		if c.Name == component {
+			if v, ok := c.Parameters[key]; ok {
+				return v, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
+}
 
 func toIntIfPossible(f float64) interface{} {
 	i := int64(f)
@@ -473,6 +484,25 @@ func formatFloats(left interface{}, right interface{}, operator string) interfac
 
 func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	switch n.Name {
+	case "param":
+		if len(n.Args) == 1 {
+			if context.Component == "" {
+				return nil, errors.New("a component name is needed to evaluate $param()")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
+				argument, err := readArgument(deploymentSpec, context.Component, key.(string))
+				if err != nil {
+					return nil, err
+				}
+				return argument, nil
+			}
+			return nil, errors.New("deployment spec is not found")
+		}
+		return nil, fmt.Errorf("$params() expects 1 argument, found %d", len(n.Args))
 	case "property":
 		if len(n.Args) == 1 {
 			if context.Properties == nil || len(context.Properties) == 0 {

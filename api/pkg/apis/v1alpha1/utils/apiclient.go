@@ -24,7 +24,6 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/fsnotify/fsnotify"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -411,9 +410,6 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 	}
 
 	log.Debugf("apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
-	log.Infof("apiClient.GetSummary info : id: %s, namespace: %s", id, namespace)
-	log2 := ctrllog.FromContext(ctx)
-	log2.Info("apiClient.GetSummary new log : id: %s, namespace: %s", id, namespace)
 	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
@@ -426,7 +422,6 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 	}
 	if ret != nil {
 		log.Debugf("apiClient.GetSummary: ret: %s", string(ret))
-		log2.Info("Summary result: " + string(ret))
 		err = json.Unmarshal(ret, &result)
 		if err != nil {
 			return nil, err
