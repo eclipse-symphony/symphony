@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/k8s/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -151,7 +152,7 @@ func (r *Activation) validateCampaignOnCreate() *field.Error {
 	if r.Spec.Campaign == "" {
 		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign must not be empty")
 	}
-	campaignName := strings.Replace(r.Spec.Campaign, ":", "-", -1)
+	campaignName := utils.ReplaceLastSeperator(r.Spec.Campaign, ":", "-")
 	var campaign Campaign
 	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: campaignName, Namespace: r.Namespace}, &campaign)
 	if err != nil {
