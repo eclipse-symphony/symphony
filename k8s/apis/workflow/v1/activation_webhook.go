@@ -160,18 +160,23 @@ func (r *Activation) validateCampaignOnCreate() *field.Error {
 	return nil
 }
 
-func (r *Activation) validateSpecOnUpdate(oldActivation *Activation) *field.Error {
+func (r *Activation) validateSpecOnUpdate(oldActivation *Activation) error {
+	var allErrs field.ErrorList
 	if r.Spec.Campaign != oldActivation.Spec.Campaign {
-		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "updates to activation spec.Campaign are not allowed")
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "updates to activation spec.Campaign are not allowed"))
 	}
 	if r.Spec.Stage != oldActivation.Spec.Stage {
-		return field.Invalid(field.NewPath("spec").Child("stage"), r.Spec.Stage, "updates to activation spec.Stage are not allowed")
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("stage"), r.Spec.Stage, "updates to activation spec.Stage are not allowed"))
 	}
 	if r.Spec.Inputs.String() != oldActivation.Spec.Inputs.String() {
-		return field.Invalid(field.NewPath("spec").Child("inputs"), r.Spec.Inputs, "updates to activation spec.Inputs are not allowed")
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("inputs"), r.Spec.Inputs, "updates to activation spec.Inputs are not allowed"))
 	}
 	if r.Spec.Generation != oldActivation.Spec.Generation {
-		return field.Invalid(field.NewPath("spec").Child("generation"), r.Spec.Generation, "updates to activation spec.Generation are not allowed")
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("generation"), r.Spec.Generation, "updates to activation spec.Generation are not allowed"))
 	}
-	return nil
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
 }

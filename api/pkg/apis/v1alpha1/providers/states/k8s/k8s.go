@@ -173,8 +173,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (K8s State): upsert state")
-
 	namespace := model.ReadPropertyCompat(entry.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(entry.Metadata, "version", nil)
@@ -184,6 +182,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	if namespace == "" {
 		namespace = "default"
 	}
+	sLog.Info("  P (K8s State): upsert state %s in namespace %s, traceId: %s", entry.Value.ID, namespace, span.SpanContext().TraceID().String())
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
@@ -322,12 +321,12 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (K8s State): list state")
-
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
 	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
+
+	sLog.Infof("  P (K8s State): list state for %s.%s in namespace %s, traceId: %s", resource, group, namespace, span.SpanContext().TraceID().String())
 
 	var namespaces []string
 	if namespace == "" {
@@ -434,8 +433,6 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (K8s State): delete state")
-
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
@@ -449,6 +446,7 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	if namespace == "" {
 		namespace = "default"
 	}
+	sLog.Infof("  P (K8s State): delete state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
 
 	if request.ID == "" {
 		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
@@ -470,8 +468,6 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (K8s State): get state")
-
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
 	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
@@ -480,6 +476,8 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	if namespace == "" {
 		namespace = "default"
 	}
+
+	sLog.Infof("  P (K8s State): get state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
