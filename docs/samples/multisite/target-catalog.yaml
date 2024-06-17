@@ -1,10 +1,13 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-k8s-target-v1
-spec: 
+  name: sitek8starget-v1
+spec:
+  rootResource: sitek8starget
   catalogType: target
   properties:
+    metadata: 
+      name: sitek8starget:v1
     spec:
       properties:
         group: site

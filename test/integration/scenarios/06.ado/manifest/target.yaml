@@ -3,6 +3,7 @@ kind: Target
 metadata:
   name: target-v1
 spec:
+  rootResource: target
   scope: azure-iot-operations
   components: []
   topologies:

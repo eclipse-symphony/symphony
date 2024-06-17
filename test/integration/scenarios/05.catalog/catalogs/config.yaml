@@ -3,6 +3,7 @@ kind: Catalog
 metadata:
   name: config-v1
 spec: 
+  rootResource: config
   catalogType: config
   metadata:
     schema: schema-v1

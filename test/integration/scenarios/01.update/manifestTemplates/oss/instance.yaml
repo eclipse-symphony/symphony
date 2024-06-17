@@ -9,8 +9,9 @@ metadata:
   annotations: {}
   name: instance-v1
 spec:
+  rootResource: instance
   displayName: instance-v1
   scope: alice-springs
-  solution: my-sol:v1
+  solution: mysol:v1
   target:
     name: self:v1

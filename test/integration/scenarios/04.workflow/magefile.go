@@ -35,6 +35,11 @@ var (
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
+
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
@@ -42,6 +47,7 @@ var (
 	}
 
 	testCampaign = []string{
+		"test/integration/scenarios/04.workflow/manifest/campaign-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/campaign.yaml",
 	}
 
@@ -53,6 +59,10 @@ var (
 	testVerify = []string{
 		"./verify/...",
 	}
+
+	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
+
+	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
 )
 
 // Entry point for running the tests
@@ -71,6 +81,10 @@ func Test() error {
 			return err
 		}
 		err = Verify()
+		if err != nil {
+			return err
+		}
+		err = FaultTest(namespace)
 		if err != nil {
 			return err
 		}
@@ -172,6 +186,25 @@ func Verify() error {
 		}
 	}
 
+	return nil
+}
+
+func FaultTest(namespace string) error {
+	repoPath := os.Getenv("REPO_PATH")
+	if repoPath == "" {
+		repoPath = "../../../../"
+	}
+	var err error
+	CampaignNotExistActivationAbs := filepath.Join(repoPath, CampaignNotExistActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", CampaignNotExistActivationAbs, namespace)).Run()
+	if err == nil {
+		return fmt.Errorf("fault test failed for non-existing campaign")
+	}
+	WithStageActivationAbs := filepath.Join(repoPath, WithStageActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", WithStageActivationAbs, namespace)).Run()
+	if err == nil {
+		return fmt.Errorf("fault test failed for non-existing campaign")
+	}
 	return nil
 }
 

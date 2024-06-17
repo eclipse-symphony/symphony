@@ -99,7 +99,7 @@ func getApiClient() (*apiClient, error) {
 	if ShouldUseSATokens() {
 		clientOptions = append(clientOptions, WithServiceAccountToken())
 	} else {
-		clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
 	}
 
 	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
@@ -116,7 +116,7 @@ func GetParentApiClient(baseUrl string) (*apiClient, error) {
 		clientOptions = append(clientOptions, WithCertAuth(caCert))
 	}
 
-	clientOptions = append(clientOptions, WithUserPassword(context.TODO(), "", ""))
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
 	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
 	if err != nil {
 		return nil, err
@@ -125,11 +125,11 @@ func GetParentApiClient(baseUrl string) (*apiClient, error) {
 }
 
 func ShouldUseSATokens() bool {
-	return useSAToken == "true"
+	return !ShouldUseUserCreds()
 }
 
 func ShouldUseUserCreds() bool {
-	return useSAToken == "false"
+	return strings.ToLower(os.Getenv(constants.UseServiceAccountTokenEnvName)) == "false"
 }
 
 var log = logger.NewLogger("coa.runtime")

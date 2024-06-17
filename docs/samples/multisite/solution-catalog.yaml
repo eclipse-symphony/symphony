@@ -1,18 +1,21 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-app-v1
+  name: siteapp-v1
 spec:
+  rootResource: siteapp
   catalogType: solution
   properties:
-    spec:   
+    metadata:
+      name: siteapp:v1
+    spec:
       components:
       - name: web-app
         type: container
         metadata:
           service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
-          service.type: "${{$config('web-app-config:v1','serviceType')}}"
+          service.type: "${{$config('webappconfig:v1','serviceType')}}"
         properties:
           deployment.replicas: "#1"
           container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-          container.image: "${{$config('web-app-config:v1','image')}}"
+          container.image: "${{$config('webappconfig:v1','image')}}"

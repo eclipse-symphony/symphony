@@ -24,6 +24,7 @@ const (
 	GroupPrefix     = "symphony"
 	ManagerMetaKey  = GroupPrefix + "/managed-by"
 	InstanceMetaKey = GroupPrefix + "/instance"
+	NotFound        = "Not Found"
 )
 
 // Environment variables keys

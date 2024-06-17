@@ -3,8 +3,11 @@ kind: Catalog
 metadata:
   name: instance-v1
 spec:
+  rootResource: instance
   catalogType: instance
   properties:
+    metadata:
+      name: instance:v1
     spec: 
       solution: app:v1
       target:

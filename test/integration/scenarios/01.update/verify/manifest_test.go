@@ -54,6 +54,12 @@ var (
 
 var (
 	// Manifest templates
+	containerManifestTemplates = map[string]string{
+		"target-container":   fmt.Sprintf("%s/%s/target-container.yaml", manifestTemplateFolder, "oss"),
+		"instance-container": fmt.Sprintf("%s/%s/instance-container.yaml", manifestTemplateFolder, "oss"),
+		"solution-container": fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
+	}
+
 	manifestTemplates = map[string]string{
 		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
 		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
@@ -122,6 +128,12 @@ func TestScenario_Update_AllNamespaces(t *testing.T) {
 
 func Scenario_Update(t *testing.T, namespace string) {
 	// Deploy base manifests
+	for _, manifest := range containerManifestTemplates {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+		require.NoError(t, err)
+	}
 	for _, manifest := range manifestTemplates {
 		fullPath, err := filepath.Abs(manifest)
 		require.NoError(t, err)

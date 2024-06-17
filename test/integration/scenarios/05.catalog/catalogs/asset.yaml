@@ -3,6 +3,7 @@ kind: Catalog
 metadata:
   name: asset-v1
 spec:
+  rootResource: asset
   catalogType: asset
   properties:
     name: "東京"
