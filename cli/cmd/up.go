@@ -64,6 +64,8 @@ var UpCmd = &cobra.Command{
 			if !updateSymphonyContext("no-k8s", "localhost") {
 				return
 			}
+			os.Setenv("SYMPHONY_API_URL", "http://localhost:8082/v1alpha2/")
+			os.Setenv("USE_SERVICE_ACCOUNT_TOKENS", "false")
 			_, err := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json"), "-l", "Debug")
 			if err != nil {
 				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
