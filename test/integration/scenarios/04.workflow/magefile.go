@@ -69,7 +69,7 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	defer Cleanup()
+	//defer Cleanup()
 	err := SetupCluster()
 	if err != nil {
 		return err

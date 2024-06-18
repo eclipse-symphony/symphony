@@ -6,9 +6,9 @@ spec:
   rootResource: siteapp
   catalogType: solution
   properties:
-    metadata:
-      name: siteapp:v1
     spec:
+      version: v1
+      rootResource: solutioncontainer
       components:
       - name: web-app
         type: container
