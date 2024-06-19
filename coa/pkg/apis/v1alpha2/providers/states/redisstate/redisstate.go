@@ -129,7 +129,13 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	keyPrefix := getKeyNamePrefix(entry.Metadata)
+	var keyPrefix string
+	keyPrefix, err = getKeyNamePrefix(entry.Metadata)
+	if err != nil {
+		rLog.Errorf("  P (Redis State): upsert states %s failed to get key prefix with error %s, traceId: %s", entry.Value.ID, err.Error(), span.SpanContext().TraceID().String())
+		return entry.Value.ID, err
+	}
+
 	rLog.Debugf("  P (Redis State): upsert states %s with keyPrefix %s, traceId: %s", entry.Value.ID, keyPrefix, span.SpanContext().TraceID().String())
 
 	key := fmt.Sprintf("%s%s%s", keyPrefix, separator, entry.Value.ID)
@@ -138,6 +144,32 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 	if err != nil {
 		return entry.Value.ID, err
 	}
+	if entry.Options.UpdateStateOnly {
+		var existing string
+		existing, err = r.Client.HGet(key, "values").Result()
+		if err != nil {
+			return entry.Value.ID, v1alpha2.NewCOAError(nil, fmt.Sprintf("redis state %s not found. Cannot update state only", entry.Value.ID), v1alpha2.BadRequest)
+		}
+		var oldEntryDict map[string]interface{}
+		var oldStatusDict map[string]interface{}
+		oldEntryDict, oldStatusDict, err = getStatusDictFromMarshalStateEntryBody([]byte(existing))
+		if err != nil {
+			return entry.Value.ID, v1alpha2.NewCOAError(nil, fmt.Sprintf("old redis state %s status cannot be parsed", entry.Value.ID), v1alpha2.InternalError)
+		}
+		var newStatusDict map[string]interface{}
+		_, newStatusDict, err = getStatusDictFromMarshalStateEntryBody(body)
+		if err != nil {
+			return entry.Value.ID, v1alpha2.NewCOAError(nil, fmt.Sprintf("new redis state %s cannot be parsed", entry.Value.ID), v1alpha2.InternalError)
+		}
+		for k, v := range newStatusDict {
+			oldStatusDict[k] = v
+		}
+		oldEntryDict["status"] = oldStatusDict
+		body, _ = json.Marshal(oldEntryDict)
+		_, err = r.Client.HSet(key, "values", string(body)).Result()
+		return entry.Value.ID, err
+	}
+
 	properties := map[string]interface{}{
 		"values": string(body),
 		"etag":   entry.Value.ETag,
@@ -154,7 +186,17 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	var entities []states.StateEntry
-	keyPrefix := getKeyNamePrefix(request.Metadata)
+	var keyPrefix string
+	keyPrefix, err = getObjectTypePrefixForList(request.Metadata)
+	if err != nil {
+		rLog.Errorf("  P (Redis State): list states failed to get key prefix with error %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+		return entities, "", err
+	}
+	if n, ok := request.Metadata["namespace"]; ok {
+		if nstring, ok := n.(string); ok && nstring != "" {
+			keyPrefix = keyPrefix + separator + nstring
+		}
+	}
 	rLog.Debugf("  P (Redis State): list states with keyPrefix %s, traceId: %s", keyPrefix, span.SpanContext().TraceID().String())
 
 	filter := fmt.Sprintf("%s%s*", keyPrefix, separator)
@@ -184,6 +226,16 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 				rLog.Errorf("  P (Redis State): failed to cast entry for key %s: %+v", key, err)
 				continue
 			}
+			if request.FilterType != "" && request.FilterValue != "" {
+				var match bool
+				match, err = states.MatchFilter(entry, request.FilterType, request.FilterValue)
+				if err != nil {
+					return entities, "", err
+				} else if !match {
+					continue
+				}
+			}
+
 			entities = append(entities, entry)
 		}
 
@@ -202,7 +254,12 @@ func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRe
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	keyPrefix := getKeyNamePrefix(request.Metadata)
+	var keyPrefix string
+	keyPrefix, err = getKeyNamePrefix(request.Metadata)
+	if err != nil {
+		rLog.Errorf("  P (Redis State): delete state %s failed to get key prefix with error %s, traceId: %s", request.ID, err.Error(), span.SpanContext().TraceID().String())
+		return err
+	}
 	rLog.Debugf("  P (Redis State): delete state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
 
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
@@ -217,7 +274,12 @@ func (r *RedisStateProvider) Get(ctx context.Context, request states.GetRequest)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	keyPrefix := getKeyNamePrefix(request.Metadata)
+	var keyPrefix string
+	keyPrefix, err = getKeyNamePrefix(request.Metadata)
+	if err != nil {
+		rLog.Errorf("  P (Redis State): get state %s failed to get key prefix with error %s, traceId: %s", request.ID, err.Error(), span.SpanContext().TraceID().String())
+		return states.StateEntry{}, err
+	}
 
 	rLog.Debugf("  P (Redis State): get state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
@@ -245,13 +307,22 @@ func toRedisStateProviderConfig(config providers.IProviderConfig) (RedisStatePro
 	return ret, err
 }
 
-func getKeyNamePrefix(metadata map[string]interface{}) string {
+func getKeyNamePrefix(metadata map[string]interface{}) (string, error) {
 	namespace := "default"
 	if n, ok := metadata["namespace"]; ok {
 		if nstring, ok := n.(string); ok && nstring != "" {
 			namespace = nstring
 		}
 	}
+	// Construct object type
+	objectType, err := getObjectTypePrefixForList(metadata)
+	if err != nil {
+		return "", err
+	}
+	return objectType + separator + namespace, nil
+}
+
+func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error) {
 	// Construct object type
 	objectType := ""
 	if resource, ok := metadata["resource"]; ok {
@@ -264,7 +335,10 @@ func getKeyNamePrefix(metadata map[string]interface{}) string {
 			objectType = objectType + "." + gstring
 		}
 	}
-	return namespace + separator + objectType
+	if objectType == "" {
+		return "", v1alpha2.NewCOAError(nil, "Redis state provider object type is not specified", v1alpha2.BadConfig)
+	}
+	return objectType, nil
 }
 
 func CastRedisPropertiesToStateEntry(id string, properties map[string]string) (states.StateEntry, error) {
@@ -279,4 +353,26 @@ func CastRedisPropertiesToStateEntry(id string, properties map[string]string) (s
 	entry.Body = BodyDict
 	entry.ID = id
 	return entry, nil
+}
+
+func getStatusDictFromMarshalStateEntryBody(body []byte) (map[string]interface{}, map[string]interface{}, error) {
+	var EntryDict map[string]interface{}
+	err := json.Unmarshal([]byte(body), &EntryDict)
+	if err != nil {
+		return nil, nil, err
+	}
+	if EntryDict == nil {
+		EntryDict = make(map[string]interface{})
+	}
+	var statusDict map[string]interface{}
+	var j []byte
+	j, _ = json.Marshal(EntryDict["status"])
+	err = json.Unmarshal(j, &statusDict)
+	if err != nil {
+		return nil, nil, err
+	}
+	if statusDict == nil {
+		statusDict = make(map[string]interface{})
+	}
+	return EntryDict, statusDict, nil
 }
