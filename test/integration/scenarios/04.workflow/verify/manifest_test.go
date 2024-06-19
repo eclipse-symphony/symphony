@@ -215,16 +215,17 @@ func TestAdvance_TargetLabel(t *testing.T) {
 	isLabeled := getLabels(*resource)
 	fmt.Printf("The target is labeled: %s\n", strconv.FormatBool(isLabeled))
 	require.True(t, isLabeled)
-	// resource, err = dyn.Resource(schema.GroupVersionResource{
-	// 	Group:    "fabric.symphony",
-	// 	Version:  "v1",
-	// 	Resource: "targetcontainers",
-	// }).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
-	// require.NoError(t, err)
 
-	// isLabeled = getLabels(*resource)
-	// fmt.Printf("The target container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	// require.True(t, isLabeled)
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "fabric.symphony",
+		Version:  "v1",
+		Resource: "targetcontainers",
+	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	isLabeled = getLabels(*resource)
+	fmt.Printf("The target container is labeled: %s\n", strconv.FormatBool(isLabeled))
+	require.True(t, isLabeled)
 }
 
 // Verify instance has correct status
@@ -286,16 +287,17 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	isLabeled := getLabels(*resource)
 	fmt.Printf("The instance is labeled: %s\n", strconv.FormatBool(isLabeled))
 	require.True(t, isLabeled)
-	// resource, err = dyn.Resource(schema.GroupVersionResource{
-	// 	Group:    "solution.symphony",
-	// 	Version:  "v1",
-	// 	Resource: "instancecontainers",
-	// }).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
-	// require.NoError(t, err)
 
-	// isLabeled = getLabels(*resource)
-	// fmt.Printf("The instance container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	// require.True(t, isLabeled)
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "solution.symphony",
+		Version:  "v1",
+		Resource: "instancecontainers",
+	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	isLabeled = getLabels(*resource)
+	fmt.Printf("The instance container is labeled: %s\n", strconv.FormatBool(isLabeled))
+	require.True(t, isLabeled)
 }
 
 // Verify solution has correct labels
@@ -322,16 +324,17 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	isLabeled := getLabels(*resource)
 	fmt.Printf("The solution is labeled: %s\n", strconv.FormatBool(isLabeled))
 	require.True(t, isLabeled)
-	// resource, err = dyn.Resource(schema.GroupVersionResource{
-	// 	Group:    "solution.symphony",
-	// 	Version:  "v1",
-	// 	Resource: "solutioncontainers",
-	// }).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
-	// require.NoError(t, err)
 
-	// isLabeled = getLabels(*resource)
-	// fmt.Printf("The solution container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	// require.True(t, isLabeled)
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "solution.symphony",
+		Version:  "v1",
+		Resource: "solutioncontainers",
+	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	isLabeled = getLabels(*resource)
+	fmt.Printf("The solution container is labeled: %s\n", strconv.FormatBool(isLabeled))
+	require.True(t, isLabeled)
 }
 
 // Verify Catalog has correct labels
@@ -358,16 +361,17 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	isLabeled := getLabels(*resource)
 	fmt.Printf("The catalog is labeled: %s\n", strconv.FormatBool(isLabeled))
 	require.True(t, isLabeled)
-	// resource, err = dyn.Resource(schema.GroupVersionResource{
-	// 	Group:    "federation.symphony",
-	// 	Version:  "v1",
-	// 	Resource: "catalogcontainers",
-	// }).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
-	// require.NoError(t, err)
 
-	// isLabeled = getLabels(*resource)
-	// fmt.Printf("The catalog container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	// require.True(t, isLabeled)
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "federation.symphony",
+		Version:  "v1",
+		Resource: "catalogcontainers",
+	}).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	isLabeled = getLabels(*resource)
+	fmt.Printf("The catalog container is labeled: %s\n", strconv.FormatBool(isLabeled))
+	require.True(t, isLabeled)
 }
 
 // Verify that the pods we expect are running in the namespace

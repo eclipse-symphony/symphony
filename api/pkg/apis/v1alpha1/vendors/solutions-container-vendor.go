@@ -7,6 +7,8 @@
 package vendors
 
 import (
+	"encoding/json"
+
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -118,15 +120,20 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutionContainers-POST", pCtx, nil)
-		solution := model.SolutionContainerState{
-			ObjectMeta: model.ObjectMeta{
-				Name:      id,
-				Namespace: namespace,
-			},
-			Spec: &model.SolutionContainerSpec{},
+		var solutionContainer model.SolutionContainerState
+		err := json.Unmarshal(request.Body, &solutionContainer)
+		if err != nil {
+			iLog.Infof("V (Instances): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
 		}
+		solutionContainer.ObjectMeta.Name = id
+		solutionContainer.ObjectMeta.Namespace = namespace
+		solutionContainer.Spec = &model.SolutionContainerSpec{}
 
-		err := c.SolutionContainersManager.UpsertState(ctx, id, solution)
+		err = c.SolutionContainersManager.UpsertState(ctx, id, solutionContainer)
 		if err != nil {
 			scLog.Infof("V (SolutionContainers): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
