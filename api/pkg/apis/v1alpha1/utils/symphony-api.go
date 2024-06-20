@@ -726,6 +726,8 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
+	// set the target generation to the deployment
+	ret.Generation = target.Spec.Generation
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -743,6 +745,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
+	ret.Generation = instance.ObjectMeta.Generation
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)

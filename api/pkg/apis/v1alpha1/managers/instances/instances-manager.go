@@ -79,10 +79,15 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
+	generation := ""
+	if state.Spec != nil {
+		generation = state.ObjectMeta.Generation
+	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
+			ETag: generation,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -123,7 +128,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		var rt model.InstanceState
-		rt, err = getInstanceState(t.Body)
+		rt, err = getInstanceState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +137,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getInstanceState(body interface{}) (model.InstanceState, error) {
+func getInstanceState(body interface{}, etag string) (model.InstanceState, error) {
 	var instanceState model.InstanceState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &instanceState)
@@ -142,6 +147,7 @@ func getInstanceState(body interface{}) (model.InstanceState, error) {
 	if instanceState.Spec == nil {
 		instanceState.Spec = &model.InstanceSpec{}
 	}
+	instanceState.ObjectMeta.Generation = etag
 	return instanceState, nil
 }
 
@@ -168,7 +174,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		return model.InstanceState{}, err
 	}
 	var ret model.InstanceState
-	ret, err = getInstanceState(instance.Body)
+	ret, err = getInstanceState(instance.Body, instance.ETag)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
