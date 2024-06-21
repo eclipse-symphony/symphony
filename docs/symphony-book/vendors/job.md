@@ -34,7 +34,7 @@ The job vendor can also trigger periodical reconciliation jobs by enabling the `
       "name": "jobs-manager",
       "type": "managers.symphony.jobs",
       "properties": {
-        "providers.state": "mem-state",
+        "providers.volatilestate": "mem-state",
         "baseUrl": "http://symphony-service:8080/v1alpha2/",
         "user": "admin",
         "password": "",

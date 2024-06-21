@@ -29,7 +29,7 @@ func createJobVendor() JobVendor {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := jobs.JobsManager{
-		StateProvider: stateProvider,
+		VolatileStateProvider: stateProvider,
 	}
 	vendor := JobVendor{
 		JobsManager: &manager,

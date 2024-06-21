@@ -46,7 +46,7 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		return err
 	}
 
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
