@@ -38,7 +38,7 @@ func createInstancesVendor() InstancesVendor {
 				Name: "instances-manager",
 				Type: "managers.symphony.instances",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

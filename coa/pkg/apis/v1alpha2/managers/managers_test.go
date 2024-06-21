@@ -31,7 +31,7 @@ func TestInit(t *testing.T) {
 	manager := Manager{}
 	err = manager.Init(nil, ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.volatilestate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,

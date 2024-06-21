@@ -51,7 +51,7 @@ func createSolutionsVendor() SolutionsVendor {
 				Name: "solutions-manager",
 				Type: "managers.symphony.solutions",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

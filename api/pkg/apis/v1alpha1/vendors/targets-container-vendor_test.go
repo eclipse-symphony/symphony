@@ -52,7 +52,7 @@ func createTargetContainersVendor() TargetContainersVendor {
 				Name: "target-container-manager",
 				Type: "managers.symphony.targetcontainers",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
