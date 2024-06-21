@@ -75,7 +75,6 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Generation    string               `json:"generation,omitempty"`
 	Version       string               `json:"version,omitempty"`
 	RootResource  string               `json:"rootResource,omitempty"`
 
@@ -182,8 +181,7 @@ type ActivationSpec struct {
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Inputs     runtime.RawExtension `json:"inputs,omitempty"`
-	Generation string               `json:"generation,omitempty"`
+	Inputs runtime.RawExtension `json:"inputs,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -209,7 +207,6 @@ type CatalogSpec struct {
 	Properties   runtime.RawExtension `json:"properties"`
 	ParentName   string               `json:"parentName,omitempty"`
 	ObjectRef    model.ObjectRef      `json:"objectRef,omitempty"`
-	Generation   string               `json:"generation,omitempty"`
 	Version      string               `json:"version,omitempty"`
 	RootResource string               `json:"rootResource,omitempty"`
 }

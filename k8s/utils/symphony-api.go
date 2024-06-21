@@ -84,7 +84,6 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 			Constraints:   target.Spec.Constraints,
 			ForceRedeploy: target.Spec.ForceRedeploy,
 			Topologies:    target.Spec.Topologies,
-			Generation:    target.Spec.Generation,
 		},
 	}
 

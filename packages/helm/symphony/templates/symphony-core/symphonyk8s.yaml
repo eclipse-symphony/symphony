@@ -1674,8 +1674,6 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string

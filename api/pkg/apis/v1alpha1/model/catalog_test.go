@@ -31,14 +31,12 @@ func TestIntefaceConvertion(t *testing.T) {
 func TestCatalogMatch(t *testing.T) {
 	catalog1 := CatalogSpec{
 		ParentName: "parentName",
-		Generation: "1",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
 	}
 	catalog2 := CatalogSpec{
 		ParentName: "parentName",
-		Generation: "1",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
@@ -73,14 +71,11 @@ func TestCatalogNotMatch(t *testing.T) {
 
 	// generation not match
 	catalog2.ParentName = "parentName"
-	catalog1.Generation = "1"
-	catalog2.Generation = "2"
 	equal, err = catalog1.DeepEquals(catalog2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 
 	// properties not match
-	catalog2.Generation = "1"
 	catalog1.Properties = map[string]interface{}{
 		"key": "value",
 	}
