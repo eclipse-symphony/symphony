@@ -199,7 +199,7 @@ func TestAdvance_TargetLabel(t *testing.T) {
 		namespace = "default"
 	}
 	expectedResult := "nolabel"
-	if labelingEnabled == "" {
+	if labelingEnabled == "true" {
 		expectedResult = "localtest"
 	}
 	cfg, err := testhelpers.RestConfig()
@@ -276,7 +276,7 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 		namespace = "default"
 	}
 	expectedResult := "nolabel"
-	if labelingEnabled == "" {
+	if labelingEnabled == "true" {
 		expectedResult = "localtest"
 	}
 
@@ -318,7 +318,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 		namespace = "default"
 	}
 	expectedResult := "nolabel"
-	if labelingEnabled == "" {
+	if labelingEnabled == "true" {
 		expectedResult = "localtest"
 	}
 
@@ -360,7 +360,7 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 		namespace = "default"
 	}
 	expectedResult := "nolabel"
-	if labelingEnabled == "" {
+	if labelingEnabled == "true" {
 		expectedResult = "localtest"
 	}
 
