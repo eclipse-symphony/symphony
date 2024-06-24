@@ -123,7 +123,7 @@ func (c *TargetContainersVendor) onTargetContainers(request v1alpha2.COARequest)
 		var targetContainer model.TargetContainerState
 		err := json.Unmarshal(request.Body, &targetContainer)
 		if err != nil {
-			iLog.Infof("V (Instances): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.Errorf("V (Instances): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -135,7 +135,7 @@ func (c *TargetContainersVendor) onTargetContainers(request v1alpha2.COARequest)
 
 		err = c.TargetContainersManager.UpsertState(ctx, id, targetContainer)
 		if err != nil {
-			tcLog.Infof("V (TargetContainers): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tcLog.Errorf("V (TargetContainers): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -149,7 +149,7 @@ func (c *TargetContainersVendor) onTargetContainers(request v1alpha2.COARequest)
 		ctx, span := observability.StartSpan("onTargetContainers-DELETE", pCtx, nil)
 		err := c.TargetContainersManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			tcLog.Infof("V (TargetContainers): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tcLog.Errorf("V (TargetContainers): onTargetContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

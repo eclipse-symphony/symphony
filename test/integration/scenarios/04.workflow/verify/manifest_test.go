@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -195,10 +194,14 @@ func TestBasic_TargetStatus(t *testing.T) {
 func TestAdvance_TargetLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
 	if namespace == "" {
 		namespace = "default"
 	}
-
+	expectedResult := "nolabel"
+	if labelingEnabled == "" {
+		expectedResult = "localtest"
+	}
 	cfg, err := testhelpers.RestConfig()
 	require.NoError(t, err)
 
@@ -212,9 +215,9 @@ func TestAdvance_TargetLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "sitek8starget-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled := getLabels(*resource)
-	fmt.Printf("The target is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result := getLabels(*resource)
+	fmt.Printf("The target is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "fabric.symphony",
@@ -223,9 +226,10 @@ func TestAdvance_TargetLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled = getLabels(*resource)
-	fmt.Printf("The target container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result = getLabels(*resource)
+	fmt.Printf("The target container is labeled with: %s\n", result)
+	require.Equal(t, "expectedResult", result)
+
 }
 
 // Verify instance has correct status
@@ -267,8 +271,13 @@ func TestBasic_InstanceStatus(t *testing.T) {
 func TestAdvance_InstanceLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
 	if namespace == "" {
 		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "" {
+		expectedResult = "localtest"
 	}
 
 	cfg, err := testhelpers.RestConfig()
@@ -284,9 +293,9 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteinstance-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled := getLabels(*resource)
-	fmt.Printf("The instance is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result := getLabels(*resource)
+	fmt.Printf("The instance is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "solution.symphony",
@@ -295,17 +304,22 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled = getLabels(*resource)
-	fmt.Printf("The instance container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result = getLabels(*resource)
+	fmt.Printf("The instance container is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 }
 
 // Verify solution has correct labels
 func TestAdvance_SolutionLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
 	if namespace == "" {
 		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "" {
+		expectedResult = "localtest"
 	}
 
 	cfg, err := testhelpers.RestConfig()
@@ -321,9 +335,9 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteapp-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled := getLabels(*resource)
-	fmt.Printf("The solution is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result := getLabels(*resource)
+	fmt.Printf("The solution is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "solution.symphony",
@@ -332,17 +346,22 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled = getLabels(*resource)
-	fmt.Printf("The solution container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result = getLabels(*resource)
+	fmt.Printf("The solution container is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 }
 
 // Verify Catalog has correct labels
 func TestAdvance_CatalogLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
 	if namespace == "" {
 		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "" {
+		expectedResult = "localtest"
 	}
 
 	cfg, err := testhelpers.RestConfig()
@@ -358,10 +377,9 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "webappconfig-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled := getLabels(*resource)
-	fmt.Printf("The catalog is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
-
+	result := getLabels(*resource)
+	fmt.Printf("The catalog is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "federation.symphony",
 		Version:  "v1",
@@ -369,9 +387,9 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	isLabeled = getLabels(*resource)
-	fmt.Printf("The catalog container is labeled: %s\n", strconv.FormatBool(isLabeled))
-	require.True(t, isLabeled)
+	result = getLabels(*resource)
+	fmt.Printf("The catalog container is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 }
 
 // Verify that the pods we expect are running in the namespace
@@ -440,16 +458,20 @@ func getStatus(resource unstructured.Unstructured) string {
 }
 
 // Helper for finding the labels
-func getLabels(resource unstructured.Unstructured) bool {
+func getLabels(resource unstructured.Unstructured) string {
 	labels := resource.GetLabels()
 	if labels != nil {
 		labelValue, ok := labels["localtest"]
 		if ok {
 			if labelValue == "localtest" {
-				return true
+				return labelValue
+			} else {
+				return "wronglabel"
 			}
+		} else {
+			return "wronglabel"
 		}
+	} else {
+		return "nolabel"
 	}
-
-	return false
 }

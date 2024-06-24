@@ -11,5 +11,5 @@ paiImage:
   repository: ghcr.io/eclipse-symphony/symphony-api
 installServiceExt: false
 api:
-  labelKey: localtest
-  labelValue: localtest
+  labelKey:
+  labelValue:
