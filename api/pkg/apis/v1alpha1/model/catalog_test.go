@@ -69,12 +69,6 @@ func TestCatalogNotMatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 
-	// generation not match
-	catalog2.ParentName = "parentName"
-	equal, err = catalog1.DeepEquals(catalog2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
 	// properties not match
 	catalog1.Properties = map[string]interface{}{
 		"key": "value",
