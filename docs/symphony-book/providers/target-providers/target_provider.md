@@ -8,9 +8,11 @@ A target provider interacts with a specific system to carry out state seeking ac
 |`providers.target.arcextension` | Manage Azure Arc extensions |
 | `providers.target.azure.adu` | Update devices using [Device Update for IoT Hub](https://learn.microsoft.com/azure/iot-hub-device-update/) |
 | `providers.target.azure.iotedge` | Deploy solution instances as [Azure IoT Edge](https://learn.microsoft.com/azure/iot-edge/?view=iotedge-1.4) modules<br><br>[`IoT Edge provider`](./iot_provider.md) |
+| `providers.target.configmap`| Manage kubernetes configMap object |
 | `providers.target.docker`| Deploy [Docker](https://www.docker.com/) containers |
 | `providers.target.helm`| Deploy [Helm](https://helm.sh/) charts<br><br>[Helm provider](./helm_provider.md) |
 | `providers.target.http`| Send state-seeking actions (such as `Apply()`) to an HTTP endpoint<br><br>[HTTP provider](./http_provider.md) |
+| `providers.target.ingress`| Manage kubernetes ingress object |
 | `providers.target.k8s` | Deploy solution instances as K8s [deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) |
 | `providers.target.kubectl`| Deploy K8s YAML docs using `kubectl` |
 | `providers.target.mock`| A mock provider to be used in manager unit tests |

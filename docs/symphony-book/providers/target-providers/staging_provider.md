@@ -18,7 +18,7 @@ Staging provider allows [components](../concepts/unified-object-model/solution.m
 topologies:
 - bindings:
   - role: instance
-    provider: providers.target.k8s
+    provider: providers.target.staging
     config:
       inCluster: "false"
       configType: "bytes"
