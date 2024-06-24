@@ -228,7 +228,7 @@ func TestAdvance_TargetLabel(t *testing.T) {
 
 	result = getLabels(*resource)
 	fmt.Printf("The target container is labeled with: %s\n", result)
-	require.Equal(t, "expectedResult", result)
+	require.Equal(t, expectedResult, result)
 
 }
 
