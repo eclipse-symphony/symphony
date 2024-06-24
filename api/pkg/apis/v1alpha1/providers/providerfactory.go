@@ -511,14 +511,6 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
-				case "providers.state.redis":
-					provider := &redisstate.RedisStateProvider{}
-					err := provider.InitWithMap(binding.Config)
-					if err != nil {
-						return nil, err
-					}
-					provider.Context = context
-					return provider, nil
 				case "providers.ledger.mock":
 					provider := &mockledger.MockLedgerProvider{}
 					err := provider.InitWithMap(binding.Config)
