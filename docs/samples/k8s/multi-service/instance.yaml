@@ -1,12 +1,12 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: redis-instance
+  name: redisinstance
 spec:
   scope: basic-k8s
-  solution: redis-server
+  solution: redisserver:v1
   target: 
-    name: k8s-target    
+    name: k8starget    
   parameters:
     configure_data: '{"device-1": ["skill-d1574858-24bb-41eb-b3cb-ec27c3199c94"]}'
   pipelines:

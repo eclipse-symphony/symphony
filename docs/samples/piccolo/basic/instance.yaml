@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: tiny-app
+  name: tinyapp
 spec:
-  solution: busybox
+  solution: busybox:v1
   target: 
-    name: tiny-edge
+    name: tinyedge

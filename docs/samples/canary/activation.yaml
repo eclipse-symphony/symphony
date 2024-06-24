@@ -1,6 +1,6 @@
 apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
-  name: canary-deployment
+  name: canarydeployment
 spec:
-  campaign: "canary"
+  campaign: "canary:v1"

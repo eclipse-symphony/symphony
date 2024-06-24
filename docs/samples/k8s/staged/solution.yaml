@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: samplestagedsolution  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: sample-staged-solution
-spec:  
+  name: samplestagedsolution-v1
+spec:
+  rootResource: samplestagedsolution
   components:
   - name: staged-component
     properties:

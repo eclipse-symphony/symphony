@@ -1,7 +1,7 @@
   apiVersion: fabric.symphony/v1
   kind: Target
   metadata:
-    name: gateway-1
+    name: gateway1
   spec:
     properties:
       cpu: x64

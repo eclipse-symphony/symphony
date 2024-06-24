@@ -1,9 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: redis-instance
+  name: redisinstance
 spec:
   scope: test
-  solution: redis-server
+  solution: redisserver:v1
   target: 
-    name: k8s-target    
+    name: k8starget    

@@ -1,9 +1,9 @@
 apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
-  name: mock-activation
+  name: mockactivation
 spec:
-  campaign: "mock-campaign"
+  campaign: "mockcampaign:v1"
   stage: ""
   inputs:
     foo: 0

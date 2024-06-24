@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: approvalcampaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: approval-campaign
+  name: approvalcampaign-v1
 spec:
+  rootResource: approvalcampaign
   firstStage: "approval"
   selfDriving: true
   stages:

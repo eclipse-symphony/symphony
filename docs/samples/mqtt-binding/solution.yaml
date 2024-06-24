@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: testapp  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: test-app
+  name: testapp-v1
 spec:
+  rootResource: testapp
   components:
   - name: nginx
     type: container

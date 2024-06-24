@@ -4,10 +4,17 @@
 ## SPDX-License-Identifier: MIT
 ##
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: persondetection  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: person-detection  
+  name: persondetection-v1
 spec:
+  rootResource: persondetection
   components:
   - name: voeedge
     properties:

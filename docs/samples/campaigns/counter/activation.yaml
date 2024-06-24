@@ -1,9 +1,9 @@
 apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
-  name: counter-activation
+  name: counteractivation
 spec:
-  campaign: "counter-campaign"
+  campaign: "countercampaign:v1"
   stage: ""
   inputs:
     val.init: 10

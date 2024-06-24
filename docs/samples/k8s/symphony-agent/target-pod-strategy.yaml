@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: symphony-k8s-target
+  name: symphonyk8starget
 spec:
   metadata:
     deployment.replicas: "#1"

@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: sample-docker-target        
+  name: sampledockertarget        
 spec:  
   forceRedeploy: true
   topologies:

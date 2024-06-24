@@ -1,4 +1,10 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: sitek8starget
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
   name: sitek8starget-v1

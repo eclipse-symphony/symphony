@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: arraymergingsolution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: array-merging-solution
+  name: arraymergingsolution-v1
 spec:
+  rootResource: arraymergingsolution
   components:
     - name: array-merging-deployment
       type: yaml.k8s

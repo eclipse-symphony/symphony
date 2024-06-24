@@ -1,11 +1,20 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: gatedprometheusinstance
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: gated-prometheus-instance
+  name: gatedprometheusinstance-v1
 spec:
+  rootResource: gatedprometheusinstance
   catalogType: instance
   properties:
+    metadata:
+      name: gatedprometheusinstance:v1
     spec: 
-      solution: gated-prometheus-server
+      solution: gatedprometheusserver:v1
       target:
-        name: gated-k8s-target
+        name: gatedk8starget

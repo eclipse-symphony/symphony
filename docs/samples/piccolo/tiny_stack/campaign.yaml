@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: ebpfapproval
+spec:  
+---
+apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: ebpf-approval
+  name: ebpfapproval-v1
 spec:
+  rootResource: ebpfapproval
   firstStage: "approval"
   selfDriving: true
   stages:

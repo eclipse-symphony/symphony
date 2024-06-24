@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: redisserver  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: redis-server
+  name: redisserver-v1
 spec:
+    rootResource: redisserver
     components:
     - name: symphonyai
       properties:

@@ -1,7 +1,13 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: tinyml  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: tiny-ml
+  name: tinyml
 spec:
   components:
   - name: model

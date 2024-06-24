@@ -1,11 +1,11 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: dummy-instance
+  name: dummyinstance
 spec:
-  solution: dummy-solution
+  solution: dummysolution:v1
   target: 
-    name: voe-target
+    name: voetarget
   pipelines:
   - name: pipeline1
     skill: cv-skill

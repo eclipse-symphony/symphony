@@ -9,7 +9,7 @@ Because some customers have expressed desire to use a versioned API instead of n
 ## Versioned API syntax
 
 Symphony introduces a series of new versioned objects, such as versioned solutions and versioned catalogs, on top of the existing objects. Versioned objects are containers that hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration Catalog objects.
-In general, a versioned API has the following routes following a typical REST pattern:
+In general, a versioned API has the following routes following a typical REST pattern (ARM only):
 
 ```bash
 /<versioned-objects>/<versioned object id>/versions/<id>
@@ -26,6 +26,9 @@ For example, to get `v3` of a `my-config`, uses:
 ```bash
 /versioned-catalogs/my-config/versions/v3
 ```
+
+## Create a versioned object
+Under Kubernetes mode, it is required to create a `container` object before creating a versioned object. For example, to create a solution `myapp-v1`, customer needs to create a `solutioncontainer` object and then `solution` object (yaml files available at [docs/samples/k8s/hello-world/solution.yaml](../../samples/k8s/hello-world/solution.yaml).)
 
 ## Referencing a versioned object
 When referencing a specific version of a versioned object, you can use a “:<version>” postfix in you Symphony expressions, such as:

@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: redisserver  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: redis-server
-spec:  
+  name: redisserver-v1
+spec:
+  rootResource: redisserver
   metadata:
     deployment.replicas: "#1"
     service.ports: "[{\"name\":\"port6379\",\"port\": 6379}]"

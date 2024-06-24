@@ -1,4 +1,10 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: sampleprometheusserver  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
   name: sampleprometheusserver-v1

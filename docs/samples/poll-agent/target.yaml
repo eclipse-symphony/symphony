@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: my-k8s
+  name: myk8s
 spec:  
   forceRedeploy: true
   topologies:

@@ -1,9 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: sample-app
+  name: sampleapp
 spec:
-  solution: sample-app-v1
+  solution: sampleapp-v1
   target: 
     selector:
       group: group-1

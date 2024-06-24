@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: rtosapp  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: rtos-app
+  name: rtosapp-v1
 spec:
+  rootResource: rtosapp
   components:
   - name: "SAME54"
     properties:

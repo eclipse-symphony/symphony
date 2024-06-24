@@ -2,9 +2,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: array-merging-instance
+  name: arraymerginginstance
 spec:
-  solution: array-merging-solution
+  solution: arraymergingsolution:v1
   scope: default
   target:
-    name: k8s-target
+    name: k8starget

@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: factoryaivision  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: factory-ai-vision
+  name: factoryaivision-v1
 spec:
+  rootResource: factoryaivision
   components:
   - name: webmodule
     properties:

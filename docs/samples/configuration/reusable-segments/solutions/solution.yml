@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: reusablesegmentsolution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: reusable-segment-solution
+  name: reusablesegmentsolution-v1
 spec:
+  rootResource: reusablesegmentsolution
   components:
     - name: reusable-segment-deployment
       type: yaml.k8s

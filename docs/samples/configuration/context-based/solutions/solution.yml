@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: contextbasedsolution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: context-based-solution
+  name: contextbasedsolution-v1
 spec:
+  rootResource: contextbasedsolution
   components:
     - name: context-based-deployment
       type: yaml.k8s

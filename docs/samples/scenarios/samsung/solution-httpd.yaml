@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: myapplicationhttpd  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: myapplication-httpd
+  name: myapplicationhttpd-v1
 spec:
+  rootResource: conditionalactivationsolution
   components:
   - name: galaxy-services
     type: container

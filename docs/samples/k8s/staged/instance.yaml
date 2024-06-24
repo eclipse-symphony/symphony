@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: sample-staged-instance
+  name: samplestagedinstance
 spec:
-  solution: sample-staged-solution
+  solution: samplestagedsolution
   target: 
-    name: sample-staged-k8s
+    name: samplestagedk8s

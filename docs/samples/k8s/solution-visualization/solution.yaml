@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: samplevisualizationsolution  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: sample-visualization-solution
-spec:    
+  name: samplevisualizationsolution-v1
+spec: 
+  rootResource: samplevisualizationsolution
   components:
   - name: flask-a
     type: container

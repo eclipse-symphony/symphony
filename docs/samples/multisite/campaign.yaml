@@ -1,4 +1,10 @@
 apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: siteapps
+spec:  
+---
+apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
   name: siteapps-v1
