@@ -268,8 +268,8 @@ func modifyYAML(v string) error {
 
 	// Modify the 'api' fields
 	if api, ok := values["api"].(map[interface{}]interface{}); ok {
-		api["labelkey"] = v
-		api["labelvalue"] = v
+		api["labelKey"] = v
+		api["labelValue"] = v
 	} else {
 		return fmt.Errorf("'api' field is not a map")
 	}
