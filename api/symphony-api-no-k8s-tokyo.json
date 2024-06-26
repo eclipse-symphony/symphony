@@ -479,7 +479,7 @@
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {
-              "providers.volatilestate": "memeory"              
+              "providers.persistentstate": "memeory"              
             },
             "providers": {
               "memeory": {
@@ -492,7 +492,7 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.volatilestate": "memeory",
+              "providers.persistentstate": "memeory",
               "singleton": "true"                         
             },
             "providers": {
@@ -543,7 +543,7 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.volatilestate": "memeory",
+              "providers.persistentstate": "memeory",
               "singleton": "true"              
             },
             "providers": {
@@ -567,7 +567,7 @@
             "name": "catalog-container-manager",
             "type": "managers.symphony.catalogcontainers",
             "properties": {
-              "providers.volatilestate": "memeory",
+              "providers.persistentstate": "memeory",
               "singleton": "true" 
             },
             "providers": {
@@ -587,7 +587,7 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.volatilestate": "memeory",
+              "providers.persistentstate": "memeory",
               "singleton": "true"
             },
             "providers": {
