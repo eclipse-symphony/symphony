@@ -75,7 +75,7 @@ func TestCreateProvider(t *testing.T) {
 	}
 
 	if testRedis == "" {
-		t.Log("Skipping providers.state.redis test as TEST_MINIKUBE_ENABLED is not set")
+		t.Log("Skipping providers.state.redis test as TEST_REDIS is not set")
 	} else {
 		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6379"})
 		assert.Nil(t, err)
