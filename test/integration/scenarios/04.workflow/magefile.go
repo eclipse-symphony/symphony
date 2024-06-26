@@ -218,6 +218,10 @@ func FaultTest(namespace string) error {
 
 // Clean up
 func Cleanup() {
+	err := modifyYAML("")
+	if err != nil {
+		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
+	}
 	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
