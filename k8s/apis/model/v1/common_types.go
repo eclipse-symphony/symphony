@@ -104,14 +104,6 @@ type InstanceSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type TargetContainerSpec struct {
-}
-
-// +kubebuilder:object:generate=true
-type InstanceContainerSpec struct {
-}
-
-// +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName  string            `json:"displayName,omitempty"`
 	Metadata     map[string]string `json:"metadata,omitempty"`

@@ -7,7 +7,7 @@ spec:
   catalogType: target
   properties:
     metadata:
-      name: target:v1
+      name: target
     spec:
       properties:
         group: site

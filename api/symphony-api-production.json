@@ -296,27 +296,6 @@
           }
         ]
       },
-      {
-        "type": "vendors.targetcontainers",
-        "route": "targetcontainers",
-        "managers": [
-          {
-            "name": "target-container-manager",
-            "type": "managers.symphony.targetcontainers",
-            "properties": {
-              "providers.persistentstate": "k8s-state"
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          }
-        ]
-      },
 	    {
         "type": "vendors.solutioncontainers",
         "route": "solutioncontainers",
@@ -324,27 +303,6 @@
           {
             "name": "solution-container-manager",
             "type": "managers.symphony.solutioncontainers",
-            "properties": {
-              "providers.persistentstate": "k8s-state"
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          }
-        ]
-      },
-	    {
-        "type": "vendors.instancecontainers",
-        "route": "instancecontainers",
-        "managers": [
-          {
-            "name": "instance-container-manager",
-            "type": "managers.symphony.instancecontainers",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },

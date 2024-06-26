@@ -7,7 +7,7 @@ spec:
   catalogType: target
   properties:
     metadata:
-      name: sitek8starget:v1
+      name: sitek8starget
     spec:
       properties:
         group: site

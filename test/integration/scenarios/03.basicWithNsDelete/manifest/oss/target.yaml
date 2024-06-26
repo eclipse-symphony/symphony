@@ -1,9 +1,8 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: target03-v1      
+  name: target03   
 spec:  
-  rootResource: target03
   forceRedeploy: true
   topologies:
   - bindings:

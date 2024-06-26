@@ -90,16 +90,6 @@ type (
 		DefaultValue interface{} `yaml:"default"`
 	}
 
-	InstanceContainer struct {
-		ApiVersion string                `yaml:"apiVersion"`
-		Kind       string                `yaml:"kind"`
-		Metadata   Metadata              `yaml:"metadata"`
-		Spec       InstanceContainerSpec `yaml:"spec"`
-	}
-
-	InstanceContainerSpec struct {
-	}
-
 	SolutionContainer struct {
 		ApiVersion string                `yaml:"apiVersion"`
 		Kind       string                `yaml:"kind"`
@@ -108,15 +98,5 @@ type (
 	}
 
 	SolutionContainerSpec struct {
-	}
-
-	TargetContainer struct {
-		ApiVersion string              `yaml:"apiVersion"`
-		Kind       string              `yaml:"kind"`
-		Metadata   Metadata            `yaml:"metadata"`
-		Spec       TargetContainerSpec `yaml:"spec"`
-	}
-
-	TargetContainerSpec struct {
 	}
 )
