@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"sigs.k8s.io/yaml"
 )
@@ -96,6 +97,25 @@ func yamlToJson(payload []byte) ([]byte, error) {
 	return json.Marshal(o)
 }
 
+func GetArtifactFile(filePath string) ([]byte, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to unmarshal as JSON first
+	var jsonObj interface{}
+	if err = json.Unmarshal(data, &jsonObj); err == nil {
+		return data, nil // It's already JSON, return it
+	}
+
+	// If it's not JSON, try to unmarshal as YAML
+	if err = yaml.Unmarshal(data, &jsonObj); err == nil {
+		return yamlToJson(data) // Convert YAML to JSON and return it
+	}
+
+	return nil, errors.New("file is neither valid JSON nor valid YAML")
+}
 func Get(url string, username string, password string, objType string, path string, docType string, objName string) ([]interface{}, error) {
 	token, err := Login(url, username, password)
 	if err != nil {
