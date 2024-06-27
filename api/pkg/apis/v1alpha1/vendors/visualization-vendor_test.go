@@ -35,7 +35,7 @@ func createVisualizationVendor(t *testing.T) VisualizationVendor {
 				Name: "catalogs-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

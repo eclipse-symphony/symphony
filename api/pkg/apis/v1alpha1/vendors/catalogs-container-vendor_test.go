@@ -52,7 +52,7 @@ func createCatalogContainersVendor() CatalogContainersVendor {
 				Name: "catalog-container-manager",
 				Type: "managers.symphony.catalogcontainers",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
