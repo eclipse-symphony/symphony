@@ -1,8 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: sample-prometheus-server-v1
-spec:  
+  name: sampleprometheusserver-v1
+spec:
+  rootResource: sampleprometheusserver
   metadata:
     deployment.replicas: "#1"
     service.ports: "[{\"name\":\"port9090\",\"port\": 9090}]"

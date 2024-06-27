@@ -53,7 +53,7 @@ func createTargetsVendor() TargetsVendor {
 				Name: "targets-manager",
 				Type: "managers.symphony.targets",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

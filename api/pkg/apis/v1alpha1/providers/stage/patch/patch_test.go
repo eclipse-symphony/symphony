@@ -138,6 +138,7 @@ func TestPatchInitFromMap(t *testing.T) {
 func TestPatchProcessInline(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := PatchStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",

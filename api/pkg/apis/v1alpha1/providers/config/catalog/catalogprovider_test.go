@@ -85,6 +85,7 @@ func TestRead(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{

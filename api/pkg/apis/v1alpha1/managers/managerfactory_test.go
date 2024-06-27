@@ -72,9 +72,9 @@ func getSolutionManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.solution",
 		Properties: map[string]string{
-			"providers.state":  "mem-state",
-			"providers.config": "mock-config",
-			"providers.secret": "mock-secret",
+			"providers.volatilestate": "mem-state",
+			"providers.config":        "mock-config",
+			"providers.secret":        "mock-secret",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -95,9 +95,9 @@ func getReferenceManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.reference",
 		Properties: map[string]string{
-			"providers.reference": "http-reference",
-			"providers.state":     "memory",
-			"providers.reporter":  "http-reporter",
+			"providers.reference":     "http-reference",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "http-reporter",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"memory": {
@@ -163,7 +163,7 @@ func getTargetsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.targets",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -178,7 +178,7 @@ func getDevicesManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.devices",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -193,7 +193,7 @@ func getSolutionsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.solutions",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -208,7 +208,7 @@ func getInstancesManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.instances",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -223,7 +223,7 @@ func getUsersManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.users",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -238,13 +238,13 @@ func getJobsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.jobs",
 		Properties: map[string]string{
-			"providers.state":  "mem-state",
-			"baseUrl":          "http://localhost/",
-			"user":             "admin",
-			"password":         "",
-			"interval":         "#15",
-			"poll.enabled":     "true",
-			"schedule.enabled": "true",
+			"providers.persistentstate": "mem-state",
+			"baseUrl":                   "http://localhost/",
+			"user":                      "admin",
+			"password":                  "",
+			"interval":                  "#15",
+			"poll.enabled":              "true",
+			"schedule.enabled":          "true",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -259,8 +259,8 @@ func getCampaignsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.campaigns",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
-			"singleton":       "true",
+			"providers.persistentstate": "mem-state",
+			"singleton":                 "true",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -275,8 +275,8 @@ func getCatalogsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.catalogs",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
-			"singleton":       "true",
+			"providers.persistentstate": "mem-state",
+			"singleton":                 "true",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -291,8 +291,8 @@ func getActivationsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.activations",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
-			"singleton":       "true",
+			"providers.persistentstate": "mem-state",
+			"singleton":                 "true",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -307,9 +307,9 @@ func getActivationsCleanupManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.activationscleanup",
 		Properties: map[string]string{
-			"providers.state":    "mem-state",
-			"singleton":          "true",
-			"RetentionInMinutes": "1440",
+			"providers.persistentstate": "mem-state",
+			"singleton":                 "true",
+			"RetentionInMinutes":        "1440",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -324,10 +324,10 @@ func getStageManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.stage",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
-			"baseUrl":         "http://localhost:8082/v1alpha2/",
-			"user":            "admin",
-			"password":        "",
+			"providers.persistentstate": "mem-state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"user":                      "admin",
+			"password":                  "",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -362,7 +362,7 @@ func getSitesManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.sites",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -377,10 +377,10 @@ func getStagingManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.staging",
 		Properties: map[string]string{
-			"poll.enabled":    "true",
-			"interval":        "#15",
-			"providers.queue": "memory-queue",
-			"providers.state": "memory-state",
+			"poll.enabled":              "true",
+			"interval":                  "#15",
+			"providers.queue":           "memory-queue",
+			"providers.persistentstate": "memory-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"memory-state": {
@@ -412,7 +412,7 @@ func getModelsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.models",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {
@@ -427,7 +427,7 @@ func getSkillsManagerConfig() cm.ManagerConfig {
 	return cm.ManagerConfig{
 		Type: "managers.symphony.skills",
 		Properties: map[string]string{
-			"providers.state": "mem-state",
+			"providers.persistentstate": "mem-state",
 		},
 		Providers: map[string]cm.ProviderConfig{
 			"mem-state": {

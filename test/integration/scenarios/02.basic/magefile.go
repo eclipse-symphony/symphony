@@ -35,6 +35,9 @@ var (
 var (
 	// Manifests to deploy
 	testManifests = []string{
+		"manifest/%s/target-container.yaml",
+		"manifest/%s/instance-container.yaml",
+		"manifest/%s/solution-container.yaml",
 		"manifest/%s/target.yaml",
 		"manifest/%s/instance.yaml",
 		"manifest/%s/solution.yaml",
@@ -120,6 +123,9 @@ func DeployManifests(namespace string) error {
 			return err
 		}
 		stringYaml := string(data)
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCECONTAINERNAME", namespace+"instance")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETCONTAINERNAME", namespace+"target")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
 		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance-v1")
 		stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
 		stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target-v1")

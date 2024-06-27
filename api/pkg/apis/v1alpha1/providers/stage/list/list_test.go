@@ -53,6 +53,7 @@ func TestListInitFromMap(t *testing.T) {
 func TestListProcessInstances(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := ListStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",

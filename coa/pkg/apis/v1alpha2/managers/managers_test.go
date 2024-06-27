@@ -31,7 +31,7 @@ func TestInit(t *testing.T) {
 	manager := Manager{}
 	err = manager.Init(nil, ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.volatilestate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -101,14 +101,14 @@ func TestGetStateProvider(t *testing.T) {
 
 	config := ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.volatilestate": "memory-state",
 		},
 	}
 	pMap := map[string]providers.IProvider{
 		"memory-state": stateProvider,
 	}
 
-	p, err := GetStateProvider(config, pMap)
+	p, err := GetVolatileStateProvider(config, pMap)
 	assert.Nil(t, err)
 	assert.NotNil(t, p)
 
@@ -116,22 +116,22 @@ func TestGetStateProvider(t *testing.T) {
 	config1 := ManagerConfig{
 		Properties: map[string]string{},
 	}
-	p, err = GetStateProvider(config1, pMap)
+	p, err = GetVolatileStateProvider(config1, pMap)
 	assert.NotNil(t, err)
 	assert.Nil(t, p)
 	coaError := err.(v1alpha2.COAError)
-	assert.Equal(t, "state provider is not configured", coaError.Message)
+	assert.Equal(t, "volatile state provider is not configured", coaError.Message)
 	assert.Equal(t, v1alpha2.MissingConfig, coaError.State)
 
 	// state provider is not found
 	pMap2 := map[string]providers.IProvider{
 		"memory-state-xxx": stateProvider,
 	}
-	p, err = GetStateProvider(config, pMap2)
+	p, err = GetVolatileStateProvider(config, pMap2)
 	assert.NotNil(t, err)
 	assert.Nil(t, p)
 	coaError = err.(v1alpha2.COAError)
-	assert.Equal(t, "state provider is not supplied", coaError.Message)
+	assert.Equal(t, "volatile state provider is not supplied", coaError.Message)
 	assert.Equal(t, v1alpha2.MissingConfig, coaError.State)
 
 	// not a state provider
@@ -141,7 +141,7 @@ func TestGetStateProvider(t *testing.T) {
 	pMap3 := map[string]providers.IProvider{
 		"memory-state": queueProvider,
 	}
-	p, err = GetStateProvider(config, pMap3)
+	p, err = GetVolatileStateProvider(config, pMap3)
 	assert.NotNil(t, err)
 	assert.Nil(t, p)
 	coaError = err.(v1alpha2.COAError)

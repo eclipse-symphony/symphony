@@ -3,6 +3,7 @@ kind: Campaign
 metadata:
   name: 04campaign-v1
 spec:  
+  rootResource: 04campaign
   firstStage: wait
   stages:
     wait:
@@ -16,10 +17,10 @@ spec:
       inputs:
         objectType: catalogs
         names:
-        - site-catalog:v1
-        - site-app:v1
-        - site-k8s-target:v1
-        - site-instance:v1
+        - sitecatalog:v1
+        - siteapp:v1
+        - sitek8starget:v1
+        - siteinstance:v1
     list:
       name: list
       provider: providers.stage.list
@@ -35,7 +36,6 @@ spec:
       name: deploy
       provider: providers.stage.materialize
       stageSelector: ""
-      schedule: "2020-10-31T12:00:00-07:00"
       config:
         baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin

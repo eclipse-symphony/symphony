@@ -1,0 +1,5 @@
+apiVersion: fabric.symphony/v1
+kind: TargetContainer
+metadata:
+  name: target
+spec:  

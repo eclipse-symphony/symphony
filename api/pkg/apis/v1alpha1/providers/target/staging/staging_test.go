@@ -245,6 +245,7 @@ func TestApply(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",
@@ -343,6 +344,7 @@ func TestGet(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",

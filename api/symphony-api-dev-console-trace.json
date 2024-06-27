@@ -22,7 +22,7 @@
             "name": "targets-manager",
             "type": "managers.symphony.targets",
             "properties": {
-              "providers.state": "k8s-state",
+              "providers.persistentstate": "k8s-state",
               "poll.enabled": "true"                           
             },
             "providers": {
@@ -45,7 +45,7 @@
             "name": "solutions-manager",
             "type": "managers.symphony.solutions",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -67,7 +67,73 @@
             "name": "instances-manager",
             "type": "managers.symphony.instances",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.persistentstate": "k8s-state"              
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.targetcontainers",
+        "route": "targetcontainers",
+        "managers": [
+          {
+            "name": "target-container-manager",
+            "type": "managers.symphony.targetcontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+	    {
+        "type": "vendors.solutioncontainers",
+        "route": "solutioncontainers",
+        "managers": [
+          {
+            "name": "solution-container-manager",
+            "type": "managers.symphony.solutioncontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path"
+                }
+              }
+            }
+          }
+        ]
+      },
+	    {
+        "type": "vendors.instancecontainers",
+        "route": "instancecontainers",
+        "managers": [
+          {
+            "name": "instance-container-manager",
+            "type": "managers.symphony.instancecontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -89,7 +155,7 @@
             "name": "devices-manager",
             "type": "managers.symphony.devices",
             "properties": {
-              "providers.state": "k8s-state"              
+              "providers.persistentstate": "k8s-state"              
             },
             "providers": {
               "k8s-state": {
@@ -112,7 +178,7 @@
             "name": "models-manager",
             "type": "managers.symphony.models",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -132,7 +198,7 @@
             "name": "skills-manager",
             "type": "managers.symphony.skills",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -154,7 +220,7 @@
             "name": "users-manager",
             "type": "managers.symphony.users",
             "properties": {
-              "providers.state": "mem-state"              
+              "providers.volatilestate": "mem-state"              
             },
             "providers": {
               "mem-state": {
@@ -174,7 +240,7 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.state": "mem-state",
+              "providers.volatilestate": "mem-state",
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret"
             },
@@ -205,7 +271,7 @@
             "type": "managers.symphony.reference",
             "properties": {
               "providers.reference": "k8s-reference",
-              "providers.state": "memory",
+              "providers.volatilestate": "memory",
               "providers.reporter": "k8s-reporter"
             },
             "providers": {

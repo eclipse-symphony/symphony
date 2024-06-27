@@ -10,11 +10,14 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/constants"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
@@ -85,4 +88,45 @@ func CheckValidationPack(myName string, myValue, validationType string, pack []c
 		}
 	}
 	return "", nil
+}
+
+func CheckOwnerReferenceAlreadySet(existingRefs []metav1.OwnerReference, ownerRefToCheck metav1.OwnerReference) bool {
+	for _, r := range existingRefs {
+		if areSameOwnerReferences(ownerRefToCheck, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// Returns true if a and b point to the same object
+func areSameOwnerReferences(a, b metav1.OwnerReference) bool {
+	aGV, err := schema.ParseGroupVersion(a.APIVersion)
+	if err != nil {
+		return false
+	}
+
+	bGV, err := schema.ParseGroupVersion(b.APIVersion)
+	if err != nil {
+		return false
+	}
+
+	return aGV == bGV && a.Kind == b.Kind && a.Name == b.Name
+}
+
+func ValidateObjectName(name string, rootResource string) *field.Error {
+	if rootResource == "" {
+		return field.Invalid(field.NewPath("spec").Child("rootResource"), rootResource, "rootResource must be a non-empty string")
+	}
+
+	parts := strings.Split(name, "-")
+	if len(parts) != 2 {
+		return field.Invalid(field.NewPath("name"), name, "name must be in the format of <containerName>-<version> and only one hyphen is allowed")
+	}
+
+	if parts[0] != rootResource {
+		return field.Invalid(field.NewPath("name"), name, "name must start with spec.rootResource")
+	}
+
+	return nil
 }

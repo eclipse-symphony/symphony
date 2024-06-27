@@ -1,8 +1,9 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: site-apps-v1
+  name: siteapps-v1
 spec:  
+  rootResource: siteapps
   firstStage: list
   stages:
     list:

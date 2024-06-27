@@ -3,6 +3,7 @@ kind: Instance
 metadata:
   name: instance-v1
 spec:
+  rootResource: instance
   target:
     name: target:v1
   solution: solution:v1
