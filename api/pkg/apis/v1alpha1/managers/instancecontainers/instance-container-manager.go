@@ -35,7 +35,7 @@ func (s *InstanceContainersManager) Init(context *contexts.VendorContext, config
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {

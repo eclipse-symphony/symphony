@@ -35,7 +35,7 @@ type UserState struct {
 }
 
 func (s *UsersManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {

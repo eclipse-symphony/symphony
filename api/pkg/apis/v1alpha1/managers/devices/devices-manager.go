@@ -36,7 +36,7 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 		log.Errorf(" M (Devices): failed to initialize manager %+v", err)
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err != nil {
 		log.Errorf(" M (Devices): failed to get state provider %+v", err)
 		return err
