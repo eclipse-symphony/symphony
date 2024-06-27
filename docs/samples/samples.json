@@ -7,19 +7,34 @@
             "path": "k8s/hello-world",
             "artifacts": [
                 {
+                    "file": "target-container.yaml",
+                    "type": "target-container",
+                    "name": "samplek8starget"
+                },
+                {
                     "file": "target.yaml",
                     "type": "target",
-                    "name": "sample-k8s-target"
+                    "name": "samplek8starget-v1"
                 },
+                {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sampleprometheusserver" 
+                }, 
                 {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-prometheus-server" 
+                    "name": "sampleprometheusserver-v1" 
                 }, 
+                {
+                    "file": "instance-container.yaml",
+                    "type": "instance-container",
+                    "name": "sampleprometheusinstance"                             
+                },
                 {
                     "file": "instance.yaml",
                     "type": "instance",
-                    "name": "sample-prometheus-instance"                             
+                    "name": "sampleprometheusinstance-v1"                             
                 }
             ],            
             "description": "Deploy a Prometheus server on a K8s target",
@@ -31,7 +46,7 @@
                         "args": [
                            "get",
                            "svc",
-                           "sample-prometheus-instance",
+                           "sampleprometheusinstance-v1",
                            "-n",
                            "sample-k8s-scope",
                            "-o",
