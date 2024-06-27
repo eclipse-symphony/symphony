@@ -45,11 +45,11 @@ There are several ways to get started with Symphony, including using the CLI too
 The easiest way to get started with Symphony is by using Symphony's CLI tool, called maestro. The CLI tool can be installed on **Linux**, **WSL**, and **Mac** using the following command:
 
 ```Bash
-wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
+wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/experimental/cli/install/install.sh -O - | /bin/bash
 ```
 For **Windows**, the following PowerShell command can be used:
 ```PowerShell
-powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
+powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/experimental/cli/install/install.ps1 | iex"
 ```
 After Symphony is installed, you can use `maestro` to try out sample scenarios.
 
