@@ -61,9 +61,9 @@ getLatestRelease() {
     local latestRelease=""
 
     if [ "$SYMPHONY_HTTP_REQUEST_CLI" == "curl" ]; then
-        latestRelease=$(curl -s $symphonyReleaseUrl -H "Accept: application/json"  | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+        latestRelease=$(curl -s $symphonyReleaseUrl -H "Accept: application/json" | grep \"tag_name\" | grep "-exp" | awk 'NR==1{print $2}' | sed -n 's/\"\(.*\)\",/\1/p')
     else
-        latestRelease=$(wget -q --header="Accept: application/json" -O - $symphonyReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+        latestRelease=$(wget -q --header="Accept: application/json" -O - $symphonyReleaseUrl | grep \"tag_name\" | grep "-exp" | awk 'NR==1{print $2}' | sed -n 's/\"\(.*\)\",/\1/p')
     fi
 
     retVal=$latestRelease

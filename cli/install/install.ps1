@@ -79,9 +79,9 @@ function GetVersionInfo {
         [string]$Version,
         $Releases
     )
-    # Filter windows binary and download archive
+    # Filter for releases with "-exp" in the name and exclude "*rc*"
     if (!$Version) {
-        $release = $Releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1
+        $release = $Releases | Where-Object { $_.tag_name -like "*-exp*" -and $_.tag_name -notlike "*rc*" } | Select-Object -First 1
     }
     else {
         $release = $Releases | Where-Object { $_.tag_name -eq "$Version" } | Select-Object -First 1
