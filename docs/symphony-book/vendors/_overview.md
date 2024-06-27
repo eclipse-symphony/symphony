@@ -33,7 +33,7 @@ A more complex vendor usually loads a number of [managers](../managers/_overview
       "name": "targets-manager",
       "type": "managers.symphony.targets",
       "properties": {
-        "providers.state": "k8s-state"
+        "providers.persistentstate": "k8s-state"
       },
       "providers": {
         "k8s-state": {

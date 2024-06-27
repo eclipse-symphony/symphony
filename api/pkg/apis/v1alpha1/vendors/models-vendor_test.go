@@ -37,7 +37,7 @@ func createModelsVendor(route string) ModelsVendor {
 				Name: "models-manager",
 				Type: "managers.symphony.models",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -72,7 +72,7 @@ func TestModelsVendorInit(t *testing.T) {
 				Name: "models-manager",
 				Type: "managers.symphony.models",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {

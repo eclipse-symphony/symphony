@@ -37,7 +37,7 @@ func createSkillsVendor(route string) SkillsVendor {
 				Name: "skills-manager",
 				Type: "managers.symphony.skills",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -72,7 +72,7 @@ func TestSkillsVendorInit(t *testing.T) {
 				Name: "skills-manager",
 				Type: "managers.symphony.skills",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {

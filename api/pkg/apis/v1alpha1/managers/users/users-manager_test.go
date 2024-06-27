@@ -24,7 +24,7 @@ func TestInit(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.volatilestate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)
@@ -41,7 +41,7 @@ func TestUpsertAndDelete(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.volatilestate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)
@@ -62,7 +62,7 @@ func TestUpsertAndCheck(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.volatilestate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)

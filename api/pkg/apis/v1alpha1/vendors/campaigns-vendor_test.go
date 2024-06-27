@@ -35,7 +35,7 @@ func createCampaignsVendor() CampaignsVendor {
 				Name: "campaigns-manager",
 				Type: "managers.symphony.campaigns",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

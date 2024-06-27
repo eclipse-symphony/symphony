@@ -30,9 +30,9 @@ func TestInit(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -56,9 +56,9 @@ func TestGet(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -85,9 +85,9 @@ func TestGetExt(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -125,9 +125,9 @@ func TestGetExtDownload(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -161,9 +161,9 @@ func TestGetAnyType(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -190,10 +190,10 @@ func TestPoll(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
-			"poll.enabled":        "true",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
+			"poll.enabled":            "true",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,
@@ -219,10 +219,10 @@ func TestCacheLifespan(t *testing.T) {
 	manager := ReferenceManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "mock",
-			"providers.state":     "memory",
-			"cacheLifespan":       "5",
-			"providers.reporter":  "report",
+			"providers.reference":     "mock",
+			"providers.volatilestate": "memory",
+			"cacheLifespan":           "5",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"mock":   &referenceProvider,

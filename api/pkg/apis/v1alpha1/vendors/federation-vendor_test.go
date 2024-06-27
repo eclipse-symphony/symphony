@@ -75,22 +75,22 @@ func federationVendorInit() FederationVendor {
 				Name: "catalog-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
+					"providers.persistentstate": "StateProvider",
 				},
 			},
 			{
 				Name: "staging-manager",
 				Type: "managers.symphony.staging",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
-					"providers.queue": "QueueProvider",
+					"providers.volatilestate": "StateProvider",
+					"providers.queue":         "QueueProvider",
 				},
 			},
 			{
 				Name: "sites-manager",
 				Type: "managers.symphony.sites",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
+					"providers.persistentstate": "StateProvider",
 				},
 			},
 			{

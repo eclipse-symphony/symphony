@@ -76,3 +76,10 @@ func IsDelayed(err error) bool {
 	}
 	return coaE.State == Delayed
 }
+func IsBadConfig(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == BadConfig
+}

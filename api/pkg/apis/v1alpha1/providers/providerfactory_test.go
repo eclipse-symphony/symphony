@@ -52,12 +52,14 @@ import (
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/redisstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateProvider(t *testing.T) {
 	getTestMiniKubeEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	testRedis := os.Getenv("TEST_REDIS")
 
 	providerfactory := SymphonyProviderFactory{}
 	provider, err := providerfactory.CreateProvider("providers.state.memory", memorystate.MemoryStateProviderConfig{})
@@ -70,6 +72,14 @@ func TestCreateProvider(t *testing.T) {
 		provider, err = providerfactory.CreateProvider("providers.state.k8s", k8sstate.K8sStateProviderConfig{})
 		assert.Nil(t, err)
 		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
+	}
+
+	if testRedis == "" {
+		t.Log("Skipping providers.state.redis test as TEST_REDIS is not set")
+	} else {
+		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6379"})
+		assert.Nil(t, err)
+		assert.NotNil(t, *provider.(*redisstate.RedisStateProvider))
 	}
 
 	if getTestMiniKubeEnabled == "" {
@@ -282,6 +292,11 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 						{
 							Role:     "k8sstate",
 							Provider: "providers.state.k8s",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "redisstate",
+							Provider: "providers.state.redis",
 							Config:   map[string]string{},
 						},
 						{

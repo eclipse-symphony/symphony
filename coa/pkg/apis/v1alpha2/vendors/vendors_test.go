@@ -33,7 +33,7 @@ type MockManager struct {
 }
 
 func (m *MockManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		m.stateProvider = stateprovider
 	}
@@ -156,7 +156,7 @@ func TestInitWithProviders(t *testing.T) {
 				Name: "mock",
 				Type: "managers.symphony.mock",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.volatilestate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{},
 			},

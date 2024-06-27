@@ -56,7 +56,7 @@ func initalizeManager() error {
 	manager = CatalogsManager{}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.persistentstate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)

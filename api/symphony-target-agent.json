@@ -26,7 +26,7 @@
             "type": "managers.symphony.reference",
             "properties": {
               "providers.reference": "http-reference",
-              "providers.state": "memory",
+              "providers.volatilestate": "memory",
               "providers.reporter": "http-reporter"
             },
             "providers": {

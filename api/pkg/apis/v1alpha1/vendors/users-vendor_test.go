@@ -33,7 +33,7 @@ func initVendor(t *testing.T) UsersVendor {
 				Name: "users-manager",
 				Type: "managers.symphony.users",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.volatilestate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

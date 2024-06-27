@@ -11,7 +11,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/yalp/jsonpath"
 	//"encoding/json"
 )
 
@@ -61,16 +60,4 @@ type ListRequest struct {
 	FilterType  string                 `json:"filterType"`
 	FilterValue string                 `json:"filterValue"`
 	Metadata    map[string]interface{} `json:"metadata"`
-}
-
-func JsonPathMatch(jsonData interface{}, path string, target string) bool {
-	// var data interface{}
-	// if err := json.Unmarshal(jsonData, &data); err != nil {
-	// 	return false
-	// }
-	res, err := jsonpath.Read(jsonData, path)
-	if err != nil {
-		return false
-	}
-	return res.(string) == target
 }

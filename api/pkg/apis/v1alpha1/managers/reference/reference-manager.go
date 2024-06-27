@@ -49,7 +49,7 @@ func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers
 		return err
 	}
 
-	stateProvider, err := managers.GetStateProvider(config, providers)
+	stateProvider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateProvider
 	} else {

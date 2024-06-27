@@ -52,7 +52,7 @@ func createCampaignContainersVendor() CampaignContainersVendor {
 				Name: "campaign-container-manager",
 				Type: "managers.symphony.campaigncontainers",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

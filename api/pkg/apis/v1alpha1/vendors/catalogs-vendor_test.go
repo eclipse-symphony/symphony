@@ -130,7 +130,7 @@ func CatalogVendorInit() CatalogsVendor {
 				Name: "catalog-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
+					"providers.persistentstate": "StateProvider",
 				},
 			},
 		},
