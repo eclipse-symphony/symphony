@@ -93,14 +93,29 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
-	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]
+func GetPersistentStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "state provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "persistent state provider is not configured", v1alpha2.MissingConfig)
 	}
 	provider, ok := providers[stateProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "state provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "persistent state provider is not supplied", v1alpha2.MissingConfig)
+	}
+	stateProvider, ok := provider.(states.IStateProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a state provider", v1alpha2.BadConfig)
+	}
+	return stateProvider, nil
+}
+func GetVolatileStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersVolatileState]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "volatile state provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[stateProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "volatile state provider is not supplied", v1alpha2.MissingConfig)
 	}
 	stateProvider, ok := provider.(states.IStateProvider)
 	if !ok {

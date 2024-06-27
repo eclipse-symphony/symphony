@@ -37,9 +37,9 @@ func creatAgentVendor() AgentVendor {
 
 	manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "reference",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "reference",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"reference": &referenceProvider,
@@ -70,9 +70,9 @@ func TestAgentVendorInit(t *testing.T) {
 				Name: "reference-manager",
 				Type: "managers.symphony.reference",
 				Properties: map[string]string{
-					"providers.reference": "reference",
-					"providers.state":     "mem-state",
-					"providers.reporter":  "report",
+					"providers.reference":     "reference",
+					"providers.volatilestate": "mem-state",
+					"providers.reporter":      "report",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"reference": {
