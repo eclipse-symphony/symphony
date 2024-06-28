@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/princjef/mageutil/shellcmd"
+	"gopkg.in/yaml.v2"
 )
 
 // Test config
@@ -66,9 +67,16 @@ var (
 )
 
 // Entry point for running the tests
-func Test() error {
+func Test(labeling bool) error {
 	fmt.Println("Running ", TEST_NAME)
 
+	if labeling {
+		err := modifyYAML("localtest")
+		if err != nil {
+			return err
+		}
+		os.Setenv("labelingEnabled", "true")
+	}
 	defer Cleanup()
 	err := SetupCluster()
 	if err != nil {
@@ -210,6 +218,10 @@ func FaultTest(namespace string) error {
 
 // Clean up
 func Cleanup() {
+	err := modifyYAML("")
+	if err != nil {
+		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
+	}
 	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
 	localenvCmd("destroy all", "")
 }
@@ -237,6 +249,43 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 	defer file.Close()
 
 	_, err = file.Write([]byte(yamlString))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func modifyYAML(v string) error {
+	// Read the YAML file
+	data, err := os.ReadFile("../../../localenv/symphony-ghcr-values.yaml")
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal the YAML data into a map
+	var values map[string]interface{}
+	err = yaml.Unmarshal(data, &values)
+	if err != nil {
+		return err
+	}
+
+	// Modify the 'api' fields
+	if api, ok := values["api"].(map[interface{}]interface{}); ok {
+		api["labelKey"] = v
+		api["labelValue"] = v
+	} else {
+		return fmt.Errorf("'api' field is not a map")
+	}
+
+	// Marshal the map back into YAML
+	data, err = yaml.Marshal(values)
+	if err != nil {
+		return err
+	}
+
+	// Write the modified YAML data back to the file
+	err = os.WriteFile("../../../localenv/symphony-ghcr-values.yaml", data, 0644)
 	if err != nil {
 		return err
 	}
