@@ -126,7 +126,7 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 	prefix := rootResource + constants.ResourceSeperator
 	remaining := strings.TrimPrefix(name, prefix)
 
-	if len(remaining) == 0 {
+	if remaining == name {
 		return field.Invalid(field.NewPath("name"), name, "name should be in the format '<rootResource>-v-<version>'")
 	}
 
