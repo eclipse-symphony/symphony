@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: redisinstance
+  name: redis-instance
 spec:
-  solution: redisserver:v1
+  solution: redis-server:v1
   target: 
-    name: scripttarget 
+    name: script-target 

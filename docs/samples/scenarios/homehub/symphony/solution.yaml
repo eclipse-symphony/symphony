@@ -1,14 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: homehub  
+  name: home-hub  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: homehub-v1
+  name: home-hub-v-v1
 spec:
+  rootResource: home-hub
   components:
   - name: backend
     type: container

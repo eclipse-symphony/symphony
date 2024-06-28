@@ -1,15 +1,15 @@
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
 metadata:
-  name: lineconfig
+  name: line-config
 spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: lineconfig-v1
+  name: line-config-v-v1
 spec:
-  rootResource: lineconfig
+  rootResource: line-config
   catalogType: config
   properties:
     EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202

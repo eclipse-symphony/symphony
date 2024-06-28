@@ -1,9 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: testinstance
+  name: test-instance
 spec:
-  rootResource: testapp
-  solution: testapp:v1
+  solution: test-app:v1
   target: 
-    name: samplek8starget
+    name: sample-k8s-target

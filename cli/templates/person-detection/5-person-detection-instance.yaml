@@ -6,9 +6,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: persondetectioninstance  
+  name: person-detection-instance  
 spec:
-  displayName: persondetectioninstance
+  displayName: person-detection-instance
   parameters:
     configure_data: '{"test-camera": ["person-detection-skill"]}'
     person-detection-skill.device_displayname: test-camera
@@ -20,4 +20,4 @@ spec:
   scope: poss
   solution: persondetection:v1
   target:
-    name: myaks
+    name: my-aks

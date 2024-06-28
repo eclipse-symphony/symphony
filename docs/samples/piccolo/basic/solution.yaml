@@ -1,16 +1,16 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: busybox  
+  name: busy-box  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: busybox-v1
+  name: busy-box-v-v1
 spec:  
   components:
-  - name: busybox
+  - name: busy-box
     type: container
     properties:
       container.image: "redis:latest"

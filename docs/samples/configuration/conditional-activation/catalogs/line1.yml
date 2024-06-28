@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line1-v1
+  name: line1-v-v1
 spec:
   rootResource: line1
   catalogType: config

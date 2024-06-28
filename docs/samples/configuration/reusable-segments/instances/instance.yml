@@ -2,9 +2,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: reusablesegmentinstance
+  name: reusable-segment-instance
 spec:
-  solution: reusablesegmentsolution:v1
+  solution: reusable-segment-solution:v1
   scope: default
   target:
-    name: k8starget
+    name: k8s-target

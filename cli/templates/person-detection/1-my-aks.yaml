@@ -6,7 +6,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: myaks  
+  name: my-aks  
 spec:
   components:
   - name: symphony-agent

@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: redisapp
+  name: redis-app
 spec:
-  solution: redis-v1
+  solution: redis:v1
   target: 
-    name: myk8s
+    name: my-k8s

@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: tinyapp
+  name: tiny-app
 spec:
-  solution: tinyapp:v1
+  solution: tiny-app:v1
   target: 
-    name: tinyedge
+    name: tiny-edge

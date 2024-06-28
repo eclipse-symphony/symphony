@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: canary-v1
+  name: canary-v-v1
 spec:
   rootResource: canary
   firstStage: "deploy-v2"

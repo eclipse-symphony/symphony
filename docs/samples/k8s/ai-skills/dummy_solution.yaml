@@ -1,15 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: gatedprometheusserver  
+  name: dummy-solution  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: dummysolution-v1
+  name: dummy-solution-v-v1
 spec:
-  rootResource: gatedprometheusinstance
+  rootResource: dummy-solution
   metadata:
   components:
   - name: simulated-sensor

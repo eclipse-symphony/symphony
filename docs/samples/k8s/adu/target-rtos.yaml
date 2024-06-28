@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: adutarget  
+  name: adu-target  
 spec:  
   topologies:
   - bindings:

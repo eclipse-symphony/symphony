@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: samplestagedk8s
+  name: sample-staged-k8s
 spec:  
   topologies:
   - bindings:

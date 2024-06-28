@@ -1,11 +1,11 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: factoryfloor1
+  name: factory-floor-1
 spec:
-  solution: factoryaivision:v1
+  solution: factory-ai-vision:v1
   target:
-    name: iotedgetarget
+    name: iot-edge-target
   topologies:
   - role: video
     selector:

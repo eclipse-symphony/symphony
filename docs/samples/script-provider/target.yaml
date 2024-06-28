@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: scripttarget
+  name: script-target
 spec:  
   topologies:
   - bindings:

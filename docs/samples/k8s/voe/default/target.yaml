@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: voetarget
+  name: voe-target
 spec:  
   properties:
     cpu: x64

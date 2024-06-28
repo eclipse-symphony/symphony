@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-v1
+  name: hq-v-v1
 spec:
   rootResource: hq
   catalogType: asset
@@ -32,7 +32,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: tokyo-v1
+  name: tokyo-v-v1
 spec:
   rootResource: tokyo
   catalogType: asset
@@ -51,15 +51,15 @@ spec:
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
 metadata:
-  name: newyork
+  name: new-york
 spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: newyork-v1
+  name: new-york-v-v1
 spec:
-  rootResource: newyork
+  rootResource: new-york
   catalogType: asset
   properties:
     name: "New York"
@@ -82,7 +82,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: munchen-v1
+  name: munchen-v-v1
 spec:
   rootResource: munchen
   catalogType: asset
@@ -101,7 +101,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-adr
+  name: hq-v-adr
 spec:
   rootResource: hq
   catalogType: asset
@@ -122,7 +122,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-arc1
+  name: hq-v-arc1
 spec:
   rootResource: hq
   catalogType: asset
@@ -143,7 +143,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-arc2
+  name: hq-v-arc2
 spec:
   rootResource: hq
   catalogType: asset
@@ -164,7 +164,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-doesite
+  name: hq-v-doe-site
 spec:
   rootResource: hq
   catalogType: asset
@@ -185,7 +185,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-iothub
+  name: hq-v-iot-hub
 spec:
   rootResource: hq
   catalogType: asset
@@ -212,7 +212,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: area-1
+  name: area-v-1
 spec:
   rootResource: area
   catalogType: asset
@@ -223,7 +223,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: area-2
+  name: area-v-2
 spec:
   rootResource: area
   catalogType: asset
@@ -240,7 +240,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-1
+  name: line-v-1
 spec:
   rootResource: line
   catalogType: asset
@@ -251,7 +251,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-2
+  name: line-v-2
 spec:
   rootResource: line
   catalogType: asset

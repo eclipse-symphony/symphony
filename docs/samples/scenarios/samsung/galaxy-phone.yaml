@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: myphone1
+  name: my-phone-1
 spec:  
   topologies:
   - bindings:

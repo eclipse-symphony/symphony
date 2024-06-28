@@ -9,7 +9,7 @@ Because some customers have expressed desire to use a versioned API instead of n
 ## Versioned API syntax
 
 Symphony introduces a series of new versioned objects, such as versioned solutions and versioned catalogs, on top of the existing objects. Versioned objects are containers that hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration Catalog objects.
-In general, a versioned API has the following routes following a typical REST pattern (ARM only):
+In general, a versioned API has the following routes following a typical REST pattern:
 
 ```bash
 /<versioned-objects>/<versioned object id>/versions/<id>

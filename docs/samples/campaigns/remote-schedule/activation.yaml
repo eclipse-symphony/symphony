@@ -1,6 +1,6 @@
 apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
-  name: scheduledactivation
+  name: scheduled-activation
 spec:
-  campaign: "scheduledcampaign:v1"
+  campaign: "scheduled-campaign:v1"

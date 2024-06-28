@@ -1,15 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: sampleapp  
+  name: sample-app  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: sampleapp-v1
+  name: sample-app-v-v1
 spec:
-  rootResource: sampleapp
+  rootResource: sample-app
   components:
   - name: galaxy-services
     type: container

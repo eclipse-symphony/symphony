@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: iotedgeinstance2
+  name: sample-iot-edge-instance-2
 spec:
-  solution: ssimulatedtemperaturesensor:v1
+  solution: sample-simulated-temperature-sensor:v1
   target:
-    name: iotedgetarget
+    name: sample-iot-edge-target

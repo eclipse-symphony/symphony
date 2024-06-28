@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: samplevisualizationinstance
+  name: sample-visualization-instance
 spec:
-  solution: samplevisualizationsolution:v1
+  solution: sample-visualization-solution:v1
   target: 
-    name: samplek8starget
+    name: sample-k8s-target

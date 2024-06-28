@@ -2,9 +2,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: conditionalactivationinstance
+  name: conditional-activation-instance
 spec:
-  solution: conditionalactivationsolution:v1
+  solution: conditional-activation-solution:v1
   scope: default
   target:
-    name: k8starget
+    name: k8s-target

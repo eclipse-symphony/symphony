@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: basick8starget
+  name: basic-k8s-target
 spec:  
   properties:
     group: demo

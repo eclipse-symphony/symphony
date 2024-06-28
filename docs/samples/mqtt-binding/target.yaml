@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: testtarget
+  name: test-target
 spec:
   topologies:
   - bindings:    

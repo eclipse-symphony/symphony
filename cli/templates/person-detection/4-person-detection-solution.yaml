@@ -6,15 +6,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: persondetection  
+  name: person-detection  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: persondetection-v1
+  name: person-detection-v-v1
 spec:
-  rootResource: persondetection
+  rootResource: person-detection
   components:
   - name: voeedge
     properties:

@@ -2,9 +2,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: contextbasedinstanceline2
+  name: context-based-instance-line2
 spec:
-  solution: contextbasedsolution:v1
+  solution: context-based-solution:v1
   scope: line2
   target:
-    name: k8starget
+    name: k8s-target

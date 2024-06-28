@@ -1,15 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: testapp  
+  name: test-app  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: testapp-v1
+  name: test-app-v-v1
 spec:
-  rootResource: testapp
+  rootResource: test-app
   components:
   - name: frontend
     type: container

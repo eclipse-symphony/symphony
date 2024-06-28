@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-global
+  name: config-v-global
 spec: 
   rootResource: config
   catalogType: config
@@ -22,7 +22,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-l3
+  name: config-v-l3
 spec: 
   rootResource: config
   catalogType: config
@@ -36,7 +36,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-l4
+  name: config-v-l4
 spec: 
   rootResource: config
   catalogType: config
@@ -50,11 +50,11 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-csad
+  name: config-v-csad
 spec: 
   rootResource: config
   catalogType: config
-  parentName: config-global
+  parentName: config-v-global
   metadata:
     asset: use-case
   properties:
@@ -64,13 +64,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-site
+  name: config-v-site
 spec: 
   rootResource: config
   catalogType: config
   metadata:
     asset: site
-  parentName: config-csad
+  parentName: config-v-csad
   properties:
     site1: site-value1
     site2: site-value2
@@ -79,13 +79,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-linea
+  name: config-v-linea
 spec: 
   rootResource: config
   catalogType: config
   metadata:
     asset: line-a
-  parentName: config-site
+  parentName: config-v-site
   properties:
     line-a-1: line-a-value1
     line-a-2: line-a-value2
@@ -93,13 +93,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config-lineb
+  name: config-v-lineb
 spec: 
   rootResource: config
   catalogType: config
   metadata:
     asset: line-b
-  parentName: config-site
+  parentName: config-v-site
   properties:
     line-a-1: line-b-value1
     line-a-2: line-b-value2

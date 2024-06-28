@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: macbook
+  name: mac-book
 spec:
   topologies:
   - bindings:

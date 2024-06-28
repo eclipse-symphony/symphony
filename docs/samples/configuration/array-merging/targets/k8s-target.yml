@@ -2,7 +2,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: k8starget
+  name: k8s-target
 spec:
   topologies:
     - bindings:

@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-v1
+  name: hq-v-v1
 spec:
   rootResource: hq
   catalogType: asset
@@ -32,7 +32,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: infrastructure-v1
+  name: infrastructure-v-v1
 spec:
   rootResource: infrastructure
   catalogType: asset
@@ -49,7 +49,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: asset-13
+  name: asset-v-13
 spec: 
   rootResource: asset
   catalogType: asset
@@ -60,7 +60,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: asset-14
+  name: asset-v-14
 spec: 
   rootResource: asset
   catalogType: asset
@@ -77,7 +77,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: use-cases
+  name: use-v-cases
 spec: 
   rootResource: use
   catalogType: asset
@@ -94,7 +94,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: csad-v1
+  name: csad-v-v1
 spec: 
   rootResource: csad
   catalogType: asset
@@ -111,7 +111,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-v1
+  name: site-v-v1
 spec: 
   rootResource: site
   catalogType: asset
@@ -128,7 +128,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-a
+  name: line-v-a
 spec: 
   rootResource: line
   catalogType: asset
@@ -139,7 +139,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-b
+  name: line-v-b
 spec: 
   rootResource: line
   catalogType: asset

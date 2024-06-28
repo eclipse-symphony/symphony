@@ -1,8 +1,8 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: tinyml2
+  name: tiny-ml-2
 spec:
-  solution: tinyml:v1
+  solution: tiny-ml:v1
   target:
-    name: macbook
+    name: mac-book

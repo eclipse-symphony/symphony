@@ -1,9 +1,9 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: myaks
+  name: my-aks
 spec:
-  name: myaks
+  name: my-aks
   metadata:
     service.ports: "[{\"name\":\"service\", \"port\":50051}]"
     service.type: "ClusterIP"

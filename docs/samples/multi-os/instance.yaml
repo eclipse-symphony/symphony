@@ -1,9 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: multiosinstance
+  name: multi-os-instance
 spec:
-  solution: multiossolution:v1
+  solution: multi-os-solution:v1
   target: 
     selector: 
       scenario: multi-os

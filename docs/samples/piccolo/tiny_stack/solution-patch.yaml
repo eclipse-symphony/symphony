@@ -1,15 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: tinyapp  
+  name: tiny-app  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: tinyapp-v1
+  name: tiny-app-v-v1
 spec:
-  rootResource: tinyapp
+  rootResource: tiny-app 
   components:
   - name: wasm-module
     type: wasm

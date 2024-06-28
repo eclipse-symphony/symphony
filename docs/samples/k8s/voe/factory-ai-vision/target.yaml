@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: iotedgetarget
+  name: iot-edge-target
 spec:
   components:
   - name: "fake"

@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: tinyedge      
+  name: tiny-edge      
 spec:  
   forceRedeploy: true
   topologies:

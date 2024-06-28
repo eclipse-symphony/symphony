@@ -1,15 +1,15 @@
 apiVersion: workflow.symphony/v1
 kind: CampaignContainer
 metadata:
-  name: helloworld
+  name: hello-world
 spec:  
 ---
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: helloworld-v1
+  name: hello-world-v-v1
 spec:
-  rootResource: countercampaign
+  rootResource: hello-world
   firstStage: "mock"
   selfDriving: true
   stages:
