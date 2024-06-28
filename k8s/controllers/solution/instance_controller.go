@@ -239,7 +239,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
 
-	solutionName := utils.ReplaceLastSeperator(solObj.Name, "-", constants.ResourceSeperator)
+	solutionName := utils.ReplaceLastSeperator(solObj.Name, constants.ResourceSeperator, ":")
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
 		client.MatchingFields{"spec.solution": solutionName},

@@ -123,14 +123,14 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 		return field.Invalid(field.NewPath("name"), name, "name must start with spec.rootResource")
 	}
 
-	prefix := rootResource + "-v-"
+	prefix := rootResource + constants.ResourceSeperator
 	remaining := strings.TrimPrefix(name, prefix)
 
 	if len(remaining) == 0 {
 		return field.Invalid(field.NewPath("name"), name, "name should be in the format '<rootResource>-v-<version>'")
 	}
 
-	if strings.Contains(remaining, "-v-") || strings.HasPrefix(remaining, "v-") {
+	if strings.Contains(remaining, constants.ResourceSeperator) || strings.HasPrefix(remaining, "v-") {
 		return field.Invalid(field.NewPath("name"), name, "name should be in the format <rootResource>-v-<version> where <version> does not contain '-v-' or starts with 'v-'")
 	}
 
