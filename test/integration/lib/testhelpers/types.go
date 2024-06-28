@@ -33,12 +33,11 @@ type (
 	}
 
 	TargetSpec struct {
-		DisplayName  string            `yaml:"displayName"`
-		Scope        string            `yaml:"scope"`
-		Components   []ComponentSpec   `yaml:"components,omitempty"`
-		Topologies   []Topology        `yaml:"topologies"`
-		Properties   map[string]string `yaml:"properties,omitempty"`
-		RootResource string            `yaml:"rootResource"`
+		DisplayName string            `yaml:"displayName"`
+		Scope       string            `yaml:"scope"`
+		Components  []ComponentSpec   `yaml:"components,omitempty"`
+		Topologies  []Topology        `yaml:"topologies"`
+		Properties  map[string]string `yaml:"properties,omitempty"`
 	}
 
 	Topology struct {
@@ -72,12 +71,11 @@ type (
 	}
 
 	InstanceSpec struct {
-		DisplayName  string                 `yaml:"displayName"`
-		Target       TargetSelector         `yaml:"target"`
-		Solution     string                 `yaml:"solution"`
-		Scope        string                 `yaml:"scope"`
-		Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
-		RootResource string                 `yaml:"rootResource"`
+		DisplayName string                 `yaml:"displayName"`
+		Target      TargetSelector         `yaml:"target"`
+		Solution    string                 `yaml:"solution"`
+		Scope       string                 `yaml:"scope"`
+		Parameters  map[string]interface{} `yaml:"parameters,omitempty"`
 	}
 
 	TargetSelector struct {
