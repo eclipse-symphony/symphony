@@ -27,13 +27,16 @@ import (
 
 var log = logger.NewLogger("coa.runtime")
 
+const Scheduled = "Scheduled"
+
 type JobsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	apiClient     utils.ApiClient
-	interval      int32
-	user          string
-	password      string
+	PersistentStateProvider states.IStateProvider
+	VolatileStateProvider   states.IStateProvider
+	apiClient               utils.ApiClient
+	interval                int32
+	user                    string
+	password                string
 }
 
 type LastSuccessTime struct {
@@ -46,9 +49,15 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		return err
 	}
 
-	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
+	volatilestateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
-		s.StateProvider = stateprovider
+		s.VolatileStateProvider = volatilestateprovider
+	} else {
+		return err
+	}
+	persistentStateProvider, err := managers.GetPersistentStateProvider(config, providers)
+	if err == nil {
+		s.PersistentStateProvider = persistentStateProvider
 	} else {
 		return err
 	}
@@ -100,7 +109,7 @@ func (s *JobsManager) pollObjects() []error {
 	}
 	for _, instance := range instances {
 		var entry states.StateEntry
-		entry, err = s.StateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(context, states.GetRequest{
 			ID: "i_" + instance.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": instance.ObjectMeta.Namespace,
@@ -138,7 +147,7 @@ func (s *JobsManager) pollObjects() []error {
 	}
 	for _, target := range targets {
 		var entry states.StateEntry
-		entry, err = s.StateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(context, states.GetRequest{
 			ID: "t_" + target.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": target.ObjectMeta.Namespace,
@@ -197,7 +206,13 @@ func (s *JobsManager) pollSchedules() []error {
 
 	//TODO: use filters and continue tokens
 	var list []states.StateEntry
-	list, _, err = s.StateProvider.List(context, states.ListRequest{})
+	list, _, err = s.PersistentStateProvider.List(context, states.ListRequest{
+		Metadata: map[string]interface{}{
+			"group":    model.WorkflowGroup,
+			"version":  "v1",
+			"resource": "scheduled",
+		},
+	})
 	if err != nil {
 		return []error{err}
 	}
@@ -217,10 +232,13 @@ func (s *JobsManager) pollSchedules() []error {
 			}
 			if fire {
 				activationData.Schedule = ""
-				err = s.StateProvider.Delete(context, states.DeleteRequest{
+				err = s.PersistentStateProvider.Delete(context, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{
 						"namespace": activationData.Namespace,
+						"group":     model.WorkflowGroup,
+						"version":   "v1",
+						"resource":  Scheduled,
 					},
 				})
 				if err != nil {
@@ -259,7 +277,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
 	log.Debugf(" M (Job): handling heartbeat h_%s", heartbeat.JobId)
-	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
 			Body: heartbeat,
@@ -284,7 +302,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	}
 	//check if a manager is working on the job
 	var entry states.StateEntry
-	entry, err = s.StateProvider.Get(ctx, states.GetRequest{
+	entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 		ID: key,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -330,13 +348,16 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
 	}
 	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
-	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	_, err = s.PersistentStateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   key,
 			Body: activationData,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": activationData.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  Scheduled,
 		},
 	})
 	return err
@@ -420,7 +441,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
 				} else {
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "i_" + instance.ObjectMeta.Name,
 							Body: LastSuccessTime{
@@ -461,7 +482,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					return err
 				} else {
 					// TODO: how to handle status updates?
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "t_" + targetName,
 							Body: LastSuccessTime{
@@ -498,7 +519,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					return err
 				} else {
 					// TODO: how to handle status updates?
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "d_" + deployment.Instance.ObjectMeta.Name,
 							Body: LastSuccessTime{

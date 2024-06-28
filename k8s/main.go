@@ -295,7 +295,7 @@ func main() {
 			os.Exit(1)
 		}
 		if err = (&workflowv1.Activation{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Skill")
+			setupLog.Error(err, "unable to create webhook", "webhook", "Activation")
 			os.Exit(1)
 		}
 		if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
