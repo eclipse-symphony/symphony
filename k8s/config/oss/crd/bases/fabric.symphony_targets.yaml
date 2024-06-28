@@ -146,8 +146,6 @@ spec:
                 required:
                 - state
                 type: object
-              rootResource:
-                type: string
               scope:
                 type: string
               topologies:
