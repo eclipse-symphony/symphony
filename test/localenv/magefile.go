@@ -652,9 +652,9 @@ func runParallel(commands ...shellcmd.Command) error {
 func load(names ...string) []shellcmd.Command {
 	loads := make([]shellcmd.Command, len(names))
 	for i, name := range names {
-		shellcmd.Command(fmt.Sprintf("docker image save -o %s.tar %s/%s", name, getContainerRegistry(), name)).Run()
 		loads[i] = shellcmd.Command(fmt.Sprintf(
-			"minikube image load %s.tar",
+			"minikube image load %s/%s",
+			OSS_CONTAINER_REGISTRY,
 			name,
 		))
 	}
