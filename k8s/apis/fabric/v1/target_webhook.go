@@ -41,10 +41,6 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		target := rawObj.(*Target)
 		return []string{target.Spec.DisplayName}
 	})
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, ".spec.rootResource", func(rawObj client.Object) []string {
-		target := rawObj.(*Target)
-		return []string{target.Spec.RootResource}
-	})
 
 	dict, _ := configutils.GetValidationPoilicies()
 	if v, ok := dict["target"]; ok {
@@ -183,12 +179,6 @@ func (r *Target) validateCreateTarget() error {
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if err := r.validateNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if err := r.validateRootResource(); err != nil {
-		allErrs = append(allErrs, err)
-	}
 
 	if len(allErrs) == 0 {
 		return nil
@@ -261,24 +251,6 @@ func (r *Target) validateReconciliationPolicy() *field.Error {
 		if !r.Spec.ReconciliationPolicy.State.IsActive() && !r.Spec.ReconciliationPolicy.State.IsInActive() {
 			return field.Invalid(field.NewPath("spec").Child("reconciliationPolicy").Child("state"), r.Spec.ReconciliationPolicy.State, "must be either 'active' or 'inactive'")
 		}
-	}
-
-	return nil
-}
-
-func (r *Target) validateNameOnCreate() *field.Error {
-	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
-}
-
-func (r *Target) validateRootResource() *field.Error {
-	var targetContainer TargetContainer
-	err := myTargetClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &targetContainer)
-	if err != nil {
-		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid target container")
-	}
-
-	if len(r.ObjectMeta.OwnerReferences) == 0 {
-		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
 	}
 
 	return nil

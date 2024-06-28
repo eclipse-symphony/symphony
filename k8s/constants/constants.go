@@ -19,6 +19,7 @@ const (
 	K8S                          = "symphony-k8s"
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
 	FinalizerPostfix             = FullGroupName + "/finalizer"
+	ResourceSeperator            = "-v-"
 )
 
 // Environment variables keys

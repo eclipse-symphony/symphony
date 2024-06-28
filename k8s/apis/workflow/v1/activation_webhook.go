@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 	"gopls-workspace/apis/metrics/v1"
-	"strings"
+	"gopls-workspace/constants"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/k8s/utils"
@@ -129,9 +129,6 @@ func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 func (r *Activation) validateCreateActivation() error {
 	var allErrs field.ErrorList
 
-	if err := r.validateNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
-	}
 	if err := r.validateCampaignOnCreate(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -142,17 +139,11 @@ func (r *Activation) validateCreateActivation() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
 }
 
-func (r *Activation) validateNameOnCreate() *field.Error {
-	if strings.Contains(r.ObjectMeta.Name, "-") {
-		return field.Invalid(field.NewPath("metadata").Child("name"), r.ObjectMeta.Name, "name must not contain '-'")
-	}
-	return nil
-}
 func (r *Activation) validateCampaignOnCreate() *field.Error {
 	if r.Spec.Campaign == "" {
 		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign must not be empty")
 	}
-	campaignName := utils.ReplaceLastSeperator(r.Spec.Campaign, ":", "-")
+	campaignName := utils.ReplaceLastSeperator(r.Spec.Campaign, ":", constants.ResourceSeperator)
 	var campaign Campaign
 	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: campaignName, Namespace: r.Namespace}, &campaign)
 	if err != nil {

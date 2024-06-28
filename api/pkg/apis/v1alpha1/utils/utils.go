@@ -322,7 +322,7 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 
 func ReplaceSeperator(name string) string {
 	if strings.Contains(name, ":") {
-		name = strings.ReplaceAll(name, ":", "-")
+		name = strings.ReplaceAll(name, ":", "-v-")
 	}
 	return name
 }

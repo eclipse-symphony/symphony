@@ -63,9 +63,9 @@ var (
 )
 
 var (
-	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "target-v1", Namespace: TestNamespace}
+	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "target-v-v1", Namespace: TestNamespace}
 	DefaultInstanceNamespacedName = types.NamespacedName{Name: "instance-v1", Namespace: TestNamespace}
-	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v1", Namespace: TestNamespace}
+	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-v1", Namespace: TestNamespace}
 
 	SolutionReferenceName = "solution:v1"
 	TagetReferenceName    = "target:v1"
