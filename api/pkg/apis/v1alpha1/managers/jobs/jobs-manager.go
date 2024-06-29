@@ -210,7 +210,7 @@ func (s *JobsManager) pollSchedules() []error {
 		Metadata: map[string]interface{}{
 			"group":    model.WorkflowGroup,
 			"version":  "v1",
-			"resource": "scheduled",
+			"resource": Scheduled,
 		},
 	})
 	if err != nil {
