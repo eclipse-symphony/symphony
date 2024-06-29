@@ -5,9 +5,14 @@ name: integration
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
@@ -100,11 +105,17 @@ jobs:
       run: |
         cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
 
-    - name: Run integration tests 04
+    - name: Run integration tests 04 without labeling
       run: |
         export REPO_PATH="${{ github.workspace }}"
         echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test
+        cd test/integration/scenarios/04.workflow/ && mage test false
+
+    - name: Run integration tests 04 with labeling
+      run: |
+        export REPO_PATH="${{ github.workspace }}"
+        echo "REPO_PATH=$REPO_PATH"
+        cd test/integration/scenarios/04.workflow/ && mage test true
 
     - name: Run integration tests 05
       run: |
