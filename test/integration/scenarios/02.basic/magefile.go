@@ -53,7 +53,7 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	defer testhelpers.Cleanup()
+	defer testhelpers.Cleanup(TEST_NAME)
 	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err
