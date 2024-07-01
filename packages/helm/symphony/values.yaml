@@ -37,6 +37,8 @@ siteId: hq
 api:
   apiContainerPortHttp: 8080
   apiContainerPortHttps: 8081
+  labelKey:
+  labelValue:
 symphony:
   incluster:
     httpsport: 8081

@@ -7,6 +7,8 @@
 package vendors
 
 import (
+	"encoding/json"
+
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -118,17 +120,22 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutionContainers-POST", pCtx, nil)
-		solution := model.SolutionContainerState{
-			ObjectMeta: model.ObjectMeta{
-				Name:      id,
-				Namespace: namespace,
-			},
-			Spec: &model.SolutionContainerSpec{},
-		}
-
-		err := c.SolutionContainersManager.UpsertState(ctx, id, solution)
+		var solutionContainer model.SolutionContainerState
+		err := json.Unmarshal(request.Body, &solutionContainer)
 		if err != nil {
-			scLog.Infof("V (SolutionContainers): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.Errorf("V (Instances): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		solutionContainer.ObjectMeta.Name = id
+		solutionContainer.ObjectMeta.Namespace = namespace
+		solutionContainer.Spec = &model.SolutionContainerSpec{}
+
+		err = c.SolutionContainersManager.UpsertState(ctx, id, solutionContainer)
+		if err != nil {
+			scLog.Errorf("V (SolutionContainers): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,7 +149,7 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		ctx, span := observability.StartSpan("onSolutionContainers-DELETE", pCtx, nil)
 		err := c.SolutionContainersManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			scLog.Infof("V (SolutionContainers): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			scLog.Errorf("V (SolutionContainers): onSolutionContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

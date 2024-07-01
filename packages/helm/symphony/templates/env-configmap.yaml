@@ -9,3 +9,7 @@ data:
   API_SERVING_CA: {{ include "symphony.apiServingCA" . }}
   SYMPHONY_API_URL: {{ include "symphony.httpsUrl" . }}
   USE_SERVICE_ACCOUNT_TOKENS: "true"
+{{- if and .Values.api.labelKey .Values.api.labelValue }}
+  LABEL_KEY: {{ .Values.api.labelKey }}
+  LABEL_VALUE: {{ .Values.api.labelValue }}
+{{- end }}

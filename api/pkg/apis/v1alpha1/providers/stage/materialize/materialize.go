@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -147,6 +148,26 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		for _, object := range prefixedNames {
 			object := api_utils.ReplaceSeperator(object)
 			if catalog.ObjectMeta.Name == object {
+				label_key := os.Getenv("LABEL_KEY")
+				label_value := os.Getenv("LABEL_VALUE")
+				if label_key != "" && label_value != "" {
+					// Check if metadata exists, if not create it
+					metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
+					if !ok {
+						metadata = make(map[string]interface{})
+						catalog.Spec.Properties["metadata"] = metadata
+					}
+
+					// Check if labels exists within metadata, if not create it
+					labels, ok := metadata["labels"].(map[string]string)
+					if !ok {
+						labels = make(map[string]string)
+						metadata["labels"] = labels
+					}
+
+					// Add the label
+					labels[label_key] = label_value
+				}
 				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 				name := catalog.ObjectMeta.Name
 				if s, ok := inputs["__origin"]; ok {
@@ -180,7 +201,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					_, err := i.ApiClient.GetInstanceContainer(ctx, instanceState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
 						mLog.Debugf("Instance container %s doesn't exist: %s", instanceState.Spec.RootResource, err.Error())
-						instanceContainerState := model.InstanceContainerState{ObjectMeta: model.ObjectMeta{Name: instanceState.Spec.RootResource, Namespace: namespace}}
+						instanceContainerState := model.InstanceContainerState{ObjectMeta: model.ObjectMeta{Name: instanceState.Spec.RootResource, Namespace: namespace, Labels: instanceState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(instanceContainerState)
 						err = i.ApiClient.CreateInstanceContainer(ctx, instanceState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
@@ -228,7 +249,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
 						mLog.Debugf("Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
-						solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace}}
+						solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(solutionContainerState)
 						err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
@@ -276,7 +297,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					_, err := i.ApiClient.GetTargetContainer(ctx, targetState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
 						mLog.Debugf("Target container %s doesn't exist: %s", targetState.Spec.RootResource, err.Error())
-						targetContainerState := model.TargetContainerState{ObjectMeta: model.ObjectMeta{Name: targetState.Spec.RootResource, Namespace: namespace}}
+						targetContainerState := model.TargetContainerState{ObjectMeta: model.ObjectMeta{Name: targetState.Spec.RootResource, Namespace: namespace, Labels: targetState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(targetContainerState)
 						err = i.ApiClient.CreateTargetContainer(ctx, targetState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
@@ -325,7 +346,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
 						mLog.Debugf("Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
-						catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace}}
+						catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(catalogContainerState)
 						err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
