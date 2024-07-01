@@ -212,7 +212,7 @@ func TestAdvance_TargetLabel(t *testing.T) {
 		Group:    "fabric.symphony",
 		Version:  "v1",
 		Resource: "targets",
-	}).Namespace(namespace).Get(context.Background(), "sitek8starget-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "sitek8starget-v-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
@@ -290,7 +290,7 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "instances",
-	}).Namespace(namespace).Get(context.Background(), "siteinstance-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "siteinstance-v-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
@@ -332,7 +332,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "solutions",
-	}).Namespace(namespace).Get(context.Background(), "siteapp-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "siteapp-v-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
@@ -374,7 +374,7 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 		Group:    "federation.symphony",
 		Version:  "v1",
 		Resource: "catalogs",
-	}).Namespace(namespace).Get(context.Background(), "webappconfig-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-v1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
