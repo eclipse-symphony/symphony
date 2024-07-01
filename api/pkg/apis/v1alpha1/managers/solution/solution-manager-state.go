@@ -7,6 +7,7 @@
 package solution
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -52,6 +53,11 @@ func PlanForDeployment(deployment model.DeploymentSpec, state model.DeploymentSt
 			}
 		}
 	}
+	test := ret.RevisedForDeletion()
+	jTestData, _ := json.Marshal(test)
+	fmt.Println("--------------------------------------------------")
+	fmt.Println(string(jTestData))
+	fmt.Println("--------------------------------------------------")
 	return ret.RevisedForDeletion(), nil
 }
 
