@@ -58,8 +58,6 @@ spec:
             properties:
               campaign:
                 type: string
-              generation:
-                type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
               stage:
@@ -344,8 +342,6 @@ spec:
             properties:
               catalogType:
                 type: string
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string
@@ -613,8 +609,6 @@ spec:
           spec:
             properties:
               displayName:
-                type: string
-              generation:
                 type: string
               metadata:
                 additionalProperties:
@@ -1676,8 +1670,6 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string

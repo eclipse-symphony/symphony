@@ -36,7 +36,6 @@ type CatalogSpec struct {
 	Properties   map[string]interface{} `json:"properties"`
 	ParentName   string                 `json:"parentName,omitempty"`
 	ObjectRef    ObjectRef              `json:"objectRef,omitempty"`
-	Generation   string                 `json:"generation,omitempty"`
 	Version      string                 `json:"version,omitempty"`
 	RootResource string                 `json:"rootResource,omitempty"`
 }
@@ -52,10 +51,6 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.ParentName != otherC.ParentName {
-		return false, nil
-	}
-
-	if c.Generation != otherC.Generation {
 		return false, nil
 	}
 
