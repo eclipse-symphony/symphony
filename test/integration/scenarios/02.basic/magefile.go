@@ -166,7 +166,7 @@ func Verify() error {
 
 func CleanUpSymphonyObjects(namespace string) error {
 	instanceName := namespace + "instance-v1"
-	targetName := namespace + "target-v1"
+	targetName := namespace + "target-v-v1"
 	solutionName := namespace + "solution-v-v1"
 	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
 	if err != nil {
