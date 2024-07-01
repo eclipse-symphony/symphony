@@ -75,7 +75,6 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Version       string               `json:"version,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile

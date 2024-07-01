@@ -642,8 +642,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             required:
             - solution
             type: object
@@ -1615,8 +1613,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             type: object
           status:
             properties:

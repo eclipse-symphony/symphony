@@ -136,8 +136,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             required:
             - solution
             type: object
