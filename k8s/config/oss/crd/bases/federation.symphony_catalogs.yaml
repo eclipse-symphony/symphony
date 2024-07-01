@@ -40,8 +40,6 @@ spec:
             properties:
               catalogType:
                 type: string
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string
