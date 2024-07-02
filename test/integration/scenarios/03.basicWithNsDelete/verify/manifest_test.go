@@ -129,7 +129,7 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 	fmt.Println("Get namespace before deletion: ", len(namespacesBefore.Items))
 
 	// Run a mage command to delete instance
-	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solution.symphony instance03-v1")
+	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solution.symphony instance03")
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	cmdErr := execCmd.Run()

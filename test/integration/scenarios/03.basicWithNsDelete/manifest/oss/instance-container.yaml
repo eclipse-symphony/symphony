@@ -1,5 +1,0 @@
-apiVersion: solution.symphony/v1
-kind: InstanceContainer
-metadata:
-  name: instance03
-spec:  

@@ -92,8 +92,6 @@ spec:
                 required:
                 - state
                 type: object
-              rootResource:
-                type: string
               scope:
                 type: string
               solution:
@@ -138,8 +136,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             required:
             - solution
             type: object

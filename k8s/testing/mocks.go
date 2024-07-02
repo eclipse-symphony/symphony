@@ -63,12 +63,10 @@ var (
 )
 
 var (
-	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "target-v1", Namespace: TestNamespace}
-	DefaultInstanceNamespacedName = types.NamespacedName{Name: "instance-v1", Namespace: TestNamespace}
+	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "testtarget", Namespace: TestNamespace}
+	DefaultInstanceNamespacedName = types.NamespacedName{Name: "testinstance", Namespace: TestNamespace}
 	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v1", Namespace: TestNamespace}
-
-	SolutionReferenceName = "solution:v1"
-	TagetReferenceName    = "target:v1"
+	SolutionReferenceName         = "solution:v1"
 
 	TerminalError = v1alpha2.NewCOAError(errors.New(""), "timed out", v1alpha2.TimedOut)
 	NotFoundError = v1alpha2.NewCOAError(errors.New(""), "not found", v1alpha2.NotFound)
@@ -328,7 +326,7 @@ func BuildDefaultInstance() *solution_v1.Instance {
 		},
 		Spec: k8smodel.InstanceSpec{
 			Target: model.TargetSelector{
-				Name: TagetReferenceName,
+				Name: DefaultTargetNamepsacedName.Name,
 			},
 			Solution: SolutionReferenceName,
 		},

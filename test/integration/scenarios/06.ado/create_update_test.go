@@ -30,8 +30,6 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
 	var solutionBytes []byte
-	var instanceContainerBytes []byte
-	var targetContainerBytes []byte
 	var solutionContainerBytes []byte
 	var specTimeout = 120 * time.Second
 	var targetProps map[string]string
@@ -62,21 +60,9 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		var err error
 
 		By("deploy solution container")
-		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.InstanceOptions{})
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("deploy target container")
-		targetContainerBytes, err = testhelpers.PatchTargetContainer(defaultTargetContainerManifest, testhelpers.InstanceOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetContainerBytes)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("deploy instance container")
-		instanceContainerBytes, err = testhelpers.PatchInstanceContainer(defaultInstanceContainerManifest, testhelpers.InstanceOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceContainerBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("setting the components for the target")
@@ -141,7 +127,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"},
 				SolutionComponents: []string{},
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,      // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", "Updated"), // and the target component 'simple-chart-1' status is updated. OSS has no provisioning status yet
@@ -158,12 +144,12 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"}, // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2"},
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                       // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil), // Because nothing changed, the output should be nil
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                             // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Updated"), // and the solution component 'simple-chart-2' is created
@@ -185,12 +171,12 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"},                      // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, //
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                       // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil), // Because the component didn't change
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", nil),          // Because the component didn't change
@@ -211,13 +197,13 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1", "basic-clusterrole"}, //
 				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil),          // Because the component didn't change
 						//kube.ProvisioningStatusComponentOutput("target.basic-clusterrole", "Updated"), // and the target component 'basic-clusterrole' is created
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", nil),    // Because the component didn't change
@@ -239,13 +225,13 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1", "basic-clusterrole"}, // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil),    // Because the component didn't change
 						//kube.ProvisioningStatusComponentOutput("target.basic-clusterrole", nil), // Because the component didn't change
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", nil),    // Because the component didn't change
@@ -267,13 +253,13 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"},
 				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil),          // Because the component didn't change
 						//kube.ProvisioningStatusComponentOutput("target.basic-clusterrole", "Deleted"), // and the target component 'basic-clusterrole' is deleted
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", nil),    // Because the component didn't change
@@ -295,13 +281,13 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"}, // (same as previous entry)
 				SolutionComponents: []string{"basic-configmap-1"},
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil),    // Because the component didn't change
 						//kube.ProvisioningStatusComponentOutput("target.basic-clusterrole", nil), // Because it was deleted in the previous reconciliation
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                             // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Deleted"), // and the solution component 'simple-chart-2' is deleted
@@ -324,12 +310,12 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1"},             // (same as previous entry)
 				SolutionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry but with new data)
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                       // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-1", nil), // Because the component didn't change
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", "Updated"), // and the solution component 'basic-configmap-1' is updated
@@ -356,7 +342,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, //
 				SolutionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry)
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
 						//jq.Equality(".status.provisioningStatus.error.details[0].code", "Update Failed"),
 						//jq.Equality(".status.provisioningStatus.error.details[0].target", "simple-chart-1"),
@@ -372,12 +358,12 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2-nonexistent"}, //
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
 						//jq.Equality(".status.provisioningStatus.error.details[0].code", "Update Failed"),
 						//jq.Equality(".status.provisioningStatus.error.details[0].target", "simple-chart-1"),
 					)))),
-					kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
 						//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 						//jq.Equality(".status.provisioningStatus.error.details[0].details[0].target", "simple-chart-2"),
@@ -391,7 +377,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-http"},
 				SolutionComponents: []string{},
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                          // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-http", "Updated"), // and the target component 'simple-http' status is updated
@@ -406,7 +392,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				TargetComponents:   []string{"simple-http-invalid-url"},
 				SolutionComponents: []string{},
 				Expectation: expectations.All(
-					kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All( // make sure the target named 'target-v1' is present in the 'default' namespace
+					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
 						//kube.OperationIdMatchCondition,                                    // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-http", nil), // and the target component 'simple-http-invalid-url' status is failed to update

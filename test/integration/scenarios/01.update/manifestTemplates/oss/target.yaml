@@ -6,10 +6,9 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: self-v1
+  name: self
   annotations: {}
 spec:
-  rootResource: self
   displayName: int-virtual-02-v1
   scope: alice-springs
   topologies:

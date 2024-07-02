@@ -28,8 +28,6 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionBytesV2 []byte
-	var instanceContainerBytes []byte
-	var targetContainerBytes []byte
 	var solutionContainerBytes []byte
 	var targetProps map[string]string
 
@@ -58,21 +56,9 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		var err error
 
 		By("deploy solution container")
-		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.InstanceOptions{})
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("deploy target container")
-		targetContainerBytes, err = testhelpers.PatchTargetContainer(defaultTargetContainerManifest, testhelpers.InstanceOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetContainerBytes)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("deploy instance container")
-		instanceContainerBytes, err = testhelpers.PatchInstanceContainer(defaultInstanceContainerManifest, testhelpers.InstanceOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceContainerBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("setting the components for the target")
@@ -155,7 +141,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
-				kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
 					//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 				)))),
