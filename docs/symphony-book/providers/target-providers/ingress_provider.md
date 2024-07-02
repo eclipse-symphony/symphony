@@ -2,7 +2,7 @@
 The Ingress target provider manages Kubernetes Ingress embedded in components and converts component spec to a kubernetes Ingress object.
 
 ## Provider configuration
-You can modify the provider configuration in the Symphony config file to specify the Kubernetes cluster for which the ConfigMap should be created.
+You can modify the provider configuration in the Symphony config file to specify the Kubernetes cluster for which the Ingress object should be created.
 
 | Field | Comment |
 |--------|--------|
@@ -16,8 +16,8 @@ You can modify the provider configuration in the Symphony config file to specify
 ```yaml
 topologies:
 - bindings:
-  - role: configmap
-    provider: providers.target.configmap
+  - role: ingress
+    provider: providers.target.ingress
     config:
       inCluster: "false"
       configType: "bytes"
