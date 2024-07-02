@@ -50,6 +50,9 @@ const (
 	// DeploymentType_Delete indicates the type of deployment is Delete. This is
 	// to give a deployment status on Symphony Target deployment.
 	DeploymentType_Delete string = "Target Delete"
+
+	Summary         = "Summary"
+	DeploymentState = "DeployState"
 )
 
 type SolutionManager struct {
@@ -80,7 +83,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		}
 	}
 
-	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
@@ -144,6 +147,9 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 		ID: instance,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  DeploymentState,
 		},
 	})
 	if err == nil {
@@ -174,6 +180,9 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 		ID: fmt.Sprintf("%s-%s", "summary", key),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
 		},
 	})
 	if err != nil {
@@ -467,6 +476,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		},
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  DeploymentState,
 		},
 	})
 	//}
@@ -516,6 +528,9 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 		},
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
 		},
 	})
 }

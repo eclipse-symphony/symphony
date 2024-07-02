@@ -184,6 +184,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "baseUrl": "http://localhost:8084/v1alpha2/",
               "user": "admin",
               "password": "",
@@ -377,10 +378,10 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",
               "providers.secret": "mock-secret"
-            },
+            },"providers.volatilestate": "mem-state",
             "providers": {
               "mem-state": {
                 "type": "providers.state.memory",
