@@ -314,16 +314,8 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogContainer")
 			os.Exit(1)
 		}
-		if err = (&solutionv1.InstanceContainer{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "InstanceContainer")
-			os.Exit(1)
-		}
 		if err = (&solutionv1.SolutionContainer{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "SolutionContainer")
-			os.Exit(1)
-		}
-		if err = (&fabricv1.TargetContainer{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "TargetContainer")
 			os.Exit(1)
 		}
 	}
@@ -341,25 +333,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CatalogContainer")
 		os.Exit(1)
 	}
-	if err = (&fabriccontrollers.TargetContainerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "TargetContainer")
-		os.Exit(1)
-	}
 	if err = (&workflowcontrollers.CampaignContainerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CampaignContainer")
-		os.Exit(1)
-	}
-	if err = (&solutioncontrollers.InstanceContainerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "InstanceContainer")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

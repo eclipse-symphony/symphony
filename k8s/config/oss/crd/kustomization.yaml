@@ -22,8 +22,6 @@ resources:
 - bases/federation.symphony_catalogs.yaml
 - bases/solution.symphony_solutioncontainers.yaml
 - bases/workflow.symphony_campaigncontainers.yaml
-- bases/solution.symphony_instancecontainers.yaml
-- bases/fabric.symphony_targetcontainers.yaml
 - bases/federation.symphony_catalogcontainers.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 

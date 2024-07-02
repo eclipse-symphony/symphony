@@ -75,8 +75,6 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Version       string               `json:"version,omitempty"`
-	RootResource  string               `json:"rootResource,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -86,29 +84,19 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
-	DisplayName  string               `json:"displayName,omitempty"`
-	Scope        string               `json:"scope,omitempty"`
-	Parameters   map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
-	Metadata     map[string]string    `json:"metadata,omitempty"`
-	Solution     string               `json:"solution"`
-	Target       model.TargetSelector `json:"target,omitempty"`
-	Topologies   []model.TopologySpec `json:"topologies,omitempty"`
-	Pipelines    []model.PipelineSpec `json:"pipelines,omitempty"`
-	Version      string               `json:"version,omitempty"`
-	RootResource string               `json:"rootResource,omitempty"`
+	DisplayName string               `json:"displayName,omitempty"`
+	Scope       string               `json:"scope,omitempty"`
+	Parameters  map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Solution    string               `json:"solution"`
+	Target      model.TargetSelector `json:"target,omitempty"`
+	Topologies  []model.TopologySpec `json:"topologies,omitempty"`
+	Pipelines   []model.PipelineSpec `json:"pipelines,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type TargetContainerSpec struct {
-}
-
-// +kubebuilder:object:generate=true
-type InstanceContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true

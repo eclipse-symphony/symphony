@@ -7,7 +7,7 @@ spec:
   catalogType: instance
   properties:
     metadata:
-      name: instance:v1
+      name: instance
     spec: 
       solution: app:v1
       target:
