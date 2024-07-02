@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: TargetContainer
+metadata:
+  name: target02 
+spec:
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target02-v1     
+spec:
+  rootResource: target02
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.k8s
+      config:
+        inCluster: "true"  
