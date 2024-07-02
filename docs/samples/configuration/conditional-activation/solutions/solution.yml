@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: conditional-activation-solution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: conditional-activation-solution
+  name: conditional-activation-solution-v-v1
 spec:
+  rootResource: conditional-activation-solution
   components:
     - name: conditional-activation-deployment
       type: yaml.k8s
@@ -21,7 +27,7 @@ spec:
             selector:
               matchLabels:
                 app: testapp
-            template:
+            template: 
               metadata:
                 labels:
                   app: testapp
@@ -41,4 +47,4 @@ spec:
     - name: conditional-activation-config
       type: config
       properties:
-        lines: ${{$config(line-config, '')}}
+        lines: ${{$config(line-config:v1, '')}}

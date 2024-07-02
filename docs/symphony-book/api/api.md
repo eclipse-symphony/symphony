@@ -13,5 +13,6 @@ For more details, see:
 * [Instances API](./instances-api.md)
 * [Solutions API](./solutions-api.md)
 * [Targets API](./targets-api.md)
+* [Solution Containers API](./solutioncontainers-api.md)
 
 You can find an Open API definition of Symphony API in [Sypmhony.openapi.yaml](./Symphony.openapi.yaml).

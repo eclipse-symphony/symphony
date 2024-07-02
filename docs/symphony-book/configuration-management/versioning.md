@@ -27,6 +27,9 @@ For example, to get `v3` of a `my-config`, uses:
 /versioned-catalogs/my-config/versions/v3
 ```
 
+## Create a versioned object
+Under Kubernetes mode, it is required to create a `container` object before creating a versioned object. For example, to create a solution `myapp-v1`, customer needs to create a `solutioncontainer` object and then `solution` object (yaml files available at [docs/samples/k8s/hello-world/solution.yaml](../../samples/k8s/hello-world/solution.yaml).)
+
 ## Referencing a versioned object
 When referencing a specific version of a versioned object, you can use a “:<version>” postfix in you Symphony expressions, such as:
 

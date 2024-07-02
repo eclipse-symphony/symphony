@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: mock-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: mock-campaign-v-v1
 spec:
+  rootResource: mock-campaign
   firstStage: "mock"
   selfDriving: true
   stages:

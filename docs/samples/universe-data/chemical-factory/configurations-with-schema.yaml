@@ -1,8 +1,15 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: sample-config
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: sample-config-v-v1
 spec:
+  rootResource: sample-config
   catalogType: config
   metadata:
     schema: sample-schema

@@ -4,7 +4,7 @@ metadata:
   name: my-instance
 spec:
   scope: basic-k8s
-  solution: redis-server
+  solution: redis-server:v1
   target:
     selector: 
       group: demo

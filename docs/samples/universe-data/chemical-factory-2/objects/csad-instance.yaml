@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: csad-site-instance
 spec:
-  solution: csad
+  solution: csad:v1
   target: 
     name: k8s-target

@@ -1,10 +1,10 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: wrongconfig-v1
+  name: wrongconfig-v-v1
 spec:
   catalogType: config
   metadata:
-    schema: schema-v1
+    schema: schema-v-v1
   properties:
     email: "this is an invalid email"

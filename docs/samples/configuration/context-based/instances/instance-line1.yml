@@ -4,7 +4,7 @@ kind: Instance
 metadata:
   name: context-based-instance-line1
 spec:
-  solution: context-based-solution
+  solution: context-based-solution:v1
   scope: line1
   target:
     name: k8s-target

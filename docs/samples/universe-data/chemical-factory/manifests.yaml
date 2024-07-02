@@ -1,7 +1,13 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-app-config
+  name: config-v-site-app
 spec:
   catalogType: config
   name: site-app-config
@@ -12,7 +18,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-app-config
+  name: config-v-line-app
 spec:
   catalogType: config
   properties:
@@ -20,14 +26,21 @@ spec:
     dog: snoopy
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: site-app
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-app-v-v1
 spec:
   catalogType: solution
   properties:
+    metadata:
+      name: site-app:v1
     spec: 
-      displayName: site-app
       components:
       - name: influxdb
         type: container
@@ -41,15 +54,23 @@ spec:
         type: container
         properties:
           container.image: "redis:latest"
-          env.AI_MODEL: "$config(ai-config,model)"
+          env.AI_MODEL: "$config(config:ai,model)"
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: line-app
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-app
+  name: line-app-v-v1
 spec:
   catalogType: solution
   properties:
+    metadata:
+      name: line-app:v1
     spec: 
       components:
       - name: e4k-high-availability-broker
@@ -130,14 +151,21 @@ spec:
       displayName: My solution
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: smart-fridge
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: smart-fridge-v-v1
 spec:
   catalogType: solution
   properties:
+    metadata:
+      name: smart-fridge:v1
     spec: 
-      displayName: smart-fridge
       components:
       - name: backend
         type: helm.v3
@@ -156,14 +184,22 @@ spec:
           container.image: "mqtt:latest"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: site-instance
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-instance-v-v1
 spec:
   catalogType: instance
   properties:
+    metadata:
+      name: site-instance
     spec: 
-      solution: site-app
+      solution: site-app:v1
       target:
         selector:
           group: demo

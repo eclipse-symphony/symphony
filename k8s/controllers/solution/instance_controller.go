@@ -14,11 +14,10 @@ import (
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
-
-	"gopls-workspace/constants"
 	"gopls-workspace/utils"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -137,7 +136,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	solutionName := utils.ReplaceLastSeperator(instance.Spec.Solution, ":", "-")
+	solutionName := utils.ReplaceLastSeperator(instance.Spec.Solution, ":", constants.ResourceSeperator)
 	if err := r.Get(ctx, types.NamespacedName{Name: solutionName, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
@@ -240,7 +239,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
 
-	solutionName := utils.ReplaceLastSeperator(solObj.Name, "-", ":")
+	solutionName := utils.ReplaceLastSeperator(solObj.Name, constants.ResourceSeperator, ":")
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
 		client.MatchingFields{"spec.solution": solutionName},

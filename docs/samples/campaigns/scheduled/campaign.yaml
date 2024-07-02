@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: scheduled-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: scheduled-campaign-v-v1
 spec:
+  rootResource: scheduled-campaign
   firstStage: "stage1"
   selfDriving: true
   stages:

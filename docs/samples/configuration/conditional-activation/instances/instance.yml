@@ -4,7 +4,7 @@ kind: Instance
 metadata:
   name: conditional-activation-instance
 spec:
-  solution: conditional-activation-solution
+  solution: conditional-activation-solution:v1
   scope: default
   target:
     name: k8s-target

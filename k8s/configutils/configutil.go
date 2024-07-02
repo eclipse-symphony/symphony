@@ -119,13 +119,19 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 		return field.Invalid(field.NewPath("spec").Child("rootResource"), rootResource, "rootResource must be a non-empty string")
 	}
 
-	parts := strings.Split(name, "-")
-	if len(parts) != 2 {
-		return field.Invalid(field.NewPath("name"), name, "name must be in the format of <containerName>-<version> and only one hyphen is allowed")
+	if !strings.HasPrefix(name, rootResource) {
+		return field.Invalid(field.NewPath("name"), name, "name must start with spec.rootResource")
 	}
 
-	if parts[0] != rootResource {
-		return field.Invalid(field.NewPath("name"), name, "name must start with spec.rootResource")
+	prefix := rootResource + constants.ResourceSeperator
+	remaining := strings.TrimPrefix(name, prefix)
+
+	if remaining == name {
+		return field.Invalid(field.NewPath("name"), name, "name should be in the format '<rootResource>-v-<version>'")
+	}
+
+	if strings.Contains(remaining, constants.ResourceSeperator) || strings.HasPrefix(remaining, "v-") {
+		return field.Invalid(field.NewPath("name"), name, "name should be in the format <rootResource>-v-<version> where <version> does not contain '-v-' or starts with 'v-'")
 	}
 
 	return nil

@@ -1,9 +1,15 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: line1-config
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line1-config
+  name: line1-config-v-v1
 spec:
+  rootResource: line1-config
   type: config
   properties:
     line1:

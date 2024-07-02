@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: counter-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: counter-campaign-v-v1
 spec:
+  rootResource: counter-campaign
   firstStage: "counter"
   selfDriving: true
   stages:
