@@ -24,7 +24,7 @@
             "type": "managers.symphony.solution",
             "properties": {
               "providers.target": "sideload",
-              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret"
             },

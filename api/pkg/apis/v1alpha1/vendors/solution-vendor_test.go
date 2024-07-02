@@ -46,9 +46,9 @@ func createSolutionVendor() SolutionVendor {
 				Name: "solution-manager",
 				Type: "managers.symphony.solution",
 				Properties: map[string]string{
-					"providers.volatilestate": "mem-state",
-					"providers.config":        "mock-config",
-					"providers.secret":        "mock-secret",
+					"providers.persistentstate": "mem-state",
+					"providers.config":          "mock-config",
+					"providers.secret":          "mock-secret",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

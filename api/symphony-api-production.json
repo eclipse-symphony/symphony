@@ -217,6 +217,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "redis-state",
               "baseUrl": "http://symphony-service:8080/v1alpha2/",
               "user": "admin",
               "password": "",
@@ -225,6 +226,15 @@
               "schedule.enabled": "true"             
             },
             "providers": {
+              "redis-state": {
+                "type": "providers.state.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "localhost:6379",
+                  "requireTLS": false,
+                  "password": ""
+                }
+              },
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
@@ -413,14 +423,19 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "redis-state",
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret"
             },
             "providers": {
-              "mem-state": {
-                "type": "providers.state.memory",
-                "config": {}
+              "redis-state": {
+                "type": "providers.state.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "localhost:6379",
+                  "requireTLS": false,
+                  "password": ""
+                }
               },
               "mock-config": {
                 "type": "providers.config.mock",

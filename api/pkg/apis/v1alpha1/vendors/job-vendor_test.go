@@ -29,7 +29,8 @@ func createJobVendor() JobVendor {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := jobs.JobsManager{
-		StateProvider: stateProvider,
+		VolatileStateProvider:   stateProvider,
+		PersistentStateProvider: stateProvider,
 	}
 	vendor := JobVendor{
 		JobsManager: &manager,
@@ -62,10 +63,11 @@ func TestJobsInit(t *testing.T) {
 				Name: "jobs-manager",
 				Type: "managers.symphony.jobs",
 				Properties: map[string]string{
-					"providers.volatilestate": "mem-state",
-					"baseUrl":                 "http://localhost:8082/v1alpha2/",
-					"user":                    "admin",
-					"password":                "",
+					"providers.volatilestate":   "mem-state",
+					"providers.persistentstate": "mem-state",
+					"baseUrl":                   "http://localhost:8082/v1alpha2/",
+					"user":                      "admin",
+					"password":                  "",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

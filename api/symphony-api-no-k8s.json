@@ -198,6 +198,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -390,7 +391,7 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",
               "providers.secret": "mock-secret"
             },
