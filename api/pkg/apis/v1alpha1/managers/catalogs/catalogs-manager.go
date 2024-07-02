@@ -92,7 +92,7 @@ func getCatalogState(body interface{}, etag string) (model.CatalogState, error) 
 	if catalogState.Spec == nil {
 		catalogState.Spec = &model.CatalogSpec{}
 	}
-	catalogState.Spec.Generation = etag
+	catalogState.ObjectMeta.Generation = etag
 	if catalogState.Status == nil {
 		catalogState.Status = &model.CatalogStatus{}
 	}

@@ -101,7 +101,7 @@ func (s *StagingManager) Poll() []error {
 		}
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(ctx, getRequest)
-		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.Spec.Generation {
+		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.Generation {
 			continue
 		}
 		if err != nil && !v1alpha2.IsNotFound(err) {
@@ -115,7 +115,7 @@ func (s *StagingManager) Poll() []error {
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
-				Body: catalog.Spec.Generation,
+				Body: catalog.ObjectMeta.Generation,
 			},
 			Metadata: map[string]interface{}{
 				"version":   "v1",

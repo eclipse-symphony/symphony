@@ -34,7 +34,6 @@ var catalogState = model.CatalogState{
 			"property2": "value2",
 		},
 		ParentName: "parent1",
-		Generation: "1",
 		Metadata: map[string]string{
 			"metadata1": "value1",
 			"metadata2": "value2",
@@ -179,7 +178,6 @@ func TestCatalogOnCheck(t *testing.T) {
 				"property2": "value2",
 			},
 			ParentName: "parent1",
-			Generation: "1",
 			Metadata: map[string]string{
 				"metadata1": "value1",
 				"metadata2": "value2",

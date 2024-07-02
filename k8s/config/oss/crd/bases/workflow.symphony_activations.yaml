@@ -47,8 +47,6 @@ spec:
             properties:
               campaign:
                 type: string
-              generation:
-                type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
               stage:

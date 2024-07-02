@@ -119,10 +119,9 @@ type ActivationStatus struct {
 }
 
 type ActivationSpec struct {
-	Campaign   string                 `json:"campaign,omitempty"`
-	Stage      string                 `json:"stage,omitempty"`
-	Inputs     map[string]interface{} `json:"inputs,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	Campaign string                 `json:"campaign,omitempty"`
+	Stage    string                 `json:"stage,omitempty"`
+	Inputs   map[string]interface{} `json:"inputs,omitempty"`
 }
 
 func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {

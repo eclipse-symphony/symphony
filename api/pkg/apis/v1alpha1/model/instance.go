@@ -31,7 +31,6 @@ type (
 		Target       TargetSelector    `json:"target,omitempty"`
 		Topologies   []TopologySpec    `json:"topologies,omitempty"`
 		Pipelines    []PipelineSpec    `json:"pipelines,omitempty"`
-		Generation   string            `json:"generation,omitempty"`
 		Version      string            `json:"version,omitempty"`
 		RootResource string            `json:"rootResource,omitempty"`
 	}
