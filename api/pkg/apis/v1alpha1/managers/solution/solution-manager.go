@@ -349,7 +349,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		plannedCount++
 
 		dep.ActiveTarget = step.Target
-		agent := findAgent(deployment.Targets[step.Target])
+		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
 			col[ENV_NAME] = agent
 		} else {
@@ -701,11 +701,16 @@ func (s *SolutionManager) Poll() []error {
 func (s *SolutionManager) Reconcil() []error {
 	return nil
 }
-func findAgent(target model.TargetState) string {
-	for _, c := range target.Spec.Components {
-		if v, ok := c.Properties[model.ContainerImage]; ok {
-			if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
-				return c.Name
+
+func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {
+	for _, targetDes := range state.Targets {
+		if targetName == targetDes.Name {
+			for _, c := range targetDes.Spec.Components {
+				if v, ok := c.Properties[model.ContainerImage]; ok {
+					if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
+						return c.Name
+					}
+				}
 			}
 		}
 	}
