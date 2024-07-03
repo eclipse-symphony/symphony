@@ -78,3 +78,32 @@ spec:
 	assert.Equal(t, solution.Spec.Components[0].Sidecars[0].Type, apiSolutionState.Spec.Components[0].Sidecars[0].Type)
 	assert.Equal(t, expectedSidecarProperties, apiSolutionState.Spec.Components[0].Sidecars[0].Properties)
 }
+
+func TestK8SSolutionToAPISolutionStateNullProperty(t *testing.T) {
+	solutionYaml := `apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: sample-staged-solution
+spec:  
+  components:
+  - name: staged-component
+    sidecars:
+    - name: sidecar1
+      type: container
+      properties:
+        container.image: "symphony/sidecar"
+        env.foo: "bar"
+        nestedEnv:
+          baz: "qux"
+`
+	solution := &solution_v1.Solution{}
+	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	assert.NoError(t, err)
+
+	apiSolutionState, err := K8SSolutionToAPISolutionState(*solution)
+
+	assert.NoError(t, err)
+	assert.Equal(t, solution.Name, apiSolutionState.ObjectMeta.Name)
+	assert.Equal(t, solution.Spec.Components[0].Name, apiSolutionState.Spec.Components[0].Name)
+	assert.Equal(t, solution.Spec.Components[0].Type, apiSolutionState.Spec.Components[0].Type)
+}

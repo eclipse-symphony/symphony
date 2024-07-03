@@ -63,8 +63,11 @@ func K8SComponentSpecToAPIComponentSpec(component k8smodel.ComponentSpec) (apimo
 	if err != nil {
 		return apimodel.ComponentSpec{}, err
 	}
-	componentSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	if component.Properties.Raw != nil {
+		componentSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	}
+
 	return componentSpec, err
 }
 
