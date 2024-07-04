@@ -1,10 +1,4 @@
 apiVersion: fabric.symphony/v1
-kind: TargetContainer
-metadata:
-  name: target02 
-spec:
----
-apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
   name: target02-v1     

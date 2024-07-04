@@ -1,10 +1,4 @@
 apiVersion: solution.symphony/v1
-kind: InstanceContainer
-metadata:
-  name: instance02
-spec:
----
-apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: instance02-v1
