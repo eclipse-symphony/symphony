@@ -98,7 +98,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		By("setting the components for Solution V2, an invalid solution")
 		solutionBytesV2, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
 			ComponentNames: testcase.SolutionComponentsV2,
-			SolutionName:   "solution-v2",
+			SolutionName:   "solution-v-v2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 

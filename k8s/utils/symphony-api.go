@@ -259,5 +259,5 @@ func ReplaceLastSeperator(name string, seperatorBefore string, seperatorAfter st
 	if i == -1 {
 		return name
 	}
-	return name[:i] + seperatorAfter + name[i+1:]
+	return name[:i] + seperatorAfter + name[i+len(seperatorBefore):]
 }

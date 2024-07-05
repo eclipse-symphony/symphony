@@ -146,27 +146,27 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 		var response interface{}
 		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
-		case "/instances/instance1-v1":
+		case "/instances/instance1-v-v1":
 			instance := model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "instance1-v1",
+					Name: "instance1-v-v1",
 				},
 			}
 			err := json.Unmarshal(body, &instance)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
 			response = instance
-		case "/targets/registry/target1-v1":
+		case "/targets/registry/target1-v-v1":
 			target := model.TargetState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "target1-v1",
+					Name: "target1-v-v1",
 				},
 			}
 			err := json.Unmarshal(body, &target)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
 			response = target
-		case "/solutions/solution1-v1":
+		case "/solutions/solution1-v-v1":
 			var solution model.SolutionState
 			err := json.Unmarshal(body, &solution)
 			assert.Nil(t, err)
@@ -176,7 +176,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 			response = []model.CatalogState{
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "hq-target1-v1",
+						Name: "hq-target1-v-v1",
 					},
 					Spec: &model.CatalogSpec{
 						CatalogType: "target",
@@ -193,7 +193,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "hq-instance1-v1",
+						Name: "hq-instance1-v-v1",
 					},
 					Spec: &model.CatalogSpec{
 						CatalogType: "instance",
@@ -208,7 +208,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "hq-solution1-v1",
+						Name: "hq-solution1-v-v1",
 					},
 					Spec: &model.CatalogSpec{
 						CatalogType: "solution",
@@ -225,7 +225,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "hq-catalog1-v1",
+						Name: "hq-catalog1-v-v1",
 					},
 					Spec: &model.CatalogSpec{
 						CatalogType: "catalog",
@@ -242,7 +242,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 				},
 			}
-		case "catalogs/registry/catalog1-v1":
+		case "catalogs/registry/catalog1-v-v1":
 			var catalog model.CatalogState
 			err := json.Unmarshal(body, &catalog)
 			assert.Nil(t, err)
