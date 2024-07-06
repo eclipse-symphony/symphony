@@ -173,7 +173,7 @@ func VerifyPodExists() error {
 }
 
 func CleanUpSymphonyObjects(namespace string) error {
-	targetName := "target02-v1"
+	targetName := "target02"
 	err := shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
 	if err != nil {
 		return err
