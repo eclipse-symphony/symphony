@@ -232,7 +232,7 @@ func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error 
 		Values: map[string]interface{}{"data": event},
 	}).Result()
 	if err != nil {
-		mLog.Debugf("  P (Redis PubSub) : failed to publish message %v", err)
+		mLog.Errorf("  P (Redis PubSub) : failed to publish message %v", err)
 		return v1alpha2.NewCOAError(err, "failed to publish message", v1alpha2.InternalError)
 	}
 	return nil
@@ -241,7 +241,7 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 	err := i.Client.XGroupCreateMkStream(i.Ctx, topic, RedisGroup, "0").Err()
 	//Ignore BUSYGROUP errors
 	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
-		mLog.Debugf("  P (Redis PubSub) : failed to subscribe %v", err)
+		mLog.Errorf("  P (Redis PubSub) : failed to subscribe %v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subsceribe to topic %s", topic), v1alpha2.InternalError)
 	}
 	go i.pollNewMessagesLoop(topic, handler)
@@ -265,7 +265,7 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 			Block:    0,
 		}).Result()
 		if err != nil {
-			mLog.Debugf("  P (Redis PubSub) : failed to poll message %v", err)
+			mLog.Errorf("  P (Redis PubSub) : failed to poll message %v", err)
 			time.Sleep(30 * time.Second)
 			continue
 		}
@@ -278,10 +278,8 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 func (i *RedisPubSubProvider) enqueueMessages(topic string, handler v1alpha2.EventHandler, msgs []redis.XMessage) {
 	for _, msg := range msgs {
 		if _, ok := i.ClaimedMessages[msg.ID]; ok {
-			mLog.Debugf("  P (Redis PubSub) : claimed old message %s", msg.ID)
 			continue
 		}
-		mLog.Debugf("  P (Redis PubSub) : claimed new message %s", msg.ID)
 		rmsg := createRedisMessageWrapper(topic, handler, msg)
 		select {
 		case i.Queue <- rmsg:
@@ -319,7 +317,6 @@ func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, consumerId string, 
 }
 
 func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time.Duration, consumer string, handler v1alpha2.EventHandler) {
-	mLog.Debugf("  P (Redis PubSub) : reclaiming pending messages for consumer %s", consumer)
 	start := "-"
 	for {
 		pendingResult, err := i.Client.XPendingExt(i.Ctx, &redis.XPendingExtArgs{
@@ -332,7 +329,7 @@ func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time
 			Consumer: consumer,
 		}).Result()
 		if err != nil && !errors.Is(err, redis.Nil) {
-			mLog.Debugf("  P (Redis PubSub) : failed to get pending message %v", err)
+			mLog.Errorf("  P (Redis PubSub) : failed to get pending message %v", err)
 			break
 		}
 		if len(pendingResult) == 0 {
@@ -355,7 +352,7 @@ func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration,
 		Messages: msgIDs,
 	}).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		mLog.Debugf("  P (Redis PubSub) : failed to reclaim pending message %v", err)
+		mLog.Error("  P (Redis PubSub) : failed to reclaim pending message %v", err)
 		return
 	}
 	if err == nil || errors.Is(err, redis.Nil) {
