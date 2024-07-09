@@ -20,19 +20,20 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	"github.com/go-redis/redis/v7"
+	"github.com/redis/go-redis/v9"
 )
 
 var mLog = logger.NewLogger("coa.runtime")
 
 type RedisPubSubProvider struct {
-	Config      RedisPubSubProviderConfig          `json:"config"`
-	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
-	Client      *redis.Client
-	Queue       chan RedisMessageWrapper
-	Ctx         context.Context
-	Cancel      context.CancelFunc
-	Context     *contexts.ManagerContext
+	Config          RedisPubSubProviderConfig          `json:"config"`
+	Subscribers     map[string][]v1alpha2.EventHandler `json:"subscribers"`
+	Client          *redis.Client
+	Queue           chan RedisMessageWrapper
+	Ctx             context.Context
+	Cancel          context.CancelFunc
+	Context         *contexts.ManagerContext
+	ClaimedMessages map[string]bool
 }
 
 type RedisMessageWrapper struct {
@@ -43,16 +44,29 @@ type RedisMessageWrapper struct {
 }
 
 type RedisPubSubProviderConfig struct {
-	Name              string        `json:"name"`
-	Host              string        `json:"host"`
-	Password          string        `json:"password,omitempty"`
-	RequiresTLS       bool          `json:"requiresTLS,omitempty"`
-	NumberOfWorkers   int           `json:"numberOfWorkers,omitempty"`
-	QueueDepth        int           `json:"queueDepth,omitempty"`
-	ConsumerID        string        `json:"consumerID"`
-	ProcessingTimeout time.Duration `json:"processingTimeout,omitempty"`
-	RedeliverInterval time.Duration `json:"redeliverInterval,omitempty"`
+	Name            string `json:"name"`
+	Host            string `json:"host"`
+	Password        string `json:"password,omitempty"`
+	RequiresTLS     bool   `json:"requiresTLS,omitempty"`
+	NumberOfWorkers int    `json:"numberOfWorkers,omitempty"`
+	QueueDepth      int    `json:"queueDepth,omitempty"`
+	ConsumerID      string `json:"consumerID"`
+	MultiInstance   bool   `json:"multiInstance,omitempty"`
 }
+
+const (
+	RedisGroup = "symphony"
+	// defines the interval in which the provider should check for pending messages
+	PendingMessagesScanInterval = 5 * time.Second
+	// defines after how much idle time the provider should check for pending messages that previously claimed
+	// by itself and reset the idle time of them to prevent them from being claimed by other clients
+	ExtendMessageOwnershipWithIdleTime = 30 * time.Second
+	// defines the interval in which the provider should check for pending messages from other clients
+	PendingMessagesScanIntervalOtherClient = 60 * time.Second
+	// defines after how much idle time the provider should check for pending messages that previously claimed
+	// by other clients
+	ClaimMessageFromOtherClientWithIdleTime = 60 * time.Second
+)
 
 func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSubProviderConfig, error) {
 	ret := RedisPubSubProviderConfig{}
@@ -77,6 +91,18 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 			ret.RequiresTLS = bVal
 		}
 	}
+	if v, ok := properties["multiInstance"]; ok {
+		val := v //providers.LoadEnv(v)
+		if val != "" {
+			bVal, err := strconv.ParseBool(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'requiresTLS' setting of Redis pub-sub provider", v1alpha2.BadConfig)
+			}
+			ret.MultiInstance = bVal
+		}
+	} else {
+		ret.MultiInstance = false
+	}
 	if v, ok := properties["numberOfWorkers"]; ok {
 		val := v //providers.LoadEnv(v)
 		if val != "" {
@@ -99,31 +125,15 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 			ret.QueueDepth = n
 		}
 	}
+	if ret.QueueDepth <= 0 {
+		ret.QueueDepth = 10
+	}
 	if v, ok := properties["consumerID"]; ok {
 		ret.ConsumerID = v // providers.LoadEnv(v)
+	} else {
+		ret.ConsumerID = ""
 	}
-
-	if v, ok := properties["processingTimeout"]; ok {
-		val := v //providers.LoadEnv(v)
-		if val != "" {
-			n, err := utils.UnmarshalDuration(val)
-			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'processingTimeout' setting of Redis pub-sub provider", v1alpha2.BadConfig)
-			}
-			ret.ProcessingTimeout = n
-		}
-	}
-
-	if v, ok := properties["redeliverInterval"]; ok {
-		val := v //providers.LoadEnv(v)
-		if val != "" {
-			n, err := utils.UnmarshalDuration(val)
-			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'redeliverInterval' setting of Redis pub-sub provider", v1alpha2.BadConfig)
-			}
-			ret.RedeliverInterval = n
-		}
-	}
+	ret.ConsumerID = ret.ConsumerID + generateConsumerIDSuffix()
 
 	if ret.NumberOfWorkers <= 0 {
 		ret.NumberOfWorkers = 1
@@ -143,7 +153,7 @@ func (s *RedisPubSubProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *RedisPubSubProvider) InitWithMap(properties map[string]string) error {
 	config, err := RedisPubSubProviderConfigFromMap(properties)
 	if err != nil {
-		mLog.Debugf("  P (Redis PubSub) : failed to initialize provider %v", err)
+		mLog.Errorf("  P (Redis PubSub) : failed to initialize provider %v", err)
 		return err
 	}
 	return i.Init(config)
@@ -152,13 +162,16 @@ func (i *RedisPubSubProvider) InitWithMap(properties map[string]string) error {
 func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	vConfig, err := toRedisPubSubProviderConfig(config)
 	if err != nil {
-		mLog.Debugf("  P (Redis PubSub): failed to parse provider config %+v", err)
+		mLog.Errorf("  P (Redis PubSub): failed to parse provider config %+v", err)
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid redis pub-sub provider config", v1alpha2.BadConfig)
 	}
 	i.Config = vConfig
 	if i.Config.Host == "" {
 		return v1alpha2.NewCOAError(nil, "Redis host is not supplied", v1alpha2.MissingConfig)
 	}
+
+	i.Ctx, i.Cancel = context.WithCancel(context.Background())
+	i.ClaimedMessages = make(map[string]bool)
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
@@ -174,12 +187,11 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 	client := redis.NewClient(options)
-	if _, err := client.Ping().Result(); err != nil {
-		mLog.Debugf("  P (Redis PubSub): failed to connect to redis %+v", err)
+	if _, err := client.Ping(i.Ctx).Result(); err != nil {
+		mLog.Errorf("  P (Redis PubSub): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", i.Config.Host), v1alpha2.InternalError)
 	}
 	i.Client = client
-	i.Ctx, i.Cancel = context.WithCancel(context.Background())
 	i.Queue = make(chan RedisMessageWrapper, int(i.Config.QueueDepth))
 	for k := uint(0); k < uint(i.Config.NumberOfWorkers); k++ {
 		go i.worker()
@@ -198,6 +210,8 @@ func (i *RedisPubSubProvider) worker() {
 	}
 }
 func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
+	i.ClaimedMessages[msg.MessageID] = true
+	defer delete(i.ClaimedMessages, msg.MessageID)
 	var evt v1alpha2.Event
 	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)
 	if err != nil {
@@ -206,14 +220,14 @@ func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
 	if err := msg.Handler(msg.Topic, evt); err != nil {
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.MessageID), v1alpha2.InternalError)
 	}
-	if err := i.Client.XAck(msg.Topic, i.Config.ConsumerID, msg.MessageID).Err(); err != nil {
+	if err := i.Client.XAck(i.Ctx, msg.Topic, i.Config.ConsumerID, msg.MessageID).Err(); err != nil {
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to acknowledge message %s", msg.MessageID), v1alpha2.InternalError)
 	}
 	return nil
 }
 
 func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error {
-	_, err := i.Client.XAdd(&redis.XAddArgs{
+	_, err := i.Client.XAdd(i.Ctx, &redis.XAddArgs{
 		Stream: topic,
 		Values: map[string]interface{}{"data": event},
 	}).Result()
@@ -224,14 +238,17 @@ func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error 
 	return nil
 }
 func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHandler) error {
-	err := i.Client.XGroupCreateMkStream(topic, i.Config.ConsumerID, "0").Err()
+	err := i.Client.XGroupCreateMkStream(i.Ctx, topic, RedisGroup, "0").Err()
 	//Ignore BUSYGROUP errors
 	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
 		mLog.Debugf("  P (Redis PubSub) : failed to subscribe %v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subsceribe to topic %s", topic), v1alpha2.InternalError)
 	}
 	go i.pollNewMessagesLoop(topic, handler)
-	go i.reclaimPendingMessagesLoop(topic, handler)
+	go i.ClaimMessageLoop(topic, i.Config.ConsumerID, handler, PendingMessagesScanInterval, ExtendMessageOwnershipWithIdleTime)
+	if i.Config.MultiInstance {
+		go i.ClaimMessageLoop(topic, "", handler, PendingMessagesScanIntervalOtherClient, ClaimMessageFromOtherClientWithIdleTime)
+	}
 	return nil
 }
 
@@ -240,8 +257,8 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 		if i.Ctx.Err() != nil {
 			return
 		}
-		streams, err := i.Client.XReadGroup(&redis.XReadGroupArgs{
-			Group:    i.Config.ConsumerID,
+		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
+			Group:    RedisGroup,
 			Consumer: i.Config.ConsumerID,
 			Streams:  []string{topic, ">"},
 			Count:    int64(i.Config.QueueDepth),
@@ -260,6 +277,11 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 
 func (i *RedisPubSubProvider) enqueueMessages(topic string, handler v1alpha2.EventHandler, msgs []redis.XMessage) {
 	for _, msg := range msgs {
+		if _, ok := i.ClaimedMessages[msg.ID]; ok {
+			mLog.Debugf("  P (Redis PubSub) : claimed old message %s", msg.ID)
+			continue
+		}
+		mLog.Debugf("  P (Redis PubSub) : claimed new message %s", msg.ID)
 		rmsg := createRedisMessageWrapper(topic, handler, msg)
 		select {
 		case i.Queue <- rmsg:
@@ -282,94 +304,62 @@ func createRedisMessageWrapper(topic string, handler v1alpha2.EventHandler, msg 
 	}
 }
 
-func (i *RedisPubSubProvider) reclaimPendingMessagesLoop(topic string, handler v1alpha2.EventHandler) {
-	if i.Config.ProcessingTimeout == 0 || i.Config.RedeliverInterval == 0 {
-		return
-	}
-	i.reclaimPendingMessages(topic, handler)
-	reclaimTicker := time.NewTicker(i.Config.RedeliverInterval)
+func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, consumerId string, handler v1alpha2.EventHandler, scanInterval time.Duration, messageIdleTime time.Duration) {
+	i.reclaimPendingMessages(topic, messageIdleTime, consumerId, handler)
+	reclaimTicker := time.NewTicker(scanInterval)
+	defer reclaimTicker.Stop()
 	for {
 		select {
 		case <-i.Ctx.Done():
 			return
 		case <-reclaimTicker.C:
-			i.reclaimPendingMessages(topic, handler)
+			i.reclaimPendingMessages(topic, messageIdleTime, consumerId, handler)
 		}
 	}
 }
 
-func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, handler v1alpha2.EventHandler) {
+func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time.Duration, consumer string, handler v1alpha2.EventHandler) {
+	mLog.Debugf("  P (Redis PubSub) : reclaiming pending messages for consumer %s", consumer)
+	start := "-"
 	for {
-		pendingResult, err := i.Client.XPendingExt(&redis.XPendingExtArgs{
-			Stream: topic,
-			Group:  i.Config.ConsumerID,
-			Start:  "-",
-			End:    "+",
-			Count:  int64(i.Config.QueueDepth),
+		pendingResult, err := i.Client.XPendingExt(i.Ctx, &redis.XPendingExtArgs{
+			Stream:   topic,
+			Group:    RedisGroup,
+			Start:    start,
+			End:      "+",
+			Count:    int64(i.Config.QueueDepth),
+			Idle:     idleTime,
+			Consumer: consumer,
 		}).Result()
 		if err != nil && !errors.Is(err, redis.Nil) {
 			mLog.Debugf("  P (Redis PubSub) : failed to get pending message %v", err)
 			break
 		}
+		if len(pendingResult) == 0 {
+			break
+		}
+		start = pendingResult[len(pendingResult)-1].ID
 		msgIDs := make([]string, 0, len(pendingResult))
 		for _, msg := range pendingResult {
-			if msg.Idle >= i.Config.ProcessingTimeout {
-				msgIDs = append(msgIDs, msg.ID)
-			}
+			msgIDs = append(msgIDs, msg.ID)
 		}
-		if len(msgIDs) == 0 {
-			break
-		}
-		claimResult, err := i.Client.XClaim(&redis.XClaimArgs{
-			Stream:   topic,
-			Group:    i.Config.ConsumerID,
-			Consumer: i.Config.ConsumerID,
-			MinIdle:  i.Config.ProcessingTimeout,
-			Messages: msgIDs,
-		}).Result()
-		if err != nil && !errors.Is(err, redis.Nil) {
-			mLog.Debugf("  P (Redis PubSub) : failed to reclaim pending message %v", err)
-			break
-		}
-		i.enqueueMessages(topic, handler, claimResult)
-		// If the Redis nil error is returned, it means some messages in the pending
-		// state no longer exist. We need to acknowledge these mesages to
-		// remove them from the pending list
-		if errors.Is(err, redis.Nil) {
-			// Build a set of message IDs that were not returned
-			// that potentitally no longer exist
-			expectedMsgIDs := make(map[string]struct{}, len(msgIDs))
-			for _, id := range msgIDs {
-				expectedMsgIDs[id] = struct{}{}
-			}
-			for _, claimed := range claimResult {
-				delete(expectedMsgIDs, claimed.ID)
-			}
-			i.removeMessagesThatNoLongerExistFromPending(topic, expectedMsgIDs, handler)
-		}
+		i.XClaimWrapper(topic, idleTime, msgIDs, handler)
 	}
 }
-
-func (i *RedisPubSubProvider) removeMessagesThatNoLongerExistFromPending(topic string, messageIDs map[string]struct{}, handler v1alpha2.EventHandler) {
-	for pendingID := range messageIDs {
-		claimResultSingleMsg, err := i.Client.XClaim(&redis.XClaimArgs{
-			Stream:   topic,
-			Group:    i.Config.ConsumerID,
-			Consumer: i.Config.ConsumerID,
-			MinIdle:  i.Config.ProcessingTimeout,
-			Messages: []string{pendingID},
-		}).Result()
-		if err != nil && !errors.Is(err, redis.Nil) {
-			mLog.Debugf("  P (Redis PubSub) : failed to remove pending message %v", err)
-			continue
-		}
-		if errors.Is(err, redis.Nil) {
-			if err = i.Client.XAck(topic, i.Config.ConsumerID, pendingID).Err(); err != nil {
-				mLog.Debugf("  P (Redis PubSub) : error acknowledging Redis message %s after failed claim for %s - %v", i.Config.ConsumerID, pendingID, err)
-			} else {
-				i.enqueueMessages(topic, handler, claimResultSingleMsg)
-			}
-		}
+func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration, msgIDs []string, handler v1alpha2.EventHandler) {
+	claimResult, err := i.Client.XClaim(i.Ctx, &redis.XClaimArgs{
+		Stream:   topic,
+		Group:    RedisGroup,
+		Consumer: i.Config.ConsumerID,
+		MinIdle:  minIdle,
+		Messages: msgIDs,
+	}).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		mLog.Debugf("  P (Redis PubSub) : failed to reclaim pending message %v", err)
+		return
+	}
+	if err == nil || errors.Is(err, redis.Nil) {
+		i.enqueueMessages(topic, handler, claimResult)
 	}
 }
 
@@ -379,12 +369,25 @@ func toRedisPubSubProviderConfig(config providers.IProviderConfig) (RedisPubSubP
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
-	//ret.Name = providers.LoadEnv(ret.Name)
-	//ret.Host = providers.LoadEnv(ret.Host)
-	//ret.Password = providers.LoadEnv(ret.Password)
-	if ret.NumberOfWorkers <= 0 {
-		ret.NumberOfWorkers = 1
+	var configs map[string]interface{}
+	err = json.Unmarshal(data, &configs)
+	if err != nil {
+		mLog.Errorf("  P (Redis PubSub): failed to parse to map[string]interface{} %+v", err)
+		return ret, err
+	}
+	configStrings := map[string]string{}
+	for k, v := range configs {
+		configStrings[k] = utils.FormatAsString(v)
+	}
+
+	ret, err = RedisPubSubProviderConfigFromMap(configStrings)
+	if err != nil {
+		mLog.Errorf("  P (Redis PubSub): failed to parse to RedisPubSubProviderConfig %+v", err)
+		return ret, err
 	}
 	return ret, err
+}
+
+func generateConsumerIDSuffix() string {
+	return fmt.Sprintf("%d", time.Now().UnixNano())
 }

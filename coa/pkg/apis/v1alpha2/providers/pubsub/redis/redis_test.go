@@ -7,13 +7,16 @@
 package redis
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 
 	"os"
 	"testing"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,7 +80,8 @@ func TestInitWithMap(t *testing.T) {
 			"host": "localhost:6379",
 		},
 	)
-	// assert.Nil(t, err) // Provider initialization succeeds if redis is running
+
+	assert.Nil(t, err) // Provider initialization succeeds if redis is running
 	err = provider.InitWithMap(
 		map[string]string{
 			"name": "test",
@@ -119,12 +123,10 @@ func TestBasicPubSub(t *testing.T) {
 	msg := ""
 	provider := RedisPubSubProvider{}
 	err := provider.Init(RedisPubSubProviderConfig{
-		Name:              "test",
-		Host:              "localhost:6379",
-		Password:          "",
-		NumberOfWorkers:   1,
-		ProcessingTimeout: 5,
-		RedeliverInterval: 5,
+		Name:            "test",
+		Host:            "localhost:6379",
+		Password:        "",
+		NumberOfWorkers: 1,
 	})
 	assert.Nil(t, err)
 	provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
@@ -194,13 +196,13 @@ func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
 		ConsumerID:      "c",
 	})
 	assert.Nil(t, err)
-	provider2.Subscribe("job", func(topic string, message v1alpha2.Event) error {
+	provider2.Subscribe("testjob", func(topic string, message v1alpha2.Event) error {
 		jData, _ := json.Marshal(message.Body)
 		json.Unmarshal(jData, &msg)
 		sig <- 1
 		return nil
 	})
-	provider1.Publish("job", v1alpha2.Event{
+	provider1.Publish("testjob", v1alpha2.Event{
 		Metadata: map[string]string{
 			"objectType": "mock",
 		},
@@ -210,7 +212,7 @@ func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
 		},
 	})
 	<-sig
-	assert.Equal(t, "do-it", msg.Action)
+	assert.Equal(t, v1alpha2.JobAction("do-it"), msg.Action)
 }
 func TestMultipleSubscriber(t *testing.T) {
 	testRedis := os.Getenv("TEST_REDIS")
@@ -267,12 +269,10 @@ func TestMultipleSubscriber(t *testing.T) {
 func TestSubscribePublish(t *testing.T) {
 	provider := RedisPubSubProvider{}
 	provider.Init(RedisPubSubProviderConfig{
-		Name:              "test",
-		Host:              "localhost:6379",
-		Password:          "",
-		NumberOfWorkers:   1,
-		ProcessingTimeout: 5,
-		RedeliverInterval: 5,
+		Name:            "test",
+		Host:            "localhost:6379",
+		Password:        "",
+		NumberOfWorkers: 1,
 	})
 	// assert.Nil(t, err) // Provider initialization succeeds if redis is running
 
@@ -290,15 +290,13 @@ func TestSubscribePublish(t *testing.T) {
 
 func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
 	configMap := map[string]string{
-		"name":              "test",
-		"host":              "localhost:6379",
-		"password":          "123",
-		"requiresTLS":       "true",
-		"numberOfWorkers":   "1",
-		"queueDepth":        "10",
-		"consumerID":        "test-consumer",
-		"processingTimeout": "10",
-		"redeliverInterval": "10",
+		"name":            "test",
+		"host":            "localhost:6379",
+		"password":        "123",
+		"requiresTLS":     "true",
+		"numberOfWorkers": "1",
+		"queueDepth":      "10",
+		"consumerID":      "test-consumer",
 	}
 	config, err := RedisPubSubProviderConfigFromMap(configMap)
 	assert.Nil(t, err)
@@ -308,7 +306,96 @@ func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
 	assert.Equal(t, true, config.RequiresTLS)
 	assert.Equal(t, 1, config.NumberOfWorkers)
 	assert.Equal(t, 10, config.QueueDepth)
-	assert.Equal(t, "test-consumer", config.ConsumerID)
-	assert.Equal(t, time.Duration(10), config.ProcessingTimeout)
-	assert.Equal(t, time.Duration(10), config.RedeliverInterval)
+	assert.Contains(t, config.ConsumerID, "test-consumer")
+}
+
+func TestRedisStreamBasic(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
+	Ctx, _ := context.WithCancel(context.Background())
+	options := &redis.Options{
+		Addr:            "localhost:6379",
+		Password:        "",
+		DB:              0,
+		MaxRetries:      3,
+		MaxRetryBackoff: time.Second * 2,
+	}
+	client := redis.NewClient(options)
+	consumerId := "testconsumer"
+	topic := "test"
+	err := client.XGroupCreateMkStream(Ctx, topic, consumerId, "0").Err()
+	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
+		mLog.Debugf("  P (Redis PubSub) : failed to subscribe %v", err)
+		assert.Nil(t, err)
+	}
+	_, err = client.XAdd(Ctx, &redis.XAddArgs{
+		Stream: topic,
+		Values: map[string]interface{}{"data": v1alpha2.Event{Body: "TEST"}},
+	}).Result()
+	assert.Nil(t, err)
+
+	streams, err := client.XReadGroup(Ctx, &redis.XReadGroupArgs{
+		Group:    consumerId,
+		Consumer: consumerId,
+		Streams:  []string{topic, ">"},
+		Count:    int64(10),
+		Block:    0,
+	}).Result()
+	assert.NotNil(t, streams)
+	assert.Nil(t, err)
+
+	pendingResult, err := client.XPendingExt(Ctx, &redis.XPendingExtArgs{
+		Stream:   topic,
+		Group:    consumerId,
+		Start:    "-",
+		End:      "+",
+		Count:    int64(10),
+		Consumer: "",
+	}).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		mLog.Debugf("  P (Redis PubSub) : failed to get pending message %v", err)
+		assert.Nil(t, err)
+	}
+	msgIDs := make([]string, 0, len(pendingResult))
+	for _, msg := range pendingResult {
+		msgIDs = append(msgIDs, msg.ID)
+	}
+	assert.NotNil(t, msgIDs)
+	claimResult, err := client.XClaim(Ctx, &redis.XClaimArgs{
+		Stream:   topic,
+		Group:    consumerId,
+		Consumer: consumerId,
+		MinIdle:  time.Duration(1 * time.Second),
+		Messages: msgIDs,
+	}).Result()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(claimResult))
+
+	pendingResult, err = client.XPendingExt(Ctx, &redis.XPendingExtArgs{
+		Stream: topic,
+		Group:  consumerId,
+		Start:  "-",
+		End:    "+",
+		Count:  int64(10),
+	}).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		mLog.Debugf("  P (Redis PubSub) : failed to get pending message %v", err)
+		assert.Nil(t, err)
+	}
+	msgIDs = make([]string, 0, len(pendingResult))
+	for _, msg := range pendingResult {
+		msgIDs = append(msgIDs, msg.ID)
+	}
+	assert.NotNil(t, msgIDs)
+	claimResult, err = client.XClaim(Ctx, &redis.XClaimArgs{
+		Stream:   topic,
+		Group:    consumerId,
+		Consumer: consumerId,
+		MinIdle:  time.Duration(100 * time.Second),
+		Messages: msgIDs,
+	}).Result()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(claimResult))
 }
