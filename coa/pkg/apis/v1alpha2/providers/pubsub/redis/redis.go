@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -34,6 +35,7 @@ type RedisPubSubProvider struct {
 	Cancel          context.CancelFunc
 	Context         *contexts.ManagerContext
 	ClaimedMessages map[string]bool
+	TopicLock       map[string]*sync.Mutex
 }
 
 type RedisMessageWrapper struct {
@@ -172,6 +174,7 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 
 	i.Ctx, i.Cancel = context.WithCancel(context.Background())
 	i.ClaimedMessages = make(map[string]bool)
+	i.TopicLock = make(map[string]*sync.Mutex)
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
@@ -211,18 +214,20 @@ func (i *RedisPubSubProvider) worker() {
 }
 func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
 	i.ClaimedMessages[msg.MessageID] = true
-	defer delete(i.ClaimedMessages, msg.MessageID)
 	var evt v1alpha2.Event
 	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)
 	if err != nil {
 		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
 	}
 	if err := msg.Handler(msg.Topic, evt); err != nil {
+		delete(i.ClaimedMessages, msg.MessageID)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.MessageID), v1alpha2.InternalError)
 	}
-	if err := i.Client.XAck(i.Ctx, msg.Topic, i.Config.ConsumerID, msg.MessageID).Err(); err != nil {
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to acknowledge message %s", msg.MessageID), v1alpha2.InternalError)
-	}
+	i.TopicLock[msg.Topic].Lock()
+	defer i.TopicLock[msg.Topic].Unlock()
+	i.Client.XAck(i.Ctx, msg.Topic, i.Config.ConsumerID, msg.MessageID)
+	delete(i.ClaimedMessages, msg.MessageID)
+
 	return nil
 }
 
@@ -244,6 +249,7 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 		mLog.Errorf("  P (Redis PubSub) : failed to subscribe %v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subsceribe to topic %s", topic), v1alpha2.InternalError)
 	}
+	i.TopicLock[topic] = &sync.Mutex{}
 	go i.pollNewMessagesLoop(topic, handler)
 	go i.ClaimMessageLoop(topic, i.Config.ConsumerID, handler, PendingMessagesScanInterval, ExtendMessageOwnershipWithIdleTime)
 	if i.Config.MultiInstance {
@@ -277,9 +283,6 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 
 func (i *RedisPubSubProvider) enqueueMessages(topic string, handler v1alpha2.EventHandler, msgs []redis.XMessage) {
 	for _, msg := range msgs {
-		if _, ok := i.ClaimedMessages[msg.ID]; ok {
-			continue
-		}
 		rmsg := createRedisMessageWrapper(topic, handler, msg)
 		select {
 		case i.Queue <- rmsg:
@@ -344,6 +347,8 @@ func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time
 	}
 }
 func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration, msgIDs []string, handler v1alpha2.EventHandler) {
+	i.TopicLock[topic].Lock()
+	defer i.TopicLock[topic].Unlock()
 	claimResult, err := i.Client.XClaim(i.Ctx, &redis.XClaimArgs{
 		Stream:   topic,
 		Group:    RedisGroup,
@@ -355,9 +360,13 @@ func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration,
 		mLog.Error("  P (Redis PubSub) : failed to reclaim pending message %v", err)
 		return
 	}
-	if err == nil || errors.Is(err, redis.Nil) {
-		i.enqueueMessages(topic, handler, claimResult)
+	filteredClaimResult := make([]redis.XMessage, 0, len(claimResult))
+	for _, msg := range claimResult {
+		if _, ok := i.ClaimedMessages[msg.ID]; !ok {
+			filteredClaimResult = append(filteredClaimResult, msg)
+		}
 	}
+	i.enqueueMessages(topic, handler, filteredClaimResult)
 }
 
 func toRedisPubSubProviderConfig(config providers.IProviderConfig) (RedisPubSubProviderConfig, error) {
