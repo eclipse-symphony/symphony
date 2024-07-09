@@ -225,7 +225,7 @@ func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
 	}
 	i.TopicLock[msg.Topic].Lock()
 	defer i.TopicLock[msg.Topic].Unlock()
-	i.Client.XAck(i.Ctx, msg.Topic, i.Config.ConsumerID, msg.MessageID)
+	i.Client.XAck(i.Ctx, msg.Topic, RedisGroup, msg.MessageID)
 	delete(i.ClaimedMessages, msg.MessageID)
 
 	return nil
