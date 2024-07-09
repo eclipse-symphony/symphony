@@ -74,15 +74,18 @@ func TestInit(t *testing.T) {
 
 func TestInitWithMap(t *testing.T) {
 	provider := RedisPubSubProvider{}
-	err := provider.InitWithMap(
-		map[string]string{
-			"name": "test",
-			"host": "localhost:6379",
-		},
-	)
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis != "" {
+		err := provider.InitWithMap(
+			map[string]string{
+				"name": "test",
+				"host": "localhost:6379",
+			},
+		)
+		assert.Nil(t, err) // Provider initialization succeeds if redis is running
+	}
 
-	assert.Nil(t, err) // Provider initialization succeeds if redis is running
-	err = provider.InitWithMap(
+	err := provider.InitWithMap(
 		map[string]string{
 			"name": "test",
 		},
