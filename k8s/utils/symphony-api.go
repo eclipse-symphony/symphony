@@ -50,8 +50,10 @@ func K8SSidecarSpecToAPISidecarSpec(sidecar k8smodel.SidecarSpec) (apimodel.Side
 	if err != nil {
 		return apimodel.SidecarSpec{}, err
 	}
-	sidecarSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	if sidecar.Properties.Raw != nil {
+		sidecarSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	}
 	return sidecarSpec, err
 }
 
@@ -63,8 +65,11 @@ func K8SComponentSpecToAPIComponentSpec(component k8smodel.ComponentSpec) (apimo
 	if err != nil {
 		return apimodel.ComponentSpec{}, err
 	}
-	componentSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	if component.Properties.Raw != nil {
+		componentSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	}
+
 	return componentSpec, err
 }
 
