@@ -630,7 +630,7 @@ func (i *K8sTargetProvider) GetValidationRule(ctx context.Context) model.Validat
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "container.*", IgnoreCase: true, SkipIfMissing: false},
 				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
 			},
 		},
@@ -638,7 +638,7 @@ func (i *K8sTargetProvider) GetValidationRule(ctx context.Context) model.Validat
 			RequiredProperties: []string{model.ContainerImage},
 			OptionalProperties: []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: model.ContainerImage, IgnoreCase: true, SkipIfMissing: false},
+				{Name: "container.*", IgnoreCase: true, SkipIfMissing: false},
 				{Name: "env.*", IgnoreCase: true, SkipIfMissing: true},
 			},
 		},
