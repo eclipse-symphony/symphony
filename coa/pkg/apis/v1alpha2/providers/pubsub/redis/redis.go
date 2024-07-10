@@ -272,12 +272,12 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 		}).Result()
 		if err != nil {
 			mLog.Errorf("  P (Redis PubSub) : failed to poll message %v", err)
-			time.Sleep(30 * time.Second)
 			continue
 		}
 		for _, s := range streams {
 			i.enqueueMessages(s.Stream, handler, s.Messages)
 		}
+		time.Sleep(PendingMessagesScanInterval)
 	}
 }
 
@@ -343,16 +343,16 @@ func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time
 		for _, msg := range pendingResult {
 			msgIDs = append(msgIDs, msg.ID)
 		}
-		i.XClaimWrapper(topic, idleTime, msgIDs, handler)
+		i.XClaimWrapper(topic, idleTime, consumer, msgIDs, handler)
 	}
 }
-func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration, msgIDs []string, handler v1alpha2.EventHandler) {
+func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration, consumer string, msgIDs []string, handler v1alpha2.EventHandler) {
 	i.TopicLock[topic].Lock()
 	defer i.TopicLock[topic].Unlock()
 	claimResult, err := i.Client.XClaim(i.Ctx, &redis.XClaimArgs{
 		Stream:   topic,
 		Group:    RedisGroup,
-		Consumer: i.Config.ConsumerID,
+		Consumer: consumer,
 		MinIdle:  minIdle,
 		Messages: msgIDs,
 	}).Result()

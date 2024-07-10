@@ -95,10 +95,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		activation, err := s.ActivationsManager.GetState(context.TODO(), actData.Activation, actData.Namespace)
 		if err != nil {
 			log.Error("V (Stage): unable to find activation: %+v", err)
-			err = s.reportActivationStatusWithBadRequest(actData.Activation, actData.Namespace, err)
-			// If report status succeeded, return an empty err so the subscribe function will not be retried
-			// The actual error will be stored in Activation cr
-			return err
+			return nil
 		}
 
 		evt, err := s.StageManager.HandleActivationEvent(context.TODO(), actData, *campaign.Spec, activation)
@@ -139,7 +136,11 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 		status.Outputs["__namespace"] = triggerData.Namespace
-
+		_, err = s.ActivationsManager.GetState(context.TODO(), triggerData.Activation, triggerData.Namespace)
+		if err != nil {
+			log.Error("V (Stage): unable to find activation: %+v", err)
+			return nil
+		}
 		campaignName := api_utils.ReplaceSeperator(triggerData.Campaign)
 		campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, triggerData.Namespace)
 		if err != nil {
