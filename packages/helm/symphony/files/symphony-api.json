@@ -230,6 +230,7 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "redis-state",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -240,6 +241,19 @@
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
+              },
+              "redis-state": {
+                {{- if .Values.redis.enabled }}
+                "type": "providers.state.redis",
+                "config": {
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+                {{- else }}
+                "type": "providers.state.memory",
+                "config": {}
+                {{- end }}
               }
             }
           }
@@ -252,27 +266,6 @@
           {
             "name": "targets-manager",
             "type": "managers.symphony.targets",
-            "properties": {
-              "providers.persistentstate": "k8s-state"
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          }
-        ]
-      },
-      {
-        "type": "vendors.targetcontainers",
-        "route": "targetcontainers",
-        "managers": [
-          {
-            "name": "target-container-manager",
-            "type": "managers.symphony.targetcontainers",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },
@@ -338,27 +331,6 @@
             "type": "managers.symphony.instances",
             "properties": {
               "providers.persistentstate": "k8s-state"              
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          }
-        ]
-      },
-      {
-        "type": "vendors.instancecontainers",
-        "route": "instancecontainers",
-        "managers": [
-          {
-            "name": "instance-container-manager",
-            "type": "managers.symphony.instancecontainers",
-            "properties": {
-              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -467,14 +439,23 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "redis-state",
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret"
             },
             "providers": {
-              "mem-state": {
+              "redis-state": {
+                {{- if .Values.redis.enabled }}
+                "type": "providers.state.redis",
+                "config": {
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+                {{- else }}
                 "type": "providers.state.memory",
                 "config": {}
+                {{- end }}
               },
               "mock-config": {
                 "type": "providers.config.mock",

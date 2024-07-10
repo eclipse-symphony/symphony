@@ -50,8 +50,10 @@ func K8SSidecarSpecToAPISidecarSpec(sidecar k8smodel.SidecarSpec) (apimodel.Side
 	if err != nil {
 		return apimodel.SidecarSpec{}, err
 	}
-	sidecarSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	if sidecar.Properties.Raw != nil {
+		sidecarSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	}
 	return sidecarSpec, err
 }
 
@@ -63,8 +65,11 @@ func K8SComponentSpecToAPIComponentSpec(component k8smodel.ComponentSpec) (apimo
 	if err != nil {
 		return apimodel.ComponentSpec{}, err
 	}
-	componentSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	if component.Properties.Raw != nil {
+		componentSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	}
+
 	return componentSpec, err
 }
 
@@ -84,7 +89,6 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 			Constraints:   target.Spec.Constraints,
 			ForceRedeploy: target.Spec.ForceRedeploy,
 			Topologies:    target.Spec.Topologies,
-			Generation:    target.Spec.Generation,
 		},
 	}
 
@@ -115,7 +119,6 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 			Target:      instance.Spec.Target,
 			Parameters:  instance.Spec.Parameters,
 			Metadata:    instance.Spec.Metadata,
-			Generation:  instance.Spec.Generation,
 			Topologies:  instance.Spec.Topologies,
 			Pipelines:   instance.Spec.Pipelines,
 		},
@@ -165,8 +168,7 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
-			targetName := ReplaceLastSeperator(instance.Spec.Target.Name, ":", "-")
-			if matchString(targetName, t.ObjectMeta.Name) {
+			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}

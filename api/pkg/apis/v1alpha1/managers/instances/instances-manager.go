@@ -81,7 +81,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	}
 	generation := ""
 	if state.Spec != nil {
-		generation = state.Spec.Generation
+		generation = state.ObjectMeta.Generation
 	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -147,7 +147,7 @@ func getInstanceState(body interface{}, etag string) (model.InstanceState, error
 	if instanceState.Spec == nil {
 		instanceState.Spec = &model.InstanceSpec{}
 	}
-	instanceState.Spec.Generation = etag
+	instanceState.ObjectMeta.Generation = etag
 	return instanceState, nil
 }
 

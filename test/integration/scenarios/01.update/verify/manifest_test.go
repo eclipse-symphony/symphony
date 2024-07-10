@@ -55,8 +55,6 @@ var (
 var (
 	// Manifest templates
 	containerManifestTemplates = map[string]string{
-		"target-container":   fmt.Sprintf("%s/%s/target-container.yaml", manifestTemplateFolder, "oss"),
-		"instance-container": fmt.Sprintf("%s/%s/instance-container.yaml", manifestTemplateFolder, "oss"),
 		"solution-container": fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
 	}
 

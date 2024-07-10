@@ -187,32 +187,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					instanceName := instanceState.ObjectMeta.Name
-					parts := strings.Split(instanceName, ":")
-					if len(parts) == 2 {
-						instanceState.Spec.RootResource = parts[0]
-						instanceState.Spec.Version = parts[1]
-					} else {
-						mLog.Errorf("Instance name is invalid: instance - %s, catalog - %s", instanceName, name)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance name is invalid: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					mLog.Debugf("  P (Materialize Processor): check instance contains %v, namespace %s", instanceState.ObjectMeta.Name, namespace)
-					_, err := i.ApiClient.GetInstanceContainer(ctx, instanceState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Instance container %s doesn't exist: %s", instanceState.Spec.RootResource, err.Error())
-						instanceContainerState := model.InstanceContainerState{ObjectMeta: model.ObjectMeta{Name: instanceState.Spec.RootResource, Namespace: namespace, Labels: instanceState.ObjectMeta.Labels}}
-						containerObjectData, _ := json.Marshal(instanceContainerState)
-						err = i.ApiClient.CreateInstanceContainer(ctx, instanceState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
-						if err != nil {
-							mLog.Errorf("Failed to create instance container %s: %s", instanceState.Spec.RootResource, err.Error())
-							return outputs, false, err
-						}
-					} else if err != nil {
-						mLog.Errorf("Failed to get instance container %s: %s", instanceState.Spec.RootResource, err.Error())
-						return outputs, false, err
-					}
-
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 					objectData, _ := json.Marshal(instanceState)
 					mLog.Debugf("  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
@@ -281,32 +255,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					if targetState.ObjectMeta.Name == "" {
 						mLog.Errorf("Target name is empty: catalog - %s", name)
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					targetName := targetState.ObjectMeta.Name
-					parts := strings.Split(targetName, ":")
-					if len(parts) == 2 {
-						targetState.Spec.RootResource = parts[0]
-						targetState.Spec.Version = parts[1]
-					} else {
-						mLog.Errorf("Target name is invalid: target - %s, catalog - %s", targetName, name)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid target name: %s", name), v1alpha2.BadRequest)
-					}
-
-					mLog.Debugf("  P (Materialize Processor): check target contains %v, namespace %s", targetState.Spec.RootResource, namespace)
-					_, err := i.ApiClient.GetTargetContainer(ctx, targetState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
-						mLog.Debugf("Target container %s doesn't exist: %s", targetState.Spec.RootResource, err.Error())
-						targetContainerState := model.TargetContainerState{ObjectMeta: model.ObjectMeta{Name: targetState.Spec.RootResource, Namespace: namespace, Labels: targetState.ObjectMeta.Labels}}
-						containerObjectData, _ := json.Marshal(targetContainerState)
-						err = i.ApiClient.CreateTargetContainer(ctx, targetState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
-						if err != nil {
-							mLog.Errorf("Failed to create target container %s: %s", targetState.Spec.RootResource, err.Error())
-							return outputs, false, err
-						}
-					} else if err != nil {
-						mLog.Errorf("Failed to get target container %s: %s", targetState.Spec.RootResource, err.Error())
-						return outputs, false, err
 					}
 
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)

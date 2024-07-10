@@ -24,37 +24,31 @@ var defaultTargetManifest []byte
 //go:embed manifest/solution.yaml
 var defaultSolutionManifest []byte
 
-//go:embed manifest/instance-container.yaml
-var defaultInstanceContainerManifest []byte
-
-//go:embed manifest/target-container.yaml
-var defaultTargetContainerManifest []byte
-
 //go:embed manifest/solution-container.yaml
 var defaultSolutionContainerManifest []byte
 
-var successfullTargetExpectation = kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All(
+var successfullTargetExpectation = kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningSucceededCondition,
 	//kube.OperationIdMatchCondition,
 ))))
 
-var successfullInstanceExpectation = kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All(
+var successfullInstanceExpectation = kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningSucceededCondition,
 	//kube.OperationIdMatchCondition,
 ))))
 
-var failedTargetExpectation = kube.Must(kube.Target("target-v1", "default", kube.WithCondition(conditions.All(
+var failedTargetExpectation = kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningFailedCondition,
 	//kube.OperationIdMatchCondition,
 ))))
 
-var failedInstanceExpectation = kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All(
+var failedInstanceExpectation = kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningFailedCondition,
 	//kube.OperationIdMatchCondition,
 ))))
 
-var absentInstanceExpectation = kube.Must(kube.AbsentInstance("instance-v1", "default"))
-var absentTargetExpectation = kube.Must(kube.AbsentTarget("target-v1", "default"))
+var absentInstanceExpectation = kube.Must(kube.AbsentInstance("instance", "default"))
+var absentTargetExpectation = kube.Must(kube.AbsentTarget("target", "default"))
 
 var _ = BeforeSuite(func(ctx context.Context) {
 	// err := shell.LocalenvCmd(ctx, "mage cluster:load")

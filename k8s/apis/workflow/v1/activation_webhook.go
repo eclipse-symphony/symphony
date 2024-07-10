@@ -172,9 +172,6 @@ func (r *Activation) validateSpecOnUpdate(oldActivation *Activation) error {
 	if r.Spec.Inputs.String() != oldActivation.Spec.Inputs.String() {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("inputs"), r.Spec.Inputs, "updates to activation spec.Inputs are not allowed"))
 	}
-	if r.Spec.Generation != oldActivation.Spec.Generation {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("generation"), r.Spec.Generation, "updates to activation spec.Generation are not allowed"))
-	}
 	if len(allErrs) == 0 {
 		return nil
 	}

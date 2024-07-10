@@ -35,7 +35,7 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.volatilestate": "mem-state",                
+              "providers.persistentstate": "mem-state",                
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret",
               "isTarget": "true",

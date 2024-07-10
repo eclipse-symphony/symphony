@@ -263,56 +263,20 @@ func PatchInstance(data []byte, opts InstanceOptions) ([]byte, error) {
 	return yaml.Marshal(instance)
 }
 
-func PatchSolutionContainer(data []byte, opts InstanceOptions) ([]byte, error) {
-	var instanceContainer InstanceContainer
-	err := yaml.Unmarshal(data, &instanceContainer)
+func PatchSolutionContainer(data []byte, opts ContainerOptions) ([]byte, error) {
+	var solutionContainer SolutionContainer
+	err := yaml.Unmarshal(data, &solutionContainer)
 	if err != nil {
 		return nil, err
 	}
 
 	if opts.Namespace != "" {
-		instanceContainer.Metadata.Namespace = opts.Namespace
+		solutionContainer.Metadata.Namespace = opts.Namespace
 	}
 
-	if instanceContainer.Metadata.Annotations == nil {
-		instanceContainer.Metadata.Annotations = make(map[string]string)
+	if solutionContainer.Metadata.Annotations == nil {
+		solutionContainer.Metadata.Annotations = make(map[string]string)
 	}
 
-	return yaml.Marshal(instanceContainer)
-}
-
-func PatchTargetContainer(data []byte, opts InstanceOptions) ([]byte, error) {
-	var targetContainer TargetContainer
-	err := yaml.Unmarshal(data, &targetContainer)
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.Namespace != "" {
-		targetContainer.Metadata.Namespace = opts.Namespace
-	}
-
-	if targetContainer.Metadata.Annotations == nil {
-		targetContainer.Metadata.Annotations = make(map[string]string)
-	}
-
-	return yaml.Marshal(targetContainer)
-}
-
-func PatchInstanceContainer(data []byte, opts InstanceOptions) ([]byte, error) {
-	var instanceContainer InstanceContainer
-	err := yaml.Unmarshal(data, &instanceContainer)
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.Namespace != "" {
-		instanceContainer.Metadata.Namespace = opts.Namespace
-	}
-
-	if instanceContainer.Metadata.Annotations == nil {
-		instanceContainer.Metadata.Annotations = make(map[string]string)
-	}
-
-	return yaml.Marshal(instanceContainer)
+	return yaml.Marshal(solutionContainer)
 }

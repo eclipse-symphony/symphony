@@ -14,7 +14,6 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instancecontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
@@ -28,7 +27,6 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/target"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targetcontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/trails"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/users"
@@ -58,8 +56,6 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &target.TargetManager{}
 	case "managers.symphony.targets":
 		manager = &targets.TargetsManager{}
-	case "managers.symphony.targetcontainers":
-		manager = &targetcontainers.TargetContainersManager{}
 	case "managers.symphony.devices":
 		manager = &devices.DevicesManager{}
 	case "managers.symphony.solutions":
@@ -68,8 +64,6 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &solutioncontainers.SolutionContainersManager{}
 	case "managers.symphony.instances":
 		manager = &instances.InstancesManager{}
-	case "managers.symphony.instancecontainers":
-		manager = &instancecontainers.InstanceContainersManager{}
 	case "managers.symphony.users":
 		manager = &users.UsersManager{}
 	case "managers.symphony.jobs":

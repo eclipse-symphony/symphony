@@ -7,7 +7,7 @@ spec:
   catalogType: instance
   properties:
     metadata:
-      name: siteinstance:v1
+      name: siteinstance
     spec: 
       solution: siteapp:v1
       scope: SCOPENAME

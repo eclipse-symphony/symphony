@@ -9,6 +9,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,11 +18,12 @@ import (
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Test config
 const (
-	TEST_NAME    = "basic manifest deploy scenario"
+	TEST_NAME    = "basic delete"
 	TEST_TIMEOUT = "10m"
 )
 
@@ -35,15 +37,9 @@ var (
 var (
 	// Manifests to deploy
 	testManifests = []string{
-		"manifest/%s/solution-container.yaml",
-		"manifest/%s/target.yaml",
-		"manifest/%s/instance.yaml",
-		"manifest/%s/solution.yaml",
-	}
-
-	// Tests to run
-	testVerify = []string{
-		"./verify/...",
+		"manifest/target.yaml",
+		"manifest/instance.yaml",
+		"manifest/solution.yaml",
 	}
 )
 
@@ -62,16 +58,23 @@ func Test() error {
 		if err != nil {
 			return err
 		}
-		err = Verify()
+
+		err = VerifyPodExists()
 		if err != nil {
 			return err
 		}
+
+		time.Sleep(time.Second * 10)
 
 		err = CleanUpSymphonyObjects(namespace)
 		if err != nil {
 			return err
 		}
-		time.Sleep(time.Second * 10)
+
+		err = VerifyPodNotExists()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -91,7 +94,7 @@ func DeployManifests(namespace string) error {
 	}
 	// Deploy the manifests
 	for _, manifest := range testManifests {
-		fullPath, err := filepath.Abs(fmt.Sprintf(manifest, "oss"))
+		fullPath, err := filepath.Abs(manifest)
 		if err != nil {
 			return err
 		}
@@ -101,13 +104,7 @@ func DeployManifests(namespace string) error {
 			return err
 		}
 		stringYaml := string(data)
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
-		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 		stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
-		stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v1")
-		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:v1")
 
 		err = writeYamlStringsToFile(stringYaml, "./test.yaml")
 		if err != nil {
@@ -124,16 +121,51 @@ func DeployManifests(namespace string) error {
 }
 
 // Run tests
-func Verify() error {
-	err := shellcmd.Command("go clean -testcache").Run()
+func VerifyPodExists() error {
+	kubeClient, err := testhelpers.KubeClient()
 	if err != nil {
 		return err
 	}
-	os.Setenv("SYMPHONY_FLAVOR", "oss")
-	for _, verify := range testVerify {
-		err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+	i := 0
+	for {
+		i++
+		// List all pods in the namespace
+		pods, err := kubeClient.CoreV1().Pods(namespace+"scope").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return err
+		}
+
+		// Verify that the pods we expect are running
+		toFind := []string{"instance02"}
+
+		notFound := make(map[string]bool)
+		for _, s := range toFind {
+			found := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, s) && pod.Status.Phase == "Running" {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				notFound[s] = true
+			}
+		}
+
+		if len(notFound) == 0 {
+			fmt.Println("All pods found!")
+			break
+		} else {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods: %v\n", notFound)
+			}
 		}
 	}
 
@@ -141,21 +173,62 @@ func Verify() error {
 }
 
 func CleanUpSymphonyObjects(namespace string) error {
-	instanceName := namespace + "instance"
-	targetName := namespace + "target"
-	solutionName := namespace + "solution-v1"
-	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
+	targetName := "target02"
+	err := shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
 	if err != nil {
 		return err
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
+	return nil
+}
+
+func VerifyPodNotExists() error {
+	kubeClient, err := testhelpers.KubeClient()
 	if err != nil {
 		return err
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete solutions.solution.symphony %s -n %s", solutionName, namespace)).Run()
-	if err != nil {
-		return err
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
 	}
+	i := 0
+	for {
+		i++
+		// List all pods in the namespace
+		pods, err := kubeClient.CoreV1().Pods(namespace+"scope").List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		// Verify that the pods we expect are running
+		toNotFind := []string{"instance02"}
+
+		Found := make(map[string]bool)
+		for _, s := range toNotFind {
+			found := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, s) {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				Found[s] = true
+			}
+		}
+
+		if len(Found) == 0 {
+			fmt.Println("All pods are cleaned up!")
+			break
+		} else {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods to disappear: %v\n", Found)
+			}
+		}
+	}
+
 	return nil
 }
 

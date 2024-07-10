@@ -212,24 +212,12 @@ func TestAdvance_TargetLabel(t *testing.T) {
 		Group:    "fabric.symphony",
 		Version:  "v1",
 		Resource: "targets",
-	}).Namespace(namespace).Get(context.Background(), "sitek8starget-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
 	fmt.Printf("The target is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
-
-	resource, err = dyn.Resource(schema.GroupVersionResource{
-		Group:    "fabric.symphony",
-		Version:  "v1",
-		Resource: "targetcontainers",
-	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
-	require.NoError(t, err)
-
-	result = getLabels(*resource)
-	fmt.Printf("The target container is labeled with: %s\n", result)
-	require.Equal(t, expectedResult, result)
-
 }
 
 // Verify instance has correct status
@@ -290,22 +278,11 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "instances",
-	}).Namespace(namespace).Get(context.Background(), "siteinstance-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
 	fmt.Printf("The instance is labeled with: %s\n", result)
-	require.Equal(t, expectedResult, result)
-
-	resource, err = dyn.Resource(schema.GroupVersionResource{
-		Group:    "solution.symphony",
-		Version:  "v1",
-		Resource: "instancecontainers",
-	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
-	require.NoError(t, err)
-
-	result = getLabels(*resource)
-	fmt.Printf("The instance container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
 
