@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: region1-tags
+  name: region1-v-tags
 spec:
   rootResource: region1
   catalogType: config
@@ -20,7 +20,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: region1-config
+  name: region1-v-config
 spec:
   rootResource: region1
   catalogType: config
