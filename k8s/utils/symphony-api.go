@@ -50,8 +50,10 @@ func K8SSidecarSpecToAPISidecarSpec(sidecar k8smodel.SidecarSpec) (apimodel.Side
 	if err != nil {
 		return apimodel.SidecarSpec{}, err
 	}
-	sidecarSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	if sidecar.Properties.Raw != nil {
+		sidecarSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	}
 	return sidecarSpec, err
 }
 
