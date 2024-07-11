@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: solution02-v1
+  name: solution02-v-v1
 spec:
   rootResource: solution02
   metadata:

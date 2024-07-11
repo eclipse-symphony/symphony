@@ -328,7 +328,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 
 func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}) model.ObjectMeta {
 	if strings.Contains(objectMeta.Name, ":") {
-		objectMeta.Name = strings.ReplaceAll(objectMeta.Name, ":", "-")
+		objectMeta.Name = strings.ReplaceAll(objectMeta.Name, ":", constants.ResourceSeperator)
 	}
 	// stage inputs override objectMeta namespace
 	if s := stage.GetNamespace(inputs); s != "" {
