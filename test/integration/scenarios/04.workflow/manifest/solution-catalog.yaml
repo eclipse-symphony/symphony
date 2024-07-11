@@ -1,7 +1,7 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: siteapp-v1
+  name: siteapp-v-v1
 spec:
   rootResource: siteapp
   catalogType: solution

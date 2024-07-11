@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: tiny-app
 spec:
-  solution: tiny-app
+  solution: tiny-app:v1
   target: 
     name: tiny-edge

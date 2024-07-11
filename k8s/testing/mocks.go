@@ -65,7 +65,7 @@ var (
 var (
 	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "testtarget", Namespace: TestNamespace}
 	DefaultInstanceNamespacedName = types.NamespacedName{Name: "testinstance", Namespace: TestNamespace}
-	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v1", Namespace: TestNamespace}
+	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-v1", Namespace: TestNamespace}
 	SolutionReferenceName         = "solution:v1"
 
 	TerminalError = v1alpha2.NewCOAError(errors.New(""), "timed out", v1alpha2.TimedOut)
