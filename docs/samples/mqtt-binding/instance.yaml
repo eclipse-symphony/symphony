@@ -5,4 +5,4 @@ metadata:
 spec:
   solution: test-app:v1
   target:
-    name: test-app
+    name: test-target

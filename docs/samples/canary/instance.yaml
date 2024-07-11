@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: test-instance
+  name: test-app-instance
 spec:
   solution: test-app:v1
   target: 

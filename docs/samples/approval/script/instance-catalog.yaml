@@ -13,7 +13,7 @@ spec:
   catalogType: instance
   properties:
     metadata:
-      name: gated-prometheus-instance:v1
+      name: gated-prometheus-instance
     spec: 
       solution: gated-prometheus-server:v1
       target:

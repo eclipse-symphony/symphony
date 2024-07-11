@@ -22,7 +22,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -46,7 +46,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -103,7 +103,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -119,7 +119,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -135,7 +135,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: ingress
@@ -165,7 +165,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -181,7 +181,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: backend-v1
@@ -197,7 +197,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:v1
         patchSource: inline
         patchContent:
           name: canary-ingress
