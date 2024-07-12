@@ -36,6 +36,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
 	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/piccolo"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
@@ -190,6 +191,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.docker":
 		mProvider := &docker.DockerTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.piccolo":
+		mProvider := &piccolo.PiccoloTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -401,6 +408,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.target.docker":
 					provider := &docker.DockerTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.piccolo":
+					provider := &piccolo.PiccoloTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
