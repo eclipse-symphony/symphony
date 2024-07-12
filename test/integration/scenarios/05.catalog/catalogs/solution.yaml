@@ -1,7 +1,7 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: solution-v1
+  name: solution-v-v1
 spec:
   rootResource: solution
   catalogType: solution
