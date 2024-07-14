@@ -9,11 +9,15 @@ package ingress
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -36,9 +40,17 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+const (
+	loggerName   = "providers.target.ingress"
+	providerName = "P (Ingress Target)"
+	ingress      = "ingress"
+)
+
 var (
-	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-	sLog            = logger.NewLogger("coa.runtime")
+	decUnstructured          = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 type (
@@ -184,7 +196,17 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 
 	i.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(i.DiscoveryClient))
 	i.RESTConfig = kConfig
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
 
 // toIngressTargetProviderConfig converts a generic IProviderConfig to a IngressTargetProviderConfig
@@ -245,9 +267,20 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	defer utils.CloseSpanWithError(span, &err)
 	sLog.InfofCtx(ctx, "  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
+	functionName := utils.GetFunctionName()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to validate components: %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			ingress,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
 	if isDryRun {
@@ -273,7 +306,15 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					var rules []networkingv1.IngressRule
 					err = json.Unmarshal(jData, &rules)
 					if err != nil {
-						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to unmarshal ingress: %+v", err)
+						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to unmarshal ingress rules: %+v", err)
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: parse ingress rules failed", providerName), v1alpha2.IngressPropertiesParseFailed)
+						providerOperationMetrics.ProviderOperationErrors(
+							ingress,
+							functionName,
+							metrics.ApplyOperation,
+							metrics.UpdateOperationType,
+							v1alpha2.IngressPropertiesParseFailed.String(),
+						)
 						return ret, err
 					}
 					newIngress.Spec.Rules = rules
@@ -285,6 +326,14 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						newIngress.Spec.IngressClassName = &s
 					} else {
 						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to convert ingress class name: %+v", v)
+						err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to convert ingress class name", providerName), v1alpha2.IngressPropertiesParseFailed)
+						providerOperationMetrics.ProviderOperationErrors(
+							ingress,
+							functionName,
+							metrics.ApplyOperation,
+							metrics.UpdateOperationType,
+							v1alpha2.IngressPropertiesParseFailed.String(),
+						)
 						return ret, err
 					}
 				}
@@ -302,6 +351,14 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				err = i.applyIngress(ctx, newIngress, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to apply ingress: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply ingress", providerName), v1alpha2.IngressApplyFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						ingress,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.IngressApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -314,11 +371,26 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to delete ingress: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to delete ingress", providerName), v1alpha2.IngressApplyFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						ingress,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.IngressApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
 		}
 	}
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		ingress,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+	)
 	return ret, nil
 }
 

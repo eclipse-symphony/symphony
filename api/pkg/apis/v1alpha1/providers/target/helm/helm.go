@@ -17,11 +17,12 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -48,6 +49,7 @@ import (
 var (
 	sLog                     = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 const (
@@ -180,12 +182,14 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 
-	if providerOperationMetrics == nil {
-		providerOperationMetrics, err = metrics.New()
-		if err != nil {
-			return err
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create metrics: %+v", err)
+			}
 		}
-	}
+	})
 
 	return err
 }
