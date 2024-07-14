@@ -56,7 +56,7 @@ func TestK8sTargetProviderInitWithMap(t *testing.T) {
 	assert.Nil(t, err) //This should succeed on machines where kubectl is configured
 }
 func TestMetadataToServiceNil(t *testing.T) {
-	s, e := metadataToService("", "", nil)
+	s, e := metadataToService(context.Background(), "", "", nil)
 	assert.Nil(t, e)
 	assert.Nil(t, s)
 }
@@ -107,7 +107,7 @@ func TestInitWithBadData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 func TestComponentToServiceFull(t *testing.T) {
-	s, e := metadataToService("default", "name", map[string]string{
+	s, e := metadataToService(context.Background(), "default", "name", map[string]string{
 		"service.ports": "[{\"name\":\"port8888\",\"port\":8888},{\"name\":\"port7788\",\"port\":7788}]",
 		"service.annotation.service.beta.kubernetes.io/azure-load-balancer-resource-group": "MC_EVS_evsfoakssouth_southcentralus # change to the resource group of your public IP address",
 		"service.annotation.service.beta.kubernetes.io/azure-dns-label-name":               "evsfoakssouth # change to the dns name associated with your public IP address",
@@ -182,7 +182,7 @@ func TestDeploymentToComponents(t *testing.T) {
 			},
 		},
 	}
-	components, err := deploymentToComponents(deployment)
+	components, err := deploymentToComponents(context.Background(), deployment)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(components))
 	assert.Equal(t, "evs", components[0].Name)
@@ -200,7 +200,7 @@ func TestDeploymentToComponents(t *testing.T) {
 	assert.Equal(t, "[{\"name\":\"azure-rocket\",\"mountPath\":\"/app/output\"}]", components[1].Properties["container.volumeMounts"])
 }
 func TestComponentsToDeploymentFull(t *testing.T) {
-	d, e := componentsToDeployment("default", "name", map[string]string{
+	d, e := componentsToDeployment(context.Background(), "default", "name", map[string]string{
 		"deployment.replicas":         "#3",
 		"deployment.imagePullSecrets": "[{\"name\":\"acr-evaamscontreg-secret\"}]",
 		"deployment.volumes":          "[{\"name\":\"azure-evs\", \"azureFile\": {\"secretName\":\"azure-fireshare-secret\",\"shareName\":\"evs/output\",\"readOnly\":false}},{\"name\":\"azure-rocket\",\"azureFile\":{\"secretName\":\"azure-fileshare-secret\",\"shareName\":\"rocket/heavy\",\"readOnly\":false}}]",
@@ -248,13 +248,13 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 }
 func TestCreateProjectorError(t *testing.T) {
 	provider := K8sTargetProvider{}
-	ctx, span := observability.StartSpan("K8s Target Provider", context.Background(), &map[string]string{
+	ctx, _ := observability.StartSpan("K8s Target Provider", context.Background(), &map[string]string{
 		"method": "deployComponents",
 	})
 	_, err := createProjector("wrong")
 	assert.NotNil(t, err)
 	projector, _ := createProjector("noop")
-	err = provider.deployComponents(ctx, span, "default", "error", map[string]string{
+	err = provider.deployComponents(ctx, "default", "error", map[string]string{
 		"deployment.replicas": "#3",
 	}, nil, projector, "instance-1")
 	assert.NotNil(t, err)
@@ -344,11 +344,11 @@ func TestDeployment(t *testing.T) {
 	provider.Init(K8sTargetProviderConfig{DeploymentStrategy: SERVICES})
 
 	projector, _ := createProjector("")
-	ctx, span := observability.StartSpan("K8s Target Provider test", context.Background(), &map[string]string{
+	ctx, _ := observability.StartSpan("K8s Target Provider test", context.Background(), &map[string]string{
 		"method": "deploy",
 	})
 
-	err = provider.deployComponents(ctx, span, "default", "name", map[string]string{
+	err = provider.deployComponents(ctx, "default", "name", map[string]string{
 		"service.ports": "[{\"name\":\"port8888\",\"port\":8888}]",
 		"service.annotation.service.beta.kubernetes.io/azure-load-balancer-resource-group": "MC_EVS_evsfoakssouth_southcentralus",
 		"service.annotation.service.beta.kubernetes.io/azure-dns-label-name":               "evsfoakssouth",

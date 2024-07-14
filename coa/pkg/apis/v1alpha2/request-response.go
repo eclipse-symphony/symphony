@@ -11,6 +11,12 @@ import (
 	"fmt"
 )
 
+type ContextKey string
+
+const (
+	COAFastHTTPContextKey ContextKey = "coa-fasthttp-context"
+)
+
 type COARequest struct {
 	Context     context.Context   `json:"-"`
 	Method      string            `json:"method"`

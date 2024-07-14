@@ -12,6 +12,7 @@ import (
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	solutionv1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
 
 	. "gopls-workspace/testing"
@@ -118,7 +119,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityCategory_Activity, constants.ActivityOperation_Write)
 		})
 
 		When("object is successfully deployed", func() {

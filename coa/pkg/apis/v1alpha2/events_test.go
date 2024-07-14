@@ -7,10 +7,34 @@
 package v1alpha2
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestEvents_MarshalAndUnmarshalJSON(t *testing.T) {
+	actCtx := contexts.NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
+	ctx := contexts.PatchActivityLogContextToCurrentContext(actCtx, diagCtx)
+	ctx = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, ctx)
+	event := Event{
+		Metadata: map[string]string{
+			"key": "value",
+		},
+		Body:    "body",
+		Context: ctx,
+	}
+	data, err := event.MarshalJSON()
+	assert.Nil(t, err)
+
+	var event2 Event
+	err = json.Unmarshal(data, &event2)
+	assert.Nil(t, err)
+
+	assert.True(t, EventEquals(&event, &event2))
+}
 
 func TestScheduleShouldFire(t *testing.T) {
 	activationData := ActivationData{
