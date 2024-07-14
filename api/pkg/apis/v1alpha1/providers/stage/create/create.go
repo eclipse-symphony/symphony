@@ -24,9 +24,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var mLog = logger.NewLogger("coa.runtime")
 
 type CreateStageProviderConfig struct {
 	User         string `json:"user"`
@@ -126,6 +128,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	mLog.InfofCtx(ctx, "  P (Create Stage) process started")
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
@@ -148,11 +151,13 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		if strings.EqualFold(action, RemoveAction) {
 			err = i.ApiClient.DeleteInstance(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
+				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to delete instance: %+v", err)
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
 			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
+				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
@@ -169,18 +174,22 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 			}
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
 			return nil, false, err
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.InternalError)
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
 			return nil, false, err
 		}
 	default:
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
+		mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
 		return nil, false, err
 	}
 	outputs["objectType"] = objectType
 	outputs["objectName"] = objectName
 
+	mLog.InfofCtx(ctx, "  P (Create Stage) process completed")
 	return outputs, false, nil
 }
