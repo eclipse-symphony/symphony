@@ -36,14 +36,16 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 4317
+    - name: otlp-grpc # Default endpoint for OpenTelemetry gRPC receiver.
+      port: 4317
+      protocol: TCP
       targetPort: 4317
+    - name: otlp-http # Default endpoint for OpenTelemetry HTTP receiver.
+      port: 4318
       protocol: TCP
-      name: otel-grpc
-    - port: 4318
       targetPort: 4318
-      protocol: TCP
-      name: otel-http
+    - name: metrics # Default endpoint for querying metrics.
+      port: 8888
   selector:
     app: {{ include "symphony.appSelector" . }}-otel-collector
 {{- end }}

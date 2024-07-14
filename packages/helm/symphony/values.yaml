@@ -80,4 +80,5 @@ Azure:
     Region: "eastus"
     ResourceId: "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/jiadutestaks0618c_group/providers/Microsoft.Kubernetes/connectedClusters/jiadutestaks0618c"
 otlpLogsEndpointGrpc: symphony-otel-collector-service.default.svc:4317
+otlpMetricsEndpointGrpc: symphony-otel-collector-service.default.svc:4317
 otlpInsecureGrpc: true

@@ -17,6 +17,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/k8s/projectors"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
 	utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -35,9 +36,10 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-const loggerName = "providers.target.k8s"
-
-var log = logger.NewLogger(loggerName)
+var (
+	log                      = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+)
 
 const (
 	ENV_NAME      string = "SYMPHONY_AGENT_ADDRESS"
@@ -46,6 +48,8 @@ const (
 	SERVICES_NS   string = "ns-services"
 	SERVICES_HNS  string = "hns-services" //TODO: future versions
 	componentName string = "P (K8s Target Provider)"
+	loggerName    string = "providers.target.k8s"
+	k8s           string = "k8s"
 )
 
 type K8sTargetProviderConfig struct {
@@ -180,6 +184,14 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 		log.ErrorfCtx(ctx, "  P (K8s Target): failed to create a discovery client: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create dynamic client", componentName), v1alpha2.InitFailed)
 	}
+
+	if providerOperationMetrics == nil {
+		providerOperationMetrics, err = metrics.New()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -651,11 +663,20 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 
 	log.InfofCtx(ctx, "  P (K8s Target Provider): applying artifacts: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 
+	functionName := observ_utils.GetFunctionName()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (K8s Target Provider): failed to validate components, error: %v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", componentName), v1alpha2.ValidateFailed)
+		providerOperationMetrics.ProviderOperationErrors(
+			k8s,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
@@ -668,6 +689,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	if err != nil {
 		log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to create projector: %s", err.Error())
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create projector", componentName), v1alpha2.CreateProjectorFailed)
+		providerOperationMetrics.ProviderOperationErrors(
+			k8s,
+			functionName,
+			metrics.K8SProjectorOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.CreateProjectorFailed.String(),
+		)
 		return ret, err
 	}
 
@@ -679,6 +707,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			if err != nil {
 				log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to apply components: %s", err.Error())
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
+				providerOperationMetrics.ProviderOperationErrors(
+					k8s,
+					functionName,
+					metrics.K8SDeploymentOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.K8sDeploymentFailed.String(),
+				)
 				return ret, err
 			}
 		}
@@ -692,12 +727,26 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 			if err != nil {
 				log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to remove service: %s", err.Error())
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s service", componentName), v1alpha2.K8sRemoveServiceFailed)
+				providerOperationMetrics.ProviderOperationErrors(
+					k8s,
+					functionName,
+					metrics.K8SRemoveServiceOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.K8sRemoveServiceFailed.String(),
+				)
 				return ret, err
 			}
 			err = i.removeDeployment(ctx, dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 			if err != nil {
 				log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to remove deployment: %s", err.Error())
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s deployment", componentName), v1alpha2.K8sRemoveDeploymentFailed)
+				providerOperationMetrics.ProviderOperationErrors(
+					k8s,
+					functionName,
+					metrics.K8SRemoveDeploymentOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.K8sRemoveDeploymentFailed.String(),
+				)
 				return ret, err
 			}
 			if i.Config.DeleteEmptyNamespace {
@@ -727,6 +776,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				if err != nil {
 					log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to apply components: %s", err.Error())
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to deploy components", componentName), v1alpha2.K8sDeploymentFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						k8s,
+						functionName,
+						metrics.K8SDeploymentOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.K8sDeploymentFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -752,6 +808,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					}
 					log.DebugfCtx(ctx, "P (K8s Target Provider): failed to remove service: %s", err.Error())
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s service", componentName), v1alpha2.K8sRemoveServiceFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						k8s,
+						functionName,
+						metrics.K8SRemoveServiceOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.K8sRemoveServiceFailed.String(),
+					)
 					return ret, err
 				}
 				err = i.removeDeployment(ctx, scope, component.Name)
@@ -762,6 +825,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					}
 					log.DebugfCtx(ctx, "P (K8s Target Provider): failed to remove deployment: %s", err.Error())
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to remove k8s deployment", componentName), v1alpha2.K8sRemoveDeploymentFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						k8s,
+						functionName,
+						metrics.K8SRemoveDeploymentOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.K8sRemoveDeploymentFailed.String(),
+					)
 					return ret, err
 				}
 				if i.Config.DeleteEmptyNamespace {
@@ -775,6 +845,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		}
 	}
 	err = nil
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		k8s,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+	)
 	return ret, nil
 }
 func deploymentToComponents(ctx context.Context, deployment v1.Deployment) ([]model.ComponentSpec, error) {

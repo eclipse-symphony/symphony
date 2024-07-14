@@ -372,7 +372,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			kubectl,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 
@@ -755,7 +755,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		kubectl,
 		functionName,
 		metrics.ApplyOperation,
-		metrics.CreateOperationType,
+		metrics.UpdateOperationType,
 	)
 
 	return ret, nil
