@@ -19,9 +19,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var mLog = logger.NewLogger("coa.runtime")
 
 type CounterStageProviderConfig struct {
 	ID string `json:"id"`
@@ -67,18 +69,20 @@ func MockStageProviderConfigFromMap(properties map[string]string) (CounterStageP
 	return ret, nil
 }
 func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Counter provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Counter provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	mLog.InfofCtx(ctx, "  P (Counter Stage) process started")
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})
 	if state, ok := inputs["__state"]; ok {
 		selfState, ok = state.(map[string]interface{})
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, "input state is not a valid map[string]interface{}", v1alpha2.BadRequest)
+			mLog.ErrorfCtx(ctx, "[Stage] Counter provider failed: %+v", err)
 			return outputs, false, err
 		}
 	}
@@ -112,6 +116,7 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	}
 
 	outputs["__state"] = selfState
+	mLog.InfofCtx(ctx, "  P (Counter Stage) process completed")
 	return outputs, false, nil
 }
 

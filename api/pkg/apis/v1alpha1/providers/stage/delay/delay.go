@@ -19,9 +19,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var mLog = logger.NewLogger("coa.runtime")
 
 type DelayStageProviderConfig struct {
 	ID string `json:"id"`
@@ -67,12 +69,13 @@ func MockStageProviderConfigFromMap(properties map[string]string) (DelayStagePro
 	return ret, nil
 }
 func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Delay provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Delay provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
+	mLog.InfoCtx(ctx, "  P (Delay Stage) process started")
 	outputs := make(map[string]interface{})
 	outputs[v1alpha2.StatusOutput] = v1alpha2.OK
 
@@ -88,6 +91,7 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				} else {
 					outputs[v1alpha2.StatusOutput] = v1alpha2.InternalError
 					outputs[v1alpha2.ErrorOutput] = fmt.Sprintf("Failed to parse delay duration: %s", err.Error())
+					mLog.ErrorfCtx(ctx, "  P (Delay Stage) process failed: %+v", err)
 				}
 			}
 			time.Sleep(duration)
@@ -100,5 +104,6 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 	}
 
+	mLog.InfoCtx(ctx, "  P (Delay Stage) process completed")
 	return outputs, false, nil
 }
