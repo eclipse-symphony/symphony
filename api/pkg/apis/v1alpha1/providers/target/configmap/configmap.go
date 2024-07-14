@@ -11,8 +11,11 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -35,8 +38,13 @@ import (
 )
 
 var (
-	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-	sLog            = logger.NewLogger("coa.runtime")
+	decUnstructured          = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	loggerName               = "providers.target.configmap"
+	providerName             = "P (ConfigMap Target)"
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+	configmap                = "configmap"
 )
 
 type (
@@ -183,7 +191,17 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 
 	i.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(i.DiscoveryClient))
 	i.RESTConfig = kConfig
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
 
 // toConfigMapTargetProviderConfig converts a generic IProviderConfig to a ConfigMapTargetProviderConfig
@@ -252,9 +270,18 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
+	functionName := utils.GetFunctionName()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		providerOperationMetrics.ProviderOperationErrors(
+			configmap,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
@@ -286,6 +313,13 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to apply configmap: %+v", err)
+					providerOperationMetrics.ProviderOperationErrors(
+						configmap,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.ConfigMapApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -298,11 +332,25 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to delete configmap: %+v", err)
+					providerOperationMetrics.ProviderOperationErrors(
+						configmap,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.ConfigMapApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
 		}
 	}
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		configmap,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+	)
 	return ret, nil
 }
 

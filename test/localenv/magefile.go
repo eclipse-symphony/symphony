@@ -293,14 +293,17 @@ func Logs(logRootFolder string) error {
 	// api logs
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
+	otelLogFile := fmt.Sprintf("%s/otel.log", logRootFolder)
 
 	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", getChartNamespace(), apiLogFile), true)
-
 	if err != nil {
 		return err
 	}
-
 	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
+	if err != nil {
+		return err
+	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelLogFile), true)
 
 	return err
 }
