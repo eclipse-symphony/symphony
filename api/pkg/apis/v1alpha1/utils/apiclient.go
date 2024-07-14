@@ -535,6 +535,7 @@ func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.A
 		return err
 	}
 	jData, _ := json.Marshal(event)
+	log.DebugfCtx(ctx, "apiClient.PublishActivationEvent: Activation event: %s", string(jData))
 	_, err = a.callRestAPI(ctx, "jobs", "POST", jData, token)
 	if err != nil {
 		return err
