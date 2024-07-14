@@ -405,7 +405,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			helm,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 
@@ -427,7 +427,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			helm,
 			functionName,
 			metrics.HelmActionConfigOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.CreateActionConfigFailed.String(),
 		)
 		return ret, err

@@ -322,7 +322,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 			script,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 		return nil, err
@@ -393,7 +393,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		script,
 		functionName,
 		metrics.ApplyOperation,
-		metrics.CreateOperationType,
+		metrics.UpdateOperationType,
 	)
 	return ret, nil
 }
