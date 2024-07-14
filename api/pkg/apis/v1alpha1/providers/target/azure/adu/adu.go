@@ -92,13 +92,13 @@ func (s *ADUTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("ADU Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("ADU Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (ADU Target): Init()")
+	sLog.InfoCtx(ctx, "  P (ADU Target): Init()")
 
 	updateConfig, err := toADUTargetProviderConfig(config)
 	if err != nil {
@@ -126,7 +126,7 @@ func toADUTargetProviderConfig(config providers.IProviderConfig) (ADUTargetProvi
 }
 
 func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
@@ -134,14 +134,14 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 
 	if dep.Instance.Spec == nil {
 		err = errors.New("deployment instance spec is nil")
-		sLog.Errorf("  P (ADU Target): failed to get deployment, error: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to get deployment, error: %+v", err)
 		return nil, err
 	}
 
-	sLog.Infof("  P (ADU Target): getting components: %s - %s, traceId: %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (ADU Target): getting components: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 	deployment, err := i.getDeployment()
 	if err != nil {
-		sLog.Errorf("  P (ADU Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): %+v", err)
 		return nil, err
 	}
 
@@ -193,12 +193,12 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (ADU Target): applying components: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (ADU Target): applying components: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		sLog.Errorf("  P (ADU Target): failed to validate components, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to validate components, error: %v", err)
 		return nil, err
 	}
 	if isDryRun {
@@ -212,7 +212,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		var deployment azureutils.ADUDeployment
 		deployment, err = getDeploymentFromComponent(c.Component)
 		if err != nil {
-			sLog.Errorf("  P (ADU Target): failed to get deployment from component: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to get deployment from component: %v", err)
 			ret[c.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.ValidateFailed,
 				Message: err.Error(),
@@ -227,13 +227,13 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (ADU Target):  failed to apply deployment: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (ADU Target):  failed to apply deployment: %+v", err)
 				return ret, err
 			}
 		} else {
 			err = i.deleteDeploymeent(deployment)
 			if err != nil {
-				sLog.Debugf("  P (ADU Target):  failed to delete deployment: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.DebugfCtx(ctx, "  P (ADU Target):  failed to delete deployment: %+v", err)
 				ret[c.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.DeleteFailed,
 					Message: err.Error(),

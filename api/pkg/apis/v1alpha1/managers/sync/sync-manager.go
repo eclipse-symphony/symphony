@@ -67,6 +67,7 @@ func (s *SyncManager) Poll() []error {
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
+				Context: ctx,
 			})
 		}
 	}
@@ -76,7 +77,8 @@ func (s *SyncManager) Poll() []error {
 				Metadata: map[string]string{
 					"origin": batch.Origin,
 				},
-				Body: job,
+				Body:    job,
+				Context: ctx,
 			})
 		}
 	}

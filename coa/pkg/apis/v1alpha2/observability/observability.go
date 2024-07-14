@@ -17,6 +17,7 @@ import (
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	exporters "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/exporters"
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -78,14 +79,35 @@ func New(symphonyProject string) Observability {
 	}
 }
 
+func populateSpanContextToDiagnosticLogContext(span trace.Span, parent context.Context) context.Context {
+	if span == nil {
+		return parent
+	}
+	traceId := ""
+	spanId := ""
+	if span.SpanContext().IsValid() && span.SpanContext().TraceID().IsValid() {
+		traceId = span.SpanContext().TraceID().String()
+	}
+	if span.SpanContext().IsValid() && span.SpanContext().SpanID().IsValid() {
+		spanId = span.SpanContext().SpanID().String()
+	}
+	return coacontexts.PopulateTraceAndSpanToDiagnosticLogContext(traceId, spanId, parent)
+}
+
 func StartSpan(name string, ctx context.Context, attributes *map[string]string) (context.Context, trace.Span) {
 	span := observ_utils.SpanFromContext(ctx)
 	if span != nil {
 		childCtx, childSpan := otel.Tracer(name).Start(trace.ContextWithSpan(ctx, *span), name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	} else {
 		childCtx, childSpan := otel.Tracer(name).Start(ctx, name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	}
@@ -102,7 +124,9 @@ func setSpanAttributes(span trace.Span, attributes *map[string]string) {
 func EndSpan(ctx context.Context) {
 	span := trace.SpanFromContext(ctx)
 	span.End()
+	coacontexts.ClearTraceAndSpanFromDiagnosticLogContext(&ctx)
 }
+
 func (o *Observability) Init(config ObservabilityConfig) error {
 	for _, p := range config.Pipelines {
 		err := o.createPipeline(p)
@@ -151,6 +175,7 @@ func (o *Observability) createExporter(config ExporterConfig) error {
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String("Symphony API"),
+			populateMicrosoftResourceId(),
 		))))
 	return nil
 }
@@ -220,6 +245,7 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
 			),
 		),
 	}
@@ -302,6 +328,7 @@ func (o *Observability) InitMetric(config ObservabilityConfig) error {
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
 			),
 		),
 	}
@@ -341,5 +368,17 @@ func genevaTemporality(ik sdkmetric.InstrumentKind) metricdata.Temporality {
 
 	default:
 		return sdkmetric.DefaultTemporalitySelector(ik)
+	}
+}
+
+func populateMicrosoftResourceId() attribute.KeyValue {
+	rid, ok := os.LookupEnv("EXTENSION_RESOURCEID")
+	if !ok {
+		return attribute.KeyValue{}
+	}
+
+	return attribute.KeyValue{
+		Key:   "microsoft.resourceId",
+		Value: attribute.StringValue(rid),
 	}
 }

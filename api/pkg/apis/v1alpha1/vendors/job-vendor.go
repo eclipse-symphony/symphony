@@ -62,7 +62,11 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		return nil
 	})
 	e.Vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		err := e.JobsManager.HandleJobEvent(context.Background(), event)
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
+		err := e.JobsManager.HandleJobEvent(ctx, event)
 		if err != nil && v1alpha2.IsDelayed(err) {
 			go e.Vendor.Context.Publish(topic, event)
 		}
@@ -70,10 +74,18 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		return nil
 	})
 	e.Vendor.Context.Subscribe("heartbeat", func(topic string, event v1alpha2.Event) error {
-		return e.JobsManager.HandleHeartBeatEvent(context.Background(), event)
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
+		return e.JobsManager.HandleHeartBeatEvent(ctx, event)
 	})
 	e.Vendor.Context.Subscribe("schedule", func(topic string, event v1alpha2.Event) error {
-		return e.JobsManager.HandleScheduleEvent(context.Background(), event)
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
+		return e.JobsManager.HandleScheduleEvent(ctx, event)
 	})
 
 	if err != nil {
@@ -99,33 +111,34 @@ func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Job Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Job Vendor", request.Context, &map[string]string{
 		"method": "onHello",
 	})
 	defer span.End()
 
-	jLog.Infof("V (Job): onHello, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	jLog.InfofCtx(ctx, "V (Job): onHello, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var activationData v1alpha2.ActivationData
 		err := json.Unmarshal(request.Body, &activationData)
 		if err != nil {
-			jLog.Errorf("V (Job): onHello failed - %s, traceId: %s", span.SpanContext().TraceID().String(), err.Error())
+			jLog.ErrorfCtx(ctx, "V (Job): onHello failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
 				Body:        []byte("{\"result\":\"400 - bad request\"}"),
 				ContentType: "application/json",
 			})
 		}
-		jLog.Infof("V (Job): onHello, activationData: %v, traceId: %s", activationData, span.SpanContext().TraceID().String())
+		jLog.InfofCtx(ctx, "V (Job): onHello, activationData: %v", activationData)
 		c.Vendor.Context.Publish("activation", v1alpha2.Event{
-			Body: activationData,
+			Body:    activationData,
+			Context: ctx,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
 	}
-	jLog.Errorf("V (Job): onHello failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	jLog.ErrorCtx(ctx, "V (Job): onHello failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

@@ -86,29 +86,29 @@ func WaitStageProviderConfigFromVendorMap(properties map[string]string) (WaitSta
 	return WaitStageProviderConfigFromMap(ret)
 }
 func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProviderConfig, error) {
-	_, span := observability.StartSpan("Wait Process Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Wait Process Provider", context.TODO(), &map[string]string{
 		"method": "WaitStageProviderConfigFromMap",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Info("  P (Wait Processor): getting configuration from properties")
+	log.InfoCtx(ctx, "  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
 
 	user, err := utils.GetString(properties, "user")
 	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get user: %v", err)
+		log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get user: %v", err)
 		return ret, err
 	}
 	ret.User = user
 	if ret.User == "" {
-		log.Errorf("  P (Wait Processor): user is required")
+		log.ErrorfCtx(ctx, "  P (Wait Processor): user is required")
 		err = v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
 		return ret, err
 	}
 	password, err := utils.GetString(properties, "password")
 	if err != nil {
-		log.Errorf("  P (Wait Processor): failed to get password: %v", err)
+		log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get password: %v", err)
 		return ret, err
 	}
 	ret.Password = password
@@ -118,7 +118,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 		interval, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait interval %v", v), v1alpha2.BadConfig)
-			log.Errorf("  P (Wait Processor): failed to parse wait interval %v", cErr)
+			log.ErrorfCtx(ctx, "  P (Wait Processor): failed to parse wait interval %v", cErr)
 			return ret, cErr
 		}
 		ret.WaitInterval = interval
@@ -128,7 +128,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 		count, err = strconv.Atoi(v)
 		if err != nil {
 			cErr := v1alpha2.NewCOAError(err, fmt.Sprintf("failed to parse wait count %v", v), v1alpha2.BadConfig)
-			log.Errorf("  P (Wait Processor): failed to parse wait count %v", cErr)
+			log.ErrorfCtx(ctx, "  P (Wait Processor): failed to parse wait count %v", cErr)
 			return ret, cErr
 		}
 		ret.WaitCount = count
@@ -143,7 +143,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Info("  P (Wait Processor): processing inputs")
+	log.InfoCtx(ctx, "  P (Wait Processor): processing inputs")
 	outputs := make(map[string]interface{})
 
 	objectType, ok := inputs["objectType"].(string)
@@ -171,7 +171,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		namespace = "default"
 	}
 
-	log.Debugf("  P (Wait Processor): waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
+	log.DebugfCtx(ctx, "  P (Wait Processor): waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
 	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0
@@ -180,7 +180,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			var instances []model.InstanceState
 			instances, err = i.ApiClient.GetInstances(ctx, namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				log.Errorf("  P (Wait Processor): failed to get instances: %v", err)
+				log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get instances: %v", err)
 				return nil, false, err
 			}
 			for _, instance := range instances {
@@ -195,7 +195,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			var sites []model.SiteState
 			sites, err = i.ApiClient.GetSites(ctx, i.Config.User, i.Config.Password)
 			if err != nil {
-				log.Errorf("  P (Wait Processor): failed to get sites: %v", err)
+				log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get sites: %v", err)
 				return nil, false, err
 			}
 			for _, site := range sites {
@@ -209,7 +209,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			var catalogs []model.CatalogState
 			catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				log.Errorf("  P (Wait Processor): failed to get catalogs: %v", err)
+				log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get catalogs: %v", err)
 				return nil, false, err
 			}
 			for _, catalog := range catalogs {
@@ -224,7 +224,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		if foundCount == len(objects) {
 			outputs["objectType"] = objectType
 			outputs["status"] = "OK"
-			log.Infof("  P (Wait Processor): found %v %v", objectType, objects)
+			log.InfofCtx(ctx, "  P (Wait Processor): found %v %v", objectType, objects)
 			return outputs, false, nil
 		}
 		counter++
@@ -234,7 +234,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	outputs["objectType"] = objectType
-	log.Errorf("  P (Wait Processor): failed to wait for %v %v", objectType, objects)
+	log.ErrorfCtx(ctx, "  P (Wait Processor): failed to wait for %v %v", objectType, objects)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for %v %v", objectType, objects), v1alpha2.NotFound)
 	return outputs, false, err
 }

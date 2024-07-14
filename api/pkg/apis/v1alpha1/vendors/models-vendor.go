@@ -75,7 +75,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onModels",
 	})
 	defer span.End()
-	tLog.Debugf("V (Models): onModels, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.DebugfCtx(pCtx, "V (Models): onModels, method: %s", request.Method)
 
 	namespace, namespaceSupplied := request.Parameters["namespace"]
 	if !namespaceSupplied {
@@ -100,9 +100,9 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		}
 		if err != nil {
 			if isArray {
-				tLog.Errorf(" V (Models): onModels failed to ListSpec, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				tLog.ErrorfCtx(ctx, " V (Models): onModels failed to ListSpec, err: %v", err)
 			} else {
-				tLog.Errorf(" V (Models): onModels failed to GetSpec, id: %s, err: %v, traceId: %s", id, err, span.SpanContext().TraceID().String())
+				tLog.ErrorfCtx(ctx, " V (Models): onModels failed to GetSpec, id: %s, err: %v", id, err)
 			}
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -127,7 +127,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err := json.Unmarshal(request.Body, &model)
 		if err != nil {
-			tLog.Errorf("V (Models): onModels failed to pause model from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to pause model from request body, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -136,7 +136,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		err = c.ModelsManager.UpsertState(ctx, id, model)
 		if err != nil {
-			tLog.Errorf("V (Models): onModels failed to UpsertSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to UpsertSpec, id: %s, error: %v", id, err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -150,7 +150,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		id := request.Parameters["__name"]
 		err := c.ModelsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			tLog.Errorf("V (Models): onModels failed to DeleteSpec, id: %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to DeleteSpec, id: %s, error: %v", id, err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -160,7 +160,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			State: v1alpha2.OK,
 		})
 	}
-	tLog.Errorf("V (Models): onModels returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Models): onModels returned MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

@@ -51,13 +51,13 @@ func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Users): DeleteUser name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, " M (Users): DeleteUser name %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 	})
 	if err != nil {
-		log.Debugf(" M (Users) : failed to delete user %s, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.DebugfCtx(ctx, " M (Users) : failed to delete user %s", err)
 		return err
 	}
 	return nil
@@ -75,7 +75,7 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Users): UpsertUser name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, " M (Users): UpsertUser name %s", name)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -89,7 +89,7 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Debugf(" M (Users) : failed to upsert user %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.DebugfCtx(ctx, " M (Users) : failed to upsert user %v", err)
 		return err
 	}
 	return nil
@@ -100,7 +100,7 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Users): CheckUser name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, " M (Users): CheckUser name %s", name)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -108,7 +108,7 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	var user states.StateEntry
 	user, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Debugf(" M (Users) : failed to get user %s states, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.DebugfCtx(ctx, " M (Users) : failed to get user %s states", err)
 		return nil, false
 	}
 	var userState UserState
@@ -119,10 +119,10 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	}
 
 	if hash(name, password) == userState.PasswordHash {
-		log.Debugf(" M (Users) : user authenticated, traceId: %s", span.SpanContext().TraceID().String())
+		log.DebugCtx(ctx, " M (Users) : user authenticated")
 		return userState.Roles, true
 	}
 
-	log.Debugf(" M (Users) : authentication failed, traceId: %s", span.SpanContext().TraceID().String())
+	log.DebugCtx(ctx, " M (Users) : authentication failed")
 	return nil, false
 }

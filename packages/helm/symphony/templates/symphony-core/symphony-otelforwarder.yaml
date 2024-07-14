@@ -1,0 +1,99 @@
+{{- if .Values.otlpLogsEndpointGrpc }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-config
+  namespace: {{ .Release.Namespace }}
+data:
+  otel-forwarder-config.yaml: |
+    receivers:
+      fluentforward:
+        endpoint: 0.0.0.0:24284
+
+    processors:
+      resource:
+        attributes:
+          - key: "cluster.resource_id"
+            action: "upsert"
+            value: "{{ .Values.Azure.Cluster.ResourceId }}"
+          - key: "cluster.region"
+            action: "upsert"
+            value: "{{ .Values.Azure.Cluster.Region }}"
+          - key: "microsoft.resourceId"
+            action: "upsert"
+            value: "{{ .Values.Azure.Extension.ResourceId }}"
+      
+    exporters:
+      otlp/logs:
+        endpoint: "{{ .Values.otlpLogsEndpointGrpc }}"
+        tls:
+          insecure: {{ .Values.otlpInsecureGrpc }}
+
+      debug:
+        verbosity: detailed
+
+    service:
+      telemetry:
+        logs:
+          level: "debug"
+
+      pipelines:
+        logs:
+          receivers: [fluentforward]
+          processors: [resource]
+          exporters: [otlp/logs]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  template:
+    metadata:
+      labels:
+        app: {{ include "symphony.appSelector" . }}-otel-forwarder
+    spec:
+      # read prometheus metrics from manager and exports to mdm
+      containers:
+        - name: otel-collector
+          image: "{{ .Values.observability.otelForwarder.image }}"
+          command: ["/otelcol-contrib", "--config=/conf/otel-forwarder-config.yaml"]
+          volumeMounts:
+            - name: otel-collector-conf
+              mountPath: /conf
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: '{{ include "symphony.fullname" . }}-logforwarder'
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: otel-collector-conf
+          configMap:
+            name: {{ include "symphony.fullname" . }}-otel-forwarder-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-service
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 24284
+      targetPort: 24284
+      protocol: TCP
+      name: fluent-forward-port
+  selector:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
+
+{{- end}}

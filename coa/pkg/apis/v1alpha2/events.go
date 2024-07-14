@@ -7,14 +7,220 @@
 package v1alpha2
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 )
 
 type Event struct {
 	Metadata map[string]string `json:"metadata"`
 	Body     interface{}       `json:"body"`
+	Context  context.Context   `json:"-"`
+}
+
+func (e *Event) propagteDiagnosticLogContextToEventMetadata() {
+	if e == nil || e.Context == nil {
+		return
+	}
+	if diagCtx, ok := e.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext); ok {
+		if e.Metadata == nil {
+			e.Metadata = make(map[string]string)
+		}
+		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId)] = diagCtx.GetCorrelationId()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId)] = diagCtx.GetResourceId()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId)] = diagCtx.GetTraceId()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId)] = diagCtx.GetSpanId()
+	}
+}
+
+func (e *Event) parseDiagnosticLogContextFromEventMetadata() {
+	if e == nil || e.Metadata == nil {
+		return
+	}
+
+	correlationId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId)]
+	resourceCloudId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId)]
+	traceId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId)]
+	spanId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId)]
+
+	diagCtx := contexts.NewDiagnosticLogContext(correlationId, resourceCloudId, traceId, spanId)
+	e.Context = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, e.Context)
+}
+
+func (e *Event) clearDiagnosticLogContextFromEventMetadata() {
+	if e == nil {
+		return
+	}
+	if e.Metadata != nil {
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId))
+	}
+}
+
+func (e *Event) propagateActivityLogContextToEventMetadata() {
+	if e == nil || e.Context == nil {
+		return
+	}
+	if actCtx, ok := e.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext); ok {
+		if e.Metadata == nil {
+			e.Metadata = make(map[string]string)
+		}
+
+		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId)] = actCtx.GetResourceCloudId()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName)] = actCtx.GetOperationName()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location)] = actCtx.GetCloudLocation()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category)] = actCtx.GetCategory()
+		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)] = actCtx.GetCorrelationId()
+
+		props := actCtx.GetProperties()
+		propsJson, err := json.Marshal(props)
+		if err != nil {
+			// skip
+		} else {
+			e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties)] = string(propsJson)
+		}
+	}
+}
+
+func (e *Event) parseActivityLogContextFromEventMatadata() {
+	if e == nil || e.Metadata == nil {
+		return
+	}
+
+	actCtx := contexts.ActivityLogContext{}
+	actCtx.SetResourceCloudId(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId)])
+	actCtx.SetOperationName(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName)])
+	actCtx.SetCloudLocation(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location)])
+	actCtx.SetCategory(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category)])
+	actCtx.SetCorrelationId(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)])
+
+	props := make(map[string]interface{})
+	propsJson := e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties)]
+	if propsJson != "" {
+		if err := json.Unmarshal([]byte(propsJson), &props); err != nil {
+			// skip
+		} else {
+			actCtx.SetProperties(props)
+		}
+	}
+
+	e.Context = contexts.PatchActivityLogContextToCurrentContext(&actCtx, e.Context)
+}
+
+func (e *Event) clearActivityLogContextFromEventMetadata() {
+	if e == nil {
+		return
+	}
+	if e.Metadata != nil {
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId))
+		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties))
+	}
+}
+
+func (e *Event) DeepCopy() *Event {
+	if e == nil {
+		return nil
+	}
+	newEvent := *e
+	newEvent.Metadata = make(map[string]string)
+	for k, v := range e.Metadata {
+		newEvent.Metadata[k] = v
+	}
+	newEvent.Body = e.Body
+	if e.Context != nil {
+		actCtx, ok := e.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext)
+		if ok {
+			actCtx = actCtx.DeepCopy()
+			newEvent.Context = contexts.PatchActivityLogContextToCurrentContext(actCtx, newEvent.Context)
+		}
+		diagCtx, ok := e.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext)
+		if ok {
+			diagCtx = diagCtx.DeepCopy()
+			newEvent.Context = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, newEvent.Context)
+		}
+	}
+	return &newEvent
+}
+
+func (e Event) MarshalJSON() ([]byte, error) {
+	type Alias Event
+	e1 := e.DeepCopy()
+	e1.propagateActivityLogContextToEventMetadata()
+	e1.propagteDiagnosticLogContextToEventMetadata()
+	return json.Marshal(&struct {
+		Alias
+	}{Alias: (Alias)(*e1)})
+}
+
+func (e *Event) UnmarshalJSON(data []byte) error {
+	type Alias Event
+	aux := &struct {
+		Alias
+	}{Alias: (Alias)(*e)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	*e = Event(aux.Alias)
+	e.parseActivityLogContextFromEventMatadata()
+	e.parseDiagnosticLogContextFromEventMetadata()
+	e.clearActivityLogContextFromEventMetadata()
+	e.clearDiagnosticLogContextFromEventMetadata()
+	return nil
+}
+
+func (e Event) DeepEquals(other Event) bool {
+	return EventEquals(&e, &other)
+}
+
+func EventEquals(e1, e2 *Event) bool {
+	if len(e1.Metadata) != len(e2.Metadata) {
+		return false
+	}
+	for k, v := range e1.Metadata {
+		if e2.Metadata[k] != v {
+			return false
+		}
+	}
+	if e1.Body != e2.Body {
+		return false
+	}
+
+	if (e1.Context == nil && e2.Context != nil) || (e1.Context != nil && e2.Context == nil) {
+		return false
+	}
+
+	if e1.Context != nil && e2.Context != nil {
+		diagCtx1, ok1 := e1.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext)
+		diagCtx2, ok2 := e2.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext)
+		if !ok1 || !ok2 {
+			return false
+		}
+
+		if !contexts.DiagnosticLogContextEquals(diagCtx1, diagCtx2) {
+			return false
+		}
+
+		actCtx1, ok1 := e1.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext)
+		actCtx2, ok2 := e2.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext)
+		if !ok1 || !ok2 {
+			return false
+		}
+
+		if !contexts.ActivityLogContextEquals(actCtx1, actCtx2) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (e Event) MarshalBinary() (data []byte, err error) {
