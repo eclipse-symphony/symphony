@@ -18,9 +18,11 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var msLock sync.Mutex
+var mLog = logger.NewLogger("coa.runtime")
 
 type MockStageProviderConfig struct {
 	ID string `json:"id"`
@@ -66,21 +68,21 @@ func MockStageProviderConfigFromMap(properties map[string]string) (MockStageProv
 	return ret, nil
 }
 func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Mock Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Mock Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	fmt.Printf("\n\n====================================================\n")
-	fmt.Printf("MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")
+	mLog.InfofCtx(ctx, "\n\n====================================================\n")
+	mLog.InfofCtx(ctx, "MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")
 	for k, v := range inputs {
-		fmt.Printf("%v: \t%v\n", k, v)
+		mLog.InfofCtx(ctx, "%v: \t%v\n", k, v)
 	}
-	fmt.Printf("----------------------------------------\n")
-	fmt.Printf("TIME (UTC)  : %s\n", time.Now().UTC().Format(time.RFC3339))
-	fmt.Printf("TIME (Local): %s\n", time.Now().Local().Format(time.RFC3339))
-	fmt.Printf("----------------------------------------\n")
+	mLog.InfofCtx(ctx, "----------------------------------------\n")
+	mLog.InfofCtx(ctx, "TIME (UTC)  : %s\n", time.Now().UTC().Format(time.RFC3339))
+	mLog.InfofCtx(ctx, "TIME (Local): %s\n", time.Now().Local().Format(time.RFC3339))
+	mLog.InfofCtx(ctx, "----------------------------------------\n")
 	outputs := make(map[string]interface{})
 	for k, v := range inputs {
 		outputs[k] = v
@@ -96,10 +98,10 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 	}
-	fmt.Printf("MOCK STAGE PROVIDER IS DONE PROCESSING WITH OUTPUTS:\n")
+	mLog.InfofCtx(ctx, "MOCK STAGE PROVIDER IS DONE PROCESSING WITH OUTPUTS:\n")
 	for k, v := range outputs {
-		fmt.Printf("%v: \t%v\n", k, v)
+		mLog.InfofCtx(ctx, "%v: \t%v\n", k, v)
 	}
-	fmt.Printf("====================================================\n\n\n")
+	mLog.InfofCtx(ctx, "====================================================\n\n\n")
 	return outputs, false, nil
 }
