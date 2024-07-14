@@ -274,8 +274,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	componentCount := len(deployment.Solution.Spec.Components)
 	apiOperationMetrics.ApiComponentCount(
 		componentCount,
-		metrics.GetSummaryOperation,
-		metrics.GetOperationType,
+		metrics.ReconcileOperation,
+		metrics.UpdateOperationType,
 	)
 
 	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {

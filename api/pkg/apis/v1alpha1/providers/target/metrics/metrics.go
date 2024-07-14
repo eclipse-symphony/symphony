@@ -30,9 +30,13 @@ const (
 	HelmChartOperation                string = "HelmChart"
 	HelmActionConfigOperation         string = "HelmActionConfig"
 	HelmPropertiesOperation           string = "HelmProperties"
+	K8SProjectorOperation             string = "K8SProjector"
+	K8SDeploymentOperation            string = "K8SDeployment"
+	K8SRemoveServiceOperation         string = "K8SRemoveService"
+	K8SRemoveDeploymentOperation      string = "K8SRemoveDeployment"
+	K8SRemoveNamespaceOperation       string = "K8SRemoveNamespace"
 
 	GetOperationType    string = "Get"
-	CreateOperationType string = "Create"
 	UpdateOperationType string = "Update"
 	DeleteOperationType string = "Delete"
 )
