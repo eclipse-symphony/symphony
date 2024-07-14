@@ -69,13 +69,13 @@ func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]in
 	i.OutputContext = outputs
 }
 func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Info("  P (Remote Processor): Process")
+	log.InfoCtx(ctx, "  P (Remote Processor): Process")
 
 	outputs := make(map[string]interface{})
 
@@ -83,14 +83,14 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
-		log.Errorf("  P (Remote Processor): %v", err)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): %v", err)
 		return nil, false, err
 	}
 
 	siteString, ok := v.(string)
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("site name is not a valid string: %v", v), v1alpha2.BadRequest)
-		log.Errorf("  P (Remote Processor): %v", err)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): %v", err)
 		return nil, false, err
 	}
 
@@ -108,9 +108,10 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				Outputs: i.OutputContext,
 			},
 		},
+		Context: ctx,
 	})
 	if err != nil {
-		log.Errorf("  P (Remote Processor): publish failed - %v", err)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): publish failed - %v", err)
 		return nil, false, err
 	}
 

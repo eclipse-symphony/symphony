@@ -15,12 +15,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	zaplog "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -46,6 +49,54 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+type LogMode string
+
+const (
+	Development LogMode = "development"
+	Production  LogMode = "production"
+)
+
+// Set implements flag.Value.
+func (l *LogMode) Set(s string) error {
+	if l == nil {
+		return flag.ErrHelp
+	}
+
+	logModeStr := strings.ToLower(s)
+	switch logModeStr {
+	case "development":
+		*l = Development
+	case "production":
+		*l = Production
+	default:
+		return flag.ErrHelp
+	}
+
+	return nil
+}
+
+// String implements flag.Value.
+func (l *LogMode) String() string {
+	if l == nil {
+		return ""
+	}
+	return string(*l)
+}
+
+func (l *LogMode) IsDevelopment() bool {
+	if l == nil {
+		return false
+	}
+	return *l == Development
+}
+
+func (l *LogMode) IsUndefined() bool {
+	if l == nil {
+		return true
+	}
+	return *l != Development && *l != Production
+}
+
 var (
 	scheme      = runtime.NewScheme()
 	setupLog    = ctrl.Log.WithName("setup")
@@ -64,6 +115,11 @@ func init() {
 }
 
 func main() {
+	fmt.Println(constants.EulaMessage)
+	fmt.Println()
+
+	time.Sleep(10 * time.Millisecond) // sleep 10ms to make sure license print at first and won't be mixed with other logs
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -74,6 +130,7 @@ func main() {
 	var metricsConfigFile string
 	var disableWebhooksServer bool
 	var deleteSyncDelayString string
+	var logMode LogMode
 
 	flag.StringVar(&metricsConfigFile, "metrics-config-file", "", "The path to the otel metrics config file.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -91,20 +148,43 @@ func main() {
 	flag.StringVar(&deleteTimeOutString, "delete-timeout", "30m", "The timeout in seconds to wait for the target and instance deletion.")
 	// Add new settings for delete sync delay
 	flag.StringVar(&deleteSyncDelayString, "delete-sync-delay", "0s", "The delay in seconds to wait for the status sync back in delete operations.")
+	flag.Var(&logMode, "log-mode", "The log mode. Options are development or production.")
+
+	if logMode.IsUndefined() {
+		logMode = Development
+	}
 
 	opts := zap.Options{
-		Development: true,
+		Development: logMode.IsDevelopment(),
 		TimeEncoder: zapcore.ISO8601TimeEncoder,
+		ZapOpts:     []zaplog.Option{zaplog.AddCaller()},
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	var err error
+	// crtl zap logger
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	fmt.Println(constants.EulaMessage)
-	fmt.Println()
+	// api logrus logger
+	loggerOptions := logger.DefaultOptions()
+	// align with zap logger
+	// zap logger won't use json format in development mode
+	loggerOptions.JSONFormatEnabled = !logMode.IsDevelopment()
+	logLevel := "debug"
+	if !logMode.IsDevelopment() {
+		logLevel = "info"
+	}
+	err = loggerOptions.SetOutputLevel(logLevel)
+	if err != nil {
+		setupLog.Error(err, "unable to set log level in logrus")
+		os.Exit(1)
+	}
+	if err = logger.ApplyOptionsToLoggers(&loggerOptions); err != nil {
+		setupLog.Error(err, "unable to apply log options to logrus")
+		os.Exit(1)
+	}
 
 	ctx := ctrl.SetupSignalHandler()
-	var err error
 	ctrlConfig := configv1.ProjectConfig{}
 	options := ctrl.Options{
 		Scheme:                 scheme,

@@ -129,25 +129,25 @@ func (s *HttpStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	_, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Http State): upsert states %s, traceId: %s", entry.Value.ID, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (Http State): upsert states %s", entry.Value.ID)
 
 	client := &http.Client{}
 	rUrl := s.Config.Url
 	if entry.Value.ID == "" {
 		err = v1alpha2.NewCOAError(nil, "found invalid entry ID", v1alpha2.BadRequest)
-		sLog.Errorf(" P (Http State): failed to upsert state: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, " P (Http State): failed to upsert state: %+v", err)
 		return "", err
 	}
 	if s.Config.PostNameInPath {
 		rUrl, err = url.JoinPath(s.Config.Url, entry.Value.ID)
 	}
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to form %s request path: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to form %s request path: %+v", entry.Value.ID, err)
 		return "", err
 	}
 	obj := entry.Value.Body
@@ -163,16 +163,16 @@ func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertReque
 	jData, _ := json.Marshal(obj)
 	req, err := http.NewRequest("POST", rUrl, bytes.NewBuffer(jData))
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to create a Post request: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to create a Post request: %+v", entry.Value.ID, err)
 		return "", err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to get response from upserting %s: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to get response from upserting %s: %+v", entry.Value.ID, err)
 		return "", err
 	}
 	if resp.StatusCode >= 300 {
-		sLog.Errorf("  P (Http State): failed to get correct state code: %+v, status code %d, traceId: %s", entry.Value.ID, resp.StatusCode, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to get correct state code: %+v, status code %d", entry.Value.ID, resp.StatusCode, err)
 		return "", fmt.Errorf("failed to invoke HTTP state store: [%d]", resp.StatusCode)
 	}
 	return entry.Value.ID, nil
@@ -183,80 +183,80 @@ func (s *HttpStateProvider) List(ctx context.Context, request states.ListRequest
 }
 
 func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	_, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Http State): list states, traceId: %s", span.SpanContext().TraceID().String())
+	sLog.InfoCtx(ctx, "  P (Http State): list states")
 
 	client := &http.Client{}
 	if request.ID == "" {
 		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
-		sLog.Errorf(" P (Http State): failed to delete state: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, " P (Http State): failed to delete state: %+v", err)
 		return err
 	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to form %s request path: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to form %s request path: %+v", request.ID, err)
 		return err
 	}
 	req, err := http.NewRequest("DELETE", rUrl, nil)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to create a Delete request: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to create a Delete request: %+v", request.ID, err)
 		return err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to get response from upserting %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to get response from upserting %s: %+v", request.ID, err)
 		return err
 	}
 	if resp.StatusCode >= 300 {
-		sLog.Errorf("  P (Http State): failed to get correct state code: %+v, status code %d, traceId: %s", request.ID, resp.StatusCode, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to get correct state code: %+v, status code %d", request.ID, resp.StatusCode, err)
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to delete from HTTP state store: [%d]", resp.StatusCode), v1alpha2.InternalError)
 	}
 	return nil
 }
 
 func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	_, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Http State): get states %s, traceId: %s", request.ID, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (Http State): get states %s", request.ID)
 
 	client := &http.Client{}
 	if request.ID == "" {
 		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
-		sLog.Errorf(" P (Http State): failed to get state: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, " P (Http State): failed to get state: %+v", err)
 		return states.StateEntry{}, err
 	}
 	rUrl, err := url.JoinPath(s.Config.Url, request.ID)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to create a Get request: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to create a get request on %s: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	req, err := http.NewRequest("GET", rUrl, nil)
 	if err != nil {
-		sLog.Errorf("  P (Http State): request creation failed: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): request creation on %s failed: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to get response from getting %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to get response from getting %s: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	if resp.StatusCode == 204 && s.Config.NotFoundAs204 {
-		sLog.Infof("  P (Http State): cannot find %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): cannot find %s state: %+v", request.ID, err)
 		return states.StateEntry{}, v1alpha2.NewCOAError(nil, "not found", v1alpha2.NotFound)
 	}
 	if resp.StatusCode >= 300 {
 		if resp.StatusCode == 404 {
-			sLog.Infof("  P (Http State): received 404 status code: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Http State): received 404 status code: %+v", err)
 			return states.StateEntry{}, v1alpha2.NewCOAError(nil, "not found", v1alpha2.NotFound)
 		} else {
-			sLog.Errorf("  P (Http State): failed to get correct state code: %+v, status code %d, traceId: %s", request.ID, resp.StatusCode, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Http State): failed to get correct state code: ID: %s, status code %d, err:%+v", request.ID, resp.StatusCode, err)
 			return states.StateEntry{}, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to invoke HTTP state store: [%d]", resp.StatusCode), v1alpha2.InternalError)
 		}
 
@@ -264,13 +264,13 @@ func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) 
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to read request body: %+v, traceId: %s", resp.StatusCode, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to read request body: statusCode %d, error: %+v", resp.StatusCode, err)
 		return states.StateEntry{}, err
 	}
 	var obj interface{}
 	err = json.Unmarshal(bodyBytes, &obj)
 	if err != nil {
-		sLog.Errorf("  P (Http State): failed to unmarshall response body: %+v, traceId: %s", resp.StatusCode, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Http State): failed to unmarshall response body: statusCode %d, error: %+v", resp.StatusCode, err)
 		return states.StateEntry{}, err
 	}
 	return states.StateEntry{

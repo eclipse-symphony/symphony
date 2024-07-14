@@ -74,11 +74,11 @@ func (o *SettingsVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Settings Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Settings Vendor", request.Context, &map[string]string{
 		"method": "onConfig",
 	})
 	defer span.End()
-	csLog.Infof("V (Settings): onConfig %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	csLog.InfofCtx(ctx, "V (Settings): onConfig method: %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -92,7 +92,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 		if field != "" {
 			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts, nil)
 			if err != nil {
-				log.Errorf("V (Settings): onConfig failed to get config %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+				log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get config %s, error: %v", id, err)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -107,7 +107,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 		} else {
 			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts, nil)
 			if err != nil {
-				log.Errorf("V (Settings): onConfig failed to get object %s, error: %v traceId: %s", id, err, span.SpanContext().TraceID().String())
+				log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get object %s, error: %v", id, err)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -122,7 +122,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 		}
 	}
 
-	log.Infof("V (Settings): onConfig returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	log.ErrorCtx(ctx, "V (Settings): onConfig returned MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

@@ -57,17 +57,17 @@ func (s *HttpTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (HTTP Target): Init()")
+	sLog.InfoCtx(ctx, "  P (HTTP Target): Init()")
 
 	updateConfig, err := toHttpTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -84,13 +84,13 @@ func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetPro
 	return ret, err
 }
 func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (HTTP Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (HTTP Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 	return nil, nil
@@ -103,7 +103,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Infof("  P (HTTP Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (HTTP Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.ObjectMeta.Name,
@@ -114,7 +114,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		sLog.Errorf("  P (HTTP Target): failed to validate components: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to validate components: %+v", err)
 		return nil, err
 	}
 	if isDryRun {
@@ -135,7 +135,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
 				return ret, err
 			}
 			if method == "" {
@@ -149,7 +149,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
 				return ret, err
 			}
 			request.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -162,7 +162,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
 				return ret, err
 			}
 			if resp.StatusCode != http.StatusOK {
@@ -178,7 +178,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Message: message,
 				}
 				err = errors.New("HTTP request didn't respond 200 OK")
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
 				return ret, err
 			}
 

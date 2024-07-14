@@ -136,6 +136,7 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  instance.ObjectMeta.Namespace,
 				},
+				Context: context,
 			})
 		}
 	}
@@ -174,6 +175,7 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  target.ObjectMeta.Namespace,
 				},
+				Context: context,
 			})
 		}
 	}
@@ -245,7 +247,8 @@ func (s *JobsManager) pollSchedules() []error {
 					return []error{err}
 				}
 				s.Context.Publish("trigger", v1alpha2.Event{
-					Body: activationData,
+					Body:    activationData,
+					Context: context,
 				})
 			}
 		}
@@ -276,7 +279,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
-	log.Debugf(" M (Job): handling heartbeat h_%s", heartbeat.JobId)
+	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s", heartbeat.JobId)
 	_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
@@ -310,10 +313,10 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
-			log.Errorf(" M (Job): error getting heartbeat %s: %s", key, err.Error())
+			log.ErrorfCtx(ctx, " M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
-		log.Debugf(" M (Job): found heartbeat %s, entry: %+v", key, entry)
+		log.DebugfCtx(ctx, " M (Job): found heartbeat %s, entry: %+v", key, entry)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
@@ -389,13 +392,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 		switch objectType {
 		case "instance":
-			log.Debugf(" M (Job): handling instance job %s", job.Id)
+			log.DebugfCtx(ctx, " M (Job): handling instance job %s", job.Id)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
 			instance, err = s.apiClient.GetInstance(ctx, instanceName, namespace, s.user, s.password)
 			if err != nil {
-				log.Errorf(" M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
+				log.ErrorfCtx(ctx, " M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
 				return err //TODO: instance is gone
 			}
 
@@ -429,7 +432,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var deployment model.DeploymentSpec
 			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil, namespace)
 			if err != nil {
-				log.Errorf(" M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
+				log.ErrorfCtx(ctx, " M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
 			}
 
@@ -438,7 +441,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			case v1alpha2.JobUpdate:
 				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace, s.user, s.password)
 				if err != nil {
-					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
+					log.ErrorfCtx(ctx, " M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
 				} else {
 					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
@@ -505,8 +508,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "deployment":
-			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
-			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
+			log.InfofCtx(ctx, " M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
+			log.InfofCtx(ctx, " M (Job): deployment spec: %s", string(job.Data))
 
 			var deployment *model.DeploymentSpec
 			deployment, err = model.ToDeployment(job.Data)

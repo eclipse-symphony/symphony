@@ -11,6 +11,7 @@ import (
 	"errors"
 	v1 "gopls-workspace/apis/fabric/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
+	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
 
 	. "gopls-workspace/testing"
@@ -63,7 +64,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
-		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey)
+		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityCategory_Activity, constants.ActivityOperation_Write)
 	})
 
 	Context("object has invalid reconcile policy", func() {
@@ -526,7 +527,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityCategory_Activity, constants.ActivityOperation_Write)
 		})
 
 		It("should not return an error", func() {

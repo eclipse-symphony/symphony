@@ -84,7 +84,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 	})
 	defer span.End()
 
-	vLog.Infof("V (Activations Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	vLog.InfofCtx(pCtx, "V (Activations Vendor): onStatus, method: %s", string(request.Method))
 
 	namespace, namespaceSupplied := request.Parameters["namespace"]
 	if !namespaceSupplied {
@@ -98,7 +98,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		var status model.ActivationStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.InfofCtx(ctx, "V (Activations Vendor): onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -106,7 +106,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		err = c.ActivationsManager.ReportStatus(ctx, id, namespace, status)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.InfofCtx(ctx, "V (Activations Vendor): onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -116,7 +116,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 			State: v1alpha2.OK,
 		})
 	}
-	vLog.Infof("V (Activations Vendor): onStatus failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	vLog.InfoCtx(pCtx, "V (Activations Vendor): onStatus failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -131,7 +131,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 	})
 	defer span.End()
 
-	vLog.Infof("V (Activations Vendor): onActivations, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	vLog.InfofCtx(pCtx, "V (Activations Vendor): onActivations, method: %s", string(request.Method))
 
 	namespace, namespaceSupplied := request.Parameters["namespace"]
 	if !namespaceSupplied {
@@ -155,7 +155,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			state, err = c.ActivationsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.InfofCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -179,7 +179,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		err := json.Unmarshal(request.Body, &activation)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -188,7 +188,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		err = c.ActivationsManager.UpsertState(ctx, id, activation)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -202,7 +202,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -218,6 +218,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 					Inputs:               activation.Spec.Inputs,
 					Namespace:            activation.ObjectMeta.Namespace,
 				},
+				Context: ctx,
 			})
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -228,7 +229,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		id := request.Parameters["__name"]
 		err := c.ActivationsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			vLog.Infof("V (Activations Vendor): onActivations failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -238,7 +239,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			State: v1alpha2.OK,
 		})
 	}
-	vLog.Infof("V (Activations Vendor): onActivations failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	vLog.InfoCtx(pCtx, "V (Activations Vendor): onActivations failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

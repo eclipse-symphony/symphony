@@ -1,0 +1,49 @@
+{{- if .Values.observability.otelCollector.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-collector
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-collector
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "symphony.appSelector" . }}-otel-collector
+  template:
+    metadata:
+      labels:
+        app: {{ include "symphony.appSelector" . }}-otel-collector
+    spec:
+      # read prometheus metrics from manager and exports to mdm
+      containers:
+        - name: otel-collector
+          image: "{{ .Values.observability.otelCollector.image }}"
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: '{{ include "symphony.fullname" . }}-logforwarder'
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-collector-service
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-collector
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4317
+      targetPort: 4317
+      protocol: TCP
+      name: otel-grpc
+    - port: 4318
+      targetPort: 4318
+      protocol: TCP
+      name: otel-http
+  selector:
+    app: {{ include "symphony.appSelector" . }}-otel-collector
+{{- end }}
