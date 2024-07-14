@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	GetSummaryOperation string = "GetSummary"
+	ReconcileOperation string = "Reconcile"
 
-	GetOperationType string = "Get"
+	UpdateOperationType string = "Update"
 )
 
 // Metrics is a metrics tracker for an api operation.
