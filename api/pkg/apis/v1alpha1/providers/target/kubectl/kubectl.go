@@ -17,11 +17,12 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -51,6 +52,7 @@ var (
 	decUnstructured          = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 	sLog                     = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 const (
@@ -199,16 +201,16 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	i.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(i.DiscoveryClient))
 	i.RESTConfig = kConfig
 
-	if providerOperationMetrics == nil {
-		providerOperationMetrics, err = metrics.New()
-		if err != nil {
-			sLog.ErrorCtx(ctx, err)
-			err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init metrics", providerName), v1alpha2.InitFailed)
-			return err
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorCtx(ctx, err)
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init metrics", providerName), v1alpha2.InitFailed)
+			}
 		}
-	}
-
-	return nil
+	})
+	return err
 }
 
 func (i *KubectlTargetProvider) getKubernetesConfig(ctx context.Context) (*rest.Config, error) {

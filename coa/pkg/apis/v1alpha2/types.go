@@ -87,6 +87,16 @@ const (
 	HelmChartLoadFailed          State = 10020
 	HelmChartApplyFailed         State = 10021
 	HelmChartUninstallFailed     State = 10022
+	IngressPropertiesParseFailed State = 10023
+	IngressApplyFailed           State = 10024
+	HttpComponentInvalid         State = 10025
+	HttpNewRequestFailed         State = 10026
+	HttpSendRequestFailed        State = 10027
+	HttpErrorResponse            State = 10028
+	MqttPublishFailed            State = 10029
+	MqttApplyFailed              State = 10030
+	MqttApplyTimeout             State = 10031
+	ConfigMapApplyFailed         State = 10032
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000

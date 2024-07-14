@@ -17,10 +17,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -38,6 +39,7 @@ const (
 var (
 	sLog                     = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 type ScriptProviderConfig struct {
@@ -138,16 +140,16 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 
-	if providerOperationMetrics == nil {
-		providerOperationMetrics, err = metrics.New()
-		if err != nil {
-			return err
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Script Target): failed to create metrics: %+v", err)
+			}
 		}
-	}
+	})
 
-	observ_utils.CloseSpanWithError(span, nil)
-
-	return nil
+	return err
 }
 
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {

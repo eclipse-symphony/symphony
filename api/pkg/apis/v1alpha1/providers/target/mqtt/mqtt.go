@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -25,9 +26,17 @@ import (
 	"github.com/google/uuid"
 )
 
-const loggerName = "providers.target.mqtt"
+const (
+	loggerName   = "providers.target.mqtt"
+	providerName = "P (MQTT Target)"
+	mqtt         = "mqtt"
+)
 
-var sLog = logger.NewLogger(loggerName)
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+)
 
 type MQTTTargetProviderConfig struct {
 	Name               string `json:"name"`
@@ -214,7 +223,17 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 	i.Initialized = true
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to create metrics - %v", err)
+			}
+		}
+	})
+
+	return err
 }
 func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetProviderConfig, error) {
 	ret := MQTTTargetProviderConfig{}
@@ -337,9 +356,18 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	sLog.InfofCtx(ctx, "  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
+	functionName := observ_utils.GetFunctionName()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		providerOperationMetrics.ProviderOperationErrors(
+			mqtt,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
@@ -366,6 +394,13 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.UpdateOperationType,
+				v1alpha2.MqttPublishFailed.String(),
+			)
 			return ret, err
 		}
 
@@ -383,15 +418,36 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 						}
 					}
 				}
+				providerOperationMetrics.ProviderOperationLatency(
+					applyTime,
+					mqtt,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					functionName,
+				)
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
 				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get correct response from Apply() - %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					mqtt,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.MqttApplyFailed.String(),
+				)
 				return ret, err
 			}
 		case <-timeout:
 			err = v1alpha2.NewCOAError(nil, "didn't get response to Apply()-Update call over MQTT", v1alpha2.InternalError)
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.UpdateOperationType,
+				v1alpha2.MqttApplyTimeout.String(),
+			)
 			return ret, err
 		}
 	}
@@ -409,6 +465,13 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.UpdateOperationType,
+				v1alpha2.MqttPublishFailed.String(),
+			)
 			return ret, err
 		}
 
@@ -417,20 +480,48 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		case resp := <-i.RemoveChan:
 			if resp.IsOK {
 				err = nil
+				providerOperationMetrics.ProviderOperationLatency(
+					applyTime,
+					mqtt,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					functionName,
+				)
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
 				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get correct reponse from Apply() delete action - %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					mqtt,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.MqttApplyFailed.String(),
+				)
 				return ret, err
 			}
 		case <-timeout:
 			err = v1alpha2.NewCOAError(nil, "didn't get response to Apply()-Delete call over MQTT", v1alpha2.InternalError)
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.UpdateOperationType,
+				v1alpha2.MqttApplyTimeout.String(),
+			)
 			return ret, err
 		}
 	}
 	//TODO: Should we remove empty namespaces?
 	err = nil
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		mqtt,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+		functionName,
+	)
 	return ret, nil
 }
 

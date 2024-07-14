@@ -13,11 +13,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/k8s/projectors"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
 	utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -39,6 +40,7 @@ import (
 var (
 	log                      = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 const (
@@ -185,14 +187,16 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create dynamic client", componentName), v1alpha2.InitFailed)
 	}
 
-	if providerOperationMetrics == nil {
-		providerOperationMetrics, err = metrics.New()
-		if err != nil {
-			return err
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				log.ErrorfCtx(ctx, "  P (K8s Target): failed to create metrics: %+v", err)
+			}
 		}
-	}
+	})
 
-	return nil
+	return err
 }
 
 func (i *K8sTargetProvider) getKubernetesConfig() (*rest.Config, error) {
