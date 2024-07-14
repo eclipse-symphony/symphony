@@ -47,7 +47,7 @@ func (t *SkillsManager) DeleteState(ctx context.Context, name string, namespace 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Debugf(" M (Skills): DeleteState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.DebugfCtx(ctx, " M (Skills): DeleteState, name: %s", name)
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -59,7 +59,7 @@ func (t *SkillsManager) DeleteState(ctx context.Context, name string, namespace 
 		},
 	})
 	if err != nil {
-		log.Errorf(" M (Skills): failed to delete state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Skills): failed to delete state, name: %s, err: %v", name, err)
 	}
 	return err
 }
@@ -70,7 +70,7 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Debugf(" M (Skills): UpsertState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.DebugfCtx(ctx, " M (Skills): UpsertState, name: %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -97,7 +97,7 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Errorf(" M (Skills): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Skills): failed to UpsertSpec, name: %s, err: %v", name, err)
 		return err
 	}
 	return nil
@@ -110,7 +110,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Debugf(" M (Skills): ListState, traceId: %s", span.SpanContext().TraceID().String())
+	log.DebugCtx(ctx, " M (Skills): ListState")
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
@@ -123,7 +123,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	var models []states.StateEntry
 	models, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		log.Errorf(" M (Skills): failed to list state, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Skills): failed to list state, err: %v", err)
 		return nil, err
 	}
 	ret := make([]model.SkillState, 0)
@@ -131,7 +131,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 		var rt model.SkillState
 		rt, err = getSkillState(t.Body)
 		if err != nil {
-			log.Errorf(" M (Models): failed to get skill state, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, " M (Models): failed to get skill state, err: %v", err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -159,7 +159,7 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Debugf(" M (Skills): GetState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.DebugfCtx(ctx, " M (Skills): GetState, name: %s", name)
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -173,13 +173,13 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 	var m states.StateEntry
 	m, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Errorf(" M (Skills): failed to get state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Skills): failed to get state, name: %s, err: %v", name, err)
 		return model.SkillState{}, err
 	}
 	var ret model.SkillState
 	ret, err = getSkillState(m.Body)
 	if err != nil {
-		log.Errorf(" M (Skills): failed to get skill state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Skills): failed to get skill state, name: %s, err: %v", name, err)
 		return model.SkillState{}, err
 	}
 	return ret, nil

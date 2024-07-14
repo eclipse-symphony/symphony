@@ -86,11 +86,17 @@ func GetVendor(apiPath string) (string, string) {
 // }
 
 func SpanFromContext(ctx context.Context) *trace.Span {
-	if reqCtx, ok := ctx.(*fasthttp.RequestCtx); ok {
+	var reqCtx *fasthttp.RequestCtx
+	reqCtx, ok := ctx.(*fasthttp.RequestCtx)
+	if !ok {
+		reqCtx, ok = ctx.Value(v1alpha2.COAFastHTTPContextKey).(*fasthttp.RequestCtx)
+	}
+	if ok && reqCtx != nil {
 		val := reqCtx.UserValue(paiFastHTTPContextKey)
 		if val == nil {
 			return nil
 		}
+
 		return val.(*trace.Span)
 	}
 

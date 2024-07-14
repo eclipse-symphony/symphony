@@ -14,9 +14,17 @@ global:
     identity:
       isEnabled: false
 observability:
+  fluentbit:
+    enabled: true
+    image: mcr.microsoft.com/oss/fluent/fluent-bit:3.0.7
   tracing:
     exporter:
       zipkin: true
+  otelCollector:
+    enabled: true
+    image: otel/opentelemetry-collector:0.103.0
+  otelForwarder:
+    image: mcr.microsoft.com/oss/otel/opentelemetry-collector-contrib:0.102.1
 zipkin:
   fullnameOverride: symphony-zipkin
 cert-manager:
@@ -53,6 +61,12 @@ symphony:
   extension:
     httpsport: 8081
     httpport: 8080
+# Turn on/off cleanup on finished activations
+ActivationCleanup:
+  enabled: true
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"
 Azure:
   proxySettings:
     isProxyEnabled: false
@@ -60,9 +74,10 @@ Azure:
     httpsProxy: ""
     noProxy: ""
     proxyCert: ""
-# Turn on/off cleanup on finished activations
-ActivationCleanup:
-  enabled: true
-  # Rentention duration for activations, default is 180days
-  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-  retentionDuration: "4320h"
+  Extension:
+    ResourceId: "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/jiadutestaks0618c_group/providers/Microsoft.Kubernetes/ConnectedClusters/jiadutestaks0618c/providers/Microsoft.KubernetesConfiguration/extensions/symphonyext"
+  Cluster:
+    Region: "eastus"
+    ResourceId: "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/jiadutestaks0618c_group/providers/Microsoft.Kubernetes/connectedClusters/jiadutestaks0618c"
+otlpLogsEndpointGrpc: symphony-otel-collector-service.default.svc:4317
+otlpInsecureGrpc: true

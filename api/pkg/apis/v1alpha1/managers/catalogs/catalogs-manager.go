@@ -183,6 +183,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			Action: v1alpha2.JobUpdate,
 			Body:   state,
 		},
+		Context: ctx,
 	})
 	return nil
 }
@@ -266,7 +267,7 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string, namespac
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Debug(" M (Graph): GetChains")
+	log.DebugCtx(ctx, " M (Graph): GetChains")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -289,7 +290,7 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	log.Debug(" M (Graph): GetTrees")
+	log.DebugCtx(ctx, " M (Graph): GetTrees")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
