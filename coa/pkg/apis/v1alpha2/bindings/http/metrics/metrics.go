@@ -7,6 +7,7 @@
 package metrics
 
 import (
+	"math"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/constants"
@@ -94,7 +95,8 @@ func (m *Metrics) ApiOperationErrors(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// Latency gets the time since the given start in seconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	latency := float64(time.Since(start)) / float64(time.Second)
+	return math.Round(latency*1000) / 1000
 }

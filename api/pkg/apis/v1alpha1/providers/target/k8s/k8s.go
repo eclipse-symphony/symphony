@@ -720,7 +720,15 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 				)
 				return ret, err
 			}
+			providerOperationMetrics.ProviderOperationLatency(
+				applyTime,
+				k8s,
+				metrics.K8SDeploymentOperation,
+				metrics.UpdateOperationType,
+				functionName,
+			)
 		}
+		deleteTime := time.Now().UTC()
 		deleted := step.GetDeletedComponents()
 		if len(deleted) > 0 {
 			serviceName := dep.Instance.ObjectMeta.Name
@@ -735,7 +743,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					k8s,
 					functionName,
 					metrics.K8SRemoveServiceOperation,
-					metrics.UpdateOperationType,
+					metrics.DeleteOperationType,
 					v1alpha2.K8sRemoveServiceFailed.String(),
 				)
 				return ret, err
@@ -748,7 +756,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					k8s,
 					functionName,
 					metrics.K8SRemoveDeploymentOperation,
-					metrics.UpdateOperationType,
+					metrics.DeleteOperationType,
 					v1alpha2.K8sRemoveDeploymentFailed.String(),
 				)
 				return ret, err
@@ -759,6 +767,13 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to remove namespace: %s", err.Error())
 				}
 			}
+			providerOperationMetrics.ProviderOperationLatency(
+				deleteTime,
+				k8s,
+				metrics.K8SDeploymentOperation,
+				metrics.DeleteOperationType,
+				functionName,
+			)
 		}
 	case SERVICES, SERVICES_NS:
 		updated := step.GetUpdatedComponents()
@@ -790,7 +805,15 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					return ret, err
 				}
 			}
+			providerOperationMetrics.ProviderOperationLatency(
+				applyTime,
+				k8s,
+				metrics.K8SDeploymentOperation,
+				metrics.UpdateOperationType,
+				functionName,
+			)
 		}
+		deleteTime := time.Now().UTC()
 		deleted := step.GetDeletedComponents()
 		if len(deleted) > 0 {
 			scope := dep.Instance.Spec.Scope
@@ -816,7 +839,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						k8s,
 						functionName,
 						metrics.K8SRemoveServiceOperation,
-						metrics.UpdateOperationType,
+						metrics.DeleteOperationType,
 						v1alpha2.K8sRemoveServiceFailed.String(),
 					)
 					return ret, err
@@ -833,7 +856,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 						k8s,
 						functionName,
 						metrics.K8SRemoveDeploymentOperation,
-						metrics.UpdateOperationType,
+						metrics.DeleteOperationType,
 						v1alpha2.K8sRemoveDeploymentFailed.String(),
 					)
 					return ret, err
@@ -845,17 +868,16 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 					}
 				}
 			}
-
+			providerOperationMetrics.ProviderOperationLatency(
+				deleteTime,
+				k8s,
+				metrics.K8SDeploymentOperation,
+				metrics.DeleteOperationType,
+				functionName,
+			)
 		}
 	}
 	err = nil
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		k8s,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-	)
 	return ret, nil
 }
 func deploymentToComponents(ctx context.Context, deployment v1.Deployment) ([]model.ComponentSpec, error) {
