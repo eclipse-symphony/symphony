@@ -10,10 +10,11 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -23,8 +24,18 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var msLock sync.Mutex
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.patch"
+	providerName = "P (Patch Stage)"
+	patch        = "patch"
+)
+
+var (
+	msLock                   sync.Mutex
+	sLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type PatchStageProviderConfig struct {
 	User     string `json:"user"`
@@ -34,22 +45,37 @@ type PatchStageProviderConfig struct {
 type PatchStageProvider struct {
 	Config    PatchStageProviderConfig
 	Context   *contexts.ManagerContext
-	ApiClient utils.ApiClient
+	ApiClient api_utils.ApiClient
 }
 
 func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
+	ctx, span := observability.StartSpan("[Stage] Patch Provider", context.TODO(), &map[string]string{
+		"method": "Init",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	msLock.Lock()
 	defer msLock.Unlock()
-	mockConfig, err := toPatchStageProviderConfig(config)
+	var mockConfig PatchStageProviderConfig
+	mockConfig, err = toPatchStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	s.Config = mockConfig
-	s.ApiClient, err = utils.GetApiClient()
+	s.ApiClient, err = api_utils.GetApiClient()
 	if err != nil {
 		return err
 	}
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Materialize Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
+	return err
 }
 func (s *PatchStageProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
@@ -72,8 +98,8 @@ func (i *PatchStageProvider) InitWithMap(properties map[string]string) error {
 }
 func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStageProviderConfig, error) {
 	ret := PatchStageProviderConfig{}
-	if utils.ShouldUseUserCreds() {
-		user, err := utils.GetString(properties, "user")
+	if api_utils.ShouldUseUserCreds() {
+		user, err := api_utils.GetString(properties, "user")
 		if err != nil {
 			return ret, err
 		}
@@ -81,7 +107,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStag
 		if ret.User == "" {
 			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
 		}
-		password, err := utils.GetString(properties, "password")
+		password, err := api_utils.GetString(properties, "password")
 		ret.Password = password
 		if err != nil {
 			return ret, err
@@ -92,7 +118,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStag
 func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
-		parser := utils.NewParser(val)
+		parser := api_utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
 		context.Value = ctx
 		v, err := parser.Eval(*context)
@@ -138,7 +164,8 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	sLog.InfoCtx(ctx, "  P (Patch Stage): start process request")
-
+	processTime := time.Now().UTC()
+	functionName := observ_utils.GetFunctionName()
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
@@ -156,7 +183,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	if patchAction == "" {
 		patchAction = "add"
 	}
-	udpated := false
+	updated := false
 	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
@@ -172,11 +199,25 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CatalogsGetFailed.String(),
+				)
 				return nil, false, err
 			}
 		} else {
 			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
 			err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			providerOperationMetrics.ProviderOperationErrors(
+				patch,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.BadConfig.String(),
+			)
 			return nil, false, err
 		}
 	case "inline":
@@ -190,6 +231,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			} else {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
 				err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.BadConfig.String(),
+				)
 				return nil, false, err
 			}
 		} else {
@@ -197,6 +245,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			jData, _ := json.Marshal(patchContent)
 			if err = json.Unmarshal(jData, &componentSpec); err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling componentSpec")
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.BadConfig.String(),
+				)
 				return nil, false, err
 			}
 			catalog = model.CatalogState{
@@ -210,6 +265,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	default:
 		sLog.ErrorfCtx(ctx, "  P (Patch Stage): unsupported patchSource: %s", patchSource)
 		err = v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+		providerOperationMetrics.ProviderOperationErrors(
+			patch,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.BadConfig.String(),
+		)
 		return nil, false, err
 	}
 
@@ -229,6 +291,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		solution, err = i.ApiClient.GetSolution(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting solution %s", objectName)
+			providerOperationMetrics.ProviderOperationErrors(
+				patch,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.SolutionGetFailed.String(),
+			)
 			return nil, false, err
 		}
 
@@ -249,13 +318,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 					} else {
 						solution.Spec.Components[i] = componentSpec
 					}
-					udpated = true
+					updated = true
 					break
 				}
 			}
-			if !udpated && patchAction != "remove" {
+			if !updated && patchAction != "remove" {
 				solution.Spec.Components = append(solution.Spec.Components, componentSpec)
-				udpated = true
+				updated = true
 			}
 		} else {
 			for i, c := range solution.Spec.Components {
@@ -287,20 +356,41 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 											}
 											detailedTarget[subKey] = targetMap
 											solution.Spec.Components[i].Properties[propertyName] = detailedTarget
-											udpated = true
+											updated = true
 										} else {
 											sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
 											err = v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+											providerOperationMetrics.ProviderOperationErrors(
+												patch,
+												functionName,
+												metrics.ProcessOperation,
+												metrics.RunOperationType,
+												v1alpha2.BadConfig.String(),
+											)
 											return nil, false, err
 										}
 									} else {
 										sLog.ErrorfCtx(ctx, "  P (Patch Stage): subKey is not valid")
 										err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+										providerOperationMetrics.ProviderOperationErrors(
+											patch,
+											functionName,
+											metrics.ProcessOperation,
+											metrics.RunOperationType,
+											v1alpha2.BadConfig.String(),
+										)
 										return nil, false, err
 									}
 								} else {
 									sLog.ErrorfCtx(ctx, "  P (Patch Stage): subKey is not valid")
 									err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+									providerOperationMetrics.ProviderOperationErrors(
+										patch,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.BadConfig.String(),
+									)
 									return nil, false, err
 								}
 							} else {
@@ -325,10 +415,17 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 										targetMap = append(targetMap, catalog.Spec.Properties)
 									}
 									solution.Spec.Components[i].Properties[propertyName] = targetMap
-									udpated = true
+									updated = true
 								} else {
 									sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
 									err = v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+									providerOperationMetrics.ProviderOperationErrors(
+										patch,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.BadConfig.String(),
+									)
 									return nil, false, err
 								}
 							}
@@ -339,16 +436,30 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				}
 			}
 		}
-		if udpated {
+		if updated {
 			jData, _ := json.Marshal(solution)
 			err = i.ApiClient.UpsertSolution(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating solution %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.UpdateFailed.String(),
+				)
 				return nil, false, err
 			}
 		}
 
 	}
 	sLog.InfoCtx(ctx, "  P (Patch Stage): end process request")
+	providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		patch,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	return outputs, false, nil
 }

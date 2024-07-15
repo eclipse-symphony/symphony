@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -22,8 +24,18 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var msLock sync.Mutex
-var mLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.counter"
+	providerName = "P (Counter Stage)"
+	counter      = "counter"
+)
+
+var (
+	msLock                   sync.Mutex
+	mLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type CounterStageProviderConfig struct {
 	ID string `json:"id"`
@@ -34,15 +46,30 @@ type CounterStageProvider struct {
 }
 
 func (m *CounterStageProvider) Init(config providers.IProviderConfig) error {
+	ctx, span := observability.StartSpan("[Stage] Counter Provider", context.TODO(), &map[string]string{
+		"method": "Init",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
 	msLock.Lock()
 	defer msLock.Unlock()
 
-	mockConfig, err := toMockStageProviderConfig(config)
+	var mockConfig CounterStageProviderConfig
+	mockConfig, err = toMockStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	m.Config = mockConfig
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "  P (Counter Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
+	return err
 }
 func (s *CounterStageProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
@@ -76,6 +103,9 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	mLog.InfofCtx(ctx, "  P (Counter Stage) process started")
+	processTime := time.Now().UTC()
+	functionName := observ_utils.GetFunctionName()
+
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})
 	if state, ok := inputs["__state"]; ok {
@@ -83,6 +113,13 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, "input state is not a valid map[string]interface{}", v1alpha2.BadRequest)
 			mLog.ErrorfCtx(ctx, "[Stage] Counter provider failed: %+v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				counter,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.ValidateRuleOperation,
+				v1alpha2.BadConfig.String(),
+			)
 			return outputs, false, err
 		}
 	}
@@ -117,6 +154,13 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 
 	outputs["__state"] = selfState
 	mLog.InfofCtx(ctx, "  P (Counter Stage) process completed")
+	providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		counter,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	return outputs, false, nil
 }
 

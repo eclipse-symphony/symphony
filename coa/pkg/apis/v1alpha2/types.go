@@ -118,6 +118,11 @@ const (
 	ParentObjectMissing             State = 10051
 	ParentObjectCreateFailed        State = 10052
 	MaterializeBatchFailed          State = 10053
+	DeleteInstanceFailed            State = 10054
+	CreateInstanceFailed            State = 10055
+	DeploymentNotReached            State = 10056
+	InvalidObjectType               State = 10057
+	UnsupportedAction               State = 10058
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
@@ -298,6 +303,16 @@ func (s State) String() string {
 		return "Parent Object Create Failed"
 	case MaterializeBatchFailed:
 		return "Failed to Materialize all objects"
+	case DeleteInstanceFailed:
+		return "Failed to Delete Instance"
+	case CreateInstanceFailed:
+		return "Failed to Create Instance"
+	case DeploymentNotReached:
+		return "Deployment Not Reached"
+	case InvalidObjectType:
+		return "Invalid Object Type"
+	case UnsupportedAction:
+		return "Unsupported Action"
 	case SolutionGetFailed:
 		return "Solution does not exist"
 	case TargetCandidatesNotFound:
