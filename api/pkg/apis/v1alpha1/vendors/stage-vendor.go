@@ -161,7 +161,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				Body: status,
 			})
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
+			err = s.ActivationsManager.ReportStageStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
 				return err
@@ -177,12 +177,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			})
 
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
+			err = s.ActivationsManager.ReportStageStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 				return err
 			}
-			if activation != nil && status.Status != v1alpha2.Done && status.Status != v1alpha2.Paused {
+			if activation != nil && status.NextStage != "" && status.Status != v1alpha2.Paused {
 				s.Vendor.Context.Publish("trigger", v1alpha2.Event{
 					Body: *activation,
 				})
@@ -236,7 +236,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 
 		//TODO: later site overrides reports from earlier sites
-		err = s.ActivationsManager.ReportStatus(context.TODO(), activation, namespace, status)
+		err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
 		if err != nil {
 			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 			return err
@@ -318,9 +318,9 @@ func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, na
 		Status:        v1alpha2.BadRequest,
 		StatusMessage: v1alpha2.BadRequest.String(),
 		ErrorMessage:  err.Error(),
-		IsActive:      true,
+		IsActive:      false,
 	}
-	err = s.ActivationsManager.ReportStatus(context.TODO(), activation, namespace, status)
+	err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
 	if err != nil {
 		sLog.Errorf("V (Stage): failed to report error status on activtion %s/%s: %v (%v)", namespace, activation, status.ErrorMessage, err)
 	}

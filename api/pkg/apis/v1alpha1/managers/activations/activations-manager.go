@@ -192,32 +192,74 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	defer observ_utils.CloseSpanWithError(span, &err)
 	lock.Lock()
 	defer lock.Unlock()
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.WorkflowGroup,
-			"resource":  "activations",
-			"namespace": namespace,
-		},
-	}
-	var entry states.StateEntry
-	entry, err = t.StateProvider.Get(ctx, getRequest)
-	if err != nil {
-		return err
-	}
 
 	var activationState model.ActivationState
-	bytes, _ := json.Marshal(entry.Body)
-	err = json.Unmarshal(bytes, &activationState)
+	activationState, err = t.GetState(ctx, name, namespace)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return err
 	}
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 	activationState.Status = &current
 
+	var entry states.StateEntry
+	entry.ID = activationState.ObjectMeta.Name
+	entry.Body = activationState
+
+	upsertRequest := states.UpsertRequest{
+		Value: entry,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": activationState.ObjectMeta.Namespace,
+			"kind":      "Activation",
+		},
+		Options: states.UpsertOption{
+			UpdateStateOnly: true,
+		},
+	}
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string, namespace string, current model.ActivationStatus) error {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "ReportStageStatus",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	lock.Lock()
+	defer lock.Unlock()
+
+	var activationState model.ActivationState
+	activationState, err = t.GetState(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+
+	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
+	inputString, _ := json.Marshal(current.Inputs)
+	outputString, _ := json.Marshal(current.Outputs)
+	if current.Status == v1alpha2.Done {
+		current.History = append(activationState.Status.History, model.StageStatus{
+			Stage:         current.Stage,
+			Inputs:        string(inputString),
+			Outputs:       string(outputString),
+			Status:        current.Status,
+			StatusMessage: current.StatusMessage,
+		})
+	} else {
+		current.History = activationState.Status.History
+	}
+
+	activationState.Status = &current
+
+	var entry states.StateEntry
+	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
 
 	upsertRequest := states.UpsertRequest{

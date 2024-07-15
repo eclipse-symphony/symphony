@@ -69,6 +69,23 @@ spec:
                 type: string
               errorMessage:
                 type: string
+              history:
+                items:
+                  properties:
+                    errorMessage:
+                      type: string
+                    inputs:
+                      type: string
+                    outputs:
+                      type: string
+                    stage:
+                      type: string
+                    status:
+                      type: integer
+                    statusMessage:
+                      type: string
+                  type: object
+                type: array
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
               isActive:

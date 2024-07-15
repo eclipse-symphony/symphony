@@ -463,6 +463,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs := triggerData.Inputs
 		if inputs == nil {
 			inputs = make(map[string]interface{})
+			triggerData.Inputs = inputs
 		}
 
 		if currentStage.Inputs != nil {
@@ -736,20 +737,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			status.NextStage = sVal
-			if sVal == "" {
+			if pauseRequested {
+				status.IsActive = false
+				status.Status = v1alpha2.Paused
+				status.StatusMessage = v1alpha2.Paused.String()
+			} else {
 				status.IsActive = false
 				status.Status = v1alpha2.Done
 				status.StatusMessage = v1alpha2.Done.String()
-			} else {
-				if pauseRequested {
-					status.IsActive = false
-					status.Status = v1alpha2.Paused
-					status.StatusMessage = v1alpha2.Paused.String()
-				} else {
-					status.IsActive = true
-					status.Status = v1alpha2.Running
-					status.StatusMessage = v1alpha2.Running.String()
-				}
 			}
 			log.Infof(" M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData

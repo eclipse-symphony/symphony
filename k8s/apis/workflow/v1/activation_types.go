@@ -29,6 +29,16 @@ type ActivationStatus struct {
 	IsActive             bool                 `json:"isActive,omitempty"`
 	ActivationGeneration string               `json:"activationGeneration,omitempty"`
 	UpdateTime           string               `json:"updateTime,omitempty"`
+	History              []StageStatus        `json:"history,omitempty"`
+}
+
+type StageStatus struct {
+	Stage         string         `json:"stage,omitempty"`
+	Inputs        string         `json:"inputs,omitempty"`
+	Outputs       string         `json:"outputs,omitempty"`
+	Status        v1alpha2.State `json:"status,omitempty"`
+	StatusMessage string         `json:"statusMessage,omitempty"`
+	ErrorMessage  string         `json:"errorMessage,omitempty"`
 }
 
 // +kubebuilder:object:root=true
