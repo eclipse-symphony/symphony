@@ -451,6 +451,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			return ret, err
 		}
 	}
+	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		request := v1alpha2.COARequest{
@@ -469,7 +470,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
+				metrics.DeleteOperationType,
 				v1alpha2.MqttPublishFailed.String(),
 			)
 			return ret, err
@@ -481,10 +482,10 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			if resp.IsOK {
 				err = nil
 				providerOperationMetrics.ProviderOperationLatency(
-					applyTime,
+					deleteTime,
 					mqtt,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.DeleteOperationType,
 					functionName,
 				)
 				return ret, err
@@ -495,7 +496,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					mqtt,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.DeleteOperationType,
 					v1alpha2.MqttApplyFailed.String(),
 				)
 				return ret, err
@@ -507,7 +508,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
+				metrics.DeleteOperationType,
 				v1alpha2.MqttApplyTimeout.String(),
 			)
 			return ret, err
@@ -515,13 +516,6 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 	//TODO: Should we remove empty namespaces?
 	err = nil
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		mqtt,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-		functionName,
-	)
 	return ret, nil
 }
 
