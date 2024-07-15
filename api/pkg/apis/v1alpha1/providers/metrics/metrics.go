@@ -39,9 +39,11 @@ const (
 
 	ProcessOperation string = "Process"
 
-	GetOperationType    string = "Get"
-	UpdateOperationType string = "Update"
-	DeleteOperationType string = "Delete"
+	GetOperationType      string = "Get"
+	UpdateOperationType   string = "Update"
+	DeleteOperationType   string = "Delete"
+	ValidateOperationType string = "Validate"
+	RunOperationType      string = "Run"
 )
 
 // Metrics is a metrics tracker for a provider operation.
