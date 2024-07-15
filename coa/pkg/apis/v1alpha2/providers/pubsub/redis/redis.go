@@ -219,12 +219,13 @@ func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
 	if err != nil {
 		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
 	}
-	if err := msg.Handler(msg.Topic, evt); err != nil {
+	err = msg.Handler(msg.Topic, evt)
+	i.TopicLock[msg.Topic].Lock()
+	defer i.TopicLock[msg.Topic].Unlock()
+	if err != nil {
 		delete(i.ClaimedMessages, msg.MessageID)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.MessageID), v1alpha2.InternalError)
 	}
-	i.TopicLock[msg.Topic].Lock()
-	defer i.TopicLock[msg.Topic].Unlock()
 	i.Client.XAck(i.Ctx, msg.Topic, RedisGroup, msg.MessageID)
 	delete(i.ClaimedMessages, msg.MessageID)
 
