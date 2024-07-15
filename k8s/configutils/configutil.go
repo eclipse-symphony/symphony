@@ -18,7 +18,6 @@ import (
 
 	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/go-logr/logr"
-	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -152,15 +151,15 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 }
 
 func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, activityCategory string, operationName string, ctx context.Context, log logr.Logger) context.Context {
-	// correlationId := annotations[constants.AzureCorrelationIdKey]
-	// resourceId := annotations[constants.AzureResourceIdKey]
-	// location := annotations[constants.AzureLocationKey]
-	// systemData := annotations[constants.AzureSystemDataKey]
+	correlationId := annotations[constants.AzureCorrelationIdKey]
+	resourceId := annotations[constants.AzureResourceIdKey]
+	location := annotations[constants.AzureLocationKey]
+	systemData := annotations[constants.AzureSystemDataKey]
 
-	correlationId := uuid.New().String()
-	resourceId := objectId
-	location := "on-premise"
-	systemData := "{\"createdBy\":\"On-Premise\"}"
+	// correlationId := uuid.New().String()
+	// resourceId := objectId
+	// location := "on-premise"
+	// systemData := "{\"createdBy\":\"On-Premise\"}"
 
 	resourceK8SId := objectId
 	callerId := ""
