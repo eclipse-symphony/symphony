@@ -7,34 +7,24 @@
             "path": "k8s/hello-world",
             "artifacts": [
                 {
-                    "file": "target-container.yaml",
-                    "type": "target-container",
-                    "name": "samplek8starget"
-                },
-                {
                     "file": "target.yaml",
                     "type": "target",
-                    "name": "samplek8starget-v1"
+                    "name": "sample-k8s-target"
                 },
                 {
                     "file": "solution-container.yaml",
                     "type": "solution-container",
-                    "name": "sampleprometheusserver" 
+                    "name": "sample-prometheus-server" 
                 }, 
                 {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sampleprometheusserver-v1" 
+                    "name": "sample-prometheus-server-v-v1" 
                 }, 
-                {
-                    "file": "instance-container.yaml",
-                    "type": "instance-container",
-                    "name": "sampleprometheusinstance"                             
-                },
                 {
                     "file": "instance.yaml",
                     "type": "instance",
-                    "name": "sampleprometheusinstance-v1"                             
+                    "name": "sample-prometheus-instance"                             
                 }
             ],            
             "description": "Deploy a Prometheus server on a K8s target",
@@ -46,7 +36,7 @@
                         "args": [
                            "get",
                            "svc",
-                           "sampleprometheusinstance-v1",
+                           "sample-prometheus-instance",
                            "-n",
                            "sample-k8s-scope",
                            "-o",
@@ -94,9 +84,14 @@
                     ]
                 },
                 {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-simulated-temperature-sensor" 
+                }, 
+                {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-simulated-temperature-sensor"
+                    "name": "sample-simulated-temperature-sensor-v-v1"
                 }, 
                 {
                     "file": "instance-1.yaml",
@@ -132,9 +127,14 @@
                     "name": "sample-staged-k8s"
                 },
                 {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-staged-solution" 
+                }, 
+                {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-staged-solution"
+                    "name": "sample-staged-solution-v-v1"
                 }, 
                 {
                     "file": "instance.yaml",
@@ -153,7 +153,7 @@
                        "get",
                        "catalog",
                        "-n",
-                       "sample-staged-instance-sample-staged-k8s",
+                       "sample-staged-instance-sample-staged-k8s-v-v1",
                        "--json-path",
                        "$.metadata.name",
                        "--no-header"

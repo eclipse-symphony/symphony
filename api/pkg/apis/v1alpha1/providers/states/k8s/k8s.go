@@ -182,7 +182,8 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	if namespace == "" {
 		namespace = "default"
 	}
-	sLog.Info("  P (K8s State): upsert state %s in namespace %s, traceId: %s", entry.Value.ID, namespace, span.SpanContext().TraceID().String())
+
+	sLog.Debugf("  P (K8s State): upsert state %s in namespace %s, traceId: %s", entry.Value.ID, namespace, span.SpanContext().TraceID().String())
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,

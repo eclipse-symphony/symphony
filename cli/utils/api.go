@@ -34,12 +34,8 @@ func Remove(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "target-container", "target-containers":
-		route = "/targetcontainers"
 	case "solution-container", "solution-containers":
 		route = "/solutioncontainers"
-	case "instance-container", "instance-containers":
-		route = "/instancecontainers"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solution", "solutions":
@@ -64,12 +60,8 @@ func Upsert(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "target-container", "target-containers":
-		route = "/targetcontainers"
 	case "solution-container", "solution-containers":
 		route = "/solutioncontainers"
-	case "instance-container", "instance-containers":
-		route = "/instancecontainers"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solution", "solutions":
