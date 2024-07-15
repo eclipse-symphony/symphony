@@ -307,13 +307,13 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					err = json.Unmarshal(jData, &rules)
 					if err != nil {
 						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to unmarshal ingress rules: %+v", err)
-						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: parse ingress rules failed", providerName), v1alpha2.IngressPropertiesParseFailed)
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: parse ingress rules failed", providerName), v1alpha2.BadConfig)
 						providerOperationMetrics.ProviderOperationErrors(
 							ingress,
 							functionName,
 							metrics.ApplyOperation,
 							metrics.UpdateOperationType,
-							v1alpha2.IngressPropertiesParseFailed.String(),
+							v1alpha2.BadConfig.String(),
 						)
 						return ret, err
 					}
@@ -326,13 +326,13 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						newIngress.Spec.IngressClassName = &s
 					} else {
 						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to convert ingress class name: %+v", v)
-						err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to convert ingress class name", providerName), v1alpha2.IngressPropertiesParseFailed)
+						err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to convert ingress class name", providerName), v1alpha2.BadConfig)
 						providerOperationMetrics.ProviderOperationErrors(
 							ingress,
 							functionName,
 							metrics.ApplyOperation,
 							metrics.UpdateOperationType,
-							v1alpha2.IngressPropertiesParseFailed.String(),
+							v1alpha2.BadConfig.String(),
 						)
 						return ret, err
 					}

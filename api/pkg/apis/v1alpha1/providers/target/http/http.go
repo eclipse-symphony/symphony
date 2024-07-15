@@ -173,7 +173,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					functionName,
 					metrics.ApplyOperation,
 					metrics.UpdateOperationType,
-					v1alpha2.HttpComponentInvalid.String(),
+					v1alpha2.BadConfig.String(),
 				)
 				return ret, err
 			}
