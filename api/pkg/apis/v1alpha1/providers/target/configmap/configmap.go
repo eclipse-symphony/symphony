@@ -324,7 +324,15 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				}
 			}
 		}
+		providerOperationMetrics.ProviderOperationLatency(
+			applyTime,
+			configmap,
+			functionName,
+			metrics.ApplyOperation,
+			metrics.UpdateOperationType,
+		)
 	}
+	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		for _, component := range components {
@@ -336,21 +344,21 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 						configmap,
 						functionName,
 						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.DeleteOperationType,
 						v1alpha2.ConfigMapApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
+		providerOperationMetrics.ProviderOperationLatency(
+			deleteTime,
+			configmap,
+			functionName,
+			metrics.ApplyOperation,
+			metrics.DeleteOperationType,
+		)
 	}
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		configmap,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-	)
 	return ret, nil
 }
 

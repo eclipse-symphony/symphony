@@ -363,7 +363,15 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				}
 			}
 		}
+		providerOperationMetrics.ProviderOperationLatency(
+			applyTime,
+			ingress,
+			functionName,
+			metrics.ApplyOperation,
+			metrics.UpdateOperationType,
+		)
 	}
+	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		for _, component := range components {
@@ -376,21 +384,21 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						ingress,
 						functionName,
 						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.DeleteOperationType,
 						v1alpha2.IngressApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
+		providerOperationMetrics.ProviderOperationLatency(
+			deleteTime,
+			ingress,
+			functionName,
+			metrics.ApplyOperation,
+			metrics.DeleteOperationType,
+		)
 	}
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		ingress,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-	)
 	return ret, nil
 }
 

@@ -7,6 +7,7 @@
 package metrics
 
 import (
+	"math"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -35,6 +36,8 @@ const (
 	K8SRemoveServiceOperation         string = "K8SRemoveService"
 	K8SRemoveDeploymentOperation      string = "K8SRemoveDeployment"
 	K8SRemoveNamespaceOperation       string = "K8SRemoveNamespace"
+
+	ProcessOperation string = "Process"
 
 	GetOperationType    string = "Get"
 	UpdateOperationType string = "Update"
@@ -129,7 +132,8 @@ func (m *Metrics) ProviderOperationErrors(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in seconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	latency := float64(time.Since(start)) / float64(time.Second)
+	return math.Round(latency*1000) / 1000
 }

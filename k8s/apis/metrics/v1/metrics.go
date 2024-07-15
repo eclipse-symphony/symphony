@@ -8,6 +8,7 @@ package metrics
 
 import (
 	"gopls-workspace/constants"
+	"math"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -79,7 +80,8 @@ func (m *Metrics) ControllerValidationLatency(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// Latency gets the time since the given start in seconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	latency := float64(time.Since(start)) / float64(time.Second)
+	return math.Round(latency*1000) / 1000
 }
