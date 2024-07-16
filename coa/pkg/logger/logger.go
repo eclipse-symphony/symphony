@@ -10,6 +10,8 @@ import (
 	"context"
 	"strings"
 	"sync"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/hooks"
 )
 
 const (
@@ -52,6 +54,8 @@ const (
 // TODO: User will disable or enable logger on demand.
 var globalLoggers = map[string]Logger{}
 var globalLoggersLock = sync.RWMutex{}
+var globalAuditLoggerOnce sync.Once
+var globalAuditLogger Logger
 
 // Logger includes the logging api sets
 type Logger interface {
@@ -134,11 +138,23 @@ func NewLogger(name string) Logger {
 
 	logger, ok := globalLoggers[name]
 	if !ok {
-		logger = newDaprLogger(name)
+		logger = newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false})
 		globalLoggers[name] = logger
 	}
 
 	return logger
+}
+
+// NewAuditLogger creates new Logger instance for audit log.
+func newAuditLogger(name string) Logger {
+	return newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true})
+}
+
+func GetAuditLogger() Logger {
+	globalAuditLoggerOnce.Do(func() {
+		globalAuditLogger = newAuditLogger("audit")
+	})
+	return globalAuditLogger
 }
 
 func getLoggers() map[string]Logger {
