@@ -35,9 +35,9 @@ type daprLogger struct {
 
 var DaprVersion string = "unknown"
 
-func newDaprLogger(name string) *daprLogger {
+func newDaprLogger(name string, contextOptions hooks.ContextHookOptions) *daprLogger {
 	newLogger := logrus.New()
-	newLogger.AddHook(hooks.NewContextHook())
+	newLogger.AddHook(hooks.NewContextHookWithOptions(contextOptions))
 	newLogger.SetOutput(os.Stdout)
 
 	dl := &daprLogger{
