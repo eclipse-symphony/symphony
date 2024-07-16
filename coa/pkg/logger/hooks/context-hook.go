@@ -10,11 +10,27 @@ type ContextHook struct {
 	ActivityLogContextDecorator   *contexts.ActivityLogContextDecorator
 }
 
+type ContextHookOptions struct {
+	DiagnosticLogContextEnabled bool
+	ActivityLogContextEnabled   bool
+}
+
 func NewContextHook() *ContextHook {
 	return &ContextHook{
 		DiagnosticLogContextDecorator: &contexts.DiagnosticLogContextDecorator{},
 		ActivityLogContextDecorator:   &contexts.ActivityLogContextDecorator{},
 	}
+}
+
+func NewContextHookWithOptions(options ContextHookOptions) *ContextHook {
+	hook := ContextHook{}
+	if options.DiagnosticLogContextEnabled {
+		hook.DiagnosticLogContextDecorator = &contexts.DiagnosticLogContextDecorator{}
+	}
+	if options.ActivityLogContextEnabled {
+		hook.ActivityLogContextDecorator = &contexts.ActivityLogContextDecorator{}
+	}
+	return &hook
 }
 
 func (hook *ContextHook) Fire(entry *logrus.Entry) error {
