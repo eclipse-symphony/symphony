@@ -772,6 +772,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	var bodyBytes []byte
@@ -781,8 +782,8 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
+		if resp.StatusCode == 404 {
+			return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 		}
 		object := &SummarySpecError{
 			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),

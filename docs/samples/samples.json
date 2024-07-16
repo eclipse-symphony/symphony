@@ -12,9 +12,14 @@
                     "name": "sample-k8s-target"
                 },
                 {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-prometheus-server" 
+                }, 
+                {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-prometheus-server" 
+                    "name": "sample-prometheus-server-v-v1" 
                 }, 
                 {
                     "file": "instance.yaml",
@@ -79,9 +84,14 @@
                     ]
                 },
                 {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-simulated-temperature-sensor" 
+                }, 
+                {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-simulated-temperature-sensor"
+                    "name": "sample-simulated-temperature-sensor-v-v1"
                 }, 
                 {
                     "file": "instance-1.yaml",
@@ -117,9 +127,14 @@
                     "name": "sample-staged-k8s"
                 },
                 {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-staged-solution" 
+                }, 
+                {
                     "file": "solution.yaml",
                     "type": "solution",
-                    "name": "sample-staged-solution"
+                    "name": "sample-staged-solution-v-v1"
                 }, 
                 {
                     "file": "instance.yaml",
@@ -138,7 +153,7 @@
                        "get",
                        "catalog",
                        "-n",
-                       "sample-staged-instance-sample-staged-k8s",
+                       "sample-staged-instance-sample-staged-k8s-v-v1",
                        "--json-path",
                        "$.metadata.name",
                        "--no-header"
