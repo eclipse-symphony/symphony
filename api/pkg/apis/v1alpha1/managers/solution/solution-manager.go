@@ -252,6 +252,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		namespace,
 		targetName)
 
+	logger.GetAuditLogger().InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s",
+		deployment.Instance.ObjectMeta.Name,
+		deployment.SolutionName,
+		remove,
+		namespace,
+		targetName)
+
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
