@@ -150,7 +150,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if catalog.ObjectMeta.Name == object {
 				label_key := os.Getenv("LABEL_KEY")
 				label_value := os.Getenv("LABEL_VALUE")
-				annotation_name := os.Getenv("ANNOTATION_NAME")
+				annotation_name := os.Getenv("ANNOTATION_KEY")
 				if label_key != "" && label_value != "" && annotation_name != "" {
 					// Check if metadata exists, if not create it
 					metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
