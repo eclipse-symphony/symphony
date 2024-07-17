@@ -60,7 +60,7 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 				"test": {
 					Provider: "providers.stage.mock",
 					Inputs: map[string]interface{}{
-						"foo": "${{$output(test,foo)}}",
+						"foo": "${{$if($equal($output(test,foo), 0), $trigger(foo, 0), $output(test,foo))}}",
 					},
 					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 					Contexts:      "fake",
@@ -106,12 +106,9 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": 1,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -119,6 +116,9 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
 				"test": {
+					Inputs: map[string]interface{}{
+						"foo": 1,
+					},
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 				},
@@ -140,7 +140,7 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	// assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
-func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
+func TestCampaignWithSingleNegativeCounterStageLoop(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := StageManager{
@@ -164,12 +164,9 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": -10,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -177,6 +174,9 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
 				"test": {
+					Inputs: map[string]interface{}{
+						"foo": -10,
+					},
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($gt($output(test,foo), -50), test, '')}}",
 				},
@@ -222,13 +222,9 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": 1,
-			"bar": 1,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -242,6 +238,10 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 				"test2": {
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($lt($output(test2,bar), 5), test, '')}}",
+					Inputs: map[string]interface{}{
+						"foo": 1,
+						"bar": 1,
+					},
 				},
 			},
 		}, *activation)
@@ -260,6 +260,77 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	// assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
 	// assert.Equal(t, "test2", status.Outputs["__stage"])
 	// assert.Equal(t, "fake", status.Outputs["__site"])
+}
+
+func TestCampaignWithTriggersCounterStageLoop(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Inputs: map[string]interface{}{
+			"foo": 1,
+			"bar": 1,
+		},
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.counter",
+					StageSelector: "${{$if($lt($output(test,foo), 5), test, test2)}}",
+					Inputs: map[string]interface{}{
+						"count": 1,
+						"foo":   "${{$trigger(foo, 0)}}",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.counter",
+					StageSelector: "${{$if($lt($output(test2,foo), 10), test2, '')}}",
+					Inputs: map[string]interface{}{
+						"count.init": "${{$output(test, count)}}",
+						"count":      1,
+						"foo":        "${{$output(test, foo)}}",
+						"bar":        "${{$trigger(bar, -1)}}",
+						"bazz":       "${{$trigger(bazz, 0)}}",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
+	assert.Equal(t, int64(7), status.Outputs["count"])
+	assert.Equal(t, int64(10), status.Outputs["foo"])
+	assert.Equal(t, int64(2), status.Outputs["bar"])
+	assert.Equal(t, int64(0), status.Outputs["bazz"])
 }
 
 func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
