@@ -23,26 +23,69 @@ data:
           - key: "microsoft.resourceId"
             action: "upsert"
             value: "{{ .Values.Azure.Extension.ResourceId }}"
-      
+    
+      filter/userAudits:
+        error_mode: ignore
+        logs:
+          log_record:
+            - 'IsMatch(body, "^.*activity=.*$")'
+
+      filter/userDiagnostics:
+        error_mode: ignore
+        logs:
+          log_record:
+            - 'IsMatch(body, "^.*diagnostics=.*$")'
+
+      filter/default:
+        error_mode: ignore
+        logs:
+          log_record:
+            - 'IsMatch(body, "^.*$")'
+
+      transform/userAudits:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(instrumentation_scope.name, "userAudits")
+
+      transform/userDiagnostics:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(instrumentation_scope.name, "userDiagnostics")
+
     exporters:
-      otlp/logs:
+      otlp/userAudits:
+        endpoint: "{{ .Values.otlpLogsEndpointGrpc }}"
+        tls:
+          insecure: {{ .Values.otlpInsecureGrpc }}
+      otlp/userDiagnostics:
+        endpoint: "{{ .Values.otlpLogsEndpointGrpc }}"
+        tls:
+          insecure: {{ .Values.otlpInsecureGrpc }}
+      otlp/default:
         endpoint: "{{ .Values.otlpLogsEndpointGrpc }}"
         tls:
           insecure: {{ .Values.otlpInsecureGrpc }}
 
-      debug:
-        verbosity: detailed
-
     service:
-      telemetry:
-        logs:
-          level: "debug"
-
       pipelines:
-        logs:
+        logs/userAudits:
           receivers: [fluentforward]
-          processors: [resource]
-          exporters: [otlp/logs]
+          processors: [resource, filter/userAudits, transform/userAudits]
+          exporters: [otlp/userAudits]
+
+        logs/userDiagnostics:
+          receivers: [fluentforward]
+          processors: [resource, filter/userDiagnostics, transform/userDiagnostics]
+          exporters: [otlp/userDiagnostics]
+
+        logs/default:
+          receivers: [fluentforward]
+          processors: [resource, filter/default]
+          exporters: [otlp/default]
 
 ---
 apiVersion: apps/v1
