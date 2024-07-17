@@ -150,7 +150,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if catalog.ObjectMeta.Name == object {
 				label_key := os.Getenv("LABEL_KEY")
 				label_value := os.Getenv("LABEL_VALUE")
-				if label_key != "" && label_value != "" {
+				annotation_name := os.Getenv("ANNOTATION_NAME")
+				if label_key != "" && label_value != "" && annotation_name != "" {
 					// Check if metadata exists, if not create it
 					metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
 					if !ok {
@@ -219,6 +220,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
+					if label_key != "" && label_value != "" && annotation_name != "" {
+						solutionState.ObjectMeta.Annotations[annotation_name] = parts[1]
+					}
 					mLog.Debugf("  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 					_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
@@ -290,6 +294,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
+					if label_key != "" && label_value != "" && annotation_name != "" {
+						catalogState.ObjectMeta.Annotations[annotation_name] = parts[1]
+					}
 					mLog.Debugf("  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 					_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 					if err != nil && strings.Contains(err.Error(), constants.NotFound) {
