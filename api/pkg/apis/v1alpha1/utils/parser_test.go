@@ -2144,6 +2144,29 @@ func TestLeadingUnderScore(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "a__b", val)
 }
+func TestTriggerGetValue(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+}
+func TestTriggerGetDefault(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
+}
+func TestTriggerMissingTriggers(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	_, err := parser.Eval(utils.EvaluationContext{})
+	assert.NotNil(t, err)
+}
 func TestEvaulateValueRange(t *testing.T) {
 	parser := NewParser("${{$and($gt($val(),5), $lt($val(),10))}}")
 	val, err := parser.Eval(utils.EvaluationContext{

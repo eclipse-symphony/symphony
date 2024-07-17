@@ -55,6 +55,7 @@ type EvaluationContext struct {
 	Properties     map[string]string
 	Inputs         map[string]interface{}
 	Outputs        map[string]map[string]interface{}
+	Triggers       map[string]interface{}
 	Component      string
 	Value          interface{}
 	Namespace      string

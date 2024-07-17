@@ -460,17 +460,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			sites = append(sites, s.VendorContext.SiteInfo.SiteId)
 		}
 
-		inputs := triggerData.Inputs
-		if inputs == nil {
-			inputs = make(map[string]interface{})
-		}
-
-		if currentStage.Inputs != nil {
-			for k, v := range currentStage.Inputs {
-				inputs[k] = v
-			}
-		}
-
+		inputs := currentStage.Inputs
 		log.Debugf(" M (Stage): HandleTriggerEvent before evaluation inputs 2: %v", inputs)
 
 		// inject default inputs

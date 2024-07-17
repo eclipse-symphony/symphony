@@ -559,6 +559,26 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return property, nil
 		}
 		return nil, fmt.Errorf("$output() expects 2 argument, found %d", len(n.Args))
+	case "trigger":
+		if len(n.Args) == 2 {
+			if context.Triggers == nil {
+				return nil, errors.New("a trigger collection is needed to evaluate $trigger")
+			}
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			defaultVal, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			property, err := readPropertyInterface(context.Triggers, FormatAsString(key))
+			if err != nil {
+				return defaultVal, nil
+			}
+			return property, nil
+		}
+		return nil, fmt.Errorf("$trigger() expects 2 argument, found %d", len(n.Args))
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
