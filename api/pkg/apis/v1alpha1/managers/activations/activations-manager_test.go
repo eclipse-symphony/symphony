@@ -66,17 +66,31 @@ func TestUpdateStageStatus(t *testing.T) {
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
-	err = manager.ReportStageStatus(context.Background(), "test", "default", model.ActivationStatus{
+	err = manager.ReportStageStatus(context.Background(), "test", "default", model.StageStatus{
 		Stage:         "test1",
-		Status:        v1alpha2.Done,
-		StatusMessage: v1alpha2.Done.String(),
+		Status:        v1alpha2.Running,
+		StatusMessage: v1alpha2.Running.String(),
 	})
 	assert.Nil(t, err)
 	state, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", state.ObjectMeta.Name)
-	assert.Equal(t, 1, len(state.Status.History))
-	err = manager.ReportStageStatus(context.Background(), "test", "default", model.ActivationStatus{
+	assert.Equal(t, 1, len(state.Status.StageHistory))
+	assert.Equal(t, "test1", state.Status.StageHistory[0].Stage)
+	assert.Equal(t, v1alpha2.Running, state.Status.StageHistory[0].Status)
+	err = manager.ReportStageStatus(context.Background(), "test", "default", model.StageStatus{
+		Stage:         "test1",
+		Status:        v1alpha2.Done,
+		StatusMessage: v1alpha2.Done.String(),
+	})
+	assert.Nil(t, err)
+	state, err = manager.GetState(context.Background(), "test", "default")
+	assert.Nil(t, err)
+	assert.Equal(t, "test", state.ObjectMeta.Name)
+	assert.Equal(t, 1, len(state.Status.StageHistory))
+	assert.Equal(t, "test1", state.Status.StageHistory[0].Stage)
+	assert.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+	err = manager.ReportStageStatus(context.Background(), "test", "default", model.StageStatus{
 		Stage:         "test2",
 		Status:        v1alpha2.Running,
 		StatusMessage: v1alpha2.Running.String(),
@@ -85,7 +99,11 @@ func TestUpdateStageStatus(t *testing.T) {
 	state, err = manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", state.ObjectMeta.Name)
-	assert.Equal(t, 1, len(state.Status.History))
+	assert.Equal(t, 2, len(state.Status.StageHistory))
+	assert.Equal(t, "test1", state.Status.StageHistory[0].Stage)
+	assert.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+	assert.Equal(t, "test2", state.Status.StageHistory[1].Stage)
+	assert.Equal(t, v1alpha2.Running, state.Status.StageHistory[1].Status)
 	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }

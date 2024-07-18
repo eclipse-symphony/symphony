@@ -115,7 +115,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	})
 	s.Vendor.Context.Subscribe("trigger", func(topic string, event v1alpha2.Event) error {
 		log.Info("V (Stage): handling trigger event")
-		status := model.ActivationStatus{
+		status := model.StageStatus{
 			Stage:         "",
 			NextStage:     "",
 			Outputs:       map[string]interface{}{},
@@ -151,7 +151,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 		status.Stage = triggerData.Stage
-		status.ActivationGeneration = triggerData.ActivationGeneration
 		status.ErrorMessage = ""
 		status.Status = v1alpha2.Running
 		status.StatusMessage = v1alpha2.Running.String()
@@ -194,7 +193,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
 		sLog.Debugf("V (Stage): handling job report event: %v", event)
 		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
+		var status model.StageStatus
 		json.Unmarshal(jData, &status)
 		campaign, ok := status.Outputs["__campaign"].(string)
 		if !ok {
@@ -211,6 +210,13 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			sLog.Errorf("V (Stage): failed to get activation name from job report")
 			return fmt.Errorf("job-report: activation is not valid")
 		}
+
+		err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
+		if err != nil {
+			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
+			return err
+		}
+
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaignName := api_utils.ReplaceSeperator(campaign)
 			campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, namespace)
@@ -235,12 +241,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 		}
 
-		//TODO: later site overrides reports from earlier sites
-		err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
-		if err != nil {
-			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
-			return err
-		}
 		return nil
 	})
 	s.Vendor.Context.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
@@ -311,7 +311,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 }
 
 func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, namespace string, err error) error {
-	status := model.ActivationStatus{
+	status := model.StageStatus{
 		Stage:         "",
 		NextStage:     "",
 		Outputs:       map[string]interface{}{},

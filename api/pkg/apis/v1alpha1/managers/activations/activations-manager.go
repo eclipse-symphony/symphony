@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -226,7 +228,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	return nil
 }
 
-func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string, namespace string, current model.ActivationStatus) error {
+func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string, namespace string, current model.StageStatus) error {
 	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
 		"method": "ReportStageStatus",
 	})
@@ -241,22 +243,12 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 		return err
 	}
 
-	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
-	inputString, _ := json.Marshal(current.Inputs)
-	outputString, _ := json.Marshal(current.Outputs)
-	if current.Status == v1alpha2.Done {
-		current.History = append(activationState.Status.History, model.StageStatus{
-			Stage:         current.Stage,
-			Inputs:        string(inputString),
-			Outputs:       string(outputString),
-			Status:        current.Status,
-			StatusMessage: current.StatusMessage,
-		})
-	} else {
-		current.History = activationState.Status.History
-	}
+	activationState.Status.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 
-	activationState.Status = &current
+	err = mergeStageStatus(&activationState, current)
+	if err != nil {
+		return err
+	}
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -279,5 +271,58 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func mergeStageStatus(activationState *model.ActivationState, current model.StageStatus) error {
+	if current.Outputs["__site"] == nil {
+		// The StageStatus is triggered locally
+		if activationState.Status.StageHistory == nil {
+			activationState.Status.StageHistory = make([]model.StageStatus, 0)
+		}
+		if len(activationState.Status.StageHistory) == 0 {
+			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
+		} else if activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1].Stage != current.Stage {
+			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
+		} else {
+			activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1] = current
+		}
+	} else {
+		// The StageStatus is triggered remotely
+		parentStageStatus := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
+		stage := utils.FormatAsString(current.Outputs["__stage"])
+		if stage != parentStageStatus.Stage {
+			err := v1alpha2.NewCOAError(nil, "remote job result doesn't match the latest stage, discard the result", v1alpha2.BadRequest)
+			return err
+		}
+		site := utils.FormatAsString(current.Outputs["__site"])
+		parentStageStatus.Outputs[fmt.Sprintf("%s.__status", site)] = current.Status.String()
+		output := map[string]interface{}{}
+		for k, v := range current.Outputs {
+			if !strings.HasPrefix(k, "__") {
+				output[k] = v
+			}
+		}
+		outputBytes, _ := json.Marshal(output)
+		parentStageStatus.Outputs[fmt.Sprintf("%s.__output", site)] = string(outputBytes)
+		parentStageStatus.Status = v1alpha2.Done
+		for k, v := range parentStageStatus.Outputs {
+			if strings.HasSuffix(k, "__status") {
+				if v != v1alpha2.Done.String() {
+					parentStageStatus.Status = v1alpha2.Paused
+					break
+				}
+			}
+		}
+		parentStageStatus.StatusMessage = parentStageStatus.Status.String()
+	}
+
+	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
+	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
+		activationState.Status.Status = v1alpha2.Done
+	} else {
+		activationState.Status.Status = v1alpha2.Running
+	}
+	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
 }

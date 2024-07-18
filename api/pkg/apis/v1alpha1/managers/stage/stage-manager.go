@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -117,7 +118,7 @@ func (s *StageManager) Poll() []error {
 func (s *StageManager) Reconcil() []error {
 	return nil
 }
-func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
+func (s *StageManager) ResumeStage(status model.StageStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
 	log.Debugf(" M (Stage): ResumeStage: %v\n", status)
 	campaign, ok := status.Outputs["__campaign"].(string)
 	if !ok {
@@ -271,14 +272,14 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 
 	return nil, nil
 }
-func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.ActivationStatus {
+func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.StageStatus {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleDirectTriggerEvent",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	status := model.ActivationStatus{
+	status := model.StageStatus{
 		Stage:     "",
 		NextStage: "",
 		Outputs: map[string]interface{}{
@@ -391,7 +392,7 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	}
 	return ret
 }
-func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
+func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
@@ -399,17 +400,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info(" M (Stage): HandleTriggerEvent")
-	status := model.ActivationStatus{
-		Stage:     triggerData.Stage,
-		NextStage: "",
-		Outputs: map[string]interface{}{
-			"__campaign":             triggerData.Campaign,
-			"__namespace":            triggerData.Namespace,
-			"__activation":           triggerData.Activation,
-			"__activationGeneration": triggerData.ActivationGeneration,
-			"__stage":                triggerData.Stage,
-			"__site":                 s.VendorContext.SiteInfo.SiteId,
-		},
+	status := model.StageStatus{
+		Stage:         triggerData.Stage,
+		NextStage:     "",
+		Outputs:       map[string]interface{}{},
 		Status:        v1alpha2.Untouched,
 		StatusMessage: v1alpha2.Untouched.String(),
 		ErrorMessage:  "",
@@ -463,7 +457,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		inputs := triggerData.Inputs
 		if inputs == nil {
 			inputs = make(map[string]interface{})
-			triggerData.Inputs = inputs
 		}
 
 		if currentStage.Inputs != nil {
@@ -485,6 +478,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		if triggerData.Schedule != "" {
 			inputs["__schedule"] = triggerData.Schedule
 		}
+
 		for k, v := range inputs {
 			var val interface{}
 			val, err = s.traceValue(v, inputs, triggerData.Outputs)
@@ -497,6 +491,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				return status, activationData
 			}
 			inputs[k] = val
+		}
+		status.Inputs = map[string]interface{}{}
+		for k, v := range inputs {
+			if !strings.HasPrefix(k, "__") {
+				status.Inputs[k] = v
+			}
 		}
 
 		if triggerData.Outputs != nil {
@@ -635,13 +635,15 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			} else {
 				key := fmt.Sprintf("%s.__status", result.Site)
 				if _, ok := result.Outputs[key]; !ok {
-					outputs[fmt.Sprintf("%s.__status", result.Site)] = v1alpha2.OK
+					outputs[key] = v1alpha2.Untouched
 				}
 			}
 		}
 
 		for k, v := range outputs {
-			status.Outputs[k] = v
+			if !strings.HasPrefix(k, "__") {
+				status.Outputs[k] = v
+			}
 		}
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
@@ -823,7 +825,9 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
 	if stageSpec, ok := campaign.Stages[stage]; ok {
-		if activation.Status != nil && activation.Status.Stage != "" && activation.Status.NextStage != stage {
+		if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
+			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
+			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
 		}
 		return &v1alpha2.ActivationData{

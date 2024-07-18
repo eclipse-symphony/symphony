@@ -26,9 +26,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.nextStage
-      name: Next Stage
-      type: string
     - jsonPath: .status.statusMessage
       name: Status
       type: string
@@ -69,15 +66,19 @@ spec:
                 type: string
               errorMessage:
                 type: string
-              history:
+              stagehistory:
                 items:
                   properties:
                     errorMessage:
                       type: string
                     inputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    isActive:
+                      type: boolean
+                    nextStage:
                       type: string
                     outputs:
-                      type: string
+                      x-kubernetes-preserve-unknown-fields: true
                     stage:
                       type: string
                     status:
@@ -86,24 +87,12 @@ spec:
                       type: string
                   type: object
                 type: array
-              inputs:
-                x-kubernetes-preserve-unknown-fields: true
-              isActive:
-                type: boolean
-              nextStage:
-                type: string
-              outputs:
-                x-kubernetes-preserve-unknown-fields: true
-              stage:
-                type: string
               status:
                 type: integer
               statusMessage:
                 type: string
               updateTime:
                 type: string
-            required:
-            - stage
             type: object
         type: object
     served: true
