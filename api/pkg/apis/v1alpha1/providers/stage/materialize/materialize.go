@@ -221,6 +221,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 
 					if label_key != "" && label_value != "" && annotation_name != "" {
+						if solutionState.ObjectMeta.Annotations == nil {
+							solutionState.ObjectMeta.Annotations = make(map[string]string)
+						}
 						solutionState.ObjectMeta.Annotations[annotation_name] = parts[1]
 					}
 					mLog.Debugf("  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
@@ -295,6 +298,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					}
 
 					if label_key != "" && label_value != "" && annotation_name != "" {
+						if catalogState.ObjectMeta.Annotations == nil {
+							catalogState.ObjectMeta.Annotations = make(map[string]string)
+						}
 						catalogState.ObjectMeta.Annotations[annotation_name] = parts[1]
 					}
 					mLog.Debugf("  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
