@@ -90,11 +90,11 @@ type (
 	// float64 measurements.
 	Histogram interface {
 		// Add records a change to the instrument.
-		Add(incr float64, attrs ...map[string]any)
+		Add(incr int64, attrs ...map[string]any)
 	}
 	histogram struct {
 		attrs map[string]any
-		h     otelmetric.Float64Histogram
+		h     otelmetric.Int64Histogram
 	}
 )
 
@@ -276,7 +276,7 @@ func (m *metrics) Histogram(
 	name, description string,
 	attrs ...map[string]any,
 ) (Histogram, error) {
-	h, err := m.meter.Float64Histogram(
+	h, err := m.meter.Int64Histogram(
 		name,
 		otelmetric.WithDescription(description),
 	)
@@ -292,7 +292,7 @@ func (m *metrics) Histogram(
 }
 
 func (h *histogram) Add(
-	incr float64,
+	incr int64,
 	attrs ...map[string]any,
 ) {
 	if h.attrs != nil {
