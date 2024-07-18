@@ -289,6 +289,10 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 		}
 	} else {
 		// The StageStatus is triggered remotely
+		if activationState.Status.StageHistory == nil || len(activationState.Status.StageHistory) == 0 {
+			err := v1alpha2.NewCOAError(nil, "activation status doesn't has a parent stage history", v1alpha2.BadRequest)
+			return err
+		}
 		parentStageStatus := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
 		stage := utils.FormatAsString(current.Outputs["__stage"])
 		if stage != parentStageStatus.Stage {

@@ -208,7 +208,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			return "", err
 		}
 		var dict map[string]interface{}
-		sLog.Infof("P (K8s State): jsonString is %s", string(j))
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
@@ -216,7 +215,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		}
 		unc.Object["spec"] = dict["spec"]
 		metaJson, _ := json.Marshal(dict["metadata"])
-		sLog.Infof("P (K8s State): jsonString is %s", string(metaJson))
 		var metadata metav1.ObjectMeta
 		err = json.Unmarshal(metaJson, &metadata)
 		if err != nil {
