@@ -134,8 +134,8 @@ func (m *Metrics) ProviderOperationErrors(
 	)
 }
 
-// latency gets the time since the given start in seconds.
-func latency(start time.Time) float64 {
-	latency := float64(time.Since(start)) / float64(time.Second)
-	return math.Round(latency*1000) / 1000
+// latency gets the time since the given start in milliseconds.
+func latency(start time.Time) int64 {
+	latency := float64(time.Since(start)) / float64(time.Millisecond)
+	return int64(math.Round(latency))
 }
