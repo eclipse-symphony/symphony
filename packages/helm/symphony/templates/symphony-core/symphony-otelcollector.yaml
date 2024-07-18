@@ -23,7 +23,7 @@ spec:
           image: "{{ .Values.observability.otelCollector.image }}"
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: '{{ include "symphony.fullname" . }}-logforwarder'
+      serviceAccountName: '{{ include "symphony.fullname" . }}-otel-forwarder'
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
