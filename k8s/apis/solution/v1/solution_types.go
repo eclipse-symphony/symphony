@@ -7,9 +7,11 @@
 package v1
 
 import (
+	commoncontainers "gopls-workspace/apis/containers/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // SolutionStatus defines the observed state of Solution
@@ -37,6 +39,15 @@ type SolutionList struct {
 	Items           []Solution `json:"items"`
 }
 
+type SolutionContainer struct {
+	commoncontainers.CommonContainer
+}
+
+var _ webhook.Validator = &SolutionContainer{}
+
+var _ webhook.Defaulter = &SolutionContainer{}
+
 func init() {
 	SchemeBuilder.Register(&Solution{}, &SolutionList{})
+	SchemeBuilder.Register(&SolutionContainer{})
 }

@@ -9,7 +9,10 @@ package v1
 import (
 	k8smodel "gopls-workspace/apis/model/v1"
 
+	commoncontainers "gopls-workspace/apis/containers/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // CampaignStatus defines the observed state of Campaign
@@ -37,6 +40,15 @@ type CampaignList struct {
 	Items           []Campaign `json:"items"`
 }
 
+type CampaignContainer struct {
+	commoncontainers.CommonContainer
+}
+
+var _ webhook.Validator = &CampaignContainer{}
+
+var _ webhook.Defaulter = &CampaignContainer{}
+
 func init() {
 	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
+	SchemeBuilder.Register(&CampaignContainer{})
 }
