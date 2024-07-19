@@ -510,6 +510,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
 			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
 
+			logger.GetAuditLogger().InfofCtx(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply: %+v", err)
@@ -546,6 +547,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			switch component.Component.Type {
 			case "helm.v3":
 				uninstallClient := configureUninstallClient(&deployment, actionConfig)
+				logger.GetAuditLogger().InfofCtx(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(component.Component.Name)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)
@@ -597,6 +599,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProperty) (fileName string, err error) {
 	fileName = fmt.Sprintf("%s/%s.tgz", tempChartDir, uuid.New().String())
 
+	logger.GetAuditLogger().InfoCtx(ctx, "  P (Helm Target): Starting pulling chart, repo - %s, name - %s, version - %s", chart.Repo, chart.Name, chart.Version)
 	if strings.HasPrefix(chart.Repo, "http") {
 		var chartPath string
 		if strings.HasSuffix(chart.Repo, ".tgz") {
