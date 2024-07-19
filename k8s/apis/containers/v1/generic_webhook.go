@@ -82,7 +82,7 @@ func (r *CommonContainer) ValidateDelete() (admission.Warnings, error) {
 
 func (r *CommonContainer) validateDeleteContainer() error {
 	var commonContainerList CommonContainerList
-	err := cacheClient.List(context.Background(), &commonContainerList, client.InNamespace(r.Namespace), client.MatchingFields{".spec.rootResource": r.Name})
+	err := readerClient.List(context.Background(), &commonContainerList, client.InNamespace(r.Namespace), client.MatchingFields{".spec.rootResource": r.Name}, client.Limit(1))
 	if err != nil {
 		commoncontainerlog.Error(err, "could not list nested resources ", "name", r.Name, "kind", r.Kind)
 		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.Kind, r.Name))
