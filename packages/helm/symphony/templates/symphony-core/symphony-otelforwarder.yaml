@@ -56,9 +56,6 @@ data:
             timestamp:
               parse_from: attributes.time
               layout: '%Y-%m-%dT%H:%M:%S.%LZ'
-          - type: move
-            from: attributes.log
-            to: body
           # Extract metadata from file path
           - type: regex_parser
             id: extract_metadata_from_filepath
@@ -79,6 +76,63 @@ data:
           - type: move
             from: attributes.pod_name
             to: resource["k8s.pod.name"]
+          # Decide whether to try to treat the log body as json or not
+          - type: router
+            id: process
+            routes:
+            - output: json_parser
+              expr: attributes.log matches "^{"
+            default: text_parser
+          # This branch means it's not a json log, so just copy the msg field as the body
+          - type: copy
+            id: text_parser
+            from: attributes.log
+            to: body
+            output: noop
+          # This branch means it is a json log, so parse it
+          - type: json_parser
+            parse_from: attributes.log
+            parse_to: body
+            on_error: send
+            output: start_retrieving
+          - type: move
+            id: start_retrieving
+            if: 'body["caller"] != nil'
+            from: body["caller"]
+            to: attributes["log.caller"]
+          - type: move
+            if: 'body["level"] != nil'
+            from: body["level"]
+            to: attributes["log.level"]
+          - type: move
+            if: 'body["scope"] != nil'
+            from: body["scope"]
+            to: attributes["log.scope"]
+          - type: move
+            if: 'body["time"] != nil'
+            from: body["time"]
+            to: attributes["log.time"]
+          - type: move
+            if: 'body["ver"] != nil'
+            from: body["ver"]
+            to: attributes["log.ver"]
+          - type: move
+            if: 'body["activity"] != nil'
+            from: body["activity"]
+            to: attributes["log.activity"]
+          - type: move
+            if: 'body["diagnostics"] != nil'
+            from: body["diagnostics"]
+            to: attributes["log.diagnostics"]
+          - type: move
+            if: 'body["stacktrace"] != nil'
+            from: body["stacktrace"]
+            to: attributes["log.stacktrace"]
+          - type: move
+            if: 'body["msg"] != nil'
+            from: body["msg"]
+            to: body
+          - type: noop
 
     processors:
       k8sattributes:
@@ -100,14 +154,24 @@ data:
             - container.image.name
             - container.image.tag
 
+      batch:
+      memory_limiter:
+        # 80% of maximum memory up to 2G
+        limit_mib: 1500
+        # 25% of limit up to 2G
+        spike_limit_mib: 512
+        check_interval: 5s
+
       filter/userAudits:
         logs:
           log_record:
-            - 'not IsMatch(body, "^.*activity=.*$")'
+            # - 'not IsMatch(attributes["log"], "^.*activity.*$")'
+            - attributes["log.activity"] == nil
       filter/userDiagnostics:
         logs:
           log_record:
-            - 'not IsMatch(body, "^.*diagnostics=.*$")'
+            # - 'not IsMatch(attributes["log"], "^.*diagnostics.*$")'
+            - attributes["log.diagnostics"] == nil
 
       transform/userAudits:
         error_mode: ignore
@@ -146,18 +210,21 @@ data:
       pipelines:
         logs/userAudits:
           receivers: [filelog]
-          processors: [k8sattributes, filter/userAudits, transform/userAudits]
+          processors: [memory_limiter, batch, k8sattributes, filter/userAudits, transform/userAudits]
           exporters: [otlp/userAudits]
+          # exporters: [debug]
 
         logs/userDiagnostics:
           receivers: [filelog]
-          processors: [k8sattributes, filter/userDiagnostics, transform/userDiagnostics]
+          processors: [memory_limiter, batch, k8sattributes, filter/userDiagnostics, transform/userDiagnostics]
           exporters: [otlp/userDiagnostics]
+          # exporters: [debug]
 
         logs/default:
           receivers: [filelog]
-          processors: [k8sattributes]
+          processors: [memory_limiter, batch, k8sattributes]
           exporters: [otlp/default]
+          # exporters: [debug]
 
 ---
 apiVersion: apps/v1
@@ -181,6 +248,13 @@ spec:
         - name: otel-collector
           image: "{{ .Values.observability.otelForwarder.image }}"
           command: ["/otelcol-contrib", "--config=/conf/otel-forwarder-config.yaml"]
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+            requests:
+              cpu: "200m"
+              memory: "400Mi"
           env:
             - name: KUBE_NODE_NAME
               valueFrom:
