@@ -154,10 +154,26 @@ func main() {
 		logMode = Development
 	}
 
+	// Create a custom EncoderConfig
+	encoderConfig := zapcore.EncoderConfig{
+		CallerKey:     "caller",
+		TimeKey:       "time",
+		LevelKey:      "level",
+		MessageKey:    "msg",
+		StacktraceKey: "stacktrace",
+		EncodeTime:    zapcore.ISO8601TimeEncoder,
+		EncodeLevel:   zapcore.LowercaseLevelEncoder,
+		EncodeCaller:  zapcore.FullCallerEncoder,
+	}
+
+	// Create a JSON encoder with the custom EncoderConfig
+	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
+
 	opts := zap.Options{
 		Development: logMode.IsDevelopment(),
 		TimeEncoder: zapcore.ISO8601TimeEncoder,
 		ZapOpts:     []zaplog.Option{zaplog.AddCaller()},
+		Encoder:     jsonEncoder,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -169,7 +185,8 @@ func main() {
 	loggerOptions := logger.DefaultOptions()
 	// align with zap logger
 	// zap logger won't use json format in development mode
-	loggerOptions.JSONFormatEnabled = !logMode.IsDevelopment()
+	// loggerOptions.JSONFormatEnabled = !logMode.IsDevelopment()
+	loggerOptions.JSONFormatEnabled = true
 	logLevel := "debug"
 	if !logMode.IsDevelopment() {
 		logLevel = "info"
