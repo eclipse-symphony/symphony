@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultJSONOutput  = false
+	defaultJSONOutput  = true
 	defaultOutputLevel = "info"
 	undefinedAppID     = ""
 )
