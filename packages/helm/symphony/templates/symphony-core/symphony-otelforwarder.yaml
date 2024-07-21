@@ -124,7 +124,73 @@ data:
             if: 'body["diagnostics"] != nil'
             from: body["diagnostics"]
             to: attributes["log.diagnostics"]
+          - type: router
+            id: process_diagnostics
+            routes:
+              - output: tag_diagnostics
+                expr: attributes["log.diagnostics"] != nil
+            default: process_activity
+          - type: add
+            id: tag_diagnostics
+            if: 'attributes["log.diagnostics"] != nil'
+            field: attributes["log.type"]
+            value: "diagnostics"
+          - type: trace_parser
+            trace_id:
+              parse_from: attributes["log.diagnostics"]["traceContext"]["traceId"]
+            span_id:
+              parse_from: attributes["log.diagnostics"]["traceContext"]["spanId"]
+          - type: copy
+            if: 'attributes["log.diagnostics"] != nil'
+            from: attributes["log.diagnostics"]["resourceId"]
+            to: attributes["log.resourceId"]
+          - type: copy
+            if: 'attributes["log.diagnostics"] != nil'
+            from: attributes["log.diagnostics"]["correlationId"]
+            to: attributes["log.correlationId"]
+          - type: remove
+            if: 'attributes["log.diagnostics"] != nil'
+            field: attributes["log.diagnostics"]
+          - type: router
+            id: process_activity
+            routes:
+              - output: tag_activity
+                expr: attributes["log.activity"] != nil
+            default: parse_stacktrace
+          - type: add
+            id: tag_activity
+            if: 'attributes["log.activity"] != nil'
+            field: attributes["log.type"]
+            value: "activity"
           - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["operationName"]
+            to: attributes["operationName"]
+          - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["resourceId"]
+            to: attributes["resourceId"]
+          - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["location"]
+            to: attributes["location"]
+          - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["category"]
+            to: attributes["category"]
+          - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["properties"]
+            to: attributes["properties"]
+          - type: move
+            if: 'attributes["log.activity"] != nil'
+            from: attributes["log.activity"]["correlationId"]
+            to: attributes["correlationId"]
+          - type: remove
+            if: 'attributes["log.activity"] != nil'
+            field: attributes["log.activity"]
+          - type: move
+            id: parse_stacktrace
             if: 'body["stacktrace"] != nil'
             from: body["stacktrace"]
             to: attributes["log.stacktrace"]
@@ -166,12 +232,12 @@ data:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*activity.*$")'
-            - attributes["log.activity"] == nil
+            - attributes["log.type"] != "activity"
       filter/userDiagnostics:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*diagnostics.*$")'
-            - attributes["log.diagnostics"] == nil
+            - attributes["log.type"] != "diagnostics" or attributes["log.resourceId"] == nil or attributes["log.resourceId"] == ""
 
       transform/userAudits:
         error_mode: ignore
