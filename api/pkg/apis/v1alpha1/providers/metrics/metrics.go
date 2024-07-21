@@ -7,7 +7,6 @@
 package metrics
 
 import (
-	"math"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -48,14 +47,14 @@ const (
 
 // Metrics is a metrics tracker for a provider operation.
 type Metrics struct {
-	providerOperationLatency observability.Histogram
+	providerOperationLatency observability.Gauge
 	providerOperationErrors  observability.Counter
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.API)
 
-	providerOperationLatency, err := observable.Metrics.Histogram(
+	providerOperationLatency, err := observable.Metrics.Gauge(
 		"symphony_provider_operation_latency",
 		"measure of overall latency for provider operation side",
 	)
@@ -98,7 +97,7 @@ func (m *Metrics) ProviderOperationLatency(
 		return
 	}
 
-	m.providerOperationLatency.Add(
+	m.providerOperationLatency.Set(
 		latency(startTime),
 		Target(
 			providerType,
@@ -135,7 +134,6 @@ func (m *Metrics) ProviderOperationErrors(
 }
 
 // latency gets the time since the given start in milliseconds.
-func latency(start time.Time) int64 {
-	latency := float64(time.Since(start)) / float64(time.Millisecond)
-	return int64(math.Round(latency))
+func latency(start time.Time) float64 {
+	return float64(time.Since(start).Milliseconds())
 }

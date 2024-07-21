@@ -8,7 +8,6 @@ package metrics
 
 import (
 	"gopls-workspace/constants"
-	"math"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -33,13 +32,13 @@ const (
 
 // Metrics is a metrics tracker for a controller operation.
 type Metrics struct {
-	controllerValidationLatency observability.Histogram
+	controllerValidationLatency observability.Gauge
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.K8S)
 
-	controllerValidationLatency, err := observable.Metrics.Histogram(
+	controllerValidationLatency, err := observable.Metrics.Gauge(
 		"symphony_controller_validation_latency",
 		"measure of overall controller validate latency",
 	)
@@ -70,7 +69,7 @@ func (m *Metrics) ControllerValidationLatency(
 		return
 	}
 
-	m.controllerValidationLatency.Add(
+	m.controllerValidationLatency.Set(
 		latency(startTime),
 		Deployment(
 			validationType,
@@ -81,7 +80,6 @@ func (m *Metrics) ControllerValidationLatency(
 }
 
 // latency gets the time since the given start in milliseconds.
-func latency(start time.Time) int64 {
-	latency := float64(time.Since(start)) / float64(time.Millisecond)
-	return int64(math.Round(latency))
+func latency(start time.Time) float64 {
+	return float64(time.Since(start).Milliseconds())
 }
