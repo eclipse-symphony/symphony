@@ -218,7 +218,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"kind":      "Activation",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -264,7 +264,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 			"kind":      "Activation",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -303,6 +303,7 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 		parentStageStatus.Outputs[fmt.Sprintf("%s.__status", site)] = current.Status.String()
 		output := map[string]interface{}{}
 		for k, v := range current.Outputs {
+			// remove outputs for internal tracking use
 			if !strings.HasPrefix(k, "__") {
 				output[k] = v
 			}
