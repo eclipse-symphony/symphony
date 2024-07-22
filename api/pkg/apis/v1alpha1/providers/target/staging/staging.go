@@ -9,7 +9,9 @@ package staging
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -102,9 +104,12 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	if scope == "" {
 		scope = "default"
 	}
+	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
+	versionName := containerName + constants.ResourceSeperator + "v1"
+
 	catalog, err := i.ApiClient.GetCatalog(
 		ctx,
-		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		versionName,
 		scope,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password)
@@ -145,6 +150,8 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	})
 	sLog.Infof("  P (Staging Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
 
+	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
+	versionName := containerName + constants.ResourceSeperator + "v1"
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 
@@ -168,7 +175,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	catalog, err = i.ApiClient.GetCatalog(
 		ctx,
-		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		versionName,
 		scope,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password)
@@ -179,7 +186,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 
 	if catalog.Spec == nil {
-		catalog.ObjectMeta.Name = deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
+		catalog.ObjectMeta.Name = versionName
 		catalog.Spec = &model.CatalogSpec{
 			CatalogType: "staged",
 		}
@@ -271,10 +278,27 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		"components":         existing,
 		"removed-components": deleted,
 	}
+	catalog.Spec.RootResource = containerName
 	jData, _ := json.Marshal(catalog)
+
+	_, err = i.ApiClient.GetCatalogContainer(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
+	if err != nil && strings.Contains(err.Error(), constants.NotFound) {
+		sLog.Debugf("Catalog container %s doesn't exist: %s", containerName, err.Error())
+		catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalog.ObjectMeta.Namespace, Labels: catalog.ObjectMeta.Labels}}
+		containerObjectData, _ := json.Marshal(catalogContainerState)
+		err = i.ApiClient.CreateCatalogContainer(ctx, containerName, containerObjectData, catalog.ObjectMeta.Namespace, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
+		if err != nil {
+			sLog.Errorf("Failed to create catalog container %s: %s", containerName, err.Error())
+			return ret, err
+		}
+	} else if err != nil {
+		sLog.Errorf("Failed to get catalog container %s: %s", containerName, err.Error())
+		return ret, err
+	}
+
 	err = i.ApiClient.UpsertCatalog(
 		ctx,
-		deployment.Instance.ObjectMeta.Name+"-"+i.Config.TargetName,
+		versionName,
 		jData,
 		i.Context.SiteInfo.CurrentSite.Username,
 		i.Context.SiteInfo.CurrentSite.Password)

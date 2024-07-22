@@ -860,8 +860,8 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
 	if stageSpec, ok := campaign.Stages[stage]; ok {
-		if activation.Status != nil && activation.Status.Stage != "" && activation.Status.NextStage != stage {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
+		if activation.Status != nil && activation.Status.Stage != "" && activation.Status.NextStage != stage && activation.Status.NextStage != "" {
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage %s", stage, activation.Status.NextStage), v1alpha2.BadRequest)
 		}
 		return &v1alpha2.ActivationData{
 			Campaign:             actData.Campaign,

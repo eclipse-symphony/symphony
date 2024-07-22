@@ -175,6 +175,30 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.InternalError)
 			return nil, false, err
 		}
+	case "target":
+		objectNamespace := stage.GetNamespace(inputs)
+		if objectNamespace == "" {
+			objectNamespace = "default"
+		}
+
+		if strings.EqualFold(action, RemoveAction) {
+			err = i.ApiClient.DeleteTarget(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				return nil, false, err
+			}
+		} else if strings.EqualFold(action, CreateAction) {
+			err = i.ApiClient.CreateTarget(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				return nil, false, err
+			}
+			// TODO: wait for target status?
+			outputs["objectType"] = objectType
+			outputs["objectName"] = objectName
+			return outputs, false, nil
+		} else {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.InternalError)
+			return nil, false, err
+		}
 	default:
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
 		return nil, false, err

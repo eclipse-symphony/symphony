@@ -158,26 +158,8 @@ resources:
   controller: true
   domain: symphony
   group: solution
-  kind: InstanceContainer
-  path: gopls-workspace/apis/solution/v1
-  version: v1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: symphony
-  group: solution
   kind: SolutionContainer
   path: gopls-workspace/apis/solution/v1
-  version: v1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: symphony
-  group: fabric
-  kind: TargetContainer
-  path: gopls-workspace/apis/fabric/v1
   version: v1
 - api:
     crdVersion: v1

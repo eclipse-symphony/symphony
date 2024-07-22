@@ -7,11 +7,10 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
-  name: instance-v1
+  name: instance
 spec:
-  rootResource: instance
-  displayName: instance-v1
+  displayName: instance
   scope: alice-springs
   solution: mysol:v1
   target:
-    name: self:v1
+    name: self

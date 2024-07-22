@@ -1,10 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: sampleprometheusinstance-v1
+  name: sample-prometheus-instance
 spec:
-  rootResource: sampleprometheusinstance
   scope: sample-k8s-scope  
-  solution: sampleprometheusserver:v1
+  solution: sample-prometheus-server:v1
   target: 
-    name: samplek8starget:v1
+    name: sample-k8s-target

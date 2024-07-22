@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: solution03-v1
+  name: solution03-v-v1
 spec:
   rootResource: solution03
   metadata:
@@ -14,5 +14,5 @@ spec:
     properties:
       container.ports: "[{\"containerPort\":9090,\"protocol\":\"TCP\"}]"
       container.imagePullPolicy: "Always"
-      container.resources: "{\"requests\":{\"cpu\":\"1\",\"memory\":\"100Mi\"}}"        
+      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
       container.image: "prom/prometheus"

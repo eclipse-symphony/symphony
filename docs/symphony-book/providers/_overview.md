@@ -14,10 +14,11 @@ Common provider types include:
 * Probe
 * Pub-Sub
 * Reporter
-* [State](./state-providers/README.md)  
+* [State](./state-providers/_overview.md)  
 * Uploader
   
 ## Develop providers
 
-* [Provider interface](./provider_interface.md)
+* [Target Provider interface](./target-providers/provider_interface.md)
+* [State Provider interface](./state-providers/_overview.md)
 * [Write a Python-based provider](./python_provider.md)

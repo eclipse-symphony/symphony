@@ -1,8 +1,9 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: sample-simulated-temperature-sensor
+  name: sample-simulated-temperature-sensor-v-v1
 spec:
+  rootResource: sample-simulated-temperature-sensor
   components:
   - name: "simulated-temperature-sensor"
     properties:

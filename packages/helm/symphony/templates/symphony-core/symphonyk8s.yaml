@@ -58,8 +58,6 @@ spec:
             properties:
               campaign:
                 type: string
-              generation:
-                type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
               stage:
@@ -358,8 +356,6 @@ spec:
             properties:
               catalogType:
                 type: string
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string
@@ -515,60 +511,6 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
-  name: instancecontainers.solution.symphony
-spec:
-  group: solution.symphony
-  names:
-    kind: InstanceContainer
-    listKind: InstanceContainerList
-    plural: instancecontainers
-    singular: instancecontainer
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: InstanceContainer is the Schema for the InstanceContainers API
-        properties:
-          apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-            type: string
-          kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-          status:
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                type: object
-            required:
-            - properties
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
@@ -628,8 +570,6 @@ spec:
             properties:
               displayName:
                 type: string
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string
@@ -672,8 +612,6 @@ spec:
                 required:
                 - state
                 type: object
-              rootResource:
-                type: string
               scope:
                 type: string
               solution:
@@ -718,8 +656,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             required:
             - solution
             type: object
@@ -1505,61 +1441,6 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
-  name: targetcontainers.fabric.symphony
-spec:
-  group: fabric.symphony
-  names:
-    kind: TargetContainer
-    listKind: TargetContainerList
-    plural: targetcontainers
-    singular: targetcontainer
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: TargetContainer is the Schema for the TargetContainers API
-        properties:
-          apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-            type: string
-          kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-          status:
-            description: TargetContainerStatus defines the observed state of Target
-            properties:
-              properties:
-                additionalProperties:
-                  type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
-                type: object
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
@@ -1690,8 +1571,6 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
-              generation:
-                type: string
               metadata:
                 additionalProperties:
                   type: string
@@ -1717,8 +1596,6 @@ spec:
                 required:
                 - state
                 type: object
-              rootResource:
-                type: string
               scope:
                 type: string
               topologies:
@@ -1750,8 +1627,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                type: string
             type: object
           status:
             properties:
@@ -2270,32 +2145,6 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - instancecontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - solution.symphony
-  resources:
-  - instancecontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
-  - instancecontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
   - solutioncontainers
   verbs:
   - create
@@ -2315,32 +2164,6 @@ rules:
   - solution.symphony
   resources:
   - solutioncontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - fabric.symphony
-  resources:
-  - targetcontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - fabric.symphony
-  resources:
-  - targetcontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - fabric.symphony
-  resources:
-  - targetcontainers/status
   verbs:
   - get
   - patch
@@ -2685,26 +2508,6 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-fabric-symphony-v1-targetcontainer
-  failurePolicy: Fail
-  name: mtargetcontainer.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - targetcontainers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
       path: /mutate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
@@ -2718,26 +2521,6 @@ webhooks:
     - UPDATE
     resources:
     - instances
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solution-symphony-v1-instancecontainer
-  failurePolicy: Fail
-  name: minstancecontainer.kb.io
-  rules:
-  - apiGroups:
-    - solution.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - instancecontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -2914,27 +2697,6 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-fabric-symphony-v1-targetcontainer
-  failurePolicy: Fail
-  name: vtargetcontainer.kb.io
-  rules:
-  - apiGroups:
-    - fabric.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - targetcontainers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
       path: /validate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
@@ -2948,27 +2710,6 @@ webhooks:
     - UPDATE
     resources:
     - instances
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /validate-solution-symphony-v1-instancecontainer
-  failurePolicy: Fail
-  name: vinstancecontainer.kb.io
-  rules:
-  - apiGroups:
-    - solution.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - instancecontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1

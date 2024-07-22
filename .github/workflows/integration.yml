@@ -101,15 +101,25 @@ jobs:
       run: |
         cd test/integration/scenarios/02.basic/ && mage test
 
+    - name: Run integration tests 02 delete
+      run: |
+        cd test/integration/scenarios/02.basicdelete/ && mage test
+
     - name: Run integration tests 03
       run: |
         cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
 
-    - name: Run integration tests 04
+    - name: Run integration tests 04 without labeling
       run: |
         export REPO_PATH="${{ github.workspace }}"
         echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test
+        cd test/integration/scenarios/04.workflow/ && mage test false
+
+    - name: Run integration tests 04 with labeling
+      run: |
+        export REPO_PATH="${{ github.workspace }}"
+        echo "REPO_PATH=$REPO_PATH"
+        cd test/integration/scenarios/04.workflow/ && mage test true
 
     - name: Run integration tests 05
       run: |

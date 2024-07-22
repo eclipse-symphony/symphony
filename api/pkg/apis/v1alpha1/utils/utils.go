@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	oJsonpath "github.com/oliveagle/jsonpath"
 	"k8s.io/client-go/util/jsonpath"
@@ -322,7 +323,7 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 
 func ReplaceSeperator(name string) string {
 	if strings.Contains(name, ":") {
-		name = strings.ReplaceAll(name, ":", "-")
+		name = strings.ReplaceAll(name, ":", constants.ResourceSeperator)
 	}
 	return name
 }

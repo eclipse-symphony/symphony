@@ -1,9 +1,15 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: shared
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: shared-tags
+  name: shared-v-tags
 spec:
+  rootResource: shared
   catalogType: config
   properties:
     tags: [

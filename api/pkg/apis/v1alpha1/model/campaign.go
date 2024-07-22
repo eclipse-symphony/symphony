@@ -7,10 +7,14 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -131,10 +135,41 @@ type ActivationStatus struct {
 }
 
 type ActivationSpec struct {
-	Campaign   string                 `json:"campaign,omitempty"`
-	Stage      string                 `json:"stage,omitempty"`
-	Inputs     map[string]interface{} `json:"inputs,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	Campaign string                 `json:"campaign,omitempty"`
+	Stage    string                 `json:"stage,omitempty"`
+	Inputs   map[string]interface{} `json:"inputs,omitempty"`
+}
+
+func (c ActivationSpec) Hash() (string, error) {
+	hasher := sha256.New()
+
+	// Write the simple fields to the hasher
+	writeStringHash(hasher, c.Campaign)
+	writeStringHash(hasher, c.Stage)
+
+	// Sort the map keys to ensure consistent order
+	keys := make([]string, 0, len(c.Inputs))
+	for key := range c.Inputs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Write the sorted map entries to the hasher
+	for _, key := range keys {
+		valueBytes, err := json.Marshal(c.Inputs[key])
+		if err != nil {
+			return "", err
+		}
+		writeStringHash(hasher, key)
+		hasher.Write(valueBytes)
+	}
+
+	// Get the final hash result
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func writeStringHash(writer io.Writer, value string) {
+	fmt.Fprintf(writer, "<%s>", value)
 }
 
 func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {

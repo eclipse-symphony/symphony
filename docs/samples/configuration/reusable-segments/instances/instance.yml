@@ -4,7 +4,7 @@ kind: Instance
 metadata:
   name: reusable-segment-instance
 spec:
-  solution: reusable-segment-solution
+  solution: reusable-segment-solution:v1
   scope: default
   target:
     name: k8s-target

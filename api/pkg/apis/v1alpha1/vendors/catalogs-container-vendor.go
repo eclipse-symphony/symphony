@@ -7,6 +7,8 @@
 package vendors
 
 import (
+	"encoding/json"
+
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogcontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -118,17 +120,22 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCatalogContainers-POST", pCtx, nil)
-		catalog := model.CatalogContainerState{
-			ObjectMeta: model.ObjectMeta{
-				Name:      id,
-				Namespace: namespace,
-			},
-			Spec: &model.CatalogContainerSpec{},
-		}
-
-		err := c.CatalogContainersManager.UpsertState(ctx, id, catalog)
+		var catalogContainer model.CatalogContainerState
+		err := json.Unmarshal(request.Body, &catalogContainer)
 		if err != nil {
-			ctLog.Infof("V (CatalogContainers): onCatalogContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.Errorf("V (Instances): onCatalogContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		catalogContainer.ObjectMeta.Name = id
+		catalogContainer.ObjectMeta.Namespace = namespace
+		catalogContainer.Spec = &model.CatalogContainerSpec{}
+
+		err = c.CatalogContainersManager.UpsertState(ctx, id, catalogContainer)
+		if err != nil {
+			ctLog.Errorf("V (CatalogContainers): onCatalogContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,7 +149,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		ctx, span := observability.StartSpan("onCatalogContainers-DELETE", pCtx, nil)
 		err := c.CatalogContainersManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			ctLog.Infof("V (CatalogContainers): onCatalogContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			ctLog.Errorf("V (CatalogContainers): onCatalogContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

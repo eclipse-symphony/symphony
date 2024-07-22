@@ -8,7 +8,6 @@ kind: Target
 metadata:
   name: TARGETNAME
 spec:
-  rootResource: TARGETCONTAINERNAME
   components:
   - name: observability
     properties:

@@ -11,9 +11,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 )
 
@@ -39,7 +39,7 @@ func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
 	defer Cleanup()
-	err := Setup()
+	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err
 	}
@@ -65,12 +65,6 @@ func Test() error {
 	return nil
 }
 
-// Deploy Symphony to the cluster
-func Setup() error {
-	// Deploy symphony
-	return localenvCmd("cluster:deploy", "")
-}
-
 // Run tests for scenarios/update
 func Verify() error {
 	err := shellcmd.Command("go clean -testcache").Run()
@@ -93,22 +87,5 @@ func Cleanup() {
 
 	_ = shellcmd.Command("rm -rf ./manifestForTestingOnly/oss").Run()
 
-	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
-	localenvCmd("destroy all", "")
-}
-
-// Run a mage command from /localenv
-func localenvCmd(mageCmd string, flavor string) error {
-	return shellExec(fmt.Sprintf("cd ../../../localenv && mage %s %s", mageCmd, flavor))
-}
-
-// Run a command with | or other things that do not work in shellcmd
-func shellExec(cmd string) error {
-	fmt.Println("> ", cmd)
-
-	execCmd := exec.Command("sh", "-c", cmd)
-	execCmd.Stdout = os.Stdout
-	execCmd.Stderr = os.Stderr
-
-	return execCmd.Run()
+	testhelpers.Cleanup(TEST_NAME)
 }

@@ -35,11 +35,12 @@ func TestHandleEvent(t *testing.T) {
 	manager := JobsManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 "http://localhost:8082/v1alpha2/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -67,11 +68,12 @@ func TestHandleJobEvent(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 ts.URL + "/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -114,11 +116,12 @@ func TestHandleScheduleEvent(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 "http://localhost:8082/v1alpha2/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -140,11 +143,12 @@ func TestHandleheartbeatEvent(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 "http://localhost:8082/v1alpha2/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -169,13 +173,14 @@ func TestPoll(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 ts.URL + "/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
-			"poll.enabled":            "true",
-			"schedule.enabled":        "true",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
+			"poll.enabled":              "true",
+			"schedule.enabled":          "true",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -199,13 +204,14 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.volatilestate": "state",
-			"baseUrl":                 ts.URL + "/",
-			"password":                "",
-			"user":                    "admin",
-			"interval":                "#15",
-			"poll.enabled":            "true",
-			"schedule.enabled":        "true",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
+			"poll.enabled":              "true",
+			"schedule.enabled":          "true",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,

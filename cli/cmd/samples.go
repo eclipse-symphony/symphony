@@ -244,6 +244,7 @@ func removeArtifact(artifact ArtifactSpec) error {
 		return err
 	}
 	fmt.Printf("%sdone\n%s", utils.ColorGreen(), utils.ColorReset())
+	time.Sleep(8 * time.Second)
 	return nil
 }
 func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]string) error {
