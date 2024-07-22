@@ -151,7 +151,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				label_key := os.Getenv("LABEL_KEY")
 				label_value := os.Getenv("LABEL_VALUE")
 				annotation_name := os.Getenv("ANNOTATION_KEY")
-				if label_key != "" && label_value != "" && annotation_name != "" {
+				if label_key != "" && label_value != "" {
 					// Check if metadata exists, if not create it
 					metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
 					if !ok {
@@ -220,7 +220,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					if label_key != "" && label_value != "" && annotation_name != "" {
+					if annotation_name != "" {
 						if solutionState.ObjectMeta.Annotations == nil {
 							solutionState.ObjectMeta.Annotations = make(map[string]string)
 						}
@@ -297,7 +297,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
 					}
 
-					if label_key != "" && label_value != "" && annotation_name != "" {
+					if annotation_name != "" {
 						if catalogState.ObjectMeta.Annotations == nil {
 							catalogState.ObjectMeta.Annotations = make(map[string]string)
 						}
