@@ -128,6 +128,8 @@ func (m *metrics) Counter(
 				c.closedEmit <- struct{}{}
 			}
 
+			c.values = make(map[attribute.Set]float64, 0)
+
 			return nil
 		},
 		i,
@@ -214,6 +216,8 @@ func (m *metrics) Gauge(
 			if g.closed {
 				g.closedEmit <- struct{}{}
 			}
+
+			g.values = make(map[attribute.Set]float64, 0)
 
 			return nil
 		},
