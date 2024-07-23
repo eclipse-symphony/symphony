@@ -19,13 +19,13 @@ import (
 )
 
 const (
-	// DefaultRetentionInMinutes is the default time to cleanup completed activations
-	DefaultRetentionInMinutes = 1440
+	// DefaultRetentionInDays is the default time to cleanup completed activations
+	DefaultRetentionInDays = 180
 )
 
 type ActivationsCleanupManager struct {
 	ActivationsManager
-	RetentionInMinutes int
+	RetentionDuration time.Duration
 }
 
 func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -33,17 +33,18 @@ func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config
 	if err != nil {
 		return err
 	}
-
-	// Set activation cleanup interval after they are done. If not set, use default 60 minutes.
-	if val, ok := config.Properties["RetentionInMinutes"]; ok {
-		s.RetentionInMinutes, err = strconv.Atoi(val)
+	var RetentionInDays int
+	// Set activation cleanup interval after they are done. If not set, use default 180 days.
+	if val, ok := config.Properties["RetentionInDays"]; ok {
+		RetentionInDays, err = strconv.Atoi(val)
 		if err != nil {
-			s.RetentionInMinutes = DefaultRetentionInMinutes
+			RetentionInDays = DefaultRetentionInDays
 		}
 	} else {
-		s.RetentionInMinutes = DefaultRetentionInMinutes
+		RetentionInDays = DefaultRetentionInDays
 	}
-	log.Info("M (Activation Cleanup): Initialize RetentionInMinutes as " + fmt.Sprint(s.RetentionInMinutes))
+	s.RetentionDuration = time.Duration(RetentionInDays) * time.Hour * 24
+	log.Info("M (Activation Cleanup): Initialize RetentionInDays as " + fmt.Sprint(RetentionInDays))
 	return nil
 }
 
@@ -83,7 +84,7 @@ func (s *ActivationsCleanupManager) Poll() []error {
 			ret = append(ret, err)
 		}
 		duration := time.Since(updateTime)
-		if duration > time.Duration(s.RetentionInMinutes)*time.Minute {
+		if duration > s.RetentionDuration {
 			log.Info("M (Activation Cleanup): Deleting activation " + activation.ObjectMeta.Name + " since it has completed for " + duration.String())
 			err = s.ActivationsManager.DeleteState(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 			if err != nil {

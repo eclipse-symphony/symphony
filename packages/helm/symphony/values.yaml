@@ -59,3 +59,8 @@ Azure:
     httpsProxy: ""
     noProxy: ""
     proxyCert: ""
+# Turn on/off cleanup on finished activations
+ActivationCleanup:
+  enabled: true
+  # Number of days to keep activations
+  retentionDays: 180
