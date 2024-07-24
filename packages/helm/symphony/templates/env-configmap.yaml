@@ -13,3 +13,6 @@ data:
   LABEL_KEY: {{ .Values.api.labelKey }}
   LABEL_VALUE: {{ .Values.api.labelValue }}
 {{- end }}
+{{- if .Values.api.annotationKey }}
+  ANNOTATION_KEY: {{ .Values.api.annotationKey }}
+{{- end }}

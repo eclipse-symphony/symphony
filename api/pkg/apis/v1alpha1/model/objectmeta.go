@@ -101,3 +101,11 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 
 	return true, nil
 }
+
+func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+
+	c.Annotations[key] = value
+}
