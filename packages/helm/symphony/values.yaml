@@ -44,6 +44,7 @@ api:
   apiContainerPortHttps: 8081
   labelKey:
   labelValue:
+  annotationKey: 
 symphony:
   incluster:
     httpsport: 8081
