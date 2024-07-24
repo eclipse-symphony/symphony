@@ -40,8 +40,19 @@ type CampaignList struct {
 	Items           []Campaign `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// CampaignContainer is the Schema for the CampaignContainer API
 type CampaignContainer struct {
 	commoncontainers.CommonContainer
+}
+
+// +kubebuilder:object:root=true
+// CampaignContainerList contains a list of CampaignContainer
+type CampaignContainerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []CampaignContainer `json:"items"`
 }
 
 var _ webhook.Validator = &CampaignContainer{}
@@ -50,5 +61,5 @@ var _ webhook.Defaulter = &CampaignContainer{}
 
 func init() {
 	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
-	SchemeBuilder.Register(&CampaignContainer{})
+	SchemeBuilder.Register(&CampaignContainer{}, &CampaignContainerList{})
 }

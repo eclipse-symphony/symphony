@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+type GetSubResourceNums func() (n int, err error)
 
 var commoncontainerlog = logf.Log.WithName("commoncontainer-resource")
 var cacheClient client.Client
@@ -58,38 +61,44 @@ func (r *CommonContainer) ValidateUpdate(old runtime.Object) (admission.Warnings
 }
 
 func (r *CommonContainer) ValidateDelete() (admission.Warnings, error) {
+	return nil, errors.New("Not implemented")
+}
+
+func (r *CommonContainer) validateDeleteContainer() error {
+	return errors.New("Not implemented")
+}
+
+func (r *CommonContainer) ValidateDeleteImpl(getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
 
 	commoncontainerlog.Info("validate delete", "name", r.Name, "kind", r.Kind)
 
 	validateDeleteTime := time.Now()
-	validationError := r.validateDeleteContainer()
+	validationError := r.validateDeleteContainerImpl(getSubResourceNums)
 	if validationError != nil {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
-			metrics.CatalogResourceType)
+			metrics.ContainerResourceType)
 	} else {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
-			metrics.CatalogResourceType)
+			metrics.ContainerResourceType)
 	}
 
 	return nil, validationError
 }
 
-func (r *CommonContainer) validateDeleteContainer() error {
-	var commonContainerList CommonContainerList
-	err := readerClient.List(context.Background(), &commonContainerList, client.InNamespace(r.Namespace), client.MatchingFields{".spec.rootResource": r.Name}, client.Limit(1))
+func (r *CommonContainer) validateDeleteContainerImpl(getSubResourceNums GetSubResourceNums) error {
+	itemsNum, err := getSubResourceNums()
 	if err != nil {
 		commoncontainerlog.Error(err, "could not list nested resources ", "name", r.Name, "kind", r.Kind)
 		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.Kind, r.Name))
 	}
-
-	if len(commonContainerList.Items) != 0 {
-		commoncontainerlog.Error(err, "nested resources  are not empty", "name", r.Name, "kind", r.Kind)
+	if itemsNum > 0 {
+		commoncontainerlog.Error(err, "nested resources are not empty", "name", r.Name, "kind", r.Kind)
 		return apierrors.NewBadRequest(fmt.Sprintf("%s nested resources with root resource '%s' are not empty", r.Kind, r.Name))
 	}
 

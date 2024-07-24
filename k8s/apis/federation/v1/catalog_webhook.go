@@ -28,18 +28,14 @@ import (
 
 // log is for logging in this package.
 var cataloglog = logf.Log.WithName("catalog-resource")
-var myCatalogClient client.Client
+var myCatalogReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myCatalogClient = mgr.GetClient()
+	myCatalogReaderClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
 		catalog := rawObj.(*Catalog)
 		return []string{catalog.Name}
-	})
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.rootResource", func(rawObj client.Object) []string {
-		catalog := rawObj.(*Catalog)
-		return []string{catalog.Spec.RootResource}
 	})
 
 	// initialize the controller operation metrics
@@ -68,13 +64,13 @@ func (r *Catalog) Default() {
 
 	if r.Spec.RootResource != "" {
 		var catalogContainer CatalogContainer
-		err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+		err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
 		if err != nil {
 			cataloglog.Error(err, "failed to get catalog container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
-				APIVersion: catalogContainer.APIVersion,
-				Kind:       catalogContainer.Kind,
+				APIVersion: GroupVersion.String(), //catalogContainer.APIVersion
+				Kind:       "CatalogContainer",    //catalogContainer.Kind
 				Name:       catalogContainer.Name,
 				UID:        catalogContainer.UID,
 			}
@@ -82,6 +78,11 @@ func (r *Catalog) Default() {
 			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
 				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
 			}
+
+			if r.Labels == nil {
+				r.Labels = make(map[string]string)
+			}
+			r.Labels["rootResource"] = r.Spec.RootResource
 		}
 	}
 }
@@ -170,7 +171,7 @@ func (r *Catalog) checkSchema() *field.Error {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
-			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
+			err := myCatalogReaderClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{"metadata.name": schemaName}, client.Limit(1))
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
 				return field.Invalid(field.NewPath("spec").Child("Metadata"), schemaName, "could not find the required schema")
@@ -236,7 +237,7 @@ func (r *Catalog) validateNameOnCreate() *field.Error {
 
 func (r *Catalog) validateRootResource() *field.Error {
 	var catalogContainer CatalogContainer
-	err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+	err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid catalog container")
 	}
@@ -246,4 +247,18 @@ func (r *Catalog) validateRootResource() *field.Error {
 	}
 
 	return nil
+}
+
+func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
+	cataloglog.Info("validate delete solution container", "name", r.Name)
+	getSubResourceNums := func() (int, error) {
+		var catalogList CatalogList
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		if err != nil {
+			return 0, err
+		} else {
+			return len(catalogList.Items), nil
+		}
+	}
+	return r.ValidateDeleteImpl(getSubResourceNums)
 }

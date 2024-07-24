@@ -37,8 +37,19 @@ type CatalogList struct {
 	Items           []Catalog `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// CatalogContainer is the Schema for the CatalogContainer API
 type CatalogContainer struct {
 	commoncontainers.CommonContainer
+}
+
+// +kubebuilder:object:root=true
+// CatalogContainerList contains a list of CatalogContainer
+type CatalogContainerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []CatalogContainer `json:"items"`
 }
 
 var _ webhook.Validator = &CatalogContainer{}
@@ -47,5 +58,5 @@ var _ webhook.Defaulter = &CatalogContainer{}
 
 func init() {
 	SchemeBuilder.Register(&Catalog{}, &CatalogList{})
-	SchemeBuilder.Register(&CatalogContainer{})
+	SchemeBuilder.Register(&CatalogContainer{}, &CatalogContainerList{})
 }

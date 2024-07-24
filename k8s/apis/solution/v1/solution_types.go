@@ -39,8 +39,19 @@ type SolutionList struct {
 	Items           []Solution `json:"items"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// SolutionContainer is the Schema for the SolutionContainer API
 type SolutionContainer struct {
 	commoncontainers.CommonContainer
+}
+
+// +kubebuilder:object:root=true
+// SolutionContainerList contains a list of SolutionContainer
+type SolutionContainerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []SolutionContainer `json:"items"`
 }
 
 var _ webhook.Validator = &SolutionContainer{}
@@ -49,5 +60,5 @@ var _ webhook.Defaulter = &SolutionContainer{}
 
 func init() {
 	SchemeBuilder.Register(&Solution{}, &SolutionList{})
-	SchemeBuilder.Register(&SolutionContainer{})
+	SchemeBuilder.Register(&SolutionContainer{}, &SolutionContainerList{})
 }

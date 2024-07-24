@@ -26,18 +26,15 @@ import (
 // log is for logging in this package.
 var solutionlog = logf.Log.WithName("solution-resource")
 var mySolutionClient client.Client
+var mySolutionReaderClient client.Reader
 
 func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySolutionClient = mgr.GetClient()
+	mySolutionReaderClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Solution{}, ".spec.displayName", func(rawObj client.Object) []string {
 		solution := rawObj.(*Solution)
 		return []string{solution.Spec.DisplayName}
 	})
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Solution{}, ".spec.rootResource", func(rawObj client.Object) []string {
-		solution := rawObj.(*Solution)
-		return []string{solution.Spec.RootResource}
-	})
-
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -64,8 +61,8 @@ func (r *Solution) Default() {
 			solutionlog.Error(err, "failed to get solution container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
-				APIVersion: solutionContainer.APIVersion,
-				Kind:       solutionContainer.Kind,
+				APIVersion: GroupVersion.String(),
+				Kind:       "SolutionContainer",
 				Name:       solutionContainer.Name,
 				UID:        solutionContainer.UID,
 			}
@@ -73,6 +70,11 @@ func (r *Solution) Default() {
 			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
 				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
 			}
+
+			if r.Labels == nil {
+				r.Labels = make(map[string]string)
+			}
+			r.Labels["rootResource"] = r.Spec.RootResource
 		}
 	}
 }
@@ -126,7 +128,7 @@ func (r *Solution) validateCreateSolution() error {
 
 func (r *Solution) validateUpdateSolution() error {
 	var solutions SolutionList
-	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName}, client.Limit(2))
 	if err != nil {
 		return apierrors.NewInternalError(err)
 	}
@@ -138,7 +140,7 @@ func (r *Solution) validateUpdateSolution() error {
 
 func (r *Solution) validateUniqueNameOnCreate() *field.Error {
 	var solutions SolutionList
-	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
+	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName}, client.Limit(1))
 	if err != nil {
 		return field.InternalError(&field.Path{}, err)
 	}
@@ -166,4 +168,18 @@ func (r *Solution) validateRootResource() *field.Error {
 	}
 
 	return nil
+}
+
+func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
+	solutionlog.Info("validate delete solution container", "name", r.Name)
+	getSubResourceNums := func() (int, error) {
+		var solutionList SolutionList
+		err := mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		if err != nil {
+			return 0, err
+		} else {
+			return len(solutionList.Items), nil
+		}
+	}
+	return r.ValidateDeleteImpl(getSubResourceNums)
 }
