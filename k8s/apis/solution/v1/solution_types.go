@@ -39,8 +39,6 @@ type SolutionList struct {
 	Items           []Solution `json:"items"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
 // SolutionContainer is the Schema for the SolutionContainer API
 type SolutionContainer struct {
 	commoncontainers.CommonContainer

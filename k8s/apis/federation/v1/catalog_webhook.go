@@ -250,7 +250,7 @@ func (r *Catalog) validateRootResource() *field.Error {
 }
 
 func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
-	cataloglog.Info("validate delete solution container", "name", r.Name)
+	cataloglog.Info("validate delete catalog container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
 		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))

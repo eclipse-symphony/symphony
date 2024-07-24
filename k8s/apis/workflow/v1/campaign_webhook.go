@@ -164,7 +164,7 @@ func (r *Campaign) validateRootResource() *field.Error {
 }
 
 func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
-	campaignlog.Info("validate delete solution container", "name", r.Name)
+	campaignlog.Info("validate delete campaign container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
 		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
