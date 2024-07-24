@@ -71,7 +71,7 @@ func Test(labeling bool) error {
 	fmt.Println("Running ", TEST_NAME)
 
 	if labeling {
-		err := modifyYAML("localtest")
+		err := modifyYAML("localtest", "management.azure.com/azureName")
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func FaultTest(namespace string) error {
 
 // Clean up
 func Cleanup() {
-	err := modifyYAML("")
+	err := modifyYAML("", "")
 	if err != nil {
 		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
 	}
@@ -220,7 +220,7 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 	return nil
 }
 
-func modifyYAML(v string) error {
+func modifyYAML(v string, annotationKey string) error {
 	// Read the YAML file
 	data, err := os.ReadFile("../../../localenv/symphony-ghcr-values.yaml")
 	if err != nil {
@@ -238,6 +238,7 @@ func modifyYAML(v string) error {
 	if api, ok := values["api"].(map[interface{}]interface{}); ok {
 		api["labelKey"] = v
 		api["labelValue"] = v
+		api["annotationKey"] = annotationKey
 	} else {
 		return fmt.Errorf("'api' field is not a map")
 	}

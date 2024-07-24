@@ -337,6 +337,10 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	fmt.Printf("The solution is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "solution.symphony",
 		Version:  "v1",
@@ -378,6 +382,11 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	result := getLabels(*resource)
 	fmt.Printf("The catalog is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
+
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "federation.symphony",
 		Version:  "v1",
@@ -468,6 +477,27 @@ func getLabels(resource unstructured.Unstructured) string {
 			}
 		} else {
 			return "wronglabel"
+		}
+	} else {
+		return "nolabel"
+	}
+}
+
+// Helper for finding the annotations
+func getAnnotations(resource unstructured.Unstructured) string {
+	annos := resource.GetAnnotations()
+	name := resource.GetName()
+	if annos != nil && name != "" {
+		azureName, ok := annos["management.azure.com/azureName"]
+		if ok {
+			parts := strings.Split(name, "-v-")
+			if azureName == parts[1] {
+				return "localtest"
+			} else {
+				return "wrongAnnotationName"
+			}
+		} else {
+			return "wrongAnnotationName"
 		}
 	} else {
 		return "nolabel"
