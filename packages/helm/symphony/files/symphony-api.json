@@ -37,7 +37,8 @@
           "host": "{{ include "symphony.redisHost" . }}",
           "requireTLS": false,
           "password": "",
-          "numberOfWorkers": 1
+          "numberOfWorkers": 1,
+          "multiInstance": false
         }
       }
       {{- else }}
