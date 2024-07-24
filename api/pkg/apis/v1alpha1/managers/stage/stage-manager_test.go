@@ -1027,7 +1027,7 @@ func TestResumeStageFailed(t *testing.T) {
 	}
 	_, err := manager.ResumeStage(activation, campaign)
 	assert.NotNil(t, err)
-	assert.Equal(t, "ResumeStage: campaign is not valid", err.Error())
+	assert.Equal(t, "Bad Request: ResumeStage: campaign is not valid", err.Error())
 }
 
 func TestHandleDirectTriggerEvent(t *testing.T) {

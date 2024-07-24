@@ -269,11 +269,11 @@ func TestGetString(t *testing.T) {
 
 	val, err = GetString(mapData, "c")
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "value of c is not a string")
+	assert.EqualError(t, err, "Bad Config: value of c is not a string")
 
 	val, err = GetString(mapData, "d")
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "key d is not found")
+	assert.EqualError(t, err, "Bad Config: key d is not found")
 }
 func TestReadStringFromMapCompat(t *testing.T) {
 	mapData := map[string]interface{}{

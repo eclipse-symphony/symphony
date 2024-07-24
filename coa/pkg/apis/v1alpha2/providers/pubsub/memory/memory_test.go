@@ -7,7 +7,9 @@
 package memory
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
@@ -133,4 +135,56 @@ func TestCloneWithConfig(t *testing.T) {
 		Name: "my-name",
 	})
 	assert.Nil(t, err)
+}
+
+func TestMemoryPubsubProviderBadRequest(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	provider.Init(InMemoryPubSubConfig{
+		Name:                      "test",
+		SubscriberRetryCount:      5,
+		SubscriberRetryWaitSecond: 1,
+	})
+
+	var mu sync.Mutex
+	count := 0
+	err := provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		count += 1
+		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+	})
+	assert.Nil(t, err)
+	err = provider.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	time.Sleep(time.Duration(5) * time.Second)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 1, count)
+}
+
+func TestMemoryPubsubProviderInternalError(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	provider.Init(InMemoryPubSubConfig{
+		Name:                      "test",
+		SubscriberRetryCount:      5,
+		SubscriberRetryWaitSecond: 1,
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(5)
+	err := provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
+
+		wg.Done()
+		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.InternalError)
+	})
+	assert.Nil(t, err)
+	err = provider.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	wg.Wait()
 }

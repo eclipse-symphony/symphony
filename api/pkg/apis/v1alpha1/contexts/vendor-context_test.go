@@ -7,7 +7,9 @@
 package contexts
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
@@ -16,7 +18,10 @@ import (
 
 func createVendorContextWithPubSub() *VendorContext {
 	pubsubProvider := memory.InMemoryPubSubProvider{}
-	pubsubProvider.Init(memory.InMemoryPubSubConfig{})
+	pubsubProvider.Init(memory.InMemoryPubSubConfig{
+		SubscriberRetryCount:      5,
+		SubscriberRetryWaitSecond: 1,
+	})
 	v := &VendorContext{}
 	_ = v.Init(&pubsubProvider)
 	return v
@@ -72,4 +77,43 @@ func TestVendorContextPublishSubscribeWithoutPubSub(t *testing.T) {
 		Body: "test",
 	})
 	assert.Nil(t, err)
+}
+
+func TestVendorContextPublishSubscribeBadRequest(t *testing.T) {
+	v := createVendorContextWithPubSub()
+	var mu sync.Mutex
+	count := 0
+	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		count += 1
+		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+	})
+	assert.Nil(t, err)
+	err = v.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	time.Sleep(time.Duration(5) * time.Second)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 1, count)
+}
+
+func TestVendorContextPublishSubscribeInternalError(t *testing.T) {
+	v := createVendorContextWithPubSub()
+	var wg sync.WaitGroup
+	wg.Add(5)
+	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
+		wg.Done()
+		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.InternalError)
+	})
+	assert.Nil(t, err)
+	err = v.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	wg.Wait()
 }

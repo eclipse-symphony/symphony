@@ -51,7 +51,7 @@ func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	// validate if Schedule meet RFC 3339
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return fmt.Errorf("invalid timestamp format: %v", err)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
 		}
 	}
 	return nil
@@ -62,7 +62,7 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 	type Alias StageSpec
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return nil, fmt.Errorf("invalid timestamp format: %v", err)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
 		}
 	}
 	return json.Marshal(&struct {

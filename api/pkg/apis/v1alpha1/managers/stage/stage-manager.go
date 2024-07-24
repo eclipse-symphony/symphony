@@ -54,36 +54,36 @@ func (t *TaskResult) GetError() error {
 			state := v1alpha2.State(int(sv))
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %v", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", sv), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		case int:
 			state := v1alpha2.State(sv)
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %d", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", sv), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		case string:
 			vInt, err := strconv.ParseInt(sv, 10, 32)
 			if err != nil {
-				return fmt.Errorf("invalid state %s", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %s", sv), v1alpha2.InternalError)
 			}
 			state := v1alpha2.State(vInt)
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %d", vInt)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", vInt), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		default:
-			return fmt.Errorf("invalid state %v", v)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", v), v1alpha2.InternalError)
 		}
 
 		if t.Outputs["__status"] != v1alpha2.OK {
 			if v, ok := t.Outputs["__error"]; ok {
 				return v1alpha2.NewCOAError(nil, utils.FormatAsString(v), t.Outputs["__status"].(v1alpha2.State))
 			} else {
-				return fmt.Errorf("stage returned unsuccessful status without an error")
+				return v1alpha2.NewCOAError(nil, "stage returned unsuccessful status without an error", v1alpha2.InternalError)
 			}
 		}
 	}
@@ -122,27 +122,27 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 	campaign, ok := status.Outputs["__campaign"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: campaign (%v) is not valid from output", status.Outputs["__campaign"])
-		return nil, fmt.Errorf("ResumeStage: campaign is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: campaign is not valid", v1alpha2.BadRequest)
 	}
 	activation, ok := status.Outputs["__activation"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: activation (%v) is not valid from output", status.Outputs["__activation"])
-		return nil, fmt.Errorf("ResumeStage: activation is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: activation is not valid", v1alpha2.BadRequest)
 	}
 	activationGeneration, ok := status.Outputs["__activationGeneration"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: activationGeneration (%v) is not valid from output", status.Outputs["__activationGeneration"])
-		return nil, fmt.Errorf("ResumeStage: activationGeneration is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: activationGeneration is not valid", v1alpha2.BadRequest)
 	}
 	site, ok := status.Outputs["__site"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: site (%v) is not valid from output", status.Outputs["__site"])
-		return nil, fmt.Errorf("ResumeStage: site is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: site is not valid", v1alpha2.BadRequest)
 	}
 	stage, ok := status.Outputs["__stage"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: stage (%v) is not valid from output", status.Outputs["__stage"])
-		return nil, fmt.Errorf("ResumeStage: stage is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: stage is not valid", v1alpha2.BadRequest)
 	}
 	namespace, ok := status.Outputs["__namespace"].(string)
 	if !ok {
@@ -171,7 +171,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 		// 	}
 		// }
 		// if !found {
-		// 	return nil, fmt.Errorf("site %s is not found in pending task", site)
+		// 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("site %s is not found in pending task", site)
 		// }
 		//remove site from p.Sites
 		newSites := make([]string, 0)
@@ -223,7 +223,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						if _, ok := cam.Stages[sVal]; ok {
 							nextStage = sVal
 						} else {
-							return nil, fmt.Errorf("stage %s is not found", sVal)
+							return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", sVal), v1alpha2.InternalError)
 						}
 					}
 
@@ -266,7 +266,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			}
 		}
 	} else {
-		return nil, fmt.Errorf("invalid pending task")
+		return nil, v1alpha2.NewCOAError(err, "invalid pending task", v1alpha2.InternalError)
 	}
 
 	return nil, nil
