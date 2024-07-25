@@ -38,9 +38,14 @@ type CatalogList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // CatalogContainer is the Schema for the CatalogContainer API
 type CatalogContainer struct {
-	commoncontainers.CommonContainer
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   commoncontainers.ContainerSpec   `json:"spec,omitempty"`
+	Status commoncontainers.ContainerStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

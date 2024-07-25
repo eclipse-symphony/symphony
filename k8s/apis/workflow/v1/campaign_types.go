@@ -41,9 +41,14 @@ type CampaignList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // CampaignContainer is the Schema for the CampaignContainer API
 type CampaignContainer struct {
-	commoncontainers.CommonContainer
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   commoncontainers.ContainerSpec   `json:"spec,omitempty"`
+	Status commoncontainers.ContainerStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

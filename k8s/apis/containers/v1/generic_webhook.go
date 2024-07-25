@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -47,33 +46,25 @@ func SetupWebhookWithManager(mgr ctrl.Manager, resource client.Object) error {
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CommonContainer) Default() {
-	commoncontainerlog.Info("default", "name", r.Name, "kind", r.Kind)
+func DefaultImpl(r client.Object) {
+	commoncontainerlog.Info("default", "name", r.GetName(), "kind", r.GetObjectKind())
 }
 
-func (r *CommonContainer) ValidateCreate() (admission.Warnings, error) {
-	commoncontainerlog.Info("validate create", "name", r.Name, "kind", r.Kind)
+func ValidateCreateImpl(r client.Object) (admission.Warnings, error) {
+	commoncontainerlog.Info("validate create", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
-func (r *CommonContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	commoncontainerlog.Info("validate update", "name", r.Name, "kind", r.Kind)
+func ValidateUpdateImpl(r client.Object, old runtime.Object) (admission.Warnings, error) {
+	commoncontainerlog.Info("validate update", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
 
-func (r *CommonContainer) ValidateDelete() (admission.Warnings, error) {
-	return nil, errors.New("Not implemented")
-}
+func ValidateDeleteImpl(r client.Object, getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
 
-func (r *CommonContainer) validateDeleteContainer() error {
-	return errors.New("Not implemented")
-}
-
-func (r *CommonContainer) ValidateDeleteImpl(getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
-
-	commoncontainerlog.Info("validate delete", "name", r.Name, "kind", r.Kind)
+	commoncontainerlog.Info("validate delete", "name", r.GetName(), "kind", r.GetObjectKind())
 
 	validateDeleteTime := time.Now()
-	validationError := r.validateDeleteContainerImpl(getSubResourceNums)
+	validationError := validateDeleteContainerImpl(r, getSubResourceNums)
 	if validationError != nil {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
@@ -91,15 +82,15 @@ func (r *CommonContainer) ValidateDeleteImpl(getSubResourceNums GetSubResourceNu
 	return nil, validationError
 }
 
-func (r *CommonContainer) validateDeleteContainerImpl(getSubResourceNums GetSubResourceNums) error {
+func validateDeleteContainerImpl(r client.Object, getSubResourceNums GetSubResourceNums) error {
 	itemsNum, err := getSubResourceNums()
 	if err != nil {
-		commoncontainerlog.Error(err, "could not list nested resources ", "name", r.Name, "kind", r.Kind)
-		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.Kind, r.Name))
+		commoncontainerlog.Error(err, "could not list nested resources ", "name", r.GetName(), "kind", r.GetObjectKind())
+		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.GetObjectKind(), r.GetName()))
 	}
 	if itemsNum > 0 {
-		commoncontainerlog.Error(err, "nested resources are not empty", "name", r.Name, "kind", r.Kind)
-		return apierrors.NewBadRequest(fmt.Sprintf("%s nested resources with root resource '%s' are not empty", r.Kind, r.Name))
+		commoncontainerlog.Error(err, "nested resources are not empty", "name", r.GetName(), "kind", r.GetObjectKind())
+		return apierrors.NewBadRequest(fmt.Sprintf("%s nested resources with root resource '%s' are not empty", r.GetObjectKind(), r.GetName()))
 	}
 
 	return nil

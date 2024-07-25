@@ -8,6 +8,7 @@ package v1
 
 import (
 	"context"
+	commoncontainer "gopls-workspace/apis/containers/v1"
 	"gopls-workspace/apis/metrics/v1"
 	"gopls-workspace/configutils"
 	"time"
@@ -163,6 +164,17 @@ func (r *Campaign) validateRootResource() *field.Error {
 	return nil
 }
 
+func (r *CampaignContainer) Default() {
+	commoncontainer.DefaultImpl(r)
+}
+
+func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
+	return commoncontainer.ValidateCreateImpl(r)
+}
+func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	return commoncontainer.ValidateUpdateImpl(r, old)
+}
+
 func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 	campaignlog.Info("validate delete campaign container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
@@ -174,5 +186,5 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(campaignList.Items), nil
 		}
 	}
-	return r.ValidateDeleteImpl(getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(r, getSubResourceNums)
 }

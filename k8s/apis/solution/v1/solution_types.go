@@ -7,7 +7,7 @@
 package v1
 
 import (
-	commoncontainers "gopls-workspace/apis/containers/v1"
+	cc "gopls-workspace/apis/containers/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,9 +40,14 @@ type SolutionList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // SolutionContainer is the Schema for the SolutionContainer API
 type SolutionContainer struct {
-	commoncontainers.CommonContainer
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   cc.ContainerSpec   `json:"spec,omitempty"`
+	Status cc.ContainerStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
