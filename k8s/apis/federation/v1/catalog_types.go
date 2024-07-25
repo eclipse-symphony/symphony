@@ -37,6 +37,7 @@ type CatalogList struct {
 	Items           []Catalog `json:"items"`
 }
 
+// +kubebuilder:object:root=true
 // CatalogContainer is the Schema for the CatalogContainer API
 type CatalogContainer struct {
 	commoncontainers.CommonContainer

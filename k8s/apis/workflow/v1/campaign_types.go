@@ -40,6 +40,7 @@ type CampaignList struct {
 	Items           []Campaign `json:"items"`
 }
 
+// +kubebuilder:object:root=true
 // CampaignContainer is the Schema for the CampaignContainer API
 type CampaignContainer struct {
 	commoncontainers.CommonContainer
