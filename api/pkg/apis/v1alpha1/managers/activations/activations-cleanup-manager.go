@@ -8,8 +8,6 @@ package activations
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -19,8 +17,8 @@ import (
 )
 
 const (
-	// DefaultRetentionInDays is the default time to cleanup completed activations
-	DefaultRetentionInDays = 180
+	// DefaultRetentionDuration is the default time to cleanup completed activations
+	DefaultRetentionDuration = time.Duration(180) * time.Hour * 24
 )
 
 type ActivationsCleanupManager struct {
@@ -33,18 +31,18 @@ func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config
 	if err != nil {
 		return err
 	}
-	var RetentionInDays int
+
 	// Set activation cleanup interval after they are done. If not set, use default 180 days.
-	if val, ok := config.Properties["RetentionInDays"]; ok {
-		RetentionInDays, err = strconv.Atoi(val)
+	if val, ok := config.Properties["RetentionDuration"]; ok {
+		s.RetentionDuration, err = time.ParseDuration(val)
 		if err != nil {
-			RetentionInDays = DefaultRetentionInDays
+			s.RetentionDuration = DefaultRetentionDuration
 		}
 	} else {
-		RetentionInDays = DefaultRetentionInDays
+		s.RetentionDuration = DefaultRetentionDuration
 	}
-	s.RetentionDuration = time.Duration(RetentionInDays) * time.Hour * 24
-	log.Info("M (Activation Cleanup): Initialize RetentionInDays as " + fmt.Sprint(RetentionInDays))
+
+	log.Info("M (Activation Cleanup): Initialize RetentionDuration as " + s.RetentionDuration.String())
 	return nil
 }
 

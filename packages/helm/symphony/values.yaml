@@ -63,4 +63,4 @@ Azure:
 ActivationCleanup:
   enabled: true
   # Number of days to keep activations
-  retentionDays: 180
+  RetentionDuration: "180d"

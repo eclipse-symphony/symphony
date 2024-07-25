@@ -162,7 +162,7 @@
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true",
-              "RetentionInDays": "{{ .Values.ActivationCleanup.retentionDays }}"
+              "RetentionDuration": "{{ .Values.ActivationCleanup.retentionDuration }}"
             },
             "providers": {
               "k8s-state": {
