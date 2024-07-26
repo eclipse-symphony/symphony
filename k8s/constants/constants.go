@@ -19,7 +19,7 @@ const (
 	AzureSystemDataKey           = "management.azure.com/systemData"
 	AzureTenantIdKey             = "management.azure.com/tenantId"
 	AzureLocationKey             = "management.azure.com/location"
-	AzureCreaedByKey             = "createdBy"
+	AzureCreatedByKey            = "createdBy"
 	DefaultScope                 = "default"
 	K8S                          = "symphony-k8s"
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
