@@ -104,7 +104,7 @@ func (s *JobsManager) pollObjects() []error {
 	var instances []model.InstanceState
 	instances, err = s.apiClient.GetInstancesForAllNamespaces(context, s.user, s.password)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.ErrorfCtx(context, " M (Job): error getting instances: %s", err.Error())
 		return []error{err}
 	}
 	for _, instance := range instances {
@@ -143,7 +143,7 @@ func (s *JobsManager) pollObjects() []error {
 	var targets []model.TargetState
 	targets, err = s.apiClient.GetTargetsForAllNamespaces(context, s.user, s.password)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.ErrorfCtx(context, " M (Job): error getting targets: %s", err.Error())
 		return []error{err}
 	}
 	for _, target := range targets {
