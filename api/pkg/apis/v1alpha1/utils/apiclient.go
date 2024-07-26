@@ -739,6 +739,7 @@ func (a *apiClient) SendVisualizationPacket(ctx context.Context, payload []byte,
 
 func (a *apiClient) callRestAPI(ctx context.Context, route string, method string, payload []byte, token string) ([]byte, error) {
 	urlString := fmt.Sprintf("%s%s", a.baseUrl, path.Clean(route))
+	ctx = coacontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,

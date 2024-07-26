@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -343,5 +344,26 @@ func InheritDiagnosticLogContextFromOriginalContext(orignal context.Context, par
 		return context.WithValue(parent, DiagnosticLogContextKey, diagCtx)
 	} else {
 		return parent
+	}
+}
+
+func GenerateCorrelationIdToParentContextIfMissing(parent context.Context) context.Context {
+	correlationId := uuid.New().String()
+	return PatchCorrelationIdToParentContextIfMissing(parent, correlationId)
+}
+
+func PatchCorrelationIdToParentContextIfMissing(parent context.Context, correlationId string) context.Context {
+	if parent == nil {
+		return nil
+	}
+
+	if diagCtx, ok := parent.Value(DiagnosticLogContextKey).(*DiagnosticLogContext); ok {
+		if diagCtx.GetCorrelationId() == "" {
+			diagCtx.SetCorrelationId(correlationId)
+		}
+		return context.WithValue(parent, DiagnosticLogContextKey, diagCtx)
+	} else {
+		diagCtx := NewDiagnosticLogContext(correlationId, "", "", "")
+		return context.WithValue(parent, DiagnosticLogContextKey, diagCtx)
 	}
 }
