@@ -483,3 +483,25 @@ func TestClearTraceAndSpanFromDiagnosticLogContext_ParentCtxWithNilDiagnosticLog
 	ClearTraceAndSpanFromDiagnosticLogContext(&parent)
 	assert.Nil(t, parent.Value(DiagnosticLogContextKey))
 }
+
+func TestGenerateCorrelationIdToParentContextIfMissing_ParentMissingCorrelationId(t *testing.T) {
+	ctx := context.Background()
+	assert.Nil(t, ctx.Value(DiagnosticLogContextKey))
+	ctx = GenerateCorrelationIdToParentContextIfMissing(ctx)
+	assert.NotNil(t, ctx)
+	diagCtx, ok := ctx.Value(DiagnosticLogContextKey).(*DiagnosticLogContext)
+	assert.True(t, ok)
+	assert.NotNil(t, diagCtx)
+	assert.NotEmpty(t, diagCtx.correlationId)
+}
+
+func TestGenerateCorrelationIdToParentContextIfMissing_ParentWithCorrelationId(t *testing.T) {
+	ctx := context.WithValue(context.Background(), DiagnosticLogContextKey, NewDiagnosticLogContext("a_correlationId", "a_resourceId", "a_traceId", "a_spanId"))
+	assert.NotNil(t, ctx.Value(DiagnosticLogContextKey))
+	ctx = GenerateCorrelationIdToParentContextIfMissing(ctx)
+	assert.NotNil(t, ctx)
+	diagCtx, ok := ctx.Value(DiagnosticLogContextKey).(*DiagnosticLogContext)
+	assert.True(t, ok)
+	assert.NotNil(t, diagCtx)
+	assert.Equal(t, "a_correlationId", diagCtx.correlationId)
+}
