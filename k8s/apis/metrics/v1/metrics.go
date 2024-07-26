@@ -21,12 +21,13 @@ const (
 	ValidResource   string = "Valid"
 	InvalidResource string = "Invalid"
 	//resource type
-	TargetResourceType   string = "Target"
-	InstanceResourceType string = "Instance"
-	CatalogResourceType  string = "Catalog"
-	ModelResourceType    string = "Model"
-	SkillResourceType    string = "Skill"
-	DeviceResourceType   string = "Device"
+	TargetResourceType    string = "Target"
+	InstanceResourceType  string = "Instance"
+	CatalogResourceType   string = "Catalog"
+	ContainerResourceType string = "Container"
+	ModelResourceType     string = "Model"
+	SkillResourceType     string = "Skill"
+	DeviceResourceType    string = "Device"
 )
 
 // Metrics is a metrics tracker for a controller operation.
