@@ -31,9 +31,9 @@ import (
 
 	aiv1 "gopls-workspace/apis/ai/v1"
 	configv1 "gopls-workspace/apis/config/v1"
-	commoncontainer "gopls-workspace/apis/containers/v1"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	federationv1 "gopls-workspace/apis/federation/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"

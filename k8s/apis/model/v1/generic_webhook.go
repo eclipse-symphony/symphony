@@ -8,16 +8,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/eclipse-symphony/symphony/k8s/apis/metrics/v1"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type GetSubResourceNums func() (n int, err error)
 
-var commoncontainerlog = logf.Log.WithName("commoncontainer-resource")
 var cacheClient client.Client
 var readerClient client.Reader
 var commoncontainermetrics *metrics.Metrics
@@ -46,50 +45,50 @@ func SetupWebhookWithManager(mgr ctrl.Manager, resource client.Object) error {
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func DefaultImpl(r client.Object) {
-	commoncontainerlog.Info("default", "name", r.GetName(), "kind", r.GetObjectKind())
+func DefaultImpl(log logr.Logger, r client.Object) {
+	log.Info("default", "name", r.GetName(), "kind", r.GetObjectKind())
 }
 
-func ValidateCreateImpl(r client.Object) (admission.Warnings, error) {
-	commoncontainerlog.Info("validate create", "name", r.GetName(), "kind", r.GetObjectKind())
+func ValidateCreateImpl(log logr.Logger, r client.Object) (admission.Warnings, error) {
+	log.Info("validate create", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
-func ValidateUpdateImpl(r client.Object, old runtime.Object) (admission.Warnings, error) {
-	commoncontainerlog.Info("validate update", "name", r.GetName(), "kind", r.GetObjectKind())
+func ValidateUpdateImpl(log logr.Logger, r client.Object, old runtime.Object) (admission.Warnings, error) {
+	log.Info("validate update", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
 
-func ValidateDeleteImpl(r client.Object, getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
+func ValidateDeleteImpl(log logr.Logger, r client.Object, getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
 
-	commoncontainerlog.Info("validate delete", "name", r.GetName(), "kind", r.GetObjectKind())
+	log.Info("validate delete", "name", r.GetName(), "kind", r.GetObjectKind())
 
 	validateDeleteTime := time.Now()
-	validationError := validateDeleteContainerImpl(r, getSubResourceNums)
+	validationError := validateDeleteContainerImpl(log, r, getSubResourceNums)
 	if validationError != nil {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
-			metrics.ContainerResourceType)
+			r.GetObjectKind().GroupVersionKind().Kind)
 	} else {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
-			metrics.ContainerResourceType)
+			r.GetObjectKind().GroupVersionKind().Kind)
 	}
 
 	return nil, validationError
 }
 
-func validateDeleteContainerImpl(r client.Object, getSubResourceNums GetSubResourceNums) error {
+func validateDeleteContainerImpl(log logr.Logger, r client.Object, getSubResourceNums GetSubResourceNums) error {
 	itemsNum, err := getSubResourceNums()
 	if err != nil {
-		commoncontainerlog.Error(err, "could not list nested resources ", "name", r.GetName(), "kind", r.GetObjectKind())
+		log.Error(err, "could not list nested resources ", "name", r.GetName(), "kind", r.GetObjectKind())
 		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.GetObjectKind(), r.GetName()))
 	}
 	if itemsNum > 0 {
-		commoncontainerlog.Error(err, "nested resources are not empty", "name", r.GetName(), "kind", r.GetObjectKind())
+		log.Error(err, "nested resources are not empty", "name", r.GetName(), "kind", r.GetObjectKind())
 		return apierrors.NewBadRequest(fmt.Sprintf("%s nested resources with root resource '%s' are not empty", r.GetObjectKind(), r.GetName()))
 	}
 

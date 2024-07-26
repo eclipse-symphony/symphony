@@ -9,8 +9,8 @@ package v1
 import (
 	"context"
 	"encoding/json"
-	commoncontainer "gopls-workspace/apis/containers/v1"
 	"gopls-workspace/apis/metrics/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"time"
 
@@ -251,14 +251,14 @@ func (r *Catalog) validateRootResource() *field.Error {
 }
 
 func (r *CatalogContainer) Default() {
-	commoncontainer.DefaultImpl(r)
+	commoncontainer.DefaultImpl(cataloglog, r)
 }
 
 func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
-	return commoncontainer.ValidateCreateImpl(r)
+	return commoncontainer.ValidateCreateImpl(cataloglog, r)
 }
 func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	return commoncontainer.ValidateUpdateImpl(r, old)
+	return commoncontainer.ValidateUpdateImpl(cataloglog, r, old)
 }
 
 func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
@@ -272,5 +272,5 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(catalogList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(cataloglog, r, getSubResourceNums)
 }

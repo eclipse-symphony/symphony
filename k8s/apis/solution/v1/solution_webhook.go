@@ -9,7 +9,7 @@ package v1
 import (
 	"context"
 	"fmt"
-	commoncontainer "gopls-workspace/apis/containers/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -172,14 +172,14 @@ func (r *Solution) validateRootResource() *field.Error {
 }
 
 func (r *SolutionContainer) Default() {
-	commoncontainer.DefaultImpl(r)
+	commoncontainer.DefaultImpl(solutionlog, r)
 }
 
 func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
-	return commoncontainer.ValidateCreateImpl(r)
+	return commoncontainer.ValidateCreateImpl(solutionlog, r)
 }
 func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	return commoncontainer.ValidateUpdateImpl(r, old)
+	return commoncontainer.ValidateUpdateImpl(solutionlog, r, old)
 }
 
 func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
@@ -193,5 +193,5 @@ func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(solutionList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(solutionlog, r, getSubResourceNums)
 }
