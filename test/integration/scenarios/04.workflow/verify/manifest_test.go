@@ -455,7 +455,7 @@ func getLabels(resource unstructured.Unstructured) string {
 				return "wronglabel"
 			}
 		} else {
-			return "wronglabel"
+			return "nolabel"
 		}
 	} else {
 		return "nolabel"
