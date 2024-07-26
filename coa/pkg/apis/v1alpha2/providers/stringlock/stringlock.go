@@ -11,8 +11,9 @@ import (
 	//"encoding/json"
 )
 
+type UnLock func()
+
 type IStringLockProvider interface {
 	Init(config providers.IProviderConfig) error
-	Lock(string)
-	UnLock(string)
+	Lock(string) UnLock
 }

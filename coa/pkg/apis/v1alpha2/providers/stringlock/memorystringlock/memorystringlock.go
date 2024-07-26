@@ -9,25 +9,25 @@ package memorystringlock
 import (
 	"sync"
 	"time"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/stringlock"
 )
 
 type MemoryStringLockProvider struct {
 	lm LockManager
 }
 
-// Init(config providers.IProviderConfig) error
-func (mslp *MemoryStringLockProvider) Lock(string) {
-}
-func (mslp *MemoryStringLockProvider) UnLock(string) {
+func (mslp *MemoryStringLockProvider) Lock(key string) stringlock.UnLock {
+	mslp.lm.GetLockNode(key).Lock()
 
-}
-
-type Lock struct {
-	// Lock implementation here
+	return func() {
+		mslp.lm.GetLockNode(key).Unlock()
+		go mslp.lm.UpdateLockLRU(key)
+	}
 }
 
 type LockNode struct {
-	lastusedtime time.Time
+	lastUsedTime time.Time
 	key          string
 	lock         sync.Mutex
 	prev         *LockNode
@@ -35,7 +35,7 @@ type LockNode struct {
 }
 
 type LockManager struct {
-	lockMap map[string]*LockNode
+	purgeDuration time.Duration // 12 hours before
 
 	m    *sync.Map
 	head *LockNode
@@ -45,10 +45,10 @@ type LockManager struct {
 
 func NewLockManager() *LockManager {
 	return &LockManager{
-		lockMap: make(map[string]*LockNode),
-		m:       &sync.Map{},
-		head:    nil,
-		tail:    nil,
+		purgeDuration: -(time.Second * 30),
+		m:             &sync.Map{},
+		head:          nil,
+		tail:          nil,
 	}
 }
 
@@ -77,34 +77,31 @@ func (lm *LockManager) moveToHead(node *LockNode) {
 }
 
 func (lm *LockManager) GetLockNode(key string) *sync.Mutex {
-	mutex, _ := lm.m.LoadOrStore(key, &LockNode{prev: nil, next: nil})
-	return mutex.(*sync.Mutex)
+	locknode, _ := lm.m.LoadOrStore(key, &LockNode{key: key, prev: nil, next: nil})
+	if ln, ok := locknode.(*LockNode); ok {
+		return &ln.lock
+	} else {
+		print("unexpected behavior")
+		panic("unexpected behavior")
+	}
 }
 
 func (lm *LockManager) UpdateLockLRU(key string) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
-	node, _ := lm.m.Load(key)
+	locknode, ok := lm.m.Load(key)
 
-	node
+	if ok {
+		locknode.(*LockNode).lastUsedTime = time.Now()
 
-	if node, exists := lm.lockMap[key]; exists {
-		node.lock = lock
-		lm.moveToHead(node)
-	} else {
-		node := &ListNode{key: key, lock: lock}
-		lm.lockMap[key] = node
-		lm.moveToHead(node)
+		lm.moveToHead(locknode.(*LockNode))
 	}
 }
 
-func (lm *LockManager) Clean() *Lock {
-	lm.mu.Lock()
-	defer lm.mu.Unlock()
-
-	if lm.tail == nil {
-		return nil
+func (lm *LockManager) cleanLast() bool {
+	if lm.tail == nil || lm.tail.lastUsedTime.After(time.Now().Add(lm.purgeDuration)) {
+		return false
 	}
 
 	node := lm.tail
@@ -115,6 +112,13 @@ func (lm *LockManager) Clean() *Lock {
 	}
 	lm.tail = node.prev
 
-	delete(lm.lockMap, node.key)
-	return node.lock
+	lm.m.Delete(node.key)
+	return true
+}
+
+func (lm *LockManager) Clean() {
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
+	for lm.cleanLast() {
+	}
 }
