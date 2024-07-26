@@ -165,14 +165,14 @@ func (r *Campaign) validateRootResource() *field.Error {
 }
 
 func (r *CampaignContainer) Default() {
-	commoncontainer.DefaultImpl(r)
+	commoncontainer.DefaultImpl(campaignlog, r)
 }
 
 func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
-	return commoncontainer.ValidateCreateImpl(r)
+	return commoncontainer.ValidateCreateImpl(campaignlog, r)
 }
 func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	return commoncontainer.ValidateUpdateImpl(r, old)
+	return commoncontainer.ValidateUpdateImpl(campaignlog, r, old)
 }
 
 func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
@@ -186,5 +186,5 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(campaignList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(campaignlog, r, getSubResourceNums)
 }
