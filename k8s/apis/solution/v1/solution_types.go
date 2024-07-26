@@ -36,3 +36,7 @@ type SolutionList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Solution `json:"items"`
 }
+
+func init() {
+	SchemeBuilder.Register(&Solution{}, &SolutionList{})
+}

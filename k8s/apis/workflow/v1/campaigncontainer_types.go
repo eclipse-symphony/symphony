@@ -45,6 +45,5 @@ var _ webhook.Validator = &CampaignContainer{}
 var _ webhook.Defaulter = &CampaignContainer{}
 
 func init() {
-	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
 	SchemeBuilder.Register(&CampaignContainer{}, &CampaignContainerList{})
 }

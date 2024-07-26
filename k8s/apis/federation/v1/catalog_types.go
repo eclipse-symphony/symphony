@@ -34,3 +34,7 @@ type CatalogList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Catalog `json:"items"`
 }
+
+func init() {
+	SchemeBuilder.Register(&Catalog{}, &CatalogList{})
+}

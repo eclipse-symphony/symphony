@@ -45,6 +45,5 @@ var _ webhook.Validator = &SolutionContainer{}
 var _ webhook.Defaulter = &SolutionContainer{}
 
 func init() {
-	SchemeBuilder.Register(&Solution{}, &SolutionList{})
 	SchemeBuilder.Register(&SolutionContainer{}, &SolutionContainerList{})
 }

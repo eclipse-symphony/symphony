@@ -9,8 +9,8 @@ package v1
 import (
 	"context"
 	"encoding/json"
-	commoncontainer "gopls-workspace/apis/containers/v1"
 	"gopls-workspace/apis/metrics/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"time"
 

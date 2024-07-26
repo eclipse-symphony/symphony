@@ -45,6 +45,5 @@ var _ webhook.Validator = &CatalogContainer{}
 var _ webhook.Defaulter = &CatalogContainer{}
 
 func init() {
-	SchemeBuilder.Register(&Catalog{}, &CatalogList{})
 	SchemeBuilder.Register(&CatalogContainer{}, &CatalogContainerList{})
 }

@@ -36,3 +36,7 @@ type CampaignList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Campaign `json:"items"`
 }
+
+func init() {
+	SchemeBuilder.Register(&Campaign{}, &CampaignList{})
+}
