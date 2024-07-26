@@ -168,7 +168,7 @@ func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annot
 		if err := json.Unmarshal([]byte(systemData), &systemDataMap); err != nil {
 			log.Info("Failed to unmarshal system data", "error", err)
 		} else {
-			// callerId = systemDataMap[constants.AzureCreaedByKey]
+			// callerId = systemDataMap[constants.AzureCreatedByKey]
 			callerId = "******"
 		}
 	}
