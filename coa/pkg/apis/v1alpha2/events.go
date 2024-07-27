@@ -25,15 +25,8 @@ func (e *Event) propagteDiagnosticLogContextToEventMetadata() {
 	if e == nil || e.Context == nil {
 		return
 	}
-	if diagCtx, ok := e.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext); ok {
-		if e.Metadata == nil {
-			e.Metadata = make(map[string]string)
-		}
-		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId)] = diagCtx.GetCorrelationId()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId)] = diagCtx.GetResourceId()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId)] = diagCtx.GetTraceId()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId)] = diagCtx.GetSpanId()
-	}
+
+	contexts.PropagteDiagnosticLogContextToMetadata(e.Context, e.Metadata)
 }
 
 func (e *Event) parseDiagnosticLogContextFromEventMetadata() {
@@ -41,12 +34,7 @@ func (e *Event) parseDiagnosticLogContextFromEventMetadata() {
 		return
 	}
 
-	correlationId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId)]
-	resourceCloudId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId)]
-	traceId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId)]
-	spanId := e.Metadata[contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId)]
-
-	diagCtx := contexts.NewDiagnosticLogContext(correlationId, resourceCloudId, traceId, spanId)
+	diagCtx := contexts.ParseDiagnosticLogContextFromMetadata(e.Metadata)
 	e.Context = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, e.Context)
 }
 
@@ -54,37 +42,14 @@ func (e *Event) clearDiagnosticLogContextFromEventMetadata() {
 	if e == nil {
 		return
 	}
-	if e.Metadata != nil {
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_CorrelationId))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_ResourceCloudId))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_TraceId))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForDiagnosticsLogContext(contexts.Diagnostics_TraceContext_SpanId))
-	}
+	contexts.ClearDiagnosticLogContextFromMetadata(e.Metadata)
 }
 
 func (e *Event) propagateActivityLogContextToEventMetadata() {
 	if e == nil || e.Context == nil {
 		return
 	}
-	if actCtx, ok := e.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext); ok {
-		if e.Metadata == nil {
-			e.Metadata = make(map[string]string)
-		}
-
-		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId)] = actCtx.GetResourceCloudId()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName)] = actCtx.GetOperationName()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location)] = actCtx.GetCloudLocation()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category)] = actCtx.GetCategory()
-		e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)] = actCtx.GetCorrelationId()
-
-		props := actCtx.GetProperties()
-		propsJson, err := json.Marshal(props)
-		if err != nil {
-			// skip
-		} else {
-			e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties)] = string(propsJson)
-		}
-	}
+	contexts.PropagateActivityLogContextToMetadata(e.Context, e.Metadata)
 }
 
 func (e *Event) parseActivityLogContextFromEventMatadata() {
@@ -92,38 +57,15 @@ func (e *Event) parseActivityLogContextFromEventMatadata() {
 		return
 	}
 
-	actCtx := contexts.ActivityLogContext{}
-	actCtx.SetResourceCloudId(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId)])
-	actCtx.SetOperationName(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName)])
-	actCtx.SetCloudLocation(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location)])
-	actCtx.SetCategory(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category)])
-	actCtx.SetCorrelationId(e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)])
-
-	props := make(map[string]interface{})
-	propsJson := e.Metadata[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties)]
-	if propsJson != "" {
-		if err := json.Unmarshal([]byte(propsJson), &props); err != nil {
-			// skip
-		} else {
-			actCtx.SetProperties(props)
-		}
-	}
-
-	e.Context = contexts.PatchActivityLogContextToCurrentContext(&actCtx, e.Context)
+	actCtx := contexts.ParseActivityLogContextFromMetadata(e.Metadata)
+	e.Context = contexts.PatchActivityLogContextToCurrentContext(actCtx, e.Context)
 }
 
 func (e *Event) clearActivityLogContextFromEventMetadata() {
 	if e == nil {
 		return
 	}
-	if e.Metadata != nil {
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_ResourceCloudId))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_OperationName))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Location))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Category))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId))
-		delete(e.Metadata, contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_Properties))
-	}
+	contexts.ClearActivityLogContextFromMetadata(e.Metadata)
 }
 
 func (e *Event) DeepCopy() *Event {
@@ -135,7 +77,12 @@ func (e *Event) DeepCopy() *Event {
 	for k, v := range e.Metadata {
 		newEvent.Metadata[k] = v
 	}
-	newEvent.Body = e.Body
+	if e.Body != nil {
+		jsonBody, err := json.Marshal(e.Body)
+		if err == nil {
+			json.Unmarshal(jsonBody, &newEvent.Body)
+		}
+	}
 	if e.Context != nil {
 		actCtx, ok := e.Context.Value(contexts.ActivityLogContextKey).(*contexts.ActivityLogContext)
 		if ok {
@@ -182,6 +129,10 @@ func (e Event) DeepEquals(other Event) bool {
 }
 
 func EventEquals(e1, e2 *Event) bool {
+	if e1 == nil || e2 == nil {
+		return e1 == e2
+	}
+
 	if len(e1.Metadata) != len(e2.Metadata) {
 		return false
 	}
@@ -190,7 +141,15 @@ func EventEquals(e1, e2 *Event) bool {
 			return false
 		}
 	}
-	if e1.Body != e2.Body {
+	jsonBody1, err := json.Marshal(e1.Body)
+	if err != nil {
+		return false
+	}
+	jsonBody2, err := json.Marshal(e2.Body)
+	if err != nil {
+		return false
+	}
+	if string(jsonBody1) != string(jsonBody2) {
 		return false
 	}
 

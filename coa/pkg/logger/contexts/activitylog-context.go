@@ -418,3 +418,63 @@ func InheritActivityLogContextFromOriginalContext(original context.Context, pare
 		return parent
 	}
 }
+
+func PropagateActivityLogContextToMetadata(ctx context.Context, metadata map[string]string) {
+	if ctx == nil {
+		return
+	}
+
+	if actCtx, ok := ctx.Value(ActivityLogContextKey).(*ActivityLogContext); ok {
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId)] = actCtx.GetResourceCloudId()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName)] = actCtx.GetOperationName()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Location)] = actCtx.GetCloudLocation()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Category)] = actCtx.GetCategory()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId)] = actCtx.GetCorrelationId()
+
+		props := actCtx.GetProperties()
+		propsJson, err := json.Marshal(props)
+		if err != nil {
+			// skip
+		} else {
+			metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Properties)] = string(propsJson)
+		}
+	}
+}
+
+func ParseActivityLogContextFromMetadata(metadata map[string]string) *ActivityLogContext {
+	if metadata == nil {
+		return nil
+	}
+
+	actCtx := ActivityLogContext{}
+	actCtx.SetResourceCloudId(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId)])
+	actCtx.SetOperationName(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName)])
+	actCtx.SetCloudLocation(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Location)])
+	actCtx.SetCategory(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Category)])
+	actCtx.SetCorrelationId(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId)])
+
+	props := make(map[string]interface{})
+	propsJson := metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Properties)]
+	if propsJson != "" {
+		if err := json.Unmarshal([]byte(propsJson), &props); err != nil {
+			// skip
+		} else {
+			actCtx.SetProperties(props)
+		}
+	}
+
+	return &actCtx
+}
+
+func ClearActivityLogContextFromMetadata(metadata map[string]string) {
+	if metadata == nil {
+		return
+	}
+
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_Location))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_Category))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_Properties))
+}
