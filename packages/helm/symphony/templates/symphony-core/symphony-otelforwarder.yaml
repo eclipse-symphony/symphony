@@ -8,6 +8,13 @@ metadata:
 data:
   otel-forwarder-config.yaml: |
     receivers:
+      # Data sources: traces, metrics, logs
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
       filelog:
         resource:
           microsoft.resourceId: "{{ .Values.Azure.Extension.ResourceId }}"
@@ -232,12 +239,12 @@ data:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*activity.*$")'
-            - attributes["log.type"] != "activity"
+            - attributes["activity"] == nil or attributes["activity"] == ""
       filter/userDiagnostics:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*diagnostics.*$")'
-            - attributes["log.type"] != "diagnostics" or attributes["log.resourceId"] == nil or attributes["log.resourceId"] == ""
+            - attributes["diagnostics"] == nil or attributes["diagnostics"] == ""
 
       transform/userAudits:
         error_mode: ignore
@@ -275,22 +282,22 @@ data:
           level: debug
       pipelines:
         logs/userAudits:
-          receivers: [filelog]
-          processors: [memory_limiter, batch, k8sattributes, filter/userAudits, transform/userAudits]
-          exporters: [otlp/userAudits]
-          # exporters: [debug]
+          receivers: [otlp]
+          processors: [memory_limiter, batch, filter/userAudits, transform/userAudits]
+          # exporters: [otlp/userAudits]
+          exporters: [debug]
 
         logs/userDiagnostics:
-          receivers: [filelog]
-          processors: [memory_limiter, batch, k8sattributes, filter/userDiagnostics, transform/userDiagnostics]
-          exporters: [otlp/userDiagnostics]
-          # exporters: [debug]
+          receivers: [otlp]
+          processors: [memory_limiter, batch, filter/userDiagnostics, transform/userDiagnostics]
+          # exporters: [otlp/userDiagnostics]
+          exporters: [debug]
 
         logs/default:
           receivers: [filelog]
           processors: [memory_limiter, batch, k8sattributes]
-          exporters: [otlp/default]
-          # exporters: [debug]
+          # exporters: [otlp/default]
+          exporters: [debug]
 
 ---
 apiVersion: apps/v1
@@ -383,5 +390,26 @@ roleRef:
   kind: ClusterRole
   name: {{ include "symphony.fullname" . }}-otel-forwarder-clusterrole
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-service
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc # Default endpoint for OpenTelemetry gRPC receiver.
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+    - name: otlp-http # Default endpoint for OpenTelemetry HTTP receiver.
+      port: 4318
+      protocol: TCP
+      targetPort: 4318
+  selector:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
 
-{{- end}}
+{{- end }}

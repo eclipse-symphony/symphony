@@ -154,7 +154,7 @@ func (ctx *ActivityLogContext) FromMap(m map[string]interface{}) {
 	}
 }
 
-func (ctx *ActivityLogContext) String() string {
+func (ctx ActivityLogContext) String() string {
 	b, _ := json.Marshal(ctx.ToMap())
 	return string(b)
 }

@@ -19,6 +19,10 @@ const (
 	LogTypeLog = "log"
 	// LogTypeRequest is Request log type
 	LogTypeRequest = "request"
+	// LogTypeUserAudits is User Audit log type
+	LogTypeUserAudits = "userAudits"
+	// LogTypeUserDiagnostics is User Diagnostic log type
+	LogTypeUserDiagnostics = "userDiagnostics"
 
 	// Field names that defines Dapr log schema
 	logFieldTimeStamp = "time"
@@ -54,8 +58,10 @@ const (
 // TODO: User will disable or enable logger on demand.
 var globalLoggers = map[string]Logger{}
 var globalLoggersLock = sync.RWMutex{}
-var globalAuditLoggerOnce sync.Once
-var globalAuditLogger Logger
+var globalUserAuditsLoggerOnce sync.Once
+var globalUserAuditsLogger Logger
+var globalUserDiagnosticsLoggerOnce sync.Once
+var globalUserDiagnosticsLogger Logger
 
 // Logger includes the logging api sets
 type Logger interface {
@@ -145,16 +151,28 @@ func NewLogger(name string) Logger {
 	return logger
 }
 
-// NewAuditLogger creates new Logger instance for audit log.
-func newAuditLogger(name string) Logger {
-	return newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true})
+// newUserAuditsLogger creates new Logger instance for user audit log.
+func newUserAuditsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true})
 }
 
-func GetAuditLogger() Logger {
-	globalAuditLoggerOnce.Do(func() {
-		globalAuditLogger = newAuditLogger("audit")
+// newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
+func newUserDiagnosticsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false})
+}
+
+func GetUserAuditsLogger() Logger {
+	globalUserAuditsLoggerOnce.Do(func() {
+		globalUserAuditsLogger = newUserAuditsLogger("coa.runtime.user.audits")
 	})
-	return globalAuditLogger
+	return globalUserAuditsLogger
+}
+
+func GetUserDiagnosticsLogger() Logger {
+	globalUserDiagnosticsLoggerOnce.Do(func() {
+		globalUserDiagnosticsLogger = newUserDiagnosticsLogger("coa.runtime.user.diagnostics")
+	})
+	return globalUserDiagnosticsLogger
 }
 
 func getLoggers() map[string]Logger {

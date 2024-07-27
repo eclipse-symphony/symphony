@@ -687,6 +687,7 @@
         "port": {{ include "symphony.apiContainerPortHttp" . }},
         "pipeline": [
           {{- include "symphony.metricMiddleware" . | indent 10 }}
+          {{- include "symphony.logMiddleware" . | indent 10 }}
           {{- include "symphony.traceMiddleware" . | indent 10 }}
           {{- include "symphony.zipkinMiddleware" . | indent 10 }}
           {
@@ -787,6 +788,7 @@
           },
           "pipeline": [
             {{- include "symphony.metricMiddleware" . | indent 10 }}
+            {{- include "symphony.logMiddleware" . | indent 10 }}
             {{- include "symphony.traceMiddleware" . | indent 10 }}
             {{- include "symphony.zipkinMiddleware" . | indent 10 }}
             {
