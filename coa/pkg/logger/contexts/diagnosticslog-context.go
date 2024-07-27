@@ -367,3 +367,44 @@ func PatchCorrelationIdToParentContextIfMissing(parent context.Context, correlat
 		return context.WithValue(parent, DiagnosticLogContextKey, diagCtx)
 	}
 }
+
+func PropagteDiagnosticLogContextToMetadata(ctx context.Context, metadata map[string]string) {
+	if ctx == nil {
+		return
+	}
+
+	if diagCtx, ok := ctx.Value(DiagnosticLogContextKey).(*DiagnosticLogContext); ok {
+		if metadata == nil {
+			metadata = make(map[string]string)
+		}
+		metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_CorrelationId)] = diagCtx.GetCorrelationId()
+		metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_ResourceCloudId)] = diagCtx.GetResourceId()
+		metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_TraceId)] = diagCtx.GetTraceId()
+		metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_SpanId)] = diagCtx.GetSpanId()
+	}
+}
+
+func ParseDiagnosticLogContextFromMetadata(metadata map[string]string) *DiagnosticLogContext {
+	if metadata == nil {
+		return nil
+	}
+
+	correlationId := metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_CorrelationId)]
+	resourceCloudId := metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_ResourceCloudId)]
+	traceId := metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_TraceId)]
+	spanId := metadata[ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_SpanId)]
+
+	diagCtx := NewDiagnosticLogContext(correlationId, resourceCloudId, traceId, spanId)
+	return diagCtx
+}
+
+func ClearDiagnosticLogContextFromMetadata(metadata map[string]string) {
+	if metadata == nil {
+		return
+	}
+
+	delete(metadata, ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_CorrelationId))
+	delete(metadata, ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_ResourceCloudId))
+	delete(metadata, ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_TraceId))
+	delete(metadata, ConstructHttpHeaderKeyForDiagnosticsLogContext(Diagnostics_TraceContext_SpanId))
+}
