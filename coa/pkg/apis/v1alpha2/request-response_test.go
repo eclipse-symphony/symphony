@@ -10,6 +10,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,4 +91,32 @@ func TestCOAResponsePrint(t *testing.T) {
 
 	resp.Body = nil
 	resp.Println()
+}
+
+func TestCOARequests_MarshalAndUnmarshalJSON(t *testing.T) {
+	actCtx := contexts.NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
+	ctx := contexts.PatchActivityLogContextToCurrentContext(actCtx, diagCtx)
+	ctx = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, ctx)
+	req := COARequest{
+		Body:    []byte("body"),
+		Route:   "/test",
+		Method:  "GET",
+		Context: ctx,
+	}
+	req.Metadata = map[string]string{
+		"metadata1": "metadata1-value",
+	}
+	req.Parameters = map[string]string{
+		"param1": "param1-value",
+	}
+
+	data, err := req.MarshalJSON()
+	assert.Nil(t, err)
+
+	var req2 COARequest
+	err = req2.UnmarshalJSON(data)
+	assert.Nil(t, err)
+
+	assert.True(t, COARequestEquals(&req, &req2))
 }
