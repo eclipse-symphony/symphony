@@ -136,6 +136,8 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 		actCtx := contexts.ParseActivityLogContextFromHttpRequestHeader(reqCtx)
 		diagCtx := contexts.ParseDiagnosticLogContextFromHttpRequestHeader(reqCtx)
 		ctx := composeCOARequestContext(reqCtx, actCtx, diagCtx)
+		// patch correlation id if missing
+		ctx = contexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		req := v1alpha2.COARequest{
 			Body:    reqCtx.PostBody(),
 			Route:   string(reqCtx.Request.URI().Path()),
