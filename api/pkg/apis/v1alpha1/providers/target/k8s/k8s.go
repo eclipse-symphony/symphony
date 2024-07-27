@@ -399,14 +399,14 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace stri
 	}
 
 	foregroundDeletion := metav1.DeletePropagationForeground
-	logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting remove deployment under namespace - %s, name - %s", namespace, name)
+	logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting remove deployment under namespace - %s, name - %s", namespace, name)
 	err = i.Client.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return err
 		}
 	}
-	logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered remove deployment under namespace - %s, name - %s", namespace, name)
+	logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered remove deployment under namespace - %s, name - %s", namespace, name)
 
 	return nil
 }
@@ -489,12 +489,12 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, namespace strin
 	}
 
 	if isEmpty {
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting remove namespace - %s", namespace)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting remove namespace - %s", namespace)
 		err = i.Client.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered remove namespace - %s", namespace)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered remove namespace - %s", namespace)
 	}
 	return nil
 }
@@ -513,7 +513,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
-			logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create namespace - %s", namespace)
+			logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create namespace - %s", namespace)
 			_, err = i.Client.CoreV1().Namespaces().Create(ctx, &apiv1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
@@ -522,7 +522,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 			if err != nil {
 				return err
 			}
-			logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered create namespace - %s", namespace)
+			logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Triggered create namespace - %s", namespace)
 		} else {
 			return err
 		}
@@ -546,11 +546,11 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 		return err
 	}
 	if k8s_errors.IsNotFound(err) {
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create deployment under namespace - %s, name - %s", namespace, name)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create deployment under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	} else {
 		deployment.ResourceVersion = existing.ResourceVersion
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting update deployment under namespace - %s, name - %s", namespace, name)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting update deployment under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
 	}
 	if err != nil {
@@ -575,11 +575,11 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string,
 		return err
 	}
 	if k8s_errors.IsNotFound(err) {
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create service under namespace - %s, name - %s", namespace, name)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting create service under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	} else {
 		service.ResourceVersion = existing.ResourceVersion
-		logger.GetAuditLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting update service under namespace - %s, name - %s", namespace, name)
+		logger.GetUserAuditsLogger().InfofCtx(ctx, "  P (K8s Target Provider): Starting update service under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 	}
 	if err != nil {

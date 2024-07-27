@@ -120,6 +120,15 @@ Metric Middleware
 {{- end }}
 
 {{/*
+Log Middleware
+*/}}
+{{- define "symphony.logMiddleware" -}}
+{{- if .Values.otlpLogsEndpointGrpc }}
+{{ tpl (.Files.Get "files/log-middleware.json") .  }},
+{{- end }}
+{{- end }}
+
+{{/*
 Symphony API serving certs directory path
 */}}
 {{- define "symphony.apiServingCertsDir" -}}

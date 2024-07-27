@@ -126,7 +126,7 @@ func (ctx *DiagnosticLogContext) FromMap(m map[string]interface{}) {
 	}
 }
 
-func (ctx *DiagnosticLogContext) String() string {
+func (ctx DiagnosticLogContext) String() string {
 	b, _ := json.Marshal(ctx.ToMap())
 	return string(b)
 }

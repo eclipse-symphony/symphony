@@ -14,6 +14,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
@@ -38,6 +39,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	sigs.k8s.io/yaml v1.3.0
 )

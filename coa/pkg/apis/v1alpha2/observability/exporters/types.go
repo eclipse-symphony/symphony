@@ -11,6 +11,7 @@ import (
 	// "log"
 	// "os"
 
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	stdout "go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -18,7 +19,7 @@ import (
 
 // var logger = log.New(os.Stderr, "zipkin-example", log.Ldate|log.Ltime|log.Llongfile)
 
-func NewConsoleExporter(writer io.Writer) (sdktrace.SpanExporter, error) {
+func NewTraceConsoleExporter(writer io.Writer) (sdktrace.SpanExporter, error) {
 	if writer != nil {
 		return stdout.New(
 			stdout.WithPrettyPrint(),
@@ -27,6 +28,19 @@ func NewConsoleExporter(writer io.Writer) (sdktrace.SpanExporter, error) {
 	} else {
 		return stdout.New(
 			stdout.WithPrettyPrint(),
+		)
+	}
+}
+
+func NewLogConsoleExporter(writer io.Writer) (*stdoutlog.Exporter, error) {
+	if writer != nil {
+		return stdoutlog.New(
+			stdoutlog.WithPrettyPrint(),
+			stdoutlog.WithWriter(writer),
+		)
+	} else {
+		return stdoutlog.New(
+			stdoutlog.WithPrettyPrint(),
 		)
 	}
 }
