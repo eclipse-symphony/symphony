@@ -22,6 +22,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 )
@@ -257,6 +258,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	sLog.InfofCtx(ctx, "  P (MQTT Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
+	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "GET",
@@ -265,6 +267,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			"call-context":  "TargetProvider-Get",
 			"active-target": deployment.ActiveTarget,
 		},
+		Context: ctx,
 	}
 	data, _ = json.Marshal(request)
 
@@ -313,6 +316,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	sLog.InfofCtx(ctx, "  P (MQTT Target): deleting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
+	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "DELETE",
@@ -321,6 +325,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 			"call-context":  "TargetProvider-Remove",
 			"active-target": deployment.ActiveTarget,
 		},
+		Context: ctx,
 	}
 	data, _ = json.Marshal(request)
 
@@ -381,6 +386,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
 
+		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "POST",
@@ -389,6 +395,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				"call-context":  "TargetProvider-Apply",
 				"active-target": deployment.ActiveTarget,
 			},
+			Context: ctx,
 		}
 		data, _ = json.Marshal(request)
 
@@ -454,6 +461,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "DELETE",
@@ -461,6 +469,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			Metadata: map[string]string{
 				"call-context": "TargetProvider-Remove",
 			},
+			Context: ctx,
 		}
 		data, _ = json.Marshal(request)
 
