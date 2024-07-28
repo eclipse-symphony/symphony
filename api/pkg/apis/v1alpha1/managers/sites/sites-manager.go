@@ -53,6 +53,7 @@ func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteSta
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -98,6 +99,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	current.Metadata = map[string]interface{}{
 		"version":  "v1",
@@ -165,6 +167,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -200,6 +203,7 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -221,6 +225,7 @@ func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -254,6 +259,7 @@ func (s *SitesManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var thisSite model.SiteState
 	thisSite, err = s.GetState(ctx, s.VendorContext.SiteInfo.SiteId)

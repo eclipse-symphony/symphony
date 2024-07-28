@@ -95,6 +95,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfoCtx(ctx, "  P (List Processor): processing inputs")
 

@@ -50,6 +50,7 @@ func (m *DelayStageProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	msLock.Lock()
 	defer msLock.Unlock()
@@ -100,6 +101,7 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLog.InfoCtx(ctx, "  P (Delay Stage) process started")
 	processTime := time.Now().UTC()

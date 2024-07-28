@@ -61,6 +61,7 @@ func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	aLog.InfoCtx(ctx, "  P (Android ADB): Init()")
 
@@ -89,6 +90,7 @@ func (i *AdbProvider) Get(ctx context.Context, deployment model.DeploymentSpec, 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if deployment.Instance.Spec == nil {
 		err = errors.New("deployment instance spec is nil")
@@ -137,6 +139,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	aLog.InfofCtx(ctx, "  P (Android ADB Provider): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 

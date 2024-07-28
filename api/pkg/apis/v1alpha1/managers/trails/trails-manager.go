@@ -47,6 +47,7 @@ func (s *TrailsManager) Append(ctx context.Context, trails []v1alpha2.Trail) err
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugfCtx(ctx, " M (Trails): append Trails, trails count: %d", len(trails))
 	errMessage := ""

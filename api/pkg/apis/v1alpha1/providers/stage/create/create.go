@@ -64,6 +64,7 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	msLock.Lock()
 	defer msLock.Unlock()
 	var mockConfig CreateStageProviderConfig
@@ -151,6 +152,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLog.InfofCtx(ctx, "  P (Create Stage) process started")
 	processTime := time.Now().UTC()

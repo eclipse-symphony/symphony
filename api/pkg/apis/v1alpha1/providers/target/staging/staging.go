@@ -68,6 +68,7 @@ func (i *StagingTargetProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfoCtx(ctx, "  P (Staging Target): Init()")
 
 	updateConfig, err := toStagingTargetProviderConfig(config)
@@ -99,6 +100,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	scope := deployment.Instance.Spec.Scope
 	if scope == "" {
@@ -154,6 +156,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	versionName := containerName + constants.ResourceSeperator + "v1"
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
