@@ -15,8 +15,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/hooks"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/contrib/bridges/otellogrus"
-	"go.opentelemetry.io/otel/log/global"
 )
 
 // user-facing logger is the implemention for logrus
@@ -73,10 +71,6 @@ func newUserLogger(name string, logType string, contextOptions hooks.ContextHook
 	retentionBuffer := NewRetentionBuffer(10 * 1024)
 	newLogger.SetOutput(retentionBuffer) // disable output, user logger should not output to console
 	newLogger.AddHook(hooks.NewContextHookWithOptions(contextOptions))
-	if global.GetLoggerProvider() != nil {
-		hook := otellogrus.NewHook(name, otellogrus.WithLevels(logrus.AllLevels), otellogrus.WithLoggerProvider(global.GetLoggerProvider()))
-		newLogger.AddHook(hook)
-	}
 
 	ul := &userLogger{
 		name:   name,

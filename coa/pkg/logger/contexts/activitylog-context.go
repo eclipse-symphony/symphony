@@ -21,6 +21,15 @@ const (
 
 	Activity_Props_CallerId      string = "caller-id"
 	Activity_Props_ResourceK8SId string = "resource-k8s-id"
+
+	OTEL_Activity_ResourceCloudId     string = "resourceId"
+	OTEL_Activity_OperationName       string = "operationName"
+	OTEL_Activity_Location            string = "location"
+	OTEL_Activity_Category            string = "category"
+	OTEL_Activity_CorrelationId       string = "correlationId"
+	OTEL_Activity_Properties          string = "properties"
+	OTEL_Activity_Props_CallerId      string = "caller-id"
+	OTEL_Activity_Props_ResourceK8SId string = "resource-k8s-id"
 )
 
 // ActivityLogContext is a context that holds activity information.

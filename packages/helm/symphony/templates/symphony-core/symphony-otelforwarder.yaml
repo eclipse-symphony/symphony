@@ -106,15 +106,15 @@ data:
             id: start_retrieving
             if: 'body["caller"] != nil'
             from: body["caller"]
-            to: attributes["log.caller"]
+            to: attributes["caller"]
           - type: move
             if: 'body["level"] != nil'
             from: body["level"]
-            to: attributes["log.level"]
+            to: attributes["level"]
           - type: move
             if: 'body["scope"] != nil'
             from: body["scope"]
-            to: attributes["log.scope"]
+            to: attributes["scope"]
           - type: move
             if: 'body["time"] != nil'
             from: body["time"]
@@ -122,85 +122,85 @@ data:
           - type: move
             if: 'body["ver"] != nil'
             from: body["ver"]
-            to: attributes["log.ver"]
+            to: attributes["ver"]
           - type: move
             if: 'body["activity"] != nil'
             from: body["activity"]
-            to: attributes["log.activity"]
+            to: attributes["activity"]
           - type: move
             if: 'body["diagnostics"] != nil'
             from: body["diagnostics"]
-            to: attributes["log.diagnostics"]
+            to: attributes["diagnostics"]
           - type: router
             id: process_diagnostics
             routes:
               - output: tag_diagnostics
-                expr: attributes["log.diagnostics"] != nil
+                expr: attributes["diagnostics"] != nil
             default: process_activity
           - type: add
             id: tag_diagnostics
-            if: 'attributes["log.diagnostics"] != nil'
-            field: attributes["log.type"]
+            if: 'attributes["diagnostics"] != nil'
+            field: attributes["type"]
             value: "diagnostics"
           - type: trace_parser
             trace_id:
-              parse_from: attributes["log.diagnostics"]["traceContext"]["traceId"]
+              parse_from: attributes["diagnostics"]["traceContext"]["traceId"]
             span_id:
-              parse_from: attributes["log.diagnostics"]["traceContext"]["spanId"]
+              parse_from: attributes["diagnostics"]["traceContext"]["spanId"]
           - type: copy
-            if: 'attributes["log.diagnostics"] != nil'
-            from: attributes["log.diagnostics"]["resourceId"]
-            to: attributes["log.resourceId"]
+            if: 'attributes["diagnostics"] != nil'
+            from: attributes["diagnostics"]["resourceId"]
+            to: attributes["resourceId"]
           - type: copy
-            if: 'attributes["log.diagnostics"] != nil'
-            from: attributes["log.diagnostics"]["correlationId"]
-            to: attributes["log.correlationId"]
+            if: 'attributes["diagnostics"] != nil'
+            from: attributes["diagnostics"]["correlationId"]
+            to: attributes["correlationId"]
           - type: remove
-            if: 'attributes["log.diagnostics"] != nil'
-            field: attributes["log.diagnostics"]
+            if: 'attributes["diagnostics"] != nil'
+            field: attributes["diagnostics"]
           - type: router
             id: process_activity
             routes:
               - output: tag_activity
-                expr: attributes["log.activity"] != nil
+                expr: attributes["activity"] != nil
             default: parse_stacktrace
           - type: add
             id: tag_activity
-            if: 'attributes["log.activity"] != nil'
-            field: attributes["log.type"]
+            if: 'attributes["activity"] != nil'
+            field: attributes["type"]
             value: "activity"
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["operationName"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["operationName"]
             to: attributes["operationName"]
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["resourceId"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["resourceId"]
             to: attributes["resourceId"]
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["location"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["location"]
             to: attributes["location"]
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["category"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["category"]
             to: attributes["category"]
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["properties"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["properties"]
             to: attributes["properties"]
           - type: move
-            if: 'attributes["log.activity"] != nil'
-            from: attributes["log.activity"]["correlationId"]
+            if: 'attributes["activity"] != nil'
+            from: attributes["activity"]["correlationId"]
             to: attributes["correlationId"]
           - type: remove
-            if: 'attributes["log.activity"] != nil'
-            field: attributes["log.activity"]
+            if: 'attributes["activity"] != nil'
+            field: attributes["activity"]
           - type: move
             id: parse_stacktrace
             if: 'body["stacktrace"] != nil'
             from: body["stacktrace"]
-            to: attributes["log.stacktrace"]
+            to: attributes["stacktrace"]
           - type: move
             if: 'body["msg"] != nil'
             from: body["msg"]
@@ -239,12 +239,12 @@ data:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*activity.*$")'
-            - attributes["activity"] == nil or attributes["activity"] == ""
+            - attributes["type"] == nil or attributes["type"] != "userAudits"
       filter/userDiagnostics:
         logs:
           log_record:
             # - 'not IsMatch(attributes["log"], "^.*diagnostics.*$")'
-            - attributes["diagnostics"] == nil or attributes["diagnostics"] == ""
+            - attributes["type"] == nil or attributes["type"] != "userDiagnostics"
 
       transform/userAudits:
         error_mode: ignore

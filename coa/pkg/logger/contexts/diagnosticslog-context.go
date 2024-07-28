@@ -18,11 +18,43 @@ const (
 	Diagnostics_TraceContext         string = "traceContext"
 	Diagnostics_TraceContext_TraceId string = "traceId"
 	Diagnostics_TraceContext_SpanId  string = "spanId"
+
+	OTEL_Diagnostics_CorrelationId        string = "correlationId"
+	OTEL_Diagnostics_ResourceCloudId      string = "resourceId"
+	OTEL_Diagnostics_TraceContext         string = "traceContext"
+	OTEL_Diagnostics_TraceContext_TraceId string = "traceId"
+	OTEL_Diagnostics_TraceContext_SpanId  string = "spanId"
 )
 
 type TraceContext struct {
 	traceId string
 	spanId  string
+}
+
+func (ctx TraceContext) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		Diagnostics_TraceContext_TraceId: ctx.traceId,
+		Diagnostics_TraceContext_SpanId:  ctx.spanId,
+	})
+}
+
+func (ctx *TraceContext) UnmarshalJSON(data []byte) error {
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if m[Diagnostics_TraceContext_TraceId] != nil {
+		ctx.traceId = m[Diagnostics_TraceContext_TraceId].(string)
+	}
+	if m[Diagnostics_TraceContext_SpanId] != nil {
+		ctx.spanId = m[Diagnostics_TraceContext_SpanId].(string)
+	}
+	return nil
+}
+
+func (ctx TraceContext) String() string {
+	b, _ := json.Marshal(ctx)
+	return string(b)
 }
 
 // DiagnosticLogContext is a context that holds diagnostic information.
