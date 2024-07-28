@@ -57,7 +57,7 @@ type TargetReconciler struct {
 const (
 	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
 	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
-	targetOperationNamePrefix   = "target.fabric" + constants.FullGroupName
+	targetOperationNamePrefix   = "target.fabric." + constants.FullGroupName
 )
 
 //+kubebuilder:rbac:groups=fabric.symphony,resources=targets,verbs=get;list;watch;create;update;patch;delete
