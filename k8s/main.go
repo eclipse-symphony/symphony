@@ -128,11 +128,13 @@ func main() {
 	var reconcileIntervalString string
 	var deleteTimeOutString string
 	var metricsConfigFile string
+	var logsConfigFile string
 	var disableWebhooksServer bool
 	var deleteSyncDelayString string
 	var logMode LogMode
 
 	flag.StringVar(&metricsConfigFile, "metrics-config-file", "", "The path to the otel metrics config file.")
+	flag.StringVar(&logsConfigFile, "logs-config-file", "", "The path to the otel logs config file.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -232,6 +234,15 @@ func main() {
 			os.Exit(1)
 		}
 		defer shutdownMetrics(obs)
+	}
+
+	if logsConfigFile != "" {
+		obs, err := initLogs(logsConfigFile)
+		if err != nil {
+			setupLog.Error(err, "unable to initialize logs")
+			os.Exit(1)
+		}
+		defer shutdownLogs(obs)
 	}
 
 	apiClientOptions := []utils.ApiClientOption{
@@ -460,6 +471,28 @@ func main() {
 	}
 }
 
+func initLogs(configPath string) (*observability.Observability, error) {
+	// Read file content and parse int ObservabilityConfig
+	configBytes, err := os.ReadFile(configPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var config observability.ObservabilityConfig
+
+	if err := json.Unmarshal(configBytes, &config); err != nil {
+		return nil, err
+	}
+
+	obs := observability.New(constants.K8S)
+	if err := obs.InitLog(config); err != nil {
+		return nil, err
+	}
+
+	return &obs, nil
+}
+
 func initMetrics(configPath string) (*observability.Observability, error) {
 	// Read file content and parse int ObservabilityConfig
 	configBytes, err := os.ReadFile(configPath)
@@ -479,6 +512,12 @@ func initMetrics(configPath string) (*observability.Observability, error) {
 	}
 
 	return &obs, nil
+}
+
+func shutdownLogs(obs *observability.Observability) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	obs.Shutdown(ctx)
 }
 
 func shutdownMetrics(obs *observability.Observability) {

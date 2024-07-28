@@ -412,6 +412,9 @@ func (o *Observability) Shutdown(ctx context.Context) error {
 	if tp, ok := otel.GetTracerProvider().(v1alpha2.Terminable); ok {
 		return tp.Shutdown(ctx)
 	}
+	if tp, ok := global.GetLoggerProvider().(v1alpha2.Terminable); ok {
+		return tp.Shutdown(ctx)
+	}
 	return nil
 }
 
