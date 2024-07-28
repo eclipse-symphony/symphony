@@ -57,7 +57,6 @@ type TargetReconciler struct {
 const (
 	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
 	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
-	targetOperationNamePrefix   = "target.fabric." + constants.FullGroupName
 )
 
 //+kubebuilder:rbac:groups=fabric.symphony,resources=targets,verbs=get;list;watch;create;update;patch;delete
@@ -96,14 +95,14 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", targetOperationNamePrefix, constants.ActivityOperation_Write)
+		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, log, targetOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", targetOperationNamePrefix, constants.ActivityOperation_Delete)
+		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, target, log, targetOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
