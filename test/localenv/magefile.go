@@ -303,8 +303,8 @@ func Logs(logRootFolder string) error {
 	if err != nil {
 		return err
 	}
-	// err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelLogFile), true)
-	err = shellExec(fmt.Sprintf("kubectl logs 'ds/symphony-otel-forwarder' --all-containers -n %s > %s", getChartNamespace(), otelLogFile), true)
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelLogFile), true)
+	// err = shellExec(fmt.Sprintf("kubectl logs 'ds/symphony-otel-forwarder' --all-containers -n %s > %s", getChartNamespace(), otelLogFile), true)
 
 	return err
 }
