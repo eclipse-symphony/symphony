@@ -26,9 +26,6 @@ import (
 )
 
 // ActivationReconciler reconciles a Campaign object
-const (
-	activationOperationNamePrefix = "activations.workflow" + constants.FullGroupName
-)
 
 type ActivationReconciler struct {
 	client.Client
@@ -67,7 +64,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
 		if activation.Status.UpdateTime == "" && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
 			resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
-			operationName := fmt.Sprintf("%s/%s", activationOperationNamePrefix, constants.ActivityOperation_Write)
+			operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
 			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, activation.Annotations, constants.ActivityCategory_Activity, operationName, ctx, log)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
