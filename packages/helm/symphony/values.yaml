@@ -14,9 +14,6 @@ global:
     identity:
       isEnabled: false
 observability:
-  fluentbit:
-    enabled: true
-    image: mcr.microsoft.com/oss/fluent/fluent-bit:3.0.7
   tracing:
     exporter:
       zipkin: true
@@ -24,6 +21,7 @@ observability:
     enabled: true
     image: otel/opentelemetry-collector:0.103.0
   otelForwarder:
+    enabled: true
     image: mcr.microsoft.com/oss/otel/opentelemetry-collector-contrib:0.102.1
 zipkin:
   fullnameOverride: symphony-zipkin
