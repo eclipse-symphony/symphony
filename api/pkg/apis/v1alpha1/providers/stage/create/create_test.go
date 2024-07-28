@@ -166,7 +166,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 		"object":     instance,
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Instance creation failed:")
+	assert.Contains(t, err.Error(), "Instance creation reconcile failed:")
 }
 
 func TestCreateProcessRemove(t *testing.T) {
