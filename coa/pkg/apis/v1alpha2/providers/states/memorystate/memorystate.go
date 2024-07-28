@@ -83,6 +83,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := entry.Metadata["namespace"]; ok {
@@ -163,6 +164,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var entities []states.StateEntry
 	namespace := ""
@@ -221,6 +223,7 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := request.Metadata["namespace"]; ok {
@@ -259,6 +262,7 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := request.Metadata["namespace"]; ok {

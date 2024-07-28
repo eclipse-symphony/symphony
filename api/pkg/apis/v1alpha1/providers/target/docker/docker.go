@@ -64,6 +64,7 @@ func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Docker Target): Init()")
 
@@ -93,6 +94,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
@@ -172,6 +174,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
@@ -222,7 +225,6 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 			reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 			if err != nil {
-				observ_utils.CloseSpanWithError(span, &err)
 				sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to pull docker image: %+v", err)
 				return ret, err
 			}

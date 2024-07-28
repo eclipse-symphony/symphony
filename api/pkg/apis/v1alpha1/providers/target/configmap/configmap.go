@@ -123,6 +123,7 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfoCtx(ctx, "  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toConfigMapTargetProviderConfig(config)
@@ -226,6 +227,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -267,6 +269,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
@@ -373,6 +376,7 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  ensureNamespace namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
@@ -432,6 +436,7 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  deleteConfigMap name %s, namespace: %s", name, namespace)
 
 	err = i.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
@@ -455,6 +460,7 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  applyConfigMap namespace: %s", namespace)
 
 	existingConfigMap, err := i.Client.CoreV1().ConfigMaps(namespace).Get(ctx, config.Name, metav1.GetOptions{})

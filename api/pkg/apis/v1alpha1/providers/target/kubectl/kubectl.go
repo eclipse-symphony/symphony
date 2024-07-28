@@ -152,6 +152,7 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfoCtx(ctx, "  P (Kubectl Target): Init()")
 
 	updateConfig, err := toKubectlTargetProviderConfig(config)
@@ -274,6 +275,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
@@ -363,6 +365,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
@@ -775,6 +778,7 @@ func (k *KubectlTargetProvider) checkResourceStatus(ctx context.Context, dataByt
 	var err error
 	result := model.ComponentResultSpec{}
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	//add initial wait before checking the resource status
 	if status.InitialWait == "" {
@@ -887,6 +891,7 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Kubectl Target): ensureNamespace %s", namespace)
 
 	if namespace == "" || namespace == "default" {

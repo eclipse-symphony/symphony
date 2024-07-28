@@ -58,6 +58,7 @@ func (s *MaterializeStageProvider) Init(config providers.IProviderConfig) error 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	maLock.Lock()
 	defer maLock.Unlock()
@@ -134,6 +135,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	mLog.InfoCtx(ctx, "  P (Materialize Processor): processing inputs")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()

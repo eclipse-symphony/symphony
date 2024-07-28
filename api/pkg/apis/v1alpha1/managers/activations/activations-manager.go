@@ -55,6 +55,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -102,6 +103,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -140,6 +142,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string, names
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -160,6 +163,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -192,6 +196,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	lock.Lock()
 	defer lock.Unlock()
 
