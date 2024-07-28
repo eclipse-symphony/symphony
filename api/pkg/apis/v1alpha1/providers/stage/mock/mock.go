@@ -73,6 +73,7 @@ func (i *MockStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLog.InfofCtx(ctx, "\n\n====================================================\n")
 	mLog.InfofCtx(ctx, "MOCK STAGE PROVIDER IS PROCESSING INPUTS:\n")

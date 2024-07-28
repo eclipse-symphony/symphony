@@ -148,6 +148,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfoCtx(ctx, "  P (Helm Target): Init()")
 
 	i.MetaPopulator, err = metahelper.NewMetaPopulator(metahelper.WithDefaultPopulators())
@@ -288,6 +289,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error
 	var actionConfig *action.Configuration
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Helm Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
@@ -397,6 +399,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
