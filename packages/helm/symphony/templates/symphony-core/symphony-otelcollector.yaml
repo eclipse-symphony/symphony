@@ -1,5 +1,11 @@
 {{- if .Values.observability.otelCollector.enabled }}
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-collector
+  namespace: {{ .Release.Namespace }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,7 +29,7 @@ spec:
           image: "{{ .Values.observability.otelCollector.image }}"
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: '{{ include "symphony.fullname" . }}-otel-forwarder'
+      serviceAccountName: '{{ include "symphony.fullname" . }}-otel-collector'
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1

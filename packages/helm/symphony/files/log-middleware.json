@@ -4,12 +4,21 @@
       "serviceName": "symphony-api",
       "pipelines": [
         {{- if .Values.otlpLogsEndpointGrpc }}
+        {{- if .Values.observability.otelForwarder.enabled }}
         {
           "exporter": {
             "type": "log.exporters.otlphttp",
             "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-forwarder-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
           }
         }
+        {{- else }}
+        {
+          "exporter": {
+            "type": "log.exporters.otlphttp",
+            "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-collector-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
+          }
+        }
+        {{- end }}
         {{- end }}
       ]
     }
