@@ -144,7 +144,7 @@ func NewLogger(name string) Logger {
 
 	logger, ok := globalLoggers[name]
 	if !ok {
-		logger = newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false})
+		logger = newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true})
 		globalLoggers[name] = logger
 	}
 
@@ -153,12 +153,12 @@ func NewLogger(name string) Logger {
 
 // newUserAuditsLogger creates new Logger instance for user audit log.
 func newUserAuditsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true})
+	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 // newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
 func newUserDiagnosticsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false})
+	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 func GetUserAuditsLogger() Logger {
