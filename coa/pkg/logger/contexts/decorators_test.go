@@ -3,6 +3,7 @@ package contexts
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -39,6 +40,7 @@ func TestActivityLogContextDecorator_DecorateUnfold(t *testing.T) {
 	entry = d.Decorate(entry, false)
 	assert.NotNil(t, entry)
 	assert.Nil(t, entry.Data[string(ActivityLogContextKey)])
+	assert.Equal(t, strings.ToUpper("resourceCloudId"), entry.Data[string(OTEL_Activity_ResourceCloudId)])
 	assert.Equal(t, "cloudLocation", entry.Data[string(OTEL_Activity_Location)])
 	assert.Equal(t, "operationName", entry.Data[string(OTEL_Activity_OperationName)])
 	assert.Equal(t, "category", entry.Data[string(OTEL_Activity_Category)])
@@ -82,7 +84,7 @@ func TestDiagnosticLogContextDecorator_DecorateUnfold(t *testing.T) {
 	assert.Nil(t, entry.Data[string(DiagnosticLogContextKey)])
 
 	assert.Equal(t, "correlationId", entry.Data[string(OTEL_Diagnostics_CorrelationId)])
-	assert.Equal(t, "resourceId", entry.Data[string(OTEL_Diagnostics_ResourceCloudId)])
+	assert.Equal(t, strings.ToUpper("resourceId"), entry.Data[string(OTEL_Diagnostics_ResourceCloudId)])
 	traceCtxJson, ok := entry.Data[string(OTEL_Diagnostics_TraceContext)].(string)
 	assert.True(t, ok)
 	var traceCtx TraceContext
