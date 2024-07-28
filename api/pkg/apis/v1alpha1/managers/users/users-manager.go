@@ -51,6 +51,7 @@ func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Users): DeleteUser name %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -75,6 +76,7 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Users): UpsertUser name %s", name)
 
 	upsertRequest := states.UpsertRequest{
@@ -100,6 +102,7 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Users): CheckUser name %s", name)
 
 	getRequest := states.GetRequest{

@@ -148,6 +148,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (MQTT Target): Init()")
 
@@ -255,6 +256,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (MQTT Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
@@ -312,6 +314,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (MQTT Target): deleting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
@@ -358,6 +361,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 

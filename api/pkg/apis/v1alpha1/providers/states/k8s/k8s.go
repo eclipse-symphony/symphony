@@ -97,6 +97,7 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.Debug("  P (K8s State): initialize")
 
@@ -172,6 +173,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadPropertyCompat(entry.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
@@ -320,6 +322,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
@@ -432,6 +435,7 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
@@ -467,6 +471,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
 	group := model.ReadPropertyCompat(request.Metadata, "group", nil)

@@ -51,6 +51,7 @@ func (t *DevicesManager) DeleteState(ctx context.Context, name string, namespace
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Devices): DeleteState name %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -76,6 +77,7 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Devices): UpsertState name %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
@@ -115,6 +117,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfoCtx(ctx, " M (Devices): ListState")
 
 	listRequest := states.ListRequest{
@@ -164,6 +167,7 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, " M (Devices): GetState id %s", name)
 
 	getRequest := states.GetRequest{

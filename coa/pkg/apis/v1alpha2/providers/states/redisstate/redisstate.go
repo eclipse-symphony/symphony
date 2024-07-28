@@ -130,6 +130,7 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(entry.Metadata)
@@ -186,6 +187,7 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var entities []states.StateEntry
 	var keyPrefix string
@@ -255,6 +257,7 @@ func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRe
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(request.Metadata)
@@ -275,6 +278,7 @@ func (r *RedisStateProvider) Get(ctx context.Context, request states.GetRequest)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(request.Metadata)

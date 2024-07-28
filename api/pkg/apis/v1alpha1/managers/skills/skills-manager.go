@@ -46,6 +46,7 @@ func (t *SkillsManager) DeleteState(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugfCtx(ctx, " M (Skills): DeleteState, name: %s", name)
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -70,6 +71,7 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.DebugfCtx(ctx, " M (Skills): UpsertState, name: %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
@@ -109,6 +111,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugCtx(ctx, " M (Skills): ListState")
 	listRequest := states.ListRequest{
@@ -158,6 +161,7 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugfCtx(ctx, " M (Skills): GetState, name: %s", name)
 	getRequest := states.GetRequest{

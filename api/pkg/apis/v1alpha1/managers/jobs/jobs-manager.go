@@ -91,25 +91,26 @@ func (s *JobsManager) Enabled() bool {
 }
 
 func (s *JobsManager) pollObjects() []error {
-	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollObjects",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if s.interval == 0 {
 		return nil
 	}
 
 	var instances []model.InstanceState
-	instances, err = s.apiClient.GetInstancesForAllNamespaces(context, s.user, s.password)
+	instances, err = s.apiClient.GetInstancesForAllNamespaces(ctx, s.user, s.password)
 	if err != nil {
-		log.ErrorfCtx(context, " M (Job): error getting instances: %s", err.Error())
+		log.ErrorfCtx(ctx, " M (Job): error getting instances: %s", err.Error())
 		return []error{err}
 	}
 	for _, instance := range instances {
 		var entry states.StateEntry
-		entry, err = s.VolatileStateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 			ID: "i_" + instance.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": instance.ObjectMeta.Namespace,
@@ -136,19 +137,19 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  instance.ObjectMeta.Namespace,
 				},
-				Context: context,
+				Context: ctx,
 			})
 		}
 	}
 	var targets []model.TargetState
-	targets, err = s.apiClient.GetTargetsForAllNamespaces(context, s.user, s.password)
+	targets, err = s.apiClient.GetTargetsForAllNamespaces(ctx, s.user, s.password)
 	if err != nil {
-		log.ErrorfCtx(context, " M (Job): error getting targets: %s", err.Error())
+		log.ErrorfCtx(ctx, " M (Job): error getting targets: %s", err.Error())
 		return []error{err}
 	}
 	for _, target := range targets {
 		var entry states.StateEntry
-		entry, err = s.VolatileStateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 			ID: "t_" + target.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": target.ObjectMeta.Namespace,
@@ -175,7 +176,7 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  target.ObjectMeta.Namespace,
 				},
-				Context: context,
+				Context: ctx,
 			})
 		}
 	}
@@ -200,15 +201,16 @@ func (s *JobsManager) Poll() []error {
 }
 
 func (s *JobsManager) pollSchedules() []error {
-	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollSchedules",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	//TODO: use filters and continue tokens
 	var list []states.StateEntry
-	list, _, err = s.PersistentStateProvider.List(context, states.ListRequest{
+	list, _, err = s.PersistentStateProvider.List(ctx, states.ListRequest{
 		Metadata: map[string]interface{}{
 			"group":    model.WorkflowGroup,
 			"version":  "v1",
@@ -234,7 +236,7 @@ func (s *JobsManager) pollSchedules() []error {
 			}
 			if fire {
 				activationData.Schedule = ""
-				err = s.PersistentStateProvider.Delete(context, states.DeleteRequest{
+				err = s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{
 						"namespace": activationData.Namespace,
@@ -248,7 +250,7 @@ func (s *JobsManager) pollSchedules() []error {
 				}
 				s.Context.Publish("trigger", v1alpha2.Event{
 					Body:    activationData,
-					Context: context,
+					Context: ctx,
 				})
 			}
 		}
@@ -265,6 +267,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(event.Body)
@@ -298,6 +301,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	key := "h_" + job.Id
 	if objectType == "target" {
@@ -343,6 +347,7 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var activationData v1alpha2.ActivationData
 	jData, _ := json.Marshal(event.Body)
@@ -371,6 +376,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadProperty(event.Metadata, "namespace", nil)
 	if namespace == "" {

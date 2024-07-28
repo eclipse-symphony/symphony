@@ -46,6 +46,7 @@ func (t *ModelsManager) DeleteState(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugfCtx(ctx, " M (Models): DeleteState, name: %s", name)
 
@@ -72,6 +73,7 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.DebugfCtx(ctx, " M (Models): UpsertState, name: %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
@@ -111,6 +113,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugCtx(ctx, " M (Models): ListState")
 	listRequest := states.ListRequest{
@@ -160,6 +163,7 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.DebugfCtx(ctx, " M (Models): GetState, name: %s", name)
 	getRequest := states.GetRequest{

@@ -93,6 +93,7 @@ func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Win10Sideload Target): Init()")
 
@@ -121,6 +122,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
@@ -202,6 +204,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 

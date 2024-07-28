@@ -746,6 +746,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var rUrl *url.URL
 	rUrl, err = url.Parse(urlString)

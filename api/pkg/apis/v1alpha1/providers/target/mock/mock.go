@@ -31,7 +31,7 @@ var cache map[string][]model.ComponentSpec
 var mLock sync.Mutex
 
 func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Mock Target Provider",
 		context.TODO(),
 		&map[string]string{
@@ -40,6 +40,7 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()
@@ -92,6 +93,7 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	ret := make([]model.ComponentSpec, 0)
 	for _, c := range cache[m.Config.ID] {
 		for _, r := range references {
@@ -113,6 +115,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()

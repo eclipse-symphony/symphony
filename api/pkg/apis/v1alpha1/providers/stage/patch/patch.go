@@ -54,6 +54,7 @@ func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	msLock.Lock()
 	defer msLock.Unlock()
@@ -162,6 +163,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Patch Stage): start process request")
 	processTime := time.Now().UTC()

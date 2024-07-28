@@ -160,6 +160,7 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfoCtx(ctx, "  P (K8s Target): Init()")
 
 	updateConfig, err := toK8sTargetProviderConfig(config)
@@ -250,6 +251,7 @@ func (i *K8sTargetProvider) getDeployment(ctx context.Context, namespace string,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): getDeployment scope - %s, name - %s", namespace, name)
 
 	if namespace == "" {
@@ -305,6 +307,7 @@ func (i *K8sTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): getting artifacts: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 
 	var components []model.ComponentSpec
@@ -368,6 +371,7 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): removeService namespace - %s, serviceName - %s", namespace, serviceName)
 
 	if namespace == "" {
@@ -392,6 +396,7 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): removeDeployment namespace - %s, name - %s", namespace, name)
 
 	if namespace == "" {
@@ -416,6 +421,7 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, namespace strin
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): removeNamespace namespace - %s", namespace)
 
 	_, err = i.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
@@ -504,6 +510,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): removeDeployment namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
@@ -535,6 +542,7 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): upsertDeployment namespace - %s, name - %s", namespace, name)
 
 	if namespace == "" {
@@ -564,6 +572,7 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (K8s Target Provider): upsertService namespace - %s, name - %s", namespace, name)
 
 	if namespace == "" {
@@ -674,6 +683,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfofCtx(ctx, "  P (K8s Target Provider): applying artifacts: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 

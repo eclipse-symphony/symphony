@@ -97,6 +97,7 @@ func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (ADU Target): Init()")
 
@@ -131,6 +132,7 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if dep.Instance.Spec == nil {
 		err = errors.New("deployment instance spec is nil")
@@ -192,6 +194,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (ADU Target): applying components: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 

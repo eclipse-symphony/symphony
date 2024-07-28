@@ -8,12 +8,14 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -134,6 +136,35 @@ func CloseSpanWithError(span trace.Span, err *error) {
 		span.SetStatus(codes.Ok, "")
 	}
 	span.End()
+}
+
+func EmitUserDiagnosticsLogs(ctx context.Context, err *error) {
+	emitUserDiagnosticsLogs(ctx, err, "")
+}
+
+func EmitUserDiagnosticsLogsWithPrompt(ctx context.Context, err *error, prompt string) {
+	emitUserDiagnosticsLogs(ctx, err, prompt)
+}
+
+func emitUserDiagnosticsLogs(ctx context.Context, err *error, prompt string) {
+	if err != nil && *err != nil {
+		if prompt == "" {
+			prompt = fmt.Sprintf("%s failed with error:", GetFunctionNameWithCallerSkip(2))
+		}
+		logger.GetUserDiagnosticsLogger().ErrorfCtx(ctx, "%s %s", prompt, (*err).Error())
+	}
+}
+
+func GetFunctionNameWithCallerSkip(skip int) string {
+	pc, _, _, _ := runtime.Caller(1 + skip)
+	function := runtime.FuncForPC(pc).Name()
+	slice := strings.Split(function, "/")
+	index := 0 // Default index in case len(slice) == 0
+	if len(slice) > 0 {
+		index = len(slice) - 1
+	}
+	funcName := slice[index]
+	return funcName
 }
 
 // GetFunctionName returns the name of the function that called it

@@ -59,6 +59,7 @@ func (s *WaitStageProvider) Init(config providers.IProviderConfig) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mwLock.Lock()
 	defer mwLock.Unlock()
@@ -116,6 +117,7 @@ func WaitStageProviderConfigFromMap(properties map[string]string) (WaitStageProv
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfoCtx(ctx, "  P (Wait Processor): getting configuration from properties")
 	ret := WaitStageProviderConfig{}
@@ -167,6 +169,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfoCtx(ctx, "  P (Wait Processor): processing inputs")
 	processTime := time.Now().UTC()

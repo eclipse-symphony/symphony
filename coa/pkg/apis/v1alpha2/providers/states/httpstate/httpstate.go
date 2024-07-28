@@ -134,6 +134,7 @@ func (s *HttpStateProvider) Upsert(ctx context.Context, entry states.UpsertReque
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Http State): upsert states %s", entry.Value.ID)
 
 	client := &http.Client{}
@@ -188,6 +189,7 @@ func (s *HttpStateProvider) Delete(ctx context.Context, request states.DeleteReq
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfoCtx(ctx, "  P (Http State): list states")
 
 	client := &http.Client{}
@@ -224,6 +226,7 @@ func (s *HttpStateProvider) Get(ctx context.Context, request states.GetRequest) 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Http State): get states %s", request.ID)
 
 	client := &http.Client{}

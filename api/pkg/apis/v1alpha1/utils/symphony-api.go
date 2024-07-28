@@ -897,29 +897,30 @@ func auth(context context.Context, baseUrl string, user string, password string)
 
 	return response.AccessToken, nil
 }
-func callRestAPI(context context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
-	context, span := observability.StartSpan("Symphony-API-Client", context, &map[string]string{
+func callRestAPI(ctx context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,
 		"http.url":    baseUrl + route,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(context, "Calling Symphony API: %s %s", method, baseUrl+route)
+	log.InfofCtx(ctx, "Calling Symphony API: %s %s", method, baseUrl+route)
 
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
 	if payload != nil {
-		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, bytes.NewBuffer(payload))
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, nil)
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
@@ -952,7 +953,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		return nil, err
 	}
 	err = nil
-	log.InfofCtx(context, "Symphony API succeeded: %s %s", method, baseUrl+route)
+	log.InfofCtx(ctx, "Symphony API succeeded: %s %s", method, baseUrl+route)
 
 	return bodyBytes, nil
 }

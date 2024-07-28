@@ -278,6 +278,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	status := model.StageStatus{
 		Stage:     "",
@@ -399,6 +400,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfoCtx(ctx, " M (Stage): HandleTriggerEvent")
 	status := model.StageStatus{
