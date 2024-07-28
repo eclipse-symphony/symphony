@@ -153,7 +153,11 @@ func (o *Observability) createExporter(config ExporterConfig, serviceName string
 	var err error
 	switch config.Type {
 	case v1alpha2.TracingExporterConsole:
-		exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
+		if o.Buffer == nil {
+			exporter, err = exporters.NewTraceConsoleExporter(nil)
+		} else {
+			exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
+		}
 		if err != nil {
 			return err
 		}
@@ -282,7 +286,11 @@ func (o *Observability) InitLog(config ObservabilityConfig) error {
 	for _, p := range config.Pipelines {
 		switch p.Exporter.Type {
 		case v1alpha2.LogExporterConsole:
-			exporter, err = exporters.NewLogConsoleExporter(o.Buffer)
+			if o.Buffer == nil {
+				exporter, err = exporters.NewLogConsoleExporter(nil)
+			} else {
+				exporter, err = exporters.NewLogConsoleExporter(o.Buffer)
+			}
 			if err != nil {
 				return err
 			}
