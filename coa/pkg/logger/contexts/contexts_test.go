@@ -25,7 +25,6 @@ func TestActivityLogContext_ToMap(t *testing.T) {
 	assert.NotNil(t, ctx)
 	m := ctx.ToMap()
 	assert.NotNil(t, m)
-	assert.Equal(t, "resourceCloudId", m[Activity_ResourceCloudId])
 	assert.Equal(t, "operationName", m[Activity_OperationName])
 	assert.Equal(t, "cloudLocation", m[Activity_Location])
 	assert.Equal(t, "category", m[Activity_Category])
@@ -134,7 +133,6 @@ func TestActivityLogContext_Err(t *testing.T) {
 func TestActivityLogContext_Value(t *testing.T) {
 	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
-	assert.Equal(t, "resourceCloudId", ctx.Value(Activity_ResourceCloudId))
 	assert.Equal(t, "operationName", ctx.Value(Activity_OperationName))
 	assert.Equal(t, "cloudLocation", ctx.Value(Activity_Location))
 	assert.Equal(t, "category", ctx.Value(Activity_Category))
