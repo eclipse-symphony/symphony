@@ -29,6 +29,10 @@ const (
 	ActivityOperation_Write      = "Write"
 	ActivityOperation_Read       = "Read"
 	ActivityOperation_Delete     = "Delete"
+
+	TargetOperationNamePrefix     = "targets.fabric." + FullGroupName
+	InstanceOperationNamePrefix   = "instances.solution." + FullGroupName
+	ActivationOperationNamePrefix = "activations.workflow." + FullGroupName
 )
 
 // Environment variables keys

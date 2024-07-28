@@ -55,7 +55,7 @@ func (hook *ContextHook) InitializeOtelLogrusHook() {
 	if hook.GetOtelLogrusHook() == nil && hook.OtelLogrusHookEnabled && global.GetLoggerProvider() != nil {
 		hook.OtelLogrusHookLock.Lock()
 		defer hook.OtelLogrusHookLock.Unlock()
-		fmt.Println("Initializing OtelLogrusHook")
+		// fmt.Println("Initializing OtelLogrusHook")
 
 		hook.OtelLogrusHook = otellogrus.NewHook(hook.OtelLogrusHookName, otellogrus.WithLevels(hook.Levels()), otellogrus.WithLoggerProvider(global.GetLoggerProvider()))
 	}
@@ -88,7 +88,7 @@ func (hook *ContextHook) Fire(entry *logrus.Entry) error {
 		if hook.OtelLogrusHookEnabled {
 			hook.InitializeOtelLogrusHook()
 			if hook.GetOtelLogrusHook() != nil {
-				fmt.Println("Firing entry to OtelLogrusHook")
+				// fmt.Println("Firing entry to OtelLogrusHook")
 				hook.GetOtelLogrusHook().Fire(entry)
 			}
 		}

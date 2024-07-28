@@ -10,9 +10,11 @@ import (
 	"context"
 	"fmt"
 	"gopls-workspace/apis/metrics/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/eclipse-symphony/symphony/k8s/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,6 +74,13 @@ var _ webhook.Validator = &Activation{}
 func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 	activationlog.Info("validate create", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := context.TODO()
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+
+	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being created", r.Name)
+
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateActivation()
 	if validationError != nil {
@@ -94,6 +103,14 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	activationlog.Info("validate update", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := context.TODO()
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+
+	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being updated", r.Name)
+
 	validateUpdateTime := time.Now()
 	oldActivation, ok := old.(*Activation)
 	if !ok {
@@ -122,6 +139,13 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 	activationlog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := context.TODO()
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+
+	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being deleted", r.Name)
 
 	return nil, nil
 }
