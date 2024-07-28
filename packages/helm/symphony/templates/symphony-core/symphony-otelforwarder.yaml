@@ -1,4 +1,4 @@
-{{- if .Values.otlpLogsEndpointGrpc }}
+{{- if and .Values.otlpLogsEndpointGrpc .Values.observability.otelForwarder.enabled }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -284,20 +284,20 @@ data:
         logs/userAudits:
           receivers: [otlp]
           processors: [memory_limiter, batch, filter/userAudits, transform/userAudits]
-          # exporters: [otlp/userAudits]
-          exporters: [debug]
+          exporters: [otlp/userAudits]
+          # exporters: [debug]
 
         logs/userDiagnostics:
           receivers: [otlp]
           processors: [memory_limiter, batch, filter/userDiagnostics, transform/userDiagnostics]
-          # exporters: [otlp/userDiagnostics]
-          exporters: [debug]
+          exporters: [otlp/userDiagnostics]
+          # exporters: [debug]
 
         logs/default:
           receivers: [filelog]
           processors: [memory_limiter, batch, k8sattributes]
-          # exporters: [otlp/default]
-          exporters: [debug]
+          exporters: [otlp/default]
+          # exporters: [debug]
 
 ---
 apiVersion: apps/v1
