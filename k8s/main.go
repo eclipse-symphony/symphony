@@ -33,6 +33,7 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	federationv1 "gopls-workspace/apis/federation/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"
@@ -306,15 +307,19 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
 			os.Exit(1)
 		}
-		if err = (&workflowv1.CampaignContainer{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = commoncontainer.InitCommonContainerWebHook(mgr); err != nil {
+			setupLog.Error(err, "unable to Init Common Conainer", "webhook", "Common Conainer")
+			os.Exit(1)
+		}
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &workflowv1.CampaignContainer{}); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CampaignContainer")
 			os.Exit(1)
 		}
-		if err = (&federationv1.CatalogContainer{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &federationv1.CatalogContainer{}); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogContainer")
 			os.Exit(1)
 		}
-		if err = (&solutionv1.SolutionContainer{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &solutionv1.SolutionContainer{}); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "SolutionContainer")
 			os.Exit(1)
 		}

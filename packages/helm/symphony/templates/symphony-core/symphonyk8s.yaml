@@ -1243,7 +1243,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolutionContainer is the Schema for the SolutionContainer API
+        description: SolutionContainer is the Schema for the SolutionContainers API
         properties:
           apiVersion:
             description: |-
