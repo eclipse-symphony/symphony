@@ -62,5 +62,6 @@ Azure:
 # Turn on/off cleanup on finished activations
 ActivationCleanup:
   enabled: true
-  # Number of days to keep activations
-  RetentionDuration: "180d"
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"

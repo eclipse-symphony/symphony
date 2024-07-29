@@ -132,7 +132,7 @@
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true",
-              "RetentionDuration": "180d"
+              "RetentionDuration": "4320h"
             },
             "providers": {
               "k8s-state": {

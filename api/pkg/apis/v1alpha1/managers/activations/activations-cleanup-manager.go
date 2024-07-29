@@ -18,7 +18,7 @@ import (
 
 const (
 	// DefaultRetentionDuration is the default time to cleanup completed activations
-	DefaultRetentionDuration = time.Duration(180) * time.Hour * 24
+	DefaultRetentionDuration = 180 * time.Hour * 24
 )
 
 type ActivationsCleanupManager struct {
@@ -36,7 +36,9 @@ func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config
 	if val, ok := config.Properties["RetentionDuration"]; ok {
 		s.RetentionDuration, err = time.ParseDuration(val)
 		if err != nil {
-			s.RetentionDuration = DefaultRetentionDuration
+			return v1alpha2.NewCOAError(nil, "RetentionDuration cannot be parsed, please enter a valid duration", v1alpha2.BadConfig)
+		} else if s.RetentionDuration < 0 {
+			return v1alpha2.NewCOAError(nil, "RetentionDuration cannot be negative", v1alpha2.BadConfig)
 		}
 	} else {
 		s.RetentionDuration = DefaultRetentionDuration
