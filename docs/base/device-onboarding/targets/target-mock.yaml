@@ -1,0 +1,47 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: my-target 
+spec:
+  properties:
+    base: |
+      identity:
+        authentication:
+          type: mock                # choose an external identity provider
+          enbaled: true 
+          capabilities:
+            revocation: true        # identity provider should support revocation
+            rotation: true          # identity provider should support rotation
+            bootstrap: true         # identity provider should support establishing identity with a bootstrapping credential
+        attestation:
+          type: mock
+          enabled: maybe 
+          capabilities:
+            secure-token: true      # attestation provider should support standard secure token like JWT
+        mfa:
+          type: mock
+          enabled: maybe            # consider enabling MFA when possible
+          capabilities:
+            biometric: true
+            pin: true
+      confidence:
+        type: mock
+        enabled: maybe              # consider enabling confidence when possible
+        capabilities:
+          tee: true
+      communication:
+        type: mock
+        enabled: true               # always use secure communication
+        capabilities:
+          tls: true
+          encryption: maybe
+      decommission:
+        type: mock
+        enabled: maybe              # consider enabling decommission when possible
+        capabilities:
+          secure-erase: true
+          secure-boot: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock   
