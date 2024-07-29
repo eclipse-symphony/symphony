@@ -2269,6 +2269,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
+    uniqueDisplayNameForSolution: false
     validationPolicies:
       model:
       - selectorType: properties
