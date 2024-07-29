@@ -29,39 +29,7 @@ var (
 )
 
 func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
-	// home := homedir.HomeDir()
-	// // use the current context in kubeconfig
-	// config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-
-	// // create the clientset
-	// clientset, err := kubernetes.NewForConfig(config)
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	namespace, err := getNamespace()
-	if err != nil {
-		return nil, err
-	}
-
-	configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var myConfig configv1.ProjectConfig
-	data := configMap.Data["controller_manager_config.yaml"]
-	err = yaml.Unmarshal([]byte(data), &myConfig)
+	myConfig, err := GetProjectConfig()
 	if err != nil {
 		return nil, err
 	}
