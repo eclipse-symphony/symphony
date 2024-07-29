@@ -26,20 +26,7 @@ type EventHandler func(topic string, message Event) error
 func EventShouldRetryWrapper(handler EventHandler, topic string, message Event) bool {
 	err := handler(topic, message)
 	if err != nil {
-		coaE, ok := err.(COAError)
-		if !ok {
-			// error is not a COAError, which comes from external system
-			// always retry
-			return true
-		}
-		switch coaE.State {
-		case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
-			return false
-		case ValidateFailed: // catalog manager
-			return false
-		default:
-			return true
-		}
+		return IsRetriableErr(err)
 	}
 
 	return false

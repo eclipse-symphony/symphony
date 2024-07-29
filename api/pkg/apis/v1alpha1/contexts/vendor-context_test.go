@@ -7,7 +7,6 @@
 package contexts
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 func createVendorContextWithPubSub() *VendorContext {
 	pubsubProvider := memory.InMemoryPubSubProvider{}
 	pubsubProvider.Init(memory.InMemoryPubSubConfig{
-		SubscriberRetryCount:      5,
+		SubscriberRetryCount:      4,
 		SubscriberRetryWaitSecond: 1,
 	})
 	v := &VendorContext{}
@@ -81,12 +80,12 @@ func TestVendorContextPublishSubscribeWithoutPubSub(t *testing.T) {
 
 func TestVendorContextPublishSubscribeBadRequest(t *testing.T) {
 	v := createVendorContextWithPubSub()
-	var mu sync.Mutex
+	ch := make(chan struct{})
 	count := 0
+
 	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		mu.Lock()
-		defer mu.Unlock()
 		count += 1
+		ch <- struct{}{}
 		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
 	})
 	assert.Nil(t, err)
@@ -95,19 +94,30 @@ func TestVendorContextPublishSubscribeBadRequest(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	time.Sleep(time.Duration(5) * time.Second)
-	mu.Lock()
-	defer mu.Unlock()
+	signal := 0
+	for signal < 1 {
+		select {
+		case <-ch:
+			close(ch)
+		case <-time.After(5 * time.Second):
+			// Timeout, function was not called
+			t.Fatal("Function was not called within the timeout period")
+		}
+		signal += 1
+	}
+	time.Sleep(5 * time.Second) // Wait to ensure no further calls are made
 	assert.Equal(t, 1, count)
 }
 
 func TestVendorContextPublishSubscribeInternalError(t *testing.T) {
 	v := createVendorContextWithPubSub()
-	var wg sync.WaitGroup
-	wg.Add(5)
+	ch := make(chan struct{})
+	count := 0
+
 	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		wg.Done()
-		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.InternalError)
+		count += 1
+		ch <- struct{}{}
+		return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
 	})
 	assert.Nil(t, err)
 	err = v.Publish("test", v1alpha2.Event{
@@ -115,5 +125,17 @@ func TestVendorContextPublishSubscribeInternalError(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	wg.Wait()
+	signal := 0
+	for signal < 5 {
+		select {
+		case <-ch:
+		case <-time.After(5 * time.Second):
+			// Timeout, function was not called
+			t.Fatal("Function was not called within the timeout period")
+		}
+		signal += 1
+	}
+	close(ch)
+	time.Sleep(2 * time.Second) // Wait to ensure no further calls are made
+	assert.Equal(t, 5, count)
 }

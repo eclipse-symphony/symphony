@@ -53,8 +53,8 @@ func InMemoryPubSubConfigFromMap(properties map[string]string) (InMemoryPubSubCo
 			ret.SubscriberRetryCount = n
 		}
 	}
-	if ret.SubscriberRetryCount == 0 {
-		ret.SubscriberRetryCount = DefaultRetryCount
+	if ret.SubscriberRetryCount < 0 {
+		return ret, v1alpha2.NewCOAError(nil, "negative int value is not allowed in the 'SubscriberRetryCount' setting of Memory pub-sub provider", v1alpha2.BadConfig)
 	}
 	ret.SubscriberRetryWaitSecond = 0
 	if v, ok := properties["subscriberRetryWaitSecond"]; ok {
@@ -107,7 +107,7 @@ func (i *InMemoryPubSubProvider) Publish(topic string, event v1alpha2.Event) err
 			go func(handler v1alpha2.EventHandler, topic string, event v1alpha2.Event) {
 				shouldRetry := true
 				count := 0
-				for shouldRetry && count < i.Config.SubscriberRetryCount {
+				for shouldRetry && count <= i.Config.SubscriberRetryCount {
 					shouldRetry = v1alpha2.EventShouldRetryWrapper(handler, topic, event)
 					if shouldRetry {
 						count++
