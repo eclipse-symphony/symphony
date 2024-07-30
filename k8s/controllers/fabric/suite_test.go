@@ -30,6 +30,7 @@ import (
 	controllers "gopls-workspace/controllers/fabric"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -97,7 +98,7 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 			Scheme: scheme.Scheme,
 			// needs to disable metrics otherwise all controller suite tests will try to bind to the same port (8080)
-			MetricsBindAddress: "0",
+			Metrics: metricsserver.Options{BindAddress: "0"},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		k8sClient = k8sManager.GetClient()
