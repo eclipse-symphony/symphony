@@ -9,15 +9,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
-	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/princjef/mageutil/shellcmd"
 )
 
@@ -88,7 +84,7 @@ func Verify() error {
 // Deploy solution, target and instance
 func DeployManifests() error {
 	// Get kube client
-	err := ensureNamespace(NAMESPACE)
+	err := testhelpers.EnsureNamespace(NAMESPACE)
 	if err != nil {
 		return err
 	}
@@ -105,34 +101,6 @@ func DeployManifests() error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// Ensures that the namespace exists. If it does not exist, it creates it.
-func ensureNamespace(namespace string) error {
-	kubeClient, err := testhelpers.KubeClient()
-	if err != nil {
-		return err
-	}
-
-	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err == nil {
-		return nil
-	}
-
-	if kerrors.IsNotFound(err) {
-		_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-			},
-		}, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-	} else {
-		return err
 	}
 
 	return nil
