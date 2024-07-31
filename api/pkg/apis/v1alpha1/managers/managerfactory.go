@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/secrets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/skills"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -84,6 +85,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &stage.StageManager{}
 	case "managers.symphony.configs":
 		manager = &configs.ConfigsManager{}
+	case "managers.symphony.secrets":
+		manager = &secrets.SecretsManager{}
 	case "managers.symphony.sites":
 		manager = &sites.SitesManager{}
 	case "managers.symphony.staging":
