@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -112,17 +111,29 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 	}
 	tPath := filepath.Join(stagingFolder, script)
 
+	resp, err := http.Get(sPath)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return v1alpha2.NewCOAError(
+			nil,
+			"Response body content: "+string(body),
+			v1alpha2.State(resp.StatusCode),
+		)
+	}
+
 	out, err := os.Create(tPath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	resp, err := http.Get(sPath)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		return err
@@ -154,7 +165,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(inputs, "", " ")
-	_ = ioutil.WriteFile(staging, file, 0644)
+	_ = os.WriteFile(staging, file, 0644)
 
 	abs, _ := filepath.Abs(staging)
 
@@ -177,7 +188,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
 	var data []byte
-	data, err = ioutil.ReadFile(outputStaging)
+	data, err = os.ReadFile(outputStaging)
 
 	if err != nil {
 		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
