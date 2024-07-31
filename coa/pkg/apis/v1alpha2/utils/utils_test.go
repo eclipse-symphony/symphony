@@ -56,7 +56,7 @@ func (t *TestSecretProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (t *TestSecretProvider) Get(object string, field string) (string, error) {
+func (t *TestSecretProvider) Get(object string, field string, localContext interface{}) (string, error) {
 	return "test", nil
 }
 

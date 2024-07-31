@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 	provider := MockSecretProvider{}
 	err := provider.Init(MockSecretProviderConfig{})
 	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field")
+	val, err := provider.Read("obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
 }

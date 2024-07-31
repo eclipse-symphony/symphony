@@ -50,7 +50,7 @@ func ParseProperty(val string) string {
 
 type EvaluationContext struct {
 	ConfigProvider config.IExtConfigProvider
-	SecretProvider secret.ISecretProvider
+	SecretProvider secret.IExtSecretProvider
 	DeploymentSpec interface{}
 	Properties     map[string]string
 	Inputs         map[string]interface{}
