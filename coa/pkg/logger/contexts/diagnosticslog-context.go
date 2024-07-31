@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DIAGNOSTICS_HTTP_HEADER_PREFIX   string = "X-Diagnostics-"
+	Diagnostics_HttpHeaderPrefix     string = "X-Diagnostics-"
 	Diagnostics_CorrelationId        string = "correlationId"
 	Diagnostics_ResourceCloudId      string = "resourceId"
 	Diagnostics_TraceContext         string = "traceContext"
@@ -334,7 +334,7 @@ func ClearTraceAndSpanFromDiagnosticLogContext(parent *context.Context) {
 }
 
 func ConstructHttpHeaderKeyForDiagnosticsLogContext(key string) string {
-	return fmt.Sprintf("%s%s", DIAGNOSTICS_HTTP_HEADER_PREFIX, key)
+	return fmt.Sprintf("%s%s", Diagnostics_HttpHeaderPrefix, key)
 }
 
 func PropagateDiagnosticLogContextToHttpRequestHeader(req *http.Request) {

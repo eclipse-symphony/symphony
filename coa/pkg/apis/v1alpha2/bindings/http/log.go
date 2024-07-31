@@ -4,7 +4,7 @@ import (
 	"time"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/valyala/fasthttp"
 )
@@ -22,12 +22,12 @@ func (l Log) Log(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		startTime := time.Now().UTC()
 
-		logger.GetUserAuditsLogger().InfofCtx(ctx, "Request received: Method: %s URL: %s", reqCtx.Method(), reqCtx.Path())
+		observ_utils.EmitUserAuditsLogs(ctx, "Request received: Method: %s URL: %s", reqCtx.Method(), reqCtx.Path())
 
 		next(reqCtx)
 
 		latency := time.Since(startTime).Seconds()
 
-		logger.GetUserAuditsLogger().InfofCtx(ctx, "Request completed in %f seconds: Method: %s URL: %s StatusCode: %d", latency, reqCtx.Method(), reqCtx.Path(), reqCtx.Response.StatusCode())
+		observ_utils.EmitUserAuditsLogs(ctx, "Request completed in %f seconds: Method: %s URL: %s StatusCode: %d", latency, reqCtx.Method(), reqCtx.Path(), reqCtx.Response.StatusCode())
 	}
 }

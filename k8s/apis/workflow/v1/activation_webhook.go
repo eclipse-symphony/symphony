@@ -14,7 +14,7 @@ import (
 	"gopls-workspace/constants"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/k8s/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,7 +79,7 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being created", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created", r.Name)
 
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateActivation()
@@ -109,7 +109,7 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being updated", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated", r.Name)
 
 	validateUpdateTime := time.Now()
 	oldActivation, ok := old.(*Activation)
@@ -145,7 +145,7 @@ func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Activation %s is being deleted", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted", r.Name)
 
 	return nil, nil
 }

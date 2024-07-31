@@ -332,12 +332,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	planBytes, _ := json.Marshal(plan)
-	log.DebugfCtx(ctx, " M (Solution): deployment plan: %s", string(planBytes))
-
-	mergedStateBytes, _ := json.Marshal(mergedState)
-	log.DebugfCtx(ctx, " M (Solution): merged state: %s", string(mergedStateBytes))
-
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
 	dep := deployment
 	dep.Instance.Spec.Metadata = col
