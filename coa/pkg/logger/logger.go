@@ -144,35 +144,11 @@ func NewLogger(name string) Logger {
 
 	logger, ok := globalLoggers[name]
 	if !ok {
-		logger = newDaprLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true})
+		logger = newCoaLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true})
 		globalLoggers[name] = logger
 	}
 
 	return logger
-}
-
-// newUserAuditsLogger creates new Logger instance for user audit log.
-func newUserAuditsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
-}
-
-// newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
-func newUserDiagnosticsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
-}
-
-func GetUserAuditsLogger() Logger {
-	globalUserAuditsLoggerOnce.Do(func() {
-		globalUserAuditsLogger = newUserAuditsLogger("coa.runtime.user.audits")
-	})
-	return globalUserAuditsLogger
-}
-
-func GetUserDiagnosticsLogger() Logger {
-	globalUserDiagnosticsLoggerOnce.Do(func() {
-		globalUserDiagnosticsLogger = newUserDiagnosticsLogger("coa.runtime.user.diagnostics")
-	})
-	return globalUserDiagnosticsLogger
 }
 
 func getLoggers() map[string]Logger {
@@ -185,4 +161,28 @@ func getLoggers() map[string]Logger {
 	}
 
 	return l
+}
+
+// newUserAuditsLogger creates new Logger instance for user audit log.
+func newUserAuditsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+}
+
+// newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
+func newUserDiagnosticsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+}
+
+func GetGlobalUserAuditsLogger() Logger {
+	globalUserAuditsLoggerOnce.Do(func() {
+		globalUserAuditsLogger = newUserAuditsLogger("coa.runtime.user.audits")
+	})
+	return globalUserAuditsLogger
+}
+
+func GetGlobalUserDiagnosticsLogger() Logger {
+	globalUserDiagnosticsLoggerOnce.Do(func() {
+		globalUserDiagnosticsLogger = newUserDiagnosticsLogger("coa.runtime.user.diagnostics")
+	})
+	return globalUserDiagnosticsLogger
 }
