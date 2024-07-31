@@ -515,7 +515,6 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 		case "deployment":
 			log.InfofCtx(ctx, " M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
-			log.InfofCtx(ctx, " M (Job): deployment spec: %s", string(job.Data))
 
 			var deployment *model.DeploymentSpec
 			deployment, err = model.ToDeployment(job.Data)

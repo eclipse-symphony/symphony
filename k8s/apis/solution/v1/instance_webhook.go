@@ -16,7 +16,8 @@ import (
 	"gopls-workspace/constants"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -95,7 +96,7 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, instancelog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Instance %s is being created", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created", r.Name)
 
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateInstance()
@@ -127,7 +128,7 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, instancelog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Instance %s is being updated", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated", r.Name)
 
 	validateUpdateTime := time.Now()
 	validationError := r.validateUpdateInstance()
@@ -159,7 +160,7 @@ func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 	ctx := context.TODO()
 	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, instancelog)
 
-	logger.GetUserAuditsLogger().InfofCtx(ctx, "Instance %s is being deleted", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being deleted", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
