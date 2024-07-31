@@ -2,7 +2,6 @@ package secret
 
 import (
 	"context"
-	"encoding/base64"
 	"os"
 	"testing"
 
@@ -79,7 +78,7 @@ func TestK8sSecretProvider_Get(t *testing.T) {
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
-			"test-field": []byte(base64.StdEncoding.EncodeToString([]byte("test-value"))),
+			"test-field": []byte("test-value"),
 		},
 	}
 
