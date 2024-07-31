@@ -23,6 +23,15 @@ func (e Event) MarshalBinary() (data []byte, err error) {
 
 type EventHandler func(topic string, message Event) error
 
+func EventShouldRetryWrapper(handler EventHandler, topic string, message Event) bool {
+	err := handler(topic, message)
+	if err != nil {
+		return IsRetriableErr(err)
+	}
+
+	return false
+}
+
 type JobAction string
 
 const (

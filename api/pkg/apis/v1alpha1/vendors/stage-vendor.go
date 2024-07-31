@@ -199,7 +199,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		campaign, ok := status.Outputs["__campaign"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get campaign name from job report")
-			return fmt.Errorf("job-report: campaign is not valid")
+			return v1alpha2.NewCOAError(nil, "job-report: campaign is not valid", v1alpha2.BadRequest)
 		}
 		namespace, ok := status.Outputs["__namespace"].(string)
 		if !ok {
@@ -209,7 +209,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		activation, ok := status.Outputs["__activation"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get activation name from job report")
-			return fmt.Errorf("job-report: activation is not valid")
+			return v1alpha2.NewCOAError(nil, "job-report: activation is not valid", v1alpha2.BadRequest)
 		}
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaignName := api_utils.ReplaceSeperator(campaign)

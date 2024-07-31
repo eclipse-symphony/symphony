@@ -69,15 +69,15 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 				}
 				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
 				if err != nil {
-					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
+					return err
 				}
 			} else {
 				iLog.Errorf("Failed to unmarshal job body: %v", err)
-				return err
+				return v1alpha2.NewCOAError(err, "failed to unmarshal job body", v1alpha2.BadConfig)
 			}
 		} else {
 			iLog.Errorf("Failed to unmarshal job data: %v", err)
-			return err
+			return v1alpha2.NewCOAError(err, "failed to unmarshal catalog state", v1alpha2.BadConfig)
 		}
 		return nil
 	})
