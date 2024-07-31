@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -44,13 +45,20 @@ func (e *SettingsVendor) Init(cfg vendors.VendorConfig, factories []managers.IMa
 		return err
 	}
 	var configProvider config.IExtConfigProvider
+	var secretProvider secret.IExtSecretProvider
 	for _, m := range e.Managers {
 		if c, ok := m.(config.IExtConfigProvider); ok {
+			log.Debugf("V (Settings): found config provider")
 			configProvider = c
+		}
+		if s, ok := m.(secret.IExtSecretProvider); ok {
+			log.Debugf("V (Settings): found secret provider")
+			secretProvider = s
 		}
 	}
 	e.EvaluationContext = &utils.EvaluationContext{
 		ConfigProvider: configProvider,
+		SecretProvider: secretProvider,
 	}
 	return nil
 }
