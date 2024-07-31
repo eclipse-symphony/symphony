@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type ObjectMeta struct {
@@ -44,7 +46,7 @@ func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
 		case float64:
 			o.Generation = strconv.FormatInt(int64(v), 10)
 		default:
-			return fmt.Errorf("unexpected type for generation field: %T", v)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected type for generation field: %T", v), v1alpha2.BadConfig)
 		}
 	}
 
