@@ -12,9 +12,11 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/utils"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/k8s/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -170,6 +172,7 @@ func (r *Catalog) validateCreateCatalog() error {
 func (r *Catalog) checkSchema() *field.Error {
 	if r.Spec.Metadata != nil {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
+			schemaName = utils.ReplaceLastSeperator(schemaName, ":", constants.ResourceSeperator)
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
 			err := myCatalogReaderClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{"metadata.name": schemaName}, client.Limit(1))
@@ -186,7 +189,7 @@ func (r *Catalog) checkSchema() *field.Error {
 				return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid catalog properties")
 			}
 			if spec, ok := properties["spec"]; ok {
-				var schemaObj utils.Schema
+				var schemaObj api_utils.Schema
 				jData, _ := json.Marshal(spec)
 				err := json.Unmarshal(jData, &schemaObj)
 				if err != nil {
