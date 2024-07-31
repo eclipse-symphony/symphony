@@ -106,7 +106,7 @@ func (l *userLogger) EnableJSONOutput(enabled bool) {
 		logFieldScope:    l.sharedFields[logFieldScope],
 		logFieldType:     l.logType,
 		logFieldInstance: hostname,
-		logFieldDaprVer:  DaprVersion,
+		logFieldDaprVer:  CoaVersion,
 	}
 	l.sharedFieldsLock.Unlock()
 

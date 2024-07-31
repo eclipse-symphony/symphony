@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	ACTIVITY_HTTP_HEADER_PREFIX string = "X-Activity-"
-	Activity_ResourceCloudId    string = "resourceId"
-	Activity_OperationName      string = "operationName"
-	Activity_Location           string = "location"
-	Activity_Category           string = "category"
-	Activity_CorrelationId      string = "correlationId"
-	Activity_Properties         string = "properties"
+	Activity_HttpHeaderPrefix string = "X-Activity-"
+	Activity_ResourceCloudId  string = "resourceId"
+	Activity_OperationName    string = "operationName"
+	Activity_Location         string = "location"
+	Activity_Category         string = "category"
+	Activity_CorrelationId    string = "correlationId"
+	Activity_Properties       string = "properties"
 
 	Activity_Props_CallerId      string = "caller-id"
 	Activity_Props_ResourceK8SId string = "resource-k8s-id"
@@ -357,7 +357,7 @@ func PatchActivityLogContextToCurrentContext(newActCtx *ActivityLogContext, pare
 }
 
 func ConstructHttpHeaderKeyForActivityLogContext(key string) string {
-	return fmt.Sprintf("%s%s", ACTIVITY_HTTP_HEADER_PREFIX, key)
+	return fmt.Sprintf("%s%s", Activity_HttpHeaderPrefix, key)
 }
 
 func PropagateActivityLogContextToHttpRequestHeader(req *http.Request) {

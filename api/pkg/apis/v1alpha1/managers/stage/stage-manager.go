@@ -420,7 +420,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
-			log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent evaluation inputs 1: %v", eCtx.Inputs)
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
 					eCtx.Value = v
@@ -468,8 +467,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 		}
 
-		log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent before evaluation inputs 2: %v", inputs)
-
 		// inject default inputs
 		inputs["__campaign"] = triggerData.Campaign
 		inputs["__namespace"] = triggerData.Namespace
@@ -509,8 +506,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 		}
-
-		log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent after evaluation inputs 2: %v", inputs)
 
 		factory := symproviders.SymphonyProviderFactory{}
 		var provider providers.IProvider

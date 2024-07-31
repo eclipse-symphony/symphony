@@ -138,6 +138,10 @@ func CloseSpanWithError(span trace.Span, err *error) {
 	span.End()
 }
 
+func EmitUserAuditsLogs(ctx context.Context, format string, args ...interface{}) {
+	logger.GetGlobalUserAuditsLogger().InfofCtx(ctx, format, args...)
+}
+
 func EmitUserDiagnosticsLogs(ctx context.Context, err *error) {
 	emitUserDiagnosticsLogs(ctx, err, "")
 }
@@ -151,7 +155,7 @@ func emitUserDiagnosticsLogs(ctx context.Context, err *error, prompt string) {
 		if prompt == "" {
 			prompt = fmt.Sprintf("%s failed with error:", GetFunctionNameWithCallerSkip(2))
 		}
-		logger.GetUserDiagnosticsLogger().ErrorfCtx(ctx, "%s %s", prompt, (*err).Error())
+		logger.GetGlobalUserDiagnosticsLogger().ErrorfCtx(ctx, "%s %s", prompt, (*err).Error())
 	}
 }
 
