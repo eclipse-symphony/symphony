@@ -30,42 +30,16 @@ jobs:
         with:
           go-version: 1.21  # Replace with your desired Go version
 
-      - name: Read Version
-        id: read_version
+      - name: Install Helm
         run: |
-          version=$(cat .github/version/versions.txt)
-          echo "version=$version" >> $GITHUB_OUTPUT
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
 
-      - name: Build flask app
+      - name: Pull symphonycr.azurecr.io/simple-chart:0.3.0
         run: |
-          cd docs/samples/sample-payload-flask
-          docker build -t ${{ env.ContainerRegistryRepo }}/sample-flask-app:${{ steps.read_version.outputs.version }} .
-      
-      - name: Build python sdk
-        run: | 
-          cd sdks/python-sdk
-          docker build -t ${{ env.ContainerRegistryRepo }}/symphony-python-sdk:${{ steps.read_version.outputs.version }} .
+          helm pull oci://symphonycr.azurecr.io/simple-chart --version 0.3.0
 
-      - name: Build akri
+      - name: Push ${{ env.ContainerRegistryRepo }}/tests/helm/simple-chart:0.3.0
         run: |
-          cd docs/samples/akri-discover-job
-          go build -o discover-job
-          docker build -t ${{ env.ContainerRegistryRepo }}/symphony-akri:${{ steps.read_version.outputs.version }} -f ./Dockerfile.microsoft .
-      
-      - name: Push sample-flask-app images
-        run: |
-          docker push ${{ env.ContainerRegistryRepo }}/sample-flask-app:${{ steps.read_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/sample-flask-app:${{ steps.read_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/sample-flask-app:latest
-          docker push ${{ env.ContainerRegistryRepo }}/sample-flask-app:latest
-
-      - name: Push symphony-python-sdk images
-        run: |
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-python-sdk:${{ steps.read_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-python-sdk:${{ steps.read_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-python-sdk:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-python-sdk:latest
-
-      - name: Push symphony-akri images
-        run: |
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-akri:${{ steps.read_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-akri:${{ steps.read_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-akri:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-akri:latest
+          helm push simple-chart-0.3.0.tgz oci://${{ env.ContainerRegistryRepo }}/tests/helm
