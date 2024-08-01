@@ -30,9 +30,14 @@ const (
 	ActivityOperation_Read       = "Read"
 	ActivityOperation_Delete     = "Delete"
 
-	TargetOperationNamePrefix     = "targets.fabric." + FullGroupName
-	InstanceOperationNamePrefix   = "instances.solution." + FullGroupName
-	ActivationOperationNamePrefix = "activations.workflow." + FullGroupName
+	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
+	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
+	TargetOperationNamePrefix            = "targets.fabric." + FullGroupName
+	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
+	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
+	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
+	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
+	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
 )
 
 // Environment variables keys

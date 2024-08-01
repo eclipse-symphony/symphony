@@ -11,9 +11,11 @@ import (
 	"fmt"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
 	configv1 "gopls-workspace/apis/config/v1"
 
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,6 +98,12 @@ var _ webhook.Validator = &Solution{}
 func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 	solutionlog.Info("validate create", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
+
 	return nil, r.validateCreateSolution()
 }
 
@@ -103,12 +111,24 @@ func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	solutionlog.Info("validate update", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return nil, r.validateUpdateSolution()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 	solutionlog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, nil
 }
@@ -186,13 +206,34 @@ func (r *SolutionContainer) Default() {
 }
 
 func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being created on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateCreateImpl(solutionlog, r)
 }
 func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateUpdateImpl(solutionlog, r, old)
 }
 
 func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
+
 	solutionlog.Info("validate delete solution container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var solutionList SolutionList
