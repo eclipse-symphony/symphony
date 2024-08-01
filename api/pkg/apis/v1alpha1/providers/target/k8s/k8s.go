@@ -404,14 +404,13 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace stri
 	}
 
 	foregroundDeletion := metav1.DeletePropagationForeground
-	observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Starting remove deployment under namespace - %s, name - %s", namespace, name)
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Start to remove deployment under namespace - %s, name - %s", namespace, name)
 	err = i.Client.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{PropagationPolicy: &foregroundDeletion})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return err
 		}
 	}
-	observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Triggered remove deployment under namespace - %s, name - %s", namespace, name)
 
 	return nil
 }
@@ -495,12 +494,11 @@ func (i *K8sTargetProvider) removeNamespace(ctx context.Context, namespace strin
 	}
 
 	if isEmpty {
-		observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Starting remove namespace - %s", namespace)
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Start to remove namespace - %s", namespace)
 		err = i.Client.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
-		observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Triggered remove namespace - %s", namespace)
 	}
 	return nil
 }
@@ -520,7 +518,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Starting create namespace - %s", namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Start to create namespace - %s", namespace)
 			_, err = i.Client.CoreV1().Namespaces().Create(ctx, &apiv1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
@@ -529,7 +527,6 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 			if err != nil {
 				return err
 			}
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target Provider): Triggered create namespace - %s", namespace)
 		} else {
 			return err
 		}
