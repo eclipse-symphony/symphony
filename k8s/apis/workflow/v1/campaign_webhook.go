@@ -8,11 +8,14 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 	"time"
 
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,6 +99,12 @@ var _ webhook.Validator = &Campaign{}
 func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
 	campaignlog.Info("validate create", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being created on namespace %s", r.Name, r.Namespace)
+
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateCampaign()
 	if validationError != nil {
@@ -119,12 +128,24 @@ func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
 func (r *Campaign) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	campaignlog.Info("validate update", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Campaign) ValidateDelete() (admission.Warnings, error) {
 	campaignlog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, nil
 }
@@ -169,14 +190,35 @@ func (r *CampaignContainer) Default() {
 }
 
 func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being created on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateCreateImpl(campaignlog, r)
 }
 func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateUpdateImpl(campaignlog, r, old)
 }
 
 func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 	campaignlog.Info("validate delete campaign container", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
+
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
 		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
