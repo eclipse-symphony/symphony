@@ -76,10 +76,9 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := context.TODO()
-	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
 
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateActivation()
@@ -106,10 +105,9 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := context.TODO()
-	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
 
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldActivation, ok := old.(*Activation)
@@ -142,10 +140,9 @@ func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := context.TODO()
-	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, ctx, activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), activationlog)
 
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted", r.Name)
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, nil
 }
