@@ -55,6 +55,9 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
 
   # SSH into the machine
   ssh hbai@<public IP of your VM>
+  
+  # if the VM requires a private key:
+  ssh -i ~/.ssh/id_rsa.pem <YOUR_USER_NAME>@<public IP of your VM>
 
   # update repo and signing key
   wget https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -72,6 +75,39 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
   # update iotedge setting
   sudo iotedge config mp --connection-string '<REPLACE_WITH_DEVICE_CONNECTION_STRING>'
   ```
+
+**Note**
+If you encounter below package dependency error during installing `aziot-edge`:
+```
+The following packages have unmet dependencies:
+ aziot-identity-service : Depends: libssl1.1 (>= 1.1.1) but it is not installable
+```
+
+This is because Ubuntu 22.04 uses `libssl3` and `libssl1.1` is deprecated on it. To address the issue, check the latest versions for Edge and IoT Identity Service and install them from the release page.
+
+```shell
+# check the latest aziot-edge version
+wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-versions.json | jq -r '
+  .channels[]
+  | select(.name == "stable").products[]
+  | select(.id == "aziot-edge").components[]
+  | select(.name == "aziot-edge").version
+'
+# check the latest aziot-identity-service version
+wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-versions.json | jq -r '
+  .channels[]
+  | select(.name == "stable").products[]
+  | select(.id == "aziot-edge").components[]
+  | select(.name == "aziot-identity-service").version
+'
+
+# download and install 
+wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-identity-service_<AZIOT_IDENTITY_SERVICE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-identity-service.deb
+sudo dpkg -i aziot-identity-service.deb
+
+wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-edge_<AZIOT_EDGE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-edge.deb
+sudo dpkg -i aziot-edge.deb
+```
 
 ## OPTION 1: Use Maestro
 
