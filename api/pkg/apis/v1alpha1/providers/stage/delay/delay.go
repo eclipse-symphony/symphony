@@ -131,12 +131,16 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 					)
 				}
 			}
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Delay Stage): Delaying for %s", duration)
 			time.Sleep(duration)
 		case int:
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Delay Stage): Delaying for %d seconds", vs)
 			time.Sleep(time.Duration(vs) * time.Second)
 		case int32:
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Delay Stage): Delaying for %d seconds", vs)
 			time.Sleep(time.Duration(vs) * time.Second)
 		case int64:
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Delay Stage): Delaying for %d seconds", vs)
 			time.Sleep(time.Duration(vs) * time.Second)
 		}
 	}
