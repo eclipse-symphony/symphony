@@ -233,6 +233,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	sLog.InfofCtx(ctx, "  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
 	var req *http.Request
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Http Stage): sending request to %v", i.Config.Url)
 	req, err = http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to create request: %v", err)
