@@ -515,6 +515,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 		case "deployment":
 			log.InfofCtx(ctx, " M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
+			// expressions are not evaluated at this step so printing deployment sepc should be safe (TODO: observe)
+			log.InfofCtx(ctx, " M (Job): handling deployment spec: %s", string(job.Data))
 
 			var deployment *model.DeploymentSpec
 			deployment, err = model.ToDeployment(job.Data)
