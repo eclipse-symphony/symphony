@@ -8,10 +8,12 @@ on:
     branches:
       - main
       - 'release/**'
+      - fixtests
   pull_request:
     branches:
       - main
       - 'release/**'
+      - fixtests
   workflow_dispatch:
 
 jobs:
