@@ -134,15 +134,11 @@ data:
           - type: router
             id: process_diagnostics
             routes:
-              - output: tag_diagnostics
+              - output: diagnostics_parser
                 expr: attributes["diagnostics"] != nil
             default: process_activity
-          - type: add
-            id: tag_diagnostics
-            if: 'attributes["diagnostics"] != nil'
-            field: attributes["type"]
-            value: "diagnostics"
           - type: trace_parser
+            id: diagnostics_parser
             trace_id:
               parse_from: attributes["diagnostics"]["traceContext"]["traceId"]
             span_id:
@@ -150,7 +146,7 @@ data:
           - type: copy
             if: 'attributes["diagnostics"] != nil'
             from: attributes["diagnostics"]["resourceId"]
-            to: attributes["resourceId"]
+            to: attributes["cloud_resourceId"]
           - type: copy
             if: 'attributes["diagnostics"] != nil'
             from: attributes["diagnostics"]["correlationId"]
@@ -161,22 +157,18 @@ data:
           - type: router
             id: process_activity
             routes:
-              - output: tag_activity
+              - output: activity_parser
                 expr: attributes["activity"] != nil
             default: parse_stacktrace
-          - type: add
-            id: tag_activity
-            if: 'attributes["activity"] != nil'
-            field: attributes["type"]
-            value: "activity"
           - type: move
+            id: activity_parser
             if: 'attributes["activity"] != nil'
             from: attributes["activity"]["operationName"]
             to: attributes["operationName"]
           - type: move
             if: 'attributes["activity"] != nil'
             from: attributes["activity"]["resourceId"]
-            to: attributes["resourceId"]
+            to: attributes["cloud_resourceId"]
           - type: move
             if: 'attributes["activity"] != nil'
             from: attributes["activity"]["location"]
@@ -226,6 +218,48 @@ data:
             - k8s.node.name
             - container.image.name
             - container.image.tag
+      resource/rename:
+        attributes:
+          - key: k8s_container_name
+            action: upsert
+            from_attribute: k8s.container.name
+          - key: k8s_namespace_name
+            action: upsert
+            from_attribute: k8s.namespace.name
+          - key: k8s_pod_name
+            action: upsert
+            from_attribute: k8s.pod.name
+          - key: k8s_pod_start_time
+            action: upsert
+            from_attribute: k8s.pod.start_time
+          - key: k8s_deployment_name
+            action: upsert
+            from_attribute: k8s.deployment.name
+          - key: k8s_node_name
+            action: upsert
+            from_attribute: k8s.node.name
+          - key: container_image_name
+            action: upsert
+            from_attribute: container.image.name
+          - key: container_image_tag
+            action: upsert
+            from_attribute: container.image.tag
+          - key: k8s.pod.name
+            action: delete
+          - key: k8s.pod.start_time
+            action: delete
+          - key: k8s.deployment.name
+            action: delete
+          - key: k8s.node.name
+            action: delete
+          - key: container.image.name
+            action: delete
+          - key: container.image.tag
+            action: delete
+          - key: k8s.container.name
+            action: delete
+          - key: k8s.namespace.name
+            action: delete
 
       batch:
       memory_limiter:
@@ -295,7 +329,7 @@ data:
 
         logs/default:
           receivers: [filelog]
-          processors: [memory_limiter, batch, k8sattributes]
+          processors: [memory_limiter, batch, k8sattributes, resource/rename]
           exporters: [otlp/default]
           # exporters: [debug]
 
