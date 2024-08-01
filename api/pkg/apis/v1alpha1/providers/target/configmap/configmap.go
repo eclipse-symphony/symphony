@@ -439,6 +439,7 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  deleteConfigMap name %s, namespace: %s", name, namespace)
 
+	utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to delete configmap name %s, namespace: %s", name, namespace)
 	err = i.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -467,6 +468,7 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			sLog.InfofCtx(ctx, "  P (ConfigMap Target): resource not found: %s", err)
+			utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to create configmap name %s, namespace: %s", config.Name, namespace)
 			_, err = i.Client.CoreV1().ConfigMaps(namespace).Create(ctx, config, metav1.CreateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create configmap: %+v", err)
@@ -480,6 +482,7 @@ func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *co
 
 	existingConfigMap.Data = config.Data
 
+	utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to update configmap name %s, namespace: %s", config.Name, namespace)
 	_, err = i.Client.CoreV1().ConfigMaps(namespace).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to update configmap: %+v", err)

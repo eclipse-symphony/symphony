@@ -28,6 +28,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/oliveagle/jsonpath"
@@ -904,6 +905,7 @@ func (k *KubectlTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	}
 
 	if kerrors.IsNotFound(err) {
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Kubectl Target): Start to create namespace - %s", namespace)
 		_, err = k.Client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
@@ -1033,6 +1035,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 		return err
 	}
 
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Kubectl Target): Start to delete object - %s", obj.GetName())
 	err = dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -1066,6 +1069,7 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		}
 
 		// Create the object
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Kubectl Target): Start to create object - %s", obj.GetName())
 		_, err = dr.Create(ctx, obj, metav1.CreateOptions{})
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to create Yaml: %+v", err)

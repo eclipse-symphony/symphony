@@ -185,6 +185,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			jsonData := []byte(body)
 			var request *http.Request
+			utils.EmitUserAuditsLogs(ctx, fmt.Sprintf("  P (HTTP Target): Start to send request to %s", url))
 			request, err = http.NewRequest(method, url, bytes.NewBuffer(jsonData))
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{

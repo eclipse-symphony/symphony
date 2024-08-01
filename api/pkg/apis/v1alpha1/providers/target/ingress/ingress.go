@@ -425,6 +425,7 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	}
 
 	if kerrors.IsNotFound(err) {
+		utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to create namespace - %s", namespace)
 		_, err = k.Client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
@@ -480,6 +481,7 @@ func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, 
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Ingress Target): deleteIngress name %s, namespace %s", name, namespace)
 
+	utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to delete ingress - %s", name)
 	err = i.Client.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -508,6 +510,7 @@ func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *netwo
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			sLog.InfofCtx(ctx, "  P (Ingress Target): resource not found: %v", err)
+			utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to create ingress - %s", ingress.Name)
 			_, err = i.Client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create ingress: %+v", err)
@@ -523,6 +526,7 @@ func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *netwo
 	if ingress.ObjectMeta.Annotations != nil {
 		existingIngress.ObjectMeta.Annotations = ingress.ObjectMeta.Annotations
 	}
+	utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to update ingress - %s", ingress.Name)
 	_, err = i.Client.NetworkingV1().Ingresses(namespace).Update(ctx, existingIngress, metav1.UpdateOptions{})
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to update ingress: %+v", err)

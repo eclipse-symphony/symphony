@@ -186,6 +186,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	defer os.Remove(abs)
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.Script))
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Stage): Start to run script %s", i.Config.Script)
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.Script))
 	}

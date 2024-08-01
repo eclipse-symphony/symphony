@@ -177,6 +177,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		}
 
 		if strings.EqualFold(action, RemoveAction) {
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to delete instance name %s namespace %s", objectName, objectNamespace)
 			err = i.ApiClient.DeleteInstance(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(
@@ -190,6 +191,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", objectName, objectNamespace)
 			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(

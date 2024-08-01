@@ -440,6 +440,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		}
 		if updated {
 			jData, _ := json.Marshal(solution)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Patch Stage): updating solution name: %s namespace: %s", objectName, objectNamespace)
 			err = i.ApiClient.UpsertSolution(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating solution %s", objectName)

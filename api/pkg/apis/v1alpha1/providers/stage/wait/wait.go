@@ -216,6 +216,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	log.DebugfCtx(ctx, "  P (Wait Processor): waiting for %v %v in namespace %s", objectType, prefixedNames, namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Wait Processor): Start to wait for %v %v in namespace %s", objectType, prefixedNames, namespace)
 	counter := 0
 	for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
 		foundCount := 0

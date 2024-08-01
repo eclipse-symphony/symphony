@@ -257,6 +257,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 					objectData, _ := json.Marshal(instanceState)
 					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 					err = i.ApiClient.CreateInstance(ctx, instanceState.ObjectMeta.Name, objectData, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.ErrorfCtx(ctx, "Failed to create instance %s: %s", name, err.Error())
@@ -323,6 +324,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
 						solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(solutionContainerState)
+						observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, namespace)
 						err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
 							mLog.ErrorfCtx(ctx, "Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
@@ -350,6 +352,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
 					objectData, _ := json.Marshal(solutionState)
 					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
 					err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.ErrorfCtx(ctx, "Failed to create solution %s: %s", name, err.Error())
@@ -393,6 +396,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 					objectData, _ := json.Marshal(targetState)
 					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 					err = i.ApiClient.CreateTarget(ctx, targetState.ObjectMeta.Name, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.ErrorfCtx(ctx, "Failed to create target %s: %s", name, err.Error())
@@ -460,6 +464,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 						mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
 						catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
 						containerObjectData, _ := json.Marshal(catalogContainerState)
+						observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create catalog container %v in namespace %s", catalogState.Spec.RootResource, namespace)
 						err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 						if err != nil {
 							mLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
@@ -487,6 +492,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs)
 					objectData, _ := json.Marshal(catalogState)
 					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 					err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
 					if err != nil {
 						mLog.ErrorfCtx(ctx, "Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())

@@ -156,6 +156,7 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 
 	outputs["__state"] = selfState
 	mLog.InfofCtx(ctx, "  P (Counter Stage) process completed")
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Counter Stage): Executed counter stage")
 	providerOperationMetrics.ProviderOperationLatency(
 		processTime,
 		counter,
