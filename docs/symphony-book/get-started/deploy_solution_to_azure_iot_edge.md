@@ -156,8 +156,6 @@ sample-iot-edge-instance-1   Succeeded   1         1
 sample-iot-edge-instance-2   Succeeded   1         1
 ```
 
-If you go to Azure portal, from the IoT device page, you could see two instances created.
-
 To clean up, use:
 
 ```bash
