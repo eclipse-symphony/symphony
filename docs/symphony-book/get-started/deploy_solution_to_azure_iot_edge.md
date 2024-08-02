@@ -150,7 +150,7 @@ Make sure to set the `iot-hub-name` to the complete host name. Otherwise, the io
 
 If the sample runs successfully, you should see two instances running:
 ```bash
-$ kubectl get instance 
+$ kubectl get instances
 NAME                         STATUS      TARGETS   DEPLOYED
 sample-iot-edge-instance-1   Succeeded   1         1
 sample-iot-edge-instance-2   Succeeded   1         1
