@@ -109,6 +109,23 @@ wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSIO
 sudo dpkg -i aziot-edge.deb
 ```
 
+### 3. Deploy modules on your IoT Edge device
+
+To deploy your IoT Edge modules, go to your IoT hub in the Azure portal, then:
+
+1. Select Devices from the IoT Hub menu.
+
+2. Select your device to open its page.
+
+3. Select the Set Modules tab.
+
+4. Select Review + create at the bottom.
+
+5. Select Create to deploy the modules.
+
+When the module setup completes, you should see two modules in the list: `$edgeAgent` and `$edgeHub`.
+For more information, please refer to [Create and provision an IoT Edge device on Linux using symmetric keys](https://learn.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-1.5&tabs=azure-cli%2Cubuntu).
+
 ## OPTION 1: Use Maestro
 
 To use this option, first install Maestro and the Symphony API. For more information, see [Use Symphony with the Maestro CLI tool](./quick_start_maestro.md).
@@ -116,14 +133,30 @@ To use this option, first install Maestro and the Symphony API. For more informa
 Once you have maestro installed, you can launch this sample with the following command:
 
 ```bash
-maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HUB_NAME> --set device-name=s8c-vm
+maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HOST_NAME> --set device-name=s8c-vm
 ```
 
-You can get your IoT hub key from the connection string:
+You can get your IoT host name, hub key and key name from the connection string:
 
 ```bash
 az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
+# sample output:
+# {
+#  "connectionString": "HostName=<HOST_NAME>;SharedAccessKeyName=<HUB_KEY_NAME>;SharedAccessKey=<HUB_KEY>"
+# }
 ```
+
+Make sure to set the `iot-hub-name` to the complete host name. Otherwise, the iot-edge API may not acuqire the module information correctly.
+
+If the sample runs successfully, you should see two instances running:
+```bash
+$ kubectl get instance 
+NAME                         STATUS      TARGETS   DEPLOYED
+sample-iot-edge-instance-1   Succeeded   1         1
+sample-iot-edge-instance-2   Succeeded   1         1
+```
+
+If you go to Azure portal, from the IoT device page, you could see two instances created.
 
 To clean up, use:
 
@@ -164,7 +197,7 @@ spec:
         deviceName: "s8c-vm"
 ```
 
-You can get your IoT hub's key and key name from the connection string:
+You can get your IoT hub's host name, hub key and key name from the connection string:
 
 ```bash
 az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
