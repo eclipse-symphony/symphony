@@ -34,6 +34,10 @@ var instanceProjectConfig *configv1.ProjectConfig
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
+		instance := rawObj.(*Instance)
+		return []string{instance.Spec.Solution}
+	})
 	myConfig, err := configutils.GetProjectConfig()
 	if err != nil {
 		return err
