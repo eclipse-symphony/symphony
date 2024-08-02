@@ -35,6 +35,7 @@ var modelWebhookValidationMetrics *metrics.Metrics
 
 func (r *Model) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myModelClient = mgr.GetClient()
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Model is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Model{}, ".spec.displayName", func(rawObj client.Object) []string {
 		model := rawObj.(*Model)
 		return []string{model.Spec.DisplayName}

@@ -36,12 +36,6 @@ var projectConfig *configv1.ProjectConfig
 
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myTargetClient = mgr.GetAPIReader()
-
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, "spec.displayName", func(rawObj client.Object) []string {
-		target := rawObj.(*Target)
-		return []string{target.Spec.DisplayName}
-	})
-
 	myConfig, err := configutils.GetProjectConfig()
 	if err != nil {
 		return err
