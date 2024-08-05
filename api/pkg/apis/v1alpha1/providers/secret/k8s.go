@@ -60,7 +60,7 @@ func K8sSecretProviderConfigFromMap(properties map[string]string) (K8sSecretProv
 		if val != "" {
 			bVal, err := strconv.ParseBool(val)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'inCluster' setting of K8s state provider", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'inCluster' setting of K8s secret provider", v1alpha2.BadConfig)
 			}
 			ret.InCluster = bVal
 		}
@@ -102,7 +102,7 @@ func (s *K8sSecretProvider) Init(config providers.IProviderConfig) error {
 					s.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("  P (K8s State): %+v", err)
+					sLog.Errorf("  P (K8s secret): %+v", err)
 					return err
 				}
 			}
@@ -111,27 +111,27 @@ func (s *K8sSecretProvider) Init(config providers.IProviderConfig) error {
 			if s.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(s.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (K8s State): %+v", err)
+					sLog.Errorf("  P (K8s secret): %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				sLog.Errorf("  P (K8s State): %+v", err)
+				sLog.Errorf("  P (K8s secret): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and bytes", v1alpha2.BadConfig)
-			sLog.Errorf("  P (K8s State): %+v", err)
+			sLog.Errorf("  P (K8s secret): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (K8s State): %+v", err)
+		sLog.Errorf("  P (K8s secret): %+v", err)
 		return err
 	}
 	s.Clientset, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (K8s State): %+v", err)
+		sLog.Errorf("  P (K8s secret): %+v", err)
 		return err
 	}
 
