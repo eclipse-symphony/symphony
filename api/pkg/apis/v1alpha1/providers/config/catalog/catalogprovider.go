@@ -109,7 +109,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	clog.Debug(" M (Catalog): Read, object: %s, field: %s", object, field)
-	namespace := m.getNamespaceFromContext(localcontext)
+	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = api_utils.ReplaceSeperator(object)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -134,7 +134,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	clog.Debug(" M (Catalog): ReadObject, object: %s", object)
-	namespace := m.getNamespaceFromContext(localcontext)
+	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = api_utils.ReplaceSeperator(object)
 
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
@@ -160,15 +160,6 @@ func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface
 		ret[k] = tv
 	}
 	return ret, nil
-}
-
-func (m *CatalogConfigProvider) getNamespaceFromContext(localContext interface{}) string {
-	if localContext != nil {
-		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
-			return ltx.Namespace
-		}
-	}
-	return ""
 }
 
 func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}) (interface{}, error) {
