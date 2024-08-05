@@ -10,11 +10,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/stringlock"
 )
 
 type MemoryStringLockProvider struct {
-	lm LockManager
+	lm            *LockManager
+	cleanInterval int //seconds
+}
+
+func (mslp *MemoryStringLockProvider) Init(config providers.IProviderConfig) error {
+	mslp.lm = NewLockManager()
+	mslp.lm.Clean()
+	go func() {
+		for {
+			mslp.lm.Clean()
+			time.Sleep(2 * time.Second)
+		}
+	}()
+	return nil
 }
 
 func (mslp *MemoryStringLockProvider) Lock(key string) stringlock.UnLock {
