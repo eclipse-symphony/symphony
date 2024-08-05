@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -153,7 +153,7 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sSecretProvid
 
 func (s *K8sSecretProvider) Read(name string, field string, localContext interface{}) (string, error) {
 	// Get the secret
-	namespace := s.getNamespaceFromContext(localContext)
+	namespace := utils.GetNamespaceFromContext(localContext)
 	secret, err := s.Clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		sLog.Errorf("Error getting secret %s in namespace %s. Error: %s", name, namespace, err.Error())
@@ -163,17 +163,8 @@ func (s *K8sSecretProvider) Read(name string, field string, localContext interfa
 	value, ok := secret.Data[field]
 	if !ok {
 		sLog.Errorf("Field %s not found in secret %s", field, name)
-		return "", fmt.Errorf("field %s not found in secret %s", field, name)
+		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field %s not found in secret %s", field, name), v1alpha2.MissingConfig)
 	}
 
 	return string(value), nil
-}
-
-func (s *K8sSecretProvider) getNamespaceFromContext(localContext interface{}) string {
-	if localContext != nil {
-		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
-			return ltx.Namespace
-		}
-	}
-	return " "
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -43,22 +44,30 @@ func (s *SecretsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 	}
 	if len(s.SecretProviders) == 0 {
 		log.Error(" M (secret): No secret providers found")
-		return v1alpha2.NewCOAError(nil, "No secret providers found", v1alpha2.BadRequest)
+		return v1alpha2.NewCOAError(nil, "No secret providers found", v1alpha2.BadConfig)
 	}
-	if len(s.SecretProviders) > 0 && len(s.Precedence) < len(s.SecretProviders) && len(s.SecretProviders) > 1 {
+	if len(s.Precedence) < len(s.SecretProviders) && len(s.SecretProviders) > 1 {
 		log.Error(" M (secret): Not enough precedence values")
-		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadRequest)
+		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
-	for _, key := range s.Precedence {
-		if _, ok := s.SecretProviders[key]; !ok {
-			log.Error(" M (secret): Invalid precedence value: %s", key)
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid precedence value: %s", key), v1alpha2.BadRequest)
+	if len(s.SecretProviders) > 1 {
+		var provderKeys []string
+		for key := range s.SecretProviders {
+			provderKeys = append(provderKeys, key)
+		}
+		if !utils.AreSlicesEqual(provderKeys, s.Precedence) {
+			log.Error(" M (secret): Precedence does not match with secret providers")
+			return v1alpha2.NewCOAError(nil, "Precedence does not match with secret providers", v1alpha2.BadConfig)
 		}
 	}
 	return nil
 }
 func (s *SecretsManager) Get(object string, field string, localContext interface{}) (string, error) {
 	log.Debugf(" M (secret): Get %v, secret provider size %d", object, len(s.SecretProviders))
+	if field == "" {
+		log.Errorf(" M (secret): field is empty")
+		return "", v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
+	}
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
@@ -66,33 +75,24 @@ func (s *SecretsManager) Get(object string, field string, localContext interface
 			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.SecretProviders[parts[0]]; ok {
-			if field == "" {
-				log.Errorf(" M (secret): field is empty")
-				return "", v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
-			} else {
-				return provider.Read(parts[1], field, localContext)
-			}
+			return provider.Read(parts[1], field, localContext)
 		}
+
 		log.Errorf(" M (secret): Invalid provider: %s", parts[0])
 		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 	}
+
 	if len(s.SecretProviders) == 1 {
 		for _, provider := range s.SecretProviders {
-			if field == "" {
-				log.Errorf(" M (secret): field is empty")
-				return "", v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
-			} else {
-				return provider.Read(object, field, localContext)
-			}
+			return provider.Read(object, field, localContext)
 		}
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.SecretProviders[key]; ok {
-			if field == "" {
-				log.Errorf(" M (secret): field is empty")
-				return "", v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
-			} else {
-				return provider.Read(object, field, localContext)
+			ret, err := provider.Read(object, field, localContext)
+			if err == nil {
+				return ret, nil
+
 			}
 		}
 	}
