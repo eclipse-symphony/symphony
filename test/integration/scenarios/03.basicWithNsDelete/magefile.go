@@ -84,7 +84,7 @@ func Setup() error {
 	testhelpers.SetupCluster()
 	err := shellcmd.Command(fmt.Sprintf("kubectl get secret container")).Run()
 	if err != nil {
-		err := shellcmd.Command(fmt.Sprintf("kubectl create secret generic container --from-literal=port=%d", 9090)).Run()
+		err := shellcmd.Command("kubectl apply -f manifest/oss/secret.yaml").Run()
 		if err != nil {
 			return err
 		}
