@@ -40,7 +40,7 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 	}
 	cleanupmanager := ActivationsCleanupManager{
 		ActivationsManager: manager,
-		RetentionInMinutes: 0,
+		RetentionDuration:  0,
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
@@ -56,6 +56,7 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 	assert.Empty(t, errList)
 	_, err = manager.GetState(context.Background(), "test", "default")
 	assert.NotNil(t, err)
+	assert.True(t, v1alpha2.IsNotFound(err))
 }
 
 func TestUpdateStageStatus(t *testing.T) {
