@@ -28,6 +28,7 @@ var skillWebhookValidationMetrics *metrics.Metrics
 
 func (r *Skill) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySkillClient = mgr.GetClient()
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Skill is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Skill{}, ".spec.displayName", func(rawObj client.Object) []string {
 		skill := rawObj.(*Skill)
 		return []string{skill.Spec.DisplayName}

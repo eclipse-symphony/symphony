@@ -10,10 +10,13 @@ import (
 	"context"
 	"encoding/json"
 	"gopls-workspace/apis/metrics/v1"
+	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/utils"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/k8s/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,18 +31,14 @@ import (
 
 // log is for logging in this package.
 var cataloglog = logf.Log.WithName("catalog-resource")
-var myCatalogClient client.Client
+var myCatalogReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myCatalogClient = mgr.GetClient()
+	myCatalogReaderClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".metadata.name", func(rawObj client.Object) []string {
 		catalog := rawObj.(*Catalog)
 		return []string{catalog.Name}
-	})
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Catalog{}, ".spec.rootResource", func(rawObj client.Object) []string {
-		catalog := rawObj.(*Catalog)
-		return []string{catalog.Spec.RootResource}
 	})
 
 	// initialize the controller operation metrics
@@ -68,13 +67,13 @@ func (r *Catalog) Default() {
 
 	if r.Spec.RootResource != "" {
 		var catalogContainer CatalogContainer
-		err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+		err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
 		if err != nil {
 			cataloglog.Error(err, "failed to get catalog container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
-				APIVersion: catalogContainer.APIVersion,
-				Kind:       catalogContainer.Kind,
+				APIVersion: GroupVersion.String(), //catalogContainer.APIVersion
+				Kind:       "CatalogContainer",    //catalogContainer.Kind
 				Name:       catalogContainer.Name,
 				UID:        catalogContainer.UID,
 			}
@@ -82,6 +81,11 @@ func (r *Catalog) Default() {
 			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
 				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
 			}
+
+			if r.Labels == nil {
+				r.Labels = make(map[string]string)
+			}
+			r.Labels["rootResource"] = r.Spec.RootResource
 		}
 	}
 }
@@ -168,9 +172,10 @@ func (r *Catalog) validateCreateCatalog() error {
 func (r *Catalog) checkSchema() *field.Error {
 	if r.Spec.Metadata != nil {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
+			schemaName = utils.ReplaceLastSeperator(schemaName, ":", constants.ResourceSeperator)
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
-			err := myCatalogClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{".metadata.name": schemaName})
+			err := myCatalogReaderClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{"metadata.name": schemaName}, client.Limit(1))
 			if err != nil || len(catalogs.Items) == 0 {
 				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
 				return field.Invalid(field.NewPath("spec").Child("Metadata"), schemaName, "could not find the required schema")
@@ -184,7 +189,7 @@ func (r *Catalog) checkSchema() *field.Error {
 				return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid catalog properties")
 			}
 			if spec, ok := properties["spec"]; ok {
-				var schemaObj utils.Schema
+				var schemaObj api_utils.Schema
 				jData, _ := json.Marshal(spec)
 				err := json.Unmarshal(jData, &schemaObj)
 				if err != nil {
@@ -236,7 +241,7 @@ func (r *Catalog) validateNameOnCreate() *field.Error {
 
 func (r *Catalog) validateRootResource() *field.Error {
 	var catalogContainer CatalogContainer
-	err := myCatalogClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+	err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid catalog container")
 	}
@@ -246,4 +251,29 @@ func (r *Catalog) validateRootResource() *field.Error {
 	}
 
 	return nil
+}
+
+func (r *CatalogContainer) Default() {
+	commoncontainer.DefaultImpl(cataloglog, r)
+}
+
+func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
+	return commoncontainer.ValidateCreateImpl(cataloglog, r)
+}
+func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	return commoncontainer.ValidateUpdateImpl(cataloglog, r, old)
+}
+
+func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
+	cataloglog.Info("validate delete catalog container", "name", r.Name)
+	getSubResourceNums := func() (int, error) {
+		var catalogList CatalogList
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		if err != nil {
+			return 0, err
+		} else {
+			return len(catalogList.Items), nil
+		}
+	}
+	return commoncontainer.ValidateDeleteImpl(cataloglog, r, getSubResourceNums)
 }

@@ -59,12 +59,12 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
-		if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
+		if activation.Status.UpdateTime == "" && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,
 				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
-				Stage:                "",
+				Stage:                activation.Spec.Stage,
 				Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
 				Namespace:            activation.Namespace,
 			}, "", "")

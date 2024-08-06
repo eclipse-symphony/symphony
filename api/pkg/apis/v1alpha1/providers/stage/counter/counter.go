@@ -133,5 +133,5 @@ func getNumber(val interface{}) (int64, error) {
 			return v, nil
 		}
 	}
-	return 0, fmt.Errorf("cannot convert %v to number", val)
+	return 0, v1alpha2.NewCOAError(nil, fmt.Sprintf("cannot convert %v to number", val), v1alpha2.BadRequest)
 }
