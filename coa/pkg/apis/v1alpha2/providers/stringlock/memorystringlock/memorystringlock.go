@@ -7,36 +7,71 @@
 package memorystringlock
 
 import (
+	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/stringlock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var sLog = logger.NewLogger("coa.runtime")
 
 type MemoryStringLockProvider struct {
 	lm            *LockManager
 	cleanInterval int //seconds
+	purgeDuration int // 12 hours before
+}
+
+type MemoryStringLockProviderConfig struct {
+	CleanInterval int `json:"cleanInterval"`
+	PurgeDuration int `json:"purgeDuration"`
+}
+
+func toMemoryStringLockProviderConfig(config providers.IProviderConfig) (MemoryStringLockProviderConfig, error) {
+	ret := MemoryStringLockProviderConfig{}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(data, &ret)
+	return ret, err
 }
 
 func (mslp *MemoryStringLockProvider) Init(config providers.IProviderConfig) error {
+	stringLockConfig, err := toMemoryStringLockProviderConfig(config)
+	if err != nil {
+		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
+		return errors.New("expected MemoryStringLockProviderConfig")
+	}
+	if stringLockConfig.CleanInterval > 0 {
+		mslp.cleanInterval = stringLockConfig.CleanInterval
+	} else {
+		mslp.cleanInterval = 30 // default: 30 seconds
+	}
+	if stringLockConfig.PurgeDuration > 0 {
+		mslp.purgeDuration = stringLockConfig.PurgeDuration
+	} else {
+		mslp.purgeDuration = 60 * 60 * 12 // default: 12 hours
+	}
 	mslp.lm = NewLockManager()
-	mslp.lm.Clean()
 	go func() {
 		for {
-			mslp.lm.Clean()
-			time.Sleep(2 * time.Second)
+			mslp.lm.clean(-mslp.purgeDuration)
+			time.Sleep(time.Duration(mslp.cleanInterval) * time.Second)
 		}
 	}()
 	return nil
 }
 
 func (mslp *MemoryStringLockProvider) Lock(key string) stringlock.UnLock {
-	mslp.lm.GetLockNode(key).Lock()
+	mslp.lm.getLockNode(key).Lock()
 
 	return func() {
-		mslp.lm.GetLockNode(key).Unlock()
-		go mslp.lm.UpdateLockLRU(key)
+		mslp.lm.getLockNode(key).Unlock()
+		go mslp.lm.updateLockLRU(key)
 	}
 }
 
@@ -49,8 +84,6 @@ type LockNode struct {
 }
 
 type LockManager struct {
-	purgeDuration time.Duration // 12 hours before
-
 	m    *sync.Map
 	head *LockNode
 	tail *LockNode
@@ -58,20 +91,21 @@ type LockManager struct {
 }
 
 func NewLockManager() *LockManager {
-	return &LockManager{
-		purgeDuration: -(time.Second * 30),
-		m:             &sync.Map{},
-		head:          nil,
-		tail:          nil,
+	lm := LockManager{
+		m:    &sync.Map{},
+		head: nil,
+		tail: nil,
 	}
+	lm.head = &LockNode{prev: nil, next: nil} // dummyhead
+	lm.tail = &LockNode{prev: nil, next: nil} // dummytail
+	lm.head.next = lm.tail
+	lm.tail.prev = lm.head
+	return &lm
 }
 
 func (lm *LockManager) moveToHead(node *LockNode) {
-	if lm.head == node {
+	if lm.head.next == node {
 		return
-	}
-	if lm.tail == node {
-		lm.tail = node.prev
 	}
 	if node.prev != nil {
 		node.prev.next = node.next
@@ -79,18 +113,14 @@ func (lm *LockManager) moveToHead(node *LockNode) {
 	if node.next != nil {
 		node.next.prev = node.prev
 	}
-	node.prev = nil
-	node.next = lm.head
-	if lm.head != nil {
-		lm.head.prev = node
-	}
-	lm.head = node
-	if lm.tail == nil {
-		lm.tail = node
-	}
+
+	node.prev = lm.head
+	node.next = lm.head.next
+	node.next.prev = node
+	lm.head.next = node
 }
 
-func (lm *LockManager) GetLockNode(key string) *sync.Mutex {
+func (lm *LockManager) getLockNode(key string) *sync.Mutex {
 	locknode, _ := lm.m.LoadOrStore(key, &LockNode{key: key, prev: nil, next: nil})
 	if ln, ok := locknode.(*LockNode); ok {
 		return &ln.lock
@@ -100,7 +130,7 @@ func (lm *LockManager) GetLockNode(key string) *sync.Mutex {
 	}
 }
 
-func (lm *LockManager) UpdateLockLRU(key string) {
+func (lm *LockManager) updateLockLRU(key string) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
@@ -113,26 +143,26 @@ func (lm *LockManager) UpdateLockLRU(key string) {
 	}
 }
 
-func (lm *LockManager) cleanLast() bool {
-	if lm.tail == nil || lm.tail.lastUsedTime.After(time.Now().Add(lm.purgeDuration)) {
+func (lm *LockManager) cleanLast(purgeDuration int) bool {
+	if lm.tail.prev == lm.head || lm.tail.prev.lastUsedTime.After(time.Now().Add(time.Duration(purgeDuration)*time.Second)) {
 		return false
 	}
 
-	node := lm.tail
+	node := lm.tail.prev
 	if node.prev != nil {
-		node.prev.next = nil
-	} else {
-		lm.head = nil
+		node.prev.next = node.next
 	}
-	lm.tail = node.prev
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
 
 	lm.m.Delete(node.key)
 	return true
 }
 
-func (lm *LockManager) Clean() {
+func (lm *LockManager) clean(purgeDuration int) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
-	for lm.cleanLast() {
+	for lm.cleanLast(purgeDuration) {
 	}
 }
