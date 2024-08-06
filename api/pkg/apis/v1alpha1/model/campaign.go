@@ -106,16 +106,21 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 }
 
 type ActivationStatus struct {
-	Stage                string                 `json:"stage"`
-	NextStage            string                 `json:"nextStage,omitempty"`
-	Inputs               map[string]interface{} `json:"inputs,omitempty"`
-	Outputs              map[string]interface{} `json:"outputs,omitempty"`
-	Status               v1alpha2.State         `json:"status,omitempty"`
-	StatusMessage        string                 `json:"statusMessage,omitempty"`
-	ErrorMessage         string                 `json:"errorMessage,omitempty"`
-	IsActive             bool                   `json:"isActive,omitempty"`
-	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
-	UpdateTime           string                 `json:"updateTime,omitempty"`
+	ActivationGeneration string         `json:"activationGeneration,omitempty"`
+	UpdateTime           string         `json:"updateTime,omitempty"`
+	Status               v1alpha2.State `json:"status,omitempty"`
+	StatusMessage        string         `json:"statusMessage,omitempty"`
+	StageHistory         []StageStatus  `json:"stagehistory,omitempty"`
+}
+type StageStatus struct {
+	Stage         string                 `json:"stage,omitempty"`
+	NextStage     string                 `json:"nextStage,omitempty"`
+	Inputs        map[string]interface{} `json:"inputs,omitempty"`
+	Outputs       map[string]interface{} `json:"outputs,omitempty"`
+	Status        v1alpha2.State         `json:"status,omitempty"`
+	IsActive      bool                   `json:"isActive,omitempty"`
+	StatusMessage string                 `json:"statusMessage,omitempty"`
+	ErrorMessage  string                 `json:"errorMessage,omitempty"`
 }
 
 type ActivationSpec struct {
