@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -54,36 +55,36 @@ func (t *TaskResult) GetError() error {
 			state := v1alpha2.State(int(sv))
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %v", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", sv), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		case int:
 			state := v1alpha2.State(sv)
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %d", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", sv), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		case string:
 			vInt, err := strconv.ParseInt(sv, 10, 32)
 			if err != nil {
-				return fmt.Errorf("invalid state %s", sv)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %s", sv), v1alpha2.InternalError)
 			}
 			state := v1alpha2.State(vInt)
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
-				return fmt.Errorf("invalid state %d", vInt)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", vInt), v1alpha2.InternalError)
 			}
 			t.Outputs["__status"] = state
 		default:
-			return fmt.Errorf("invalid state %v", v)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", v), v1alpha2.InternalError)
 		}
 
 		if t.Outputs["__status"] != v1alpha2.OK {
 			if v, ok := t.Outputs["__error"]; ok {
 				return v1alpha2.NewCOAError(nil, utils.FormatAsString(v), t.Outputs["__status"].(v1alpha2.State))
 			} else {
-				return fmt.Errorf("stage returned unsuccessful status without an error")
+				return v1alpha2.NewCOAError(nil, "stage returned unsuccessful status without an error", v1alpha2.InternalError)
 			}
 		}
 	}
@@ -117,32 +118,32 @@ func (s *StageManager) Poll() []error {
 func (s *StageManager) Reconcil() []error {
 	return nil
 }
-func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
+func (s *StageManager) ResumeStage(status model.StageStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
 	log.Debugf(" M (Stage): ResumeStage: %v\n", status)
 	campaign, ok := status.Outputs["__campaign"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: campaign (%v) is not valid from output", status.Outputs["__campaign"])
-		return nil, fmt.Errorf("ResumeStage: campaign is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: campaign is not valid", v1alpha2.BadRequest)
 	}
 	activation, ok := status.Outputs["__activation"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: activation (%v) is not valid from output", status.Outputs["__activation"])
-		return nil, fmt.Errorf("ResumeStage: activation is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: activation is not valid", v1alpha2.BadRequest)
 	}
 	activationGeneration, ok := status.Outputs["__activationGeneration"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: activationGeneration (%v) is not valid from output", status.Outputs["__activationGeneration"])
-		return nil, fmt.Errorf("ResumeStage: activationGeneration is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: activationGeneration is not valid", v1alpha2.BadRequest)
 	}
 	site, ok := status.Outputs["__site"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: site (%v) is not valid from output", status.Outputs["__site"])
-		return nil, fmt.Errorf("ResumeStage: site is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: site is not valid", v1alpha2.BadRequest)
 	}
 	stage, ok := status.Outputs["__stage"].(string)
 	if !ok {
 		log.Errorf(" M (Stage): ResumeStage: stage (%v) is not valid from output", status.Outputs["__stage"])
-		return nil, fmt.Errorf("ResumeStage: stage is not valid")
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: stage is not valid", v1alpha2.BadRequest)
 	}
 	namespace, ok := status.Outputs["__namespace"].(string)
 	if !ok {
@@ -171,7 +172,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 		// 	}
 		// }
 		// if !found {
-		// 	return nil, fmt.Errorf("site %s is not found in pending task", site)
+		// 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("site %s is not found in pending task", site)
 		// }
 		//remove site from p.Sites
 		newSites := make([]string, 0)
@@ -223,7 +224,7 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 						if _, ok := cam.Stages[sVal]; ok {
 							nextStage = sVal
 						} else {
-							return nil, fmt.Errorf("stage %s is not found", sVal)
+							return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", sVal), v1alpha2.InternalError)
 						}
 					}
 
@@ -266,19 +267,19 @@ func (s *StageManager) ResumeStage(status model.ActivationStatus, cam model.Camp
 			}
 		}
 	} else {
-		return nil, fmt.Errorf("invalid pending task")
+		return nil, v1alpha2.NewCOAError(err, "invalid pending task", v1alpha2.InternalError)
 	}
 
 	return nil, nil
 }
-func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.ActivationStatus {
+func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData v1alpha2.ActivationData) model.StageStatus {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleDirectTriggerEvent",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	status := model.ActivationStatus{
+	status := model.StageStatus{
 		Stage:     "",
 		NextStage: "",
 		Outputs: map[string]interface{}{
@@ -391,7 +392,7 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	}
 	return ret
 }
-func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.ActivationStatus, *v1alpha2.ActivationData) {
+func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
@@ -399,17 +400,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.Info(" M (Stage): HandleTriggerEvent")
-	status := model.ActivationStatus{
-		Stage:     triggerData.Stage,
-		NextStage: "",
-		Outputs: map[string]interface{}{
-			"__campaign":             triggerData.Campaign,
-			"__namespace":            triggerData.Namespace,
-			"__activation":           triggerData.Activation,
-			"__activationGeneration": triggerData.ActivationGeneration,
-			"__stage":                triggerData.Stage,
-			"__site":                 s.VendorContext.SiteInfo.SiteId,
-		},
+	status := model.StageStatus{
+		Stage:         triggerData.Stage,
+		NextStage:     "",
+		Outputs:       map[string]interface{}{},
 		Status:        v1alpha2.Untouched,
 		StatusMessage: v1alpha2.Untouched.String(),
 		ErrorMessage:  "",
@@ -484,6 +478,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		if triggerData.Schedule != "" {
 			inputs["__schedule"] = triggerData.Schedule
 		}
+
 		for k, v := range inputs {
 			var val interface{}
 			val, err = s.traceValue(v, inputs, triggerData.Outputs)
@@ -496,6 +491,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				return status, activationData
 			}
 			inputs[k] = val
+		}
+		status.Inputs = map[string]interface{}{}
+		for k, v := range inputs {
+			if !strings.HasPrefix(k, "__") {
+				status.Inputs[k] = v
+			}
 		}
 
 		if triggerData.Outputs != nil {
@@ -634,13 +635,15 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			} else {
 				key := fmt.Sprintf("%s.__status", result.Site)
 				if _, ok := result.Outputs[key]; !ok {
-					outputs[fmt.Sprintf("%s.__status", result.Site)] = v1alpha2.OK
+					outputs[key] = v1alpha2.Untouched
 				}
 			}
 		}
 
 		for k, v := range outputs {
-			status.Outputs[k] = v
+			if !strings.HasPrefix(k, "__") {
+				status.Outputs[k] = v
+			}
 		}
 		if triggerData.Outputs == nil {
 			triggerData.Outputs = make(map[string]map[string]interface{})
@@ -736,20 +739,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			status.NextStage = sVal
-			if sVal == "" {
+			if pauseRequested {
+				status.IsActive = false
+				status.Status = v1alpha2.Paused
+				status.StatusMessage = v1alpha2.Paused.String()
+			} else {
 				status.IsActive = false
 				status.Status = v1alpha2.Done
 				status.StatusMessage = v1alpha2.Done.String()
-			} else {
-				if pauseRequested {
-					status.IsActive = false
-					status.Status = v1alpha2.Paused
-					status.StatusMessage = v1alpha2.Paused.String()
-				} else {
-					status.IsActive = true
-					status.Status = v1alpha2.Running
-					status.StatusMessage = v1alpha2.Running.String()
-				}
 			}
 			log.Infof(" M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData
@@ -828,7 +825,9 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
 	if stageSpec, ok := campaign.Stages[stage]; ok {
-		if activation.Status != nil && activation.Status.Stage != "" && activation.Status.NextStage != stage {
+		if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
+			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
+			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
 		}
 		return &v1alpha2.ActivationData{

@@ -155,7 +155,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 			"kind":      "Target",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	}
 

@@ -107,10 +107,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
 		fLog.Debugf("V (Federation): received report event: %v", event)
 		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
+		var status model.StageStatus
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
-			err := f.apiClient.SyncActivationStatus(context.TODO(), status,
+			err := f.apiClient.SyncStageStatus(context.TODO(), status,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
 				f.Vendor.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
@@ -310,10 +310,10 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	tLog.Info("V (Federation): onSync")
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var status model.ActivationStatus
+		var status model.StageStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
-			tLog.Errorf("V (Federation): failed to unmarshal activation status: %v", err)
+			tLog.Errorf("V (Federation): failed to unmarshal stage status: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
