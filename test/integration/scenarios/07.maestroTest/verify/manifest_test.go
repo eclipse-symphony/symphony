@@ -9,6 +9,7 @@ package verify
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -21,14 +22,10 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// Test config
-var (
-	NAMESPACE = "sample-k8s-scope"
-)
-
 // Verify target has correct status
 func Test_VerifyTargetStatus(t *testing.T) {
-	// Verify target
+	namespace := getNamespace()
+
 	cfg, err := testhelpers.RestConfig()
 	require.NoError(t, err)
 
@@ -40,7 +37,7 @@ func Test_VerifyTargetStatus(t *testing.T) {
 			Group:    "fabric.symphony",
 			Version:  "v1",
 			Resource: "targets",
-		}).Namespace(NAMESPACE).List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 	
 		require.Len(t, resources.Items, 1, "there should be only one target")
@@ -59,7 +56,8 @@ func Test_VerifyTargetStatus(t *testing.T) {
 
 // Verify instance has correct status
 func Test_VerifyInstanceStatus(t *testing.T) {
-	// Verify instance
+	namespace := getNamespace()
+
 	cfg, err := testhelpers.RestConfig()
 	require.NoError(t, err)
 
@@ -71,7 +69,7 @@ func Test_VerifyInstanceStatus(t *testing.T) {
 			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
-		}).Namespace(NAMESPACE).List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 	
 		require.Len(t, resources.Items, 1, "there should be only one instance")
@@ -88,34 +86,76 @@ func Test_VerifyInstanceStatus(t *testing.T) {
 	}
 }
 
+// Verify pod exists in hello-world sample
 func TestBasic_VerifyPodsExist(t *testing.T) {
-	// Get kube client
-	kubeClient, err := testhelpers.KubeClient()
-	require.NoError(t, err)
+	sampleName := getNamespace()
 
-	i := 0
-	for {
-		i++
-
-		// List all pods in the namespace
-		pods, err := kubeClient.CoreV1().Pods(NAMESPACE).List(context.Background(), metav1.ListOptions{})
+	if (sampleName == "sample-hello-world") {
+		// Get kube client
+		kubeClient, err := testhelpers.KubeClient()
 		require.NoError(t, err)
 
-		found := false
-		for _, pod := range pods.Items {
-			if strings.Contains(pod.Name, "sample-prometheus-instance") && pod.Status.Phase == "Running" {
-				found = true
+		i := 0
+		for {
+			i++
+
+			// List all pods in the deployed namespace
+			pods, err := kubeClient.CoreV1().Pods("sample-k8s-scope").List(context.Background(), metav1.ListOptions{})
+			require.NoError(t, err)
+
+			found := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "sample-prometheus-instance") && pod.Status.Phase == "Running" {
+					found = true
+					break
+				}
+			}
+
+			if found {
 				break
+			} else {
+				time.Sleep(time.Second * 5)
+
+				if i%12 == 0 {
+					fmt.Printf("Waiting for pods: sample-prometheus-instance\n")
+				}
 			}
 		}
+	}
+}
 
-		if found {
-			break
-		} else {
-			time.Sleep(time.Second * 5)
+// Verify catelog exists in staged sample
+func TestBasic_VerifyCatelogExist(t *testing.T) {
+	sampleName := getNamespace()
 
-			if i%12 == 0 {
-				fmt.Printf("Waiting for pods: sample-prometheus-instance\n")
+	if (sampleName == "sample-staged") {
+		cfg, err := testhelpers.RestConfig()
+		require.NoError(t, err)
+	
+		dyn, err := dynamic.NewForConfig(cfg)
+		require.NoError(t, err)
+	
+		for {
+			resources, err := dyn.Resource(schema.GroupVersionResource{
+				Group:    "federation.symphony",
+				Version:  "v1",
+				Resource: "catalogs",
+			}).Namespace("default").List(context.TODO(), metav1.ListOptions{})
+			require.NoError(t, err)
+
+			found := false
+			for _, catalog := range resources.Items {
+				if strings.Contains(catalog.GetName(), "sample-staged-instance") {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				break
+			} else {
+				sleepDuration, _ := time.ParseDuration("30s")
+				time.Sleep(sleepDuration)
 			}
 		}
 	}
@@ -135,4 +175,14 @@ func getStatus(resource unstructured.Unstructured) string {
 	}
 
 	return ""
+}
+
+// Helper for getting namespace
+func getNamespace() string {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	return namespace
 }
