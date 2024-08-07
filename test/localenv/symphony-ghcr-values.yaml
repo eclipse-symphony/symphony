@@ -13,3 +13,4 @@ installServiceExt: false
 api:
   labelKey:
   labelValue:
+  annotationKey:

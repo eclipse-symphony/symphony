@@ -22,7 +22,7 @@ import (
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	"github.com/go-redis/redis/v7"
+	"github.com/redis/go-redis/v9"
 )
 
 var rLog = logger.NewLogger("coa.runtime")
@@ -70,6 +70,8 @@ type RedisStateProvider struct {
 	Config  RedisStateProviderConfig
 	Context *contexts.ManagerContext
 	Client  *redis.Client
+	Ctx     context.Context
+	Cancel  context.CancelFunc
 }
 
 func (r *RedisStateProvider) ID() string {
@@ -98,7 +100,7 @@ func (r *RedisStateProvider) Init(config providers.IProviderConfig) error {
 	if r.Config.Host == "" {
 		return v1alpha2.NewCOAError(nil, "Redis host is not supplied", v1alpha2.MissingConfig)
 	}
-
+	r.Ctx, r.Cancel = context.WithCancel(context.Background())
 	options := &redis.Options{
 		Addr:            r.Config.Host,
 		Password:        r.Config.Password,
@@ -112,7 +114,7 @@ func (r *RedisStateProvider) Init(config providers.IProviderConfig) error {
 		}
 	}
 	client := redis.NewClient(options)
-	if _, err := client.Ping().Result(); err != nil {
+	if _, err := client.Ping(r.Ctx).Result(); err != nil {
 		rLog.Debugf("  P (Redis State): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", r.Config.Host), v1alpha2.InternalError)
 	}
@@ -144,9 +146,9 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 	if err != nil {
 		return entry.Value.ID, err
 	}
-	if entry.Options.UpdateStateOnly {
+	if entry.Options.UpdateStatusOnly {
 		var existing string
-		existing, err = r.Client.HGet(key, "values").Result()
+		existing, err = r.Client.HGet(r.Ctx, key, "values").Result()
 		if err != nil {
 			return entry.Value.ID, v1alpha2.NewCOAError(nil, fmt.Sprintf("redis state %s not found. Cannot update state only", entry.Value.ID), v1alpha2.BadRequest)
 		}
@@ -166,7 +168,7 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 		}
 		oldEntryDict["status"] = oldStatusDict
 		body, _ = json.Marshal(oldEntryDict)
-		_, err = r.Client.HSet(key, "values", string(body)).Result()
+		_, err = r.Client.HSet(r.Ctx, key, "values", string(body)).Result()
 		return entry.Value.ID, err
 	}
 
@@ -174,7 +176,7 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 		"values": string(body),
 		"etag":   entry.Value.ETag,
 	}
-	_, err = r.Client.HSet(key, properties).Result()
+	_, err = r.Client.HSet(r.Ctx, key, properties).Result()
 	return entry.Value.ID, err
 }
 
@@ -205,13 +207,13 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 
 	for {
 		var err error
-		keys, cursor, err = r.Client.Scan(cursor, filter, entryCountPerList).Result()
+		keys, cursor, err = r.Client.Scan(r.Ctx, cursor, filter, entryCountPerList).Result()
 		if err != nil {
 			rLog.Errorf("  P (Redis State): failed to get all the keys matching pattern %s: %+v", keyPrefix, err)
 		}
 
 		for _, key := range keys {
-			result, err := r.Client.HGetAll(key).Result()
+			result, err := r.Client.HGetAll(r.Ctx, key).Result()
 			if err != nil || len(result) == 0 {
 				rLog.Errorf("  P (Redis State): failed to get entry for key %s: %+v", key, err)
 				continue
@@ -263,7 +265,7 @@ func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRe
 	rLog.Debugf("  P (Redis State): delete state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
 
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
-	_, err = r.Client.Del(HKey).Result()
+	_, err = r.Client.Del(r.Ctx, HKey).Result()
 	return nil
 }
 
@@ -285,7 +287,7 @@ func (r *RedisStateProvider) Get(ctx context.Context, request states.GetRequest)
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
 
 	var data map[string]string
-	data, err = r.Client.HGetAll(HKey).Result()
+	data, err = r.Client.HGetAll(r.Ctx, HKey).Result()
 	if err != nil {
 		rLog.Errorf("  P (Redis State): failed to get state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
 		return states.StateEntry{}, err

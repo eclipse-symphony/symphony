@@ -79,7 +79,7 @@ type (
 		GetCatalogsWithFilter(ctx context.Context, namespace string, filterType string, filterValue string, user string, password string) ([]model.CatalogState, error)
 		UpdateSite(ctx context.Context, site string, payload []byte, user string, password string) error
 		GetABatchForSite(ctx context.Context, site string, user string, password string) (model.SyncPackage, error)
-		SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error
+		SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error
 		SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error
 		ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error
 		CreateSolutionContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
@@ -708,7 +708,7 @@ func (a *apiClient) GetABatchForSite(ctx context.Context, site string, user stri
 	return ret, nil
 }
 
-func (a *apiClient) SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error {
+func (a *apiClient) SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 
 	if err != nil {
@@ -772,6 +772,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	var bodyBytes []byte
@@ -781,8 +782,8 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
+		if resp.StatusCode == 404 {
+			return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 		}
 		object := &SummarySpecError{
 			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),

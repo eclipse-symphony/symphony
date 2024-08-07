@@ -140,6 +140,27 @@ func TestBasic_ActivationStatus(t *testing.T) {
 		status := state.Status.Status
 		fmt.Printf("Current activation status: %s\n", status)
 		if status == v1alpha2.Done {
+			require.Equal(t, 3, len(state.Status.StageHistory))
+			require.Equal(t, "wait", state.Status.StageHistory[0].Stage)
+			require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
+			require.Equal(t, []interface{}{"sitecatalog:v1", "siteapp:v1", "sitek8starget:v1", "siteinstance:v1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
+			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
+			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -316,6 +337,10 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	fmt.Printf("The solution is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "solution.symphony",
 		Version:  "v1",
@@ -357,6 +382,11 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	result := getLabels(*resource)
 	fmt.Printf("The catalog is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
+
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "federation.symphony",
 		Version:  "v1",
@@ -446,7 +476,28 @@ func getLabels(resource unstructured.Unstructured) string {
 				return "wronglabel"
 			}
 		} else {
-			return "wronglabel"
+			return "nolabel"
+		}
+	} else {
+		return "nolabel"
+	}
+}
+
+// Helper for finding the annotations
+func getAnnotations(resource unstructured.Unstructured) string {
+	annos := resource.GetAnnotations()
+	name := resource.GetName()
+	if annos != nil && name != "" {
+		azureName, ok := annos["management.azure.com/azureName"]
+		if ok {
+			parts := strings.Split(name, "-v-")
+			if azureName == parts[1] {
+				return "localtest"
+			} else {
+				return "wrongAnnotationName"
+			}
+		} else {
+			return "wrongAnnotationName"
 		}
 	} else {
 		return "nolabel"

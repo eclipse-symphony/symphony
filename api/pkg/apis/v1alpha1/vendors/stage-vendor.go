@@ -95,10 +95,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		activation, err := s.ActivationsManager.GetState(context.TODO(), actData.Activation, actData.Namespace)
 		if err != nil {
 			log.Error("V (Stage): unable to find activation: %+v", err)
-			err = s.reportActivationStatusWithBadRequest(actData.Activation, actData.Namespace, err)
-			// If report status succeeded, return an empty err so the subscribe function will not be retried
-			// The actual error will be stored in Activation cr
-			return err
+			return nil
 		}
 
 		evt, err := s.StageManager.HandleActivationEvent(context.TODO(), actData, *campaign.Spec, activation)
@@ -118,7 +115,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	})
 	s.Vendor.Context.Subscribe("trigger", func(topic string, event v1alpha2.Event) error {
 		log.Info("V (Stage): handling trigger event")
-		status := model.ActivationStatus{
+		status := model.StageStatus{
 			Stage:         "",
 			NextStage:     "",
 			Outputs:       map[string]interface{}{},
@@ -139,7 +136,11 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 		status.Outputs["__namespace"] = triggerData.Namespace
-
+		_, err = s.ActivationsManager.GetState(context.TODO(), triggerData.Activation, triggerData.Namespace)
+		if err != nil {
+			log.Error("V (Stage): unable to find activation: %+v", err)
+			return nil
+		}
 		campaignName := api_utils.ReplaceSeperator(triggerData.Campaign)
 		campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, triggerData.Namespace)
 		if err != nil {
@@ -150,7 +151,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return err
 		}
 		status.Stage = triggerData.Stage
-		status.ActivationGeneration = triggerData.ActivationGeneration
 		status.ErrorMessage = ""
 		status.Status = v1alpha2.Running
 		status.StatusMessage = v1alpha2.Running.String()
@@ -160,7 +160,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				Body: status,
 			})
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
+			err = s.ActivationsManager.ReportStageStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report accepted status: %v (%v)", status.ErrorMessage, err)
 				return err
@@ -176,12 +176,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			})
 
 		} else {
-			err = s.ActivationsManager.ReportStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
+			err = s.ActivationsManager.ReportStageStatus(context.TODO(), triggerData.Activation, triggerData.Namespace, status)
 			if err != nil {
 				sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
 				return err
 			}
-			if activation != nil && status.Status != v1alpha2.Done && status.Status != v1alpha2.Paused {
+			if activation != nil && status.NextStage != "" && status.Status != v1alpha2.Paused {
 				s.Vendor.Context.Publish("trigger", v1alpha2.Event{
 					Body: *activation,
 				})
@@ -193,12 +193,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	s.Vendor.Context.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
 		sLog.Debugf("V (Stage): handling job report event: %v", event)
 		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
+		var status model.StageStatus
 		json.Unmarshal(jData, &status)
 		campaign, ok := status.Outputs["__campaign"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get campaign name from job report")
-			return fmt.Errorf("job-report: campaign is not valid")
+			return v1alpha2.NewCOAError(nil, "job-report: campaign is not valid", v1alpha2.BadRequest)
 		}
 		namespace, ok := status.Outputs["__namespace"].(string)
 		if !ok {
@@ -208,8 +208,15 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		activation, ok := status.Outputs["__activation"].(string)
 		if !ok {
 			sLog.Errorf("V (Stage): failed to get activation name from job report")
-			return fmt.Errorf("job-report: activation is not valid")
+			return v1alpha2.NewCOAError(nil, "job-report: activation is not valid", v1alpha2.BadRequest)
 		}
+
+		err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
+		if err != nil {
+			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
+			return err
+		}
+
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
 			campaignName := api_utils.ReplaceSeperator(campaign)
 			campaign, err := s.CampaignsManager.GetState(context.TODO(), campaignName, namespace)
@@ -234,12 +241,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 		}
 
-		//TODO: later site overrides reports from earlier sites
-		err = s.ActivationsManager.ReportStatus(context.TODO(), activation, namespace, status)
-		if err != nil {
-			sLog.Errorf("V (Stage): failed to report status: %v (%v)", status.ErrorMessage, err)
-			return err
-		}
 		return nil
 	})
 	s.Vendor.Context.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
@@ -310,16 +311,16 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 }
 
 func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, namespace string, err error) error {
-	status := model.ActivationStatus{
+	status := model.StageStatus{
 		Stage:         "",
 		NextStage:     "",
 		Outputs:       map[string]interface{}{},
 		Status:        v1alpha2.BadRequest,
 		StatusMessage: v1alpha2.BadRequest.String(),
 		ErrorMessage:  err.Error(),
-		IsActive:      true,
+		IsActive:      false,
 	}
-	err = s.ActivationsManager.ReportStatus(context.TODO(), activation, namespace, status)
+	err = s.ActivationsManager.ReportStageStatus(context.TODO(), activation, namespace, status)
 	if err != nil {
 		sLog.Errorf("V (Stage): failed to report error status on activtion %s/%s: %v (%v)", namespace, activation, status.ErrorMessage, err)
 	}

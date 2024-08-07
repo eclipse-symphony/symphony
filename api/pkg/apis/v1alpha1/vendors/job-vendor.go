@@ -66,7 +66,8 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		if err != nil && v1alpha2.IsDelayed(err) {
 			go e.Vendor.Context.Publish(topic, event)
 		}
-		return err
+		// job reconciler already has a retry mechanism, return nil to avoid retrying
+		return nil
 	})
 	e.Vendor.Context.Subscribe("heartbeat", func(topic string, event v1alpha2.Event) error {
 		return e.JobsManager.HandleHeartBeatEvent(context.Background(), event)

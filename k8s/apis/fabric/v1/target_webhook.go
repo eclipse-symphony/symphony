@@ -29,20 +29,19 @@ import (
 
 // log is for logging in this package.
 var targetlog = logf.Log.WithName("target-resource")
-var myTargetClient client.Client
+var myTargetClient client.Reader
 var targetValidationPolicies []configv1.ValidationPolicy
 var targetWebhookValidationMetrics *metrics.Metrics
+var projectConfig *configv1.ProjectConfig
 
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myTargetClient = mgr.GetClient()
-
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, "spec.displayName", func(rawObj client.Object) []string {
-		target := rawObj.(*Target)
-		return []string{target.Spec.DisplayName}
-	})
-
-	dict, _ := configutils.GetValidationPoilicies()
-	if v, ok := dict["target"]; ok {
+	myTargetClient = mgr.GetAPIReader()
+	myConfig, err := configutils.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+	projectConfig = myConfig
+	if v, ok := projectConfig.ValidationPolicies["target"]; ok {
 		targetValidationPolicies = v
 	}
 
@@ -73,7 +72,9 @@ func (r *Target) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-
+	if projectConfig.UniqueDisplayNameForSolution {
+		r.Labels["displayName"] = r.Spec.DisplayName
+	}
 	if r.Spec.Scope == "" {
 		r.Spec.Scope = "default"
 	}
@@ -168,30 +169,34 @@ func (r *Target) validateCreateTarget() error {
 }
 
 func (r *Target) validateUniqueNameOnCreate() *field.Error {
-	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		targetlog.Info("validate unique display name", "name", r.Name)
+		var targets TargetList
+		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if len(targets.Items) != 0 {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		if len(targets.Items) != 0 {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		}
 	}
-
 	return nil
 }
 
 func (r *Target) validateUniqueNameOnUpdate() *field.Error {
-	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		targetlog.Info("validate unique display name", "name", r.Name)
+		var targets TargetList
+		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		}
 	}
-
 	return nil
 }
 

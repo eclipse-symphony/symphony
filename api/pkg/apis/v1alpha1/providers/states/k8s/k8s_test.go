@@ -276,7 +276,11 @@ func TestActivationUpsertWithState(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	activationStatus := model.ActivationStatus{
-		Stage: "s2",
+		StageHistory: []model.StageStatus{
+			{
+				Stage: "s2",
+			},
+		},
 	}
 	j, _ := json.Marshal(activationStatus)
 	var dict map[string]interface{}
@@ -324,7 +328,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 	j, _ = json.Marshal(entry.Body.(map[string]interface{})["status"])
 	var rStatus model.ActivationStatus
 	json.Unmarshal(j, &rStatus)
-	assert.Equal(t, "s2", rStatus.Stage)
+	assert.Equal(t, "s2", rStatus.StageHistory[0].Stage)
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "a1",

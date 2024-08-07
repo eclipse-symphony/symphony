@@ -26,9 +26,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.nextStage
-      name: Next Stage
-      type: string
     - jsonPath: .status.statusMessage
       name: Status
       type: string
@@ -69,24 +66,33 @@ spec:
                 type: string
               errorMessage:
                 type: string
-              inputs:
-                x-kubernetes-preserve-unknown-fields: true
-              isActive:
-                type: boolean
-              nextStage:
-                type: string
-              outputs:
-                x-kubernetes-preserve-unknown-fields: true
-              stage:
-                type: string
+              stagehistory:
+                items:
+                  properties:
+                    errorMessage:
+                      type: string
+                    inputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    isActive:
+                      type: boolean
+                    nextStage:
+                      type: string
+                    outputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    stage:
+                      type: string
+                    status:
+                      type: integer
+                    statusMessage:
+                      type: string
+                  type: object
+                type: array
               status:
                 type: integer
               statusMessage:
                 type: string
               updateTime:
                 type: string
-            required:
-            - stage
             type: object
         type: object
     served: true
@@ -1237,7 +1243,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolutionContainer is the Schema for the SolutionContainer API
+        description: SolutionContainer is the Schema for the SolutionContainers API
         properties:
           apiVersion:
             description: |-
@@ -2269,6 +2275,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
+    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
     validationPolicies:
       model:
       - selectorType: properties
