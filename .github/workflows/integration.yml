@@ -129,7 +129,7 @@ jobs:
         
     - name: Run integration tests 07
       run: |
-        cd test/integration/scenarios/07.helloWorld/ && mage test
+        cd test/integration/scenarios/07.maestroTest/ && mage test
 
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v2
