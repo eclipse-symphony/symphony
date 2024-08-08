@@ -95,7 +95,7 @@ func (hook *ContextHook) Fire(entry *logrus.Entry) error {
 		if hook.ActivityLogContextDecorator != nil {
 			hook.ActivityLogContextDecorator.Decorate(entry, hook.Folding)
 			if EmitTimeFieldInUserLogs() {
-				entry.Data["time"] = entry.Time
+				entry.Data["time"] = entry.Time.UTC().Format("2006-01-02T15:04:05.000Z")
 			}
 		}
 		if hook.OtelLogrusHookEnabled {
