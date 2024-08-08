@@ -9,7 +9,6 @@ data:
 {{- if .Values.redis.persistentVolume.enabled }}
     appendonly yes
     appendfsync always
-    dir data
-    appenddirname appendonlydir
+    dir /data
 {{- end }}
   
