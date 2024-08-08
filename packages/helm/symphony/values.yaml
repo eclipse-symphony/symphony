@@ -17,6 +17,8 @@ observability:
   tracing:
     exporter:
       zipkin: true
+  log:
+    emitTimeFieldInUserLogs: 
   # otelCollector are used to collect open telemetry events (logs/metrics) locally. 
   # You need to supply otelCollector GRPC endpoints as otlpLogsEndpointGrpc and otlpMetricsEndpointGrpc.
   # e.g. otlpLogsEndpointGrpc: "symphony-otel-collector-service.REPLACE_NAMESPACE_HERE.svc:4317", 
