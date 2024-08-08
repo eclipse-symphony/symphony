@@ -207,3 +207,8 @@ Symphony full url Endpoint
 {{- printf "no" }}
 {{- end }}
 {{- end }}
+
+{{/* Symphony Emit Time Field in User Logs */}}
+{{- define "symphony.emitTimeFieldInUserLogs" -}}
+{{- default "false" .Values.observability.log.emitTimeFieldInUserLogs | quote }}
+{{- end }}
