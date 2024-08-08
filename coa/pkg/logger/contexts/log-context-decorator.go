@@ -31,7 +31,6 @@ func (d *ActivityLogContextDecorator) Decorate(entry *logrus.Entry, folding bool
 				entry.Data[string(OTEL_Activity_ResourceCloudId)] = strings.ToUpper(ctx.GetResourceCloudId())
 				entry.Data[string(OTEL_Activity_OperationName)] = ctx.GetOperationName()
 				entry.Data[string(OTEL_Activity_Location)] = ctx.GetCloudLocation()
-				entry.Data[string(OTEL_Activity_Category)] = ctx.GetCategory()
 				entry.Data[string(OTEL_Activity_CorrelationId)] = ctx.GetCorrelationId()
 				entry.Data[string(OTEL_Activity_Props_CallerId)] = ctx.GetCallerId()
 				entry.Data[string(OTEL_Activity_Props_ResourceK8SId)] = ctx.GetResourceK8SId()

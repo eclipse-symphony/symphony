@@ -150,7 +150,7 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 	return nil
 }
 
-func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, activityCategory string, operationName string, ctx context.Context, log logr.Logger) context.Context {
+func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, operationName string, ctx context.Context, log logr.Logger) context.Context {
 	correlationId := annotations[constants.AzureCorrelationIdKey]
 	resourceId := annotations[constants.AzureResourceIdKey]
 	location := annotations[constants.AzureLocationKey]
@@ -173,6 +173,6 @@ func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annot
 		}
 	}
 	retCtx := coacontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
-	retCtx = coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(resourceId, location, operationName, activityCategory, correlationId, callerId, resourceK8SId), retCtx)
+	retCtx = coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(resourceId, location, operationName, correlationId, callerId, resourceK8SId), retCtx)
 	return retCtx
 }

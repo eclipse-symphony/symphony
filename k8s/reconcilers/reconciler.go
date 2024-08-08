@@ -18,8 +18,8 @@ import (
 
 type (
 	Reconciler interface {
-		AttemptUpdate(ctx context.Context, object Reconcilable, logger logr.Logger, operationStartTimeKey string, activityCategory string, operationName string) (metrics.OperationStatus, reconcile.Result, error)
-		AttemptRemove(ctx context.Context, object Reconcilable, logger logr.Logger, operationStartTimeKey string, activityCategory string, operationName string) (metrics.OperationStatus, reconcile.Result, error)
+		AttemptUpdate(ctx context.Context, object Reconcilable, logger logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error)
+		AttemptRemove(ctx context.Context, object Reconcilable, logger logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error)
 	}
 	Reconcilable interface {
 		client.Object

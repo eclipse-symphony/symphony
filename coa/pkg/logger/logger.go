@@ -24,18 +24,23 @@ const (
 	// LogTypeUserDiagnostics is User Diagnostic log type
 	LogTypeUserDiagnostics = "userDiagnostics"
 
-	// Field names that defines Dapr log schema
+	LogCategory_Audit       = "Audit"
+	LogCategory_Operational = "Operational"
+
+	// Field names that defines Coa log schema
 	logFieldTimeStamp = "time"
 	logFieldLevel     = "level"
 	logFieldType      = "type"
 	logFieldScope     = "scope"
 	logFieldMessage   = "msg"
 	logFieldInstance  = "instance"
-	logFieldDaprVer   = "ver"
+	logFieldCoaVer    = "ver"
 	logFieldAppID     = "app_id"
+
+	logFieldCategory = "category"
 )
 
-// LogLevel is Dapr Logger Level type
+// LogLevel is Coa Logger Level type
 type LogLevel string
 
 const (
@@ -54,7 +59,7 @@ const (
 	UndefinedLevel LogLevel = "undefined"
 )
 
-// globalLoggers is the collection of Dapr Logger that is shared globally.
+// globalLoggers is the collection of Coa Logger that is shared globally.
 // TODO: User will disable or enable logger on demand.
 var globalLoggers = map[string]Logger{}
 var globalLoggersLock = sync.RWMutex{}
@@ -133,7 +138,7 @@ func toLogLevel(level string) LogLevel {
 		return FatalLevel
 	}
 
-	// unsupported log level by Dapr
+	// unsupported log level by Coa
 	return UndefinedLevel
 }
 
@@ -165,12 +170,12 @@ func getLoggers() map[string]Logger {
 
 // newUserAuditsLogger creates new Logger instance for user audit log.
 func newUserAuditsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	return newUserLogger(name, LogTypeUserAudits, LogCategory_Audit, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 // newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
 func newUserDiagnosticsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	return newUserLogger(name, LogTypeUserDiagnostics, LogCategory_Operational, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 func GetGlobalUserAuditsLogger() Logger {
