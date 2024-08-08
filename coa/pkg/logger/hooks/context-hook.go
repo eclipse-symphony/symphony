@@ -2,13 +2,19 @@ package hooks
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/bridges/otellogrus"
 	"go.opentelemetry.io/otel/log/global"
+)
+
+var (
+	emitTimeFieldInUserLogs = os.Getenv("EMIT_TIME_FIELD_IN_USER_LOGS")
 )
 
 type ContextHook struct {
@@ -67,6 +73,10 @@ func (hook *ContextHook) GetOtelLogrusHook() *otellogrus.Hook {
 	return hook.OtelLogrusHook
 }
 
+func EmitTimeFieldInUserLogs() bool {
+	return strings.ToLower(emitTimeFieldInUserLogs) == "true"
+}
+
 func (hook *ContextHook) Fire(entry *logrus.Entry) error {
 	// preventing panic in Fire
 	defer func() {
@@ -84,6 +94,9 @@ func (hook *ContextHook) Fire(entry *logrus.Entry) error {
 		}
 		if hook.ActivityLogContextDecorator != nil {
 			hook.ActivityLogContextDecorator.Decorate(entry, hook.Folding)
+			if EmitTimeFieldInUserLogs() {
+				entry.Data["time"] = entry.Time
+			}
 		}
 		if hook.OtelLogrusHookEnabled {
 			hook.InitializeOtelLogrusHook()
