@@ -94,7 +94,7 @@ func TestCOAResponsePrint(t *testing.T) {
 }
 
 func TestCOARequests_MarshalAndUnmarshalJSON(t *testing.T) {
-	actCtx := contexts.NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
 	ctx := contexts.PatchActivityLogContextToCurrentContext(actCtx, diagCtx)
 	ctx = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, ctx)

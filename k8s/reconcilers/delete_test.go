@@ -84,7 +84,7 @@ var _ = Describe("Attempt Delete", func() {
 
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
-		_, reconcileResult, reconcileError = reconciler.AttemptRemove(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityCategory_Activity, constants.ActivityOperation_Delete)
+		_, reconcileResult, reconcileError = reconciler.AttemptRemove(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
 	})
 
 	When("the delete timeout has elapsed elapsed", func() {

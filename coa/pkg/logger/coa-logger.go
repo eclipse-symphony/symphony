@@ -73,7 +73,7 @@ func (l *coaLogger) EnableJSONOutput(enabled bool) {
 		logFieldScope:    l.sharedFields[logFieldScope],
 		logFieldType:     LogTypeLog,
 		logFieldInstance: hostname,
-		logFieldDaprVer:  CoaVersion,
+		logFieldCoaVer:   CoaVersion,
 	}
 	l.sharedFieldsLock.Unlock()
 

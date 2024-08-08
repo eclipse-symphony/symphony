@@ -16,9 +16,9 @@ const (
 	undefinedAppID     = ""
 )
 
-// Options defines the sets of options for Dapr logging
+// Options defines the sets of options for Coa logging
 type Options struct {
-	// appID is the unique id of Dapr Application
+	// appID is the unique id of Coa Application
 	appID string
 
 	// JSONFormatEnabled is the flag to enable JSON formatted log
