@@ -13,7 +13,10 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 	"time"
+
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -88,6 +91,12 @@ var _ webhook.Validator = &Instance{}
 func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 	instancelog.Info("validate create", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), instancelog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created on namespace %s", r.Name, r.Namespace)
+
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateInstance()
 	if validationError != nil {
@@ -113,6 +122,12 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	instancelog.Info("validate update", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), instancelog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	validateUpdateTime := time.Now()
 	validationError := r.validateUpdateInstance()
 	if validationError != nil {
@@ -137,6 +152,12 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 	instancelog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, constants.ActivityCategory_Activity, operationName, context.TODO(), instancelog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil

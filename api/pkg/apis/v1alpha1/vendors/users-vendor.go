@@ -84,12 +84,12 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		"method": "onAuth",
 	})
 	defer span.End()
-	log.Infof("V (Users): authenticate user %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "V (Users): authenticate user %s", request.Method)
 
 	var authRequest AuthRequest
 	err := json.Unmarshal(request.Body, &authRequest)
 	if err != nil {
-		log.Errorf("V (Targets): onAuth failed to unmarshall request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, "V (Users): onAuth failed to unmarshall request body, error: %+v", err)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.Unauthorized,
 			Body:  []byte(err.Error()),
@@ -121,7 +121,7 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, _ := token.SignedString(mySigningKey)
 
-	log.Infof("V (Targets): onAuth succeeded, traceId: %s", span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "V (Users): onAuth succeeded, user: %s", authRequest.UserName)
 	rolesJSON, _ := json.Marshal(roles)
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,

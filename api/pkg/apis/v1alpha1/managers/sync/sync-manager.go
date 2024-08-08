@@ -46,6 +46,7 @@ func (s *SyncManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}
@@ -67,6 +68,7 @@ func (s *SyncManager) Poll() []error {
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
+				Context: ctx,
 			})
 		}
 	}
@@ -76,7 +78,8 @@ func (s *SyncManager) Poll() []error {
 				Metadata: map[string]string{
 					"origin": batch.Origin,
 				},
-				Body: job,
+				Body:    job,
+				Context: ctx,
 			})
 		}
 	}

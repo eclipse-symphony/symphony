@@ -65,16 +65,17 @@ func (s *ProxyUpdateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Info("  P (Proxy Target): Init()")
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfoCtx(ctx, "  P (Proxy Target): Init()")
 
 	updateConfig, err := toProxyUpdateProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): expected ProxyUpdateProviderConfig - %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): expected ProxyUpdateProviderConfig - %+v", err)
 		err = errors.New("expected ProxyUpdateProviderConfig")
 		return err
 	}
@@ -123,19 +124,20 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (Proxy Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (Proxy Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
 	payload, err := i.callRestAPI("instances", "GET", data)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): failed to get instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to get instances: %+v", err)
 		return nil, err
 	}
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(payload, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): failed to unmarshall get response: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to unmarshall get response: %+v", err)
 		return nil, err
 	}
 
@@ -148,13 +150,14 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (Proxy Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (Proxy Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Target): failed to validate components: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to validate components: %v", err)
 		return nil, err
 	}
 	if isDryRun {
@@ -169,7 +172,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		payload, err := i.callRestAPI("instances", "POST", data)
 
 		if err != nil {
-			sLog.Errorf("  P (Proxy Target): failed to post instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to post instances: %+v", err)
 			return ret, err
 		}
 
@@ -191,7 +194,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		data, _ := json.Marshal(deployment)
 		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {
-			sLog.Errorf("  P (Proxy Target): failed to delete instances: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to delete instances: %+v", err)
 			return ret, err
 		}
 	}

@@ -76,7 +76,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		"method": "onSolutions",
 	})
 	defer span.End()
-	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	uLog.InfofCtx(pCtx, "V (Solutions): onSolutions, method: %s", request.Method)
 
 	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
@@ -100,7 +100,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -146,7 +146,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		} else {
 			err := json.Unmarshal(request.Body, &solution)
 			if err != nil {
-				uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
@@ -158,7 +158,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		err := c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -185,6 +185,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			Metadata: map[string]string{
 				"namespace": namespace,
 			},
+			Context: ctx,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
@@ -193,7 +194,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -203,7 +204,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
-	uLog.Infof("V (Solutions): onSolutions failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	uLog.ErrorCtx(pCtx, "V (Solutions): onSolutions failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

@@ -18,12 +18,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
+	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ActivationReconciler reconciles a Campaign object
+
 type ActivationReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
@@ -60,6 +63,9 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
 		if activation.Status.UpdateTime == "" && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
+			resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
+			operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
+			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, activation.Annotations, constants.ActivityCategory_Activity, operationName, ctx, log)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,

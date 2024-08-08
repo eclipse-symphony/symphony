@@ -17,6 +17,18 @@ observability:
   tracing:
     exporter:
       zipkin: true
+  # otelCollector are used to collect open telemetry events (logs/metrics) locally. 
+  # You need to supply otelCollector GRPC endpoints as otlpLogsEndpointGrpc and otlpMetricsEndpointGrpc.
+  # e.g. otlpLogsEndpointGrpc: "symphony-otel-collector-service.REPLACE_NAMESPACE_HERE.svc:4317", 
+  #      otlpMetricsEndpointGrpc: "symphony-otel-collector-service.REPLACE_NAMESPACE_HERE.svc:4317"
+  otelCollector:
+    enabled: false
+    image: otel/opentelemetry-collector:0.105.0
+  # otelForwarder will convert console logs of Symphony-api and Symphony-controller to OTLP format 
+  # and send to otlpLogsEndpointGrpc endpoints.
+  otelForwarder:
+    enabled: false
+    image: otel/opentelemetry-collector-contrib:0.105.0
 zipkin:
   fullnameOverride: symphony-zipkin
 cert-manager:
@@ -53,6 +65,12 @@ symphony:
   extension:
     httpsport: 8081
     httpport: 8080
+# Turn on/off cleanup on finished activations
+ActivationCleanup:
+  enabled: true
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"
 Azure:
   proxySettings:
     isProxyEnabled: false
@@ -60,9 +78,11 @@ Azure:
     httpsProxy: ""
     noProxy: ""
     proxyCert: ""
-# Turn on/off cleanup on finished activations
-ActivationCleanup:
-  enabled: true
-  # Rentention duration for activations, default is 180days
-  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-  retentionDuration: "4320h"
+  Extension:
+    ResourceId: ""
+  Cluster:
+    Region: ""
+    ResourceId: ""
+otlpLogsEndpointGrpc: 
+otlpMetricsEndpointGrpc: 
+otlpInsecureGrpc: true

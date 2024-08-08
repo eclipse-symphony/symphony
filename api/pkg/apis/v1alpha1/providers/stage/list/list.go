@@ -95,8 +95,9 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Info("  P (List Processor): processing inputs")
+	log.InfoCtx(ctx, "  P (List Processor): processing inputs")
 
 	outputs := make(map[string]interface{})
 
@@ -121,7 +122,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		var instances []model.InstanceState
 		instances, err = i.ApiClient.GetInstances(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.Errorf("  P (List Processor): failed to get instances: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err
 		}
 		if namesOnly {
@@ -137,7 +138,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		var sites []model.SiteState
 		sites, err = i.ApiClient.GetSites(ctx, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.Errorf("  P (List Processor): failed to get sites: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get sites: %v", err)
 			return nil, false, err
 		}
 		filteredSites := make([]model.SiteState, 0)
@@ -159,7 +160,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		var catalogs []model.CatalogState
 		catalogs, err = i.ApiClient.GetCatalogs(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.Errorf("  P (List Processor): failed to get catalogs: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get catalogs: %v", err)
 			return nil, false, err
 		}
 		if namesOnly {
@@ -172,7 +173,7 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["items"] = catalogs
 		}
 	default:
-		log.Errorf("  P (List Processor): unsupported object type: %s", objectType)
+		log.ErrorfCtx(ctx, "  P (List Processor): unsupported object type: %s", objectType)
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
 		return nil, false, err
 	}

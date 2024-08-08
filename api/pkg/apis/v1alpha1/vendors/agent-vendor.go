@@ -82,7 +82,7 @@ func (c *AgentVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): onConfig %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	log.InfofCtx(pCtx, "V (Agent): onConfig %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -105,7 +105,7 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): onReference %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	log.InfofCtx(pCtx, "V (Agent): onReference %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -118,7 +118,7 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
 
-	log.Infof("V (Agent): onReference returns MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	log.ErrorCtx(pCtx, "V (Agent): onReference returns MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -129,11 +129,11 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 }
 
 func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
 		"method": "doGet",
 	})
 	defer span.End()
-	log.Infof("V (Agent): doGet with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "V (Agent): doGet with parameters %v", parameters)
 
 	var namespace = constants.DefaultScope
 	var kind = ""
@@ -202,14 +202,14 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 		data, err = c.ReferenceManager.Get(ref, id, namespace, group, kind, version, labelSelector, fieldSelector)
 	}
 	if err != nil {
-		log.Errorf("V (Agent): failed to get references, traceId: %s", span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, "V (Agent): failed to get references: %v", err)
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
 
-	log.Info("V (Agent): get references successfully")
+	log.InfoCtx(ctx, "V (Agent): get references successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
@@ -218,12 +218,12 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 }
 
 func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]string, data []byte) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
 		"method": "doApplyConfig",
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): doApplyConfig with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "V (Agent): doApplyConfig with parameters %v", parameters)
 
 	var config managers.ProviderConfig
 	err := json.Unmarshal(data, &config)
@@ -248,7 +248,7 @@ func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]s
 		}
 	}
 
-	log.Info("V (Agent): apply configs successfully")
+	log.InfoCtx(ctx, "V (Agent): apply configs successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        []byte("{}"),
@@ -257,12 +257,12 @@ func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]s
 }
 
 func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, data []byte) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
 		"method": "doPost",
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): doPost with parameters %v, traceId: %s", parameters, span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "V (Agent): doPost with parameters %v", parameters)
 
 	var namespace = constants.DefaultScope
 	var kind = ""
@@ -291,7 +291,7 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 	properties := make(map[string]string)
 	err := json.Unmarshal(data, &properties)
 	if err != nil {
-		log.Errorf("V (Agent): failed to unmarshall data, traceId: %s", span.SpanContext().TraceID().String())
+		log.ErrorCtx(ctx, "V (Agent): failed to unmarshall data")
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -299,14 +299,14 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 	}
 	err = c.ReferenceManager.Report(id, namespace, group, kind, version, properties, overwrite)
 	if err != nil {
-		log.Errorf("V (Agent): failed to report status, traceId: %s", span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, "V (Agent): failed to report status: +v", err)
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
 
-	log.Info("V (Agent): report status successfully")
+	log.InfoCtx(ctx, "V (Agent): report status successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,

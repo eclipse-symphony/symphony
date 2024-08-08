@@ -11,21 +11,34 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-const loggerName = "providers.target.http"
+const (
+	loggerName   = "providers.target.http"
+	providerName = "P (HTTP Target)"
+	httpProvider = "http"
+)
 
-var sLog = logger.NewLogger(loggerName)
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+)
 
 type HttpTargetProviderConfig struct {
 	Name string `json:"name"`
@@ -57,22 +70,32 @@ func (s *HttpTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (HTTP Target): Init()")
+	sLog.InfoCtx(ctx, "  P (HTTP Target): Init()")
 
 	updateConfig, err := toHttpTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
 
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
 func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetProviderConfig, error) {
 	ret := HttpTargetProviderConfig{}
@@ -84,13 +107,14 @@ func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetPro
 	return ret, err
 }
 func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (HTTP Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (HTTP Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 	return nil, nil
@@ -102,8 +126,9 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (HTTP Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (HTTP Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.ObjectMeta.Name,
@@ -111,10 +136,20 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		TargetId:   deployment.ActiveTarget,
 	}
 
+	functionName := utils.GetFunctionName()
+	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		sLog.Errorf("  P (HTTP Target): failed to validate components: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to validate components: %+v", err)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.UpdateOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
@@ -135,7 +170,14 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.BadConfig.String(),
+				)
 				return ret, err
 			}
 			if method == "" {
@@ -143,13 +185,21 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			jsonData := []byte(body)
 			var request *http.Request
+			utils.EmitUserAuditsLogs(ctx, fmt.Sprintf("  P (HTTP Target): Start to send request to %s", url))
 			request, err = http.NewRequest(method, url, bytes.NewBuffer(jsonData))
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.HttpNewRequestFailed.String(),
+				)
 				return ret, err
 			}
 			request.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -162,7 +212,14 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.HttpSendRequestFailed.String(),
+				)
 				return ret, err
 			}
 			if resp.StatusCode != http.StatusOK {
@@ -178,7 +235,14 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Message: message,
 				}
 				err = errors.New("HTTP request didn't respond 200 OK")
-				sLog.Errorf("  P (HTTP Target): %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.UpdateOperationType,
+					v1alpha2.HttpErrorResponse.String(),
+				)
 				return ret, err
 			}
 
@@ -188,6 +252,13 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 		}
 	}
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		httpProvider,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+	)
 	return ret, nil
 }
 func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

@@ -16,7 +16,9 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -616,12 +618,27 @@ func TestLocalApplyGet(t *testing.T) {
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
+
+	ctx := context.TODO()
+	correlationId := uuid.New().String()
+	resourceId := uuid.New().String()
+	ctx = contexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
+
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.OK
 		response.Metadata = make(map[string]string)
 		var request v1alpha2.COARequest
 		json.Unmarshal(msg.Payload(), &request)
+
+		assert.NotEqual(t, ctx, request.Context)
+		assert.NotNil(t, request.Context)
+		diagCtx, ok := request.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext)
+		assert.True(t, ok)
+		assert.NotNil(t, diagCtx)
+		assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
+		assert.Equal(t, resourceId, diagCtx.GetResourceId())
+
 		if request.Method == "GET" {
 			response.Metadata["call-context"] = "TargetProvider-Get"
 			ret := make([]model.ComponentSpec, 0)
@@ -641,13 +658,13 @@ func TestLocalApplyGet(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(ctx, model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
 	}, model.DeploymentStep{}, false)
 	assert.Nil(t, err)
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
+	arr, err := provider.Get(ctx, model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},

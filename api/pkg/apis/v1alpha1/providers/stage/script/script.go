@@ -18,7 +18,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -28,7 +31,17 @@ import (
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.script"
+	providerName = "P (Script Stage)"
+	script       = "script"
+)
+
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type ScriptStageProviderConfig struct {
 	Name          string `json:"name"`
@@ -82,13 +95,14 @@ func (s *ScriptStageProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("[Stage] Script Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Script Stage): Init()")
+	sLog.InfoCtx(ctx, "  P (Script Stage): Init()")
 
 	updateConfig, err := toScriptStageProviderConfig(config)
 	if err != nil {
@@ -103,7 +117,15 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 			return err
 		}
 	}
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.Errorf("  P (HTTP Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
+	return err
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
 	sPath, err := url.JoinPath(scriptFolder, script)
@@ -140,14 +162,17 @@ func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageP
 }
 
 func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Script Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Script Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Script Stage): start process request")
+	sLog.InfoCtx(ctx, "  P (Script Stage): start process request")
 
+	processTime := time.Now().UTC()
+	functionName := observ_utils.GetFunctionName()
 	id := uuid.New().String()
 	input := id + ".json"
 	output := id + "-output.json"
@@ -161,16 +186,24 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	defer os.Remove(abs)
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.Script))
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Stage): Start to run script %s", i.Config.Script)
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.Script))
 	}
 
 	var o []byte
 	o, err = i.runCommand(scriptAbs, abs)
-	sLog.Debugf("  P (Script Stage): get script output: %s", o)
+	sLog.DebugfCtx(ctx, "  P (Script Stage): get script output: %s", o)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Stage): failed to run get script: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to run get script: %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			script,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.ScriptExecutionFailed.String(),
+		)
 		return nil, false, err
 	}
 
@@ -180,7 +213,14 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	data, err = ioutil.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			script,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.ScriptResultParsingFailed.String(),
+		)
 		return nil, false, err
 	}
 
@@ -191,10 +231,24 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	ret := make(map[string]interface{})
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			script,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.ScriptResultParsingFailed.String(),
+		)
 		return nil, false, err
 	}
 
+	providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		script,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	return ret, false, nil
 }
 

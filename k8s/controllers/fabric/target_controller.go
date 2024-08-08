@@ -95,12 +95,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, log, targetOperationStartTimeKey)
+		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, log, targetOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, target, log, targetOperationStartTimeKey)
+		reconciliationType = metrics.DeleteOperationType
+		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, target, log, targetOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}

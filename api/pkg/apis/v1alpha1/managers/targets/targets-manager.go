@@ -50,6 +50,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -70,6 +71,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -109,6 +111,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: current.ObjectMeta.Name,
@@ -123,7 +126,6 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	var target states.StateEntry
 	target, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -131,7 +133,6 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	bytes, _ := json.Marshal(target.Body)
 	err = json.Unmarshal(bytes, &targetState)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -171,6 +172,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -218,6 +220,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,

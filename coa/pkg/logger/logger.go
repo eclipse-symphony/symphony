@@ -7,8 +7,11 @@
 package logger
 
 import (
+	"context"
 	"strings"
 	"sync"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/hooks"
 )
 
 const (
@@ -16,6 +19,10 @@ const (
 	LogTypeLog = "log"
 	// LogTypeRequest is Request log type
 	LogTypeRequest = "request"
+	// LogTypeUserAudits is User Audit log type
+	LogTypeUserAudits = "userAudits"
+	// LogTypeUserDiagnostics is User Diagnostic log type
+	LogTypeUserDiagnostics = "userDiagnostics"
 
 	// Field names that defines Dapr log schema
 	logFieldTimeStamp = "time"
@@ -51,6 +58,10 @@ const (
 // TODO: User will disable or enable logger on demand.
 var globalLoggers = map[string]Logger{}
 var globalLoggersLock = sync.RWMutex{}
+var globalUserAuditsLoggerOnce sync.Once
+var globalUserAuditsLogger Logger
+var globalUserDiagnosticsLoggerOnce sync.Once
+var globalUserDiagnosticsLogger Logger
 
 // Logger includes the logging api sets
 type Logger interface {
@@ -61,9 +72,29 @@ type Logger interface {
 	SetAppID(id string)
 	// SetOutputLevel sets log output level
 	SetOutputLevel(outputLevel LogLevel)
-
 	// WithLogType specify the log_type field in log. Default value is LogTypeLog
 	WithLogType(logType string) Logger
+
+	// Info logs a message at level Info.
+	InfoCtx(ctx context.Context, args ...interface{})
+	// Infof logs a message at level Info.
+	InfofCtx(ctx context.Context, format string, args ...interface{})
+	// Debug logs a message at level Debug.
+	DebugCtx(ctx context.Context, args ...interface{})
+	// Debugf logs a message at level Debug.
+	DebugfCtx(ctx context.Context, format string, args ...interface{})
+	// Warn logs a message at level Warn.
+	WarnCtx(ctx context.Context, args ...interface{})
+	// Warnf logs a message at level Warn.
+	WarnfCtx(ctx context.Context, format string, args ...interface{})
+	// Error logs a message at level Error.
+	ErrorCtx(ctx context.Context, args ...interface{})
+	// Errorf logs a message at level Error.
+	ErrorfCtx(ctx context.Context, format string, args ...interface{})
+	// Fatal logs a message at level Fatal then the process will exit with status set to 1.
+	FatalCtx(ctx context.Context, args ...interface{})
+	// Fatalf logs a message at level Fatal then the process will exit with status set to 1.
+	FatalfCtx(ctx context.Context, format string, args ...interface{})
 
 	// Info logs a message at level Info.
 	Info(args ...interface{})
@@ -113,7 +144,7 @@ func NewLogger(name string) Logger {
 
 	logger, ok := globalLoggers[name]
 	if !ok {
-		logger = newDaprLogger(name)
+		logger = newCoaLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true})
 		globalLoggers[name] = logger
 	}
 
@@ -130,4 +161,28 @@ func getLoggers() map[string]Logger {
 	}
 
 	return l
+}
+
+// newUserAuditsLogger creates new Logger instance for user audit log.
+func newUserAuditsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+}
+
+// newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
+func newUserDiagnosticsLogger(name string) Logger {
+	return newUserLogger(name, LogTypeUserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+}
+
+func GetGlobalUserAuditsLogger() Logger {
+	globalUserAuditsLoggerOnce.Do(func() {
+		globalUserAuditsLogger = newUserAuditsLogger("coa.runtime.user.audits")
+	})
+	return globalUserAuditsLogger
+}
+
+func GetGlobalUserDiagnosticsLogger() Logger {
+	globalUserDiagnosticsLoggerOnce.Do(func() {
+		globalUserDiagnosticsLogger = newUserDiagnosticsLogger("coa.runtime.user.diagnostics")
+	})
+	return globalUserDiagnosticsLogger
 }

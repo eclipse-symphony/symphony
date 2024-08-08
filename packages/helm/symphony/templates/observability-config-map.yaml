@@ -1,0 +1,44 @@
+apiVersion: "v1"
+kind: ConfigMap
+metadata:
+  name: {{ include "symphony.fullname" . }}-observability-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  metrics-config.json: |-
+    {
+      "serviceName": "symphony-k8s",
+      "pipelines": [
+        {{- if .Values.otlpMetricsEndpointGrpc }}
+        {
+          "exporter": {
+            "type": "metrics.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otlpMetricsEndpointGrpc $ }}",
+            "temporality": true
+          }
+        }
+        {{- end }}
+      ]
+    }
+  logs-config.json: |-
+    {
+      "serviceName": "symphony-k8s",
+      "pipelines": [
+        {{- if .Values.otlpLogsEndpointGrpc }}
+        {{- if .Values.observability.otelForwarder.enabled }}
+        {
+          "exporter": {
+            "type": "log.exporters.otlphttp",
+            "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-forwarder-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
+          }
+        }
+        {{- else }}
+        {
+          "exporter": {
+            "type": "log.exporters.otlphttp",
+            "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-collector-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
+          }
+        }
+        {{- end }}
+        {{- end }}
+      ]
+    }

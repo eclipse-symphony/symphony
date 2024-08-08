@@ -58,6 +58,7 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -104,6 +105,7 @@ func (m *CatalogsManager) ValidateState(ctx context.Context, state model.Catalog
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.Spec != nil && state.Spec.Metadata != nil {
 		if schemaName, ok := state.Spec.Metadata["schema"]; ok {
@@ -136,6 +138,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -183,6 +186,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			Action: v1alpha2.JobUpdate,
 			Body:   state,
 		},
+		Context: ctx,
 	})
 	return nil
 }
@@ -193,6 +197,7 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string, namespac
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	//TODO: publish DELETE event
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -214,6 +219,7 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -265,8 +271,9 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string, namespac
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debug(" M (Graph): GetChains")
+	log.DebugCtx(ctx, " M (Graph): GetChains")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -288,8 +295,9 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debug(" M (Graph): GetTrees")
+	log.DebugCtx(ctx, " M (Graph): GetTrees")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err

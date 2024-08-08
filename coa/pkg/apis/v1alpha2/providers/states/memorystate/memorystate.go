@@ -77,12 +77,13 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := entry.Metadata["namespace"]; ok {
@@ -90,7 +91,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 			namespace = nstring
 		}
 	}
-	sLog.Debugf("  P (Memory State): upsert states %s in namespace %s, traceId: %s", entry.Value.ID, namespace, span.SpanContext().TraceID().String())
+	sLog.DebugfCtx(ctx, "  P (Memory State): upsert states %s in namespace %s", entry.Value.ID, namespace)
 
 	if _, ok := s.Data[namespace]; !ok {
 		s.Data[namespace] = map[string]interface{}{}
@@ -108,27 +109,27 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	list, ok := s.Data[namespace].(map[string]interface{})
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.Errorf("  P (Memory State): failed to upsert %s states: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s states: %+v", entry.Value.ID, err)
 		return "", err
 	}
 	if entry.Options.UpdateStatusOnly {
 		existing, ok := list[entry.Value.ID]
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", entry.Value.ID), v1alpha2.NotFound)
-			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
 		existingEntry, ok := existing.(states.StateEntry)
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", entry.Value.ID), v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
 
 		mapRef, ok := existingEntry.Body.(map[string]interface{})
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid body", entry.Value.ID), v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
 		var mapType map[string]interface{}
@@ -141,7 +142,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 		statusMap, ok := mapType["status"].(map[string]interface{})
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid status", entry.Value.ID), v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to upsert %s state: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
 		for k, v := range statusMap {
@@ -158,11 +159,12 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 func (s *MemoryStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var entities []states.StateEntry
 	namespace := ""
@@ -171,7 +173,7 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 			namespace = nstring
 		}
 	}
-	sLog.Debugf("  P (Memory State): list states in namespace %s, traceId: %s", namespace, span.SpanContext().TraceID().String())
+	sLog.DebugfCtx(ctx, "  P (Memory State): list states in namespace %s", namespace)
 	for nKey, nList := range s.Data {
 		// If namespace is not specified, get entry for all namespaces
 		if namespace == "" || namespace == nKey {
@@ -192,19 +194,19 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 						copy, err = s.ReturnDeepCopy(vE)
 						if err != nil {
 							err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", vE.ID), v1alpha2.InternalError)
-							sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+							sLog.ErrorfCtx(ctx, "  P (Memory State): failed to list states: %+v", err)
 							return entities, "", err
 						}
 						entities = append(entities, copy)
 					} else {
 						err = v1alpha2.NewCOAError(nil, "found invalid state entry", v1alpha2.InternalError)
-						sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+						sLog.ErrorfCtx(ctx, "  P (Memory State): failed to list states: %+v", err)
 						return entities, "", err
 					}
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-				sLog.Errorf("  P (Memory State): failed to list states: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (Memory State): failed to list states: %+v", err)
 				return entities, "", err
 			}
 		}
@@ -216,11 +218,12 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := request.Metadata["namespace"]; ok {
@@ -228,22 +231,22 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 			namespace = nstring
 		}
 	}
-	sLog.Debugf("  P (Memory State): delete state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
+	sLog.DebugfCtx(ctx, "  P (Memory State): delete state %s in namespace %s", request.ID, namespace)
 
 	if _, ok := s.Data[namespace]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
-		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
 		return err
 	}
 	list, ok := s.Data[namespace].(map[string]interface{})
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
 		return err
 	}
 	if _, ok := list[request.ID]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
-		sLog.Errorf("  P (Memory State): failed to delete %s: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
 		return err
 	}
 	delete(list, request.ID)
@@ -254,11 +257,12 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	_, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Memory State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := "default"
 	if n, ok := request.Metadata["namespace"]; ok {
@@ -267,23 +271,23 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 		}
 	}
 
-	sLog.Debugf("  P (Memory State): get state %s in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
+	sLog.DebugfCtx(ctx, "  P (Memory State): get state %s in namespace %s", request.ID, namespace)
 
 	if _, ok := s.Data[namespace]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
-		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	list, ok := s.Data[namespace].(map[string]interface{})
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	entry, ok := list[request.ID]
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
-		sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	vE, ok := entry.(states.StateEntry)
@@ -292,13 +296,13 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 		copy, err = s.ReturnDeepCopy(vE)
 		if err != nil {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create a deep copy of entry '%s'", request.ID), v1alpha2.InternalError)
-			sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 			return states.StateEntry{}, err
 		}
 		return copy, nil
 	}
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", request.ID), v1alpha2.InternalError)
-	sLog.Errorf("  P (Memory State): failed to get %s state: %+v, traceId: %s", request.ID, err, span.SpanContext().TraceID().String())
+	sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 	return states.StateEntry{}, err
 }
 

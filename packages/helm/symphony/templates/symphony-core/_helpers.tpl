@@ -102,6 +102,33 @@ Zipkin Middleware
 {{- end }}
 
 {{/*
+Trace Middleware
+*/}}
+{{- define "symphony.traceMiddleware" -}}
+{{- if .Values.otlpTracesEndpointGrpc }}
+{{ tpl (.Files.Get "files/trace-middleware.json") .  }},
+{{- end }}
+{{- end }}
+
+{{/*
+Metric Middleware
+*/}}
+{{- define "symphony.metricMiddleware" -}}
+{{- if .Values.otlpMetricsEndpointGrpc }}
+{{ tpl (.Files.Get "files/metric-middleware.json") .  }},
+{{- end }}
+{{- end }}
+
+{{/*
+Log Middleware
+*/}}
+{{- define "symphony.logMiddleware" -}}
+{{- if .Values.otlpLogsEndpointGrpc }}
+{{ tpl (.Files.Get "files/log-middleware.json") .  }},
+{{- end }}
+{{- end }}
+
+{{/*
 Symphony API serving certs directory path
 */}}
 {{- define "symphony.apiServingCertsDir" -}}

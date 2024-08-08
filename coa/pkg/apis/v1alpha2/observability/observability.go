@@ -17,16 +17,20 @@ import (
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	exporters "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/exporters"
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	resource "go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
@@ -78,14 +82,35 @@ func New(symphonyProject string) Observability {
 	}
 }
 
+func populateSpanContextToDiagnosticLogContext(span trace.Span, parent context.Context) context.Context {
+	if span == nil {
+		return parent
+	}
+	traceId := ""
+	spanId := ""
+	if span.SpanContext().IsValid() && span.SpanContext().TraceID().IsValid() {
+		traceId = span.SpanContext().TraceID().String()
+	}
+	if span.SpanContext().IsValid() && span.SpanContext().SpanID().IsValid() {
+		spanId = span.SpanContext().SpanID().String()
+	}
+	return coacontexts.PopulateTraceAndSpanToDiagnosticLogContext(traceId, spanId, parent)
+}
+
 func StartSpan(name string, ctx context.Context, attributes *map[string]string) (context.Context, trace.Span) {
 	span := observ_utils.SpanFromContext(ctx)
 	if span != nil {
 		childCtx, childSpan := otel.Tracer(name).Start(trace.ContextWithSpan(ctx, *span), name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	} else {
 		childCtx, childSpan := otel.Tracer(name).Start(ctx, name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	}
@@ -102,10 +127,12 @@ func setSpanAttributes(span trace.Span, attributes *map[string]string) {
 func EndSpan(ctx context.Context) {
 	span := trace.SpanFromContext(ctx)
 	span.End()
+	coacontexts.ClearTraceAndSpanFromDiagnosticLogContext(&ctx)
 }
+
 func (o *Observability) Init(config ObservabilityConfig) error {
 	for _, p := range config.Pipelines {
-		err := o.createPipeline(p)
+		err := o.createPipeline(p, config.ServiceName)
 		if err != nil {
 			return err
 		}
@@ -114,22 +141,22 @@ func (o *Observability) Init(config ObservabilityConfig) error {
 	otel.SetTextMapPropagator(propagator)
 	return nil
 }
-func (o *Observability) createPipeline(config PipelineConfig) error {
-	err := o.createExporter(config.Exporter)
+func (o *Observability) createPipeline(config PipelineConfig, serviceName string) error {
+	err := o.createExporter(config.Exporter, serviceName)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (o *Observability) createExporter(config ExporterConfig) error {
+func (o *Observability) createExporter(config ExporterConfig, serviceName string) error {
 	var exporter sdktrace.SpanExporter
 	var err error
 	switch config.Type {
 	case v1alpha2.TracingExporterConsole:
 		if o.Buffer == nil {
-			exporter, err = exporters.NewConsoleExporter(nil)
+			exporter, err = exporters.NewTraceConsoleExporter(nil)
 		} else {
-			exporter, err = exporters.NewConsoleExporter(o.Buffer)
+			exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
 		}
 		if err != nil {
 			return err
@@ -150,7 +177,8 @@ func (o *Observability) createExporter(config ExporterConfig) error {
 		sdktrace.WithSpanProcessor(batcher),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("Symphony API"),
+			semconv.ServiceNameKey.String(serviceName),
+			populateMicrosoftResourceId(),
 		))))
 	return nil
 }
@@ -164,9 +192,9 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 		switch p.Exporter.Type {
 		case v1alpha2.TracingExporterConsole:
 			if o.Buffer == nil {
-				exporter, err = exporters.NewConsoleExporter(nil)
+				exporter, err = exporters.NewTraceConsoleExporter(nil)
 			} else {
-				exporter, err = exporters.NewConsoleExporter(o.Buffer)
+				exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
 			}
 			if err != nil {
 				return err
@@ -220,6 +248,7 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
 			),
 		),
 	}
@@ -246,6 +275,72 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 
 		traceProvider.Shutdown(context.Background())
 	}()
+
+	return nil
+}
+
+func (o *Observability) InitLog(config ObservabilityConfig) error {
+	var logExporters []sdklog.LoggerProviderOption
+	var exporter sdklog.Exporter
+	var err error
+	for _, p := range config.Pipelines {
+		switch p.Exporter.Type {
+		case v1alpha2.LogExporterConsole:
+			if o.Buffer == nil {
+				exporter, err = exporters.NewLogConsoleExporter(nil)
+			} else {
+				exporter, err = exporters.NewLogConsoleExporter(o.Buffer)
+			}
+			if err != nil {
+				return err
+			}
+
+		case v1alpha2.LogExporterOTLPhTTP:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				time.Second*defaultExporterTimeout,
+			)
+			defer cancel()
+
+			var otelloghttpOptions []otlploghttp.Option
+			otelloghttpOptions = append(
+				otelloghttpOptions,
+				otlploghttp.WithEndpointURL(p.Exporter.CollectorUrl),
+				otlploghttp.WithInsecure(),
+			)
+
+			exporter, err = otlploghttp.New(
+				ctx,
+				otelloghttpOptions...,
+			)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+			}
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("exporter type '%s' is not supported", p.Exporter.Type), v1alpha2.BadConfig)
+		}
+	}
+
+	batcher := sdklog.NewBatchProcessor(exporter)
+	logExporters = append(
+		logExporters,
+		sdklog.WithProcessor(batcher),
+	)
+	sdkLogOpts := []sdklog.LoggerProviderOption{
+		sdklog.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
+			),
+		),
+	}
+	sdkLogOpts = append(sdkLogOpts, logExporters...)
+	logProvider := sdklog.NewLoggerProvider(
+		sdkLogOpts...,
+	)
+
+	global.SetLoggerProvider(logProvider)
 
 	return nil
 }
@@ -302,6 +397,7 @@ func (o *Observability) InitMetric(config ObservabilityConfig) error {
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
 			),
 		),
 	}
@@ -324,22 +420,28 @@ func (o *Observability) Shutdown(ctx context.Context) error {
 	if tp, ok := otel.GetTracerProvider().(v1alpha2.Terminable); ok {
 		return tp.Shutdown(ctx)
 	}
+	if tp, ok := global.GetLoggerProvider().(v1alpha2.Terminable); ok {
+		return tp.Shutdown(ctx)
+	}
 	return nil
 }
 
-// Geneva only supports particular combinations of metric types and temporality.
+// Geneva only supports delta temporality.
 func genevaTemporality(ik sdkmetric.InstrumentKind) metricdata.Temporality {
 	switch ik {
-	case sdkmetric.InstrumentKindCounter,
-		sdkmetric.InstrumentKindObservableCounter,
-		sdkmetric.InstrumentKindHistogram:
-		return metricdata.DeltaTemporality
-
-	case sdkmetric.InstrumentKindUpDownCounter,
-		sdkmetric.InstrumentKindObservableUpDownCounter:
-		return metricdata.CumulativeTemporality
-
 	default:
-		return sdkmetric.DefaultTemporalitySelector(ik)
+		return metricdata.DeltaTemporality
+	}
+}
+
+func populateMicrosoftResourceId() attribute.KeyValue {
+	rid, ok := os.LookupEnv("EXTENSION_RESOURCEID")
+	if !ok {
+		return attribute.KeyValue{}
+	}
+
+	return attribute.KeyValue{
+		Key:   "microsoft.resourceId",
+		Value: attribute.StringValue(rid),
 	}
 }

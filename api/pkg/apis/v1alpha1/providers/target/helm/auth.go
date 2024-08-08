@@ -35,16 +35,16 @@ const (
 )
 
 // loginToACR logs in to an Azure Container Registry using the provided helm registry client.
-func loginToACR(host string) error {
+func loginToACR(ctx context.Context, host string) error {
 	client, err := registry.NewClient()
 	if err != nil {
-		sLog.Errorf("Failed to create registry client: %+v", err)
+		sLog.ErrorfCtx(ctx, "Failed to create registry client: %+v", err)
 		return err
 	}
 
 	cred, err := azidentity.NewManagedIdentityCredential(nil)
 	if err != nil {
-		sLog.Errorf("failed to obtain a credential: %v", err)
+		sLog.ErrorfCtx(ctx, "failed to obtain a credential: %v", err)
 		return err
 	}
 	token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
@@ -52,13 +52,13 @@ func loginToACR(host string) error {
 	})
 
 	if err != nil {
-		sLog.Errorf("failed to get token: %v", err)
+		sLog.ErrorfCtx(ctx, "failed to get token: %v", err)
 		return err
 	}
 
 	acrToken, err := exchangeToken(host, token.Token)
 	if err != nil {
-		sLog.Errorf("failed to exchange token: %v", err)
+		sLog.ErrorfCtx(ctx, "failed to exchange token: %v", err)
 		return err
 	}
 

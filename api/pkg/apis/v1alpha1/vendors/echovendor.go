@@ -75,7 +75,7 @@ func (o *EchoVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Echo Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Echo Vendor", request.Context, &map[string]string{
 		"method": "onHello",
 	})
 	defer span.End()
@@ -98,7 +98,8 @@ func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		return observ_utils.CloseSpanWithCOAResponse(span, resp)
 	case fasthttp.MethodPost:
 		c.Vendor.Context.Publish("trace", v1alpha2.Event{
-			Body: string(request.Body),
+			Body:    string(request.Body),
+			Context: ctx,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

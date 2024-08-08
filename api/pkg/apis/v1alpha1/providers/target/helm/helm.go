@@ -17,11 +17,12 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -48,6 +49,7 @@ import (
 var (
 	sLog                     = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 const (
@@ -137,7 +139,7 @@ func (s *HelmTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 
 // Init initializes the HelmTargetProvider
 func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		context.TODO(),
 		&map[string]string{
@@ -146,19 +148,20 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Info("  P (Helm Target): Init()")
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfoCtx(ctx, "  P (Helm Target): Init()")
 
 	i.MetaPopulator, err = metahelper.NewMetaPopulator(metahelper.WithDefaultPopulators())
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): failed to create meta populator: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create meta populator: %+v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create meta populator", providerName), v1alpha2.InitFailed)
-		sLog.Error(err)
+		sLog.ErrorCtx(ctx, err)
 		return err
 	}
 
 	err = initChartsDir()
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): failed to init charts dir: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to init charts dir: %+v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init charts dir", providerName), v1alpha2.InitFailed)
 		return err
 	}
@@ -167,7 +170,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	var helmConfig HelmTargetProviderConfig
 	helmConfig, err = toHelmTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): expected HelmTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): expected HelmTargetProviderConfig: %+v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to convert to HelmTargetProviderConfig", providerName), v1alpha2.InitFailed)
 		return err
 	}
@@ -180,12 +183,14 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 
-	if providerOperationMetrics == nil {
-		providerOperationMetrics, err = metrics.New()
-		if err != nil {
-			return err
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create metrics: %+v", err)
+			}
 		}
-	}
+	})
 
 	return err
 }
@@ -195,7 +200,7 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 	if namespace == "" {
 		namespace = constants.DefaultScope
 	}
-	sLog.Debugf("  P (Helm Target): creating action config for namespace %s", namespace)
+	sLog.DebugfCtx(ctx, "  P (Helm Target): creating action config for namespace %s", namespace)
 	var err error
 	if i.Config.InCluster {
 		settings := cli.New()
@@ -203,7 +208,7 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 		actionConfig = new(action.Configuration)
 		// TODO: $HELM_DRIVER	set the backend storage driver. Values are: configmap, secret, memory, sql. Do we need to handle this differently?
 		if err = actionConfig.Init(settings.RESTClientGetter(), namespace, helmDriver, sLog.Debugf); err != nil {
-			sLog.Errorf("  P (Helm Target): failed to init: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to init: %+v", err)
 			err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init action config", providerName), v1alpha2.CreateActionConfigFailed)
 			return nil, err
 		}
@@ -214,26 +219,26 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 				var kConfig *rest.Config
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (Helm Target): failed to get RestConfig: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get RestConfig: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get RestConfig", providerName), v1alpha2.CreateActionConfigFailed)
 					return nil, err
 				}
 
 				actionConfig, err = getActionConfig(context.Background(), namespace, kConfig)
 				if err != nil {
-					sLog.Errorf("  P (Helm Target): failed to get ActionConfig: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get ActionConfig: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get ActionConfig", providerName), v1alpha2.CreateActionConfigFailed)
 					return nil, err
 				}
 
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: config data is not supplied", providerName), v1alpha2.CreateActionConfigFailed)
-				sLog.Error(err)
+				sLog.ErrorCtx(ctx, err)
 				return nil, err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: unrecognized config type, accepted value is: bytes", providerName), v1alpha2.CreateActionConfigFailed)
-			sLog.Error(err)
+			sLog.ErrorCtx(ctx, err)
 			return nil, err
 		}
 	}
@@ -253,6 +258,7 @@ func getActionConfig(ctx context.Context, namespace string, config *rest.Config)
 	})
 
 	if err := actionConfig.Init(cliConfig, namespace, helmDriver, sLog.Debugf); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to init: %+v", err)
 		return nil, err
 	}
 
@@ -273,7 +279,7 @@ func toHelmTargetProviderConfig(config providers.IProviderConfig) (HelmTargetPro
 
 // Get returns the list of components for a given deployment
 func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
 		&map[string]string{
@@ -283,10 +289,11 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var err error
 	var actionConfig *action.Configuration
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Helm Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
-		sLog.Error(err)
+		sLog.ErrorCtx(ctx, err)
 		return nil, err
 	}
 	listClient := action.NewList(actionConfig)
@@ -294,7 +301,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var results []*release.Release
 	results, err = listClient.Run()
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): failed to create Helm list client: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create Helm list client: %+v", err)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to create Helm list client", providerName), v1alpha2.HelmActionFailed)
 		return nil, err
 	}
@@ -392,19 +399,20 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Helm Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name, span.SpanContext().TraceID().String())
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): failed to validate components: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to validate components: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
 			helm,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 
@@ -421,12 +429,12 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var actionConfig *action.Configuration
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
-		sLog.Error(err)
+		sLog.ErrorCtx(ctx, err)
 		providerOperationMetrics.ProviderOperationErrors(
 			helm,
 			functionName,
 			metrics.HelmActionConfigOperation,
-			metrics.CreateOperationType,
+			metrics.UpdateOperationType,
 			v1alpha2.CreateActionConfigFailed.String(),
 		)
 		return ret, err
@@ -438,7 +446,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			var helmProp *HelmProperty
 			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to get Helm properties: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get helm properties", providerName), v1alpha2.GetHelmPropertyFailed)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -456,9 +464,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 
 			var fileName string
-			fileName, err = i.pullChart(&helmProp.Chart)
+			fileName, err = i.pullChart(ctx, &helmProp.Chart)
 			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to pull chart: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart: %+v", err)
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to pull chart", providerName), v1alpha2.HelmActionFailed)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -479,7 +487,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			var chart *chart.Chart
 			chart, err = loader.Load(fileName)
 			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to load chart: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to load chart: %+v", err)
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to load chart", providerName), v1alpha2.HelmActionFailed)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -505,9 +513,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
 			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
 
+			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
-					sLog.Errorf("  P (Helm Target): failed to apply: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -541,9 +550,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			switch component.Component.Type {
 			case "helm.v3":
 				uninstallClient := configureUninstallClient(&deployment, actionConfig)
+				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(component.Component.Name)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
-					sLog.Errorf("  P (Helm Target): failed to uninstall Helm chart: %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to uninstall chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.DeleteFailed,
@@ -565,7 +575,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Message: "",
 				}
 			default:
-				sLog.Errorf("  P (Helm Target): Failed to apply as %v is an invalid helm version", component.Component.Type)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to apply as %v is an invalid helm version", component.Component.Type)
 			}
 		}
 
@@ -589,9 +599,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	return ret, nil
 }
 
-func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName string, err error) {
+func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProperty) (fileName string, err error) {
 	fileName = fmt.Sprintf("%s/%s.tgz", tempChartDir, uuid.New().String())
 
+	utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Starting pulling chart, repo - %s, name - %s, version - %s", chart.Repo, chart.Name, chart.Version)
 	if strings.HasPrefix(chart.Repo, "http") {
 		var chartPath string
 		if strings.HasSuffix(chart.Repo, ".tgz") {
@@ -599,14 +610,14 @@ func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName strin
 		} else {
 			chartPath, err = repo.FindChartInRepoURL(chart.Repo, chart.Name, chart.Version, "", "", "", getter.All(&cli.EnvSettings{}))
 			if err != nil {
-				sLog.Errorf("  P (Helm Target): failed to find helm chart in repo: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to find helm chart in repo: %+v", err)
 				return "", err
 			}
 		}
 
 		err = downloadFile(chartPath, fileName)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to download chart from repo: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to download chart from repo: %+v", err)
 			return "", err
 		}
 	} else {
@@ -617,47 +628,47 @@ func (i *HelmTargetProvider) pullChart(chart *HelmChartProperty) (fileName strin
 		// 2. without oci prefix, e.g. myregistry.azurecr.io/mychart:1.0.0 (backwards compatibility with existing symphony behavior)
 		// However, registry.Client doesn't like the reference to be prefixed with "oci://"
 		// so we trim it here if it exists
-		pullRes, err = pullOCIChart(chart.Repo, chart.Version)
+		pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): got error pulling chart from repo: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Helm Target): got error pulling chart from repo: %+v", err)
 			host, herr := getHostFromOCIRef(chart.Repo)
 			if herr != nil {
-				sLog.Errorf("  P (Helm Target): failed to get host from oci ref: %+v", herr)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref: %+v", herr)
 				return "", herr
 			}
 			if isUnauthorized(err) && isAzureContainerRegistry(host) {
-				sLog.Infof("  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
-				err = loginToACR(host)
+				sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
+				err = loginToACR(ctx, host)
 				if err != nil {
-					sLog.Errorf("  P (Helm Target): failed to login to ACR: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
 					return "", err
 				}
-				sLog.Infof("  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
+				sLog.InfofCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
 
-				pullRes, err = pullOCIChart(chart.Repo, chart.Version)
+				pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
 				if err != nil {
-					sLog.Errorf("  P (Helm Target): failed to pull chart from repo after login in: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo after login in: %+v", err)
 					return "", err
 				}
 			} else {
-				sLog.Errorf("  P (Helm Target): failed to pull chart from repo: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo: %+v", err)
 				return
 			}
 		}
 
 		err = os.WriteFile(fileName, pullRes.Chart.Data, 0644)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to save chart: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to save chart: %+v", err)
 			return
 		}
 	}
 	return fileName, nil
 }
 
-func pullOCIChart(repo, version string) (*registry.PullResult, error) {
+func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResult, error) {
 	client, err := registry.NewClient()
 	if err != nil {
-		sLog.Errorf("  P (Helm Target): failed to create registry client: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create registry client: %+v", err)
 		return nil, err
 	}
 

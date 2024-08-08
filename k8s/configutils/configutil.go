@@ -8,6 +8,7 @@ package configutils
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/constants"
 
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -145,4 +148,31 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 	}
 
 	return nil
+}
+
+func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, activityCategory string, operationName string, ctx context.Context, log logr.Logger) context.Context {
+	correlationId := annotations[constants.AzureCorrelationIdKey]
+	resourceId := annotations[constants.AzureResourceIdKey]
+	location := annotations[constants.AzureLocationKey]
+	systemData := annotations[constants.AzureSystemDataKey]
+
+	// correlationId := uuid.New().String()
+	// resourceId := objectId
+	// location := "on-premise"
+	// systemData := "{\"createdBy\":\"On-Premise\"}"
+
+	resourceK8SId := objectId
+	callerId := ""
+	if systemData != "" {
+		systemDataMap := make(map[string]string)
+		if err := json.Unmarshal([]byte(systemData), &systemDataMap); err != nil {
+			log.Info("Failed to unmarshal system data", "error", err)
+		} else {
+			// callerId = systemDataMap[constants.AzureCreatedByKey]
+			callerId = "******"
+		}
+	}
+	retCtx := coacontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
+	retCtx = coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(resourceId, location, operationName, activityCategory, correlationId, callerId, resourceK8SId), retCtx)
+	return retCtx
 }

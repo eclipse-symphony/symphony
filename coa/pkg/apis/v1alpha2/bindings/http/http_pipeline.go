@@ -114,6 +114,24 @@ func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvid
 				}
 			}
 			ret.Handlers = append(ret.Handlers, metrics.Metrics)
+		case "middleware.http.log":
+			log := Log{
+				Observability: obs,
+			}
+			config := observability.ObservabilityConfig{}
+			data, err := json.Marshal(c.Properties)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(nil, "incorrect log confirguration", v1alpha2.BadConfig)
+			}
+			err = json.Unmarshal(data, &config)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(nil, "incorrect log confirguration", v1alpha2.BadConfig)
+			}
+			err = log.Observability.InitLog(config)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(nil, "failed to initialize log middleware", v1alpha2.InternalError)
+			}
+			ret.Handlers = append(ret.Handlers, log.Log)
 		default:
 			return ret, v1alpha2.NewCOAError(nil, fmt.Sprintf("middleware type '%s' is not recognized", c.Type), v1alpha2.BadConfig)
 		}

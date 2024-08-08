@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -29,8 +30,18 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var msLock sync.Mutex
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.http"
+	providerName = "P (Http Stage)"
+	httpProvider = "http"
+)
+
+var (
+	msLock                   sync.Mutex
+	sLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type HttpStageProviderConfig struct {
 	Url                string `json:"url"`
@@ -61,7 +72,15 @@ func (m *HttpStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	m.Config = mockConfig
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.Errorf("  P (HTTP Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
+	return err
 }
 func (s *HttpStageProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
@@ -165,13 +184,16 @@ func readIntArray(s string) ([]int, error) {
 	return codes, nil
 }
 func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Http provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Http provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Http Stage): start process request")
+	sLog.InfoCtx(ctx, "  P (Http Stage): start process request")
+	functionName := observ_utils.GetFunctionName()
+	processTime := time.Now().UTC()
 
 	// Check all config fields for override in inputs
 	var configMap map[string]interface{}
@@ -185,21 +207,43 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 	configJson, err = json.Marshal(configMap)
 	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to override config with input: %v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.ValidateOperationType,
+			v1alpha2.BadConfig.String(),
+		)
 		return nil, false, err
 	}
 	err = json.Unmarshal(configJson, &i.Config)
 	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to override config with input: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to override config with input: %v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.ValidateOperationType,
+			v1alpha2.BadConfig.String(),
+		)
 		return nil, false, err
 	}
 
-	sLog.Infof("  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
+	sLog.InfofCtx(ctx, "  P (Http Stage): %v: %v", i.Config.Method, i.Config.Url)
 	webClient := &http.Client{}
 	var req *http.Request
+	observ_utils.EmitUserAuditsLogs(ctx, "  P (Http Stage): sending request to %v", i.Config.Url)
 	req, err = http.NewRequest(fmt.Sprintf("%v", i.Config.Method), fmt.Sprintf("%v", i.Config.Url), nil)
 	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to create request: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to create request: %v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.HttpNewRequestFailed.String(),
+		)
 		return nil, false, err
 	}
 	for key, input := range inputs {
@@ -210,7 +254,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			var jData []byte
 			jData, err = json.Marshal(input)
 			if err != nil {
-				sLog.Errorf("  P (Http Stage): failed to encode json request body: %v", err)
+				sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to encode json request body: %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.HttpNewRequestFailed.String(),
+				)
 				return nil, false, err
 			}
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
@@ -222,7 +273,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	var resp *http.Response
 	resp, err = webClient.Do(req)
 	if err != nil {
-		sLog.Errorf("  P (Http Stage): request failed: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): request failed: %v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.HttpSendRequestFailed.String(),
+		)
 		return nil, false, err
 	}
 	defer resp.Body.Close()
@@ -235,7 +293,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	var data []byte
 	data, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		sLog.Errorf("  P (Http Stage): failed to read request response: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read request response: %v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			httpProvider,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.HttpErrorResponse.String(),
+		)
 		return nil, false, err
 	}
 	outputs["body"] = string(data) //TODO: probably not so good to assume string
@@ -252,14 +317,21 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 		if !okToWait {
+			providerOperationMetrics.ProviderOperationErrors(
+				httpProvider,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.BadConfig.String(),
+			)
 			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 		counter := 0
 		failed := false
 		succeeded := false
-		sLog.Debugf("  P (Http Stage): WaitCount: %d", i.Config.WaitCount)
+		sLog.DebugfCtx(ctx, "  P (Http Stage): WaitCount: %d", i.Config.WaitCount)
 		for counter < i.Config.WaitCount || i.Config.WaitCount == 0 {
-			sLog.Infof("  P (Http Stage): start wait iteration %d", counter)
+			sLog.InfofCtx(ctx, "  P (Http Stage): start wait iteration %d", counter)
 			var waitReq *http.Request
 			waitReq, err = http.NewRequest("GET", i.Config.WaitUrl, nil)
 			for key, input := range inputs {
@@ -268,13 +340,27 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				}
 			}
 			if err != nil {
-				sLog.Errorf("  P (Http Stage): failed to create wait request: %v", err)
+				sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to create wait request: %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.HttpNewWaitRequestFailed.String(),
+				)
 				return nil, false, err
 			}
 			var waitResp *http.Response
 			waitResp, err = webClient.Do(waitReq)
 			if err != nil {
-				sLog.Errorf("  P (Http Stage): wait request failed: %v", err)
+				sLog.ErrorfCtx(ctx, "  P (Http Stage): wait request failed: %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					httpProvider,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.HttpSendWaitRequestFailed.String(),
+				)
 				return nil, false, err
 			}
 			defer waitResp.Body.Close()
@@ -298,14 +384,28 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				var data []byte
 				data, err = ioutil.ReadAll(waitResp.Body)
 				if err != nil {
-					sLog.Errorf("  P (Http Stage): failed to read wait request response: %v", err)
+					sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read wait request response: %v", err)
+					providerOperationMetrics.ProviderOperationErrors(
+						httpProvider,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.HttpErrorWaitResponse.String(),
+					)
 					succeeded = false
 				} else {
 					if i.Config.WaitExpression != "" {
 						var obj interface{}
 						err = json.Unmarshal(data, &obj)
 						if err != nil {
-							sLog.Errorf("  P (Http Stage): wait response could not be decoded to json: %v", err)
+							sLog.ErrorfCtx(ctx, "  P (Http Stage): wait response could not be decoded to json: %v", err)
+							providerOperationMetrics.ProviderOperationErrors(
+								httpProvider,
+								functionName,
+								metrics.ProcessOperation,
+								metrics.RunOperationType,
+								v1alpha2.BadConfig.String(),
+							)
 							succeeded = false
 						} else {
 							switch i.Config.WaitExpressionType {
@@ -313,7 +413,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								var result interface{}
 								result, err = utils.JsonPathQuery(obj, i.Config.WaitExpression)
 								if err != nil {
-									sLog.Errorf("  P (Http Stage): failed to evaluate JsonPath: %v", err)
+									sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to evaluate JsonPath: %v", err)
+									providerOperationMetrics.ProviderOperationErrors(
+										httpProvider,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.HttpBadWaitExpression.String(),
+									)
 								}
 								succeeded = err == nil
 								outputs["waitResult"] = result
@@ -324,7 +431,14 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 									Value: obj,
 								})
 								if err != nil {
-									sLog.Errorf("  P (Http Stage): failed to evaluate Symphony expression: %v", err)
+									sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to evaluate Symphony expression: %v", err)
+									providerOperationMetrics.ProviderOperationErrors(
+										httpProvider,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.HttpBadWaitExpression.String(),
+									)
 								}
 								succeeded = (err == nil && val != "false") // a boolean Symphony expression may evaluate to "false" as a string, indicating the condition is not met
 								outputs["waitResult"] = val
@@ -339,7 +453,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			if !failed && !succeeded {
 				counter++
 				if i.Config.WaitInterval > 0 {
-					sLog.Debug("  P (Http Stage): sleep for wait interval")
+					sLog.DebugCtx(ctx, "  P (Http Stage): sleep for wait interval")
 					time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 				}
 			} else {
@@ -347,6 +461,13 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 		}
 		if failed {
+			providerOperationMetrics.ProviderOperationErrors(
+				httpProvider,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.HttpBadWaitStatusCode.String(),
+			)
 			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
 		}
 
@@ -356,11 +477,18 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return outputs, false, nil
 			}
 		}
-		sLog.Errorf("  P (Http Stage): failed to process request: %d", resp.StatusCode)
+		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to process request: %d", resp.StatusCode)
 		return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected status code %v", resp.StatusCode), v1alpha2.BadConfig)
 	}
 
-	sLog.Infof("  P (Http Stage): process request completed with: %d", resp.StatusCode)
+	sLog.InfofCtx(ctx, "  P (Http Stage): process request completed with: %d", resp.StatusCode)
+	providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		httpProvider,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
