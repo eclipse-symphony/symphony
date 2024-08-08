@@ -13,7 +13,7 @@ import (
 func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithContext(ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)
@@ -25,7 +25,6 @@ func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 	assert.Equal(t, "resourceCloudId", innerCtx.resourceCloudId)
 	assert.Equal(t, "cloudLocation", innerCtx.cloudLocation)
 	assert.Equal(t, "operationName", innerCtx.operationName)
-	assert.Equal(t, "category", innerCtx.category)
 	assert.Equal(t, "correlationId", innerCtx.correlationId)
 	assert.Equal(t, "callerId", innerCtx.properties[Activity_Props_CallerId])
 	assert.Equal(t, "resourceK8SId", innerCtx.properties[Activity_Props_ResourceK8SId])
@@ -34,7 +33,7 @@ func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 func TestActivityLogContextDecorator_DecorateUnfold(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	ctx.SetProperty("key", "value")
 	entry = entry.WithContext(ctx)
 	entry = d.Decorate(entry, false)
@@ -43,7 +42,6 @@ func TestActivityLogContextDecorator_DecorateUnfold(t *testing.T) {
 	assert.Equal(t, strings.ToUpper("resourceCloudId"), entry.Data[string(OTEL_Activity_ResourceCloudId)])
 	assert.Equal(t, "cloudLocation", entry.Data[string(OTEL_Activity_Location)])
 	assert.Equal(t, "operationName", entry.Data[string(OTEL_Activity_OperationName)])
-	assert.Equal(t, "category", entry.Data[string(OTEL_Activity_Category)])
 	assert.Equal(t, "correlationId", entry.Data[string(OTEL_Activity_CorrelationId)])
 	assert.Equal(t, "callerId", entry.Data[string(OTEL_Activity_Props_CallerId)])
 	assert.Equal(t, "resourceK8SId", entry.Data[string(OTEL_Activity_Props_ResourceK8SId)])
@@ -97,7 +95,7 @@ func TestDiagnosticLogContextDecorator_DecorateUnfold(t *testing.T) {
 func TestActivityLogContextDecorator_DecorateWithKey(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithField(string(ActivityLogContextKey), ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)
@@ -109,7 +107,6 @@ func TestActivityLogContextDecorator_DecorateWithKey(t *testing.T) {
 	assert.Equal(t, "resourceCloudId", innerCtx.resourceCloudId)
 	assert.Equal(t, "cloudLocation", innerCtx.cloudLocation)
 	assert.Equal(t, "operationName", innerCtx.operationName)
-	assert.Equal(t, "category", innerCtx.category)
 	assert.Equal(t, "correlationId", innerCtx.correlationId)
 	assert.Equal(t, "callerId", innerCtx.properties[Activity_Props_CallerId])
 	assert.Equal(t, "resourceK8SId", innerCtx.properties[Activity_Props_ResourceK8SId])
@@ -170,7 +167,7 @@ func TestDiagnosticLogContextDecorator_DecorateWithInvalidContext(t *testing.T) 
 func TestActivityLogContextDecorator_DecorateWithInvalidKey(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithField("invalid", ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)

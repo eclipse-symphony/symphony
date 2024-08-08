@@ -20,7 +20,7 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 	hook := NewContextHook()
 	entry := logrus.NewEntry(logrus.StandardLogger())
 	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
-	actCtx := contexts.NewActivityLogContext("resourceId", "cloudLocation", "operationName", "category", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("resourceId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithFields(logrus.Fields{
 		string(contexts.DiagnosticLogContextKey): diagCtx,
 		string(contexts.ActivityLogContextKey):   actCtx,
@@ -37,7 +37,6 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 	assert.Equal(t, "resourceId", innerActCtx.GetResourceCloudId())
 	assert.Equal(t, "cloudLocation", innerActCtx.GetCloudLocation())
 	assert.Equal(t, "operationName", innerActCtx.GetOperationName())
-	assert.Equal(t, "category", innerActCtx.GetCategory())
 	assert.Equal(t, "correlationId", innerActCtx.GetCorrelationId())
 	assert.Equal(t, "callerId", innerActCtx.GetCallerId())
 	assert.Equal(t, "resourceK8SId", innerActCtx.GetResourceK8SId())
@@ -57,7 +56,7 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 func TestContextHook_Fire_WithActivityLogContext(t *testing.T) {
 	hook := NewContextHook()
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	actCtx := contexts.NewActivityLogContext("resourceId", "cloudLocation", "operationId", "category", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("resourceId", "cloudLocation", "operationId", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithContext(actCtx)
 	err := hook.Fire(entry)
 	assert.Nil(t, err)
@@ -71,7 +70,6 @@ func TestContextHook_Fire_WithActivityLogContext(t *testing.T) {
 	assert.Equal(t, "resourceId", innerActCtx.GetResourceCloudId())
 	assert.Equal(t, "cloudLocation", innerActCtx.GetCloudLocation())
 	assert.Equal(t, "operationId", innerActCtx.GetOperationName())
-	assert.Equal(t, "category", innerActCtx.GetCategory())
 	assert.Equal(t, "correlationId", innerActCtx.GetCorrelationId())
 	assert.Equal(t, "callerId", innerActCtx.GetCallerId())
 	assert.Equal(t, "resourceK8SId", innerActCtx.GetResourceK8SId())

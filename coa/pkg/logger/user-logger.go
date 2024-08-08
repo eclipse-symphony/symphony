@@ -65,7 +65,7 @@ func (rb *RetentionBuffer) Bytes() []byte {
 	return rb.buffer.Bytes()
 }
 
-func newUserLogger(name string, logType string, contextOptions hooks.ContextHookOptions) *userLogger {
+func newUserLogger(name string, logType string, logCategory string, contextOptions hooks.ContextHookOptions) *userLogger {
 	newLogger := logrus.New()
 	// Create a custom buffer with a maximum size of 10KB
 	retentionBuffer := NewRetentionBuffer(10 * 1024)
@@ -76,8 +76,9 @@ func newUserLogger(name string, logType string, contextOptions hooks.ContextHook
 		name:   name,
 		logger: newLogger,
 		sharedFields: logrus.Fields{
-			logFieldScope: name,
-			logFieldType:  logType,
+			logFieldScope:    name,
+			logFieldType:     logType,
+			logFieldCategory: logCategory,
 		},
 		logType: logType,
 	}
@@ -106,7 +107,8 @@ func (l *userLogger) EnableJSONOutput(enabled bool) {
 		logFieldScope:    l.sharedFields[logFieldScope],
 		logFieldType:     l.logType,
 		logFieldInstance: hostname,
-		logFieldDaprVer:  CoaVersion,
+		logFieldCoaVer:   CoaVersion,
+		logFieldCategory: l.sharedFields[logFieldCategory],
 	}
 	l.sharedFieldsLock.Unlock()
 

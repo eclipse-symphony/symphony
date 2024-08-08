@@ -99,14 +99,14 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
 		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
 		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, constants.ActivityCategory_Activity, operationName)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
