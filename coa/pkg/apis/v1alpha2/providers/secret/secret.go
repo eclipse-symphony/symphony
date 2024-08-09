@@ -12,5 +12,9 @@ import (
 
 type ISecretProvider interface {
 	Init(config providers.IProviderConfig) error
-	Get(object string, field string) (string, error)
+	Read(name string, field string, localContext interface{}) (string, error)
+}
+
+type IExtSecretProvider interface {
+	Get(name string, field string, localContext interface{}) (string, error)
 }

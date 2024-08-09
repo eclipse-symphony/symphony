@@ -82,7 +82,13 @@ func Test() error {
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
 	testhelpers.SetupCluster()
-
+	err := shellcmd.Command(fmt.Sprintf("kubectl get secret container")).Run()
+	if err != nil {
+		err := shellcmd.Command("kubectl apply -f manifest/oss/secret.yaml").Run()
+		if err != nil {
+			return err
+		}
+	}
 	// Deploy the manifests
 	for _, manifest := range testManifests {
 		fullPath, err := filepath.Abs(fmt.Sprintf(manifest, "oss"))

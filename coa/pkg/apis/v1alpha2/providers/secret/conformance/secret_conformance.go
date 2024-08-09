@@ -17,7 +17,7 @@ func GetSecretNotFound[P secret.ISecretProvider](t *testing.T, p P) {
 	// TODO: this case should fail. This is a prototype of conformance test suite
 	// but unfortunately the mock secret provider doesn't confirm with reasonable
 	// expected behavior
-	_, err := p.Get("fake_object", "fake_key")
+	_, err := p.Read("fake_object", "fake_key", nil)
 	assert.Nil(t, err)
 }
 func ConformanceSuite[P secret.ISecretProvider](t *testing.T, p P) {

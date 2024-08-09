@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -45,14 +46,18 @@ func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 		log.Error(" M (Config): No config providers found")
 		return v1alpha2.NewCOAError(nil, "No config providers found", v1alpha2.BadConfig)
 	}
-	if len(s.ConfigProviders) > 0 && len(s.Precedence) < len(s.ConfigProviders) && len(s.ConfigProviders) > 1 {
+	if len(s.Precedence) < len(s.ConfigProviders) && len(s.ConfigProviders) > 1 {
 		log.Error(" M (Config): Not enough precedence values")
 		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
-	for _, key := range s.Precedence {
-		if _, ok := s.ConfigProviders[key]; !ok {
-			log.Error(" M (Config): Invalid precedence value: %s", key)
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid precedence value: %s", key), v1alpha2.BadConfig)
+	if len(s.ConfigProviders) > 1 {
+		var provderKeys []string
+		for key := range s.ConfigProviders {
+			provderKeys = append(provderKeys, key)
+		}
+		if !utils.AreSlicesEqual(provderKeys, s.Precedence) {
+			log.Error(" M (Config): Precedence does not match with config providers")
+			return v1alpha2.NewCOAError(nil, "Precedence does not match with config providers", v1alpha2.BadConfig)
 		}
 	}
 	return nil

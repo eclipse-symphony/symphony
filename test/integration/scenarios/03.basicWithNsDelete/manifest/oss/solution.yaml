@@ -12,7 +12,7 @@ spec:
   - name: prometheus-server
     type: container
     properties:
-      container.ports: "[{\"containerPort\":9090,\"protocol\":\"TCP\"}]"
+      container.ports: "[{\"containerPort\":${{$secret('container','port')}},\"protocol\":\"TCP\"}]"
       container.imagePullPolicy: "Always"
       container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
       container.image: "prom/prometheus"

@@ -67,6 +67,21 @@
                 }
               }
             }
+          },
+          {
+            "name": "secret-manager",
+            "type": "managers.symphony.secrets",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "secret": {
+                "type": "providers.secret.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
           }
         ]        
       },
