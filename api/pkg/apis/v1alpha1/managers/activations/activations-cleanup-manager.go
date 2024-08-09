@@ -8,8 +8,6 @@ package activations
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -19,13 +17,13 @@ import (
 )
 
 const (
-	// DefaultRetentionInMinutes is the default time to cleanup completed activations
-	DefaultRetentionInMinutes = 1440
+	// DefaultRetentionDuration is the default time to cleanup completed activations
+	DefaultRetentionDuration = 180 * time.Hour * 24
 )
 
 type ActivationsCleanupManager struct {
 	ActivationsManager
-	RetentionInMinutes int
+	RetentionDuration time.Duration
 }
 
 func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -34,16 +32,19 @@ func (s *ActivationsCleanupManager) Init(context *contexts.VendorContext, config
 		return err
 	}
 
-	// Set activation cleanup interval after they are done. If not set, use default 60 minutes.
-	if val, ok := config.Properties["RetentionInMinutes"]; ok {
-		s.RetentionInMinutes, err = strconv.Atoi(val)
+	// Set activation cleanup interval after they are done. If not set, use default 180 days.
+	if val, ok := config.Properties["RetentionDuration"]; ok {
+		s.RetentionDuration, err = time.ParseDuration(val)
 		if err != nil {
-			s.RetentionInMinutes = DefaultRetentionInMinutes
+			return v1alpha2.NewCOAError(nil, "RetentionDuration cannot be parsed, please enter a valid duration", v1alpha2.BadConfig)
+		} else if s.RetentionDuration < 0 {
+			return v1alpha2.NewCOAError(nil, "RetentionDuration cannot be negative", v1alpha2.BadConfig)
 		}
 	} else {
-		s.RetentionInMinutes = DefaultRetentionInMinutes
+		s.RetentionDuration = DefaultRetentionDuration
 	}
-	log.Info("M (Activation Cleanup): Initialize RetentionInMinutes as " + fmt.Sprint(s.RetentionInMinutes))
+
+	log.Info("M (Activation Cleanup): Initialize RetentionDuration as " + s.RetentionDuration.String())
 	return nil
 }
 
@@ -83,7 +84,7 @@ func (s *ActivationsCleanupManager) Poll() []error {
 			ret = append(ret, err)
 		}
 		duration := time.Since(updateTime)
-		if duration > time.Duration(s.RetentionInMinutes)*time.Minute {
+		if duration > s.RetentionDuration {
 			log.Info("M (Activation Cleanup): Deleting activation " + activation.ObjectMeta.Name + " since it has completed for " + duration.String())
 			err = s.ActivationsManager.DeleteState(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 			if err != nil {

@@ -25,7 +25,7 @@ flavor: oss
 redis:
   enabled: true
   asSidecar: false
-  image: redis/redis-stack-server:latest
+  image: redis/redis-stack-server:7.2.0-v12
   port: 6379
   persistentVolume:
     enabled: false
@@ -46,6 +46,7 @@ api:
   labelValue:
   annotationKey: 
 symphony:
+  uniqueDisplayNameForSolution: false
   incluster:
     httpsport: 8081
     httpport: 8080
@@ -59,3 +60,9 @@ Azure:
     httpsProxy: ""
     noProxy: ""
     proxyCert: ""
+# Turn on/off cleanup on finished activations
+ActivationCleanup:
+  enabled: true
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"

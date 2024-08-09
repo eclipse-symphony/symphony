@@ -19,19 +19,26 @@ import (
 
 // Test config
 const (
-	NAMESPACE = "sample-k8s-scope"
-	TEST_NAME = "Symphony Hello World sample test scenario"
+	TEST_NAME = "Symphony sample test scenario"
 	TEST_TIMEOUT = "10m"
 )
 
 var (
 	// Manifests to deploy
-	testManifests = []string{
-		"../../../../docs/samples/k8s/hello-world/solution-container.yaml",
-		"../../../../docs/samples/k8s/hello-world//solution.yaml",
-		"../../../../docs/samples/k8s/hello-world//target.yaml",
-		"../../../../docs/samples/k8s/hello-world//instance.yaml",
-	}
+	testSamples = map[string][]string{
+        "sample-hello-world":  {
+			"../../../../docs/samples/k8s/hello-world/solution-container.yaml",
+			"../../../../docs/samples/k8s/hello-world/solution.yaml",
+			"../../../../docs/samples/k8s/hello-world/target.yaml",
+			"../../../../docs/samples/k8s/hello-world/instance.yaml",
+		},
+        "sample-staged": {
+			"../../../../docs/samples/k8s/staged/solution-container.yaml",
+			"../../../../docs/samples/k8s/staged/solution.yaml",
+			"../../../../docs/samples/k8s/staged/target.yaml",
+			"../../../../docs/samples/k8s/staged/instance.yaml",
+		},
+    }
 
 	// Tests to run
 	testVerify = []string{
@@ -51,14 +58,17 @@ func Test() error {
 	}
 
 	// Deploy solution, target and instance
-	err = DeployManifests()
-	if err != nil {
-		return err
-	}
+	for namespace, manifests := range testSamples {
+		os.Setenv("NAMESPACE", namespace)
+		err := DeployManifests(namespace, manifests)
+		if err != nil {
+			return err
+		}
 
-	err = Verify()
-	if err != nil {
-		return err
+		err = Verify()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -82,9 +92,9 @@ func Verify() error {
 }
 
 // Deploy solution, target and instance
-func DeployManifests() error {
-	// Get kube client
-	err := testhelpers.EnsureNamespace(NAMESPACE)
+func DeployManifests(namespace string, testManifests []string) error {
+	// Ensure that namespace is defined
+	err := testhelpers.EnsureNamespace(namespace)
 	if err != nil {
 		return err
 	}
@@ -97,7 +107,7 @@ func DeployManifests() error {
 	// Deploy the manifests
 	for _, manifest := range testManifests {
 		manifestPath := filepath.Join(currentPath, manifest)
-		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", manifestPath, NAMESPACE)).Run()
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", manifestPath, namespace)).Run()
 		if err != nil {
 			return err
 		}

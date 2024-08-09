@@ -190,7 +190,7 @@ func GetSites(context context.Context, baseUrl string, user string, password str
 
 	return ret, nil
 }
-func SyncActivationStatus(context context.Context, baseUrl string, user string, password string, status model.ActivationStatus) error {
+func SyncStageStatus(context context.Context, baseUrl string, user string, password string, status model.StageStatus) error {
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {

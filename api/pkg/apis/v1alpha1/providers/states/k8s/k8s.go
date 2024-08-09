@@ -254,7 +254,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			item.SetAnnotations(metadata.Annotations)
 		}
 		getResourceVersion := false
-		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStateOnly {
+		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})

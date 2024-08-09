@@ -47,10 +47,7 @@ func TestActivationsInfo(t *testing.T) {
 }
 func TestActivationsOnStatus(t *testing.T) {
 	vendor := createActivationsVendor()
-	status := model.ActivationStatus{
-		Status:        v1alpha2.Done,
-		StatusMessage: v1alpha2.Done.String(),
-	}
+	status := model.ActivationStatus{}
 	data, _ := json.Marshal(status)
 	resp := vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,

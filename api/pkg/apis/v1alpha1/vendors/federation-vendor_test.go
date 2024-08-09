@@ -231,7 +231,7 @@ func TestFederationOnStatus(t *testing.T) {
 func TestFederationOnSyncPost(t *testing.T) {
 	vendor := federationVendorInit()
 
-	activationStatus := model.ActivationStatus{
+	stageStatus := model.StageStatus{
 		Stage:     "exampleStage",
 		NextStage: "exampleNextStage",
 		Inputs: map[string]interface{}{
@@ -242,11 +242,9 @@ func TestFederationOnSyncPost(t *testing.T) {
 			"output1": "value1",
 			"output2": "value2",
 		},
-		Status:               v1alpha2.OK,
-		StatusMessage:        v1alpha2.OK.String(),
-		IsActive:             true,
-		ActivationGeneration: "1",
-		UpdateTime:           "exampleUpdateTime",
+		Status:        v1alpha2.OK,
+		StatusMessage: v1alpha2.OK.String(),
+		IsActive:      true,
 	}
 	// vendor.Context.PubsubProvider.Publish("report", v1alpha2.Event{
 	// 	Metadata: map[string]string{
@@ -265,7 +263,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 	// 	Body: activationStatus,
 	// })
 
-	b, err := json.Marshal(activationStatus)
+	b, err := json.Marshal(stageStatus)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -276,10 +274,10 @@ func TestFederationOnSyncPost(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, response.State)
 	vendor.Context.PubsubProvider.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
 		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
+		var status model.StageStatus
 		err := json.Unmarshal(jData, &status)
 		assert.Nil(t, err)
-		assert.Equal(t, activationStatus.Stage, status.Stage)
+		assert.Equal(t, stageStatus.Stage, status.Stage)
 		return nil
 	})
 
