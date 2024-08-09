@@ -64,9 +64,7 @@ spec:
             properties:
               activationGeneration:
                 type: string
-              errorMessage:
-                type: string
-              stagehistory:
+              stageHistory:
                 items:
                   properties:
                     errorMessage:

@@ -325,6 +325,8 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
 	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
 		activationState.Status.Status = v1alpha2.Done
+	} else if latestStage.Status == v1alpha2.Paused {
+		activationState.Status.Status = v1alpha2.Paused
 	} else {
 		activationState.Status.Status = v1alpha2.Running
 	}
