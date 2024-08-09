@@ -8,9 +8,11 @@ package script
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,4 +62,18 @@ func TestShellScriptOnline(t *testing.T) {
 	_, err = os.Stat("staging/go1.21.6.src.tar.gz")
 	assert.Nil(t, err)
 	os.Remove("staging/go1.21.6.src.tar.gz")
+}
+
+func TestShellScriptNotFoundOnline(t *testing.T) {
+	provider := ScriptStageProvider{}
+	err := provider.Init(ScriptStageProviderConfig{
+		Name:          "test",
+		Script:        "test.ps1",
+		ScriptEngine:  "powershell",
+		ScriptFolder:  "https://bing.com",
+		StagingFolder: "staging",
+	})
+	assert.NotNil(t, err)
+	assert.IsType(t, v1alpha2.COAError{}, err)
+	assert.NotEqual(t, http.StatusOK, err.(v1alpha2.COAError).State)
 }
