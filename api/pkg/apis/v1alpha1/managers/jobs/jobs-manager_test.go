@@ -155,7 +155,7 @@ func TestHandleheartbeatEvent(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1"},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", JobAction: v1alpha2.JobUpdate},
 	})
 
 	heartbeat, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "h_instance1"})
@@ -218,13 +218,13 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now().Add(-time.Hour)},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now().Add(-time.Hour), JobAction: v1alpha2.JobUpdate},
 	})
 	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.Nil(t, err)
 
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now()},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now(), JobAction: v1alpha2.JobUpdate},
 	})
 	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.NotNil(t, err)

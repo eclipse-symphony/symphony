@@ -112,6 +112,8 @@ func (s *StagingManager) Poll() []error {
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
+
+		// TODO: clean up the catalog synchronization status for multi-site
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,

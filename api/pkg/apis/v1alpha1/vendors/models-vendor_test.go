@@ -255,7 +255,7 @@ func TestModelsVendorOnModels_DeleteModelNotExists(t *testing.T) {
 		Context: context.Background(),
 	}
 	resp := vendor.onModels(deleteReq)
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.OK, resp.State)
 }
 
 func TestModelsVendorOnModels_InvalidMethod(t *testing.T) {

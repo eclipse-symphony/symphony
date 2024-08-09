@@ -253,6 +253,7 @@ func (s *StageManager) ResumeStage(status model.StageStatus, cam model.CampaignS
 			return nil, nil
 		} else {
 			p.Sites = newSites
+			// TODO: clean up the remote job status entry for multi-site
 			_, err := s.StateProvider.Upsert(context.TODO(), states.UpsertRequest{
 				Value: states.StateEntry{
 					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
