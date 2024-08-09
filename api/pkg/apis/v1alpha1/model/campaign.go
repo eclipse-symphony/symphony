@@ -110,7 +110,7 @@ type ActivationStatus struct {
 	UpdateTime           string         `json:"updateTime,omitempty"`
 	Status               v1alpha2.State `json:"status,omitempty"`
 	StatusMessage        string         `json:"statusMessage,omitempty"`
-	StageHistory         []StageStatus  `json:"stagehistory,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
 }
 type StageStatus struct {
 	Stage         string                 `json:"stage,omitempty"`
