@@ -118,7 +118,7 @@ func TestBasic_VerifyPodsExist(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify that the pods we expect are running
-		toFind := []string{"bluefin-scheduler-0", "azedge-dmqtt-backend-0", "azedge-dmqtt-frontend", "bluefin-runner-worker-0", "observability-grafana"}
+		toFind := []string{"nginx", "testapp", namespace + "instance"}
 
 		notFound := make(map[string]bool)
 		for _, s := range toFind {
