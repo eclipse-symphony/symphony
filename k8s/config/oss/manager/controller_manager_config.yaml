@@ -15,6 +15,7 @@ leaderElection:
   leaderElect: true
   resourceName: 33405cb8.symphony
 syncIntervalSeconds: 180
+uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
 validationPolicies:
   model:
   - selectorType: properties

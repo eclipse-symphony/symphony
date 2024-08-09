@@ -111,7 +111,7 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 		sLog.Errorf("  P (Memory State): failed to upsert %s states: %+v, traceId: %s", entry.Value.ID, err, span.SpanContext().TraceID().String())
 		return "", err
 	}
-	if entry.Options.UpdateStateOnly {
+	if entry.Options.UpdateStatusOnly {
 		existing, ok := list[entry.Value.ID]
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", entry.Value.ID), v1alpha2.NotFound)

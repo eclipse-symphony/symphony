@@ -214,6 +214,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return nil, false, err
 			}
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
+			req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 			req.ContentLength = int64(len(jData))
 		}
 	}

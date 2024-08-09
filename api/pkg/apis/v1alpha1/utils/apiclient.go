@@ -79,7 +79,7 @@ type (
 		GetCatalogsWithFilter(ctx context.Context, namespace string, filterType string, filterValue string, user string, password string) ([]model.CatalogState, error)
 		UpdateSite(ctx context.Context, site string, payload []byte, user string, password string) error
 		GetABatchForSite(ctx context.Context, site string, user string, password string) (model.SyncPackage, error)
-		SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error
+		SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error
 		SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error
 		ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error
 		CreateSolutionContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
@@ -708,7 +708,7 @@ func (a *apiClient) GetABatchForSite(ctx context.Context, site string, user stri
 	return ret, nil
 }
 
-func (a *apiClient) SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error {
+func (a *apiClient) SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 
 	if err != nil {

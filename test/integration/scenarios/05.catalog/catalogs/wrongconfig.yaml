@@ -5,6 +5,6 @@ metadata:
 spec:
   catalogType: config
   metadata:
-    schema: schema-v-v1
+    schema: schema:v1
   properties:
     email: "this is an invalid email"

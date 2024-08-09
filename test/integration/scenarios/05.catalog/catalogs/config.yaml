@@ -6,6 +6,6 @@ spec:
   rootResource: config
   catalogType: config
   metadata:
-    schema: schema-v-v1
+    schema: schema:v1
   properties:
     email: "sample@sample.com"

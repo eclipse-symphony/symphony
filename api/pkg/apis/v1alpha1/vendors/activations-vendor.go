@@ -208,13 +208,13 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-		if !entry.Status.IsActive {
+		if entry.Status.UpdateTime == "" {
 			c.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,
 					ActivationGeneration: entry.ObjectMeta.Generation,
 					Activation:           id,
-					Stage:                "",
+					Stage:                activation.Spec.Stage,
 					Inputs:               activation.Spec.Inputs,
 					Namespace:            activation.ObjectMeta.Namespace,
 				},

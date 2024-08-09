@@ -1,3 +1,18 @@
+{{- if and .Values.redis.enabled .Values.redis.persistentVolume.enabled}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: {{ .Release.Namespace }}
+spec:
+  storageClassName: {{ .Values.redis.persistentVolume.storageclass }}
+  accessModes:
+  - {{ .Values.redis.persistentVolume.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.redis.persistentVolume.size }}
+{{- end }}
+---
 {{- if and .Values.redis.enabled (not .Values.redis.asSidecar)}}
 apiVersion: apps/v1
 kind: Deployment
@@ -24,6 +39,10 @@ spec:
         volumeMounts:
         - name: redis-config
           mountPath: /usr/var/redis
+        {{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-data
+          mountPath: /data
+        {{- end }}
       volumes:
       - name: redis-config
         configMap:
@@ -31,6 +50,11 @@ spec:
           items:
           - key: redis.conf
             path: redis.conf
+      {{- if .Values.redis.persistentVolume.enabled }}
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

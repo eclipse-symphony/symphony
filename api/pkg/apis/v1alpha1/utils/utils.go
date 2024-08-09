@@ -62,10 +62,10 @@ func GetString(col map[string]string, key string) (string, error) {
 		if sok {
 			return s, nil
 		} else {
-			return "", fmt.Errorf("value of %s is not a string", key)
+			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("value of %s is not a string", key), v1alpha2.BadConfig)
 		}
 	}
-	return "", fmt.Errorf("key %s is not found", key)
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("key %s is not found", key), v1alpha2.BadConfig)
 }
 
 func ReadStringFromMapCompat(col map[string]interface{}, key string, defaultVal string) string {

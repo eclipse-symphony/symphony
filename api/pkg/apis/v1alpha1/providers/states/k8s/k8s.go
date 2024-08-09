@@ -205,13 +205,13 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to deserialize template: %v", err)
-			return "", err
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad template", v1alpha2.BadRequest)
 		}
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
-			return "", err
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad inputs", v1alpha2.BadRequest)
 		}
 		unc.Object["spec"] = dict["spec"]
 		metaJson, _ := json.Marshal(dict["metadata"])
@@ -219,7 +219,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		err = json.Unmarshal(metaJson, &metadata)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
-			return "", err
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad inputs", v1alpha2.BadRequest)
 		}
 		unc.SetName(metadata.Name)
 		unc.SetNamespace(metadata.Namespace)
@@ -238,7 +238,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
 			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
-			return "", err
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object", v1alpha2.BadRequest)
 		}
 		if v, ok := dict["metadata"]; ok {
 			metaJson, _ := json.Marshal(v)
@@ -246,7 +246,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			err = json.Unmarshal(metaJson, &metadata)
 			if err != nil {
 				sLog.Errorf("  P (K8s State): failed to unmarshal object metadata: %v", err)
-				return "", err
+				return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object metadata", v1alpha2.BadRequest)
 			}
 			item.SetName(metadata.Name)
 			item.SetNamespace(metadata.Namespace)
@@ -254,7 +254,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			item.SetAnnotations(metadata.Annotations)
 		}
 		getResourceVersion := false
-		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStateOnly {
+		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
@@ -384,7 +384,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 					err = json.Unmarshal(j, &dict)
 					if err != nil {
 						sLog.Errorf("  P (K8s State): failed to unmarshal object spec: %v", err)
-						return nil, "", err
+						return nil, "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object spec", v1alpha2.BadRequest)
 					}
 					if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
 						continue
@@ -395,8 +395,8 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 						j, _ := json.Marshal(v.Object["status"])
 						err = json.Unmarshal(j, &dict)
 						if err != nil {
-							sLog.Errorf("  P (K8s State): failed to unmarshal object spec: %v", err)
-							return nil, "", err
+							sLog.Errorf("  P (K8s State): failed to unmarshal object status: %v", err)
+							return nil, "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object status", v1alpha2.BadRequest)
 						}
 						if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
 							continue

@@ -8,6 +8,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -72,6 +73,35 @@ func TestPingBing(t *testing.T) {
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
 	assert.NotNil(t, outputs["body"])
+}
+func TestPostRequestWithJson(t *testing.T) {
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method: "POST",
+		Url:    "https://jsonplaceholder.typicode.com/posts",
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"body": map[string]interface{}{
+			"title":  "foo",
+			"body":   "bar",
+			"userId": 1,
+		},
+	})
+	// refer to https://jsonplaceholder.typicode.com/guide/
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.NotNil(t, outputs["body"])
+	var respBody map[string]interface{}
+	_, ok := outputs["body"].(string)
+	assert.True(t, ok)
+	bodyBytes := []byte(outputs["body"].(string))
+	err = json.Unmarshal(bodyBytes, &respBody)
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", respBody["title"])
+	assert.Equal(t, "bar", respBody["body"])
+	assert.EqualValues(t, 1, respBody["userId"])
+	assert.EqualValues(t, 101, respBody["id"])
 }
 func TestCallLogicApp(t *testing.T) {
 	testLogicApp := os.Getenv("TEST_HTTP_PROCESS_LOGICAPP")

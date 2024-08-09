@@ -155,13 +155,14 @@
         "route": "backgroundjob",
         "loopInterval": 3600,
         "managers": [
+          {{- if .Values.ActivationCleanup.enabled }}
           {
             "name": "activations-cleanup-manager",
             "type": "managers.symphony.activationscleanup",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true",
-              "RetentionInMinutes": "1440"
+              "RetentionDuration": "{{ .Values.ActivationCleanup.retentionDuration }}"
             },
             "providers": {
               "k8s-state": {
@@ -172,6 +173,7 @@
               }
             }
           }
+          {{- end }}
         ]
       },
       {

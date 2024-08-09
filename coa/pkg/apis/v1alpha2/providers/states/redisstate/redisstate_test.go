@@ -376,7 +376,7 @@ func TestUpsertStateOnly(t *testing.T) {
 			"group":    "testgroup",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	})
 	assert.Nil(t, err)

@@ -29,6 +29,15 @@ var (
 )
 
 func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
+	myConfig, err := GetProjectConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return myConfig.ValidationPolicies, nil
+}
+
+func GetProjectConfig() (*configv1.ProjectConfig, error) {
 	// home := homedir.HomeDir()
 	// // use the current context in kubeconfig
 	// config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
@@ -66,8 +75,9 @@ func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
 		return nil, err
 	}
 
-	return myConfig.ValidationPolicies, nil
+	return &myConfig, nil
 }
+
 func getNamespace() (string, error) {
 	// read the namespace from the file
 	data, err := ioutil.ReadFile(namespaceFile)

@@ -8,14 +8,22 @@ package memory
 
 import (
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var log = logger.NewLogger("coa.runtime")
+
+const (
+	DefaultRetryCount      = 5
+	DefaultRetryWaitSecond = 10
+)
 
 type InMemoryPubSubProvider struct {
 	Config      InMemoryPubSubConfig               `json:"config"`
@@ -24,13 +32,43 @@ type InMemoryPubSubProvider struct {
 }
 
 type InMemoryPubSubConfig struct {
-	Name string `json:"name"`
+	Name                      string `json:"name"`
+	SubscriberRetryCount      int    `json:"subscriberRetryCount"`
+	SubscriberRetryWaitSecond int    `json:"subscriberRetryWaitSecond"`
 }
 
 func InMemoryPubSubConfigFromMap(properties map[string]string) (InMemoryPubSubConfig, error) {
 	ret := InMemoryPubSubConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
+	}
+	ret.SubscriberRetryCount = 0
+	if v, ok := properties["subscriberRetryCount"]; ok {
+		val := v
+		if val != "" {
+			n, err := strconv.Atoi(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'SubscriberRetryCount' setting of Memory pub-sub provider", v1alpha2.BadConfig)
+			}
+			ret.SubscriberRetryCount = n
+		}
+	}
+	if ret.SubscriberRetryCount < 0 {
+		return ret, v1alpha2.NewCOAError(nil, "negative int value is not allowed in the 'SubscriberRetryCount' setting of Memory pub-sub provider", v1alpha2.BadConfig)
+	}
+	ret.SubscriberRetryWaitSecond = 0
+	if v, ok := properties["subscriberRetryWaitSecond"]; ok {
+		val := v
+		if val != "" {
+			n, err := strconv.Atoi(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'SubscriberRetryWaitSecond' setting of Memory pub-sub provider", v1alpha2.BadConfig)
+			}
+			ret.SubscriberRetryWaitSecond = n
+		}
+	}
+	if ret.SubscriberRetryWaitSecond == 0 {
+		ret.SubscriberRetryWaitSecond = DefaultRetryWaitSecond
 	}
 	return ret, nil
 }
@@ -67,7 +105,15 @@ func (i *InMemoryPubSubProvider) Publish(topic string, event v1alpha2.Event) err
 	if ok && arr != nil {
 		for _, s := range arr {
 			go func(handler v1alpha2.EventHandler, topic string, event v1alpha2.Event) {
-				handler(topic, event)
+				shouldRetry := true
+				count := 0
+				for shouldRetry && count <= i.Config.SubscriberRetryCount {
+					shouldRetry = v1alpha2.EventShouldRetryWrapper(handler, topic, event)
+					if shouldRetry {
+						count++
+						time.Sleep(time.Duration(i.Config.SubscriberRetryWaitSecond) * time.Second)
+					}
+				}
 			}(s, topic, event)
 		}
 	}
@@ -89,8 +135,21 @@ func toInMemoryPubSubConfig(config providers.IProviderConfig) (InMemoryPubSubCon
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
-	//ret.Name = providers.LoadEnv(ret.Name)
+
+	var configs map[string]interface{}
+	err = json.Unmarshal(data, &configs)
+	if err != nil {
+		return ret, err
+	}
+	configStrings := map[string]string{}
+	for k, v := range configs {
+		configStrings[k] = utils.FormatAsString(v)
+	}
+
+	ret, err = InMemoryPubSubConfigFromMap(configStrings)
+	if err != nil {
+		return ret, err
+	}
 	return ret, err
 }
 
