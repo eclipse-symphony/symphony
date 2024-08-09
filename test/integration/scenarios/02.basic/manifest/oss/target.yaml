@@ -8,33 +8,7 @@ kind: Target
 metadata:
   name: TARGETNAME
 spec:
-  components:
-  - name: observability
-    properties:
-      chart:
-        repo: symphonycr.azurecr.io/sample-dashboard
-        version: 0.4.5
-      values:
-        obsConfig:
-          bluefin: true
-          e4i: true
-          e4k: true
-    dependencies: 
-    - bluefin
-    type: helm.v3
-  - name: e4k
-    properties:
-      chart:
-        repo: e4kpreview.azurecr.io/helm/az-e4k
-        version: 0.3.0
-    type: helm.v3
-  - name: bluefin
-    properties:
-      chart:
-        repo: azbluefin.azurecr.io/helm/bluefin-arc-extension
-        version: "0.2.0-20230706.3-develop"
-    type: helm.v3
-  displayName: int-virtual-02
+  displayName: TARGETNAME
   scope: SCOPENAME
   topologies:
   - bindings:
