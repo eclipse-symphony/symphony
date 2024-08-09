@@ -282,16 +282,28 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
-	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s", heartbeat.JobId)
-	_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
-		Value: states.StateEntry{
-			ID:   "h_" + heartbeat.JobId,
-			Body: heartbeat,
-		},
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-		},
-	})
+	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s, %v, %v", heartbeat.JobId, heartbeat.Action, heartbeat.JobAction)
+	if heartbeat.JobAction == v1alpha2.JobUpdate {
+		log.DebugfCtx(ctx, " M (Job): update heartbeat h_%s, %v, %v", heartbeat.JobId)
+		_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
+			Value: states.StateEntry{
+				ID:   "h_" + heartbeat.JobId,
+				Body: heartbeat,
+			},
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+			},
+		})
+	} else if heartbeat.JobAction == v1alpha2.JobDelete {
+		log.DebugfCtx(ctx, " M (Job): delete heartbeat h_%s, %v, %v", heartbeat.JobId)
+		err = s.VolatileStateProvider.Delete(ctx, states.DeleteRequest{
+			ID: "h_" + heartbeat.JobId,
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+			},
+		})
+	}
+
 	return err
 }
 
@@ -320,7 +332,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 			log.ErrorfCtx(ctx, " M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
-		log.DebugfCtx(ctx, " M (Job): found heartbeat %s, entry: %+v", key, entry)
+		log.DebugfCtx(ctx, " M (Job): heartbeat %s is not found, entry: %+v", key, entry)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
@@ -391,6 +403,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
+		log.Debugf(" M (Job): handling job eventhub objectType: %s, job action: %s", objectType, job.Action)
 		err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
 		if err != nil {
 			return err
@@ -465,9 +478,21 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			case v1alpha2.JobDelete:
 				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace, s.user, s.password)
 				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error reconciling instance %s with delete job action: %s", instanceName, err.Error())
 					return err
 				} else {
-					return s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace, s.user, s.password)
+					err = s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace, s.user, s.password)
+					if err != nil {
+						log.Errorf(" M (Job): failed to instance %s: %s", instanceName, err.Error())
+						return err
+					}
+					log.DebugfCtx(ctx, " M (Job): delete instance success state entry, instance: %s", instance.ObjectMeta.Name)
+					s.VolatileStateProvider.Delete(ctx, states.DeleteRequest{
+						ID: "i_" + instance.ObjectMeta.Name,
+						Metadata: map[string]interface{}{
+							"namespace": namespace,
+						},
+					})
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -488,6 +513,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			case v1alpha2.JobUpdate:
 				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace, s.user, s.password)
 				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error reconciling target %s: %s", targetName, err.Error())
 					return err
 				} else {
 					// TODO: how to handle status updates?
@@ -506,9 +532,22 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			case v1alpha2.JobDelete:
 				_, err = s.apiClient.Reconcile(ctx, deployment, true, namespace, s.user, s.password)
 				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error reconciling instance %s with delete job action: %s", targetName, err.Error())
 					return err
 				} else {
-					return s.apiClient.DeleteTarget(ctx, targetName, namespace, s.user, s.password)
+					err = s.apiClient.DeleteTarget(ctx, targetName, namespace, s.user, s.password)
+					if err != nil {
+						log.ErrorfCtx(ctx, " M (Job): failed to target %s: %s", targetName, err.Error())
+						return err
+					} else {
+						log.DebugfCtx(ctx, " M (Job): delete target success state entry, target: %s", targetName)
+						s.VolatileStateProvider.Delete(ctx, states.DeleteRequest{
+							ID: "t_" + targetName,
+							Metadata: map[string]interface{}{
+								"namespace": namespace,
+							},
+						})
+					}
 				}
 			default:
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
@@ -526,6 +565,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == v1alpha2.JobUpdate {
 				_, err = s.apiClient.Reconcile(ctx, *deployment, false, namespace, s.user, s.password)
 				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error reconciling deployment: %s", err.Error())
 					return err
 				} else {
 					// TODO: how to handle status updates?
@@ -545,7 +585,16 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			if job.Action == v1alpha2.JobDelete {
 				_, err = s.apiClient.Reconcile(ctx, *deployment, true, namespace, s.user, s.password)
 				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error reconciling deployment with delete job action: %s", err.Error())
 					return err
+				} else {
+					log.DebugfCtx(ctx, " M (Job): delete deployment success state entry, deployment: %s", deployment.Instance.ObjectMeta.Name)
+					s.VolatileStateProvider.Delete(ctx, states.DeleteRequest{
+						ID: "d_" + deployment.Instance.ObjectMeta.Name,
+						Metadata: map[string]interface{}{
+							"namespace": namespace,
+						},
+					})
 				}
 			}
 		}
