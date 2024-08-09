@@ -11,7 +11,7 @@ var (
 			Name: "simple-chart-1",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 			},
@@ -22,7 +22,7 @@ var (
 			Name: "simple-chart-1",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0-nonexistent",
 				},
 			},
@@ -33,7 +33,7 @@ var (
 			Name: "simple-chart-1",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 				"values": Map{
@@ -50,7 +50,7 @@ var (
 			Name: "simple-chart-2",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 			},
@@ -62,7 +62,7 @@ var (
 			Name: "simple-chart-2",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0-non-existent",
 				},
 			},
@@ -343,7 +343,7 @@ var (
 			Name: "expressions-1",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 				"foo":                `@{{ $property("color") + ' ' + $property("OS") }}`,
@@ -361,7 +361,7 @@ var (
 			Name: "expressions-1",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 				"foo":                `${{ $property("will-fail") + ' ' + $property("OS") }}`,
@@ -401,7 +401,7 @@ var (
 			Name: "expressions-1-soln",
 			Properties: Map{
 				"chart": Map{
-					"repo":    "symphonycr.azurecr.io/simple-chart",
+					"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 					"version": "0.3.0",
 				},
 				"name":             "expressions-1-soln",
