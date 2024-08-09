@@ -17,10 +17,9 @@ import (
 type ActivationStatus struct {
 	Status               v1alpha2.State `json:"status,omitempty"`
 	StatusMessage        string         `json:"statusMessage,omitempty"`
-	ErrorMessage         string         `json:"errorMessage,omitempty"`
 	ActivationGeneration string         `json:"activationGeneration,omitempty"`
 	UpdateTime           string         `json:"updateTime,omitempty"`
-	StageHistory         []StageStatus  `json:"stagehistory,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
 }
 
 type StageStatus struct {

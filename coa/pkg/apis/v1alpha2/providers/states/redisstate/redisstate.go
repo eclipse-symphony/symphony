@@ -29,7 +29,7 @@ var rLog = logger.NewLogger("coa.runtime")
 
 const (
 	entryCountPerList = 100
-	separator         = ":"
+	separator         = "*"
 )
 
 type RedisStateProviderConfig struct {
