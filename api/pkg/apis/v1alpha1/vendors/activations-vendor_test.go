@@ -26,6 +26,7 @@ func createActivationsVendor() ActivationsVendor {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := activations.ActivationsManager{
 		StateProvider: stateProvider,
+		NeedValidate:  false,
 	}
 	vendor := ActivationsVendor{
 		ActivationsManager: &manager,

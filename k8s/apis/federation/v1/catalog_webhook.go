@@ -13,11 +13,10 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
-	"gopls-workspace/utils"
+	"gopls-workspace/constants"
 	"time"
 
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/eclipse-symphony/symphony/k8s/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -193,7 +192,7 @@ func (r *Catalog) validateCreateCatalog() error {
 func (r *Catalog) checkSchema() *field.Error {
 	if r.Spec.Metadata != nil {
 		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
-			schemaName = utils.ReplaceLastSeperator(schemaName, ":", constants.ResourceSeperator)
+			schemaName = api_utils.ConvertReferenceToObjectName(schemaName)
 			cataloglog.Info("Find schema name", "name", schemaName)
 			var catalogs CatalogList
 			err := myCatalogReaderClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{"metadata.name": schemaName}, client.Limit(1))

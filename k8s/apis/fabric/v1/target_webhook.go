@@ -8,16 +8,21 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
+
 	configutils "gopls-workspace/configutils"
 	"gopls-workspace/constants"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,7 +61,18 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		}
 		targetWebhookValidationMetrics = metrics
 	}
-
+	if projectConfig.UniqueDisplayNameForSolution {
+		model.UniqueNameTargetLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(model.Target, displayName, namespace)
+		}
+	}
+	model.TargetInstanceLookupFunc = func(ctx context.Context, targetName string, namespace string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(model.Instance, namespace, map[string]string{"target": targetName}, 1)
+		if err != nil {
+			return false, err
+		}
+		return len(instanceList.Items) > 0, nil
+	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -75,9 +91,7 @@ func (r *Target) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-	if projectConfig.UniqueDisplayNameForSolution {
-		r.Labels["displayName"] = r.Spec.DisplayName
-	}
+
 	if r.Spec.Scope == "" {
 		r.Spec.Scope = "default"
 	}
@@ -85,11 +99,18 @@ func (r *Target) Default() {
 	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
+
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		r.Labels["displayName"] = r.Spec.DisplayName
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-fabric-symphony-v1-target,mutating=false,failurePolicy=fail,sideEffects=None,groups=fabric.symphony,resources=targets,verbs=create;update,versions=v1,name=vtarget.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-fabric-symphony-v1-target,mutating=false,failurePolicy=fail,sideEffects=None,groups=fabric.symphony,resources=targets,verbs=create;update;delete,versions=v1,name=vtarget.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Target{}
 
@@ -135,7 +156,11 @@ func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) 
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
-	validationError := r.validateUpdateTarget()
+	oldTarget, ok := old.(*Target)
+	if !ok {
+		return nil, fmt.Errorf("expected a Target object")
+	}
+	validationError := r.validateUpdateTarget(oldTarget)
 	if validationError != nil {
 		targetWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -166,15 +191,18 @@ func (r *Target) ValidateDelete() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil, nil
+	return nil, r.validateDeleteTarget()
 }
 
 func (r *Target) validateCreateTarget() error {
 	var allErrs field.ErrorList
-
-	if err := r.validateUniqueNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertTargetState()
+	if err != nil {
+		return err
 	}
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+
 	if err := r.validateValidationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -187,38 +215,6 @@ func (r *Target) validateCreateTarget() error {
 	}
 
 	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
-}
-
-func (r *Target) validateUniqueNameOnCreate() *field.Error {
-	if projectConfig.UniqueDisplayNameForSolution {
-		targetlog.Info("validate unique display name", "name", r.Name)
-		var targets TargetList
-		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if len(targets.Items) != 0 {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
-		}
-	}
-	return nil
-}
-
-func (r *Target) validateUniqueNameOnUpdate() *field.Error {
-	if projectConfig.UniqueDisplayNameForSolution {
-		targetlog.Info("validate unique display name", "name", r.Name)
-		var targets TargetList
-		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
-		}
-	}
-	return nil
 }
 
 func (r *Target) validateValidationPolicy() *field.Error {
@@ -262,11 +258,18 @@ func (r *Target) validateReconciliationPolicy() *field.Error {
 	return nil
 }
 
-func (r *Target) validateUpdateTarget() error {
+func (r *Target) validateUpdateTarget(old *Target) error {
 	var allErrs field.ErrorList
-	if err := r.validateUniqueNameOnUpdate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertTargetState()
+	if err != nil {
+		return err
 	}
+	oldState, err := old.ConvertTargetState()
+	if err != nil {
+		return err
+	}
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldState)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateValidationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -280,7 +283,21 @@ func (r *Target) validateUpdateTarget() error {
 
 	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
 }
+func (r *Target) validateDeleteTarget() error {
+	var allErrs field.ErrorList
+	state, err := r.ConvertTargetState()
+	if err != nil {
+		return err
+	}
+	ErrorFields := state.ValidateDelete(context.TODO())
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
 
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+}
 func readTargetValidationTarget(target *Target, p configv1.ValidationPolicy) string {
 	if p.SelectorType == "topologies.bindings" && p.SelectorKey == "provider" {
 		for _, topology := range target.Spec.Topologies {
@@ -322,4 +339,19 @@ func extractTargetValidationPack(list TargetList, p configv1.ValidationPolicy) [
 		}
 	}
 	return pack
+}
+
+func (r *Target) ConvertTargetState() (model.TargetState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to target state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.TargetState{}, retErr
+	}
+	var state model.TargetState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.TargetState{}, retErr
+	}
+	return state, nil
 }

@@ -25,6 +25,7 @@ import (
 type InstancesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	NeedValidate  bool
 }
 
 func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -37,6 +38,12 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	s.NeedValidate = managers.NeedObjectValidate(config)
+	if s.NeedValidate {
+		model.UniqueNameInstanceLookupFunc = s.instanceUniqueNameLookup
+		model.SolutionLookupFunc = s.solutionLookup
+		model.TargetLookupFunc = s.targetLookup
 	}
 	return nil
 }
@@ -74,6 +81,18 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if t.NeedValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		state.ObjectMeta.Labels["displayName"] = state.Spec.DisplayName
+		state.ObjectMeta.Labels["solution"] = state.Spec.Solution
+		state.ObjectMeta.Labels["target"] = state.Spec.Target.Name
+		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
@@ -183,4 +202,19 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		return model.InstanceState{}, err
 	}
 	return ret, nil
+}
+
+func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+}
+
+func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, model.Instance, displayName, namespace)
+}
+func (t *InstancesManager) solutionLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, model.Solution, name, namespace)
+}
+func (t *InstancesManager) targetLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, model.Target, name, namespace)
 }

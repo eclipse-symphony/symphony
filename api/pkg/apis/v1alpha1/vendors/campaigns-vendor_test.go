@@ -52,6 +52,7 @@ func createCampaignsVendor() CampaignsVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
+	vendor.CampaignsManager.NeedValidate = false
 	return vendor
 }
 func TestCampaignsEndpoints(t *testing.T) {

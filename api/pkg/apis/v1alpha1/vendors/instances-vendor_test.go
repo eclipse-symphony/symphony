@@ -55,6 +55,7 @@ func createInstancesVendor() InstancesVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
+	vendor.InstancesManager.NeedValidate = false
 	return vendor
 }
 func TestInstancesEndpoints(t *testing.T) {

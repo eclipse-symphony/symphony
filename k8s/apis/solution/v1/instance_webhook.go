@@ -8,8 +8,10 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
@@ -17,6 +19,9 @@ import (
 	"time"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,12 +36,10 @@ import (
 
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
-var myInstanceClient client.Reader
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myInstanceClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
@@ -53,6 +56,19 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return err
 		}
 		instanceWebhookValidationMetrics = metrics
+	}
+
+	// Load validator functions
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		model.UniqueNameInstanceLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(model.Instance, displayName, namespace)
+		}
+	}
+	model.SolutionLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(model.Solution, name, namespace)
+	}
+	model.TargetLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(model.Target, name, namespace)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -73,12 +89,19 @@ func (r *Instance) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		r.Labels["displayName"] = r.Spec.DisplayName
-	}
+
 	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
+
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		r.Labels["displayName"] = r.Spec.DisplayName
+	}
+	r.Labels["solution"] = model.ConvertReferenceToObjectName(r.Spec.Solution)
+	r.Labels["target"] = r.Spec.Target.Name
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -129,7 +152,11 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
-	validationError := r.validateUpdateInstance()
+	oldInstance, ok := old.(*Instance)
+	if !ok {
+		return nil, fmt.Errorf("expected an Instance object")
+	}
+	validationError := r.validateUpdateInstance(oldInstance)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -165,10 +192,14 @@ func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 
 func (r *Instance) validateCreateInstance() error {
 	var allErrs field.ErrorList
-
-	if err := r.validateUniqueNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertInstanceState()
+	if err != nil {
+		return err
 	}
+	// TODO: add proper context
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -180,11 +211,19 @@ func (r *Instance) validateCreateInstance() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
 }
 
-func (r *Instance) validateUpdateInstance() error {
+func (r *Instance) validateUpdateInstance(old *Instance) error {
 	var allErrs field.ErrorList
-	if err := r.validateUniqueNameOnUpdate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertInstanceState()
+	if err != nil {
+		return err
 	}
+	oldState, err := old.ConvertInstanceState()
+	if err != nil {
+		return err
+	}
+	// TODO: add proper context
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldState)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -194,38 +233,6 @@ func (r *Instance) validateUpdateInstance() error {
 	}
 
 	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
-}
-
-func (r *Instance) validateUniqueNameOnCreate() *field.Error {
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instancelog.Info("validate unique display name", "name", r.Name)
-		var instances InstanceList
-		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if len(instances.Items) != 0 {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
-		}
-	}
-	return nil
-}
-
-func (r *Instance) validateUniqueNameOnUpdate() *field.Error {
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instancelog.Info("validate unique display name", "name", r.Name)
-		var instances InstanceList
-		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if !(len(instances.Items) == 0 || len(instances.Items) == 1 && instances.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
-		}
-	}
-	return nil
 }
 
 func (r *Instance) validateReconciliationPolicy() *field.Error {
@@ -246,4 +253,19 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 	}
 
 	return nil
+}
+
+func (r *Instance) ConvertInstanceState() (model.InstanceState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to instance state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.InstanceState{}, retErr
+	}
+	var state model.InstanceState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.InstanceState{}, retErr
+	}
+	return state, nil
 }

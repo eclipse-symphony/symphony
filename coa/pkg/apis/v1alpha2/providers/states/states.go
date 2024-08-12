@@ -8,7 +8,10 @@ package states
 
 import (
 	"context"
+	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	//"encoding/json"
@@ -60,4 +63,70 @@ type ListRequest struct {
 	FilterType  string                 `json:"filterType"`
 	FilterValue string                 `json:"filterValue"`
 	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+func GetObjectState(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, name string, namespace string) (interface{}, error) {
+	group, version, resource, kind := model.GetResourceMetadata(resourceType)
+
+	object, err := stateProvider.Get(ctx, GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     group,
+			"version":   version,
+			"resource":  resource,
+			"kind":      kind,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return object.Body, nil
+}
+
+func formatLabelSelector(labels map[string]string) string {
+	var parts []string
+	for key, value := range labels {
+		parts = append(parts, key+"="+value)
+	}
+	if len(parts) > 0 {
+		return strings.Join(parts, ",")
+	}
+	return ""
+}
+
+func ListObjectStateWithLabels(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, namespace string, labels map[string]string, count int64) ([]interface{}, error) {
+	group, version, resource, kind := model.GetResourceMetadata(resourceType)
+
+	list, _, err := stateProvider.List(ctx, ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     group,
+			"version":   version,
+			"resource":  resource,
+			"kind":      kind,
+		},
+		FilterType:  "label",
+		FilterValue: formatLabelSelector(labels),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var objectStateList []interface{}
+	for _, item := range list {
+		objectStateList = append(objectStateList, item.Body)
+	}
+	return objectStateList, nil
+}
+
+func GetObjectStateWithUniqueName(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, displayName string, namespace string) (interface{}, error) {
+	objectList, err := ListObjectStateWithLabels(ctx, stateProvider, resourceType, namespace, map[string]string{"displayName": displayName}, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(objectList) > 0 {
+		return objectList[0], nil
+	}
+	return nil, v1alpha2.NewCOAError(nil, string(resourceType)+" not found", v1alpha2.NotFound)
 }

@@ -25,6 +25,7 @@ import (
 type SolutionsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	NeedValidate  bool
 }
 
 func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -38,6 +39,12 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
+	s.NeedValidate = managers.NeedObjectValidate(config)
+	if s.NeedValidate {
+		model.SolutionInstanceLookupFunc = s.solutionInstanceLookup
+		model.SolutionContainerLookupFunc = s.solutionContainerLookup
+		model.UniqueNameSolutionLookupFunc = s.uniqueNameSolutionLookup
+	}
 	return nil
 }
 
@@ -48,6 +55,12 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespa
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if t.NeedValidate {
+		if err = t.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -74,6 +87,17 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if t.NeedValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		state.ObjectMeta.Labels["displayName"] = state.Spec.DisplayName
+		state.ObjectMeta.Labels["rootResource"] = state.Spec.RootResource
+		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
@@ -175,4 +199,30 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		return model.SolutionState{}, err
 	}
 	return ret, nil
+}
+
+func (t *SolutionsManager) ValidateCreateOrUpdate(ctx context.Context, state model.SolutionState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+}
+
+func (t *SolutionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return model.ValidateDelete(ctx, state, err)
+}
+
+func (t *SolutionsManager) solutionInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, model.Instance, namespace, map[string]string{"solution": name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(instanceList) > 0, nil
+}
+
+func (t *SolutionsManager) solutionContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, model.SolutionContainer, name, namespace)
+}
+
+func (t *SolutionsManager) uniqueNameSolutionLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, model.Solution, displayName, namespace)
 }

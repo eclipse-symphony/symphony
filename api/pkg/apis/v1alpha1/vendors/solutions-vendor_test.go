@@ -68,6 +68,7 @@ func createSolutionsVendor() SolutionsVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
+	vendor.SolutionsManager.NeedValidate = false
 	return vendor
 }
 func TestSolutionsOnSolutions(t *testing.T) {

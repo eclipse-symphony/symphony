@@ -8,13 +8,17 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"gopls-workspace/apis/dynamicclient"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 
 	configv1 "gopls-workspace/apis/config/v1"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +45,22 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	projectConfig = myConfig
+
+	model.SolutionInstanceLookupFunc = func(ctx context.Context, name string, namespace string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(model.Instance, namespace, map[string]string{"solution": name}, 1)
+		if err != nil {
+			return false, err
+		}
+		return len(instanceList.Items) > 0, nil
+	}
+	model.SolutionContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(model.SolutionContainer, name, namespace)
+	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		model.UniqueNameSolutionLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(model.Solution, displayName, namespace)
+		}
+	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -76,7 +96,6 @@ func (r *Solution) Default() {
 			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
 				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
 			}
-
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
@@ -90,7 +109,7 @@ func (r *Solution) Default() {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-solution,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutions,verbs=create;update,versions=v1,name=vsolution.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-solution,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutions,verbs=create;update;delete,versions=v1,name=vsolution.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Solution{}
 
@@ -117,7 +136,11 @@ func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
 
-	return nil, r.validateUpdateSolution()
+	oldSolution, ok := old.(*Solution)
+	if !ok {
+		return nil, fmt.Errorf("expected a Target object")
+	}
+	return nil, r.validateUpdateSolution(oldSolution)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -130,21 +153,17 @@ func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	return nil, nil
+	return nil, r.validateDeleteSolution()
 }
 
 func (r *Solution) validateCreateSolution() error {
 	var allErrs field.ErrorList
-
-	if err := r.validateUniqueNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertSolutionState()
+	if err != nil {
+		return err
 	}
-	if err := r.validateNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if err := r.validateRootResource(); err != nil {
-		allErrs = append(allErrs, err)
-	}
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -153,52 +172,55 @@ func (r *Solution) validateCreateSolution() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
 }
 
-func (r *Solution) validateUpdateSolution() error {
-	if projectConfig.UniqueDisplayNameForSolution {
-		var solutions SolutionList
-		err := mySolutionReaderClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
-		if err != nil {
-			return apierrors.NewInternalError(err)
-		}
-		if !(len(solutions.Items) == 0 || len(solutions.Items) == 1 && solutions.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-			return apierrors.NewBadRequest(fmt.Sprintf("solution display name '%s' is already taken", r.Spec.DisplayName))
-		}
-	}
-	return nil
-}
-
-func (r *Solution) validateUniqueNameOnCreate() *field.Error {
-	if projectConfig.UniqueDisplayNameForSolution {
-		solutionlog.Info("validate unique display name", "name", r.Name)
-		var solutions SolutionList
-		err := mySolutionReaderClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if len(solutions.Items) != 0 {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "solution display name is already taken")
-		}
-	}
-	return nil
-}
-
-func (r *Solution) validateNameOnCreate() *field.Error {
-	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
-}
-
-func (r *Solution) validateRootResource() *field.Error {
-	var solutionContainer SolutionContainer
-	err := mySolutionReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
+func (r *Solution) validateUpdateSolution(old *Solution) error {
+	var allErrs field.ErrorList
+	state, err := r.ConvertSolutionState()
 	if err != nil {
-		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid solution container")
+		return err
+	}
+	oldstate, err := old.ConvertSolutionState()
+	if err != nil {
+		return err
+	}
+	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldstate)
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+
+	if len(allErrs) == 0 {
+		return nil
 	}
 
-	if len(r.ObjectMeta.OwnerReferences) == 0 {
-		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
+	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+}
+
+func (r *Solution) validateDeleteSolution() error {
+	var allErrs field.ErrorList
+	state, err := r.ConvertSolutionState()
+	if err != nil {
+		return err
+	}
+	ErrorFields := state.ValidateDelete(context.TODO())
+	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+
+	if len(allErrs) == 0 {
+		return nil
 	}
 
-	return nil
+	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+}
+
+func (r *Solution) ConvertSolutionState() (model.SolutionState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to solution state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.SolutionState{}, retErr
+	}
+	var state model.SolutionState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.SolutionState{}, retErr
+	}
+	return state, nil
 }
 
 func (r *SolutionContainer) Default() {

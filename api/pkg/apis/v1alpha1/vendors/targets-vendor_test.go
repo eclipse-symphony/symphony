@@ -71,6 +71,7 @@ func createTargetsVendor() TargetsVendor {
 		},
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
+	vendor.TargetsManager.NeedValidate = false
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {

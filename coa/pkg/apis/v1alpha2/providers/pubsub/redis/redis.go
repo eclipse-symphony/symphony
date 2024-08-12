@@ -215,6 +215,7 @@ func (i *RedisPubSubProvider) worker() {
 	}
 }
 func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
+	mLog.Infof("  P (Redis PubSub) : processing message %s", msg.MessageID)
 	i.ClaimedMessages[msg.MessageID] = true
 	var evt v1alpha2.Event
 	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)

@@ -208,7 +208,8 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-		if entry.Status.UpdateTime == "" {
+		// If the activation is new and has no status, publish an activation event
+		if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels["statusMessage"] == "" {
 			c.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,

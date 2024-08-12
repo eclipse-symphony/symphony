@@ -20,6 +20,8 @@ import (
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -139,7 +141,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	solutionName := utils.ReplaceLastSeperator(instance.Spec.Solution, ":", constants.ResourceSeperator)
+	solutionName := api_utils.ConvertReferenceToObjectName(instance.Spec.Solution)
 	if err := r.Get(ctx, types.NamespacedName{Name: solutionName, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
 		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
 	}
@@ -242,7 +244,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
 
-	solutionName := utils.ReplaceLastSeperator(solObj.Name, constants.ResourceSeperator, ":")
+	solutionName := api_utils.ConvertObjectNameToReference(solObj.Name)
 	options := []client.ListOption{
 		client.InNamespace(solObj.Namespace),
 		client.MatchingFields{"spec.solution": solutionName},

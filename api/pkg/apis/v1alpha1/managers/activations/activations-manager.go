@@ -33,6 +33,7 @@ var log = logger.NewLogger("coa.runtime")
 type ActivationsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	NeedValidate  bool
 }
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -45,6 +46,10 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	s.NeedValidate = managers.NeedObjectValidate(config)
+	if s.NeedValidate {
+		model.CampaignLookupFunc = s.CampaignLookup
 	}
 	return nil
 }
@@ -109,6 +114,16 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if m.NeedValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		state.ObjectMeta.Labels["campaign"] = state.Spec.Campaign
+		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -208,6 +223,11 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 	activationState.Status = &current
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels["statusMessage"] = strings.ReplaceAll(current.Status.String(), " ", "")
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -221,9 +241,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"resource":  "activations",
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
-		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -255,6 +272,12 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 		return err
 	}
 
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels["statusMessage"] = strings.ReplaceAll(current.Status.String(), " ", "")
+
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
@@ -267,9 +290,6 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 			"resource":  "activations",
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
-		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -328,13 +348,20 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 	}
 
 	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
-	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
-		activationState.Status.Status = v1alpha2.Done
-	} else if latestStage.Status == v1alpha2.Paused {
-		activationState.Status.Status = v1alpha2.Paused
-	} else {
+	if latestStage.NextStage != "" {
 		activationState.Status.Status = v1alpha2.Running
+	} else {
+		activationState.Status.Status = latestStage.Status
 	}
 	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
+}
+
+func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+}
+
+func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, model.Campaign, name, namespace)
 }

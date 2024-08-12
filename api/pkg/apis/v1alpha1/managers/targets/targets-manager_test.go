@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
 )
@@ -68,4 +69,90 @@ func TestUpdateTargetStatus(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "test", state.ObjectMeta.Name)
 	assert.Equal(t, "test", state.Status.Properties["label"])
+}
+
+func TestCreateTargetWithSameDisplayName(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := TargetsManager{
+		StateProvider: stateProvider,
+		NeedValidate:  true,
+	}
+	model.UniqueNameTargetLookupFunc = manager.targetUniqueNameLookup
+	err := manager.UpsertState(context.Background(), "test-v-v1", model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test-v-v1",
+			Namespace: "default",
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: "test-v-v1",
+		},
+	})
+	assert.Nil(t, err)
+
+	err = manager.UpsertState(context.Background(), "test-v-v2", model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test-v-v2",
+			Namespace: "default",
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: "test-v-v1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "target displayName must be unique")
+}
+
+func TestDeleteTargetWithInstance(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := TargetsManager{
+		StateProvider: stateProvider,
+		NeedValidate:  true,
+	}
+	model.TargetInstanceLookupFunc = manager.targetInstanceLookup
+	stateProvider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "testinstance",
+			Body: map[string]interface{}{
+				"apiVersion": model.FabricGroup + "/v1",
+				"kind":       "Target",
+				"metadata": model.ObjectMeta{
+					Name:      "testinstance",
+					Namespace: "default",
+					Labels: map[string]string{
+						"target": "testtarget",
+					},
+				},
+				"spec": model.InstanceSpec{
+					DisplayName: "test",
+					Target: model.TargetSelector{
+						Name: "testtarget",
+					},
+				},
+			},
+			ETag: "1",
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FabricGroup,
+			"version":   "v1",
+			"resource":  "targets",
+			"kind":      "Target",
+		},
+	})
+
+	err := manager.UpsertState(context.Background(), "testtarget", model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "testtarget",
+			Namespace: "default",
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: "testtarget",
+		},
+	})
+	assert.Nil(t, err)
+	err = manager.DeleteSpec(context.Background(), "testtarget", "default")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Target has one or more associated instances")
 }

@@ -27,6 +27,7 @@ type TargetsManager struct {
 	managers.Manager
 	StateProvider    states.IStateProvider
 	RegistryProvider registry.IRegistryProvider
+	NeedValidate     bool
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -40,7 +41,11 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	} else {
 		return err
 	}
-
+	s.NeedValidate = managers.NeedObjectValidate(config)
+	if s.NeedValidate {
+		model.UniqueNameTargetLookupFunc = s.targetUniqueNameLookup
+		model.TargetInstanceLookupFunc = s.targetInstanceLookup
+	}
 	return nil
 }
 
@@ -51,6 +56,12 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if t.NeedValidate {
+		if err = t.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -77,6 +88,16 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if t.NeedValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		state.ObjectMeta.Labels["displayName"] = state.Spec.DisplayName
+		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
@@ -244,4 +265,26 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 		return model.TargetState{}, err
 	}
 	return ret, nil
+}
+
+func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+}
+
+func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return model.ValidateDelete(ctx, state, err)
+}
+
+func (t *TargetsManager) targetUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, model.Target, displayName, namespace)
+}
+
+func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, model.Instance, namespace, map[string]string{"target": name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(instanceList) > 0, nil
 }

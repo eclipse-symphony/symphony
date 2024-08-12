@@ -24,6 +24,7 @@ import (
 type CampaignsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	NeedValidate  bool
 }
 
 func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -36,6 +37,11 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	s.NeedValidate = managers.NeedObjectValidate(config)
+	if s.NeedValidate {
+		model.CampaignContainerLookupFunc = s.CampaignContainerLookup
+		model.CampaignActivationsLookupFunc = s.CampaignActivationsLookup
 	}
 	return nil
 }
@@ -98,6 +104,18 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	if m.NeedValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels["rootResource"] = state.Spec.RootResource
+		}
+		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -128,6 +146,12 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if m.NeedValidate {
+		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -174,4 +198,26 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		ret = append(ret, rt)
 	}
 	return ret, nil
+}
+
+func (t *CampaignsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CampaignState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+}
+
+func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return model.ValidateDelete(ctx, state, err)
+}
+
+func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, model.CampaignContainer, name, namespace)
+}
+
+func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, model.Activation, namespace, map[string]string{"campaign": name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(activationList) > 0, nil
 }

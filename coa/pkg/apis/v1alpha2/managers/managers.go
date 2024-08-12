@@ -243,3 +243,12 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 	}
 	return reporterProvider, nil
 }
+
+func NeedObjectValidate(config ManagerConfig) bool {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
+	if ok && stateProviderName != "providers.state.k8s" {
+		return true
+	} else {
+		return false
+	}
+}
