@@ -75,7 +75,7 @@ func Test(labeling bool) error {
 		}
 		os.Setenv("labelingEnabled", "true")
 	}
-	defer Cleanup()
+	//defer Cleanup()
 	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err

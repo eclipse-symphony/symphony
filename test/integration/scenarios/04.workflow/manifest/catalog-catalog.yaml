@@ -1,18 +1,41 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: sitecatalog-v-v1
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"federation.symphony/v1","kind":"Catalog","metadata":{"annotations":{},"name":"siteapp-v-v1","namespace":"default"},"spec":{"catalogType":"solution","properties":{"metadata":{"name":"siteapp:v1"},"spec":{"components":[{"metadata":{"service.ports":"[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]","service.type":"${{$config('webappconfig:v1','serviceType')}}"},"name":"web-app","properties":{"container.image":"${{$config('webappconfig:v1','image')}}","container.ports":"[{\"containerPort\":5000,\"protocol\":\"TCP\"}]","deployment.replicas":"#1"},"type":"container"}]}},"rootResource":"siteapp"}}
+  creationTimestamp: "2024-08-08T03:09:55Z"
+  generation: 1
+  name: siteapp-v-v1
+  namespace: default
+  ownerReferences:
+  - apiVersion: federation.symphony/v1
+    kind: CatalogContainer
+    name: siteapp
+    uid: 32ac05a5-20f5-4bd5-8835-dcdff2f1bef7
+  resourceVersion: "13812"
+  uid: 0312473f-3b0d-4238-8fb6-f36c69c31501
 spec:
-  rootResource: sitecatalog
-  catalogType: catalog
+  catalogType: solution
+  objectRef:
+    group: ""
+    kind: ""
+    name: ""
+    namespace: ""
+    siteId: ""
+    version: ""
   properties:
-    metadata: 
-      name: webappconfig:v1
-    spec: 
-      type: config
-      properties:
-        testA:
-          testB:
-            testC:
-              serviceType: "${{$config('webappconfig2:v1','test.dot.serviceType')}}"
-              image: "${{$config('webappconfig2:v1','`.testA.testB.images[] | select(.ver > 2) | .image`')}}"
+    metadata:
+      name: siteapp:v1
+    spec:
+      components:
+      - metadata:
+          service.ports: '[{"name":"port3011","port": 3011,"targetPort":5000}]'
+          service.type: ${{$config('webappconfig:v1','serviceType')}}
+        name: web-app
+        properties:
+          container.image: ${{$config('webappconfig:v1','image')}}
+          container.ports: '[{"containerPort":5000,"protocol":"TCP"}]'
+          deployment.replicas: '#1'
+        type: container
+  rootResource: siteapp

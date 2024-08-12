@@ -1,0 +1,126 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: catalogevalexpressions.federation.symphony
+spec:
+  group: federation.symphony
+  names:
+    kind: CatalogEvalExpression
+    listKind: CatalogEvalExpressionList
+    plural: catalogevalexpressions
+    singular: catalogevalexpression
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VirtualMachineStopAction is the Schema for the virtualmachinestopactions
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VirtualMachineStopActionSpec defines the desired state of
+              VirtualMachineStopActionSpec.
+            properties:
+              parentRef:
+                description: ParentRef is a reference to Resource on which this action
+                  is to be performed.
+                properties:
+                  apiGroup:
+                    description: API group
+                    type: string
+                  kind:
+                    description: Resource kind
+                    type: string
+                  name:
+                    description: Resource name
+                    type: string
+                  namespace:
+                    description: Namespace
+                    type: string
+                type: object
+            type: object
+          status:
+            description: VirtualMachineStopActionStatus defines the observed state
+              of VirtualMachineStopAction.
+            properties:
+              actionStatus:
+                description: ActionStatus contains information about result of performing
+                  the action.
+                properties:
+                  error:
+                    description: Error indicates the error that occurred for a failed
+                      attempt at performing action.
+                    properties:
+                      additionalInfo:
+                        description: AdditionalInfo contains error info.
+                        items:
+                          description: TypedErrorInfo captures the additional error
+                            info details when provisioning has failed.
+                          properties:
+                            info:
+                              description: Info contains category.
+                              properties:
+                                category:
+                                  description: Category contains any extra information
+                                    relevant to the error.
+                                  type: string
+                                recommendedAction:
+                                  description: RecommendedAction contains action user
+                                    can take relevant to the error.
+                                  type: string
+                                troubleshootingURL:
+                                  description: TroubleshootingURL contains link to
+                                    the troubleshooting steps.
+                                  type: string
+                              type: object
+                            type:
+                              description: Type contains ErrorInfo.
+                              type: string
+                          type: object
+                        type: array
+                      code:
+                        description: Code contains any error code associated with
+                          the message.
+                        type: string
+                      message:
+                        description: Message contains the string suitable for logging
+                          and human consumption.
+                        type: string
+                    type: object
+                  operationID:
+                    description: OperationID is the unique identifier for tracking
+                      this action.
+                    type: string
+                  output:
+                    description: Output of the action if succeeds.
+                    x-kubernetes-preserve-unknown-fields: true
+                  status:
+                    description: Status indicates current state of action progress.
+                    type: string
+                required:
+                - output
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
