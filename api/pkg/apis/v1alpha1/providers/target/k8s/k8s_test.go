@@ -349,17 +349,17 @@ func TestDeployment(t *testing.T) {
 	})
 
 	err = provider.deployComponents(ctx, span, "default", "name", map[string]string{
-		"service.ports": "[{\"name\":\"port8888\",\"port\":8888}]",
-		"service.annotation.service.beta.kubernetes.io/azure-load-balancer-resource-group": "MC_EVS_evsfoakssouth_southcentralus",
-		"service.annotation.service.beta.kubernetes.io/azure-dns-label-name":               "evsfoakssouth",
+		"service.ports": "[{\"name\":\"port80\",\"port\":80}]",
+		"service.annotation.nginx.ingress.kubernetes.io/canary":        "true",
+		"service.annotation.nginx.ingress.kubernetes.io/canary-weight": "50",
 		"service.type":           "LoadBalancer",
 		"service.loadBalancerIP": "20.189.28.227",
 	}, []model.ComponentSpec{
 		{
 			Name: "evs",
 			Properties: map[string]interface{}{
-				"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
-				"container.ports":           "[{\"containerPort\":8888}]",
+				"container.image":           "nginx",
+				"container.ports":           "[{\"containerPort\":80}]",
 				"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
@@ -479,8 +479,8 @@ func TestApply(t *testing.T) {
 				Component: model.ComponentSpec{
 					Name: "test-1",
 					Properties: map[string]interface{}{
-						"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
-						"container.ports":           "[{\"containerPort\":8888}]",
+						"container.image":           "prom/prometheus",
+						"container.ports":           "[{\"containerPort\":9090}]",
 						"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
 						"container.imagePullPolicy": "Always",
 						"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
@@ -501,8 +501,8 @@ func TestApply(t *testing.T) {
 				Component: model.ComponentSpec{
 					Name: "test-1",
 					Properties: map[string]interface{}{
-						"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
-						"container.ports":           "[{\"containerPort\":8888}]",
+						"container.image":           "prom/prometheus",
+						"container.ports":           "[{\"containerPort\":9090}]",
 						"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
 						"container.imagePullPolicy": "Always",
 						"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
