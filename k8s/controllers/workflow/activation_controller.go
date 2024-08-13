@@ -65,7 +65,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if activation.Status.UpdateTime == "" && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
 			resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
 			operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, activation.Annotations, constants.ActivityCategory_Activity, operationName, ctx, log)
+			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, activation.Annotations, operationName, ctx, log)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,
