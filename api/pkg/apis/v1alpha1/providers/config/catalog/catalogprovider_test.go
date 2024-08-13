@@ -58,6 +58,11 @@ func TestRead(t *testing.T) {
 								Type: "type",
 							},
 						},
+						"a": map[string]interface{}{
+							"b": map[string]interface{}{
+								"c": "nested",
+							},
+						},
 					},
 				},
 			}
@@ -103,6 +108,15 @@ func TestRead(t *testing.T) {
 	err = json.Unmarshal(data, &summary)
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
+
+	res, err = provider.Read("catalog1:v1", "a.b.c", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	var val string
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "nested", val)
 
 	res, err = provider.Read("catalog1:v1", "parentAttribute", nil)
 	assert.Nil(t, err)

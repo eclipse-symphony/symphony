@@ -17,6 +17,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/itchyny/gojq"
 	oJsonpath "github.com/oliveagle/jsonpath"
 	"k8s.io/client-go/util/jsonpath"
 	"sigs.k8s.io/yaml"
@@ -319,6 +320,35 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	} else {
 		return result, nil
 	}
+}
+
+func JsonParseProperty(properties map[string]interface{}, fieldPath string) (any, bool) {
+	query, err := gojq.Parse(formatPathForNestedJsonField(fieldPath))
+	if err != nil {
+		return nil, false
+	}
+
+	var value any
+	iter := query.Run(properties)
+	for {
+		result, ok := iter.Next()
+		if !ok {
+			// iterator terminates
+			break
+		}
+		if _, ok := result.(error); ok {
+			return nil, false
+		}
+		value = result
+	}
+	return value, value != nil
+}
+
+func formatPathForNestedJsonField(s string) string {
+	if len(s) == 0 || (len(s) > 0 && s[0] == '.') {
+		return s
+	}
+	return "." + s
 }
 
 func ReplaceSeperator(name string) string {

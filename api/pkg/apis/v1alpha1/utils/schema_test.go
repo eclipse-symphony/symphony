@@ -172,6 +172,23 @@ func TestInvalidType(t *testing.T) {
 	assert.True(t, result.Errors["invalid"].Valid == false)
 	assert.True(t, result.Errors["invalid"].Error != "")
 }
+func TestNestedType(t *testing.T) {
+	schema := Schema{
+		Rules: map[string]Rule{
+			"person.string": Rule{
+				Type: "string",
+			},
+		},
+	}
+	properties := map[string]interface{}{
+		"person": map[string]interface{}{
+			"string": "a",
+		},
+	}
+	result, err := schema.CheckProperties(properties, nil)
+	assert.Nil(t, err)
+	assert.True(t, result.Valid)
+}
 func TestRequired(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
@@ -182,6 +199,23 @@ func TestRequired(t *testing.T) {
 	}
 	properties := map[string]interface{}{
 		"required": "a",
+	}
+	result, err := schema.CheckProperties(properties, nil)
+	assert.Nil(t, err)
+	assert.True(t, result.Valid)
+}
+func TestNestedRequired(t *testing.T) {
+	schema := Schema{
+		Rules: map[string]Rule{
+			"person.required": Rule{
+				Required: true,
+			},
+		},
+	}
+	properties := map[string]interface{}{
+		"person": map[string]interface{}{
+			"required": "a",
+		},
 	}
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
@@ -212,6 +246,23 @@ func TestPattern(t *testing.T) {
 	}
 	properties := map[string]interface{}{
 		"pattern": "abc",
+	}
+	result, err := schema.CheckProperties(properties, nil)
+	assert.Nil(t, err)
+	assert.True(t, result.Valid)
+}
+func TestNestedPattern(t *testing.T) {
+	schema := Schema{
+		Rules: map[string]Rule{
+			"person.pattern": Rule{
+				Pattern: "^[a-z]+$",
+			},
+		},
+	}
+	properties := map[string]interface{}{
+		"person": map[string]interface{}{
+			"pattern": "abc",
+		},
 	}
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
@@ -276,6 +327,23 @@ func TestExpression(t *testing.T) {
 	}
 	properties := map[string]interface{}{
 		"expression": "13",
+	}
+	result, err := schema.CheckProperties(properties, nil)
+	assert.Nil(t, err)
+	assert.True(t, result.Valid)
+}
+func TestNestedExpression(t *testing.T) {
+	schema := Schema{
+		Rules: map[string]Rule{
+			"person.expression": Rule{
+				Expression: "${{$and($gt($val(),10),$lt($val(),20))}}",
+			},
+		},
+	}
+	properties := map[string]interface{}{
+		"person": map[string]interface{}{
+			"expression": "13",
+		},
 	}
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)

@@ -14,7 +14,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -90,7 +89,7 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	return ret, nil
 }
 func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
-	override = api_utils.ReplaceSeperator(override)
+	override = utils.ReplaceSeperator(override)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
@@ -110,13 +109,13 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
 	clog.Debug(" M (Catalog): Read, object: %s, field: %s", object, field)
 	namespace := m.getNamespaceFromContext(localcontext)
-	object = api_utils.ReplaceSeperator(object)
+	object = utils.ReplaceSeperator(object)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
 
-	if v, ok := catalog.Spec.Properties[field]; ok {
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
 		return m.traceValue(v, localcontext)
 	}
 
@@ -135,7 +134,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
 	clog.Debug(" M (Catalog): ReadObject, object: %s", object)
 	namespace := m.getNamespaceFromContext(localcontext)
-	object = api_utils.ReplaceSeperator(object)
+	object = utils.ReplaceSeperator(object)
 
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -265,11 +264,11 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 }
 func (m *CatalogConfigProvider) RemoveObject(object string) error {
 	clog.Debug(" M (Catalog): RemoveObject, object: %s", object)
-	object = api_utils.ReplaceSeperator(object)
+	object = utils.ReplaceSeperator(object)
 	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
 }
 
 func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {
-	catalog = api_utils.ReplaceSeperator(catalog)
+	catalog = utils.ReplaceSeperator(catalog)
 	return m.ApiClient.GetCatalog(context, catalog, "", m.Config.User, m.Config.Password)
 }

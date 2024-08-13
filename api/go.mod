@@ -23,6 +23,7 @@ require (
 	github.com/eclipse-symphony/symphony/packages/mage v0.0.0-00010101000000-000000000000
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/itchyny/gojq v0.12.16
 	github.com/princjef/mageutil v1.0.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	helm.sh/helm/v3 v3.14.4
@@ -47,6 +48,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/itchyny/timefmt-go v0.1.6 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
@@ -57,6 +59,7 @@ require (
 	github.com/onsi/gomega v1.31.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/redis/go-redis/v9 v9.5.3 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.45.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.45.0 // indirect
@@ -117,8 +120,8 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

@@ -58,7 +58,7 @@ func TestBasic_Catalogs(t *testing.T) {
 			catalogs = append(catalogs, item.GetName())
 		}
 		fmt.Printf("Catalogs: %v\n", catalogs)
-		if len(resources.Items) == 5 {
+		if len(resources.Items) == 7 {
 			break
 		}
 
