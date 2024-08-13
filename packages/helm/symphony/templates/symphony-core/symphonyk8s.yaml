@@ -26,9 +26,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.nextStage
-      name: Next Stage
-      type: string
     - jsonPath: .status.statusMessage
       name: Status
       type: string
@@ -67,26 +64,33 @@ spec:
             properties:
               activationGeneration:
                 type: string
-              errorMessage:
-                type: string
-              inputs:
-                x-kubernetes-preserve-unknown-fields: true
-              isActive:
-                type: boolean
-              nextStage:
-                type: string
-              outputs:
-                x-kubernetes-preserve-unknown-fields: true
-              stage:
-                type: string
+              stageHistory:
+                items:
+                  properties:
+                    errorMessage:
+                      type: string
+                    inputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    isActive:
+                      type: boolean
+                    nextStage:
+                      type: string
+                    outputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    stage:
+                      type: string
+                    status:
+                      type: integer
+                    statusMessage:
+                      type: string
+                  type: object
+                type: array
               status:
                 type: integer
               statusMessage:
                 type: string
               updateTime:
                 type: string
-            required:
-            - stage
             type: object
         type: object
     served: true
@@ -2269,6 +2273,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
+    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
     validationPolicies:
       model:
       - selectorType: properties

@@ -29,7 +29,7 @@ var rLog = logger.NewLogger("coa.runtime")
 
 const (
 	entryCountPerList = 100
-	separator         = ":"
+	separator         = "*"
 )
 
 type RedisStateProviderConfig struct {
@@ -146,7 +146,7 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 	if err != nil {
 		return entry.Value.ID, err
 	}
-	if entry.Options.UpdateStateOnly {
+	if entry.Options.UpdateStatusOnly {
 		var existing string
 		existing, err = r.Client.HGet(r.Ctx, key, "values").Result()
 		if err != nil {

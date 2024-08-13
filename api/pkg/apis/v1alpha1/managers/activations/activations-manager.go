@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -192,32 +194,18 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	defer observ_utils.CloseSpanWithError(span, &err)
 	lock.Lock()
 	defer lock.Unlock()
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.WorkflowGroup,
-			"resource":  "activations",
-			"namespace": namespace,
-		},
-	}
-	var entry states.StateEntry
-	entry, err = t.StateProvider.Get(ctx, getRequest)
-	if err != nil {
-		return err
-	}
 
 	var activationState model.ActivationState
-	bytes, _ := json.Marshal(entry.Body)
-	err = json.Unmarshal(bytes, &activationState)
+	activationState, err = t.GetState(ctx, name, namespace)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return err
 	}
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 	activationState.Status = &current
 
+	var entry states.StateEntry
+	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
 
 	upsertRequest := states.UpsertRequest{
@@ -230,12 +218,118 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"kind":      "Activation",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string, namespace string, current model.StageStatus) error {
+	ctx, span := observability.StartSpan("Activations Manager", ctx, &map[string]string{
+		"method": "ReportStageStatus",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	lock.Lock()
+	defer lock.Unlock()
+
+	var activationState model.ActivationState
+	activationState, err = t.GetState(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+
+	activationState.Status.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
+
+	err = mergeStageStatus(&activationState, current)
+	if err != nil {
+		return err
+	}
+
+	var entry states.StateEntry
+	entry.ID = activationState.ObjectMeta.Name
+	entry.Body = activationState
+
+	upsertRequest := states.UpsertRequest{
+		Value: entry,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": activationState.ObjectMeta.Namespace,
+			"kind":      "Activation",
+		},
+		Options: states.UpsertOption{
+			UpdateStatusOnly: true,
+		},
+	}
+	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func mergeStageStatus(activationState *model.ActivationState, current model.StageStatus) error {
+	if current.Outputs["__site"] == nil {
+		// The StageStatus is triggered locally
+		if activationState.Status.StageHistory == nil {
+			activationState.Status.StageHistory = make([]model.StageStatus, 0)
+		}
+		if len(activationState.Status.StageHistory) == 0 {
+			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
+		} else if activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1].Stage != current.Stage {
+			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
+		} else {
+			activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1] = current
+		}
+	} else {
+		// The StageStatus is triggered remotely
+		if activationState.Status.StageHistory == nil || len(activationState.Status.StageHistory) == 0 {
+			err := v1alpha2.NewCOAError(nil, "activation status doesn't has a parent stage history", v1alpha2.BadRequest)
+			return err
+		}
+		parentStageStatus := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
+		stage := utils.FormatAsString(current.Outputs["__stage"])
+		if stage != parentStageStatus.Stage {
+			err := v1alpha2.NewCOAError(nil, "remote job result doesn't match the latest stage, discard the result", v1alpha2.BadRequest)
+			return err
+		}
+		site := utils.FormatAsString(current.Outputs["__site"])
+		parentStageStatus.Outputs[fmt.Sprintf("%s.__status", site)] = current.Status.String()
+		output := map[string]interface{}{}
+		for k, v := range current.Outputs {
+			// remove outputs for internal tracking use
+			if !strings.HasPrefix(k, "__") {
+				output[k] = v
+			}
+		}
+		outputBytes, _ := json.Marshal(output)
+		parentStageStatus.Outputs[fmt.Sprintf("%s.__output", site)] = string(outputBytes)
+		parentStageStatus.Status = v1alpha2.Done
+		for k, v := range parentStageStatus.Outputs {
+			if strings.HasSuffix(k, "__status") {
+				if v != v1alpha2.Done.String() {
+					parentStageStatus.Status = v1alpha2.Paused
+					break
+				}
+			}
+		}
+		parentStageStatus.StatusMessage = parentStageStatus.Status.String()
+	}
+
+	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
+	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
+		activationState.Status.Status = v1alpha2.Done
+	} else if latestStage.Status == v1alpha2.Paused {
+		activationState.Status.Status = v1alpha2.Paused
+	} else {
+		activationState.Status.Status = v1alpha2.Running
+	}
+	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
 }

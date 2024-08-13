@@ -6,8 +6,9 @@ data:
   redis.conf: |
     protected-mode {{ include "symphony.protectedMode" . }}
     port {{ .Values.redis.port }}
+{{- if .Values.redis.persistentVolume.enabled }}
     appendonly yes
     appendfsync always
-    dir data
-    appenddirname appendonlydir
+    dir /data
+{{- end }}
   

@@ -9,8 +9,10 @@ package v1
 import (
 	"context"
 	"fmt"
+	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
+	"gopls-workspace/configutils"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,20 +28,21 @@ import (
 
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
-var myInstanceClient client.Client
+var myInstanceClient client.Reader
 var instanceWebhookValidationMetrics *metrics.Metrics
+var instanceProjectConfig *configv1.ProjectConfig
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myInstanceClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.displayName", func(rawObj client.Object) []string {
-		instance := rawObj.(*Instance)
-		return []string{instance.Spec.DisplayName}
-	})
+	myInstanceClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
 	})
-
+	myConfig, err := configutils.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+	instanceProjectConfig = myConfig
 	// initialize the controller operation metrics
 	if instanceWebhookValidationMetrics == nil {
 		metrics, err := metrics.New()
@@ -67,7 +70,9 @@ func (r *Instance) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		r.Labels["displayName"] = r.Spec.DisplayName
+	}
 	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
@@ -171,27 +176,33 @@ func (r *Instance) validateUpdateInstance() error {
 }
 
 func (r *Instance) validateUniqueNameOnCreate() *field.Error {
-	var instances InstanceList
-	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		instancelog.Info("validate unique display name", "name", r.Name)
+		var instances InstanceList
+		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if len(instances.Items) != 0 {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
+		if len(instances.Items) != 0 {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
+		}
 	}
 	return nil
 }
 
 func (r *Instance) validateUniqueNameOnUpdate() *field.Error {
-	var instances InstanceList
-	err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		instancelog.Info("validate unique display name", "name", r.Name)
+		var instances InstanceList
+		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if !(len(instances.Items) == 0 || len(instances.Items) == 1 && instances.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
+		if !(len(instances.Items) == 0 || len(instances.Items) == 1 && instances.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
+		}
 	}
 	return nil
 }
