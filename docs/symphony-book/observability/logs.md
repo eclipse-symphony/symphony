@@ -64,7 +64,7 @@ Body: Str(  P (Helm Target): Uninstalling chart name: e4k, namespace: alice-spri
 Attributes:
      -> scope: Str(coa.runtime.user.audits)
      -> resourceId: Str()
-     -> category: Str(Activity)
+     -> category: Str(UserAudits)
      -> caller-id: Str()
      -> correlationId: Str(2c37ddcd-96e8-4478-9ab4-eb6ed15bb553)
      -> resource-k8s-id: Str(default/self)
@@ -104,7 +104,7 @@ SeverityNumber: Trace2(2)
 Body: Str(memorystate.(*MemoryStateProvider).Get failed with error: Not Found: entry 'h_instance' is not found in namespace default)
 Attributes:
      -> location: Str()
-     -> category: Str(Activity)
+     -> category: Str(UserDiagnostics)
      -> properties: Str({})
      -> scope: Str(coa.runtime.user.diagnostics)
      -> type: Str(userDiagnostics)
@@ -214,7 +214,7 @@ Because application runtime logs are emitted by logrus, zaplogger or event fmt.p
 
 Sample: [symphony-otel-forwarder.yaml](../../../packages/helm/symphony/templates/symphony-core/symphony-otelforwarder.yaml)
 
-## Deplay Symphony with advanced log experience
+## Deploy Symphony with advanced log experience
 
 1. Enable application runtime logs, user diagnostics logs and user audits logs integration with default [open telemetry collector](https://opentelemetry.io/docs/collector/).
 
