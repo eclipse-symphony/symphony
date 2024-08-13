@@ -24,8 +24,8 @@ const (
 	// LogTypeUserDiagnostics is User Diagnostic log type
 	LogTypeUserDiagnostics = "userDiagnostics"
 
-	LogCategory_Audit       = "Audit"
-	LogCategory_Operational = "Operational"
+	LogCategory_UserAudits      = "UserAudits"
+	LogCategory_UserDiagnostics = "UserDiagnostics"
 
 	// Field names that defines Coa log schema
 	logFieldTimeStamp = "time"
@@ -170,12 +170,12 @@ func getLoggers() map[string]Logger {
 
 // newUserAuditsLogger creates new Logger instance for user audit log.
 func newUserAuditsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserAudits, LogCategory_Audit, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	return newUserLogger(name, LogTypeUserAudits, LogCategory_UserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 // newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
 func newUserDiagnosticsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserDiagnostics, LogCategory_Operational, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	return newUserLogger(name, LogTypeUserDiagnostics, LogCategory_UserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
 }
 
 func GetGlobalUserAuditsLogger() Logger {
