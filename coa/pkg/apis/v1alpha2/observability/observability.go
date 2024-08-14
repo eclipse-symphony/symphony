@@ -429,6 +429,9 @@ func (o *Observability) Shutdown(ctx context.Context) error {
 // Geneva only supports delta temporality.
 func genevaTemporality(ik sdkmetric.InstrumentKind) metricdata.Temporality {
 	switch ik {
+	case sdkmetric.InstrumentKindUpDownCounter,
+		sdkmetric.InstrumentKindObservableUpDownCounter:
+		return metricdata.CumulativeTemporality
 	default:
 		return metricdata.DeltaTemporality
 	}
