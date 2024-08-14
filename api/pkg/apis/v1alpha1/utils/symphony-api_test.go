@@ -9,25 +9,31 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	baseUrl  = "http://localhost:8090/v1alpha2/"
+	baseUrl  = "http://localhost:8080/v1alpha2/"
 	user     = "admin"
 	password = ""
 )
 
-var (
-	testApiClient ApiClient = &apiClient{
-		baseUrl: baseUrl,
+func getTestApiClient() *apiClient {
+	os.Setenv(constants.SymphonyAPIUrlEnvName, baseUrl)
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	apiClient, err := GetApiClient()
+	if err != nil {
+		panic(err)
 	}
-)
+	return apiClient
+}
 
 func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	testSymphonyApi := os.Getenv("TEST_SYMPHONY_API")
@@ -52,7 +58,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -157,7 +163,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default", user, password)
+	err = getTestApiClient().CreateTarget(context.Background(), targetName, target1, "default", user, password)
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -174,13 +180,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = testApiClient.CreateInstance(context.Background(), instanceName, instance1, "default", user, password)
+	err = getTestApiClient().CreateInstance(context.Background(), instanceName, instance1, "default", user, password)
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := testApiClient.GetInstances(context.Background(), "default", user, password)
+	instancesRes, err := getTestApiClient().GetInstances(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
@@ -190,7 +196,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
 	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
 
-	instanceRes, err := testApiClient.GetInstance(context.Background(), instanceName, "default", user, password)
+	instanceRes, err := getTestApiClient().GetInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
@@ -199,13 +205,13 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
 	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
 
-	err = testApiClient.DeleteTarget(context.Background(), targetName, "default", user, password)
+	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
-	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default", user, password)
+	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
 	require.NoError(t, err)
 
-	err = testApiClient.DeleteInstance(context.Background(), instanceName, "default", user, password)
+	err = getTestApiClient().DeleteInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
 }
 
@@ -215,38 +221,68 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
 	}
 
-	solutionName := "solution1"
-	solution1JsonObj := map[string]interface{}{
-		"name": "e4i-assets",
-		"type": "helm.v3",
-		"properties": map[string]interface{}{
-			"chart": map[string]interface{}{
-				"repo":    "e4ipreview.azurecr.io/helm/az-e4i-demo-assets",
-				"version": "0.4.0",
-			},
+	solutionContainerName := "solution"
+	solutionContainer := model.SolutionContainerState{
+		ObjectMeta: model.ObjectMeta{
+			Name: solutionContainerName,
 		},
+		Spec: &model.SolutionContainerSpec{},
 	}
 
-	solution1, err := json.Marshal(solution1JsonObj)
+	solutionContainer1, err := json.Marshal(solutionContainer)
 	if err != nil {
 		panic(err)
 	}
 
-	err = testApiClient.CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = getTestApiClient().CreateSolutionContainer(context.Background(), solutionContainerName, solutionContainer1, "default", user, password)
 	require.NoError(t, err)
 
-	solutionsRes, err := testApiClient.GetSolutions(context.Background(), "default", user, password)
+	solutionName := fmt.Sprintf("%s%s%s", solutionContainerName, constants.ResourceSeperator, "v1")
+	solution := model.SolutionState{
+		ObjectMeta: model.ObjectMeta{
+			Name: solutionName,
+		},
+		Spec: &model.SolutionSpec{
+			RootResource: solutionContainerName,
+			DisplayName:  solutionName,
+			Components: []model.ComponentSpec{
+				{
+					Name: "simple-chart-1",
+					Type: "helm.v3",
+					Properties: map[string]interface{}{
+						"chart": map[string]interface{}{
+							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
+							"version": "0.3.0",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	solution1, err := json.Marshal(solution)
+	if err != nil {
+		panic(err)
+	}
+
+	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	require.NoError(t, err)
+
+	solutionsRes, err := getTestApiClient().GetSolutions(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := testApiClient.GetSolution(context.Background(), solutionName, "default", user, password)
+	solutionRes, err := getTestApiClient().GetSolution(context.Background(), solutionName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = testApiClient.DeleteSolution(context.Background(), solutionName, "default", user, password)
+	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
+	require.NoError(t, err)
+
+	err = getTestApiClient().DeleteSolutionContainer(context.Background(), solutionContainerName, "default", user, password)
 	require.NoError(t, err)
 }
 
@@ -257,96 +293,49 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	}
 
 	targetName := "target1"
-	target1JsonObj := map[string]interface{}{
-		"id": "self",
-		"spec": map[string]interface{}{
-			"displayName": "int-virtual-02",
-			"scope":       "alice-springs",
-			"components": []interface{}{
-				map[string]interface{}{
-					"name": "observability",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
+	target := model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name: targetName,
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: targetName,
+			Scope:       "alice-springs",
+			Components: []model.ComponentSpec{
+				{
+					Name: "nginx-chart-1",
+					Type: "helm.v3",
+					Properties: map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "symphonycr.azurecr.io/sample-dashboard",
-							"version": "0.4.0-dev",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
 						},
 						"values": map[string]interface{}{
-							"obsConfig": map[string]interface{}{
-								"bluefin": true,
-								"e4i":     true,
-								"e4k":     true,
-							},
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "e4k",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
-							"version": "0.3.0",
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "e4i",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "e4ipreview.azurecr.io/helm/az-e4i",
-							"version": "0.4.0",
-						},
-						"values": map[string]interface{}{
-							"mqttBroker": map[string]interface{}{
-								"authenticationMethod": "serviceAccountToken",
-								"name":                 "azedge-dmqtt-frontend",
-								"namespace":            "alice-springs",
-							},
-							"opcPlcSimulation": map[string]interface{}{
-								"deploy": "true",
-							},
-							"openTelemetry": map[string]interface{}{
-								"enabled":  "true",
-								"endpoint": "http://otel-collector.alice-springs.svc.cluster.local:4317",
-								"protocol": "grpc",
-							},
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "bluefin",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"version": "0.1.2",
+							"replicaCount": 2,
 						},
 					},
 				},
 			},
-			"topologies": []interface{}{
-				map[string]interface{}{
-					"bindings": []interface{}{
-						map[string]interface{}{
-							"role":     "instance",
-							"provider": "providers.target.k8s",
-							"config": map[string]interface{}{
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "instance",
+							Provider: "providers.target.k8s",
+							Config: map[string]string{
 								"inCluster": "true",
 							},
 						},
-						map[string]interface{}{
-							"role":     "helm.v3",
-							"provider": "providers.target.helm",
-							"config": map[string]interface{}{
+						{
+							Role:     "helm.v3",
+							Provider: "providers.target.helm",
+							Config: map[string]string{
 								"inCluster": "true",
 							},
 						},
-						map[string]interface{}{
-							"role":     "yaml.k8s",
-							"provider": "providers.target.kubectl",
-							"config": map[string]interface{}{
+						{
+							Role:     "yaml.k8s",
+							Provider: "providers.target.kubectl",
+							Config: map[string]string{
 								"inCluster": "true",
 							},
 						},
@@ -355,33 +344,33 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 			},
 		},
 	}
-	target1, err := json.Marshal(target1JsonObj)
+	target1, err := json.Marshal(target)
 	require.NoError(t, err)
 
-	err = testApiClient.CreateTarget(context.Background(), targetName, target1, "default", user, password)
+	err = getTestApiClient().CreateTarget(context.Background(), targetName, target1, "default", user, password)
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
-	targetsRes, err := testApiClient.GetTargets(context.Background(), "default", user, password)
+	targetsRes, err := getTestApiClient().GetTargets(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
 	require.Equal(t, "default", targetsRes[0].ObjectMeta.Namespace)
 	require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
-	require.Equal(t, "OK", targetsRes[0].Status.Properties["status"])
+	require.Equal(t, "Succeeded", targetsRes[0].Status.Properties["status"])
 
-	targetRes, err := testApiClient.GetTarget(context.Background(), targetName, "default", user, password)
+	targetRes, err := getTestApiClient().GetTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
 	require.Equal(t, "default", targetRes.ObjectMeta.Namespace)
 	require.Equal(t, "1", targetRes.Status.Properties["targets"])
-	require.Equal(t, "OK", targetRes.Status.Properties["status"])
+	require.Equal(t, "Succeeded", targetRes.Status.Properties["status"])
 
-	err = testApiClient.DeleteTarget(context.Background(), targetName, "default", user, password)
+	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 }
 
