@@ -27,13 +27,16 @@ import (
 
 var log = logger.NewLogger("coa.runtime")
 
+const Scheduled = "Scheduled"
+
 type JobsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	apiClient     utils.ApiClient
-	interval      int32
-	user          string
-	password      string
+	PersistentStateProvider states.IStateProvider
+	VolatileStateProvider   states.IStateProvider
+	apiClient               utils.ApiClient
+	interval                int32
+	user                    string
+	password                string
 }
 
 type LastSuccessTime struct {
@@ -46,9 +49,15 @@ func (s *JobsManager) Init(vContext *contexts.VendorContext, config managers.Man
 		return err
 	}
 
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	volatilestateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
-		s.StateProvider = stateprovider
+		s.VolatileStateProvider = volatilestateprovider
+	} else {
+		return err
+	}
+	persistentStateProvider, err := managers.GetPersistentStateProvider(config, providers)
+	if err == nil {
+		s.PersistentStateProvider = persistentStateProvider
 	} else {
 		return err
 	}
@@ -82,25 +91,26 @@ func (s *JobsManager) Enabled() bool {
 }
 
 func (s *JobsManager) pollObjects() []error {
-	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollObjects",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if s.interval == 0 {
 		return nil
 	}
 
 	var instances []model.InstanceState
-	instances, err = s.apiClient.GetInstancesForAllNamespaces(context, s.user, s.password)
+	instances, err = s.apiClient.GetInstancesForAllNamespaces(ctx, s.user, s.password)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.ErrorfCtx(ctx, " M (Job): error getting instances: %s", err.Error())
 		return []error{err}
 	}
 	for _, instance := range instances {
 		var entry states.StateEntry
-		entry, err = s.StateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 			ID: "i_" + instance.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": instance.ObjectMeta.Namespace,
@@ -127,18 +137,19 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  instance.ObjectMeta.Namespace,
 				},
+				Context: ctx,
 			})
 		}
 	}
 	var targets []model.TargetState
-	targets, err = s.apiClient.GetTargetsForAllNamespaces(context, s.user, s.password)
+	targets, err = s.apiClient.GetTargetsForAllNamespaces(ctx, s.user, s.password)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.ErrorfCtx(ctx, " M (Job): error getting targets: %s", err.Error())
 		return []error{err}
 	}
 	for _, target := range targets {
 		var entry states.StateEntry
-		entry, err = s.StateProvider.Get(context, states.GetRequest{
+		entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 			ID: "t_" + target.ObjectMeta.Name,
 			Metadata: map[string]interface{}{
 				"namespace": target.ObjectMeta.Namespace,
@@ -165,6 +176,7 @@ func (s *JobsManager) pollObjects() []error {
 					Action: v1alpha2.JobUpdate,
 					Scope:  target.ObjectMeta.Namespace,
 				},
+				Context: ctx,
 			})
 		}
 	}
@@ -189,15 +201,22 @@ func (s *JobsManager) Poll() []error {
 }
 
 func (s *JobsManager) pollSchedules() []error {
-	context, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Job Manager", context.Background(), &map[string]string{
 		"method": "pollSchedules",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	//TODO: use filters and continue tokens
 	var list []states.StateEntry
-	list, _, err = s.StateProvider.List(context, states.ListRequest{})
+	list, _, err = s.PersistentStateProvider.List(ctx, states.ListRequest{
+		Metadata: map[string]interface{}{
+			"group":    model.WorkflowGroup,
+			"version":  "v1",
+			"resource": Scheduled,
+		},
+	})
 	if err != nil {
 		return []error{err}
 	}
@@ -217,17 +236,21 @@ func (s *JobsManager) pollSchedules() []error {
 			}
 			if fire {
 				activationData.Schedule = ""
-				err = s.StateProvider.Delete(context, states.DeleteRequest{
+				err = s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{
 						"namespace": activationData.Namespace,
+						"group":     model.WorkflowGroup,
+						"version":   "v1",
+						"resource":  Scheduled,
 					},
 				})
 				if err != nil {
 					return []error{err}
 				}
 				s.Context.Publish("trigger", v1alpha2.Event{
-					Body: activationData,
+					Body:    activationData,
+					Context: ctx,
 				})
 			}
 		}
@@ -244,6 +267,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(event.Body)
@@ -258,8 +282,8 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
-	log.Debugf(" M (Job): handling heartbeat h_%s", heartbeat.JobId)
-	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s", heartbeat.JobId)
+	_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   "h_" + heartbeat.JobId,
 			Body: heartbeat,
@@ -277,6 +301,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	key := "h_" + job.Id
 	if objectType == "target" {
@@ -284,7 +309,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	}
 	//check if a manager is working on the job
 	var entry states.StateEntry
-	entry, err = s.StateProvider.Get(ctx, states.GetRequest{
+	entry, err = s.VolatileStateProvider.Get(ctx, states.GetRequest{
 		ID: key,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -292,10 +317,10 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	})
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
-			log.Errorf(" M (Job): error getting heartbeat %s: %s", key, err.Error())
+			log.ErrorfCtx(ctx, " M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
-		log.Debugf(" M (Job): found heartbeat %s, entry: %+v", key, entry)
+		log.DebugfCtx(ctx, " M (Job): found heartbeat %s, entry: %+v", key, entry)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
@@ -322,6 +347,7 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var activationData v1alpha2.ActivationData
 	jData, _ := json.Marshal(event.Body)
@@ -330,13 +356,16 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
 	}
 	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
-	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	_, err = s.PersistentStateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   key,
 			Body: activationData,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": activationData.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  Scheduled,
 		},
 	})
 	return err
@@ -347,6 +376,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	namespace := model.ReadProperty(event.Metadata, "namespace", nil)
 	if namespace == "" {
@@ -368,13 +398,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 		switch objectType {
 		case "instance":
-			log.Debugf(" M (Job): handling instance job %s", job.Id)
+			log.DebugfCtx(ctx, " M (Job): handling instance job %s", job.Id)
 			instanceName := job.Id
 			var instance model.InstanceState
 			//get intance
 			instance, err = s.apiClient.GetInstance(ctx, instanceName, namespace, s.user, s.password)
 			if err != nil {
-				log.Errorf(" M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
+				log.ErrorfCtx(ctx, " M (Job): error getting instance %s, namespace: %s: %s", instanceName, namespace, err.Error())
 				return err //TODO: instance is gone
 			}
 
@@ -408,7 +438,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var deployment model.DeploymentSpec
 			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil, namespace)
 			if err != nil {
-				log.Errorf(" M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
+				log.ErrorfCtx(ctx, " M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
 			}
 
@@ -417,10 +447,10 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			case v1alpha2.JobUpdate:
 				_, err = s.apiClient.Reconcile(ctx, deployment, false, namespace, s.user, s.password)
 				if err != nil {
-					log.Errorf(" M (Job): error reconciling instance %s: %s", instanceName, err.Error())
+					log.ErrorfCtx(ctx, " M (Job): error reconciling instance %s: %s", instanceName, err.Error())
 					return err
 				} else {
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "i_" + instance.ObjectMeta.Name,
 							Body: LastSuccessTime{
@@ -461,7 +491,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					return err
 				} else {
 					// TODO: how to handle status updates?
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "t_" + targetName,
 							Body: LastSuccessTime{
@@ -484,8 +514,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return v1alpha2.NewCOAError(nil, "unsupported action", v1alpha2.BadRequest)
 			}
 		case "deployment":
-			log.Infof(" M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
-			log.Infof(" M (Job): deployment spec: %s", string(job.Data))
+			log.InfofCtx(ctx, " M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
+			// expressions are not evaluated at this step so printing deployment sepc should be safe (TODO: observe)
+			log.InfofCtx(ctx, " M (Job): handling deployment spec: %s", string(job.Data))
 
 			var deployment *model.DeploymentSpec
 			deployment, err = model.ToDeployment(job.Data)
@@ -498,7 +529,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 					return err
 				} else {
 					// TODO: how to handle status updates?
-					s.StateProvider.Upsert(ctx, states.UpsertRequest{
+					s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 						Value: states.StateEntry{
 							ID: "d_" + deployment.Instance.ObjectMeta.Name,
 							Body: LastSuccessTime{

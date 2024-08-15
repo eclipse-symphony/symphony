@@ -48,7 +48,7 @@ func TestDevicesVendorInit(t *testing.T) {
 				Name: "devices-manager",
 				Type: "managers.symphony.devices",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

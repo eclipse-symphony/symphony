@@ -245,6 +245,7 @@ func TestApply(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",
@@ -312,7 +313,7 @@ func TestGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "abc",
@@ -343,6 +344,7 @@ func TestGet(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
 	config := StagingTargetProviderConfig{
 		Name:       "default",
@@ -396,7 +398,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-v1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:

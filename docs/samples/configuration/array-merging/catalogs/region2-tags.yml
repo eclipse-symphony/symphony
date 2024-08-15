@@ -1,9 +1,15 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: region2
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: region2-tags
+  name: region2-v-tags
 spec:
+  rootResource: region2
   catalogType: config
   properties:
     tags: [
@@ -15,8 +21,9 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: region2-config
+  name: region2-v-config
 spec:
+  rootResource: region2
   catalogType: config
   properties:
     name: "tags-region2"

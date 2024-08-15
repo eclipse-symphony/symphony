@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/secret"
 	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	delaystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
@@ -20,6 +21,7 @@ import (
 	materialize "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
 	mockstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	patchstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/patch"
+	proxystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/proxy"
 	remotestage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
 	scriptstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/script"
 	waitstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
@@ -57,6 +59,7 @@ import (
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/redisstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
@@ -93,6 +96,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.state.k8s":
 		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.state.redis":
+		mProvider := &redisstate.RedisStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -159,6 +168,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.counter":
 		mProvider := &counterstage.CounterStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.proxy":
+		mProvider := &proxystage.ProxyStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -267,6 +282,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.secret.mock":
 		mProvider := &mocksecret.MockSecretProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.secret.k8s":
+		mProvider := &secret.K8sSecretProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -502,6 +523,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.ledger.mock":
 					provider := &mockledger.MockLedgerProvider{}
@@ -633,6 +655,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.stage.patch":
 					provider := &patchstage.PatchStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.proxy":
+					provider := &proxystage.ProxyStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

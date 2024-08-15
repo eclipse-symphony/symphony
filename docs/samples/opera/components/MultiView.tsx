@@ -121,8 +121,8 @@ function MultiView(props: MultiViewProps) {
                             ))}                    
                         </Tabs>
                     </NavbarContent>
-                )}
-                <Filter onSelectFilter={handleFilterChange} />     
+                )}                
+                <Filter onSelectFilter={handleFilterChange} />                
             </Navbar>
             <div className='view_container'>
                 <Tabs isDisabled aria-label="Options" selectedKey={`c${selected}`}>

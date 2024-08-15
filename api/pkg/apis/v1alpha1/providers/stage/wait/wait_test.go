@@ -75,6 +75,7 @@ func TestWaitInitFromVendorMapForNonServiceAccount(t *testing.T) {
 func TestWaitProcess(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	config := map[string]string{
 		"baseUrl":       ts.URL + "/",
 		"user":          "admin",

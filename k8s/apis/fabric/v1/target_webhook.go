@@ -8,6 +8,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	configutils "gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,20 +32,19 @@ import (
 
 // log is for logging in this package.
 var targetlog = logf.Log.WithName("target-resource")
-var myTargetClient client.Client
+var myTargetClient client.Reader
 var targetValidationPolicies []configv1.ValidationPolicy
 var targetWebhookValidationMetrics *metrics.Metrics
+var projectConfig *configv1.ProjectConfig
 
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myTargetClient = mgr.GetClient()
-
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Target{}, "spec.displayName", func(rawObj client.Object) []string {
-		target := rawObj.(*Target)
-		return []string{target.Spec.DisplayName}
-	})
-
-	dict, _ := configutils.GetValidationPoilicies()
-	if v, ok := dict["target"]; ok {
+	myTargetClient = mgr.GetAPIReader()
+	myConfig, err := configutils.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+	projectConfig = myConfig
+	if v, ok := projectConfig.ValidationPolicies["target"]; ok {
 		targetValidationPolicies = v
 	}
 
@@ -73,7 +75,9 @@ func (r *Target) Default() {
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-
+	if projectConfig.UniqueDisplayNameForSolution {
+		r.Labels["displayName"] = r.Spec.DisplayName
+	}
 	if r.Spec.Scope == "" {
 		r.Spec.Scope = "default"
 	}
@@ -92,6 +96,12 @@ var _ webhook.Validator = &Target{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateCreate() (admission.Warnings, error) {
 	targetlog.Info("validate create", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), targetlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateTarget()
@@ -118,6 +128,12 @@ func (r *Target) ValidateCreate() (admission.Warnings, error) {
 func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	targetlog.Info("validate update", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), targetlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	validateUpdateTime := time.Now()
 	validationError := r.validateUpdateTarget()
 	if validationError != nil {
@@ -142,6 +158,12 @@ func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateDelete() (admission.Warnings, error) {
 	targetlog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), targetlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
@@ -168,30 +190,34 @@ func (r *Target) validateCreateTarget() error {
 }
 
 func (r *Target) validateUniqueNameOnCreate() *field.Error {
-	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		targetlog.Info("validate unique display name", "name", r.Name)
+		var targets TargetList
+		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if len(targets.Items) != 0 {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		if len(targets.Items) != 0 {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		}
 	}
-
 	return nil
 }
 
 func (r *Target) validateUniqueNameOnUpdate() *field.Error {
-	var targets TargetList
-	err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingFields{"spec.displayName": r.Spec.DisplayName})
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		targetlog.Info("validate unique display name", "name", r.Name)
+		var targets TargetList
+		err := myTargetClient.List(context.Background(), &targets, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		if !(len(targets.Items) == 0 || len(targets.Items) == 1 && targets.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "target display name is already taken")
+		}
 	}
-
 	return nil
 }
 

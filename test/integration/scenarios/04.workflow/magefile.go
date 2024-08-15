@@ -11,12 +11,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
+	"gopkg.in/yaml.v2"
 )
 
 // Test config
@@ -35,6 +36,11 @@ var (
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
+
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
@@ -42,6 +48,7 @@ var (
 	}
 
 	testCampaign = []string{
+		"test/integration/scenarios/04.workflow/manifest/campaign-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/campaign.yaml",
 	}
 
@@ -53,14 +60,25 @@ var (
 	testVerify = []string{
 		"./verify/...",
 	}
+
+	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
+
+	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
 )
 
 // Entry point for running the tests
-func Test() error {
+func Test(labeling bool) error {
 	fmt.Println("Running ", TEST_NAME)
 
+	if labeling {
+		err := modifyYAML("localtest", "management.azure.com/azureName")
+		if err != nil {
+			return err
+		}
+		os.Setenv("labelingEnabled", "true")
+	}
 	defer Cleanup()
-	err := SetupCluster()
+	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err
 	}
@@ -74,28 +92,12 @@ func Test() error {
 		if err != nil {
 			return err
 		}
+		err = FaultTest(namespace)
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
-}
-
-// Prepare the cluster
-// Run this manually to prepare your local environment for testing/debugging
-func SetupCluster() error {
-	// Deploy symphony
-	err := localenvCmd("cluster:deploy", "")
-	if err != nil {
-		return err
-	}
-	// Wait a few secs for symphony cert to be ready;
-	// otherwise we will see error when creating symphony manifests in the cluster
-	// <Error from server (InternalError): error when creating
-	// "/mnt/vss/_work/1/s/test/integration/scenarios/basic/manifest/target.yaml":
-	// Internal error occurred: failed calling webhook "mtarget.kb.io": failed to
-	// call webhook: Post
-	// "https://symphony-webhook-service.default.svc:443/mutate-symphony-microsoft-com-v1-target?timeout=10s":
-	// x509: certificate signed by unknown authority>
-	time.Sleep(time.Second * 10)
 	return nil
 }
 
@@ -175,25 +177,32 @@ func Verify() error {
 	return nil
 }
 
+func FaultTest(namespace string) error {
+	repoPath := os.Getenv("REPO_PATH")
+	if repoPath == "" {
+		repoPath = "../../../../"
+	}
+	var err error
+	CampaignNotExistActivationAbs := filepath.Join(repoPath, CampaignNotExistActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", CampaignNotExistActivationAbs, namespace)).Run()
+	if err == nil {
+		return fmt.Errorf("fault test failed for non-existing campaign")
+	}
+	WithStageActivationAbs := filepath.Join(repoPath, WithStageActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", WithStageActivationAbs, namespace)).Run()
+	if err == nil {
+		return fmt.Errorf("fault test failed for non-existing campaign")
+	}
+	return nil
+}
+
 // Clean up
 func Cleanup() {
-	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", TEST_NAME), "")
-	localenvCmd("destroy all", "")
-}
-
-// Run a mage command from /localenv
-func localenvCmd(mageCmd string, flavor string) error {
-	return shellExec(fmt.Sprintf("cd ../../../localenv && mage %s %s", mageCmd, flavor))
-}
-
-func shellExec(cmd string) error {
-	fmt.Println("> ", cmd)
-
-	execCmd := exec.Command("sh", "-c", cmd)
-	execCmd.Stdout = os.Stdout
-	execCmd.Stderr = os.Stderr
-
-	return execCmd.Run()
+	err := modifyYAML("", "")
+	if err != nil {
+		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
+	}
+	testhelpers.Cleanup(TEST_NAME)
 }
 
 func writeYamlStringsToFile(yamlString string, filePath string) error {
@@ -204,6 +213,44 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 	defer file.Close()
 
 	_, err = file.Write([]byte(yamlString))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func modifyYAML(v string, annotationKey string) error {
+	// Read the YAML file
+	data, err := os.ReadFile("../../../localenv/symphony-ghcr-values.yaml")
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal the YAML data into a map
+	var values map[string]interface{}
+	err = yaml.Unmarshal(data, &values)
+	if err != nil {
+		return err
+	}
+
+	// Modify the 'api' fields
+	if api, ok := values["api"].(map[interface{}]interface{}); ok {
+		api["labelKey"] = v
+		api["labelValue"] = v
+		api["annotationKey"] = annotationKey
+	} else {
+		return fmt.Errorf("'api' field is not a map")
+	}
+
+	// Marshal the map back into YAML
+	data, err = yaml.Marshal(values)
+	if err != nil {
+		return err
+	}
+
+	// Write the modified YAML data back to the file
+	err = os.WriteFile("../../../localenv/symphony-ghcr-values.yaml", data, 0644)
 	if err != nil {
 		return err
 	}

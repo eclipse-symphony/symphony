@@ -44,10 +44,10 @@ func TestRead(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1-v1":
+		case "/catalogs/registry/catalog1-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1-v1",
+					Name: "catalog1-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					ParentName: "parent:v1",
@@ -61,10 +61,10 @@ func TestRead(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v1":
+		case "/catalogs/registry/parent-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v1",
+					Name: "parent-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -85,6 +85,7 @@ func TestRead(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -119,10 +120,10 @@ func TestReadObject(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1-v1":
+		case "/catalogs/registry/catalog1-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1-v1",
+					Name: "catalog1-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					ParentName: "parent:v1",
@@ -134,10 +135,10 @@ func TestReadObject(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v1":
+		case "/catalogs/registry/parent-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v1",
+					Name: "parent-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{

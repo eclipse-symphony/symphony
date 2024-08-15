@@ -61,6 +61,7 @@ function CatalogEditor(props: CatalogEditorProps) {
             properties: {},
             generation: ""
         };
+        
         if (data.schema) {
             catalog.metadata = {
                 "schema": typeof data.schema === 'string' ? data.schema: ''

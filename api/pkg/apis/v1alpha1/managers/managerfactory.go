@@ -8,7 +8,9 @@ package managers
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogcontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
@@ -16,9 +18,11 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/secrets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/skills"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
@@ -57,6 +61,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &devices.DevicesManager{}
 	case "managers.symphony.solutions":
 		manager = &solutions.SolutionsManager{}
+	case "managers.symphony.solutioncontainers":
+		manager = &solutioncontainers.SolutionContainersManager{}
 	case "managers.symphony.instances":
 		manager = &instances.InstancesManager{}
 	case "managers.symphony.users":
@@ -65,8 +71,12 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &jobs.JobsManager{}
 	case "managers.symphony.campaigns":
 		manager = &campaigns.CampaignsManager{}
+	case "managers.symphony.campaigncontainers":
+		manager = &campaigncontainers.CampaignContainersManager{}
 	case "managers.symphony.catalogs":
 		manager = &catalogs.CatalogsManager{}
+	case "managers.symphony.catalogcontainers":
+		manager = &catalogcontainers.CatalogContainersManager{}
 	case "managers.symphony.activations":
 		manager = &activations.ActivationsManager{}
 	case "managers.symphony.activationscleanup":
@@ -75,6 +85,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &stage.StageManager{}
 	case "managers.symphony.configs":
 		manager = &configs.ConfigsManager{}
+	case "managers.symphony.secrets":
+		manager = &secrets.SecretsManager{}
 	case "managers.symphony.sites":
 		manager = &sites.SitesManager{}
 	case "managers.symphony.staging":

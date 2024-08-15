@@ -17,10 +17,11 @@ type (
 	}
 
 	SolutionSpec struct {
-		DisplayName string            `yaml:"displayName,omitempty"`
-		Scope       string            `yaml:"scope,omitempty"`
-		Metadata    map[string]string `yaml:"metadata,omitempty"`
-		Components  []ComponentSpec   `yaml:"components,omitempty"`
+		DisplayName  string            `yaml:"displayName,omitempty"`
+		Scope        string            `yaml:"scope,omitempty"`
+		Metadata     map[string]string `yaml:"metadata,omitempty"`
+		Components   []ComponentSpec   `yaml:"components,omitempty"`
+		RootResource string            `yaml:"rootResource"`
 	}
 
 	// Target describes the structure of symphony target yaml file
@@ -85,5 +86,15 @@ type (
 	ParameterDefinition struct {
 		Type         string      `yaml:"type"`
 		DefaultValue interface{} `yaml:"default"`
+	}
+
+	SolutionContainer struct {
+		ApiVersion string                `yaml:"apiVersion"`
+		Kind       string                `yaml:"kind"`
+		Metadata   Metadata              `yaml:"metadata"`
+		Spec       SolutionContainerSpec `yaml:"spec"`
+	}
+
+	SolutionContainerSpec struct {
 	}
 )

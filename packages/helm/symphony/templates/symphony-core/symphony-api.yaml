@@ -52,7 +52,6 @@ spec:
                 fieldPath: spec.serviceAccountName
           - name: SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME
             value: '{{ include "symphony.fullname" . }}-controller-manager'
-
         envFrom:
         - secretRef:
             name: {{ include "symphony.fullname" . }}-auth
@@ -88,6 +87,10 @@ spec:
         volumeMounts:
         - name: redis-config
           mountPath: /usr/var/redis
+        {{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-data
+          mountPath: /data
+        {{- end }}
       {{- end}}
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
@@ -124,4 +127,9 @@ spec:
             items:
             - key: redis.conf
               path: redis.conf
+        {{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+        {{- end }}
         {{- end }}

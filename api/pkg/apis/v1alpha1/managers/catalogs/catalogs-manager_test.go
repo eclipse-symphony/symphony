@@ -38,7 +38,6 @@ var catalogState = model.CatalogState{
 			"property2": "value2",
 		},
 		ParentName: "parent1",
-		Generation: "1",
 		Metadata: map[string]string{
 			"metadata1": "value1",
 			"metadata2": "value2",
@@ -56,7 +55,7 @@ func initalizeManager() error {
 	manager = CatalogsManager{}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.persistentstate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)

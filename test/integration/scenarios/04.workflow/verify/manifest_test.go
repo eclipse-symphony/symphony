@@ -140,6 +140,27 @@ func TestBasic_ActivationStatus(t *testing.T) {
 		status := state.Status.Status
 		fmt.Printf("Current activation status: %s\n", status)
 		if status == v1alpha2.Done {
+			require.Equal(t, 3, len(state.Status.StageHistory))
+			require.Equal(t, "wait", state.Status.StageHistory[0].Stage)
+			require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
+			require.Equal(t, []interface{}{"sitecatalog:v1", "siteapp:v1", "sitek8starget:v1", "siteinstance:v1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
+			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
+			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -190,6 +211,36 @@ func TestBasic_TargetStatus(t *testing.T) {
 	}
 }
 
+// Verify target has correct labels
+func TestAdvance_TargetLabel(t *testing.T) {
+	fmt.Printf("Checking Target\n")
+	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
+	if namespace == "" {
+		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "true" {
+		expectedResult = "localtest"
+	}
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	resource, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "fabric.symphony",
+		Version:  "v1",
+		Resource: "targets",
+	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result := getLabels(*resource)
+	fmt.Printf("The target is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
+}
+
 // Verify instance has correct status
 func TestBasic_InstanceStatus(t *testing.T) {
 	fmt.Printf("Checking Instances\n")
@@ -223,6 +274,129 @@ func TestBasic_InstanceStatus(t *testing.T) {
 		sleepDuration, _ := time.ParseDuration("30s")
 		time.Sleep(sleepDuration)
 	}
+}
+
+// Verify instance has correct labels
+func TestAdvance_InstanceLabel(t *testing.T) {
+	fmt.Printf("Checking Target\n")
+	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
+	if namespace == "" {
+		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "true" {
+		expectedResult = "localtest"
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	resource, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "solution.symphony",
+		Version:  "v1",
+		Resource: "instances",
+	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result := getLabels(*resource)
+	fmt.Printf("The instance is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
+}
+
+// Verify solution has correct labels
+func TestAdvance_SolutionLabel(t *testing.T) {
+	fmt.Printf("Checking Target\n")
+	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
+	if namespace == "" {
+		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "true" {
+		expectedResult = "localtest"
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	resource, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "solution.symphony",
+		Version:  "v1",
+		Resource: "solutions",
+	}).Namespace(namespace).Get(context.Background(), "siteapp-v-v1", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result := getLabels(*resource)
+	fmt.Printf("The solution is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
+
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "solution.symphony",
+		Version:  "v1",
+		Resource: "solutioncontainers",
+	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result = getLabels(*resource)
+	fmt.Printf("The solution container is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
+}
+
+// Verify Catalog has correct labels
+func TestAdvance_CatalogLabel(t *testing.T) {
+	fmt.Printf("Checking Target\n")
+	namespace := os.Getenv("NAMESPACE")
+	labelingEnabled := os.Getenv("labelingEnabled")
+	if namespace == "" {
+		namespace = "default"
+	}
+	expectedResult := "nolabel"
+	if labelingEnabled == "true" {
+		expectedResult = "localtest"
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	resource, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "federation.symphony",
+		Version:  "v1",
+		Resource: "catalogs",
+	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-v1", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result := getLabels(*resource)
+	fmt.Printf("The catalog is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
+
+	annotations := getAnnotations(*resource)
+	fmt.Printf("The instance is annotated with: %s\n", annotations)
+	require.Equal(t, expectedResult, annotations)
+
+	resource, err = dyn.Resource(schema.GroupVersionResource{
+		Group:    "federation.symphony",
+		Version:  "v1",
+		Resource: "catalogcontainers",
+	}).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	result = getLabels(*resource)
+	fmt.Printf("The catalog container is labeled with: %s\n", result)
+	require.Equal(t, expectedResult, result)
 }
 
 // Verify that the pods we expect are running in the namespace
@@ -288,4 +462,44 @@ func getStatus(resource unstructured.Unstructured) string {
 	}
 
 	return ""
+}
+
+// Helper for finding the labels
+func getLabels(resource unstructured.Unstructured) string {
+	labels := resource.GetLabels()
+	if labels != nil {
+		labelValue, ok := labels["localtest"]
+		if ok {
+			if labelValue == "localtest" {
+				return labelValue
+			} else {
+				return "wronglabel"
+			}
+		} else {
+			return "nolabel"
+		}
+	} else {
+		return "nolabel"
+	}
+}
+
+// Helper for finding the annotations
+func getAnnotations(resource unstructured.Unstructured) string {
+	annos := resource.GetAnnotations()
+	name := resource.GetName()
+	if annos != nil && name != "" {
+		azureName, ok := annos["management.azure.com/azureName"]
+		if ok {
+			parts := strings.Split(name, "-v-")
+			if azureName == parts[1] {
+				return "localtest"
+			} else {
+				return "wrongAnnotationName"
+			}
+		} else {
+			return "wrongAnnotationName"
+		}
+	} else {
+		return "nolabel"
+	}
 }

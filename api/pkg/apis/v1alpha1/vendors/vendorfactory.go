@@ -29,10 +29,16 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &DevicesVendor{}, nil
 	case "vendors.solutions":
 		return &SolutionsVendor{}, nil
+	case "vendors.solutioncontainers":
+		return &SolutionContainersVendor{}, nil
 	case "vendors.campaigns":
 		return &CampaignsVendor{}, nil
+	case "vendors.campaigncontainers":
+		return &CampaignContainersVendor{}, nil
 	case "vendors.catalogs":
 		return &CatalogsVendor{}, nil
+	case "vendors.catalogcontainers":
+		return &CatalogContainersVendor{}, nil
 	case "vendors.activations":
 		return &ActivationsVendor{}, nil
 	case "vendors.users":
@@ -59,6 +65,10 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &VisualizationClientVendor{}, nil
 	case "vendors.visualization":
 		return &VisualizationVendor{}, nil
+	case "vendors.processor":
+		return &ProcessorVendor{}, nil
+	case "vendors.bootstrap":
+		return &BootstrapVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}

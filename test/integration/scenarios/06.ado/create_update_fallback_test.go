@@ -28,6 +28,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionBytesV2 []byte
+	var solutionContainerBytes []byte
 	var targetProps map[string]string
 
 	BeforeAll(func(ctx context.Context) {
@@ -52,9 +53,15 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	})
 
 	runner := func(ctx context.Context, testcase TestCase) {
-		By("setting the components for the target")
 		var err error
 
+		By("deploy solution container")
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("setting the components for the target")
 		props := targetProps
 		if testcase.TargetProperties != nil {
 			props = testcase.TargetProperties
@@ -91,7 +98,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		By("setting the components for Solution V2, an invalid solution")
 		solutionBytesV2, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
 			ComponentNames: testcase.SolutionComponentsV2,
-			SolutionName:   "solution-v2",
+			SolutionName:   "solution-v-v2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -134,7 +141,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
-				kube.Must(kube.Instance("instance-v1", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance-v1' is present in the 'default' namespace
+				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
 					//jq.Equality(".status.provisioningStatus.error.details[0].details[0].code", "Update Failed"),
 				)))),

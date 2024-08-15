@@ -129,6 +129,10 @@ type (
 		Properties     map[string]string
 		PostProcess    func(*Target)
 	}
+
+	ContainerOptions = struct {
+		Namespace string
+	}
 )
 
 const (
@@ -257,4 +261,22 @@ func PatchInstance(data []byte, opts InstanceOptions) ([]byte, error) {
 		opts.PostProcess(&instance)
 	}
 	return yaml.Marshal(instance)
+}
+
+func PatchSolutionContainer(data []byte, opts ContainerOptions) ([]byte, error) {
+	var solutionContainer SolutionContainer
+	err := yaml.Unmarshal(data, &solutionContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.Namespace != "" {
+		solutionContainer.Metadata.Namespace = opts.Namespace
+	}
+
+	if solutionContainer.Metadata.Annotations == nil {
+		solutionContainer.Metadata.Annotations = make(map[string]string)
+	}
+
+	return yaml.Marshal(solutionContainer)
 }

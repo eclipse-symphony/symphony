@@ -34,7 +34,6 @@ var catalogState = model.CatalogState{
 			"property2": "value2",
 		},
 		ParentName: "parent1",
-		Generation: "1",
 		Metadata: map[string]string{
 			"metadata1": "value1",
 			"metadata2": "value2",
@@ -130,7 +129,7 @@ func CatalogVendorInit() CatalogsVendor {
 				Name: "catalog-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
+					"providers.persistentstate": "StateProvider",
 				},
 			},
 		},
@@ -179,7 +178,6 @@ func TestCatalogOnCheck(t *testing.T) {
 				"property2": "value2",
 			},
 			ParentName: "parent1",
-			Generation: "1",
 			Metadata: map[string]string{
 				"metadata1": "value1",
 				"metadata2": "value2",

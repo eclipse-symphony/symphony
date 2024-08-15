@@ -53,7 +53,7 @@ func TestSettingsVendorInit(t *testing.T) {
 				Name: "configs-manager",
 				Type: "managers.symphony.configs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {

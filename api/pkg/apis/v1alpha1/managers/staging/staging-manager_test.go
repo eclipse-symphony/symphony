@@ -28,6 +28,7 @@ import (
 func TestPoll(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProviderConfig{})
 
@@ -166,7 +167,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Name: "catalog1",
 				},
 				Spec: &model.CatalogSpec{
-					Generation: "1",
 					ParentName: "fakeparent",
 				},
 				Status: &model.CatalogStatus{

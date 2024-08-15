@@ -24,6 +24,15 @@ const (
 	ReconciliationPolicy_Inactive ReconciliationPolicyState = "inactive"
 )
 
+// +kubebuilder:object:generate=true
+type ContainerStatus struct {
+	Properties map[string]string `json:"properties"`
+}
+
+// +kubebuilder:object:generate=true
+type ContainerSpec struct {
+}
+
 // +kubebuilder:validation:Enum=active;inactive;
 type ReconciliationPolicyState string
 
@@ -75,9 +84,6 @@ type TargetSpec struct {
 	Constraints   string               `json:"constraints,omitempty"`
 	Topologies    []model.TopologySpec `json:"topologies,omitempty"`
 	ForceRedeploy bool                 `json:"forceRedeploy,omitempty"`
-	Generation    string               `json:"generation,omitempty"`
-	Version       string               `json:"version,omitempty"`
-	RootResource  string               `json:"rootResource,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
@@ -87,30 +93,19 @@ type TargetSpec struct {
 
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
-	DisplayName  string               `json:"displayName,omitempty"`
-	Scope        string               `json:"scope,omitempty"`
-	Parameters   map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
-	Metadata     map[string]string    `json:"metadata,omitempty"`
-	Solution     string               `json:"solution"`
-	Target       model.TargetSelector `json:"target,omitempty"`
-	Topologies   []model.TopologySpec `json:"topologies,omitempty"`
-	Pipelines    []model.PipelineSpec `json:"pipelines,omitempty"`
-	Generation   string               `json:"generation,omitempty"`
-	Version      string               `json:"version,omitempty"`
-	RootResource string               `json:"rootResource,omitempty"`
+	DisplayName string               `json:"displayName,omitempty"`
+	Scope       string               `json:"scope,omitempty"`
+	Parameters  map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Solution    string               `json:"solution"`
+	Target      model.TargetSelector `json:"target,omitempty"`
+	Topologies  []model.TopologySpec `json:"topologies,omitempty"`
+	Pipelines   []model.PipelineSpec `json:"pipelines,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type TargetContainerSpec struct {
-}
-
-// +kubebuilder:object:generate=true
-type InstanceContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
@@ -124,6 +119,19 @@ type SolutionSpec struct {
 
 // +kubebuilder:object:generate=true
 type SolutionContainerSpec struct {
+}
+
+// +kubebuilder:object:generate=true
+type ProxyConfigSpec struct {
+	BaseUrl  string `json:"baseUrl,omitempty"`
+	User     string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ProxySpec struct {
+	Provider string          `json:"provider,omitempty"`
+	Config   ProxyConfigSpec `json:"config,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -183,8 +191,7 @@ type ActivationSpec struct {
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Inputs     runtime.RawExtension `json:"inputs,omitempty"`
-	Generation string               `json:"generation,omitempty"`
+	Inputs runtime.RawExtension `json:"inputs,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -210,7 +217,6 @@ type CatalogSpec struct {
 	Properties   runtime.RawExtension `json:"properties"`
 	ParentName   string               `json:"parentName,omitempty"`
 	ObjectRef    model.ObjectRef      `json:"objectRef,omitempty"`
-	Generation   string               `json:"generation,omitempty"`
 	Version      string               `json:"version,omitempty"`
 	RootResource string               `json:"rootResource,omitempty"`
 }

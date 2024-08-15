@@ -6,7 +6,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: self-v1
+  name: self
   annotations: {}
 spec:
   displayName: int-virtual-02-v1

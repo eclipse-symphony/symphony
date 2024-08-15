@@ -1,8 +1,9 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: asset-v1
+  name: asset-v-v1
 spec:
+  rootResource: asset
   catalogType: asset
   properties:
     name: "東京"

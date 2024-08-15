@@ -38,6 +38,7 @@ const (
 	CHART_PATH             = "../../packages/helm/symphony"
 	GITHUB_PAT             = "CR_PAT"
 	LOG_ROOT               = "/tmp/symphony-integration-test-logs"
+	MINIKUBE_START_OPTIONS = ""
 )
 
 var platform = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
@@ -52,6 +53,7 @@ func PrintParams() error {
 	fmt.Println("SKIP_GHCR_VALUES: ", skipGhcrValues())
 	fmt.Println("GHCR_VALUES_OPTIONS: ", ghcrValuesOptions())
 	fmt.Println("LOG_ROOT: ", getLogRoot())
+	fmt.Println("MINIKUBE_START_OPTIONS: ", getMinikubeStartOptions())
 	return nil
 }
 
@@ -113,6 +115,14 @@ func ghcrValuesOptions() string {
 		return ""
 	}
 	return "-f symphony-ghcr-values.yaml"
+}
+
+func getMinikubeStartOptions() string {
+	if os.Getenv("MINIKUBE_START_OPTIONS") != "" {
+		return os.Getenv("MINIKUBE_START_OPTIONS")
+	} else {
+		return MINIKUBE_START_OPTIONS
+	}
 }
 
 var reWhiteSpace = regexp.MustCompile(`\n|\t| `)
@@ -283,16 +293,27 @@ func Logs(logRootFolder string) error {
 	// api logs
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
+	otelCollectorLogFile := fmt.Sprintf("%s/otel-collector.log", logRootFolder)
+	otelForwarderLogFile := fmt.Sprintf("%s/otel-forwarder.log", logRootFolder)
 
 	err := shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s > %s", getChartNamespace(), apiLogFile), true)
-
 	if err != nil {
-		return err
+		fmt.Printf("Failed to collect api logs: %s\n", err)
+	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
+	if err != nil {
+		fmt.Printf("Failed to collect controller-manager logs: %s\n", err)
+	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelCollectorLogFile), true)
+	if err != nil {
+		fmt.Printf("Failed to collect otel-collector logs: %s\n", err)
+	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'ds/symphony-otel-forwarder' --all-containers -n %s > %s", getChartNamespace(), otelForwarderLogFile), true)
+	if err != nil {
+		fmt.Printf("Failed to collect otel-forwarder logs: %s\n", err)
 	}
 
-	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
-
-	return err
+	return nil
 }
 
 // Dump symphony api and k8s logs for tests
@@ -447,7 +468,7 @@ func (Minikube) Install() error {
 
 // Starts the Minikube cluster w/ select addons.
 func (Minikube) Start() error {
-	err := shellcmd.Command("minikube start").Run()
+	err := shellcmd.Command(fmt.Sprintf("minikube start %s", getMinikubeStartOptions())).Run()
 	if err != nil {
 		return err
 	}
@@ -652,9 +673,9 @@ func runParallel(commands ...shellcmd.Command) error {
 func load(names ...string) []shellcmd.Command {
 	loads := make([]shellcmd.Command, len(names))
 	for i, name := range names {
-		shellcmd.Command(fmt.Sprintf("docker image save -o %s.tar %s/%s", name, getContainerRegistry(), name)).Run()
 		loads[i] = shellcmd.Command(fmt.Sprintf(
-			"minikube image load %s.tar",
+			"minikube image load %s/%s",
+			getContainerRegistry(),
 			name,
 		))
 	}

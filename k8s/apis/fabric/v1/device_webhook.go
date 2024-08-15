@@ -28,7 +28,7 @@ var deviceWebhookValidationMetrics *metrics.Metrics
 
 func (r *Device) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myDeviceClient = mgr.GetClient()
-
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Device is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Device{}, ".spec.displayName", func(rawObj client.Object) []string {
 		device := rawObj.(*Device)
 		return []string{device.Spec.DisplayName}

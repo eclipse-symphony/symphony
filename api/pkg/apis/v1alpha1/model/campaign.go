@@ -7,10 +7,14 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -26,6 +30,7 @@ type ActivationState struct {
 	Spec       *ActivationSpec   `json:"spec,omitempty"`
 	Status     *ActivationStatus `json:"status,omitempty"`
 }
+
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
 	Contexts      string                 `json:"contexts,omitempty"`
@@ -34,6 +39,7 @@ type StageSpec struct {
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
+	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
 }
 
@@ -51,7 +57,7 @@ func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	// validate if Schedule meet RFC 3339
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return fmt.Errorf("invalid timestamp format: %v", err)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
 		}
 	}
 	return nil
@@ -62,7 +68,7 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 	type Alias StageSpec
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return nil, fmt.Errorf("invalid timestamp format: %v", err)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
 		}
 	}
 	return json.Marshal(&struct {
@@ -101,28 +107,74 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !reflect.DeepEqual(s.Schedule, otherS.Schedule) {
 		return false, nil
 	}
-
+	if s.Proxy == nil && otherS.Proxy != nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy == nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy != nil {
+		if !reflect.DeepEqual(s.Proxy.Provider, otherS.Proxy.Provider) {
+			return false, nil
+		}
+	}
 	return true, nil
 }
 
 type ActivationStatus struct {
-	Stage                string                 `json:"stage"`
-	NextStage            string                 `json:"nextStage,omitempty"`
-	Inputs               map[string]interface{} `json:"inputs,omitempty"`
-	Outputs              map[string]interface{} `json:"outputs,omitempty"`
-	Status               v1alpha2.State         `json:"status,omitempty"`
-	StatusMessage        string                 `json:"statusMessage,omitempty"`
-	ErrorMessage         string                 `json:"errorMessage,omitempty"`
-	IsActive             bool                   `json:"isActive,omitempty"`
-	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
-	UpdateTime           string                 `json:"updateTime,omitempty"`
+	ActivationGeneration string         `json:"activationGeneration,omitempty"`
+	UpdateTime           string         `json:"updateTime,omitempty"`
+	Status               v1alpha2.State `json:"status,omitempty"`
+	StatusMessage        string         `json:"statusMessage,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
+}
+type StageStatus struct {
+	Stage         string                 `json:"stage,omitempty"`
+	NextStage     string                 `json:"nextStage,omitempty"`
+	Inputs        map[string]interface{} `json:"inputs,omitempty"`
+	Outputs       map[string]interface{} `json:"outputs,omitempty"`
+	Status        v1alpha2.State         `json:"status,omitempty"`
+	IsActive      bool                   `json:"isActive,omitempty"`
+	StatusMessage string                 `json:"statusMessage,omitempty"`
+	ErrorMessage  string                 `json:"errorMessage,omitempty"`
 }
 
 type ActivationSpec struct {
-	Campaign   string                 `json:"campaign,omitempty"`
-	Stage      string                 `json:"stage,omitempty"`
-	Inputs     map[string]interface{} `json:"inputs,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	Campaign string                 `json:"campaign,omitempty"`
+	Stage    string                 `json:"stage,omitempty"`
+	Inputs   map[string]interface{} `json:"inputs,omitempty"`
+}
+
+func (c ActivationSpec) Hash() (string, error) {
+	hasher := sha256.New()
+
+	// Write the simple fields to the hasher
+	writeStringHash(hasher, c.Campaign)
+	writeStringHash(hasher, c.Stage)
+
+	// Sort the map keys to ensure consistent order
+	keys := make([]string, 0, len(c.Inputs))
+	for key := range c.Inputs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Write the sorted map entries to the hasher
+	for _, key := range keys {
+		valueBytes, err := json.Marshal(c.Inputs[key])
+		if err != nil {
+			return "", err
+		}
+		writeStringHash(hasher, key)
+		hasher.Write(valueBytes)
+	}
+
+	// Get the final hash result
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func writeStringHash(writer io.Writer, value string) {
+	fmt.Fprintf(writer, "<%s>", value)
 }
 
 func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {

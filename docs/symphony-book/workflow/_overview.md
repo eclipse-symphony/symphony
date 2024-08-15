@@ -22,6 +22,7 @@ Symphony has a built-in workflow engine that captures complex operational workfl
 
 * Scheduling
 * [Error handling and retries](./error-handling.md)
+* [Stage isolation with provider proxy](./provider-proxy.md)
 * Remote execution
 * Fan-out execution
 

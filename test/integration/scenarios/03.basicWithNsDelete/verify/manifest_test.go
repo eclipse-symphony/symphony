@@ -31,10 +31,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
+	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -112,6 +115,152 @@ func TestBasic_InstanceStatus(t *testing.T) {
 	}
 }
 
+func TestBasic_VerifyPod(t *testing.T) {
+	// Get kube client
+	kubeClient, err := testhelpers.KubeClient()
+	require.NoError(t, err)
+	namespace := "k8s-scope"
+
+	i := 0
+	for {
+		i++
+		pods, err := kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		podToFind := "instance03"
+		found := false
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, podToFind) && pod.Status.Phase == "Running" {
+				found = true
+
+				for _, container := range pod.Spec.Containers {
+					requests := container.Resources.Requests
+					cpuRequest := requests["cpu"]
+					memRequest := requests["memory"]
+					fmt.Printf("Container: %s, CPU request: %s, memory request: %s\n", container.Name, cpuRequest.String(), memRequest.String())
+					require.Equal(t, "100m", cpuRequest.String(), "CPU should be 100 milliCPU.")
+					require.Equal(t, "100Mi", memRequest.String(), "Memory should be 100 Mebibytes")
+
+					for _, port := range container.Ports {
+						fmt.Printf("Container: %s, Port: %d\n", container.Name, port.ContainerPort)
+						require.Equal(t, int32(9090), port.ContainerPort, "instance03", "container port should be 9090")
+						break
+					}
+				}
+				break
+			}
+		}
+
+		if !found {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods: %v\n", podToFind)
+			}
+		} else {
+			fmt.Println("Pod is found.")
+			break
+		}
+	}
+}
+
+func TestBasic_VerifyPodUpdatedInNamespace(t *testing.T) {
+	kubeClient, err := testhelpers.KubeClient()
+	require.NoError(t, err)
+	namespace := "k8s-scope"
+
+	// Get old pod name
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+	require.NoError(t, err)
+
+	podToFind := "instance03"
+	var podNameBefore string
+	for _, pod := range pods.Items {
+		if strings.Contains(pod.Name, podToFind) && pod.Status.Phase == "Running" {
+			podNameBefore = pod.Name
+			break
+		}
+	}
+
+	// Deploy the updated solution manifest
+	manifest := "../manifest/oss/solution-update.yaml"
+	fullPath, err := filepath.Abs(manifest)
+	require.NoError(t, err)
+
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+	require.NoError(t, err)
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	// Verify instance status
+	for {
+		resources, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "solution.symphony",
+			Version:  "v1",
+			Resource: "instances",
+		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, resources.Items, 1, "there should be only one instance")
+
+		status := getStatus(resources.Items[0])
+		fmt.Printf("Current instance status: %s\n", status)
+		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
+		if status == "Succeeded" {
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+
+	// Verify pod status
+	i := 0
+	for {
+		i++
+		pods, err := kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		podToFind := "instance03"
+		found := false
+		for _, pod := range pods.Items {
+			fmt.Printf("Pod name: %s\n", pod.Name)
+			if strings.Contains(pod.Name, podToFind) && pod.Status.Phase == "Running" && pod.Name != podNameBefore {
+				found = true
+
+				for _, container := range pod.Spec.Containers {
+					requests := container.Resources.Requests
+					cpuRequest := requests["cpu"]
+					memRequest := requests["memory"]
+					fmt.Printf("Container: %s, CPU request: %s, memory request: %s\n", container.Name, cpuRequest.String(), memRequest.String())
+					require.Equal(t, "500m", cpuRequest.String(), "CPU should be 500 milliCPU.")
+					require.Equal(t, "500Mi", memRequest.String(), "Memory should be 500 Mebibytes")
+
+					for _, port := range container.Ports {
+						fmt.Printf("Container: %s, Port: %d\n", container.Name, port.ContainerPort)
+						require.Equal(t, int32(9900), port.ContainerPort, "instance03", "container port should be 9900")
+					}
+				}
+				break
+			}
+		}
+
+		if !found {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods: %v\n", podToFind)
+			}
+		} else {
+			fmt.Println("Pod is found.")
+			break
+		}
+	}
+}
+
 // Verify instance and namespace after deletion
 func TestBasic_InstanceDeletion(t *testing.T) {
 	cfg, err := testhelpers.RestConfig()
@@ -129,7 +278,7 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 	fmt.Println("Get namespace before deletion: ", len(namespacesBefore.Items))
 
 	// Run a mage command to delete instance
-	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solution.symphony instance03-v1")
+	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solution.symphony instance03")
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	cmdErr := execCmd.Run()
