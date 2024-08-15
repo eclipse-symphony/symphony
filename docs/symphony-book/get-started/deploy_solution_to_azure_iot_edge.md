@@ -41,7 +41,7 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
   --resource-group <REPLACE_WITH_GROUP_NAME> \
   --template-uri "https://raw.githubusercontent.com/Azure/iotedge-vm-deploy/1.4/edgeDeploy.json" \
   --parameters dnsLabelPrefix='s8c-vm' \
-  --parameters adminUsername='hbai' \
+  --parameters adminUsername=<USER_NAME> \
   --parameters deviceConnectionString=$(az iot hub device-identity connection-string show --device-id s8c-vm --hub-name <REPLACE_WITH_HUB_NAME> -o tsv) \
   --parameters authenticationType='password' \
   --parameters adminPasswordOrKey="<REPLACE_WITH_PASSWORD>"
@@ -51,10 +51,10 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
 
   ```bash
   # create vm
-  az vm create --resource-group <REPLACE_WITH_GROUP_NAME> --name s8c-vm --image UbuntuLTS --admin-username hbai --generate-ssh-keys --size Standard_D2s_v5
+  az vm create --resource-group <REPLACE_WITH_GROUP_NAME> --name s8c-vm --image UbuntuLTS --admin-username <USER_NAME> --generate-ssh-keys --size Standard_D2s_v5
 
   # SSH into the machine
-  ssh hbai@<public IP of your VM>
+  ssh <USER_NAME>@<public IP of your VM>
   
   # if the VM requires a private key:
   ssh -i ~/.ssh/id_rsa.pem <YOUR_USER_NAME>@<public IP of your VM>
@@ -93,6 +93,8 @@ wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-ver
   | select(.id == "aziot-edge").components[]
   | select(.name == "aziot-edge").version
 '
+# result: <AZIOT_EDGE_VERSION>
+
 # check the latest aziot-identity-service version
 wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-versions.json | jq -r '
   .channels[]
@@ -100,13 +102,14 @@ wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-ver
   | select(.id == "aziot-edge").components[]
   | select(.name == "aziot-identity-service").version
 '
+# result: <AZIOT_IDENTITY_SERVICE_VERSION>
 
-# download and install 
-wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-identity-service_<AZIOT_IDENTITY_SERVICE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-identity-service.deb
-sudo dpkg -i aziot-identity-service.deb
-
+# download and install
 wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-edge_<AZIOT_EDGE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-edge.deb
 sudo dpkg -i aziot-edge.deb
+
+wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-identity-service_<AZIOT_IDENTITY_SERVICE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-identity-service.deb
+sudo dpkg -i aziot-identity-service.deb
 ```
 
 ### 3. Deploy modules on your IoT Edge device
