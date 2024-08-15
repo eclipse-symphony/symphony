@@ -284,7 +284,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
 	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s, %v, %v", heartbeat.JobId, heartbeat.Action, heartbeat.JobAction)
 	if heartbeat.JobAction == v1alpha2.JobUpdate {
-		log.DebugfCtx(ctx, " M (Job): update heartbeat h_%s, %v, %v", heartbeat.JobId)
+		log.DebugfCtx(ctx, " M (Job): update heartbeat h_%s", heartbeat.JobId)
 		_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   "h_" + heartbeat.JobId,
@@ -295,7 +295,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 			},
 		})
 	} else if heartbeat.JobAction == v1alpha2.JobDelete {
-		log.DebugfCtx(ctx, " M (Job): delete heartbeat h_%s, %v, %v", heartbeat.JobId)
+		log.DebugfCtx(ctx, " M (Job): delete heartbeat h_%s", heartbeat.JobId)
 		err = s.VolatileStateProvider.Delete(ctx, states.DeleteRequest{
 			ID: "h_" + heartbeat.JobId,
 			Metadata: map[string]interface{}{
@@ -403,7 +403,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
-		log.Debugf(" M (Job): handling job eventhub objectType: %s, job action: %s", objectType, job.Action)
+		log.Debugf(" M (Job): handling job event objectType: %s, job action: %s", objectType, job.Action)
 		err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
 		if err != nil {
 			return err
@@ -483,7 +483,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				} else {
 					err = s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace, s.user, s.password)
 					if err != nil {
-						log.Errorf(" M (Job): failed to instance %s: %s", instanceName, err.Error())
+						log.Errorf(" M (Job): failed to delete instance %s: %s", instanceName, err.Error())
 						return err
 					}
 					log.DebugfCtx(ctx, " M (Job): delete instance success state entry, instance: %s", instance.ObjectMeta.Name)
@@ -537,7 +537,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				} else {
 					err = s.apiClient.DeleteTarget(ctx, targetName, namespace, s.user, s.password)
 					if err != nil {
-						log.ErrorfCtx(ctx, " M (Job): failed to target %s: %s", targetName, err.Error())
+						log.ErrorfCtx(ctx, " M (Job): failed to delete target %s: %s", targetName, err.Error())
 						return err
 					} else {
 						log.DebugfCtx(ctx, " M (Job): delete target success state entry, target: %s", targetName)
