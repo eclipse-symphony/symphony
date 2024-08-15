@@ -1,8 +1,8 @@
 module github.com/eclipse-symphony/symphony/packages/mage
 
-go 1.22.0
+go 1.22.4
 
-toolchain go1.22.3
+toolchain go1.22.6
 
 require (
 	github.com/magefile/mage v1.15.0
