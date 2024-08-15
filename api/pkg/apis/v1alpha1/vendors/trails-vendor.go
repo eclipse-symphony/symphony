@@ -72,14 +72,14 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onTrails",
 	})
 	defer span.End()
-	tLog.Debugf("V (Trails) : onTrails %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Trails) : onTrails %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var trails []v1alpha2.Trail
 		err := json.Unmarshal(request.Body, &trails)
 		if err != nil {
-			tLog.Errorf("V (Trails): onTrails failed to parse trails from request body, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(pCtx, "V (Trails): onTrails failed to parse trails from request body, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -87,7 +87,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		}
 		err = c.TrailsManager.Append(pCtx, trails)
 		if err != nil {
-			tLog.Errorf("V (Trails): onTrails failed to Append, error: %v traceId: %s", err, span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(pCtx, "V (Trails): onTrails failed to Append, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -98,7 +98,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 			Body:  []byte("{\"result\":\"ok\"}"),
 		})
 	}
-	tLog.Errorf("V (Trails): onTrails returned MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Trails): onTrails returned MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

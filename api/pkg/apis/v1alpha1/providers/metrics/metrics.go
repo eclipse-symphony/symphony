@@ -30,23 +30,31 @@ const (
 	HelmChartOperation                string = "HelmChart"
 	HelmActionConfigOperation         string = "HelmActionConfig"
 	HelmPropertiesOperation           string = "HelmProperties"
+	K8SProjectorOperation             string = "K8SProjector"
+	K8SDeploymentOperation            string = "K8SDeployment"
+	K8SRemoveServiceOperation         string = "K8SRemoveService"
+	K8SRemoveDeploymentOperation      string = "K8SRemoveDeployment"
+	K8SRemoveNamespaceOperation       string = "K8SRemoveNamespace"
 
-	GetOperationType    string = "Get"
-	CreateOperationType string = "Create"
-	UpdateOperationType string = "Update"
-	DeleteOperationType string = "Delete"
+	ProcessOperation string = "Process"
+
+	GetOperationType      string = "Get"
+	UpdateOperationType   string = "Update"
+	DeleteOperationType   string = "Delete"
+	ValidateOperationType string = "Validate"
+	RunOperationType      string = "Run"
 )
 
 // Metrics is a metrics tracker for a provider operation.
 type Metrics struct {
-	providerOperationLatency observability.Histogram
+	providerOperationLatency observability.Gauge
 	providerOperationErrors  observability.Counter
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.API)
 
-	providerOperationLatency, err := observable.Metrics.Histogram(
+	providerOperationLatency, err := observable.Metrics.Gauge(
 		"symphony_provider_operation_latency",
 		"measure of overall latency for provider operation side",
 	)
@@ -89,7 +97,7 @@ func (m *Metrics) ProviderOperationLatency(
 		return
 	}
 
-	m.providerOperationLatency.Add(
+	m.providerOperationLatency.Set(
 		latency(startTime),
 		Target(
 			providerType,
@@ -125,7 +133,7 @@ func (m *Metrics) ProviderOperationErrors(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in milliseconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	return float64(time.Since(start).Milliseconds())
 }

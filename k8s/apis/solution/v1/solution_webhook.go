@@ -11,7 +11,11 @@ import (
 	"fmt"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
+	configv1 "gopls-workspace/apis/config/v1"
+
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,16 +30,17 @@ import (
 
 // log is for logging in this package.
 var solutionlog = logf.Log.WithName("solution-resource")
-var mySolutionClient client.Client
 var mySolutionReaderClient client.Reader
+var projectConfig *configv1.ProjectConfig
 
 func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	mySolutionClient = mgr.GetClient()
 	mySolutionReaderClient = mgr.GetAPIReader()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Solution{}, ".spec.displayName", func(rawObj client.Object) []string {
-		solution := rawObj.(*Solution)
-		return []string{solution.Spec.DisplayName}
-	})
+
+	myConfig, err := configutils.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+	projectConfig = myConfig
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -57,7 +62,7 @@ func (r *Solution) Default() {
 
 	if r.Spec.RootResource != "" {
 		var solutionContainer SolutionContainer
-		err := mySolutionClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
+		err := mySolutionReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
 		if err != nil {
 			solutionlog.Error(err, "failed to get solution container", "name", r.Spec.RootResource)
 		} else {
@@ -76,6 +81,9 @@ func (r *Solution) Default() {
 				r.Labels = make(map[string]string)
 			}
 			r.Labels["rootResource"] = r.Spec.RootResource
+			if projectConfig.UniqueDisplayNameForSolution {
+				r.Labels["displayName"] = r.Spec.DisplayName
+			}
 		}
 	}
 }
@@ -90,6 +98,12 @@ var _ webhook.Validator = &Solution{}
 func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 	solutionlog.Info("validate create", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
+
 	return nil, r.validateCreateSolution()
 }
 
@@ -97,12 +111,24 @@ func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	solutionlog.Info("validate update", "name", r.Name)
 
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return nil, r.validateUpdateSolution()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 	solutionlog.Info("validate delete", "name", r.Name)
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, nil
 }
@@ -128,28 +154,32 @@ func (r *Solution) validateCreateSolution() error {
 }
 
 func (r *Solution) validateUpdateSolution() error {
-	var solutions SolutionList
-	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName}, client.Limit(2))
-	if err != nil {
-		return apierrors.NewInternalError(err)
-	}
-	if !(len(solutions.Items) == 0 || len(solutions.Items) == 1 && solutions.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return apierrors.NewBadRequest(fmt.Sprintf("solution display name '%s' is already taken", r.Spec.DisplayName))
+	if projectConfig.UniqueDisplayNameForSolution {
+		var solutions SolutionList
+		err := mySolutionReaderClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
+		if err != nil {
+			return apierrors.NewInternalError(err)
+		}
+		if !(len(solutions.Items) == 0 || len(solutions.Items) == 1 && solutions.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
+			return apierrors.NewBadRequest(fmt.Sprintf("solution display name '%s' is already taken", r.Spec.DisplayName))
+		}
 	}
 	return nil
 }
 
 func (r *Solution) validateUniqueNameOnCreate() *field.Error {
-	var solutions SolutionList
-	err := mySolutionClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName}, client.Limit(1))
-	if err != nil {
-		return field.InternalError(&field.Path{}, err)
-	}
+	if projectConfig.UniqueDisplayNameForSolution {
+		solutionlog.Info("validate unique display name", "name", r.Name)
+		var solutions SolutionList
+		err := mySolutionReaderClient.List(context.Background(), &solutions, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
+		if err != nil {
+			return field.InternalError(&field.Path{}, err)
+		}
 
-	if len(solutions.Items) != 0 {
-		return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "solution display name is already taken")
+		if len(solutions.Items) != 0 {
+			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, "solution display name is already taken")
+		}
 	}
-
 	return nil
 }
 
@@ -159,7 +189,7 @@ func (r *Solution) validateNameOnCreate() *field.Error {
 
 func (r *Solution) validateRootResource() *field.Error {
 	var solutionContainer SolutionContainer
-	err := mySolutionClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
+	err := mySolutionReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid solution container")
 	}
@@ -176,13 +206,34 @@ func (r *SolutionContainer) Default() {
 }
 
 func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being created on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateCreateImpl(solutionlog, r)
 }
 func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being updated on namespace %s", r.Name, r.Namespace)
+
 	return commoncontainer.ValidateUpdateImpl(solutionlog, r, old)
 }
 
 func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
+
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), solutionlog)
+
+	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
+
 	solutionlog.Info("validate delete solution container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var solutionList SolutionList

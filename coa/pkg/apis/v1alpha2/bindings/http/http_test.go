@@ -417,6 +417,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 		"http.url":    "http://localhost:8081/v1/greetings",
 	})
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	testHttpRequestHelperWithHeaders(ctx, t, fasthttp.MethodGet, "http://localhost:8081/v1/greetings", nil,
 		map[string]string{
 			"Authorization": "Bearer " + authHeader,

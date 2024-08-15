@@ -15,25 +15,30 @@ import (
 )
 
 type ActivationStatus struct {
-	Stage     string `json:"stage"`
+	Status               v1alpha2.State `json:"status,omitempty"`
+	StatusMessage        string         `json:"statusMessage,omitempty"`
+	ActivationGeneration string         `json:"activationGeneration,omitempty"`
+	UpdateTime           string         `json:"updateTime,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
+}
+
+type StageStatus struct {
+	Stage     string `json:"stage,omitempty"`
 	NextStage string `json:"nextStage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Inputs runtime.RawExtension `json:"inputs,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Outputs              runtime.RawExtension `json:"outputs,omitempty"`
-	Status               v1alpha2.State       `json:"status,omitempty"`
-	StatusMessage        string               `json:"statusMessage,omitempty"`
-	ErrorMessage         string               `json:"errorMessage,omitempty"`
-	IsActive             bool                 `json:"isActive,omitempty"`
-	ActivationGeneration string               `json:"activationGeneration,omitempty"`
-	UpdateTime           string               `json:"updateTime,omitempty"`
+	Outputs       runtime.RawExtension `json:"outputs,omitempty"`
+	Status        v1alpha2.State       `json:"status,omitempty"`
+	StatusMessage string               `json:"statusMessage,omitempty"`
+	ErrorMessage  string               `json:"errorMessage,omitempty"`
+	IsActive      bool                 `json:"isActive,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Next Stage",type=string,JSONPath=`.status.nextStage`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.statusMessage`
 // Activation is the Schema for the activations API
 type Activation struct {

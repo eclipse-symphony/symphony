@@ -27,6 +27,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 )
 
 type (
@@ -79,7 +80,7 @@ type (
 		GetCatalogsWithFilter(ctx context.Context, namespace string, filterType string, filterValue string, user string, password string) ([]model.CatalogState, error)
 		UpdateSite(ctx context.Context, site string, payload []byte, user string, password string) error
 		GetABatchForSite(ctx context.Context, site string, user string, password string) (model.SyncPackage, error)
-		SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error
+		SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error
 		SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error
 		ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error
 		CreateSolutionContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
@@ -418,11 +419,11 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 		return nil, err
 	}
 
-	log.Debugf("apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
+	log.DebugfCtx(ctx, "apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
 	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
-		log.Debugf("apiClient.GetSummary: Not found")
+		log.DebugfCtx(ctx, "apiClient.GetSummary: Not found")
 		return nil, v1alpha2.NewCOAError(nil, "Not found", v1alpha2.NotFound)
 	}
 
@@ -430,7 +431,7 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 		return nil, err
 	}
 	if ret != nil {
-		log.Debugf("apiClient.GetSummary: ret: %s", string(ret))
+		log.DebugfCtx(ctx, "apiClient.GetSummary: ret: %s", string(ret))
 		err = json.Unmarshal(ret, &result)
 		if err != nil {
 			return nil, err
@@ -452,7 +453,7 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 		return err
 	}
 	payload, err = json.Marshal(deployment)
-	log.Debugf("apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
+	log.DebugfCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
 	if err != nil {
 		return err
 	}
@@ -534,6 +535,7 @@ func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.A
 		return err
 	}
 	jData, _ := json.Marshal(event)
+	log.DebugfCtx(ctx, "apiClient.PublishActivationEvent: Activation event: %s", string(jData))
 	_, err = a.callRestAPI(ctx, "jobs", "POST", jData, token)
 	if err != nil {
 		return err
@@ -708,7 +710,7 @@ func (a *apiClient) GetABatchForSite(ctx context.Context, site string, user stri
 	return ret, nil
 }
 
-func (a *apiClient) SyncActivationStatus(ctx context.Context, status model.ActivationStatus, user string, password string) error {
+func (a *apiClient) SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 
 	if err != nil {
@@ -744,6 +746,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var rUrl *url.URL
 	rUrl, err = url.Parse(urlString)
@@ -758,6 +761,8 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 
 	req, err = http.NewRequestWithContext(ctx, method, rUrl.String(), reqBody)
 	observ_utils.PropagateSpanContextToHttpRequestHeader(req)
+	coacontexts.PropagateActivityLogContextToHttpRequestHeader(req)
+	coacontexts.PropagateDiagnosticLogContextToHttpRequestHeader(req)
 	if err != nil {
 		return nil, err
 	}

@@ -46,8 +46,9 @@ func (t *ModelsManager) DeleteState(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debugf(" M (Models): DeleteState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.DebugfCtx(ctx, " M (Models): DeleteState, name: %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -61,7 +62,7 @@ func (t *ModelsManager) DeleteState(ctx context.Context, name string, namespace 
 	})
 
 	if err != nil {
-		log.Errorf(" M (Models): failed to delete state, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Models): failed to delete state, name: %s, err: %v", name, err)
 	}
 	return err
 }
@@ -72,7 +73,8 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Debugf(" M (Models): UpsertState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.DebugfCtx(ctx, " M (Models): UpsertState, name: %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -99,7 +101,7 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Errorf(" M (Models): failed to UpsertSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Models): failed to UpsertSpec, name: %s, err: %v", name, err)
 		return err
 	}
 	return nil
@@ -111,8 +113,9 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debugf(" M (Models): ListState, traceId: %s", span.SpanContext().TraceID().String())
+	log.DebugCtx(ctx, " M (Models): ListState")
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
@@ -125,7 +128,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	var models []states.StateEntry
 	models, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		log.Errorf(" M (Models): failed to ListState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Models): failed to ListState, err: %v", err)
 		return nil, err
 	}
 	ret := make([]model.ModelState, 0)
@@ -133,7 +136,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 		var rt model.ModelState
 		rt, err = getModelState(t.Body)
 		if err != nil {
-			log.Errorf(" M (Models): failed to getModelState, err: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, " M (Models): failed to getModelState, err: %v", err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -160,8 +163,9 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debugf(" M (Models): GetState, name: %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	log.DebugfCtx(ctx, " M (Models): GetState, name: %s", name)
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -175,14 +179,14 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 	var m states.StateEntry
 	m, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Errorf(" M (Models): failed to GetSpec, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Models): failed to GetSpec, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
 
 	var ret model.ModelState
 	ret, err = getModelState(m.Body)
 	if err != nil {
-		log.Errorf(" M (Models): failed to getModelState, name: %s, err: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Models): failed to getModelState, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
 	return ret, nil

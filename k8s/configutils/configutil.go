@@ -8,6 +8,7 @@ package configutils
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/constants"
 
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -29,6 +32,15 @@ var (
 )
 
 func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
+	myConfig, err := GetProjectConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return myConfig.ValidationPolicies, nil
+}
+
+func GetProjectConfig() (*configv1.ProjectConfig, error) {
 	// home := homedir.HomeDir()
 	// // use the current context in kubeconfig
 	// config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
@@ -66,8 +78,9 @@ func GetValidationPoilicies() (map[string][]configv1.ValidationPolicy, error) {
 		return nil, err
 	}
 
-	return myConfig.ValidationPolicies, nil
+	return &myConfig, nil
 }
+
 func getNamespace() (string, error) {
 	// read the namespace from the file
 	data, err := ioutil.ReadFile(namespaceFile)
@@ -135,4 +148,31 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 	}
 
 	return nil
+}
+
+func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, operationName string, ctx context.Context, log logr.Logger) context.Context {
+	correlationId := annotations[constants.AzureCorrelationIdKey]
+	resourceId := annotations[constants.AzureResourceIdKey]
+	location := annotations[constants.AzureLocationKey]
+	systemData := annotations[constants.AzureSystemDataKey]
+
+	// correlationId := uuid.New().String()
+	// resourceId := objectId
+	// location := "on-premise"
+	// systemData := "{\"createdBy\":\"On-Premise\"}"
+
+	resourceK8SId := objectId
+	callerId := ""
+	if systemData != "" {
+		systemDataMap := make(map[string]string)
+		if err := json.Unmarshal([]byte(systemData), &systemDataMap); err != nil {
+			log.Info("Failed to unmarshal system data", "error", err)
+		} else {
+			// callerId = systemDataMap[constants.AzureCreatedByKey]
+			callerId = "******"
+		}
+	}
+	retCtx := coacontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
+	retCtx = coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(resourceId, location, operationName, correlationId, callerId, resourceK8SId), retCtx)
+	return retCtx
 }

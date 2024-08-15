@@ -18,3 +18,4 @@
 piccolo/target
 
 go.work
+*.log
