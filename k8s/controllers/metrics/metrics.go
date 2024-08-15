@@ -47,13 +47,13 @@ const (
 
 // Metrics is a metrics tracker for a controller operation.
 type Metrics struct {
-	controllerReconcileLatency observability.Histogram
+	controllerReconcileLatency observability.Gauge
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.K8S)
 
-	controllerReconcileLatency, err := observable.Metrics.Histogram(
+	controllerReconcileLatency, err := observable.Metrics.Gauge(
 		"symphony_controller_reconcile_latency",
 		"measure of overall latency for controller operation side",
 	)
@@ -86,7 +86,7 @@ func (m *Metrics) ControllerReconcileLatency(
 	}
 
 	chartVersion := os.Getenv("CHART_VERSION")
-	m.controllerReconcileLatency.Add(
+	m.controllerReconcileLatency.Set(
 		latency(startTime),
 		Deployment(
 			reconcilationType,
@@ -98,7 +98,7 @@ func (m *Metrics) ControllerReconcileLatency(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in milliseconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	return float64(time.Since(start).Milliseconds())
 }

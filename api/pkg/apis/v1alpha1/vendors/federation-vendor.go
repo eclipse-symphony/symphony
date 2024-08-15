@@ -91,7 +91,11 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		for _, site := range sites {
 			if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
 				event.Metadata["site"] = site.Spec.Name
-				f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
+				ctx := context.TODO()
+				if event.Context != nil {
+					ctx = event.Context
+				}
+				f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
 			}
 		}
 		return nil
@@ -101,38 +105,54 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		if !ok {
 			return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
 		}
-		f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
+		f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
 		return nil
 	})
 	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
-		fLog.Debugf("V (Federation): received report event: %v", event)
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
+		fLog.DebugfCtx(ctx, "V (Federation): received report event: %v", event)
 		jData, _ := json.Marshal(event.Body)
 		var status model.StageStatus
 		err := json.Unmarshal(jData, &status)
 		if err == nil {
-			err := f.apiClient.SyncStageStatus(context.TODO(), status,
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			err := f.apiClient.SyncStageStatus(ctx, status,
 				f.Vendor.Context.SiteInfo.ParentSite.Username,
 				f.Vendor.Context.SiteInfo.ParentSite.Password)
 			if err != nil {
-				fLog.Errorf("V (Federation): error while syncing activation status: %v", err)
+				fLog.ErrorfCtx(ctx, "V (Federation): error while syncing activation status: %v", err)
 				return err
 			}
 		}
 		return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
 	})
 	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
+		ctx := context.TODO()
+		if event.Context != nil {
+			ctx = event.Context
+		}
 		if f.TrailsManager != nil {
 			jData, _ := json.Marshal(event.Body)
 			var trails []v1alpha2.Trail
 			err := json.Unmarshal(jData, &trails)
 			if err == nil {
-				return f.TrailsManager.Append(context.TODO(), trails)
+				return f.TrailsManager.Append(ctx, trails)
 			}
 		}
 		return nil
 	})
 	//now register the current site
-	return f.SitesManager.UpsertSpec(context.TODO(), f.Context.SiteInfo.SiteId, model.SiteSpec{
+	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
 		Name:       f.Context.SiteInfo.SiteId,
 		Properties: f.Context.SiteInfo.Properties,
 		IsSelf:     true,
@@ -185,7 +205,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	tLog.Info("V (Federation): OnStatus")
+	tLog.InfoCtx(pCtx, "V (Federation): OnStatus")
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var state model.SiteState
@@ -313,17 +333,18 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		var status model.StageStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
-			tLog.Errorf("V (Federation): failed to unmarshal stage status: %v", err)
+			tLog.ErrorfCtx(pCtx, "V (Federation): failed to unmarshal stage status: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
 			})
 		}
 		err = f.Vendor.Context.Publish("job-report", v1alpha2.Event{
-			Body: status,
+			Body:    status,
+			Context: pCtx,
 		})
 		if err != nil {
-			tLog.Errorf("V (Federation): failed to publish job report: %v", err)
+			tLog.ErrorfCtx(pCtx, "V (Federation): failed to publish job report: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -414,7 +435,7 @@ func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResp
 	return resp
 }
 func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onK8sHook",
 	})
 	defer span.End()
@@ -441,6 +462,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
+				Context: ctx,
 			})
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

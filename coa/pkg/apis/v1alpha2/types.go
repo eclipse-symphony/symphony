@@ -64,29 +64,65 @@ const (
 
 	// To have clearer metrics/self-explanatory errors, we introduce some
 	// detailed error codes
-	InitFailed                   State = 10000
-	CreateActionConfigFailed     State = 10001
-	HelmActionFailed             State = 10002
-	GetComponentSpecFailed       State = 10003
-	CreateProjectorFailed        State = 10004
-	K8sRemoveServiceFailed       State = 10005
-	K8sRemoveDeploymentFailed    State = 10006
-	K8sDeploymentFailed          State = 10007
-	ReadYamlFailed               State = 10008
-	ApplyYamlFailed              State = 10009
-	ReadResourcePropertyFailed   State = 10010
-	ApplyResourceFailed          State = 10011
-	DeleteYamlFailed             State = 10012
-	DeleteResourceFailed         State = 10013
-	CheckResourceStatusFailed    State = 10014
-	ApplyScriptFailed            State = 10015
-	RemoveScriptFailed           State = 10016
-	YamlResourcePropertyNotFound State = 10017
-	GetHelmPropertyFailed        State = 10018
-	HelmChartPullFailed          State = 10019
-	HelmChartLoadFailed          State = 10020
-	HelmChartApplyFailed         State = 10021
-	HelmChartUninstallFailed     State = 10022
+	InitFailed                      State = 10000
+	CreateActionConfigFailed        State = 10001
+	HelmActionFailed                State = 10002
+	GetComponentSpecFailed          State = 10003
+	CreateProjectorFailed           State = 10004
+	K8sRemoveServiceFailed          State = 10005
+	K8sRemoveDeploymentFailed       State = 10006
+	K8sDeploymentFailed             State = 10007
+	ReadYamlFailed                  State = 10008
+	ApplyYamlFailed                 State = 10009
+	ReadResourcePropertyFailed      State = 10010
+	ApplyResourceFailed             State = 10011
+	DeleteYamlFailed                State = 10012
+	DeleteResourceFailed            State = 10013
+	CheckResourceStatusFailed       State = 10014
+	ApplyScriptFailed               State = 10015
+	RemoveScriptFailed              State = 10016
+	YamlResourcePropertyNotFound    State = 10017
+	GetHelmPropertyFailed           State = 10018
+	HelmChartPullFailed             State = 10019
+	HelmChartLoadFailed             State = 10020
+	HelmChartApplyFailed            State = 10021
+	HelmChartUninstallFailed        State = 10022
+	IngressApplyFailed              State = 10023
+	HttpNewRequestFailed            State = 10024
+	HttpSendRequestFailed           State = 10025
+	HttpErrorResponse               State = 10026
+	MqttPublishFailed               State = 10027
+	MqttApplyFailed                 State = 10028
+	MqttApplyTimeout                State = 10029
+	ConfigMapApplyFailed            State = 10030
+	HttpBadWaitStatusCode           State = 10031
+	HttpNewWaitRequestFailed        State = 10032
+	HttpSendWaitRequestFailed       State = 10033
+	HttpErrorWaitResponse           State = 10034
+	HttpBadWaitExpression           State = 10035
+	ScriptExecutionFailed           State = 10036
+	ScriptResultParsingFailed       State = 10037
+	WaitToGetInstancesFailed        State = 10038
+	WaitToGetSitesFailed            State = 10039
+	WaitToGetCatalogsFailed         State = 10040
+	InvalidWaitObjectType           State = 10041
+	CatalogsGetFailed               State = 10042
+	InvalidInstanceCatalog          State = 10043
+	CreateInstanceFromCatalogFailed State = 10044
+	InvalidSolutionCatalog          State = 10045
+	CreateSolutionFromCatalogFailed State = 10046
+	InvalidTargetCatalog            State = 10047
+	CreateTargetFromCatalogFailed   State = 10048
+	InvalidCatalogCatalog           State = 10049
+	CreateCatalogFromCatalogFailed  State = 10050
+	ParentObjectMissing             State = 10051
+	ParentObjectCreateFailed        State = 10052
+	MaterializeBatchFailed          State = 10053
+	DeleteInstanceFailed            State = 10054
+	CreateInstanceFailed            State = 10055
+	DeploymentNotReached            State = 10056
+	InvalidObjectType               State = 10057
+	UnsupportedAction               State = 10058
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
@@ -205,10 +241,82 @@ func (s State) String() string {
 		return "Helm Chart Apply Failed"
 	case HelmChartUninstallFailed:
 		return "Helm Chart Uninstall Failed"
-	case TargetCandidatesNotFound:
-		return "Target does not exist"
+	case IngressApplyFailed:
+		return "Ingress Apply Failed"
+	case HttpNewRequestFailed:
+		return "Http New Request Failed"
+	case HttpSendRequestFailed:
+		return "Http Send Request Failed"
+	case HttpErrorResponse:
+		return "Http Error Response"
+	case MqttPublishFailed:
+		return "Mqtt Publish Failed"
+	case MqttApplyFailed:
+		return "Mqtt Apply Failed"
+	case MqttApplyTimeout:
+		return "Mqtt Apply Timeout"
+	case ConfigMapApplyFailed:
+		return "ConfigMap Apply Failed"
+	case HttpBadWaitStatusCode:
+		return "Http Bad Wait Status Code"
+	case HttpNewWaitRequestFailed:
+		return "Http New Wait Request Failed"
+	case HttpSendWaitRequestFailed:
+		return "Http Send Wait Request Failed"
+	case HttpErrorWaitResponse:
+		return "Http Error Wait Response"
+	case HttpBadWaitExpression:
+		return "Http Bad Wait Expression"
+	case ScriptExecutionFailed:
+		return "Script Execution Failed"
+	case ScriptResultParsingFailed:
+		return "Script Result Parsing Failed"
+	case WaitToGetInstancesFailed:
+		return "Wait To Get Instances Failed"
+	case WaitToGetSitesFailed:
+		return "Wait To Get Sites Failed"
+	case WaitToGetCatalogsFailed:
+		return "Wait To Get Catalogs Failed"
+	case InvalidWaitObjectType:
+		return "Invalid Wait Object Type"
+	case CatalogsGetFailed:
+		return "Get Catalogs Failed"
+	case InvalidInstanceCatalog:
+		return "Invalid Instance Catalog"
+	case CreateInstanceFromCatalogFailed:
+		return "Create Instance From Catalog Failed"
+	case InvalidSolutionCatalog:
+		return "Invalid Solution Object in Catalog"
+	case CreateSolutionFromCatalogFailed:
+		return "Create Solution Object From Catalog Failed"
+	case InvalidTargetCatalog:
+		return "Invalid Target Object in Catalog"
+	case CreateTargetFromCatalogFailed:
+		return "Create Target Object From Catalog Failed"
+	case InvalidCatalogCatalog:
+		return "Invalid Catalog Object in Catalog"
+	case CreateCatalogFromCatalogFailed:
+		return "Create Catalog Object From Catalog Failed"
+	case ParentObjectMissing:
+		return "Parent Object Missing"
+	case ParentObjectCreateFailed:
+		return "Parent Object Create Failed"
+	case MaterializeBatchFailed:
+		return "Failed to Materialize all objects"
+	case DeleteInstanceFailed:
+		return "Failed to Delete Instance"
+	case CreateInstanceFailed:
+		return "Failed to Create Instance"
+	case DeploymentNotReached:
+		return "Deployment Not Reached"
+	case InvalidObjectType:
+		return "Invalid Object Type"
+	case UnsupportedAction:
+		return "Unsupported Action"
 	case SolutionGetFailed:
 		return "Solution does not exist"
+	case TargetCandidatesNotFound:
+		return "Target does not exist"
 	case TargetListGetFailed:
 		return "Target list does not exist"
 	case ObjectInstanceCoversionFailed:
@@ -228,6 +336,9 @@ const (
 	MetricsExporterOTLPgRPC  = "metrics.exporters.otlpgrpc"
 	TracingExporterZipkin    = "tracing.exporters.zipkin"
 	TracingExporterOTLPgRPC  = "tracing.exporters.otlpgrpc"
+	LogExporterConsole       = "log.exporters.console"
+	LogExporterOTLPgRPC      = "log.exporters.otlpgrpc"
+	LogExporterOTLPhTTP      = "log.exporters.otlphttp"
 	ProvidersPersistentState = "providers.persistentstate"
 	ProvidersVolatileState   = "providers.volatilestate"
 	ProvidersConfig          = "providers.config"

@@ -124,21 +124,22 @@ func (r *RedisStateProvider) Init(config providers.IProviderConfig) error {
 }
 
 func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
-	_, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
 		"method": "Upsert",
 	})
 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(entry.Metadata)
 	if err != nil {
-		rLog.Errorf("  P (Redis State): upsert states %s failed to get key prefix with error %s, traceId: %s", entry.Value.ID, err.Error(), span.SpanContext().TraceID().String())
+		rLog.ErrorfCtx(ctx, "  P (Redis State): upsert states %s failed to get key prefix with error %s", entry.Value.ID, err.Error())
 		return entry.Value.ID, err
 	}
 
-	rLog.Debugf("  P (Redis State): upsert states %s with keyPrefix %s, traceId: %s", entry.Value.ID, keyPrefix, span.SpanContext().TraceID().String())
+	rLog.DebugfCtx(ctx, "  P (Redis State): upsert states %s with keyPrefix %s", entry.Value.ID, keyPrefix)
 
 	key := fmt.Sprintf("%s%s%s", keyPrefix, separator, entry.Value.ID)
 	var body []byte
@@ -181,17 +182,18 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 }
 
 func (r *RedisStateProvider) List(ctx context.Context, request states.ListRequest) ([]states.StateEntry, string, error) {
-	_, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
 		"method": "List",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var entities []states.StateEntry
 	var keyPrefix string
 	keyPrefix, err = getObjectTypePrefixForList(request.Metadata)
 	if err != nil {
-		rLog.Errorf("  P (Redis State): list states failed to get key prefix with error %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+		rLog.ErrorfCtx(ctx, "  P (Redis State): list states failed to get key prefix with error %s", err.Error())
 		return entities, "", err
 	}
 	if n, ok := request.Metadata["namespace"]; ok {
@@ -199,7 +201,7 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 			keyPrefix = keyPrefix + separator + nstring
 		}
 	}
-	rLog.Debugf("  P (Redis State): list states with keyPrefix %s, traceId: %s", keyPrefix, span.SpanContext().TraceID().String())
+	rLog.DebugfCtx(ctx, "  P (Redis State): list states with keyPrefix %s", keyPrefix)
 
 	filter := fmt.Sprintf("%s%s*", keyPrefix, separator)
 	var cursor uint64 = 0
@@ -250,19 +252,20 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 }
 
 func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRequest) error {
-	_, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(request.Metadata)
 	if err != nil {
-		rLog.Errorf("  P (Redis State): delete state %s failed to get key prefix with error %s, traceId: %s", request.ID, err.Error(), span.SpanContext().TraceID().String())
+		rLog.ErrorfCtx(ctx, "  P (Redis State): delete state %s failed to get key prefix with error %s", request.ID, err.Error())
 		return err
 	}
-	rLog.Debugf("  P (Redis State): delete state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
+	rLog.DebugfCtx(ctx, "  P (Redis State): delete state %s with keyPrefix %s", request.ID, keyPrefix)
 
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
 	_, err = r.Client.Del(r.Ctx, HKey).Result()
@@ -270,26 +273,27 @@ func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRe
 }
 
 func (r *RedisStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
-	_, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Redis State Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var keyPrefix string
 	keyPrefix, err = getKeyNamePrefix(request.Metadata)
 	if err != nil {
-		rLog.Errorf("  P (Redis State): get state %s failed to get key prefix with error %s, traceId: %s", request.ID, err.Error(), span.SpanContext().TraceID().String())
+		rLog.ErrorfCtx(ctx, "  P (Redis State): get state %s failed to get key prefix with error %s", request.ID, err.Error())
 		return states.StateEntry{}, err
 	}
 
-	rLog.Debugf("  P (Redis State): get state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
+	rLog.DebugfCtx(ctx, "  P (Redis State): get state %s with keyPrefix %s", request.ID, keyPrefix)
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
 
 	var data map[string]string
 	data, err = r.Client.HGetAll(r.Ctx, HKey).Result()
 	if err != nil {
-		rLog.Errorf("  P (Redis State): failed to get state %s with keyPrefix %s, traceId: %s", request.ID, keyPrefix, span.SpanContext().TraceID().String())
+		rLog.ErrorfCtx(ctx, "  P (Redis State): failed to get state %s with keyPrefix %s", request.ID, keyPrefix)
 		return states.StateEntry{}, err
 	}
 	if len(data) == 0 {

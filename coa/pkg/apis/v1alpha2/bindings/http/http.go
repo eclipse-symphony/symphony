@@ -19,6 +19,7 @@ import (
 	localfile "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	routing "github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -116,13 +117,32 @@ func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
 	return router
 }
 
+func composeCOARequestContext(reqCtx *fasthttp.RequestCtx, actCtx *contexts.ActivityLogContext, diagCtx *contexts.DiagnosticLogContext) context.Context {
+	retCtx := context.TODO()
+	if reqCtx != nil {
+		retCtx = context.WithValue(retCtx, v1alpha2.COAFastHTTPContextKey, reqCtx)
+	}
+	if actCtx != nil {
+		retCtx = context.WithValue(retCtx, contexts.ActivityLogContextKey, actCtx)
+	}
+	if diagCtx != nil {
+		retCtx = context.WithValue(retCtx, contexts.DiagnosticLogContextKey, diagCtx)
+	}
+	return retCtx
+}
+
 func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) fasthttp.RequestHandler {
 	return func(reqCtx *fasthttp.RequestCtx) {
+		actCtx := contexts.ParseActivityLogContextFromHttpRequestHeader(reqCtx)
+		diagCtx := contexts.ParseDiagnosticLogContextFromHttpRequestHeader(reqCtx)
+		ctx := composeCOARequestContext(reqCtx, actCtx, diagCtx)
+		// patch correlation id if missing
+		ctx = contexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		req := v1alpha2.COARequest{
 			Body:    reqCtx.PostBody(),
 			Route:   string(reqCtx.Request.URI().Path()),
 			Method:  string(reqCtx.Method()),
-			Context: reqCtx,
+			Context: ctx,
 		}
 		meta := reqCtx.Request.Header.Peek(v1alpha2.COAMetaHeader)
 		if meta != nil {

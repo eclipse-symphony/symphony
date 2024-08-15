@@ -24,6 +24,7 @@ import (
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
@@ -383,7 +384,19 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 	vendor.Context.Init(&pubSubProvider)
 	succeededCount := 0
 	sig := make(chan bool)
+	ctx := context.TODO()
+	correlationId := uuid.New().String()
+	resourceId := uuid.New().String()
+	ctx = coalogcontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
 	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
+		assert.NotEqual(t, ctx, event.Context)
+		assert.NotNil(t, event.Context)
+		diagCtx, ok := event.Context.Value(coalogcontexts.DiagnosticLogContextKey).(*coalogcontexts.DiagnosticLogContext)
+		assert.True(t, ok)
+		assert.NotNil(t, diagCtx)
+		assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
+		assert.Equal(t, resourceId, diagCtx.GetResourceId())
+
 		var job v1alpha2.JobData
 		jData, _ := json.Marshal(event.Body)
 		err := json.Unmarshal(jData, &job)
@@ -403,7 +416,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 			"target":    "false",
 			"namespace": "scope1",
 		},
-		Context: context.Background(),
+		Context: ctx,
 	})
 	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
