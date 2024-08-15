@@ -35,18 +35,3 @@ impl ITargetProvider for MockProvider {
         ])
     }
 }
-
-#[no_mangle]
-pub extern "C" fn create_mock_provider() -> *mut MockProvider {
-    let provider = Box::new(MockProvider);
-    Box::into_raw(provider)
-}
-
-#[no_mangle]
-pub extern "C" fn destroy_mock_provider(provider: *mut MockProvider) {
-    if !provider.is_null() {
-        unsafe {
-            drop(Box::from_raw(provider));
-        }
-    }
-}

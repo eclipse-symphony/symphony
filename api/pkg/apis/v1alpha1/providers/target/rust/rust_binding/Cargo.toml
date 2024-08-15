@@ -7,3 +7,4 @@ edition = "2021"
 crate-type = ["staticlib", "rlib"]
 
 [dependencies]
+lazy_static = "1.4"
