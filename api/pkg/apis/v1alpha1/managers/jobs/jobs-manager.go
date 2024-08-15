@@ -403,7 +403,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			return v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		}
 
-		log.Debugf(" M (Job): handling job event objectType: %s, job action: %s", objectType, job.Action)
+		log.DebugfCtx(ctx, " M (Job): handling job event objectType: %s, job action: %s", objectType, job.Action)
 		err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
 		if err != nil {
 			return err

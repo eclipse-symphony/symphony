@@ -202,7 +202,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	return result, nil
 }
 
-func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -214,7 +214,7 @@ func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool
 	for {
 		select {
 		case <-ticker.C:
-			log.Debugf(" M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
+			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
 			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
 				Body: v1alpha2.HeartBeatData{
 					JobId:     id,
@@ -234,12 +234,12 @@ func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool
 	}
 }
 
-func (s *SolutionManager) cleanupHeartbeat(id string, namespace string, remove bool) {
+func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
 	if remove == false {
 		return
 	}
 
-	log.Debugf(" M (Solution): cleanupHeartbeat, id: %s, namespace: %s", id, namespace)
+	log.DebugfCtx(ctx, " M (Solution): cleanupHeartbeat, id: %s, namespace: %s", id, namespace)
 	s.VendorContext.Publish("heartbeat", v1alpha2.Event{
 		Body: v1alpha2.HeartBeatData{
 			JobId:     id,
@@ -256,12 +256,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer lock.Unlock()
 
 	defer func() {
-		s.cleanupHeartbeat(deployment.Instance.ObjectMeta.Name, namespace, remove)
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
 	}()
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
