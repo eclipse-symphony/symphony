@@ -74,7 +74,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 		"method": "onCampaignContainers",
 	})
 	defer span.End()
-	ccLog.Infof("V (CampaignContainers): onCampaignContainers, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	ccLog.InfofCtx(pCtx, "V (CampaignContainers): onCampaignContainers, method: %s", request.Method)
 
 	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
@@ -82,7 +82,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 		namespace = constants.DefaultScope
 	}
 
-	ccLog.Infof("V (CampaignContainers): onCampaignContainers, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	ccLog.InfofCtx(pCtx, "V (CampaignContainers): onCampaignContainers, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCampaignContainers-GET", pCtx, nil)
@@ -100,7 +100,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 			state, err = c.CampaignContainersManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			ccLog.Errorf("V (CampaignContainers): onCampaignContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			ccLog.ErrorfCtx(ctx, "V (CampaignContainers): onCampaignContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -128,7 +128,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 
 		err := c.CampaignContainersManager.UpsertState(ctx, id, campaign)
 		if err != nil {
-			ccLog.Infof("V (CampaignContainers): onCampaignContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			ccLog.InfofCtx(ctx, "V (CampaignContainers): onCampaignContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -142,7 +142,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 		ctx, span := observability.StartSpan("onCampaignContainers-DELETE", pCtx, nil)
 		err := c.CampaignContainersManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			ccLog.Infof("V (CampaignContainers): onCampaignContainers failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			ccLog.ErrorfCtx(ctx, "V (CampaignContainers): onCampaignContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -152,7 +152,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 			State: v1alpha2.OK,
 		})
 	}
-	ccLog.Infof("V (CampaignContainers): onCampaignContainers failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	ccLog.InfoCtx(pCtx, "V (CampaignContainers): onCampaignContainers failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

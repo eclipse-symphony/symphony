@@ -23,6 +23,12 @@ spec:
       - image: "{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag }}"
         imagePullPolicy: "{{ .Values.symphonyImage.pullPolicy }}"
         name: manager
+        args:
+          - "--health-probe-bind-address=:8081"
+          - "--metrics-bind-address=127.0.0.1:8080"
+          - "--leader-elect"
+          - "--metrics-config-file=/etc/config/observability/metrics-config.json"
+          - "--logs-config-file=/etc/config/observability/logs-config.json"
         env:
         - name: APP_VERSION
           value: "{{ .Chart.AppVersion }}"
@@ -37,6 +43,15 @@ spec:
         envFrom:
         - configMapRef:
             name: '{{ include "symphony.envConfigName" . }}'
+        volumeMounts:
+          - mountPath: /var/run/secrets/tokens
+            name: symphony-api-token
+          - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
+            name: api-ca-cert
+            readOnly: true
+          - name: observability-config-map
+            mountPath: /etc/config/observability
+            readOnly: true
       volumes:
       - name: cert
         secret:
@@ -56,3 +71,7 @@ spec:
           - key: ca.crt
             path: ca.crt
           secretName: '{{ include "symphony.apiServingCertName" . }}'
+      - name: observability-config-map
+        configMap:
+          name: '{{ include "symphony.fullname" . }}-observability-configmap'
+          optional: true

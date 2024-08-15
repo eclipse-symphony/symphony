@@ -67,7 +67,11 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
-				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
+				ctx := context.TODO()
+				if event.Context != nil {
+					ctx = event.Context
+				}
+				err := e.CatalogsManager.UpsertState(ctx, name, catalog)
 				if err != nil {
 					return err
 				}
@@ -123,7 +127,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onStatus, method: %s", string(request.Method))
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -181,7 +185,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCheck, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onCheck, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var catalog model.CatalogState
@@ -228,7 +232,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onCatalogsGraph, method: %s", string(request.Method))
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
 		namespace = ""
@@ -292,7 +296,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(pCtx, "V (Catalogs Vendor): onCatalogs, method: %s", string(request.Method))
 
 	id := request.Parameters["__name"]
 	namespace, namesapceSupplied := request.Parameters["namespace"]
