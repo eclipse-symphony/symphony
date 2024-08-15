@@ -12,11 +12,13 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	oJsonpath "github.com/oliveagle/jsonpath"
 	"k8s.io/client-go/util/jsonpath"
 	"sigs.k8s.io/yaml"
@@ -62,10 +64,10 @@ func GetString(col map[string]string, key string) (string, error) {
 		if sok {
 			return s, nil
 		} else {
-			return "", fmt.Errorf("value of %s is not a string", key)
+			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("value of %s is not a string", key), v1alpha2.BadConfig)
 		}
 	}
-	return "", fmt.Errorf("key %s is not found", key)
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("key %s is not found", key), v1alpha2.BadConfig)
 }
 
 func ReadStringFromMapCompat(col map[string]interface{}, key string, defaultVal string) string {
@@ -326,4 +328,46 @@ func ReplaceSeperator(name string) string {
 		name = strings.ReplaceAll(name, ":", constants.ResourceSeperator)
 	}
 	return name
+}
+
+func GetNamespaceFromContext(localContext interface{}) string {
+	if localContext != nil {
+		if ltx, ok := localContext.(coa_utils.EvaluationContext); ok {
+			return ltx.Namespace
+		}
+	}
+	return " "
+}
+
+func removeDuplicates(strSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+
+	for _, entry := range strSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+func AreSlicesEqual(slice1, slice2 []string) bool {
+	slice1 = removeDuplicates(slice1)
+	slice2 = removeDuplicates(slice2)
+
+	if len(slice1) != len(slice2) {
+		return false
+	}
+
+	sort.Strings(slice1)
+	sort.Strings(slice2)
+
+	for i, v := range slice1 {
+		if v != slice2[i] {
+			return false
+		}
+	}
+
+	return true
 }

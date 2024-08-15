@@ -26,9 +26,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.nextStage
-      name: Next Stage
-      type: string
     - jsonPath: .status.statusMessage
       name: Status
       type: string
@@ -67,26 +64,33 @@ spec:
             properties:
               activationGeneration:
                 type: string
-              errorMessage:
-                type: string
-              inputs:
-                x-kubernetes-preserve-unknown-fields: true
-              isActive:
-                type: boolean
-              nextStage:
-                type: string
-              outputs:
-                x-kubernetes-preserve-unknown-fields: true
-              stage:
-                type: string
+              stageHistory:
+                items:
+                  properties:
+                    errorMessage:
+                      type: string
+                    inputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    isActive:
+                      type: boolean
+                    nextStage:
+                      type: string
+                    outputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    stage:
+                      type: string
+                    status:
+                      type: integer
+                    statusMessage:
+                      type: string
+                  type: object
+                type: array
               status:
                 type: integer
               statusMessage:
                 type: string
               updateTime:
                 type: string
-            required:
-            - stage
             type: object
         type: object
     served: true
@@ -1251,7 +1255,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolutionContainer is the Schema for the SolutionContainer API
+        description: SolutionContainer is the Schema for the SolutionContainers API
         properties:
           apiVersion:
             description: |-
@@ -2283,6 +2287,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
+    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
     validationPolicies:
       model:
       - selectorType: properties
@@ -2356,6 +2361,8 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
+        - --metrics-config-file=/etc/config/observability/metrics-config.json
+        - --logs-config-file=/etc/config/observability/logs-config.json
         command:
         - /manager
         env:
@@ -2407,6 +2414,9 @@ spec:
         - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
           name: api-ca-cert
           readOnly: true
+        - mountPath: /etc/config/observability
+          name: observability-config-map
+          readOnly: true
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
@@ -2451,6 +2461,10 @@ spec:
           - key: ca.crt
             path: ca.crt
           secretName: '{{ include "symphony.apiServingCertName" . }}'
+      - configMap:
+          name: '{{ include "symphony.fullname" . }}-observability-configmap'
+          optional: true
+        name: observability-config-map
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate

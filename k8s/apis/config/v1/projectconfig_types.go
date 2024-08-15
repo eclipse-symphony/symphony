@@ -25,6 +25,8 @@ type ProjectConfig struct {
 
 	SyncIntervalSeconds uint `json:"syncIntervalSeconds,omitempty"`
 
+	UniqueDisplayNameForSolution bool `json:"uniqueDisplayNameForSolution,omitempty"`
+
 	ValidationPolicies map[string][]ValidationPolicy `json:"validationPolicies,omitempty"`
 }
 

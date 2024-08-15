@@ -15,14 +15,14 @@ import (
 
 // Metrics is a metrics tracker for an api operation.
 type Metrics struct {
-	apiOperationLatency observability.Histogram
+	apiOperationLatency observability.Gauge
 	apiOperationErrors  observability.Counter
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.API)
 
-	apiOperationLatency, err := observable.Metrics.Histogram(
+	apiOperationLatency, err := observable.Metrics.Gauge(
 		constants.APIOperationLatency,
 		constants.APIOperationLatencyDescription,
 	)
@@ -63,7 +63,7 @@ func (m *Metrics) ApiOperationLatency(
 		return
 	}
 
-	m.apiOperationLatency.Add(
+	m.apiOperationLatency.Set(
 		latency(startTime),
 		Deployment(
 			operation,
@@ -94,7 +94,7 @@ func (m *Metrics) ApiOperationErrors(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in milliseconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	return float64(time.Since(start).Milliseconds())
 }

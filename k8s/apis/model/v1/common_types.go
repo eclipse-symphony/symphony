@@ -24,6 +24,15 @@ const (
 	ReconciliationPolicy_Inactive ReconciliationPolicyState = "inactive"
 )
 
+// +kubebuilder:object:generate=true
+type ContainerStatus struct {
+	Properties map[string]string `json:"properties"`
+}
+
+// +kubebuilder:object:generate=true
+type ContainerSpec struct {
+}
+
 // +kubebuilder:validation:Enum=active;inactive;
 type ReconciliationPolicyState string
 
