@@ -154,7 +154,7 @@ func TestDeploymentToComponents(t *testing.T) {
 						},
 						{
 							Name:            "rocket",
-							Image:           "evaamscontreg.azurecr.io/rocket:detection",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
 							Args:            []string{"pipeline=3", "line=https://aka.ms/lineeast960", "cat=car person"},
 							Ports: []apiv1.ContainerPort{
@@ -188,7 +188,7 @@ func TestDeploymentToComponents(t *testing.T) {
 	assert.Equal(t, "evs", components[0].Name)
 	assert.Equal(t, "rocket", components[1].Name)
 	assert.Equal(t, "prom/prometheus", components[0].Properties[model.ContainerImage])
-	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", components[1].Properties[model.ContainerImage])
+	assert.Equal(t, "prom/prometheus", components[1].Properties[model.ContainerImage])
 	assert.Equal(t, "Always", components[0].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "Always", components[1].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "[\"endpointLocal=http://localhost:7788/api/ImageItems\",\"line=https://aka.ms/linesample\"]", components[0].Properties["container.args"])
@@ -218,7 +218,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 		{
 			Name: "rocket",
 			Properties: map[string]interface{}{
-				"container.image":           "evaamscontreg.azurecr.io/rocket:detection",
+				"container.image":           "prom/prometheus",
 				"container.ports":           "[{\"containerPort\":7788}]",
 				"container.args":            "[\"pipeline=3\", \"line=https://aka.ms/lineeast960\", \"cat=car person\"]",
 				"container.imagePullPolicy": "Always",
@@ -233,7 +233,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 	assert.Equal(t, "evs", d.Spec.Template.Spec.Containers[0].Name)
 	assert.Equal(t, "rocket", d.Spec.Template.Spec.Containers[1].Name)
 	assert.Equal(t, "prom/prometheus", d.Spec.Template.Spec.Containers[0].Image)
-	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", d.Spec.Template.Spec.Containers[1].Image)
+	assert.Equal(t, "prom/prometheus", d.Spec.Template.Spec.Containers[1].Image)
 	assert.Equal(t, "line=https://aka.ms/linesample", d.Spec.Template.Spec.Containers[0].Args[1])
 	assert.Equal(t, "cat=car person", d.Spec.Template.Spec.Containers[1].Args[2])
 	assert.Equal(t, apiv1.PullPolicy("Always"), d.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -287,7 +287,7 @@ func TestNoOpProjection(t *testing.T) {
 						},
 						{
 							Name:            "rocket",
-							Image:           "evaamscontreg.azurecr.io/rocket:detection",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
 							Args:            []string{"pipeline=3", "line=https://aka.ms/lineeast960", "cat=car person"},
 							Ports: []apiv1.ContainerPort{
