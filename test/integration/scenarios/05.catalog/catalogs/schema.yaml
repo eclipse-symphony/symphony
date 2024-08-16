@@ -8,7 +8,9 @@ spec:
   properties:
     spec:
       rules:
-        email:
+        .email:
           pattern: "<email>"
-        person.bar.foo:
+        .person.bar.foo:
+          expression: "${{$and($gt($val(),10),$lt($val(),20))}}"
+        '`."person.bar.foo"`':
           expression: "${{$and($gt($val(),10),$lt($val(),20))}}"

@@ -324,8 +324,9 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	}
 }
 
-func JsonParseProperty(properties map[string]interface{}, fieldPath string) (any, bool) {
-	query, err := gojq.Parse(formatPathForNestedJsonField(fieldPath))
+func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
+	s := formatPathForNestedJsonField(fieldPath)
+	query, err := gojq.Parse(s)
 	if err != nil {
 		return nil, false
 	}
@@ -338,7 +339,8 @@ func JsonParseProperty(properties map[string]interface{}, fieldPath string) (any
 			// iterator terminates
 			break
 		}
-		if _, ok := result.(error); ok {
+		if err, ok := result.(error); ok {
+			fmt.Println(err)
 			return nil, false
 		}
 		value = result
@@ -347,10 +349,15 @@ func JsonParseProperty(properties map[string]interface{}, fieldPath string) (any
 }
 
 func formatPathForNestedJsonField(s string) string {
-	if len(s) == 0 || (len(s) > 0 && s[0] == '.') {
-		return s
+	// if the string contains "`", it means it is a raw string and need to be unquoted
+	if len(s) > 0 && s[0] == '`' {
+		val, err := strconv.Unquote(s)
+		if err != nil {
+			return ""
+		}
+		return val
 	}
-	return "." + s
+	return s
 }
 
 func ReplaceSeperator(name string) string {

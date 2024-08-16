@@ -11,7 +11,13 @@ spec:
     spec: 
       type: config
       properties:
+        test.dot.serviceType: "LoadBalancer"
         testA:
           testB:
-            testC:
-              image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+            images:
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 1
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 2
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 3

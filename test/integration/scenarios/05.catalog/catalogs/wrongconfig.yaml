@@ -11,3 +11,4 @@ spec:
     person:
       bar:
         foo: 0
+    person.bar.foo: 0

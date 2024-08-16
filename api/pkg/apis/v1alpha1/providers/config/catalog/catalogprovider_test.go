@@ -63,6 +63,7 @@ func TestRead(t *testing.T) {
 								"c": "nested",
 							},
 						},
+						"a.b.d": "dot",
 					},
 				},
 			}
@@ -117,6 +118,14 @@ func TestRead(t *testing.T) {
 	err = json.Unmarshal(data, &val)
 	assert.Nil(t, err)
 	assert.Equal(t, "nested", val)
+
+	res, err = provider.Read("catalog1:v1", "`\"a.b.d\"`", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "dot", val)
 
 	res, err = provider.Read("catalog1:v1", "parentAttribute", nil)
 	assert.Nil(t, err)
