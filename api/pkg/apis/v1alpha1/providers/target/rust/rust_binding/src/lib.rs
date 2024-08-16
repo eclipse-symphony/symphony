@@ -1,46 +1,50 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use lazy_static::lazy_static;
+use std::ffi::CStr;
+use std::os::raw::c_char;
+use libloading::{Library, Symbol};
 
 #[repr(C)]
-#[derive(Clone)] // Clone trait added
+#[derive(Clone)]
 pub struct ProviderConfig {
     _private: [u8; 0], // Ensure the struct is not empty
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct ValidationRule {
     // Define fields for validation rule
 }
 
 #[repr(C)]
-#[derive(Clone)] // Clone trait added
+#[derive(Clone)]
 pub struct DeploymentSpec {
     // Define fields for deployment specification
 }
 
 #[repr(C)]
-#[derive(Clone)] // Clone trait added
+#[derive(Clone)]
 pub struct ComponentStep {
     // Define fields for component step
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct ComponentSpec {
     // Define fields for component specification
 }
 
 #[repr(C)]
-#[derive(Clone)] // Clone trait added
+#[derive(Clone)]
 pub struct DeploymentStep {
     // Define fields for deployment step
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct ComponentResultSpec {
     // Define fields for component result specification
 }
 
+// Trait that all providers must implement
 pub trait ITargetProvider: Send + Sync {
     fn init(&self, config: ProviderConfig) -> Result<(), String>;
     fn get_validation_rule(&self) -> ValidationRule;
@@ -48,125 +52,92 @@ pub trait ITargetProvider: Send + Sync {
     fn apply(&self, deployment: DeploymentSpec, step: DeploymentStep, is_dry_run: bool) -> Result<Vec<ComponentResultSpec>, String>;
 }
 
-struct ProviderRegistry {
-    providers: Mutex<HashMap<String, Arc<dyn ITargetProvider>>>,
-}
-
-impl ProviderRegistry {
-    fn new() -> Self {
-        Self {
-            providers: Mutex::new(HashMap::new()),
-        }
-    }
-
-    fn register_provider(&self, name: String, provider: Arc<dyn ITargetProvider>) {
-        self.providers.lock().unwrap().insert(name, provider);
-    }
-
-    fn get_provider(&self, name: &str) -> Option<Arc<dyn ITargetProvider>> {
-        self.providers.lock().unwrap().get(name).cloned()
-    }
-}
-
-lazy_static! {
-    static ref REGISTRY: ProviderRegistry = ProviderRegistry::new();
-}
-
-fn load_provider_from_file(name: &str, _path: &str) -> Arc<dyn ITargetProvider> {
-    struct PlaceholderProvider;
-    impl ITargetProvider for PlaceholderProvider {
-        fn init(&self, _config: ProviderConfig) -> Result<(), String> {
-            println!("PlaceholderProvider initialized");
-            Ok(())
-        }
-
-        fn get_validation_rule(&self) -> ValidationRule {
-            println!("Returning placeholder validation rule");
-            ValidationRule {
-                // Populate with mock data
-            }
-        }
-
-        fn get(&self, _deployment: DeploymentSpec, _references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String> {
-            println!("Returning placeholder component specs");
-            Ok(vec![
-                ComponentSpec {
-                    // Populate with mock data
-                },
-            ])
-        }
-
-        fn apply(&self, _deployment: DeploymentSpec, _step: DeploymentStep, _is_dry_run: bool) -> Result<Vec<ComponentResultSpec>, String> {
-            println!("Applying placeholder deployment step");
-            Ok(vec![
-                ComponentResultSpec {
-                    // Populate with mock data
-                },
-            ])
-        }
-    }
-
-    Arc::new(PlaceholderProvider)
+// Struct to hold the provider instance
+#[repr(C)]
+pub struct ProviderHandle {
+    provider: Box<dyn ITargetProvider>,
+    _lib: Library, // Keep the library loaded to ensure the provider's functions remain valid
 }
 
 #[no_mangle]
-pub extern "C" fn create_provider_instance(provider_type: *const u8, path: *const u8) -> *mut dyn ITargetProvider {
-    let provider_type = unsafe { std::ffi::CStr::from_ptr(provider_type as *const i8) }
+pub extern "C" fn create_provider_instance(provider_type: *const c_char, provider_path: *const c_char) -> *mut ProviderHandle {
+    let provider_type = unsafe { CStr::from_ptr(provider_type) }
         .to_str()
         .expect("Invalid provider type");
 
-    let path = unsafe { std::ffi::CStr::from_ptr(path as *const i8) }
+    let provider_path = unsafe { CStr::from_ptr(provider_path) }
         .to_str()
         .expect("Invalid provider path");
 
-    let provider = load_provider_from_file(provider_type, path);
-    REGISTRY.register_provider(provider_type.to_string(), provider.clone());
+    // Load the provider library dynamically
+    let lib = unsafe { Library::new(provider_path).expect("Failed to load provider library") };
 
-    Arc::into_raw(provider) as *mut dyn ITargetProvider
+    // Define a type alias for the expected function signature
+    type CreateProviderFn = unsafe fn() -> *mut dyn ITargetProvider;
+
+    // Find the symbol in the library
+    let create_provider: Symbol<CreateProviderFn> = unsafe {
+        lib.get(b"create_provider\0").expect("Failed to load create_provider function")
+    };
+
+    // Call the create function from the provider
+    let provider = unsafe { create_provider() };
+
+    let handle = Box::new(ProviderHandle { provider: unsafe { Box::from_raw(provider) }, _lib: lib });
+    Box::into_raw(handle)
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_provider_instance(provider: *mut dyn ITargetProvider) {
-    if !provider.is_null() {
+pub extern "C" fn destroy_provider_instance(handle: *mut ProviderHandle) {
+    if !handle.is_null() {
         unsafe {
-            drop(Arc::from_raw(provider));
+            drop(Box::from_raw(handle));
         }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn init_provider(provider: *mut dyn ITargetProvider, config: ProviderConfig) -> i32 {
-    let provider = unsafe { &*provider };
-    match provider.init(config) {
+pub extern "C" fn init_provider(handle: *mut ProviderHandle, config: ProviderConfig) -> i32 {
+    let handle = unsafe { &*handle };
+    match handle.provider.init(config) {
         Ok(_) => 0,
         Err(_) => -1,
     }
 }
 
 #[no_mangle]
-pub extern "C" fn get_validation_rule(provider: *mut dyn ITargetProvider) -> ValidationRule {
-    let provider = unsafe { &*provider };
-    provider.get_validation_rule()
+pub extern "C" fn get_validation_rule(handle: *mut ProviderHandle) -> ValidationRule {
+    let handle = unsafe { &*handle };
+    handle.provider.get_validation_rule()
 }
 
 #[no_mangle]
-pub extern "C" fn get(provider: *mut dyn ITargetProvider, deployment: *const DeploymentSpec, references: *const Vec<ComponentStep>) -> *mut Vec<ComponentSpec> {
-    let provider = unsafe { &*provider };
-    let deployment = unsafe { &*deployment };
-    let references = unsafe { &*references };
-    match provider.get(deployment.clone(), references.clone()) {
+pub extern "C" fn get(
+    handle: *mut ProviderHandle,
+    deployment: *const DeploymentSpec,
+    references: *const Vec<ComponentStep>,
+) -> *mut Vec<ComponentSpec> {
+    let handle = unsafe { &*handle };
+    let deployment = unsafe { &*deployment }.clone();
+    let references = unsafe { &*references }.clone();
+    match handle.provider.get(deployment, references) {
         Ok(result) => Box::into_raw(Box::new(result)),
         Err(_) => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn apply(provider: *mut dyn ITargetProvider, deployment: *const DeploymentSpec, step: *const DeploymentStep, is_dry_run: i32) -> *mut Vec<ComponentResultSpec> {
-    let provider = unsafe { &*provider };
-    let deployment = unsafe { &*deployment };
-    let step = unsafe { &*step };
-    let is_dry_run = is_dry_run != 0; // Convert int to bool
-    match provider.apply(deployment.clone(), step.clone(), is_dry_run) {
+pub extern "C" fn apply(
+    handle: *mut ProviderHandle,
+    deployment: *const DeploymentSpec,
+    step: *const DeploymentStep,
+    is_dry_run: i32,
+) -> *mut Vec<ComponentResultSpec> {
+    let handle = unsafe { &*handle };
+    let deployment = unsafe { &*deployment }.clone();
+    let step = unsafe { &*step }.clone();
+    let is_dry_run = is_dry_run != 0;
+    match handle.provider.apply(deployment, step, is_dry_run) {
         Ok(result) => Box::into_raw(Box::new(result)),
         Err(_) => std::ptr::null_mut(),
     }

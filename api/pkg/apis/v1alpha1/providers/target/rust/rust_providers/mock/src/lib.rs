@@ -4,6 +4,12 @@ use rust_binding::{ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep
 
 pub struct MockProvider;
 
+#[no_mangle]
+pub extern "C" fn create_provider() -> *mut dyn ITargetProvider {
+    let provider = Box::new(MockProvider {});
+    Box::into_raw(provider)
+}
+
 impl ITargetProvider for MockProvider {
     fn init(&self, _config: ProviderConfig) -> Result<(), String> {
         println!("MockProvider initialized");

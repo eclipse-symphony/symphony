@@ -6,7 +6,11 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
-#include <stddef.h>
+
+typedef struct {
+    void* provider;  // Pointer to the provider instance
+    void* lib;       // Pointer to the dynamically loaded library (to keep it in memory)
+} ProviderHandle;
 
 typedef struct {
     // Fields for provider configuration
@@ -36,23 +40,23 @@ typedef struct {
     // Fields for component result specification
 } ComponentResultSpec;
 
-// Function to create a provider instance based on the provider type and path to the provider file
-void* create_provider_instance(const char* provider_type, const char* path);
+// Function to create a provider instance based on the provider type and path
+ProviderHandle* create_provider_instance(const char* provider_type, const char* provider_path);
 
 // Function to destroy a provider instance
-void destroy_provider_instance(void* provider);
+void destroy_provider_instance(ProviderHandle* handle);
 
 // Initialize the provider with the given configuration
-int init_provider(void* provider, const ProviderConfig* config);
+int init_provider(ProviderHandle* handle, const ProviderConfig* config);
 
 // Get the validation rule from the provider
-ValidationRule get_validation_rule(void* provider);
+ValidationRule get_validation_rule(ProviderHandle* handle);
 
 // Get component specifications from the provider
-ComponentSpec* get(void* provider, const DeploymentSpec* deployment, const ComponentStep* references, size_t* count);
+ComponentSpec* get(ProviderHandle* handle, const DeploymentSpec* deployment, const ComponentStep* references, size_t* count);
 
 // Apply a deployment step
-ComponentResultSpec* apply(void* provider, const DeploymentSpec* deployment, const DeploymentStep* step, int is_dry_run, size_t* count);
+ComponentResultSpec* apply(ProviderHandle* handle, const DeploymentSpec* deployment, const DeploymentStep* step, int is_dry_run, size_t* count);
 
 #ifdef __cplusplus
 }
