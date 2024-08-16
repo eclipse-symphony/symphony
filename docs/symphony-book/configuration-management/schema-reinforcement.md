@@ -4,6 +4,61 @@ Symphony Catalog object uses an open key-value pair schema, which provides the f
 
 In the case where a stronger schema check is required – just as limiting a configuration field to a certain value range – Symphony allows a Catalog to be annotated with a `schema` metadata that points to a schema definition. Once an Catalog is annotated with a schema, it will be checked against the schema on any update operations – regardless if you are using the REST API or using K8s API calls. Any schema violations will cause the update to be rejected.
 
+## Schema syntax
+
+Schema supports nested organizations and each layer is specified by ".". To successfully point to a field in properties, the schema must be written in correct format. For example, given a field
+```json
+{
+    "properties": {
+        "some-field": "some-value"
+    }
+}
+```
+the schema should be
+```json
+{
+    "rules": {
+        ".some-field": {
+        }
+    }
+}
+```
+Given a nested field
+```json
+{
+    "properties": {
+        "nested-layer": {
+            "some-field": "some-value"
+        }
+    }
+}
+```
+the schema should be
+```json
+{
+    "rules": {
+        ".nested-layer.some-field": {
+        }
+    }
+}
+```
+If a field name contains `.` in it, to correctly specify a field, should apply the double quote `"` outside the field name and apply <code>\`</code> outside the whole schema expression for notification. For example,
+```json
+{
+    "properties": {
+        "some.field": "some-value"
+    }
+}
+```
+the schema should be
+```json
+{
+    "rules": {
+        `."some.field"`: {
+        }
+    }
+}
+```
 
 ## Schema rules
 
@@ -13,7 +68,7 @@ Checks the type of field. For example, the following rule specifies `some-field`
 ```json
 {
     "rules": {
-        "some-field": {
+        ".some-field": {
             "type": "int"
         }
     }
@@ -28,7 +83,7 @@ Indicates if a field is mandatory:
 ```json
 {
     "rules": {
-        "some-field": {
+        ".some-field": {
             "required": true
         }
     }
@@ -42,7 +97,7 @@ Specifies that a field must match a regular expression:
 ```json
 {
     "rules": {
-        "some-field": {
+        ".some-field": {
             "pattern": "^[a-z]+$"
         }
     }
@@ -72,7 +127,7 @@ You can use Symphony expressions to specify complex conditions, such as a field 
 ```json
 {
     "rules": {
-        "some-field": {
+        ".some-field": {
             "pattern": "${{$and($gt($val(),10),$lt($val(),20))}}"
         }
     }
