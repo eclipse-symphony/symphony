@@ -148,7 +148,8 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
-	assert.Equal(t, v1alpha2.OK, resp.State)
+	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, "Not Found: entry 'campaign1-v1' is not found in namespace default", string(resp.Body))
 }
 
 func TestCampaignsWrongMethod(t *testing.T) {
