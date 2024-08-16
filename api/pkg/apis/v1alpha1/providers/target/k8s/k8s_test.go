@@ -135,12 +135,12 @@ func TestDeploymentToComponents(t *testing.T) {
 					Containers: []apiv1.Container{
 						{
 							Name:            "evs",
-							Image:           "evaamscontreg.azurecr.io/evsclient:latest",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
 							Args:            []string{"endpointLocal=http://localhost:7788/api/ImageItems", "line=https://aka.ms/linesample"},
 							Ports: []apiv1.ContainerPort{
 								{
-									ContainerPort: 8888,
+									ContainerPort: 9090,
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
@@ -187,13 +187,13 @@ func TestDeploymentToComponents(t *testing.T) {
 	assert.Equal(t, 2, len(components))
 	assert.Equal(t, "evs", components[0].Name)
 	assert.Equal(t, "rocket", components[1].Name)
-	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", components[0].Properties[model.ContainerImage])
+	assert.Equal(t, "prom/prometheus", components[0].Properties[model.ContainerImage])
 	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", components[1].Properties[model.ContainerImage])
 	assert.Equal(t, "Always", components[0].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "Always", components[1].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "[\"endpointLocal=http://localhost:7788/api/ImageItems\",\"line=https://aka.ms/linesample\"]", components[0].Properties["container.args"])
 	assert.Equal(t, "[\"pipeline=3\",\"line=https://aka.ms/lineeast960\",\"cat=car person\"]", components[1].Properties["container.args"])
-	assert.Equal(t, "[{\"containerPort\":8888}]", components[0].Properties["container.ports"])
+	assert.Equal(t, "[{\"containerPort\":9090}]", components[0].Properties["container.ports"])
 	assert.Equal(t, "[{\"containerPort\":7788}]", components[1].Properties["container.ports"])
 	assert.Equal(t, "{\"limits\":{\"cpu\":\"1\"},\"requests\":{\"cpu\":\"1\"}}", components[0].Properties["container.resources"])
 	assert.Equal(t, "{\"limits\":{\"cpu\":\"1\"},\"requests\":{\"cpu\":\"1\"}}", components[1].Properties["container.resources"])
@@ -208,8 +208,8 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 		{
 			Name: "evs",
 			Properties: map[string]interface{}{
-				"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
-				"container.ports":           "[{\"containerPort\":8888}]",
+				"container.image":           "prom/prometheus",
+				"container.ports":           "[{\"containerPort\":9090}]",
 				"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
@@ -232,7 +232,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 	assert.Equal(t, "name", d.Spec.Selector.MatchLabels["app"])
 	assert.Equal(t, "evs", d.Spec.Template.Spec.Containers[0].Name)
 	assert.Equal(t, "rocket", d.Spec.Template.Spec.Containers[1].Name)
-	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", d.Spec.Template.Spec.Containers[0].Image)
+	assert.Equal(t, "prom/prometheus", d.Spec.Template.Spec.Containers[0].Image)
 	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", d.Spec.Template.Spec.Containers[1].Image)
 	assert.Equal(t, "line=https://aka.ms/linesample", d.Spec.Template.Spec.Containers[0].Args[1])
 	assert.Equal(t, "cat=car person", d.Spec.Template.Spec.Containers[1].Args[2])
@@ -268,12 +268,12 @@ func TestNoOpProjection(t *testing.T) {
 					Containers: []apiv1.Container{
 						{
 							Name:            "evs",
-							Image:           "evaamscontreg.azurecr.io/evsclient:latest",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
 							Args:            []string{"endpointLocal=http://localhost:7788/api/ImageItems", "line=https://aka.ms/linesample"},
 							Ports: []apiv1.ContainerPort{
 								{
-									ContainerPort: 8888,
+									ContainerPort: 9090,
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
