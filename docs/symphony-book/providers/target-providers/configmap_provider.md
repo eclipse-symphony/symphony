@@ -6,11 +6,11 @@ You can modify the provider configuration in the Symphony config file to specify
 
 | Field | Comment |
 |--------|--------|
-| `configType` | Type of K8s configuration, either `path` or `bytes`. |
+| `configType` | Type of K8s configuration, either `path` or `inline`. |
 | `configData` | Configuration data<sup>1</sup> |
 | `inCluster` | If provider is running inside a K8s cluster (`"true"`). If `true`, `configType` and `configData` are not used. |
 
-1: When `configType` is set to `path`, this property contains the path to a Kubernetes configuration file. If this property is left empty or omitted, the default Kubernetes configuration file on the host will be used. If `configType` is set to `bytes`, this property contains the Kubernetes configuration bytes, as shown in the following Target spec:
+1: When `configType` is set to `path`, this property contains the path to a Kubernetes configuration file. If this property is left empty or omitted, the default Kubernetes configuration file on the host will be used. If `configType` is set to `inline`, this property contains the Kubernetes configuration bytes, as shown in the following Target spec:
 
 
 ```yaml
@@ -20,7 +20,7 @@ topologies:
     provider: providers.target.configmap
     config:
       inCluster: "false"
-      configType: "bytes"
+      configType: "inline"
       configData: |
         apiVersion: v1
         clusters:
