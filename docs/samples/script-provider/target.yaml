@@ -11,4 +11,4 @@ spec:
         applyScript: "mock-apply.sh"   
         removeScript: "mock-remove.sh"
         getScript: "mock-get.sh"
-        scriptFolder: "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider"
+        scriptFolder: "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/api/pkg/apis/v1alpha1/providers/target/script"
