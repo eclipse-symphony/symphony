@@ -44,6 +44,7 @@ type (
 
 	SummaryGetter interface {
 		GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error)
+		DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error
 	}
 
 	Dispatcher interface {
@@ -438,6 +439,21 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 		}
 	}
 	return &result, nil
+}
+
+func (a *apiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	log.DebugfCtx(ctx, "apiClient.DeleteSummary: id: %s, namespace: %s", id, namespace)
+	_, err = a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {

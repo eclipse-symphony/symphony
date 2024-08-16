@@ -202,6 +202,38 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	return result, nil
 }
 
+func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespace string) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "DeleteSummary",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, " M (Solution): delete summary, key: %s, namespace: %s", key, namespace)
+
+	err = s.StateProvider.Delete(ctx, states.DeleteRequest{
+		ID: fmt.Sprintf("%s-%s", "summary", key),
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
+		},
+	})
+
+	if err != nil {
+		if v1alpha2.IsNotFound(err) {
+			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
+			return nil
+		}
+		log.ErrorfCtx(ctx, " M (Solution): failed to get summary[%s]: %+v", key, err)
+		return err
+	}
+
+	return nil
+}
+
 func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()

@@ -345,6 +345,13 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		if object.GetStatus().ProvisioningStatus.Status == string(utilsmodel.ProvisioningStatusFailed) {
 			r.delayFunc(r.deleteSyncDelay)
 		}
+
+		// TODO: handle crash consistency that finalizer removal fails
+		err = r.deleteDeploymentSummary(ctx, object)
+		if err != nil {
+			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		}
+
 		if err := r.concludeDeletion(ctx, object); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
@@ -466,6 +473,10 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 
 func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object Reconcilable) (*model.SummaryResult, error) {
 	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
+}
+
+func (r *DeploymentReconciler) deleteDeploymentSummary(ctx context.Context, object Reconcilable) error {
+	return r.apiClient.DeleteSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
 }
 
 func (r *DeploymentReconciler) updateCorrelationIdMetaData(ctx context.Context, object Reconcilable, operationStartTimeKey string) error {
