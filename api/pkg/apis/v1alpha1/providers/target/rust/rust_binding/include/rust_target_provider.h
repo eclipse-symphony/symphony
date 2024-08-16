@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct {
     void* provider;  // Pointer to the provider instance
@@ -13,11 +14,39 @@ typedef struct {
 } ProviderHandle;
 
 typedef struct {
+    const void* ptr;  // Pointer to the array
+    size_t len;       // Length of the array
+} FFIArray;
+
+typedef struct {
+    const char* name;
+    bool ignore_case;
+    bool skip_if_missing;
+    bool prefix_match;
+    bool is_component_name;
+} PropertyDesc;
+
+typedef struct {
+    const char* required_component_type;
+    FFIArray change_detection;             // FFIArray of PropertyDesc
+    FFIArray change_detection_metadata;    // FFIArray of PropertyDesc
+    FFIArray required_properties;          // FFIArray of const char*
+    FFIArray optional_properties;          // FFIArray of const char*
+    FFIArray required_metadata;            // FFIArray of const char*
+    FFIArray optional_metadata;            // FFIArray of const char*
+} ComponentValidationRule;
+
+typedef struct {
     // Fields for provider configuration
 } ProviderConfig;
 
 typedef struct {
-    // Fields for validation rule
+    const char* required_component_type;
+    ComponentValidationRule component_validation_rule;
+    ComponentValidationRule sidecar_validation_rule;
+    bool allow_sidecar;
+    bool scope_isolation;
+    bool instance_isolation;
 } ValidationRule;
 
 typedef struct {

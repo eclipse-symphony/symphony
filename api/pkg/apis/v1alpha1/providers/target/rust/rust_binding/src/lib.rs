@@ -1,6 +1,7 @@
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use libloading::{Library, Symbol};
+use std::ptr;
 
 #[repr(C)]
 #[derive(Clone)]
@@ -10,8 +11,52 @@ pub struct ProviderConfig {
 
 #[repr(C)]
 #[derive(Clone)]
+pub struct FFIArray<T> {
+    pub ptr: *const T,
+    pub len: usize,
+}
+
+impl<T> FFIArray<T> {
+    pub fn new(vec: Vec<T>) -> Self {
+        let array = std::mem::ManuallyDrop::new(vec);
+        FFIArray {
+            ptr: array.as_ptr(),
+            len: array.len(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct PropertyDesc {
+    pub name: *const c_char,
+    pub ignore_case: bool,
+    pub skip_if_missing: bool,
+    pub prefix_match: bool,
+    pub is_component_name: bool,
+}
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct ComponentValidationRule {
+    pub required_component_type: *const c_char,
+    pub change_detection: FFIArray<PropertyDesc>,
+    pub change_detection_metadata: FFIArray<PropertyDesc>,
+    pub required_properties: FFIArray<*const c_char>,
+    pub optional_properties: FFIArray<*const c_char>,
+    pub required_metadata: FFIArray<*const c_char>,
+    pub optional_metadata: FFIArray<*const c_char>,
+}
+
+#[repr(C)]
+#[derive(Clone)]
 pub struct ValidationRule {
-    // Define fields for validation rule
+    pub required_component_type: *const c_char,
+    pub component_validation_rule: ComponentValidationRule,
+    pub sidecar_validation_rule: ComponentValidationRule,
+    pub allow_sidecar: bool,
+    pub scope_isolation: bool,
+    pub instance_isolation: bool,
 }
 
 #[repr(C)]
@@ -47,7 +92,7 @@ pub struct ComponentResultSpec {
 // Trait that all providers must implement
 pub trait ITargetProvider: Send + Sync {
     fn init(&self, config: ProviderConfig) -> Result<(), String>;
-    fn get_validation_rule(&self) -> ValidationRule;
+    fn get_validation_rule(&self, persistent: &mut PersistentStrings) -> ValidationRule;
     fn get(&self, deployment: DeploymentSpec, references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String>;
     fn apply(&self, deployment: DeploymentSpec, step: DeploymentStep, is_dry_run: bool) -> Result<Vec<ComponentResultSpec>, String>;
 }
@@ -57,6 +102,27 @@ pub trait ITargetProvider: Send + Sync {
 pub struct ProviderHandle {
     provider: Box<dyn ITargetProvider>,
     _lib: Library, // Keep the library loaded to ensure the provider's functions remain valid
+    persistent_strings: PersistentStrings,
+}
+
+// Struct to hold strings that need to persist across the FFI boundary
+pub struct PersistentStrings {
+    strings: Vec<CString>,
+}
+
+impl PersistentStrings {
+    pub fn new() -> Self {
+        PersistentStrings {
+            strings: Vec::new(),
+        }
+    }
+
+    pub fn add(&mut self, s: &str) -> *const c_char {
+        let c_string = CString::new(s).expect("Failed to create CString");
+        let ptr = c_string.as_ptr();
+        self.strings.push(c_string); // Store the CString to ensure it is not deallocated
+        ptr
+    }
 }
 
 #[no_mangle]
@@ -83,7 +149,12 @@ pub extern "C" fn create_provider_instance(provider_type: *const c_char, provide
     // Call the create function from the provider
     let provider = unsafe { create_provider() };
 
-    let handle = Box::new(ProviderHandle { provider: unsafe { Box::from_raw(provider) }, _lib: lib });
+    let handle = Box::new(ProviderHandle {
+        provider: unsafe { Box::from_raw(provider) },
+        _lib: lib,
+        persistent_strings: PersistentStrings::new(),
+    });
+
     Box::into_raw(handle)
 }
 
@@ -107,8 +178,8 @@ pub extern "C" fn init_provider(handle: *mut ProviderHandle, config: ProviderCon
 
 #[no_mangle]
 pub extern "C" fn get_validation_rule(handle: *mut ProviderHandle) -> ValidationRule {
-    let handle = unsafe { &*handle };
-    handle.provider.get_validation_rule()
+    let handle = unsafe { &mut *handle };
+    handle.provider.get_validation_rule(&mut handle.persistent_strings)
 }
 
 #[no_mangle]
@@ -122,7 +193,7 @@ pub extern "C" fn get(
     let references = unsafe { &*references }.clone();
     match handle.provider.get(deployment, references) {
         Ok(result) => Box::into_raw(Box::new(result)),
-        Err(_) => std::ptr::null_mut(),
+        Err(_) => ptr::null_mut(),
     }
 }
 
@@ -139,6 +210,6 @@ pub extern "C" fn apply(
     let is_dry_run = is_dry_run != 0;
     match handle.provider.apply(deployment, step, is_dry_run) {
         Ok(result) => Box::into_raw(Box::new(result)),
-        Err(_) => std::ptr::null_mut(),
+        Err(_) => ptr::null_mut(),
     }
 }
