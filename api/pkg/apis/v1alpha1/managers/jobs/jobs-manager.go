@@ -302,6 +302,9 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 				"namespace": namespace,
 			},
 		})
+		if err != nil && v1alpha2.IsNotFound(err) {
+			return nil
+		}
 	}
 
 	return err

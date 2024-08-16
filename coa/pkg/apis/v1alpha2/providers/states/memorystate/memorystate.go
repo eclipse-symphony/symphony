@@ -234,8 +234,9 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 	sLog.DebugfCtx(ctx, "  P (Memory State): delete state %s in namespace %s", request.ID, namespace)
 
 	if _, ok := s.Data[namespace]; !ok {
-		sLog.DebugfCtx(ctx, "  P (Memory State): entry '%s' is not found in namespace %s, traceId: %s", request.ID, namespace, span.SpanContext().TraceID().String())
-		return nil
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
+		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
+		return err
 	}
 	list, ok := s.Data[namespace].(map[string]interface{})
 	if !ok {
