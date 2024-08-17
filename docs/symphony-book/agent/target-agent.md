@@ -2,7 +2,7 @@
 
 _(last edit: 6/4/2024)_
 
-A Symphony target agent hosts [target providers](../providers/target_provider.md) outside of the Symphony API process. The Symphony API process communicates with target agents through either HTTP or MQTT. You can configure a target agent to represent one or multiple [targets](../concepts/unified-object-model/target.md).
+A Symphony target agent hosts [target providers](../providers/target-providers/target_provider.md) outside of the Symphony API process. The Symphony API process communicates with target agents through either HTTP or MQTT. You can configure a target agent to represent one or multiple [targets](../concepts/unified-object-model/target.md).
 
 ![Target Agent](../images/target-agent.png)
 
