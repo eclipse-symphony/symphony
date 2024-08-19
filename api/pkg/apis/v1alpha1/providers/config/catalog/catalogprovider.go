@@ -16,6 +16,8 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -88,9 +90,9 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	}
 	return ret, nil
 }
-func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
+func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string) (string, error) {
 	override = utils.ConvertReferenceToObjectName(override)
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
+	catalog, err := m.ApiClient.GetCatalog(ctx, override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
@@ -102,15 +104,21 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 		}
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
+		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
-func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
-	clog.Debug(" M (Catalog): Read, object: %s, field: %s", object, field)
+func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field string, localcontext interface{}) (interface{}, error) {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "Read",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	clog.DebugCtx(ctx, " M (Catalog): Read, object: %s, field: %s", object, field)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
+	catalog, err := m.ApiClient.GetCatalog(ctx, object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
@@ -120,7 +128,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
+		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
 		if err != nil {
 			return "", err
 		} else {
@@ -128,15 +136,22 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 		}
 	}
 
-	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
+	return "", err
 }
 
-func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
-	clog.Debug(" M (Catalog): ReadObject, object: %s", object)
+func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, localcontext interface{}) (map[string]interface{}, error) {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "ReadObject",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	clog.DebugCtx(ctx, " M (Catalog): ReadObject, object: %s", object)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
 
-	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
+	catalog, err := m.ApiClient.GetCatalog(ctx, object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -217,19 +232,32 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 
 // TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
 // so we can get rid of getCatalogInDefaultNamespace.
-func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
-	clog.Debug(" M (Catalog): Set, object: %s, field: %s", object, field)
-	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
+func (m *CatalogConfigProvider) Set(ctx context.Context, object string, field string, value interface{}) error {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "Set",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	clog.DebugCtx(ctx, " M (Catalog): Set, object: %s, field: %s", object, field)
+	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
 	}
 	catalog.Spec.Properties[field] = value
 	data, _ := json.Marshal(catalog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
+	return m.ApiClient.UpsertCatalog(ctx, object, data, m.Config.User, m.Config.Password)
 }
-func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
-	clog.Debug(" M (Catalog): SetObject, object: %s", object)
-	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
+func (m *CatalogConfigProvider) SetObject(ctx context.Context, object string, value map[string]interface{}) error {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "SetObject",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	clog.DebugCtx(ctx, " M (Catalog): SetObject, object: %s", object)
+	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
 	}
@@ -238,11 +266,18 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 		catalog.Spec.Properties[k] = v
 	}
 	data, _ := json.Marshal(catalog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
+	return m.ApiClient.UpsertCatalog(ctx, object, data, m.Config.User, m.Config.Password)
 }
-func (m *CatalogConfigProvider) Remove(object string, field string) error {
-	clog.Debug(" M (Catalog): Remove, object: %s, field: %s", object, field)
-	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
+func (m *CatalogConfigProvider) Remove(ctx context.Context, object string, field string) error {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "Remove",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	clog.DebugCtx(ctx, " M (Catalog): Remove, object: %s, field: %s", object, field)
+	catlog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
 	}
@@ -251,15 +286,23 @@ func (m *CatalogConfigProvider) Remove(object string, field string) error {
 	}
 	delete(catlog.Spec.Properties, field)
 	data, _ := json.Marshal(catlog)
-	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
-}
-func (m *CatalogConfigProvider) RemoveObject(object string) error {
-	clog.Debug(" M (Catalog): RemoveObject, object: %s", object)
-	object = utils.ConvertReferenceToObjectName(object)
-	return m.ApiClient.DeleteCatalog(context.TODO(), object, m.Config.User, m.Config.Password)
+	return m.ApiClient.UpsertCatalog(ctx, object, data, m.Config.User, m.Config.Password)
 }
 
-func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(context context.Context, catalog string) (model.CatalogState, error) {
+func (m *CatalogConfigProvider) RemoveObject(ctx context.Context, object string) error {
+	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
+		"method": "RemoveObject",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	clog.DebugCtx(ctx, " M (Catalog): RemoveObject, object: %s", object)
+	object = utils.ConvertReferenceToObjectName(object)
+	return m.ApiClient.DeleteCatalog(ctx, object, m.Config.User, m.Config.Password)
+}
+
+func (m *CatalogConfigProvider) getCatalogInDefaultNamespace(ctx context.Context, catalog string) (model.CatalogState, error) {
 	catalog = utils.ConvertReferenceToObjectName(catalog)
-	return m.ApiClient.GetCatalog(context, catalog, "", m.Config.User, m.Config.Password)
+	return m.ApiClient.GetCatalog(ctx, catalog, "", m.Config.User, m.Config.Password)
 }
