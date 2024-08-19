@@ -156,7 +156,7 @@ func TestDeploymentToComponents(t *testing.T) {
 							Name:            "mysql",
 							Image:           "mysql:latest",
 							ImagePullPolicy: "Always",
-							Args:            []string{"MYSQL_ROOT_PASSWORD=root", "MYSQL_DATABASE=testdb"},
+							Args:            []string{"character-set-server=utf8mb4", "MYSQL_DATABASE=testdb"},
 							Ports: []apiv1.ContainerPort{
 								{
 									ContainerPort: 7788,
@@ -192,7 +192,7 @@ func TestDeploymentToComponents(t *testing.T) {
 	assert.Equal(t, "Always", components[0].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "Always", components[1].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "[\"evaluation_interval=2m\",\"rule_query_offset=2s\"]", components[0].Properties["container.args"])
-	assert.Equal(t, "[\"MYSQL_ROOT_PASSWORD=root\",\"MYSQL_DATABASE=testdb\"]", components[1].Properties["container.args"])
+	assert.Equal(t, "[\"character-set-server=utf8mb4\",\"MYSQL_DATABASE=testdb\"]", components[1].Properties["container.args"])
 	assert.Equal(t, "[{\"containerPort\":9090}]", components[0].Properties["container.ports"])
 	assert.Equal(t, "[{\"containerPort\":7788}]", components[1].Properties["container.ports"])
 	assert.Equal(t, "{\"limits\":{\"cpu\":\"1\"},\"requests\":{\"cpu\":\"1\"}}", components[0].Properties["container.resources"])
@@ -220,7 +220,7 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 			Properties: map[string]interface{}{
 				"container.image":           "mysql:latest",
 				"container.ports":           "[{\"containerPort\":7788}]",
-				"container.args":            "[\"MYSQL_ROOT_PASSWORD=root\", \"MYSQL_DATABASE=testdb\",\"MYSQL_USER=myuser\"]",
+				"container.args":            "[\"character-set-server=utf8mb4\", \"MYSQL_DATABASE=testdb\",\"MYSQL_USER=myuser\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1, \"nvidia.com/gpu\":1}}",
 				"container.volumeMounts":    "[{\"name\":\"azure-rocket\",\"mountPath\":\"/app/output\"}]",
@@ -289,7 +289,7 @@ func TestNoOpProjection(t *testing.T) {
 							Name:            "mysql",
 							Image:           "mysql:latest",
 							ImagePullPolicy: "Always",
-							Args:            []string{"MYSQL_ROOT_PASSWORD=root", "MYSQL_DATABASE=testdb"},
+							Args:            []string{"character-set-server=utf8mb4", "MYSQL_DATABASE=testdb"},
 							Ports: []apiv1.ContainerPort{
 								{
 									ContainerPort: 7788,
