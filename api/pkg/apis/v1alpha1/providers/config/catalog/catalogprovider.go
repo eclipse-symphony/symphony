@@ -94,7 +94,7 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 	if err != nil {
 		return "", err
 	}
-	if v, ok := catalog.Spec.Properties[field]; ok {
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
 		if vstring, ok := v.(string); ok {
 			return vstring, nil
 		} else {

@@ -101,7 +101,7 @@ func TestRead(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.Read("catalog1:v1", "components", nil)
+	res, err := provider.Read("catalog1:v1", ".components", nil)
 	assert.Nil(t, err)
 	data, err := json.Marshal(res)
 	assert.Nil(t, err)
@@ -110,7 +110,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read("catalog1:v1", "a.b.c", nil)
+	res, err = provider.Read("catalog1:v1", ".a.b.c", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -119,7 +119,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "nested", val)
 
-	res, err = provider.Read("catalog1:v1", "`\"a.b.d\"`", nil)
+	res, err = provider.Read("catalog1:v1", "`.\"a.b.d\"`", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -127,7 +127,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "dot", val)
 
-	res, err = provider.Read("catalog1:v1", "parentAttribute", nil)
+	res, err = provider.Read("catalog1:v1", ".parentAttribute", nil)
 	assert.Nil(t, err)
 	v, ok := res.(string)
 	assert.True(t, ok)
@@ -182,6 +182,7 @@ func TestReadObject(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -234,6 +235,7 @@ func TestSetandRemove(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -292,6 +294,7 @@ func TestSetandRemoveObject(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
