@@ -358,9 +358,9 @@ func TestDeployment(t *testing.T) {
 		{
 			Name: "evs",
 			Properties: map[string]interface{}{
-				"container.image":           "mysql",
+				"container.image":           "nginx",
 				"container.ports":           "[{\"containerPort\":80}]",
-				"container.args":            "[\"MYSQL_ROOT_PASSWORD=root\", \"MYSQL_DATABASE=testdb\"]",
+				"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
 			},
