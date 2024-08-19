@@ -134,13 +134,13 @@ func TestDeploymentToComponents(t *testing.T) {
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:            "evs",
-							Image:           "evaamscontreg.azurecr.io/evsclient:latest",
+							Name:            "prom",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
-							Args:            []string{"endpointLocal=http://localhost:7788/api/ImageItems", "line=https://aka.ms/linesample"},
+							Args:            []string{"evaluation_interval=2m", "rule_query_offset=2s"},
 							Ports: []apiv1.ContainerPort{
 								{
-									ContainerPort: 8888,
+									ContainerPort: 9090,
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
@@ -153,10 +153,10 @@ func TestDeploymentToComponents(t *testing.T) {
 							},
 						},
 						{
-							Name:            "rocket",
-							Image:           "evaamscontreg.azurecr.io/rocket:detection",
+							Name:            "mysql",
+							Image:           "mysql:latest",
 							ImagePullPolicy: "Always",
-							Args:            []string{"pipeline=3", "line=https://aka.ms/lineeast960", "cat=car person"},
+							Args:            []string{"character-set-server=utf8mb4", "MYSQL_DATABASE=testdb"},
 							Ports: []apiv1.ContainerPort{
 								{
 									ContainerPort: 7788,
@@ -185,15 +185,15 @@ func TestDeploymentToComponents(t *testing.T) {
 	components, err := deploymentToComponents(deployment)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(components))
-	assert.Equal(t, "evs", components[0].Name)
-	assert.Equal(t, "rocket", components[1].Name)
-	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", components[0].Properties[model.ContainerImage])
-	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", components[1].Properties[model.ContainerImage])
+	assert.Equal(t, "prom", components[0].Name)
+	assert.Equal(t, "mysql", components[1].Name)
+	assert.Equal(t, "prom/prometheus", components[0].Properties[model.ContainerImage])
+	assert.Equal(t, "mysql:latest", components[1].Properties[model.ContainerImage])
 	assert.Equal(t, "Always", components[0].Properties["container.imagePullPolicy"])
 	assert.Equal(t, "Always", components[1].Properties["container.imagePullPolicy"])
-	assert.Equal(t, "[\"endpointLocal=http://localhost:7788/api/ImageItems\",\"line=https://aka.ms/linesample\"]", components[0].Properties["container.args"])
-	assert.Equal(t, "[\"pipeline=3\",\"line=https://aka.ms/lineeast960\",\"cat=car person\"]", components[1].Properties["container.args"])
-	assert.Equal(t, "[{\"containerPort\":8888}]", components[0].Properties["container.ports"])
+	assert.Equal(t, "[\"evaluation_interval=2m\",\"rule_query_offset=2s\"]", components[0].Properties["container.args"])
+	assert.Equal(t, "[\"character-set-server=utf8mb4\",\"MYSQL_DATABASE=testdb\"]", components[1].Properties["container.args"])
+	assert.Equal(t, "[{\"containerPort\":9090}]", components[0].Properties["container.ports"])
 	assert.Equal(t, "[{\"containerPort\":7788}]", components[1].Properties["container.ports"])
 	assert.Equal(t, "{\"limits\":{\"cpu\":\"1\"},\"requests\":{\"cpu\":\"1\"}}", components[0].Properties["container.resources"])
 	assert.Equal(t, "{\"limits\":{\"cpu\":\"1\"},\"requests\":{\"cpu\":\"1\"}}", components[1].Properties["container.resources"])
@@ -206,21 +206,21 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 		"deployment.volumes":          "[{\"name\":\"azure-evs\", \"azureFile\": {\"secretName\":\"azure-fireshare-secret\",\"shareName\":\"evs/output\",\"readOnly\":false}},{\"name\":\"azure-rocket\",\"azureFile\":{\"secretName\":\"azure-fileshare-secret\",\"shareName\":\"rocket/heavy\",\"readOnly\":false}}]",
 	}, []model.ComponentSpec{
 		{
-			Name: "evs",
+			Name: "prom",
 			Properties: map[string]interface{}{
-				"container.image":           "evaamscontreg.azurecr.io/evsclient:latest",
-				"container.ports":           "[{\"containerPort\":8888}]",
-				"container.args":            "[\"endpointLocal=http://localhost:7788/api/ImageItems\", \"line=https://aka.ms/linesample\"]",
+				"container.image":           "prom/prometheus",
+				"container.ports":           "[{\"containerPort\":9090}]",
+				"container.args":            "[\"evaluation_interval=2m\", \"rule_query_offset=2s\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1}}",
 			},
 		},
 		{
-			Name: "rocket",
+			Name: "mysql",
 			Properties: map[string]interface{}{
-				"container.image":           "evaamscontreg.azurecr.io/rocket:detection",
+				"container.image":           "mysql:latest",
 				"container.ports":           "[{\"containerPort\":7788}]",
-				"container.args":            "[\"pipeline=3\", \"line=https://aka.ms/lineeast960\", \"cat=car person\"]",
+				"container.args":            "[\"character-set-server=utf8mb4\", \"MYSQL_DATABASE=testdb\",\"MYSQL_USER=myuser\"]",
 				"container.imagePullPolicy": "Always",
 				"container.resources":       "{\"requests\": {\"cpu\":1}, \"limits\": {\"cpu\": 1, \"nvidia.com/gpu\":1}}",
 				"container.volumeMounts":    "[{\"name\":\"azure-rocket\",\"mountPath\":\"/app/output\"}]",
@@ -230,12 +230,12 @@ func TestComponentsToDeploymentFull(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, "name", d.ObjectMeta.Name)
 	assert.Equal(t, "name", d.Spec.Selector.MatchLabels["app"])
-	assert.Equal(t, "evs", d.Spec.Template.Spec.Containers[0].Name)
-	assert.Equal(t, "rocket", d.Spec.Template.Spec.Containers[1].Name)
-	assert.Equal(t, "evaamscontreg.azurecr.io/evsclient:latest", d.Spec.Template.Spec.Containers[0].Image)
-	assert.Equal(t, "evaamscontreg.azurecr.io/rocket:detection", d.Spec.Template.Spec.Containers[1].Image)
-	assert.Equal(t, "line=https://aka.ms/linesample", d.Spec.Template.Spec.Containers[0].Args[1])
-	assert.Equal(t, "cat=car person", d.Spec.Template.Spec.Containers[1].Args[2])
+	assert.Equal(t, "prom", d.Spec.Template.Spec.Containers[0].Name)
+	assert.Equal(t, "mysql", d.Spec.Template.Spec.Containers[1].Name)
+	assert.Equal(t, "prom/prometheus", d.Spec.Template.Spec.Containers[0].Image)
+	assert.Equal(t, "mysql:latest", d.Spec.Template.Spec.Containers[1].Image)
+	assert.Equal(t, "rule_query_offset=2s", d.Spec.Template.Spec.Containers[0].Args[1])
+	assert.Equal(t, "MYSQL_USER=myuser", d.Spec.Template.Spec.Containers[1].Args[2])
 	assert.Equal(t, apiv1.PullPolicy("Always"), d.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	cores := resource.MustParse("1")
 	actualCores := d.Spec.Template.Spec.Containers[0].Resources.Requests["cpu"]
@@ -267,13 +267,13 @@ func TestNoOpProjection(t *testing.T) {
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:            "evs",
-							Image:           "evaamscontreg.azurecr.io/evsclient:latest",
+							Name:            "prom",
+							Image:           "prom/prometheus",
 							ImagePullPolicy: "Always",
-							Args:            []string{"endpointLocal=http://localhost:7788/api/ImageItems", "line=https://aka.ms/linesample"},
+							Args:            []string{"evaluation_interval=2m", "rule_query_offset=2s"},
 							Ports: []apiv1.ContainerPort{
 								{
-									ContainerPort: 8888,
+									ContainerPort: 9090,
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
@@ -286,10 +286,10 @@ func TestNoOpProjection(t *testing.T) {
 							},
 						},
 						{
-							Name:            "rocket",
-							Image:           "evaamscontreg.azurecr.io/rocket:detection",
+							Name:            "mysql",
+							Image:           "mysql:latest",
 							ImagePullPolicy: "Always",
-							Args:            []string{"pipeline=3", "line=https://aka.ms/lineeast960", "cat=car person"},
+							Args:            []string{"character-set-server=utf8mb4", "MYSQL_DATABASE=testdb"},
 							Ports: []apiv1.ContainerPort{
 								{
 									ContainerPort: 7788,
@@ -318,7 +318,7 @@ func TestNoOpProjection(t *testing.T) {
 	projector, err := createProjector("noop")
 	assert.Nil(t, err)
 	projector.ProjectDeployment("default", "name", nil, nil, &deployment)
-	assert.Equal(t, "evs", deployment.Spec.Template.Spec.Containers[0].Name)
+	assert.Equal(t, "prom", deployment.Spec.Template.Spec.Containers[0].Name)
 }
 
 func TestDeployment(t *testing.T) {
