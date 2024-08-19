@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package model
+package validation
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -22,10 +23,6 @@ type (
 		FieldPath       string
 		Value           interface{}
 		DetailedMessage string
-	}
-	IValidation interface {
-		ValidateCreateOrUpdate(ctx context.Context, old IValidation) []ErrorField
-		ValidateDelete(ctx context.Context) []ErrorField
 	}
 
 	ResourceType string
@@ -129,6 +126,14 @@ func ConvertObjectNameToReference(name string) string {
 	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
 }
 
+func GetRootResourceFromName(name string) string {
+	index := strings.LastIndex(name, constants.ResourceSeperator)
+	if index == -1 {
+		return name
+	}
+	return name[:index]
+}
+
 func ConvertErrorFieldsToK8sError(ErrorFields []ErrorField) field.ErrorList {
 	var allErrs field.ErrorList
 	for _, errorField := range ErrorFields {
@@ -152,16 +157,16 @@ func ConvertErrorFieldsToString(ErrorFields []ErrorField) string {
 	return errorMessages
 }
 
-func ValidateCreateOrUpdate(ctx context.Context, newObj IValidation, oldObj IValidation, errorWhenGetOldObj error) error {
+func ValidateCreateOrUpdateWrapper(ctx context.Context, newObj interface{}, oldObj interface{}, errorWhenGetOldObj error) error {
 	var errorFields []ErrorField
 	if errorWhenGetOldObj != nil {
 		if v1alpha2.IsNotFound(errorWhenGetOldObj) {
-			errorFields = newObj.ValidateCreateOrUpdate(ctx, nil)
+			errorFields = ValidateCreateOrUpdate(ctx, newObj, nil)
 		} else {
 			return v1alpha2.NewCOAError(errorWhenGetOldObj, "Unable to get previous state from state store when validating the create or update request", v1alpha2.InternalError)
 		}
 	} else {
-		errorFields = newObj.ValidateCreateOrUpdate(ctx, oldObj)
+		errorFields = ValidateCreateOrUpdate(ctx, newObj, oldObj)
 	}
 	if len(errorFields) > 0 {
 		errorMessage := ConvertErrorFieldsToString(errorFields)
@@ -171,7 +176,29 @@ func ValidateCreateOrUpdate(ctx context.Context, newObj IValidation, oldObj IVal
 	}
 }
 
-func ValidateDelete(ctx context.Context, obj IValidation, errorWhenGetObj error) error {
+func ValidateCreateOrUpdate(ctx context.Context, newObj interface{}, oldObj interface{}) []ErrorField {
+	if _, ok := newObj.(model.TargetState); ok {
+		return ValidateCreateOrUpdateTarget(ctx, newObj, oldObj)
+	}
+	if _, ok := newObj.(model.InstanceState); ok {
+		return ValidateCreateOrUpdateInstance(ctx, newObj, oldObj)
+	}
+	if _, ok := newObj.(model.SolutionState); ok {
+		return ValidateCreateOrUpdateSolution(ctx, newObj, oldObj)
+	}
+	if _, ok := newObj.(model.CampaignState); ok {
+		return ValidateCreateOrUpdateCampaign(ctx, newObj, oldObj)
+	}
+	if _, ok := newObj.(model.ActivationState); ok {
+		return ValidateCreateOrUpdateActivation(ctx, newObj, oldObj)
+	}
+	if _, ok := newObj.(model.CatalogState); ok {
+		return ValidateCreateOrUpdateCatalog(ctx, newObj, oldObj)
+	}
+	return nil
+}
+
+func ValidateDeleteWrapper(ctx context.Context, obj interface{}, errorWhenGetObj error) error {
 	if errorWhenGetObj != nil {
 		if v1alpha2.IsNotFound(errorWhenGetObj) {
 			return nil
@@ -179,7 +206,7 @@ func ValidateDelete(ctx context.Context, obj IValidation, errorWhenGetObj error)
 			return v1alpha2.NewCOAError(errorWhenGetObj, "Unable to get current state from state store when validating the delete request", v1alpha2.InternalError)
 		}
 	} else {
-		errorFields := obj.ValidateDelete(ctx)
+		errorFields := ValidateDelete(ctx, obj)
 		if len(errorFields) > 0 {
 			errorMessage := ConvertErrorFieldsToString(errorFields)
 			return v1alpha2.NewCOAError(nil, "Failed to delete instance: "+errorMessage, v1alpha2.BadRequest)
@@ -189,8 +216,30 @@ func ValidateDelete(ctx context.Context, obj IValidation, errorWhenGetObj error)
 	}
 }
 
+func ValidateDelete(ctx context.Context, newObj interface{}) []ErrorField {
+	if _, ok := newObj.(model.TargetState); ok {
+		return ValidateDeleteTarget(ctx, newObj)
+	}
+	if _, ok := newObj.(model.InstanceState); ok {
+		return ValidateDeleteInstance(ctx, newObj)
+	}
+	if _, ok := newObj.(model.SolutionState); ok {
+		return ValidateDeleteSolution(ctx, newObj)
+	}
+	if _, ok := newObj.(model.CampaignState); ok {
+		return ValidateDeleteCampaign(ctx, newObj)
+	}
+	if _, ok := newObj.(model.ActivationState); ok {
+		return ValidateDeleteActivation(ctx, newObj)
+	}
+	if _, ok := newObj.(model.CatalogState); ok {
+		return ValidateDeleteCatalog(ctx, newObj)
+	}
+	return nil
+}
+
 // rootResource is not in metadata now, pass in as a parameter
-func (o *ObjectMeta) ValidateRootResource(ctx context.Context, rootResource string, lookupFunc ObjectLookupFunc) *ErrorField {
+func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource string, lookupFunc ObjectLookupFunc) *ErrorField {
 	if lookupFunc == nil {
 		return nil
 	}

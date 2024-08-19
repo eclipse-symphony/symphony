@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
@@ -76,9 +77,9 @@ func TestCreateTargetWithSameDisplayName(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := TargetsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.UniqueNameTargetLookupFunc = manager.targetUniqueNameLookup
+	validation.UniqueNameTargetLookupFunc = manager.targetUniqueNameLookup
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.TargetState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -108,9 +109,9 @@ func TestDeleteTargetWithInstance(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := TargetsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.TargetInstanceLookupFunc = manager.targetInstanceLookup
+	validation.TargetInstanceLookupFunc = manager.targetInstanceLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "testinstance",

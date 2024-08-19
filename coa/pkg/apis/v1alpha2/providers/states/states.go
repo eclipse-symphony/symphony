@@ -10,7 +10,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -65,8 +65,8 @@ type ListRequest struct {
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-func GetObjectState(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, name string, namespace string) (interface{}, error) {
-	group, version, resource, kind := model.GetResourceMetadata(resourceType)
+func GetObjectState(ctx context.Context, stateProvider IStateProvider, resourceType validation.ResourceType, name string, namespace string) (interface{}, error) {
+	group, version, resource, kind := validation.GetResourceMetadata(resourceType)
 
 	object, err := stateProvider.Get(ctx, GetRequest{
 		ID: name,
@@ -95,8 +95,8 @@ func formatLabelSelector(labels map[string]string) string {
 	return ""
 }
 
-func ListObjectStateWithLabels(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, namespace string, labels map[string]string, count int64) ([]interface{}, error) {
-	group, version, resource, kind := model.GetResourceMetadata(resourceType)
+func ListObjectStateWithLabels(ctx context.Context, stateProvider IStateProvider, resourceType validation.ResourceType, namespace string, labels map[string]string, count int64) ([]interface{}, error) {
+	group, version, resource, kind := validation.GetResourceMetadata(resourceType)
 
 	list, _, err := stateProvider.List(ctx, ListRequest{
 		Metadata: map[string]interface{}{
@@ -120,7 +120,7 @@ func ListObjectStateWithLabels(ctx context.Context, stateProvider IStateProvider
 	return objectStateList, nil
 }
 
-func GetObjectStateWithUniqueName(ctx context.Context, stateProvider IStateProvider, resourceType model.ResourceType, displayName string, namespace string) (interface{}, error) {
+func GetObjectStateWithUniqueName(ctx context.Context, stateProvider IStateProvider, resourceType validation.ResourceType, displayName string, namespace string) (interface{}, error) {
 	objectList, err := ListObjectStateWithLabels(ctx, stateProvider, resourceType, namespace, map[string]string{"displayName": displayName}, 1)
 	if err != nil {
 		return nil, err

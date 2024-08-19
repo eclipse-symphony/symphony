@@ -29,6 +29,13 @@ var (
 	testCampaignWithLongRunning    = "test/integration/scenarios/08.webhook/manifest/campaignLongRunning.yaml"
 	testActivationsWithWrongStage  = "test/integration/scenarios/08.webhook/manifest/activationWithWrongStage.yaml"
 	testActivationsWithLongRunning = "test/integration/scenarios/08.webhook/manifest/activationLongRunning.yaml"
+
+	testCatalog          = "test/integration/scenarios/05.catalog/catalogs/config.yaml"
+	testCatalogContainer = "test/integration/scenarios/05.catalog/catalogs/config-container.yaml"
+	testSchema           = "test/integration/scenarios/05.catalog/catalogs/schema.yaml"
+	testSchemaContainer  = "test/integration/scenarios/05.catalog/catalogs/schema-container.yaml"
+	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
+	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
 )
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
@@ -135,6 +142,101 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
+	assert.Nil(t, err)
+}
+
+func TestCreateCatalogWithoutContainer(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchema))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCatalog)).CombinedOutput()
+	assert.Contains(t, string(output), "rootResource must be a valid container")
+	assert.NotNil(t, err, "catalog creation without container should fail")
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalog))).Run()
+	assert.Nil(t, err)
+	output, err = exec.Command("kubectl", "delete", "catalogcontainer.federation.symphony", "config").CombinedOutput()
+	assert.NotNil(t, err, "catalog container deletion with catalog should fail")
+	assert.Contains(t, string(output), "nested resources with root resource 'config' are not empty")
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
+	assert.Nil(t, err)
+}
+
+func TestCreateCatalogWithoutSchema(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCatalog)).CombinedOutput()
+	assert.NotNil(t, err, "catalog creation without schema should fail")
+	assert.Contains(t, string(output), "could not find the required schema")
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchema))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalog))).Run()
+	assert.Nil(t, err)
+
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
+	assert.Nil(t, err)
+}
+
+func TestCreateCatalogWithWrongSchema(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchema))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testWrongSchema)).CombinedOutput()
+	assert.NotNil(t, err, "catalog creation without schema should fail")
+	assert.Contains(t, string(output), "property does not match pattern: <email>")
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
+	assert.Nil(t, err)
+}
+
+func TestCreateCatalogWithoutParent(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchema))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testChildCatalog)).CombinedOutput()
+	assert.Contains(t, string(output), "parent catalog not found")
+	assert.NotNil(t, err, "catalog creation without parent should fail")
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalog))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testChildCatalog))).Run()
+	assert.Nil(t, err)
+	output, err = exec.Command("kubectl", "delete", "catalog.federation.symphony", "config-v-v1").CombinedOutput()
+	assert.Contains(t, string(output), "Catalog has one or more child catalogs. Update or Deletion is not allowed")
+	assert.NotNil(t, err, "catalog deletion with child catalog should fail")
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v3").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
 }
 

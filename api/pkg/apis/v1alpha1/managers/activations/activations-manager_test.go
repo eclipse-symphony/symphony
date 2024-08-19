@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
@@ -177,9 +178,9 @@ func TestCreateActivationWithMissingCampaign(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.CampaignLookupFunc = manager.CampaignLookup
+	validation.CampaignLookupFunc = manager.CampaignLookup
 
 	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
 		ObjectMeta: model.ObjectMeta{
@@ -199,9 +200,9 @@ func TestCreateActivationWithCampaign(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.CampaignLookupFunc = manager.CampaignLookup
+	validation.CampaignLookupFunc = manager.CampaignLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "testcampaign",
@@ -244,7 +245,7 @@ func TestUpdateActivationWithRunningStatus(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
 	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
 		ObjectMeta: model.ObjectMeta{

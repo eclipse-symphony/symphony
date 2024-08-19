@@ -22,6 +22,7 @@ import (
 	"gopls-workspace/constants"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -62,12 +63,12 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		targetWebhookValidationMetrics = metrics
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
-		model.UniqueNameTargetLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-			return dynamicclient.GetObjectWithUniqueName(model.Target, displayName, namespace)
+		validation.UniqueNameTargetLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(validation.Target, displayName, namespace)
 		}
 	}
-	model.TargetInstanceLookupFunc = func(ctx context.Context, targetName string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(model.Instance, namespace, map[string]string{"target": targetName}, 1)
+	validation.TargetInstanceLookupFunc = func(ctx context.Context, targetName string, namespace string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{"target": targetName}, 1)
 		if err != nil {
 			return false, err
 		}
@@ -200,8 +201,8 @@ func (r *Target) validateCreateTarget() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if err := r.validateValidationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
@@ -268,8 +269,8 @@ func (r *Target) validateUpdateTarget(old *Target) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldState)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, oldState)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateValidationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -289,8 +290,8 @@ func (r *Target) validateDeleteTarget() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateDelete(context.TODO())
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateDelete(context.TODO(), state)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil

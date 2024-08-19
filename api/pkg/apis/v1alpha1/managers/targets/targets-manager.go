@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -27,7 +28,7 @@ type TargetsManager struct {
 	managers.Manager
 	StateProvider    states.IStateProvider
 	RegistryProvider registry.IRegistryProvider
-	NeedValidate     bool
+	needValidate     bool
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -41,10 +42,10 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	} else {
 		return err
 	}
-	s.NeedValidate = managers.NeedObjectValidate(config)
-	if s.NeedValidate {
-		model.UniqueNameTargetLookupFunc = s.targetUniqueNameLookup
-		model.TargetInstanceLookupFunc = s.targetInstanceLookup
+	s.needValidate = managers.NeedObjectValidate(config)
+	if s.needValidate {
+		validation.UniqueNameTargetLookupFunc = s.targetUniqueNameLookup
+		validation.TargetInstanceLookupFunc = s.targetInstanceLookup
 	}
 	return nil
 }
@@ -57,7 +58,7 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	if t.NeedValidate {
+	if t.needValidate {
 		if err = t.ValidateDelete(ctx, name, namespace); err != nil {
 			return err
 		}
@@ -89,7 +90,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
-	if t.NeedValidate {
+	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
@@ -269,20 +270,20 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 
 func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
 }
 
 func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
 	state, err := t.GetState(ctx, name, namespace)
-	return model.ValidateDelete(ctx, state, err)
+	return validation.ValidateDeleteWrapper(ctx, state, err)
 }
 
 func (t *TargetsManager) targetUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, model.Target, displayName, namespace)
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Target, displayName, namespace)
 }
 
 func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, model.Instance, namespace, map[string]string{"target": name}, 1)
+	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Instance, namespace, map[string]string{"target": name}, 1)
 	if err != nil {
 		return false, err
 	}

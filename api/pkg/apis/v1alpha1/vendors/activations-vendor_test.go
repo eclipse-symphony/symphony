@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
@@ -26,11 +27,11 @@ func createActivationsVendor() ActivationsVendor {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := activations.ActivationsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  false,
 	}
 	vendor := ActivationsVendor{
 		ActivationsManager: &manager,
 	}
+	validation.CampaignLookupFunc = nil
 	return vendor
 }
 func TestActivationsEndpoints(t *testing.T) {

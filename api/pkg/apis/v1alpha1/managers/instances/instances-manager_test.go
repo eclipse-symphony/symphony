@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
@@ -43,11 +44,11 @@ func TestCreateInstanceWithoutSolutionTargetValidation(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
-	model.SolutionLookupFunc = manager.solutionLookup
-	model.TargetLookupFunc = manager.targetLookup
+	validation.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
+	validation.SolutionLookupFunc = manager.solutionLookup
+	validation.TargetLookupFunc = manager.targetLookup
 
 	err := manager.UpsertState(context.Background(), "test", model.InstanceState{
 		ObjectMeta: model.ObjectMeta{
@@ -72,11 +73,11 @@ func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
-	model.SolutionLookupFunc = manager.solutionLookup
-	model.TargetLookupFunc = manager.targetLookup
+	validation.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
+	validation.SolutionLookupFunc = manager.solutionLookup
+	validation.TargetLookupFunc = manager.targetLookup
 
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
@@ -173,9 +174,9 @@ func TestCreateInstanceWithSameDisplayNameValidation(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
+	validation.UniqueNameInstanceLookupFunc = manager.instanceUniqueNameLookup
 
 	err := manager.UpsertState(context.Background(), "test", model.InstanceState{
 		ObjectMeta: model.ObjectMeta{

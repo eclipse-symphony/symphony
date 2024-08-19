@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -74,6 +75,7 @@ func TestVisualizationInfo(t *testing.T) {
 func TestHandleVisPacket(t *testing.T) {
 	vendor := createVisualizationVendor(t)
 	vendor.Context.EvaluationContext = &utils.EvaluationContext{}
+	validation.CatalogContainerLookupFunc = nil
 	packet := model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
@@ -90,15 +92,15 @@ func TestHandleVisPacket(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, response.State)
-	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology", "default")
+	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "solution-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology", "default")
+	assert.Equal(t, "solution-1-topology-v-v1", state.ObjectMeta.Name)
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "target-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology", "default")
+	assert.Equal(t, "target-1-topology-v-v1", state.ObjectMeta.Name)
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "instance-1-topology", state.ObjectMeta.Name)
+	assert.Equal(t, "instance-1-topology-v-v1", state.ObjectMeta.Name)
 }
 
 func TestConvertVisualizationPacketToCatalog(t *testing.T) {

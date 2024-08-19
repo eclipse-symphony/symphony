@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -25,7 +26,7 @@ import (
 type InstancesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-	NeedValidate  bool
+	needValidate  bool
 }
 
 func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -39,11 +40,11 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
-	s.NeedValidate = managers.NeedObjectValidate(config)
-	if s.NeedValidate {
-		model.UniqueNameInstanceLookupFunc = s.instanceUniqueNameLookup
-		model.SolutionLookupFunc = s.solutionLookup
-		model.TargetLookupFunc = s.targetLookup
+	s.needValidate = managers.NeedObjectValidate(config)
+	if s.needValidate {
+		validation.UniqueNameInstanceLookupFunc = s.instanceUniqueNameLookup
+		validation.SolutionLookupFunc = s.solutionLookup
+		validation.TargetLookupFunc = s.targetLookup
 	}
 	return nil
 }
@@ -82,7 +83,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
-	if t.NeedValidate {
+	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
@@ -206,15 +207,15 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 
 func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
 }
 
 func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, model.Instance, displayName, namespace)
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Instance, displayName, namespace)
 }
 func (t *InstancesManager) solutionLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
-	return states.GetObjectState(ctx, t.StateProvider, model.Solution, name, namespace)
+	return states.GetObjectState(ctx, t.StateProvider, validation.Solution, name, namespace)
 }
 func (t *InstancesManager) targetLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
-	return states.GetObjectState(ctx, t.StateProvider, model.Target, name, namespace)
+	return states.GetObjectState(ctx, t.StateProvider, validation.Target, name, namespace)
 }

@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-package model
+package validation
 
 import (
 	"context"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
@@ -17,40 +18,31 @@ var SolutionInstanceLookupFunc LinkedObjectLookupFunc
 var SolutionContainerLookupFunc ObjectLookupFunc
 var UniqueNameSolutionLookupFunc ObjectLookupFunc
 
-func (s SolutionState) ValidateCreateOrUpdate(ctx context.Context, old IValidation) []ErrorField {
-	var oldSolution SolutionState
-	if old != nil {
-		var ok bool
-		oldSolution, ok = old.(SolutionState)
-		if !ok {
-			old = nil
-		}
-	}
-	if s.Spec == nil {
-		s.Spec = &SolutionSpec{}
-	}
+func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := ConvertInterfaceToSolution(newRef)
+	old := ConvertInterfaceToSolution(oldRef)
 
 	errorFields := []ErrorField{}
-	if old == nil || s.Spec.DisplayName != oldSolution.Spec.DisplayName {
-		if err := s.ValidateUniqueName(ctx); err != nil {
+	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
+		if err := ValidateSolutionUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
-	if old == nil {
+	if oldRef == nil {
 		// validate naming convension
-		if err := ValidateObjectName(s.ObjectMeta.Name, s.Spec.RootResource); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := s.ObjectMeta.ValidateRootResource(ctx, s.Spec.RootResource, SolutionContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, SolutionContainerLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
 		// validate rootResource is not changed
-		if s.Spec.RootResource != oldSolution.Spec.RootResource {
+		if new.Spec.RootResource != old.Spec.RootResource {
 			errorFields = append(errorFields, ErrorField{
 				FieldPath:       "spec.rootResource",
-				Value:           s.Spec.RootResource,
+				Value:           new.Spec.RootResource,
 				DetailedMessage: "rootResource is immutable",
 			})
 		}
@@ -59,14 +51,15 @@ func (s SolutionState) ValidateCreateOrUpdate(ctx context.Context, old IValidati
 	return errorFields
 }
 
-func (s SolutionState) ValidateDelete(ctx context.Context) []ErrorField {
+func ValidateDeleteSolution(ctx context.Context, newRef interface{}) []ErrorField {
+	new := ConvertInterfaceToSolution(newRef)
 	errorFields := []ErrorField{}
-	if err := s.ValidateNoInstance(ctx); err != nil {
+	if err := ValidateNoInstanceForSolution(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
 }
-func (s *SolutionState) ValidateUniqueName(ctx context.Context) *ErrorField {
+func ValidateSolutionUniqueName(ctx context.Context, s model.SolutionState) *ErrorField {
 	if UniqueNameSolutionLookupFunc == nil {
 		return nil
 	}
@@ -80,7 +73,7 @@ func (s *SolutionState) ValidateUniqueName(ctx context.Context) *ErrorField {
 	}
 	return nil
 }
-func (s *SolutionState) ValidateNoInstance(ctx context.Context) *ErrorField {
+func ValidateNoInstanceForSolution(ctx context.Context, s model.SolutionState) *ErrorField {
 	if SolutionInstanceLookupFunc == nil {
 		return nil
 	}
@@ -92,4 +85,22 @@ func (s *SolutionState) ValidateNoInstance(ctx context.Context) *ErrorField {
 		}
 	}
 	return nil
+}
+
+func ConvertInterfaceToSolution(ref interface{}) model.SolutionState {
+	if ref == nil {
+		return model.SolutionState{
+			Spec: &model.SolutionSpec{},
+		}
+	}
+	if state, ok := ref.(model.SolutionState); ok {
+		if state.Spec == nil {
+			state.Spec = &model.SolutionSpec{}
+		}
+		return state
+	} else {
+		return model.SolutionState{
+			Spec: &model.SolutionSpec{},
+		}
+	}
 }

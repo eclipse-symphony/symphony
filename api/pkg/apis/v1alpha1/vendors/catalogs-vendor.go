@@ -14,6 +14,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -64,6 +65,7 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			if err == nil {
 				name := fmt.Sprintf("%s-%s", origin, catalog.ObjectMeta.Name)
 				catalog.ObjectMeta.Name = name
+				catalog.Spec.RootResource = validation.GetRootResourceFromName(name)
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
@@ -197,21 +199,14 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 				Body:  []byte(err.Error()),
 			})
 		}
-		res, err := e.CatalogsManager.ValidateState(rCtx, catalog)
-		if err != nil {
+		errorFields := validation.ValidateCreateOrUpdate(rCtx, catalog, nil)
+		if len(errorFields) > 0 {
+			errorMessage := validation.ConvertErrorFieldsToString(errorFields)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-		if !res.Valid {
-			jData, _ := utils.FormatObject(res.Errors, true, "", "")
-			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
-				Body:        jData,
-				ContentType: "application/json",
+				Body:        []byte(errorMessage),
+				ContentType: "text/plain",
 			})
-			return resp
 		}
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

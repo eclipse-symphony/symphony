@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
@@ -43,9 +44,9 @@ func TestCreateSolutionWithMissingContainer(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.SolutionContainerLookupFunc = manager.solutionContainerLookup
+	validation.SolutionContainerLookupFunc = manager.solutionContainerLookup
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -65,9 +66,9 @@ func TestCreateSolutionWithContainer(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.SolutionContainerLookupFunc = manager.solutionContainerLookup
+	validation.SolutionContainerLookupFunc = manager.solutionContainerLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",
@@ -109,11 +110,11 @@ func TestCreateSolutionWithSameDisplayName(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
 	//model.SolutionInstanceLookupFunc = manager.solutionInstanceLookup
 	//model.SolutionContainerLookupFunc = manager.solutionContainerLookup
-	model.UniqueNameSolutionLookupFunc = manager.uniqueNameSolutionLookup
+	validation.UniqueNameSolutionLookupFunc = manager.uniqueNameSolutionLookup
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -145,9 +146,9 @@ func TestDeleteSolutionWithInstance(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.SolutionInstanceLookupFunc = manager.solutionInstanceLookup
+	validation.SolutionInstanceLookupFunc = manager.solutionInstanceLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",

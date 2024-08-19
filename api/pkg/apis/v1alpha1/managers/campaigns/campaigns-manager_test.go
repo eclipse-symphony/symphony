@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
@@ -41,9 +42,9 @@ func TestCreateCampaignWithMissingContainer(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.CampaignContainerLookupFunc = manager.CampaignContainerLookup
+	validation.CampaignContainerLookupFunc = manager.CampaignContainerLookup
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -62,9 +63,9 @@ func TestCreateCampaignWithContainer(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
-	model.CampaignContainerLookupFunc = manager.CampaignContainerLookup
+	validation.CampaignContainerLookupFunc = manager.CampaignContainerLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",
@@ -105,7 +106,7 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
@@ -117,7 +118,7 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	model.CampaignActivationsLookupFunc = manager.CampaignActivationsLookup
+	validation.CampaignActivationsLookupFunc = manager.CampaignActivationsLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "testactivation",
@@ -172,7 +173,7 @@ func TestCreateCampaignWithWrongStages(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
@@ -198,7 +199,7 @@ func TestCreateCampaignWithWrongFirstStage(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := CampaignsManager{
 		StateProvider: stateProvider,
-		NeedValidate:  true,
+		needValidate:  true,
 	}
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{

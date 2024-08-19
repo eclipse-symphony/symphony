@@ -352,6 +352,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - catalogs
   sideEffects: None

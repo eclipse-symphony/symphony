@@ -21,6 +21,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,15 +61,15 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	// Load validator functions
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		model.UniqueNameInstanceLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-			return dynamicclient.GetObjectWithUniqueName(model.Instance, displayName, namespace)
+		validation.UniqueNameInstanceLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
 		}
 	}
-	model.SolutionLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(model.Solution, name, namespace)
+	validation.SolutionLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(validation.Solution, name, namespace)
 	}
-	model.TargetLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(model.Target, name, namespace)
+	validation.TargetLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(validation.Target, name, namespace)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -100,7 +101,7 @@ func (r *Instance) Default() {
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
 		r.Labels["displayName"] = r.Spec.DisplayName
 	}
-	r.Labels["solution"] = model.ConvertReferenceToObjectName(r.Spec.Solution)
+	r.Labels["solution"] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
 	r.Labels["target"] = r.Spec.Target.Name
 }
 
@@ -197,8 +198,8 @@ func (r *Instance) validateCreateInstance() error {
 		return err
 	}
 	// TODO: add proper context
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
@@ -222,8 +223,8 @@ func (r *Instance) validateUpdateInstance(old *Instance) error {
 		return err
 	}
 	// TODO: add proper context
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldState)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, oldState)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}

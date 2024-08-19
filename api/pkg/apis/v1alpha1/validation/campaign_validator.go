@@ -4,12 +4,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-package model
+package validation
 
 import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
 // Check Campaign Container existence
@@ -18,67 +20,57 @@ var CampaignContainerLookupFunc ObjectLookupFunc
 // Check Activations associated with the Campaign
 var CampaignActivationsLookupFunc LinkedObjectLookupFunc
 
-func (c CampaignState) ValidateCreateOrUpdate(ctx context.Context, old IValidation) []ErrorField {
-	var oldCampaign CampaignState
-	if old != nil {
-		var ok bool
-		oldCampaign, ok = old.(CampaignState)
-		if !ok {
-			old = nil
-		}
-	}
-
-	if c.Spec == nil {
-		c.Spec = &CampaignSpec{}
-	}
+func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := ConvertInterfaceToCampaign(newRef)
+	old := ConvertInterfaceToCampaign(oldRef)
 
 	errorFields := []ErrorField{}
 	// validate first stage if it is changed
-	if old == nil || c.Spec.FirstStage != oldCampaign.Spec.FirstStage {
-		if err := c.ValidateFirstStage(); err != nil {
+	if oldRef == nil || new.Spec.FirstStage != old.Spec.FirstStage {
+		if err := ValidateFirstStage(new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 	// validate StageSelector
-	if err := c.ValidateStages(); err != nil {
+	if err := ValidateStages(new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
-	// validate rootResource is not changed in update
-	if old == nil {
+	if oldRef == nil {
 		// validate create specific fields
-		if err := ValidateObjectName(c.ObjectMeta.Name, c.Spec.RootResource); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := c.ObjectMeta.ValidateRootResource(ctx, c.Spec.RootResource, CampaignContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, CampaignContainerLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
 		// validate update specific fields
-		if c.Spec.RootResource != oldCampaign.Spec.RootResource {
+		if new.Spec.RootResource != old.Spec.RootResource {
 			errorFields = append(errorFields, ErrorField{
 				FieldPath:       "spec.rootResource",
-				Value:           c.Spec.RootResource,
+				Value:           new.Spec.RootResource,
 				DetailedMessage: "rootResource is immutable",
 			})
 		}
-		if err := c.ValidateRunningActivation(ctx); err != nil {
+		if err := ValidateRunningActivation(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 	return errorFields
 }
 
-func (c CampaignState) ValidateDelete(ctx context.Context) []ErrorField {
+func ValidateDeleteCampaign(ctx context.Context, newRef interface{}) []ErrorField {
+	new := ConvertInterfaceToCampaign(newRef)
 	errorFields := []ErrorField{}
 	// validate no running activations
-	if err := c.ValidateRunningActivation(ctx); err != nil {
+	if err := ValidateRunningActivation(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
 }
 
-func (c CampaignState) ValidateFirstStage() *ErrorField {
+func ValidateFirstStage(c model.CampaignState) *ErrorField {
 	isValid := false
 	if c.Spec.FirstStage == "" {
 		if c.Spec.Stages == nil || len(c.Spec.Stages) == 0 {
@@ -101,7 +93,7 @@ func (c CampaignState) ValidateFirstStage() *ErrorField {
 	}
 }
 
-func (c CampaignState) ValidateStages() *ErrorField {
+func ValidateStages(c model.CampaignState) *ErrorField {
 	stages := make(map[string]struct{}, 0)
 	for _, stage := range c.Spec.Stages {
 		stages[stage.Name] = struct{}{}
@@ -120,7 +112,7 @@ func (c CampaignState) ValidateStages() *ErrorField {
 	return nil
 }
 
-func (c CampaignState) ValidateRunningActivation(ctx context.Context) *ErrorField {
+func ValidateRunningActivation(ctx context.Context, c model.CampaignState) *ErrorField {
 	if CampaignActivationsLookupFunc == nil {
 		return nil
 	}
@@ -132,4 +124,21 @@ func (c CampaignState) ValidateRunningActivation(ctx context.Context) *ErrorFiel
 		}
 	}
 	return nil
+}
+func ConvertInterfaceToCampaign(ref interface{}) model.CampaignState {
+	if ref == nil {
+		return model.CampaignState{
+			Spec: &model.CampaignSpec{},
+		}
+	}
+	if state, ok := ref.(model.CampaignState); ok {
+		if state.Spec == nil {
+			state.Spec = &model.CampaignSpec{}
+		}
+		return state
+	} else {
+		return model.CampaignState{
+			Spec: &model.CampaignSpec{},
+		}
+	}
 }

@@ -18,6 +18,7 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,19 +47,19 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 	projectConfig = myConfig
 
-	model.SolutionInstanceLookupFunc = func(ctx context.Context, name string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(model.Instance, namespace, map[string]string{"solution": name}, 1)
+	validation.SolutionInstanceLookupFunc = func(ctx context.Context, name string, namespace string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{"solution": name}, 1)
 		if err != nil {
 			return false, err
 		}
 		return len(instanceList.Items) > 0, nil
 	}
-	model.SolutionContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(model.SolutionContainer, name, namespace)
+	validation.SolutionContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(validation.SolutionContainer, name, namespace)
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
-		model.UniqueNameSolutionLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-			return dynamicclient.GetObjectWithUniqueName(model.Solution, displayName, namespace)
+		validation.UniqueNameSolutionLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+			return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
 		}
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -162,8 +163,8 @@ func (r *Solution) validateCreateSolution() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -182,8 +183,8 @@ func (r *Solution) validateUpdateSolution(old *Solution) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), oldstate)
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, oldstate)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -198,8 +199,8 @@ func (r *Solution) validateDeleteSolution() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateDelete(context.TODO())
-	allErrs = model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateDelete(context.TODO(), state)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil

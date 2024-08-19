@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -54,11 +55,11 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		catalogWebhookValidationMetrics = metrics
 	}
 
-	model.CampaignContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(model.CampaignContainer, name, namespace)
+	validation.CampaignContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(validation.CampaignContainer, name, namespace)
 	}
-	model.CampaignActivationsLookupFunc = func(ctx context.Context, campaign string, namespace string) (bool, error) {
-		activationList, err := dynamicclient.ListWithLabels(model.Activation, namespace, map[string]string{"campaign": campaign}, 1)
+	validation.CampaignActivationsLookupFunc = func(ctx context.Context, campaign string, namespace string) (bool, error) {
+		activationList, err := dynamicclient.ListWithLabels(validation.Activation, namespace, map[string]string{"campaign": campaign}, 1)
 		if err != nil {
 			return false, err
 		}
@@ -193,8 +194,8 @@ func (r *Campaign) validateCreateCampaign() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
-	allErrs := model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -208,8 +209,8 @@ func (r *Campaign) validateDeleteCampaign() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateDelete(context.TODO())
-	allErrs := model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateDelete(context.TODO(), state)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -226,8 +227,8 @@ func (r *Campaign) validateUpdateCampaign(oldCampaign *Campaign) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), old)
-	allErrs := model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, old)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil

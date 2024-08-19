@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,7 +32,7 @@ func SetClient(config *rest.Config) error {
 	return nil
 }
 
-func Get(resourceType model.ResourceType, name string, namespace string) (*unstructured.Unstructured, error) {
+func Get(resourceType validation.ResourceType, name string, namespace string) (*unstructured.Unstructured, error) {
 	resource, err := switchResourceType(resourceType)
 	if err != nil {
 		dynamicclientlog.Error(err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
@@ -46,7 +46,7 @@ func Get(resourceType model.ResourceType, name string, namespace string) (*unstr
 	return obj, nil
 }
 
-func ListWithLabels(resourceType model.ResourceType, namespace string, labels map[string]string, count int64) (*unstructured.UnstructuredList, error) {
+func ListWithLabels(resourceType validation.ResourceType, namespace string, labels map[string]string, count int64) (*unstructured.UnstructuredList, error) {
 	resource, err := switchResourceType(resourceType)
 	if err != nil {
 		dynamicclientlog.Error(err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
@@ -66,7 +66,7 @@ func ListWithLabels(resourceType model.ResourceType, namespace string, labels ma
 	return list, nil
 }
 
-func GetObjectWithUniqueName(resourceType model.ResourceType, displayName string, namespace string) (*unstructured.Unstructured, error) {
+func GetObjectWithUniqueName(resourceType validation.ResourceType, displayName string, namespace string) (*unstructured.Unstructured, error) {
 	objectList, err := ListWithLabels(resourceType, namespace, map[string]string{"displayName": displayName}, 1)
 	if err != nil {
 		// return true if List call failed
@@ -78,8 +78,8 @@ func GetObjectWithUniqueName(resourceType model.ResourceType, displayName string
 	return nil, v1alpha2.NewCOAError(nil, string(resourceType)+" not found", v1alpha2.NotFound)
 }
 
-func switchResourceType(resourceType model.ResourceType) (dynamic.NamespaceableResourceInterface, error) {
-	group, version, resource, _ := model.GetResourceMetadata(resourceType)
+func switchResourceType(resourceType validation.ResourceType) (dynamic.NamespaceableResourceInterface, error) {
+	group, version, resource, _ := validation.GetResourceMetadata(resourceType)
 	return dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,

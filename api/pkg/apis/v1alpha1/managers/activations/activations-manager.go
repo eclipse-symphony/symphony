@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -33,7 +34,7 @@ var log = logger.NewLogger("coa.runtime")
 type ActivationsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
-	NeedValidate  bool
+	needValidate  bool
 }
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -47,9 +48,9 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	} else {
 		return err
 	}
-	s.NeedValidate = managers.NeedObjectValidate(config)
-	if s.NeedValidate {
-		model.CampaignLookupFunc = s.CampaignLookup
+	s.needValidate = managers.NeedObjectValidate(config)
+	if s.needValidate {
+		validation.CampaignLookupFunc = s.CampaignLookup
 	}
 	return nil
 }
@@ -115,7 +116,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	}
 	state.ObjectMeta.FixNames(name)
 
-	if m.NeedValidate {
+	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
@@ -359,9 +360,9 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 
 func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return model.ValidateCreateOrUpdate(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
 }
 
 func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
-	return states.GetObjectState(ctx, t.StateProvider, model.Campaign, name, namespace)
+	return states.GetObjectState(ctx, t.StateProvider, validation.Campaign, name, namespace)
 }

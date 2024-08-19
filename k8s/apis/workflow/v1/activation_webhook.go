@@ -20,6 +20,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,8 +52,8 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		activationWebhookValidationMetrics = metrics
 	}
 
-	model.CampaignLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(model.Campaign, name, namespace)
+	validation.CampaignLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(validation.Campaign, name, namespace)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -74,7 +75,7 @@ func (r *Activation) Default() {
 	}
 	if r.Spec.Campaign != "" {
 		activationlog.Info("default", "name", r.Name, "spec.campaign", r.Spec.Campaign)
-		r.Labels["campaign"] = model.ConvertReferenceToObjectName(r.Spec.Campaign)
+		r.Labels["campaign"] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
 	}
 }
 
@@ -166,8 +167,8 @@ func (r *Activation) validateCreateActivation() error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), nil)
-	allErrs := model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -185,8 +186,8 @@ func (r *Activation) validateUpdateActivation(oldActivation *Activation) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := state.ValidateCreateOrUpdate(context.TODO(), old)
-	allErrs := model.ConvertErrorFieldsToK8sError(ErrorFields)
+	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, old)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
