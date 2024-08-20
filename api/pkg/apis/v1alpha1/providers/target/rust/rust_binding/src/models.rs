@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::SystemTime;
@@ -44,6 +50,7 @@ pub struct DeploymentSpec {
 #[serde(rename_all = "camelCase")]
 pub struct ComponentSpec {
     pub name: String,
+    #[serde(rename = "type")]
     pub component_type: Option<String>,
     pub metadata: Option<HashMap<String, String>>,
     pub properties: Option<HashMap<String, serde_json::Value>>,
@@ -90,6 +97,7 @@ pub struct ComponentValidationRule {
 #[serde(rename_all = "camelCase")]
 pub struct RouteSpec {
     pub route: String,
+    #[serde(rename = "type")]
     pub route_type: String,
     pub properties: Option<HashMap<String, String>>,
     pub filters: Option<Vec<FilterSpec>>,
@@ -99,6 +107,7 @@ pub struct RouteSpec {
 #[serde(rename_all = "camelCase")]
 pub struct SidecarSpec {
     pub name: Option<String>,
+    #[serde(rename = "type")]
     pub sidecar_type: Option<String>,
     pub properties: Option<HashMap<String, serde_json::Value>>,
 }
@@ -309,6 +318,7 @@ pub struct ComponentResultSpec {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(into = "u16", from = "u16")]
 pub enum State {
     // HTTP Status codes
     OK = 200,
@@ -423,4 +433,132 @@ pub enum State {
 
     // Target controller errors
     TargetPropertyNotFound = 12000,
+}
+
+impl Into<u16> for State {
+    fn into(self) -> u16 {
+        self as u16
+    }
+}
+
+impl From<u16> for State {
+    fn from(value: u16) -> Self {
+        match value {
+            // HTTP Status codes
+            200 => State::OK,
+            202 => State::Accepted,
+            400 => State::BadRequest,
+            403 => State::Unauthorized,
+            404 => State::NotFound,
+            405 => State::MethodNotAllowed,
+            409 => State::Conflict,
+            500 => State::InternalError,
+
+            // Config errors
+            1000 => State::BadConfig,
+            1001 => State::MissingConfig,
+
+            // API invocation errors
+            2000 => State::InvalidArgument,
+            3030 => State::APIRedirect,
+
+            // IO errors
+            4000 => State::FileAccessError,
+
+            // Serialization errors
+            5000 => State::SerializationError,
+            5001 => State::DeserializeError,
+
+            // Async requests
+            6000 => State::DeleteRequested,
+
+            // Operation results
+            8001 => State::UpdateFailed,
+            8002 => State::DeleteFailed,
+            8003 => State::ValidateFailed,
+            8004 => State::Updated,
+            8005 => State::Deleted,
+
+            // Workflow status
+            9994 => State::Running,
+            9995 => State::Paused,
+            9996 => State::Done,
+            9997 => State::Delayed,
+            9998 => State::Untouched,
+            9999 => State::NotImplemented,
+
+            // Detailed error codes
+            10000 => State::InitFailed,
+            10001 => State::CreateActionConfigFailed,
+            10002 => State::HelmActionFailed,
+            10003 => State::GetComponentSpecFailed,
+            10004 => State::CreateProjectorFailed,
+            10005 => State::K8sRemoveServiceFailed,
+            10006 => State::K8sRemoveDeploymentFailed,
+            10007 => State::K8sDeploymentFailed,
+            10008 => State::ReadYamlFailed,
+            10009 => State::ApplyYamlFailed,
+            10010 => State::ReadResourcePropertyFailed,
+            10011 => State::ApplyResourceFailed,
+            10012 => State::DeleteYamlFailed,
+            10013 => State::DeleteResourceFailed,
+            10014 => State::CheckResourceStatusFailed,
+            10015 => State::ApplyScriptFailed,
+            10016 => State::RemoveScriptFailed,
+            10017 => State::YamlResourcePropertyNotFound,
+            10018 => State::GetHelmPropertyFailed,
+            10019 => State::HelmChartPullFailed,
+            10020 => State::HelmChartLoadFailed,
+            10021 => State::HelmChartApplyFailed,
+            10022 => State::HelmChartUninstallFailed,
+            10023 => State::IngressApplyFailed,
+            10024 => State::HttpNewRequestFailed,
+            10025 => State::HttpSendRequestFailed,
+            10026 => State::HttpErrorResponse,
+            10027 => State::MqttPublishFailed,
+            10028 => State::MqttApplyFailed,
+            10029 => State::MqttApplyTimeout,
+            10030 => State::ConfigMapApplyFailed,
+            10031 => State::HttpBadWaitStatusCode,
+            10032 => State::HttpNewWaitRequestFailed,
+            10033 => State::HttpSendWaitRequestFailed,
+            10034 => State::HttpErrorWaitResponse,
+            10035 => State::HttpBadWaitExpression,
+            10036 => State::ScriptExecutionFailed,
+            10037 => State::ScriptResultParsingFailed,
+            10038 => State::WaitToGetInstancesFailed,
+            10039 => State::WaitToGetSitesFailed,
+            10040 => State::WaitToGetCatalogsFailed,
+            10041 => State::InvalidWaitObjectType,
+            10042 => State::CatalogsGetFailed,
+            10043 => State::InvalidInstanceCatalog,
+            10044 => State::CreateInstanceFromCatalogFailed,
+            10045 => State::InvalidSolutionCatalog,
+            10046 => State::CreateSolutionFromCatalogFailed,
+            10047 => State::InvalidTargetCatalog,
+            10048 => State::CreateTargetFromCatalogFailed,
+            10049 => State::InvalidCatalogCatalog,
+            10050 => State::CreateCatalogFromCatalogFailed,
+            10051 => State::ParentObjectMissing,
+            10052 => State::ParentObjectCreateFailed,
+            10053 => State::MaterializeBatchFailed,
+            10054 => State::DeleteInstanceFailed,
+            10055 => State::CreateInstanceFailed,
+            10056 => State::DeploymentNotReached,
+            10057 => State::InvalidObjectType,
+            10058 => State::UnsupportedAction,
+
+            // Instance controller errors
+            11000 => State::SolutionGetFailed,
+            11001 => State::TargetCandidatesNotFound,
+            11002 => State::TargetListGetFailed,
+            11003 => State::ObjectInstanceConversionFailed,
+            11004 => State::TimedOut,
+
+            // Target controller errors
+            12000 => State::TargetPropertyNotFound,
+
+            _ => State::InternalError, // Default case for unknown values
+        }
+    }
 }

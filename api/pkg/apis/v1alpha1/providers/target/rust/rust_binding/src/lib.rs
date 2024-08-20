@@ -1,17 +1,24 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use libloading::{Library, Symbol};
 use std::ptr;
+use std::collections::HashMap;
 
 pub mod models;
 use crate::models::*;
 
-// Trait that all providers must implement
+// Trait that all Rust-based Target providers must implement
 pub trait ITargetProvider: Send + Sync {
     fn init(&self, config: ProviderConfig) -> Result<(), String>;
     fn get_validation_rule(&self) -> Result<ValidationRule, String>; // Return Rust native type
     fn get(&self, deployment: DeploymentSpec, references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String>; // Return Rust native types
-    fn apply(&self, deployment: DeploymentSpec, step: DeploymentStep, is_dry_run: bool) -> Result<Vec<ComponentResultSpec>, String>; // Return Rust native types
+    fn apply(&self, deployment: DeploymentSpec, step: DeploymentStep, is_dry_run: bool) -> Result<HashMap<String, ComponentResultSpec>, String>; 
 }
 
 // Struct to hold the provider instance
@@ -95,16 +102,17 @@ pub extern "C" fn get(
     let handle = unsafe { &*handle };
     let deployment_str = unsafe { CStr::from_ptr(deployment_json).to_str().unwrap() };
     let references_str = unsafe { CStr::from_ptr(references_json).to_str().unwrap() };
-
     let deployment: DeploymentSpec = serde_json::from_str(deployment_str).unwrap();
     let references: Vec<ComponentStep> = serde_json::from_str(references_str).unwrap();
-
     match handle.provider.get(deployment, references) {
         Ok(components) => {
             let json = serde_json::to_string(&components).unwrap();
             CString::new(json).unwrap().into_raw()
         }
-        Err(_) => ptr::null_mut(),
+        Err(_) => {
+            println!("Error getting components");
+            ptr::null_mut()
+        } 
     }
 }
 
@@ -125,8 +133,8 @@ pub extern "C" fn apply(
     let is_dry_run = is_dry_run != 0;
 
     match handle.provider.apply(deployment, step, is_dry_run) {
-        Ok(result) => {
-            let json = serde_json::to_string(&result).unwrap();
+        Ok(result_map) => {
+            let json = serde_json::to_string(&result_map).unwrap();
             CString::new(json).unwrap().into_raw()
         }
         Err(_) => ptr::null_mut(),

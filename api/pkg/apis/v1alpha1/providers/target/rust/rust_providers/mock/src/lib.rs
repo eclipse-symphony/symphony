@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 extern crate rust_binding;
 
 use rust_binding::models::{
@@ -6,7 +12,6 @@ use rust_binding::models::{
     ComponentValidationRule, RouteSpec, SidecarSpec, State
 };
 use rust_binding::ITargetProvider;
-
 use std::collections::HashMap;
 
 pub struct MockProvider;
@@ -19,13 +24,10 @@ pub extern "C" fn create_provider() -> *mut dyn ITargetProvider {
 
 impl ITargetProvider for MockProvider {
     fn init(&self, _config: ProviderConfig) -> Result<(), String> {
-        println!("MockProvider initialized");
         Ok(())
     }
 
     fn get_validation_rule(&self) -> Result<ValidationRule, String> {
-        println!("Returning mock validation rule");
-    
         let validation_rule = ValidationRule {
             required_component_type: "example_type".to_string(),
             component_validation_rule: ComponentValidationRule {
@@ -80,8 +82,6 @@ impl ITargetProvider for MockProvider {
     
 
     fn get(&self, _deployment: DeploymentSpec, _references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String> {
-        println!("Returning mock component specs");
-
         let component_spec = ComponentSpec {
             name: "example_component".to_string(),
             component_type: Some("example_type".to_string()),
@@ -121,14 +121,22 @@ impl ITargetProvider for MockProvider {
         Ok(vec![component_spec])
     }
 
-    fn apply(&self, _deployment: DeploymentSpec, _step: DeploymentStep, _is_dry_run: bool) -> Result<Vec<ComponentResultSpec>, String> {
-        println!("Applying mock deployment step");
+    fn apply(
+        &self,
+        _deployment: DeploymentSpec,
+        step: DeploymentStep,
+        _is_dry_run: bool,
+    ) -> Result<HashMap<String, ComponentResultSpec>, String> {
+        let mut result_map = HashMap::new();
 
-        let result_spec = ComponentResultSpec {
-            status: State::OK,
-            message: "Operation successful".to_string(),
-        };
+        for component_step in step.components {
+            let result_spec = ComponentResultSpec {
+                status: State::OK,
+                message: format!("Component {} applied successfully", component_step.component.name),
+            };
+            result_map.insert(component_step.component.name.clone(), result_spec);
+        }
 
-        Ok(vec![result_spec])
+        Ok(result_map)
     }
 }

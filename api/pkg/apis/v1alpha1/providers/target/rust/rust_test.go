@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 package rust
 
 import (
@@ -5,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,8 +72,33 @@ func TestMockRustProviderGet(t *testing.T) {
 	err = rustProvider.Init(config)
 	assert.Nil(t, err)
 
-	// Create a mock deployment spec and component steps
-	deployment := model.DeploymentSpec{}
+	// Create a mock TargetState to populate the Targets map
+	targetState := model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "example_target",
+			Namespace: "default",
+		},
+		Status: model.TargetStatus{},
+		Spec: &model.TargetSpec{
+			DisplayName:   "Example Target",
+			Scope:         "example_scope",
+			Metadata:      map[string]string{"example_target_metadata_key": "example_target_metadata_value"},
+			Properties:    map[string]string{"example_target_property_key": "example_target_property_value"},
+			Components:    nil,
+			Constraints:   "example_constraints",
+			Topologies:    nil,
+			ForceRedeploy: false,
+		},
+	}
+
+	// Initialize the Targets map in DeploymentSpec
+	deployment := model.DeploymentSpec{
+		Targets: map[string]model.TargetState{
+			"example_target": targetState,
+		},
+	}
+
+	// Mock references (empty for this example)
 	references := []model.ComponentStep{}
 
 	// Call the Get method
@@ -84,7 +116,6 @@ func TestMockRustProviderGet(t *testing.T) {
 
 	// Validate metadata
 	assert.NotNil(t, component.Metadata)
-	assert.Equal(t, "example_metadata_key", component.Metadata["example_metadata_key"])
 	assert.Equal(t, "example_metadata_value", component.Metadata["example_metadata_key"])
 
 	// Validate properties
@@ -108,4 +139,46 @@ func TestMockRustProviderGet(t *testing.T) {
 	assert.Equal(t, "example_sidecar", sidecar.Name)
 	assert.Equal(t, "example_type", sidecar.Type)
 	assert.Equal(t, "example_sidecar_property_value", sidecar.Properties["example_sidecar_property_key"])
+}
+
+func TestMockRustProviderApply(t *testing.T) {
+	config := RustTargetProviderConfig{}
+	rustProvider, err := NewRustTargetProvider("mock", "./target/release/libmock.so")
+	assert.Nil(t, err)
+	defer rustProvider.Close()
+
+	err = rustProvider.Init(config)
+	assert.Nil(t, err)
+
+	// Create a mock deployment spec and deployment step
+	deployment := model.DeploymentSpec{
+		SolutionName: "test_solution",
+		Targets:      map[string]model.TargetState{},
+	}
+	step := model.DeploymentStep{
+		Target: "test_target",
+		Components: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "example_component",
+					Type: "example_type",
+				},
+			},
+		},
+		Role:    "test_role",
+		IsFirst: true,
+	}
+
+	// Call the Apply method
+	result, err := rustProvider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	// Validate the returned component result
+	assert.Equal(t, 1, len(result))
+
+	// Validate the properties of the returned ComponentResultSpec
+	componentResult := result["example_component"]
+	assert.Equal(t, v1alpha2.OK, componentResult.Status)
+	assert.Equal(t, "Component example_component applied successfully", componentResult.Message)
 }
