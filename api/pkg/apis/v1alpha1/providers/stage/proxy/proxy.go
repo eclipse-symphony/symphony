@@ -149,11 +149,15 @@ func (i *ProxyStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		sLog.Errorf("  P (Proxy Stage): error calling remote stage processor %s", err.Error())
 		return nil, false, err
 	}
-	if ret.ErrorMessage != "" {
-		sLog.Errorf("  P (Proxy Stage): remote stage processor returned an error %s", ret.ErrorMessage)
-		return nil, false, v1alpha2.NewCOAError(nil, ret.ErrorMessage, v1alpha2.InternalError)
+	if ret.Status != v1alpha2.Done {
+		sLog.Errorf("  P (Proxy Stage): remote stage processor returned an error %s(%s)", ret.Status.String(), ret.StatusMessage)
+		return nil, false, v1alpha2.NewCOAError(nil, ret.StatusMessage, v1alpha2.InternalError)
 	}
-	outputs := ret.Outputs
+	if len(ret.StageHistory) == 0 {
+		sLog.Errorf("  P (Proxy Stage): remote stage processor returned an empty stage history")
+		return nil, false, v1alpha2.NewCOAError(nil, "remote stage processor returned an empty stage history", v1alpha2.InternalError)
+	}
+	outputs := ret.StageHistory[len(ret.StageHistory)-1].Outputs
 
 	sLog.Info("  P (Proxy Stage): end process request")
 	return outputs, false, nil

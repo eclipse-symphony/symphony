@@ -597,10 +597,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }

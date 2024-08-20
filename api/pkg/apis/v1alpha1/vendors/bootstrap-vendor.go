@@ -166,7 +166,7 @@ func (b *BootstrapVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COAR
 				Body:  []byte(err.Error()),
 			})
 		}
-		if !entry.Status.IsActive {
+		if entry.Status.UpdateTime == "" {
 			b.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,

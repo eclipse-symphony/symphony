@@ -39,6 +39,7 @@ import (
 	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
@@ -186,6 +187,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.azure.adu":
 		mProvider := &adu.ADUTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.rust":
+		mProvider := &rust.RustTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -407,6 +414,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.target.k8s":
 					provider := &k8s.K8sTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.rust":
+					provider := &rust.RustTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
