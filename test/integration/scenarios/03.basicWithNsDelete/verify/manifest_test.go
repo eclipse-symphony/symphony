@@ -338,9 +338,18 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 		require.Len(t, resources.Items, 1, "there should be only one instance")
 
 		status := getStatus(resources.Items[0])
+		targetCount := getProperty(resources.Items[0], "targets")
+		target03Status := getProperty(resources.Items[0], "targets.target03")
+		helmTargetStatus := getProperty(resources.Items[0], "targets.helm-target")
+
 		fmt.Printf("Current instance status: %s\n", status)
+		fmt.Printf("Current instance deployment count: %s\n", targetCount)
+		fmt.Printf("Current instance deployment instance3: %s\n", target03Status)
+		fmt.Printf("Current instance deployment helm: %s\n", helmTargetStatus)
+
 		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
-		if status == "Succeeded" {
+		require.NotContains(t, target03Status, "OK", "instance should not show target03 status")
+		if status == "Succeeded" && targetCount == "1" && target03Status == "" && strings.Contains(helmTargetStatus, "OK") {
 			break
 		}
 
@@ -358,6 +367,21 @@ func getStatus(resource unstructured.Unstructured) string {
 			statusString, ok := props["status"].(string)
 			if ok {
 				return statusString
+			}
+		}
+	}
+
+	return ""
+}
+
+func getProperty(resource unstructured.Unstructured, propertyName string) string {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		props, ok := status["properties"].(map[string]interface{})
+		if ok {
+			property, ok := props[propertyName].(string)
+			if ok {
+				return property
 			}
 		}
 	}

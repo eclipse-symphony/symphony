@@ -349,7 +349,7 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		// TODO: handle crash consistency that finalizer removal fails
 		err = r.deleteDeploymentSummary(ctx, object)
 		if err != nil {
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
 		}
 
 		if err := r.concludeDeletion(ctx, object); err != nil {
