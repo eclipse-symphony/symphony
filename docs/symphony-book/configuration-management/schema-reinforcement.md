@@ -51,14 +51,14 @@ If a field name contains `.` in it, to correctly specify a field, should apply t
 }
 ```
 the schema should be
-```json
+<pre><code>
 {
     "rules": {
         `."some.field"`: {
         }
     }
 }
-```
+</code></pre>
 
 ## Schema rules
 

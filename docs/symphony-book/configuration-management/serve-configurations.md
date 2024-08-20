@@ -19,7 +19,7 @@ spec:
     type: container
     properties:
       container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"      
-      env.MY_CONFIG: "${{$config(config-obj, config-key)}}" 
+      env.MY_CONFIG: "${{$config(config-obj, .config-key)}}" 
 ```
 
 ## Configuration as a mounted file
