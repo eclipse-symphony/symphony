@@ -16,12 +16,13 @@ import (
 )
 
 func TestMockRustProviderGetValidationRule(t *testing.T) {
-	config := RustTargetProviderConfig{}
-	rustProvider, err := NewRustTargetProvider("mock", "./target/release/libmock.so")
-	assert.Nil(t, err)
-	defer rustProvider.Close()
-
-	err = rustProvider.Init(config)
+	config := RustTargetProviderConfig{
+		Name:    "mock",
+		LibFile: "./target/release/libmock.so",
+		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+	}
+	rustProvider := &RustTargetProvider{}
+	err := rustProvider.Init(config)
 	assert.Nil(t, err)
 
 	// Example usage of GetValidationRule
@@ -64,12 +65,13 @@ func TestMockRustProviderGetValidationRule(t *testing.T) {
 }
 
 func TestMockRustProviderGet(t *testing.T) {
-	config := RustTargetProviderConfig{}
-	rustProvider, err := NewRustTargetProvider("mock", "./target/release/libmock.so")
-	assert.Nil(t, err)
-	defer rustProvider.Close()
-
-	err = rustProvider.Init(config)
+	config := RustTargetProviderConfig{
+		Name:    "mock",
+		LibFile: "./target/release/libmock.so",
+		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+	}
+	rustProvider := &RustTargetProvider{}
+	err := rustProvider.Init(config)
 	assert.Nil(t, err)
 
 	// Create a mock TargetState to populate the Targets map
@@ -142,12 +144,13 @@ func TestMockRustProviderGet(t *testing.T) {
 }
 
 func TestMockRustProviderApply(t *testing.T) {
-	config := RustTargetProviderConfig{}
-	rustProvider, err := NewRustTargetProvider("mock", "./target/release/libmock.so")
-	assert.Nil(t, err)
-	defer rustProvider.Close()
-
-	err = rustProvider.Init(config)
+	config := RustTargetProviderConfig{
+		Name:    "mock",
+		LibFile: "./target/release/libmock.so",
+		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+	}
+	rustProvider := &RustTargetProvider{}
+	err := rustProvider.Init(config)
 	assert.Nil(t, err)
 
 	// Create a mock deployment spec and deployment step

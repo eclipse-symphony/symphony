@@ -20,22 +20,92 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/contexts"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
+const (
+	providerName = "P (Rust Target)"
+)
+
 type RustTargetProviderConfig struct {
+	Name    string `json:"name"`
+	LibFile string `json:"libFile"`
+	LibHash string `json:"libHash"`
 }
 
 type RustTargetProvider struct {
 	provider *C.ProviderHandle
+	Context  *contexts.ManagerContext
+}
+
+func RustTargetProviderConfiggFromMap(properties map[string]string) (RustTargetProviderConfig, error) {
+	ret := RustTargetProviderConfig{}
+	if v, ok := properties["name"]; ok {
+		ret.Name = v
+	}
+	if v, ok := properties["libFile"]; ok {
+		ret.LibFile = v
+	} else {
+		return ret, v1alpha2.NewCOAError(nil, "'libFile' is missing in Rust provider config", v1alpha2.BadConfig)
+	}
+	if v, ok := properties["libHash"]; ok {
+		ret.LibHash = v
+	} else {
+		return ret, v1alpha2.NewCOAError(nil, "'libHash' is missing in Rust provider config", v1alpha2.BadConfig)
+	}
+	return ret, nil
+}
+
+func toRustTargetProviderConfig(config providers.IProviderConfig) (RustTargetProviderConfig, error) {
+	ret := RustTargetProviderConfig{}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(data, &ret)
+	return ret, err
+}
+
+func (i *RustTargetProvider) InitWithMap(properties map[string]string) error {
+	config, err := RustTargetProviderConfiggFromMap(properties)
+	if err != nil {
+		return err
+	}
+	return i.Init(config)
+}
+
+func (s *RustTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
 }
 
 func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
+	rustConfig, err := toRustTargetProviderConfig(config)
+	if err != nil {
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: expected HttpTargetProviderConfig", providerName), v1alpha2.InitFailed)
+		return err
+	}
+
+	// Create Rust provider from file
+	cProviderPath := C.CString(rustConfig.LibFile)
+	cExpectedHash := C.CString(rustConfig.LibHash)
+	defer C.free(unsafe.Pointer(cProviderPath))
+	defer C.free(unsafe.Pointer(cExpectedHash))
+
+	provider := C.create_provider_instance(cProviderPath, cExpectedHash)
+	if provider == nil {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to create Rust provider from library file", providerName), v1alpha2.InitFailed)
+	}
+
 	configJSON, err := json.Marshal(config)
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %v", err)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to serialize Rust provider configuration", providerName), v1alpha2.InitFailed)
 	}
+
+	r.provider = provider
 
 	cConfigJSON := C.CString(string(configJSON))
 	defer C.free(unsafe.Pointer(cConfigJSON))
@@ -44,6 +114,7 @@ func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
 	if res != 0 {
 		return fmt.Errorf("failed to initialize provider")
 	}
+
 	return nil
 }
 
@@ -128,20 +199,18 @@ func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	return result, nil
 }
 
-func NewRustTargetProvider(providerType string, providerLibPath string) (*RustTargetProvider, error) {
-	cProviderType := C.CString(providerType)
-	defer C.free(unsafe.Pointer(cProviderType))
+// func NewRustTargetProvider(providerLibPath string) (*RustTargetProvider, error) {
 
-	cProviderPath := C.CString(providerLibPath)
-	defer C.free(unsafe.Pointer(cProviderPath))
+// 	cProviderPath := C.CString(providerLibPath)
+// 	defer C.free(unsafe.Pointer(cProviderPath))
 
-	provider := C.create_provider_instance(cProviderType, cProviderPath)
-	if provider == nil {
-		return nil, fmt.Errorf("failed to create provider instance")
-	}
+// 	provider := C.create_provider_instance(cProviderPath)
+// 	if provider == nil {
+// 		return nil, fmt.Errorf("failed to create provider instance")
+// 	}
 
-	return &RustTargetProvider{provider: provider}, nil
-}
+// 	return &RustTargetProvider{provider: provider}, nil
+// }
 
 func (r *RustTargetProvider) Close() {
 	if r.provider != nil {

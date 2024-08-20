@@ -15,7 +15,7 @@ typedef struct {
 } ProviderHandle;
 
 // Function to create a provider instance based on the provider type and path
-ProviderHandle* create_provider_instance(const char* provider_type, const char* provider_path);
+ProviderHandle* create_provider_instance(const char* provider_path, const char* expected_hash);
 
 // Function to destroy a provider instance
 void destroy_provider_instance(ProviderHandle* handle);
