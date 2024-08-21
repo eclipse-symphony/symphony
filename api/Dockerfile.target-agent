@@ -15,7 +15,7 @@ ENV CGO_ENABLED=1
 # Install gcc, musl-dev, and the ARM cross-compiler
 RUN apk add --no-cache gcc musl-dev g++ cargo \
     && apk add --no-cache binutils-arm-none-eabi gcc-arm-none-eabi
-    
+
 RUN mkdir /workspace
 COPY ./packages /workspace/packages
 COPY ./coa /workspace/coa
@@ -28,7 +28,7 @@ RUN cargo build --release
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
+RUN CC=arm-none-eabi-gcc CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM ubuntu:latest
 RUN \

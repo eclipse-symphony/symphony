@@ -12,9 +12,15 @@ ARG TARGETARCH
 
 ENV CGO_ENABLED=1
 
-# Install gcc, musl-dev, and the ARM cross-compiler
+# Install gcc and other necessary tools
 RUN apk add --no-cache gcc musl-dev g++ cargo \
-    && apk add --no-cache binutils-arm-none-eabi gcc-arm-none-eabi
+    && if [ "$TARGETARCH" = "arm" ]; then \
+           apk add --no-cache binutils-arm-none-eabi gcc-arm-none-eabi; \
+           export CC=arm-none-eabi-gcc; \
+       else \
+            export CC=gcc; \
+       fi
+
 
 RUN mkdir /workspace
 COPY ./packages /workspace/packages
