@@ -86,7 +86,10 @@ jobs:
           new_version="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
-
+      - name: Build Rust bindings
+        run: |
+          cd api/pkg/apis/v1alpha1/provider/target/rust
+          cargo build --release          
       - name: Build Symphony Api
         run: |
           cd api
