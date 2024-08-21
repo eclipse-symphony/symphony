@@ -46,6 +46,11 @@ redis:
     storageclass: 
     accessMode: ReadWriteOnce
     size: 1Gi
+extensions:
+  enabled: true 
+  storageclass:
+  accessMode: ReadWriteOnce
+  size: 1Gi
 kubeRbacProxy:
   image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
 parent:
