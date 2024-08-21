@@ -40,7 +40,7 @@ WORKDIR /workspace/api
 
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
+RUN CC=${CC} CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM ${TARGET_BASE_IMAGE}
 RUN \
