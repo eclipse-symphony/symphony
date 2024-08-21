@@ -17,7 +17,7 @@ ARG TARGETARCH
 ENV CGO_ENABLED=1
 
 # Install gcc, musl-dev, and the appropriate cross-compiler based on architecture
-RUN apk add --no-cache gcc musl-dev g++ \
+RUN apk add --no-cache gcc musl-dev g++ cargo \
     && if [ "$TARGETARCH" = "arm" ]; then \
            apk add --no-cache binutils-arm-none-eabi gcc-arm-none-eabi; \
            export CC=arm-none-eabi-gcc; \
