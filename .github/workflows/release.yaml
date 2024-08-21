@@ -88,7 +88,7 @@ jobs:
           echo "version=$new_version" >> $GITHUB_OUTPUT
       - name: Build Rust bindings
         run: |
-          cd api/pkg/apis/v1alpha1/provider/target/rust
+          cd api/pkg/apis/v1alpha1/providers/target/rust
           cargo build --release          
       - name: Build Symphony Api
         run: |
