@@ -14,7 +14,7 @@ ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 
 RUN mkdir /workspace
 COPY ./packages /workspace/packages
