@@ -16,11 +16,20 @@ ARG TARGETARCH
 
 ENV CGO_ENABLED=1
 
+# Install gcc and other necessary build tools
+RUN apk add --no-cache gcc musl-dev cargo
+
 RUN mkdir /workspace
 COPY ./packages /workspace/packages
 COPY ./coa /workspace/coa
 COPY ./api /workspace/api
+
+# Build the Rust component
+WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
+RUN cargo build --release
+
 WORKDIR /workspace/api
+
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
