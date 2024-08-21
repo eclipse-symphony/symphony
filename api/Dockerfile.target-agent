@@ -35,7 +35,7 @@ RUN cargo build --release
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
-RUN CC=arm-none-eabi-gcc CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM ubuntu:latest
 RUN \
