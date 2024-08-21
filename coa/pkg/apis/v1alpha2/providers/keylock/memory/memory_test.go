@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package memorystringlock
+package memory
 
 import (
 	"encoding/json"
@@ -96,15 +96,15 @@ func TestInitDefaultValues(t *testing.T) {
 
 func TestLockAndUnlock(t *testing.T) {
 	provider := MemoryStringLockProvider{}
-	provider.lm = NewLockManager()
+	provider.lm = NewLockMap()
 
-	unlockFunc := provider.Lock("testKey")
+	provider.Lock("testKey")
 	if provider.lm.getLockNode("testKey").TryLock() {
 		t.Errorf("Lock should be acquired, but it's not")
 	}
 
 	// Unlock the key
-	unlockFunc()
+	provider.UnLock("testKey")
 
 	if !provider.lm.getLockNode("testKey").TryLock() {
 		t.Errorf("Lock should be released, but it's not")
@@ -112,7 +112,7 @@ func TestLockAndUnlock(t *testing.T) {
 }
 
 func TestUpdateLockLRU(t *testing.T) {
-	lockManager := NewLockManager()
+	lockManager := NewLockMap()
 	key1 := "key1"
 	key2 := "key2"
 
@@ -135,7 +135,7 @@ func TestUpdateLockLRU(t *testing.T) {
 }
 
 func TestLockManagerClean(t *testing.T) {
-	lockManager := NewLockManager()
+	lockManager := NewLockMap()
 
 	// Create a node
 	node := &LockNode{
@@ -160,7 +160,7 @@ func TestLockManagerClean(t *testing.T) {
 
 func TestConcurrentLockUnlock(t *testing.T) {
 	provider := MemoryStringLockProvider{}
-	provider.lm = NewLockManager()
+	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup
 	numGoroutines := 100
@@ -172,9 +172,9 @@ func TestConcurrentLockUnlock(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			defer wg.Done()
-			unlockFunc := provider.Lock(key)
+			provider.Lock(key)
 			time.Sleep(10 * time.Millisecond) // Simulate some work with the lock
-			unlockFunc()
+			provider.UnLock(key)
 		}()
 	}
 
@@ -191,7 +191,7 @@ func TestConcurrentLockUnlock(t *testing.T) {
 
 func TestConcurrentAccessDifferentKeys(t *testing.T) {
 	provider := MemoryStringLockProvider{}
-	provider.lm = NewLockManager()
+	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup
 	numGoroutines := 100
@@ -205,9 +205,9 @@ func TestConcurrentAccessDifferentKeys(t *testing.T) {
 		for j := 0; j < numGoroutines; j++ {
 			go func(key string) {
 				defer wg.Done()
-				unlockFunc := provider.Lock(key)
+				provider.Lock(key)
 				time.Sleep(10 * time.Millisecond) // Simulate some work with the lock
-				unlockFunc()
+				provider.UnLock(key)
 			}(key)
 		}
 	}
@@ -226,7 +226,7 @@ func TestConcurrentAccessDifferentKeys(t *testing.T) {
 	}
 }
 
-func lockRecurisive(Total int, cur int, wg *sync.WaitGroup, lockManager *LockManager) {
+func lockRecurisive(Total int, cur int, wg *sync.WaitGroup, lockManager *LockMap) {
 	key := "key" + strconv.Itoa(cur)
 	mutex := lockManager.getLockNode(key)
 	mutex.Lock()
@@ -245,7 +245,7 @@ func lockRecurisive(Total int, cur int, wg *sync.WaitGroup, lockManager *LockMan
 }
 
 func TestLockManagerLRUConcurrent(t *testing.T) {
-	lockManager := NewLockManager()
+	lockManager := NewLockMap()
 	numKeys := 10
 
 	var wg sync.WaitGroup

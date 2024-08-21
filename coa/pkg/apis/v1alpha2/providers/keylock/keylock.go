@@ -4,16 +4,21 @@
  * SPDX-License-Identifier: MIT
  */
 
-package stringlock
+package keylock
 
 import (
+	"time"
+
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	//"encoding/json"
 )
 
 type UnLock func()
 
-type IStringLockProvider interface {
+type IKeyLockProvider interface {
 	Init(config providers.IProviderConfig) error
-	Lock(string) UnLock
+	Lock(string)
+	UnLock(string)
+	TryLock(string) bool
+	TryLockWithTimeout(string, time.Duration) bool
 }
