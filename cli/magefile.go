@@ -39,16 +39,32 @@ func BuildApi() error {
 	if err != nil {
 		return err
 	}
+	err = os.Chdir(filepath.Join(wd, "..", "api/pkg/apis/v1alpha1/target/rust"))
+	if err != nil {
+		return err
+	}
+	if err := shellcmd.RunAll(
+		// Build the Cargo project for each target
+		shellcmd.Command("cargo build --release --target aarch64-unknown-linux-gnu"),
+		shellcmd.Command("cargo build --release --target armv7-unknown-linux-gnueabihf"),
+		shellcmd.Command("cargo build --release --target x86_64-pc-windows-gnu"),
+		shellcmd.Command("cargo build --release --target x86_64-apple-darwin"),
+		shellcmd.Command("cargo build --release --target x86_64-unknown-linux-gnu"),
+		shellcmd.Command("cargo build --release"),
+	); err != nil {
+		return err
+	}
+
 	err = os.Chdir(filepath.Join(wd, "..", "api"))
 	if err != nil {
 		return err
 	}
 	if err := shellcmd.RunAll(
-		shellcmd.Command("CGO_ENABLED=1 go build -o symphony-api"),
-		shellcmd.Command("CGO_ENABLED=1 GOARCH=arm64 go build -o symphony-api-arm64"),
-		shellcmd.Command("CGO_ENABLED=1 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
-		shellcmd.Command("CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
-		shellcmd.Command("CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOARCH=arm64 go build -o symphony-api-arm64"),
+		shellcmd.Command("CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
+		shellcmd.Command("CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
+		shellcmd.Command("CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CC=gcc CGO_ENABLED=1 go build -o symphony-api"),
 	); err != nil {
 		return err
 	}
