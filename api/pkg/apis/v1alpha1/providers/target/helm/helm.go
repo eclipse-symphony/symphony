@@ -83,10 +83,11 @@ type (
 	}
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
-		Repo    string `json:"repo"`
-		Name    string `json:"name,omitempty"`
-		Version string `json:"version"`
-		Wait    bool   `json:"wait"`
+		Repo    string        `json:"repo"`
+		Name    string        `json:"name,omitempty"`
+		Version string        `json:"version"`
+		Wait    bool          `json:"wait"`
+		Timeout time.Duration `json:"timeout"`
 	}
 )
 
@@ -689,6 +690,7 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 		installClient.Namespace = deployment.Instance.Spec.Scope
 	}
 	installClient.Wait = componentProps.Wait
+	installClient.Timeout = componentProps.Timeout
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
