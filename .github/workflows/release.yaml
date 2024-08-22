@@ -60,13 +60,10 @@ jobs:
       - name: Install dependencies
         run: |
            sudo apt-get update && apt-get install -y \
-            gcc g++ make curl wget git \
-            gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-            libssl-dev pkg-config \
-            && wget https://golang.org/dl/go${{ env.GO_VERSION }}.linux-amd64.tar.gz \
-            && tar -C /usr/local -xzf go${{ env.GO_VERSION }}.linux-amd64.tar.gz \
-            && rm go${{ env.GO_VERSION }}.linux-amd64.tar.gz
-            sudo snap install yq
+           gcc g++ make curl wget git \
+           gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+           libssl-dev pkg-config
+           sudo snap install yq
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
