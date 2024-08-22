@@ -18,19 +18,19 @@ import (
 
 var sLog = logger.NewLogger("coa.runtime")
 
-type MemoryStringLockProvider struct {
+type MemoryKeyLockProvider struct {
 	lm            *LockMap
 	cleanInterval int //seconds
 	purgeDuration int // 12 hours before
 }
 
-type MemoryStringLockProviderConfig struct {
+type MemoryKeyLockProviderConfig struct {
 	CleanInterval int `json:"cleanInterval"`
 	PurgeDuration int `json:"purgeDuration"`
 }
 
-func toMemoryStringLockProviderConfig(config providers.IProviderConfig) (MemoryStringLockProviderConfig, error) {
-	ret := MemoryStringLockProviderConfig{}
+func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyLockProviderConfig, error) {
+	ret := MemoryKeyLockProviderConfig{}
 	data, err := json.Marshal(config)
 	if err != nil {
 		return ret, err
@@ -39,19 +39,19 @@ func toMemoryStringLockProviderConfig(config providers.IProviderConfig) (MemoryS
 	return ret, err
 }
 
-func (mslp *MemoryStringLockProvider) Init(config providers.IProviderConfig) error {
-	stringLockConfig, err := toMemoryStringLockProviderConfig(config)
+func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error {
+	KeyLockConfig, err := toMemoryKeyLockProviderConfig(config)
 	if err != nil {
 		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
-		return errors.New("expected MemoryStringLockProviderConfig")
+		return errors.New("expected MemoryKeyLockProviderConfig")
 	}
-	if stringLockConfig.CleanInterval > 0 {
-		mslp.cleanInterval = stringLockConfig.CleanInterval
+	if KeyLockConfig.CleanInterval > 0 {
+		mslp.cleanInterval = KeyLockConfig.CleanInterval
 	} else {
 		mslp.cleanInterval = 30 // default: 30 seconds
 	}
-	if stringLockConfig.PurgeDuration > 0 {
-		mslp.purgeDuration = stringLockConfig.PurgeDuration
+	if KeyLockConfig.PurgeDuration > 0 {
+		mslp.purgeDuration = KeyLockConfig.PurgeDuration
 	} else {
 		mslp.purgeDuration = 60 * 60 * 12 // default: 12 hours
 	}
@@ -65,20 +65,20 @@ func (mslp *MemoryStringLockProvider) Init(config providers.IProviderConfig) err
 	return nil
 }
 
-func (mslp *MemoryStringLockProvider) Lock(key string) {
+func (mslp *MemoryKeyLockProvider) Lock(key string) {
 	mslp.lm.getLockNode(key).Lock()
 }
 
-func (mslp *MemoryStringLockProvider) UnLock(key string) {
+func (mslp *MemoryKeyLockProvider) UnLock(key string) {
 	mslp.lm.getLockNode(key).Unlock()
 	go mslp.lm.updateLockLRU(key)
 }
 
-func (mslp *MemoryStringLockProvider) TryLock(key string) bool {
+func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
 	return mslp.lm.getLockNode(key).TryLock()
 }
 
-func (mslp *MemoryStringLockProvider) TryLockWithTimeout(key string, duration time.Duration) bool {
+func (mslp *MemoryKeyLockProvider) TryLockWithTimeout(key string, duration time.Duration) bool {
 	start := time.Now()
 	for start.Add(duration).After(time.Now()) {
 		if mslp.TryLock(key) {

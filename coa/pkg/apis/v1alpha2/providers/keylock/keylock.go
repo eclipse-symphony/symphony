@@ -10,10 +10,7 @@ import (
 	"time"
 
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	//"encoding/json"
 )
-
-type UnLock func()
 
 type IKeyLockProvider interface {
 	Init(config providers.IProviderConfig) error

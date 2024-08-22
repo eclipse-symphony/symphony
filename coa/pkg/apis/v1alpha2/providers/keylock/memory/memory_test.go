@@ -29,12 +29,12 @@ func (m MockProviderConfig) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func TestToMemoryStringLockProviderConfig(t *testing.T) {
+func TestToMemoryKeyLockProviderConfig(t *testing.T) {
 	mockConfig := MockProviderConfig{
 		CleanInterval: 45,
 		PurgeDuration: 3600,
 	}
-	expectedConfig := MemoryStringLockProviderConfig{
+	expectedConfig := MemoryKeyLockProviderConfig{
 		CleanInterval: 45,
 		PurgeDuration: 3600,
 	}
@@ -44,7 +44,7 @@ func TestToMemoryStringLockProviderConfig(t *testing.T) {
 		t.Fatalf("Failed to marshal mock config: %v", err)
 	}
 
-	var providerConfig MemoryStringLockProviderConfig
+	var providerConfig MemoryKeyLockProviderConfig
 	err = json.Unmarshal(data, &providerConfig)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal provider config: %v", err)
@@ -60,7 +60,7 @@ func TestInit(t *testing.T) {
 		CleanInterval: 45,
 		PurgeDuration: 3600,
 	}
-	provider := MemoryStringLockProvider{}
+	provider := MemoryKeyLockProvider{}
 	err := provider.Init(mockConfig)
 	if err != nil {
 		t.Fatalf("Initialization failed: %v", err)
@@ -79,7 +79,7 @@ func TestInit(t *testing.T) {
 
 func TestInitDefaultValues(t *testing.T) {
 	mockConfig := MockProviderConfig{}
-	provider := MemoryStringLockProvider{}
+	provider := MemoryKeyLockProvider{}
 	err := provider.Init(mockConfig)
 	if err != nil {
 		t.Fatalf("Initialization failed: %v", err)
@@ -95,7 +95,7 @@ func TestInitDefaultValues(t *testing.T) {
 }
 
 func TestLockAndUnlock(t *testing.T) {
-	provider := MemoryStringLockProvider{}
+	provider := MemoryKeyLockProvider{}
 	provider.lm = NewLockMap()
 
 	provider.Lock("testKey")
@@ -159,7 +159,7 @@ func TestLockManagerClean(t *testing.T) {
 }
 
 func TestConcurrentLockUnlock(t *testing.T) {
-	provider := MemoryStringLockProvider{}
+	provider := MemoryKeyLockProvider{}
 	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup
@@ -190,7 +190,7 @@ func TestConcurrentLockUnlock(t *testing.T) {
 }
 
 func TestConcurrentAccessDifferentKeys(t *testing.T) {
-	provider := MemoryStringLockProvider{}
+	provider := MemoryKeyLockProvider{}
 	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup
