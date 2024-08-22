@@ -45,7 +45,7 @@ func BuildApi() error {
 	}
 	if err := shellcmd.RunAll(
 		// Build the Cargo project for each target
-		shellcmd.Command("cargo clean"),
+		// shellcmd.Command("cargo clean"),
 		shellcmd.Command("cargo build --release --target aarch64-unknown-linux-gnu"),
 		shellcmd.Command("cargo build --release --target armv7-unknown-linux-gnueabihf"),
 		shellcmd.Command("cargo build --release --target x86_64-pc-windows-gnu"),
@@ -63,9 +63,9 @@ func BuildApi() error {
 	if err := shellcmd.RunAll(
 		shellcmd.Command("CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOARCH=arm64 go build -o symphony-api-arm64"),
 		shellcmd.Command("CC=arm-linux-gnueabihf-gcc CGO_ENABLED=1 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
-		//TODO: fix for Windows and Mac
-		//shellcmd.Command("CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
-		//shellcmd.Command("CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe -ldflags=\"-extldflags=-static -w\""),
+		// TODO: Re-enable Mac cross-build, which seems to be qutie difficult
+		// shellcmd.Command("CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
 		shellcmd.Command("CC=gcc CGO_ENABLED=1 go build -o symphony-api"),
 	); err != nil {
 		return err
@@ -110,9 +110,9 @@ func GeneratePackages(des string) error {
 	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_windows_amd64.zip", des)); err != nil {
 		return err
 	}
-	if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_darwin_amd64.tar.gz", des)); err != nil {
-		return err
-	}
+	//if err := removePakcageIfExist(fmt.Sprintf("%s/maestro_darwin_amd64.tar.gz", des)); err != nil {
+	//	return err
+	//}
 
 	// copy new binary files, configuration files and scripts
 	if err := shellcmd.RunAll(
@@ -120,13 +120,13 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm64 %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
+		//shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm64 %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro.exe %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp %s//cli/maestro-mac %s", symphonyPath, des)),
+		//shellcmd.Command(fmt.Sprintf("cp %s//cli/maestro-mac %s", symphonyPath, des)),
 	); err != nil {
 		return err
 	}
