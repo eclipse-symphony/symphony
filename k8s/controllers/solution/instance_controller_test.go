@@ -25,7 +25,7 @@ import (
 var _ = Describe("Instance controller", Ordered, func() {
 	var apiClient *MockApiClient
 	var kubeClient client.Client
-	var controller *InstanceReconciler
+	var controller *InstanceQueueingReconciler
 	var instance *solutionv1.Instance
 	var target *fabricv1.Target
 	var solution *solutionv1.Solution
@@ -44,7 +44,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			BuildDefaultTarget(),
 			BuildDefaultSolution(),
 		)
-		controller = &InstanceReconciler{
+		controller = &InstanceQueueingReconciler{
 			Client:                 kubeClient,
 			Scheme:                 kubeClient.Scheme(),
 			ReconciliationInterval: TestReconcileInterval,

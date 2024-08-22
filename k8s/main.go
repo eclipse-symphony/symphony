@@ -311,7 +311,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Activation")
 		os.Exit(1)
 	}
-	if err = (&solutioncontrollers.InstanceReconciler{
+	if err = (&solutioncontrollers.InstanceQueueingReconciler{
 		Client:                 mgr.GetClient(),
 		Scheme:                 mgr.GetScheme(),
 		ReconciliationInterval: reconcileInterval,
@@ -323,6 +323,20 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
+
+	if err = (&solutioncontrollers.InstancePollingReconciler{
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		ReconciliationInterval: reconcileInterval,
+		DeleteTimeOut:          deleteTimeOut,
+		PollInterval:           pollInterval,
+		DeleteSyncDelay:        deleteSyncDelay,
+		ApiClient:              apiClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create polling controller", "controller", "Instance")
+		os.Exit(1)
+	}
+
 	if err = (&fabriccontrollers.TargetReconciler{
 		Client:                 mgr.GetClient(),
 		Scheme:                 mgr.GetScheme(),

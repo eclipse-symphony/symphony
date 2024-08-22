@@ -33,7 +33,7 @@ import (
 )
 
 // InstanceReconciler reconciles a Instance object
-type InstanceReconciler struct {
+type InstancePollingReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
@@ -58,11 +58,6 @@ type InstanceReconciler struct {
 	DeleteSyncDelay time.Duration
 }
 
-const (
-	instanceFinalizerName         = "instance.solution." + constants.FinalizerPostfix
-	instanceOperationStartTimeKey = "instance.solution." + constants.OperationStartTimeKeyPostfix
-)
-
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances/finalizers,verbs=update
@@ -76,12 +71,8 @@ const (
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Instance " + req.Name + " in namespace " + req.Namespace)
-
-	// Initialize reconcileTime for latency metrics
-	reconcileTime := time.Now()
 
 	// Get instance
 	instance := &solution_v1.Instance{}
@@ -89,41 +80,11 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Error(err, "unable to fetch Instance object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	reconciliationType := metrics.CreateOperationType
-	resultType := metrics.ReconcileSuccessResult
-	reconcileResult := ctrl.Result{}
-	deploymentOperationType := metrics.DeploymentQueued
-	var err error
-
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	} else { // remove
-		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	}
-
-	r.m.ControllerReconcileLatency(
-		reconcileTime,
-		reconciliationType,
-		resultType,
-		metrics.InstanceResourceType,
-		deploymentOperationType,
-	)
-
-	return reconcileResult, err
+	log.Info("Reconcile Polling Instance " + req.Name + " in namespace " + req.Namespace + instance.ResourceVersion)
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
-func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
+func (r *InstancePollingReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	log := ctrllog.FromContext(ctx)
 	log.Info("Building deployment")
 	var deployment model.DeploymentSpec
@@ -161,7 +122,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	return &deployment, nil
 }
 
-func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, error) {
+func (r *InstancePollingReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, error) {
 	return reconcilers.NewDeploymentReconciler(
 		reconcilers.WithApiClient(r.ApiClient),
 		reconcilers.WithDeleteTimeOut(r.DeleteTimeOut),
@@ -175,7 +136,7 @@ func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	if r.m, err = metrics.New(); err != nil {
 		return err
@@ -197,7 +158,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object) []ctrl.Request {
+func (r *InstancePollingReconciler) handleTarget(ctx context.Context, obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	tarObj := obj.(*fabric_v1.Target)
 	var instances solution_v1.InstanceList
@@ -237,7 +198,7 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	return ret
 }
 
-func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
+func (r *InstancePollingReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	solObj := obj.(*solution_v1.Solution)
 	var instances solution_v1.InstanceList
