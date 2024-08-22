@@ -111,6 +111,7 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 	return group, version, resource, kind
 }
 
+// e.g. example:v1 -> example-v-v1
 func ConvertReferenceToObjectName(name string) string {
 	if strings.Contains(name, constants.ReferenceSeparator) {
 		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
@@ -118,6 +119,7 @@ func ConvertReferenceToObjectName(name string) string {
 	return name
 }
 
+// e.g. example-v-v1 -> example:v1
 func ConvertObjectNameToReference(name string) string {
 	index := strings.LastIndex(name, constants.ResourceSeperator)
 	if index == -1 {
@@ -126,6 +128,7 @@ func ConvertObjectNameToReference(name string) string {
 	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
 }
 
+// e.g. example-v-v1 -> example
 func GetRootResourceFromName(name string) string {
 	index := strings.LastIndex(name, constants.ResourceSeperator)
 	if index == -1 {
@@ -157,6 +160,8 @@ func ConvertErrorFieldsToString(ErrorFields []ErrorField) string {
 	return errorMessages
 }
 
+// Wrapper functions for manager to call
+// Check the error when querying objects with same name and namespace to decide whether the operation is create or update
 func ValidateCreateOrUpdateWrapper(ctx context.Context, newObj interface{}, oldObj interface{}, errorWhenGetOldObj error) error {
 	var errorFields []ErrorField
 	if errorWhenGetOldObj != nil {
@@ -238,7 +243,7 @@ func ValidateDelete(ctx context.Context, newObj interface{}) []ErrorField {
 	return nil
 }
 
-// rootResource is not in metadata now, pass in as a parameter
+// Validate rootResource exists for versioned objects - solutions, campaigns and catalogs
 func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource string, lookupFunc ObjectLookupFunc) *ErrorField {
 	if lookupFunc == nil {
 		return nil
@@ -254,6 +259,7 @@ func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource 
 	return nil
 }
 
+// Validate the name of versioned objects
 func ValidateObjectName(name string, rootResource string) *ErrorField {
 	if rootResource == "" {
 		return &ErrorField{

@@ -18,6 +18,8 @@ var TargetInstanceLookupFunc LinkedObjectLookupFunc
 
 var UniqueNameTargetLookupFunc ObjectLookupFunc
 
+// Validate Target creation or update
+// 1. DisplayName is unique
 func ValidateCreateOrUpdateTarget(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToTarget(newRef)
 	old := ConvertInterfaceToTarget(oldRef)
@@ -31,6 +33,8 @@ func ValidateCreateOrUpdateTarget(ctx context.Context, newRef interface{}, oldRe
 	return errorFields
 }
 
+// Validate Target deletion
+// 1. No associated instances
 func ValidateDeleteTarget(ctx context.Context, newRef interface{}) []ErrorField {
 	t := ConvertInterfaceToTarget(newRef)
 	errorFields := []ErrorField{}
@@ -39,6 +43,9 @@ func ValidateDeleteTarget(ctx context.Context, newRef interface{}) []ErrorField 
 	}
 	return errorFields
 }
+
+// Validate DisplayName is unique, i.e. No existing target with the same DisplayName
+// UniqueNameTargetLookupFunc will lookup targets with labels {"displayName": t.Spec.DisplayName}
 func ValidateTargetUniqueName(ctx context.Context, t model.TargetState) *ErrorField {
 	if UniqueNameTargetLookupFunc == nil {
 		return nil
@@ -53,6 +60,9 @@ func ValidateTargetUniqueName(ctx context.Context, t model.TargetState) *ErrorFi
 	}
 	return nil
 }
+
+// Validate No associated instances for the target
+// TargetInstanceLookupFunc will lookup instances with labels {"target": t.ObjectMeta.Name}
 func ValidateNoInstanceForTarget(ctx context.Context, t model.TargetState) *ErrorField {
 	if TargetInstanceLookupFunc == nil {
 		return nil

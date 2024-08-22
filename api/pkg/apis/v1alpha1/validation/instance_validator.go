@@ -17,6 +17,11 @@ var UniqueNameInstanceLookupFunc ObjectLookupFunc
 var SolutionLookupFunc ObjectLookupFunc
 var TargetLookupFunc ObjectLookupFunc
 
+// Validate Instance creation or update
+// 1. DisplayName is unique
+// 2. Solution exists
+// 3. Target exists if provided by name rather than selector
+// 4. Target is valid, i.e. either name or selector is provided
 func ValidateCreateOrUpdateInstance(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToInstance(newRef)
 	old := ConvertInterfaceToInstance(oldRef)
@@ -47,6 +52,8 @@ func ValidateDeleteInstance(ctx context.Context, new interface{}) []ErrorField {
 	return []ErrorField{}
 }
 
+// Validate DisplayName is unique, i.e. No existing instance with the same DisplayName
+// UniqueNameInstanceLookupFunc will lookup instances with labels {"displayName": c.Spec.DisplayName}
 func ValidateUniqueName(ctx context.Context, c model.InstanceState) *ErrorField {
 	if UniqueNameInstanceLookupFunc == nil {
 		return nil
@@ -62,6 +69,7 @@ func ValidateUniqueName(ctx context.Context, c model.InstanceState) *ErrorField 
 	return nil
 }
 
+// Validate Solution exists for instance
 func ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorField {
 	if SolutionLookupFunc == nil {
 		return nil
@@ -77,6 +85,7 @@ func ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorFie
 	return nil
 }
 
+// Validate Target exists for instance if target name is provided
 func ValidateTargetExist(ctx context.Context, c model.InstanceState) *ErrorField {
 	if TargetLookupFunc == nil {
 		return nil
@@ -93,6 +102,7 @@ func ValidateTargetExist(ctx context.Context, c model.InstanceState) *ErrorField
 	return nil
 }
 
+// Validate Target is valid, i.e. either name or selector is provided
 func ValidateTargetValid(c model.InstanceState) *ErrorField {
 	if c.Spec.Target.Name == "" && (c.Spec.Target.Selector == nil || len(c.Spec.Target.Selector) == 0) {
 		return &ErrorField{

@@ -17,6 +17,10 @@ import (
 // Check Campaign existence
 var CampaignLookupFunc ObjectLookupFunc
 
+// Validate Activation creation or update
+// 1. Campaign exists
+// 2. If initial stage is provided in the activation spec, validate it is a valid stage in the campaign
+// 3. Spec is immutable for update
 func ValidateCreateOrUpdateActivation(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToActivation(newRef)
 	old := ConvertInterfaceToActivation(oldRef)
@@ -44,6 +48,8 @@ func ValidateDeleteActivation(ctx context.Context, a interface{}) []ErrorField {
 	return []ErrorField{}
 }
 
+// Validate Campaign exists for the activation
+// And if initial stage is provided in the activation spec, validate it is a valid stage in the campaign
 func ValidateCampaignAndStage(ctx context.Context, new model.ActivationState) *ErrorField {
 	if CampaignLookupFunc == nil {
 		return nil

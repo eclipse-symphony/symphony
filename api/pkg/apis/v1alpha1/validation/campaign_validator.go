@@ -20,6 +20,11 @@ var CampaignContainerLookupFunc ObjectLookupFunc
 // Check Activations associated with the Campaign
 var CampaignActivationsLookupFunc LinkedObjectLookupFunc
 
+// Validate Campaign creation or update
+// 1. First stage is valid
+// 2. Stages in the list are
+// 3. campaign name and rootResource is valid. And rootResource is immutable
+// 4. Update is not allow when there are running activations
 func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToCampaign(newRef)
 	old := ConvertInterfaceToCampaign(oldRef)
@@ -60,6 +65,8 @@ func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, old
 	return errorFields
 }
 
+// Validate campaign deletion
+// 1. No running activations
 func ValidateDeleteCampaign(ctx context.Context, newRef interface{}) []ErrorField {
 	new := ConvertInterfaceToCampaign(newRef)
 	errorFields := []ErrorField{}
@@ -70,6 +77,9 @@ func ValidateDeleteCampaign(ctx context.Context, newRef interface{}) []ErrorFiel
 	return errorFields
 }
 
+// Validate First stage of the campaign
+// 1. If stages is empty, firstStage must be empty
+// 2. If stages is not empty, firstStage must be one of the stages in the list
 func ValidateFirstStage(c model.CampaignState) *ErrorField {
 	isValid := false
 	if c.Spec.FirstStage == "" {
@@ -93,6 +103,7 @@ func ValidateFirstStage(c model.CampaignState) *ErrorField {
 	}
 }
 
+// Validate stageSelector of stages should always be one of the stages in the stages list
 func ValidateStages(c model.CampaignState) *ErrorField {
 	stages := make(map[string]struct{}, 0)
 	for _, stage := range c.Spec.Stages {
@@ -112,6 +123,8 @@ func ValidateStages(c model.CampaignState) *ErrorField {
 	return nil
 }
 
+// Validate NO running activations
+// CampaignActivationsLookupFunc will look up activations with label {"campaign" : c.ObjectMeta.Name}
 func ValidateRunningActivation(ctx context.Context, c model.CampaignState) *ErrorField {
 	if CampaignActivationsLookupFunc == nil {
 		return nil

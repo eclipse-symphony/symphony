@@ -19,6 +19,11 @@ var CatalogLookupFunc ObjectLookupFunc
 var CatalogContainerLookupFunc ObjectLookupFunc
 var ChildCatalogLookupFunc LinkedObjectLookupFunc
 
+// Validate Catalog creation or update
+// 1. Schema is valid
+// 2. Parent catalog exists
+// 3. Catalog name and rootResource is valid. And rootResource is immutable
+// TODO: 4. Update won't form a cycle in the parent-child relationship
 func ValidateCreateOrUpdateCatalog(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToCatalog(newRef)
 	old := ConvertInterfaceToCatalog(oldRef)
@@ -56,6 +61,8 @@ func ValidateCreateOrUpdateCatalog(ctx context.Context, newRef interface{}, oldR
 	return errorFields
 }
 
+// Validate Catalog deletion
+// 1. Catalog has no child catalogs
 func ValidateDeleteCatalog(ctx context.Context, catalog interface{}) []ErrorField {
 	new := ConvertInterfaceToCatalog(catalog)
 	// validate child catalogs
@@ -66,13 +73,14 @@ func ValidateDeleteCatalog(ctx context.Context, catalog interface{}) []ErrorFiel
 	return errorFields
 }
 
+// Validate Schema is valid
 func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 	if CatalogLookupFunc == nil {
 		return nil
 	}
 	if schemaName, ok := new.Spec.Metadata["schema"]; ok {
+		// 1). Lookup catalog object with schema name
 		schemaName = ConvertReferenceToObjectName(schemaName)
-		//cataloglog.Info("Find schema name", "name", schemaName)
 		lookupRes, err := CatalogLookupFunc(ctx, schemaName, new.ObjectMeta.Namespace)
 
 		if err != nil {
@@ -93,6 +101,7 @@ func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 			}
 		}
 		if spec, ok := catalog.Spec.Properties["spec"]; ok {
+			// 2). Extract Schema object from the catalog object
 			var schemaObj utils.Schema
 			jData, _ := json.Marshal(spec)
 			err := json.Unmarshal(jData, &schemaObj)
@@ -103,9 +112,10 @@ func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 					DetailedMessage: "invalid schema",
 				}
 			}
+
+			// 3). Validate the schema on the catalog which is being created/updated
 			result, err := schemaObj.CheckProperties(new.Spec.Properties, nil)
 			if err != nil {
-				//cataloglog.Error(err, "Validating failed.")
 				return &ErrorField{
 					FieldPath:       "spec.metadata.schema",
 					Value:           schemaName,
@@ -113,7 +123,6 @@ func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 				}
 			}
 			if !result.Valid {
-				//cataloglog.Error(err, "Validating failed.")
 				return &ErrorField{
 					FieldPath:       "spec.Properties",
 					Value:           "(hidden)",
@@ -121,11 +130,12 @@ func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 				}
 			}
 		}
-		//cataloglog.Info("Validation finished.", "name", r.Name)
 	}
 	return nil
 }
 
+// Validate Parent Catalog exists if provided
+// Use CatalogLookupFunc to lookup the catalog with parentName
 func ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
 	if CatalogLookupFunc == nil {
 		return nil
@@ -142,6 +152,8 @@ func ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *Err
 	return nil
 }
 
+// Validate NO Child Catalog
+// Use ChildCatalogLookupFunc to lookup the child catalogs with labels {"parentName": catalog.ObjectMeta.Name}
 func ValidateChildCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
 	if ChildCatalogLookupFunc == nil {
 		return nil

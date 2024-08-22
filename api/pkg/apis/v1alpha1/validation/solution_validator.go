@@ -18,6 +18,9 @@ var SolutionInstanceLookupFunc LinkedObjectLookupFunc
 var SolutionContainerLookupFunc ObjectLookupFunc
 var UniqueNameSolutionLookupFunc ObjectLookupFunc
 
+// Validate Solution creation or update
+// 1. DisplayName is unique
+// 2. name and rootResource is valid. And rootResource is immutable for update
 func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := ConvertInterfaceToSolution(newRef)
 	old := ConvertInterfaceToSolution(oldRef)
@@ -51,6 +54,8 @@ func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, old
 	return errorFields
 }
 
+// Validate Solution deletion
+// 1. No associated instances
 func ValidateDeleteSolution(ctx context.Context, newRef interface{}) []ErrorField {
 	new := ConvertInterfaceToSolution(newRef)
 	errorFields := []ErrorField{}
@@ -59,6 +64,9 @@ func ValidateDeleteSolution(ctx context.Context, newRef interface{}) []ErrorFiel
 	}
 	return errorFields
 }
+
+// Validate DisplayName is unique, i.e. No existing solution with the same DisplayName
+// UniqueNameSolutionLookupFunc will lookup solutions with labels {"displayName": c.Spec.DisplayName}
 func ValidateSolutionUniqueName(ctx context.Context, s model.SolutionState) *ErrorField {
 	if UniqueNameSolutionLookupFunc == nil {
 		return nil
@@ -73,6 +81,9 @@ func ValidateSolutionUniqueName(ctx context.Context, s model.SolutionState) *Err
 	}
 	return nil
 }
+
+// Validate no instance associated with the solution
+// SolutionInstanceLookupFunc will lookup instances with labels {"solution": s.ObjectMeta.Name}
 func ValidateNoInstanceForSolution(ctx context.Context, s model.SolutionState) *ErrorField {
 	if SolutionInstanceLookupFunc == nil {
 		return nil
