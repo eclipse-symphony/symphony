@@ -37,7 +37,7 @@ The response body contains an access token, which you need to attach to the subs
 
 ## Define a target
 
-Define your current machine as a [target](../concepts/unified-object-model/target.md) with a Docker [target provider](../providers/target_provider.md):
+Define your current machine as a [target](../concepts/unified-object-model/target.md) with a Docker [target provider](../providers/target-providers/target_provider.md):
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/targets/registry/sample-docker-target
 * **METHOD**: POST
