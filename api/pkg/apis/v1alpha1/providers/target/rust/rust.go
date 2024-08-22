@@ -7,7 +7,6 @@
 package rust
 
 /*
-#cgo LDFLAGS: -L./target/release -lrust_binding -lm -ldl -lpthread
 #cgo CFLAGS: -I./rust_binding/include
 
 #include <stdlib.h>
