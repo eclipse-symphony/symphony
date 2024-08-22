@@ -56,14 +56,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.47.2'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.48.28'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
-You can also install Symphony using Docker by running the following command:
+You can also install Symphony using Docker with the bundled `symphony-api.json` or volume mounting your own & injecting its reference via `CONFIG` env:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 ghcr.io/eclipse-symphony/symphony-api:0.47.1
+docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:
