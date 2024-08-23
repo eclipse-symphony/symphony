@@ -87,6 +87,7 @@ type (
 		Name    string `json:"name,omitempty"`
 		Version string `json:"version"`
 		Wait    bool   `json:"wait"`
+		Timeout string `json:"timeout"`
 	}
 )
 
@@ -510,7 +511,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			installClient, err := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			if err != nil {
+				return nil, err
+			}
 			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
 
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
@@ -680,7 +684,7 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 	return pullRes, nil
 }
 
-func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Install {
+func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -688,13 +692,23 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 	} else {
 		installClient.Namespace = deployment.Instance.Spec.Scope
 	}
+
 	installClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := time.ParseDuration(componentProps.Timeout)
+		if err != nil {
+			sLog.Error("  P (Helm Target): failed to parse timeout duration: %+v", err)
+			return nil, err
+		}
+		installClient.Timeout = duration
+	}
+
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
-	return installClient
+	return installClient, nil
 }
 
 func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Upgrade {
