@@ -28,7 +28,7 @@ const (
 // ActionResult contains result of performing an action for a resource.
 type ActionResult struct {
 	// Status indicates current state of action progress.
-	Status ActionState `json:"status,omitempty"`
+	Status ActionState `json:"status"`
 
 	// OperationID is the unique identifier for tracking this action.
 	OperationID string `json:"operationID,omitempty"`
@@ -39,7 +39,7 @@ type ActionResult struct {
 	// Output of the action if succeeds.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Output runtime.RawExtension `json:"output"`
+	Output runtime.RawExtension `json:"output,omitempty"`
 }
 
 // ProvisioningError captures the error details when provisioning has failed.

@@ -16,18 +16,18 @@ const (
 	DefaultStopActionTimeout int64 = 1200
 )
 
-// VirtualMachineStopActionSpec defines the desired state of VirtualMachineStopActionSpec.
+// CatalogEvalExpressionActionSpec defines the desired state of CatalogEvalExpressionActionSpec.
 type CatalogEvalExpressionSpec struct {
 	ActionSpecBase `json:",inline"`
 }
 
-// VirtualMachineStopActionStatus defines the observed state of VirtualMachineStopAction.
+// CatalogEvalExpressionActionStatus defines the observed state of CatalogEvalExpressionAction.
 type CatalogEvalExpressionStatus struct {
 	ActionStatusBase `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
-// VirtualMachineStopAction is the Schema for the virtualmachinestopactions API.
+// CatalogEvalExpressionAction is the Schema for the CatalogEvalExpressionactions API.
 type CatalogEvalExpression struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -42,7 +42,7 @@ func (a *CatalogEvalExpression) GetResourceNamespacedName() *types.NamespacedNam
 }
 
 // +kubebuilder:object:root=true
-// VirtualMachineStopActionList contains a list of VirtualMachineStopAction.
+// CatalogEvalExpressionActionList contains a list of CatalogEvalExpressionAction.
 type CatalogEvalExpressionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -29,9 +28,9 @@ type CatalogEvalReconciler struct {
 	ApiClient utils.ApiClient
 }
 
-//+kubebuilder:rbac:groups=infrastructure.hybridaks.microsoft.com,resources=hybridaksclusterlistusercredentials,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.hybridaks.microsoft.com,resources=hybridaksclusterlistusercredentials/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.hybridaks.microsoft.com,resources=hybridaksclusters,verbs=get;list
+//+kubebuilder:rbac:groups=federation.symphony,resources=catalogevalexpression,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=federation.symphony,resources=catalogevalexpression/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=federation.symphony,resources=catalogevalexpression/finalizers,verbs=update
 
 func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ret ctrl.Result, reterr error) {
 	log := ctrllog.FromContext(ctx)
@@ -60,11 +59,42 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		catalog := &federationv1.Catalog{}
 		if evalCR.Spec.ParentRef == nil || evalCR.Spec.ParentRef.Name == "" || evalCR.Spec.ParentRef.Namespace == "" {
 			log.Error(errors.New("ParentRef is not set"), "ParentRef is not set")
+			// Update status with results
+			status := &federationv1.ActionStatusBase{}
+			status.ActionStatus = federationv1.ActionResult{
+				Error: &federationv1.ProvisioningError{
+					Message: "ParentRef is not set",
+					Code:    "ParentRefNotSet",
+				},
+				Status: federationv1.FailedActionState,
+			}
+			evalCR.Status = federationv1.CatalogEvalExpressionStatus{
+				ActionStatusBase: *status,
+			}
+			err = r.Update(ctx, evalCR)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 			return ctrl.Result{}, nil
 		}
 		if err := r.Get(ctx, *evalCR.Spec.ParentRef.GetNamespacedName(), catalog); err != nil {
 			log.Error(err, "Error deleting the CatalogEvalExpression", "CR", req.NamespacedName)
-			return ctrl.Result{}, err
+			status := &federationv1.ActionStatusBase{}
+			status.ActionStatus = federationv1.ActionResult{
+				Error: &federationv1.ProvisioningError{
+					Message: "ParentRef is not found",
+					Code:    "ParentRefNotFound",
+				},
+				Status: federationv1.FailedActionState,
+			}
+			evalCR.Status = federationv1.CatalogEvalExpressionStatus{
+				ActionStatusBase: *status,
+			}
+			err = r.Update(ctx, evalCR)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
 		}
 
 		// Send catalog spec properties to settings vendor
@@ -75,7 +105,7 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		propertiesJSON, err := json.Marshal(properties)
 		if err != nil {
 			log.Error(err, "Error marshalling properties to JSON")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, nil
 		}
 		rawProperties := runtime.RawExtension{Raw: propertiesJSON}
 
@@ -88,16 +118,19 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		evalCR.Status = federationv1.CatalogEvalExpressionStatus{
 			ActionStatusBase: *status,
 		}
-
+		err = r.Update(ctx, evalCR)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CatalogEvalReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *CatalogEvalReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(options).
 		For(&federationv1.CatalogEvalExpression{}).
 		Complete(r)
 }
