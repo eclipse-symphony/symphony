@@ -1,0 +1,9 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: instance03
+spec:
+  scope: k8s-scope  
+  solution: test-app:v1
+  target: 
+    name: helm-target
