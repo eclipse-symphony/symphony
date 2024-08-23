@@ -43,12 +43,12 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 
 	solutionName := "solution1"
 	solution1JsonObj := map[string]interface{}{
-		"name": "e4i-assets",
+		"name": "simple-chart-solution",
 		"type": "helm.v3",
 		"properties": map[string]interface{}{
 			"chart": map[string]interface{}{
-				"repo":    "e4ipreview.azurecr.io/helm/az-e4i-demo-assets",
-				"version": "0.4.0",
+				"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
+				"version": "0.3.0",
 			},
 		},
 	}
@@ -69,12 +69,12 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 			"scope":       "alice-springs",
 			"components": []interface{}{
 				map[string]interface{}{
-					"name": "observability",
+					"name": "simple-chart-target1",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "symphonycr.azurecr.io/sample-dashboard",
-							"version": "0.4.0-dev",
+							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
+							"version": "0.3.0",
 						},
 						"values": map[string]interface{}{
 							"obsConfig": map[string]interface{}{
@@ -86,47 +86,12 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 					},
 				},
 				map[string]interface{}{
-					"name": "e4k",
+					"name": "simple-chart-target2",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
+							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
 							"version": "0.3.0",
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "e4i",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "e4ipreview.azurecr.io/helm/az-e4i",
-							"version": "0.4.0",
-						},
-						"values": map[string]interface{}{
-							"mqttBroker": map[string]interface{}{
-								"authenticationMethod": "serviceAccountToken",
-								"name":                 "azedge-dmqtt-frontend",
-								"namespace":            "alice-springs",
-							},
-							"opcPlcSimulation": map[string]interface{}{
-								"deploy": "true",
-							},
-							"openTelemetry": map[string]interface{}{
-								"enabled":  "true",
-								"endpoint": "http://otel-collector.alice-springs.svc.cluster.local:4317",
-								"protocol": "grpc",
-							},
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "bluefin",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"version": "0.1.2",
 						},
 					},
 				},
@@ -709,7 +674,6 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 
 	jData, _ := json.Marshal(res)
 	t.Log(string(jData))
-
 	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
 		SolutionName: "someOtherId",
 		Solution: model.SolutionState{
