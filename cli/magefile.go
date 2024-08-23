@@ -182,7 +182,7 @@ func GeneratePackages(des string) error {
 	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api-no-k8s.json samples.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
-		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
+		// shellcmd.Command(fmt.Sprintf("rm symphony-api")),
 		shellcmd.Command(fmt.Sprintf("mv maestro-mac maestro")),
 		// TODO: re-enable mac package
 		// shellcmd.Command(fmt.Sprintf("mv symphony-api-mac symphony-api")),
