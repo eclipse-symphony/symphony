@@ -304,6 +304,60 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 	require.Equal(t, diff, 1, "there should be one namespace difference")
 }
 
+func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
+	// Manifests to deploy
+	var testManifests = []string{
+		"../manifest/oss/solution2.yaml",
+		"../manifest/oss/target2.yaml",
+		"../manifest/oss/instance-recreate.yaml",
+	}
+
+	// Deploy the manifests
+	for _, manifest := range testManifests {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+		require.NoError(t, err)
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	// Verify new instance status
+	for {
+		resources, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "solution.symphony",
+			Version:  "v1",
+			Resource: "instances",
+		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, resources.Items, 1, "there should be only one instance")
+
+		status := getStatus(resources.Items[0])
+		targetCount := getProperty(resources.Items[0], "targets")
+		target03Status := getProperty(resources.Items[0], "targets.target03")
+		helmTargetStatus := getProperty(resources.Items[0], "targets.helm-target")
+
+		fmt.Printf("Current instance status: %s\n", status)
+		fmt.Printf("Current instance deployment count: %s\n", targetCount)
+		fmt.Printf("Current instance deployment instance3: %s\n", target03Status)
+		fmt.Printf("Current instance deployment helm: %s\n", helmTargetStatus)
+
+		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
+		require.NotContains(t, target03Status, "OK", "instance should not show target03 status")
+		if status == "Succeeded" && targetCount == "1" && target03Status == "" && strings.Contains(helmTargetStatus, "OK") {
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+}
+
 // Helper for finding the status
 func getStatus(resource unstructured.Unstructured) string {
 	status, ok := resource.Object["status"].(map[string]interface{})
@@ -313,6 +367,21 @@ func getStatus(resource unstructured.Unstructured) string {
 			statusString, ok := props["status"].(string)
 			if ok {
 				return statusString
+			}
+		}
+	}
+
+	return ""
+}
+
+func getProperty(resource unstructured.Unstructured, propertyName string) string {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		props, ok := status["properties"].(map[string]interface{})
+		if ok {
+			property, ok := props[propertyName].(string)
+			if ok {
+				return property
 			}
 		}
 	}

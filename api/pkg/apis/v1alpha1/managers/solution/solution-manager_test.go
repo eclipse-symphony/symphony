@@ -389,6 +389,12 @@ func TestMockGet(t *testing.T) {
 	// Test reconcile idempotency
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
+
+	// Test summary deletion
+	err = manager.DeleteSummary(context.Background(), "", "default")
+	assert.Nil(t, err)
+	_, err = manager.GetSummary(context.Background(), "", "default")
+	assert.NotNil(t, err)
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
