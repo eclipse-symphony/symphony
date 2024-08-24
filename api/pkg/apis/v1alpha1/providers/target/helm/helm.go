@@ -87,7 +87,7 @@ type (
 		Name    string `json:"name,omitempty"`
 		Version string `json:"version"`
 		Wait    bool   `json:"wait"`
-		Timeout string `json:"timeout"`
+		Timeout string `json:"timeout,omitempty"`
 	}
 )
 
