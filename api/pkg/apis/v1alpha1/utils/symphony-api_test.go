@@ -35,7 +35,7 @@ func getTestApiClient() *apiClient {
 	return apiClient
 }
 
-func TestGetInstancesWhenSomeInstances(t *testing.T) {
+func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	testSymphonyApi := os.Getenv("TEST_SYMPHONY_API")
 	if testSymphonyApi != "yes" {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
@@ -43,12 +43,15 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 
 	solutionName := "solution1"
 	solution1JsonObj := map[string]interface{}{
-		"name": "simple-chart-solution",
+		"name": "nginx-solution",
 		"type": "helm.v3",
 		"properties": map[string]interface{}{
 			"chart": map[string]interface{}{
-				"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
-				"version": "0.3.0",
+				"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+				"version": "18.1.8",
+			},
+			"values": map[string]interface{}{
+				"replicaCount": 2,
 			},
 		},
 	}
@@ -69,29 +72,28 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 			"scope":       "alice-springs",
 			"components": []interface{}{
 				map[string]interface{}{
-					"name": "simple-chart-target1",
+					"name": "nginx-target1",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
-							"version": "0.3.0",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
 						},
 						"values": map[string]interface{}{
-							"obsConfig": map[string]interface{}{
-								"bluefin": true,
-								"e4i":     true,
-								"e4k":     true,
-							},
+							"replicaCount": 2,
 						},
 					},
 				},
 				map[string]interface{}{
-					"name": "simple-chart-target2",
+					"name": "nginx-target2",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
-							"version": "0.3.0",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
+						},
+						"values": map[string]interface{}{
+							"replicaCount": 2,
 						},
 					},
 				},
@@ -100,22 +102,8 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 				map[string]interface{}{
 					"bindings": []interface{}{
 						map[string]interface{}{
-							"role":     "instance",
-							"provider": "providers.target.k8s",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
 							"role":     "helm.v3",
 							"provider": "providers.target.helm",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
-							"role":     "yaml.k8s",
-							"provider": "providers.target.kubectl",
 							"config": map[string]interface{}{
 								"inCluster": "true",
 							},
@@ -284,22 +272,8 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 				{
 					Bindings: []model.BindingSpec{
 						{
-							Role:     "instance",
-							Provider: "providers.target.k8s",
-							Config: map[string]string{
-								"inCluster": "true",
-							},
-						},
-						{
 							Role:     "helm.v3",
 							Provider: "providers.target.helm",
-							Config: map[string]string{
-								"inCluster": "true",
-							},
-						},
-						{
-							Role:     "yaml.k8s",
-							Provider: "providers.target.kubectl",
 							Config: map[string]string{
 								"inCluster": "true",
 							},
