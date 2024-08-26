@@ -14,20 +14,26 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
-// Check Campaign existence
-var CampaignLookupFunc ObjectLookupFunc
+type ActivationValidator struct {
+	// Check Campaign existence
+	CampaignLookupFunc ObjectLookupFunc
+}
+
+func (a *ActivationValidator) Init(campaignLookupFunc ObjectLookupFunc) {
+	a.CampaignLookupFunc = campaignLookupFunc
+}
 
 // Validate Activation creation or update
 // 1. Campaign exists
 // 2. If initial stage is provided in the activation spec, validate it is a valid stage in the campaign
 // 3. Spec is immutable for update
-func ValidateCreateOrUpdateActivation(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToActivation(newRef)
-	old := ConvertInterfaceToActivation(oldRef)
+func (a *ActivationValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := a.ConvertInterfaceToActivation(newRef)
+	old := a.ConvertInterfaceToActivation(oldRef)
 
 	errorFields := []ErrorField{}
 	if oldRef == nil {
-		if err := ValidateCampaignAndStage(ctx, new); err != nil {
+		if err := a.ValidateCampaignAndStage(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
@@ -44,18 +50,18 @@ func ValidateCreateOrUpdateActivation(ctx context.Context, newRef interface{}, o
 	return errorFields
 }
 
-func ValidateDeleteActivation(ctx context.Context, a interface{}) []ErrorField {
+func (a *ActivationValidator) ValidateDelete(ctx context.Context, activation interface{}) []ErrorField {
 	return []ErrorField{}
 }
 
 // Validate Campaign exists for the activation
 // And if initial stage is provided in the activation spec, validate it is a valid stage in the campaign
-func ValidateCampaignAndStage(ctx context.Context, new model.ActivationState) *ErrorField {
-	if CampaignLookupFunc == nil {
+func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new model.ActivationState) *ErrorField {
+	if a.CampaignLookupFunc == nil {
 		return nil
 	}
 	campaignName := ConvertReferenceToObjectName(new.Spec.Campaign)
-	Campaign, err := CampaignLookupFunc(ctx, campaignName, new.ObjectMeta.Namespace)
+	Campaign, err := a.CampaignLookupFunc(ctx, campaignName, new.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.campaign",
@@ -89,7 +95,7 @@ func ValidateCampaignAndStage(ctx context.Context, new model.ActivationState) *E
 	}
 }
 
-func ConvertInterfaceToActivation(ref interface{}) model.ActivationState {
+func (a *ActivationValidator) ConvertInterfaceToActivation(ref interface{}) model.ActivationState {
 	if ref == nil {
 		return model.ActivationState{
 			Spec: &model.ActivationSpec{},

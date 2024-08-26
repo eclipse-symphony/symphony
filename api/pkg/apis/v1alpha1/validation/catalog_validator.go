@@ -14,26 +14,34 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
-// Check Catalog existence
-var CatalogLookupFunc ObjectLookupFunc
-var CatalogContainerLookupFunc ObjectLookupFunc
-var ChildCatalogLookupFunc LinkedObjectLookupFunc
+type CatalogValidator struct {
+	// Check Catalog existence
+	CatalogLookupFunc          ObjectLookupFunc
+	CatalogContainerLookupFunc ObjectLookupFunc
+	ChildCatalogLookupFunc     LinkedObjectLookupFunc
+}
+
+func (c *CatalogValidator) Init(catalogLookupFunc ObjectLookupFunc, catalogContainerLookupFunc ObjectLookupFunc, childCatalogLookupFunc LinkedObjectLookupFunc) {
+	c.CatalogLookupFunc = catalogLookupFunc
+	c.CatalogContainerLookupFunc = catalogContainerLookupFunc
+	c.ChildCatalogLookupFunc = childCatalogLookupFunc
+}
 
 // Validate Catalog creation or update
 // 1. Schema is valid
 // 2. Parent catalog exists
 // 3. Catalog name and rootResource is valid. And rootResource is immutable
 // TODO: 4. Update won't form a cycle in the parent-child relationship
-func ValidateCreateOrUpdateCatalog(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToCatalog(newRef)
-	old := ConvertInterfaceToCatalog(oldRef)
+func (c *CatalogValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCatalog(newRef)
+	old := c.ConvertInterfaceToCatalog(oldRef)
 
 	errorFields := []ErrorField{}
-	if err := ValidateSchema(ctx, new); err != nil {
+	if err := c.ValidateSchema(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	if new.Spec.ParentName != "" && (oldRef == nil || new.Spec.ParentName != old.Spec.ParentName) {
-		if err := ValidateParentCatalog(ctx, new); err != nil {
+		if err := c.ValidateParentCatalog(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
@@ -44,7 +52,7 @@ func ValidateCreateOrUpdateCatalog(ctx context.Context, newRef interface{}, oldR
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, CatalogContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, c.CatalogContainerLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
@@ -63,25 +71,25 @@ func ValidateCreateOrUpdateCatalog(ctx context.Context, newRef interface{}, oldR
 
 // Validate Catalog deletion
 // 1. Catalog has no child catalogs
-func ValidateDeleteCatalog(ctx context.Context, catalog interface{}) []ErrorField {
-	new := ConvertInterfaceToCatalog(catalog)
+func (c *CatalogValidator) ValidateDelete(ctx context.Context, catalog interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCatalog(catalog)
 	// validate child catalogs
 	errorFields := []ErrorField{}
-	if err := ValidateChildCatalog(ctx, new); err != nil {
+	if err := c.ValidateChildCatalog(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
 }
 
 // Validate Schema is valid
-func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
-	if CatalogLookupFunc == nil {
+func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
+	if c.CatalogLookupFunc == nil {
 		return nil
 	}
 	if schemaName, ok := new.Spec.Metadata["schema"]; ok {
 		// 1). Lookup catalog object with schema name
 		schemaName = ConvertReferenceToObjectName(schemaName)
-		lookupRes, err := CatalogLookupFunc(ctx, schemaName, new.ObjectMeta.Namespace)
+		lookupRes, err := c.CatalogLookupFunc(ctx, schemaName, new.ObjectMeta.Namespace)
 
 		if err != nil {
 			return &ErrorField{
@@ -136,12 +144,12 @@ func ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
 
 // Validate Parent Catalog exists if provided
 // Use CatalogLookupFunc to lookup the catalog with parentName
-func ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
-	if CatalogLookupFunc == nil {
+func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
+	if c.CatalogLookupFunc == nil {
 		return nil
 	}
 	parentCatalogName := ConvertReferenceToObjectName(catalog.Spec.ParentName)
-	_, err := CatalogLookupFunc(ctx, parentCatalogName, catalog.ObjectMeta.Namespace)
+	_, err := c.CatalogLookupFunc(ctx, parentCatalogName, catalog.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.ParentName",
@@ -154,11 +162,11 @@ func ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *Err
 
 // Validate NO Child Catalog
 // Use ChildCatalogLookupFunc to lookup the child catalogs with labels {"parentName": catalog.ObjectMeta.Name}
-func ValidateChildCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
-	if ChildCatalogLookupFunc == nil {
+func (c *CatalogValidator) ValidateChildCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
+	if c.ChildCatalogLookupFunc == nil {
 		return nil
 	}
-	if found, err := ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace); err != nil || found {
+	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           catalog.ObjectMeta.Name,
@@ -168,7 +176,7 @@ func ValidateChildCatalog(ctx context.Context, catalog model.CatalogState) *Erro
 	return nil
 }
 
-func ConvertInterfaceToCatalog(ref interface{}) model.CatalogState {
+func (c *CatalogValidator) ConvertInterfaceToCatalog(ref interface{}) model.CatalogState {
 	if ref == nil {
 		return model.CatalogState{
 			Spec: &model.CatalogSpec{},

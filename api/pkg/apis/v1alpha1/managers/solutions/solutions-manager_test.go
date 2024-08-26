@@ -43,10 +43,11 @@ func TestCreateSolutionWithMissingContainer(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider: stateProvider,
-		needValidate:  true,
+		StateProvider:     stateProvider,
+		needValidate:      true,
+		SolutionValidator: validation.SolutionValidator{},
 	}
-	validation.SolutionContainerLookupFunc = manager.solutionContainerLookup
+	manager.SolutionValidator.Init(nil, manager.solutionContainerLookup, nil)
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -65,10 +66,11 @@ func TestCreateSolutionWithContainer(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider: stateProvider,
-		needValidate:  true,
+		StateProvider:     stateProvider,
+		needValidate:      true,
+		SolutionValidator: validation.SolutionValidator{},
 	}
-	validation.SolutionContainerLookupFunc = manager.solutionContainerLookup
+	manager.SolutionValidator.Init(nil, manager.solutionContainerLookup, nil)
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",
@@ -109,12 +111,11 @@ func TestCreateSolutionWithSameDisplayName(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider: stateProvider,
-		needValidate:  true,
+		StateProvider:     stateProvider,
+		needValidate:      true,
+		SolutionValidator: validation.SolutionValidator{},
 	}
-	//model.SolutionInstanceLookupFunc = manager.solutionInstanceLookup
-	//model.SolutionContainerLookupFunc = manager.solutionContainerLookup
-	validation.UniqueNameSolutionLookupFunc = manager.uniqueNameSolutionLookup
+	manager.SolutionValidator.Init(nil, nil, manager.uniqueNameSolutionLookup)
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -145,10 +146,11 @@ func TestDeleteSolutionWithInstance(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider: stateProvider,
-		needValidate:  true,
+		StateProvider:     stateProvider,
+		needValidate:      true,
+		SolutionValidator: validation.SolutionValidator{},
 	}
-	validation.SolutionInstanceLookupFunc = manager.solutionInstanceLookup
+	manager.SolutionValidator.Init(manager.solutionInstanceLookup, nil, nil)
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",

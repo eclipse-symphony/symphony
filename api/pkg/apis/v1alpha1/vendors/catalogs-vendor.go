@@ -199,7 +199,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 				Body:  []byte(err.Error()),
 			})
 		}
-		errorFields := validation.ValidateCreateOrUpdate(rCtx, catalog, nil)
+		errorFields := e.CatalogsManager.CatalogValidator.ValidateCreateOrUpdate(rCtx, catalog, nil)
 		if len(errorFields) > 0 {
 			errorMessage := validation.ConvertErrorFieldsToString(errorFields)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

@@ -14,30 +14,37 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
-// Check Campaign Container existence
-var CampaignContainerLookupFunc ObjectLookupFunc
+type CampaignValidator struct {
+	// Check Campaign Container existence
+	CampaignContainerLookupFunc ObjectLookupFunc
 
-// Check Activations associated with the Campaign
-var CampaignActivationsLookupFunc LinkedObjectLookupFunc
+	// Check Activations associated with the Campaign
+	CampaignActivationsLookupFunc LinkedObjectLookupFunc
+}
+
+func (c *CampaignValidator) Init(campaignContainerLookupFunc ObjectLookupFunc, campaignActivationsLookupFunc LinkedObjectLookupFunc) {
+	c.CampaignContainerLookupFunc = campaignContainerLookupFunc
+	c.CampaignActivationsLookupFunc = campaignActivationsLookupFunc
+}
 
 // Validate Campaign creation or update
 // 1. First stage is valid
 // 2. Stages in the list are
 // 3. campaign name and rootResource is valid. And rootResource is immutable
 // 4. Update is not allow when there are running activations
-func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToCampaign(newRef)
-	old := ConvertInterfaceToCampaign(oldRef)
+func (c *CampaignValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCampaign(newRef)
+	old := c.ConvertInterfaceToCampaign(oldRef)
 
 	errorFields := []ErrorField{}
 	// validate first stage if it is changed
 	if oldRef == nil || new.Spec.FirstStage != old.Spec.FirstStage {
-		if err := ValidateFirstStage(new); err != nil {
+		if err := c.ValidateFirstStage(new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 	// validate StageSelector
-	if err := ValidateStages(new); err != nil {
+	if err := c.ValidateStages(new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	if oldRef == nil {
@@ -46,7 +53,7 @@ func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, old
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, CampaignContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, c.CampaignContainerLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
@@ -58,7 +65,7 @@ func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, old
 				DetailedMessage: "rootResource is immutable",
 			})
 		}
-		if err := ValidateRunningActivation(ctx, new); err != nil {
+		if err := c.ValidateRunningActivation(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
@@ -67,11 +74,11 @@ func ValidateCreateOrUpdateCampaign(ctx context.Context, newRef interface{}, old
 
 // Validate campaign deletion
 // 1. No running activations
-func ValidateDeleteCampaign(ctx context.Context, newRef interface{}) []ErrorField {
-	new := ConvertInterfaceToCampaign(newRef)
+func (c *CampaignValidator) ValidateDelete(ctx context.Context, newRef interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCampaign(newRef)
 	errorFields := []ErrorField{}
 	// validate no running activations
-	if err := ValidateRunningActivation(ctx, new); err != nil {
+	if err := c.ValidateRunningActivation(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
@@ -80,22 +87,22 @@ func ValidateDeleteCampaign(ctx context.Context, newRef interface{}) []ErrorFiel
 // Validate First stage of the campaign
 // 1. If stages is empty, firstStage must be empty
 // 2. If stages is not empty, firstStage must be one of the stages in the list
-func ValidateFirstStage(c model.CampaignState) *ErrorField {
+func (c *CampaignValidator) ValidateFirstStage(campaign model.CampaignState) *ErrorField {
 	isValid := false
-	if c.Spec.FirstStage == "" {
-		if c.Spec.Stages == nil || len(c.Spec.Stages) == 0 {
+	if campaign.Spec.FirstStage == "" {
+		if campaign.Spec.Stages == nil || len(campaign.Spec.Stages) == 0 {
 			isValid = true
 		}
 	}
-	for _, stage := range c.Spec.Stages {
-		if stage.Name == c.Spec.FirstStage {
+	for _, stage := range campaign.Spec.Stages {
+		if stage.Name == campaign.Spec.FirstStage {
 			isValid = true
 		}
 	}
 	if !isValid {
 		return &ErrorField{
 			FieldPath:       "spec.firstStage",
-			Value:           c.Spec.FirstStage,
+			Value:           campaign.Spec.FirstStage,
 			DetailedMessage: "firstStage must be one of the stages in the stages list",
 		}
 	} else {
@@ -104,12 +111,12 @@ func ValidateFirstStage(c model.CampaignState) *ErrorField {
 }
 
 // Validate stageSelector of stages should always be one of the stages in the stages list
-func ValidateStages(c model.CampaignState) *ErrorField {
+func (c *CampaignValidator) ValidateStages(campaign model.CampaignState) *ErrorField {
 	stages := make(map[string]struct{}, 0)
-	for _, stage := range c.Spec.Stages {
+	for _, stage := range campaign.Spec.Stages {
 		stages[stage.Name] = struct{}{}
 	}
-	for _, stage := range c.Spec.Stages {
+	for _, stage := range campaign.Spec.Stages {
 		if !strings.Contains(stage.StageSelector, "$") && stage.StageSelector != "" {
 			if _, ok := stages[stage.StageSelector]; !ok {
 				return &ErrorField{
@@ -125,20 +132,20 @@ func ValidateStages(c model.CampaignState) *ErrorField {
 
 // Validate NO running activations
 // CampaignActivationsLookupFunc will look up activations with label {"campaign" : c.ObjectMeta.Name}
-func ValidateRunningActivation(ctx context.Context, c model.CampaignState) *ErrorField {
-	if CampaignActivationsLookupFunc == nil {
+func (c *CampaignValidator) ValidateRunningActivation(ctx context.Context, campaign model.CampaignState) *ErrorField {
+	if c.CampaignActivationsLookupFunc == nil {
 		return nil
 	}
-	if found, err := CampaignActivationsLookupFunc(ctx, c.ObjectMeta.Name, c.ObjectMeta.Namespace); err != nil || found {
+	if found, err := c.CampaignActivationsLookupFunc(ctx, campaign.ObjectMeta.Name, campaign.ObjectMeta.Namespace); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
-			Value:           c.ObjectMeta.Name,
+			Value:           campaign.ObjectMeta.Name,
 			DetailedMessage: "Campaign has one or more running activations. Update or Deletion is not allowed",
 		}
 	}
 	return nil
 }
-func ConvertInterfaceToCampaign(ref interface{}) model.CampaignState {
+func (c *CampaignValidator) ConvertInterfaceToCampaign(ref interface{}) model.CampaignState {
 	if ref == nil {
 		return model.CampaignState{
 			Spec: &model.CampaignSpec{},

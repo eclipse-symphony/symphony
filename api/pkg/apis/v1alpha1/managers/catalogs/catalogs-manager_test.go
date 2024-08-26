@@ -149,7 +149,7 @@ func TestInit(t *testing.T) {
 func TestUpsertAndGet(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
@@ -175,7 +175,7 @@ func TestUpsertAndGet(t *testing.T) {
 func TestList(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
@@ -203,7 +203,7 @@ func TestList(t *testing.T) {
 func TestDelete(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
@@ -236,7 +236,7 @@ func TestDelete(t *testing.T) {
 func TestGetChains(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	err = CreateSimpleChain("root-v-v1", 4, manager, catalogState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
@@ -256,7 +256,7 @@ func TestGetChains(t *testing.T) {
 func TestGetTrees(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	err = CreateSimpleBinaryTree("root-v-v1", 3, manager, catalogState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
@@ -270,7 +270,7 @@ func TestGetTrees(t *testing.T) {
 func TestSchemaCheck(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	schema := utils.Schema{
 		Rules: map[string]utils.Rule{
 			"email": {
@@ -320,7 +320,7 @@ func TestSchemaCheck(t *testing.T) {
 func TestParentCatalog(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	validation.CatalogContainerLookupFunc = nil
+	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	childCatalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "EmailCheckSchema-v-v1",

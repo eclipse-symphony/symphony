@@ -25,6 +25,11 @@ type (
 		DetailedMessage string
 	}
 
+	IValidator interface {
+		ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField
+		ValidateDelete(ctx context.Context, newRef interface{}) []ErrorField
+	}
+
 	ResourceType string
 
 	// Prototype for object lookup functions. Return value indicates if the object exists or not.
@@ -162,16 +167,16 @@ func ConvertErrorFieldsToString(ErrorFields []ErrorField) string {
 
 // Wrapper functions for manager to call
 // Check the error when querying objects with same name and namespace to decide whether the operation is create or update
-func ValidateCreateOrUpdateWrapper(ctx context.Context, newObj interface{}, oldObj interface{}, errorWhenGetOldObj error) error {
+func ValidateCreateOrUpdateWrapper(ctx context.Context, validator IValidator, newObj interface{}, oldObj interface{}, errorWhenGetOldObj error) error {
 	var errorFields []ErrorField
 	if errorWhenGetOldObj != nil {
 		if v1alpha2.IsNotFound(errorWhenGetOldObj) {
-			errorFields = ValidateCreateOrUpdate(ctx, newObj, nil)
+			errorFields = validator.ValidateCreateOrUpdate(ctx, newObj, nil)
 		} else {
 			return v1alpha2.NewCOAError(errorWhenGetOldObj, "Unable to get previous state from state store when validating the create or update request", v1alpha2.InternalError)
 		}
 	} else {
-		errorFields = ValidateCreateOrUpdate(ctx, newObj, oldObj)
+		errorFields = validator.ValidateCreateOrUpdate(ctx, newObj, oldObj)
 	}
 	if len(errorFields) > 0 {
 		errorMessage := ConvertErrorFieldsToString(errorFields)
@@ -181,29 +186,7 @@ func ValidateCreateOrUpdateWrapper(ctx context.Context, newObj interface{}, oldO
 	}
 }
 
-func ValidateCreateOrUpdate(ctx context.Context, newObj interface{}, oldObj interface{}) []ErrorField {
-	if _, ok := newObj.(model.TargetState); ok {
-		return ValidateCreateOrUpdateTarget(ctx, newObj, oldObj)
-	}
-	if _, ok := newObj.(model.InstanceState); ok {
-		return ValidateCreateOrUpdateInstance(ctx, newObj, oldObj)
-	}
-	if _, ok := newObj.(model.SolutionState); ok {
-		return ValidateCreateOrUpdateSolution(ctx, newObj, oldObj)
-	}
-	if _, ok := newObj.(model.CampaignState); ok {
-		return ValidateCreateOrUpdateCampaign(ctx, newObj, oldObj)
-	}
-	if _, ok := newObj.(model.ActivationState); ok {
-		return ValidateCreateOrUpdateActivation(ctx, newObj, oldObj)
-	}
-	if _, ok := newObj.(model.CatalogState); ok {
-		return ValidateCreateOrUpdateCatalog(ctx, newObj, oldObj)
-	}
-	return nil
-}
-
-func ValidateDeleteWrapper(ctx context.Context, obj interface{}, errorWhenGetObj error) error {
+func ValidateDeleteWrapper(ctx context.Context, validator IValidator, obj interface{}, errorWhenGetObj error) error {
 	if errorWhenGetObj != nil {
 		if v1alpha2.IsNotFound(errorWhenGetObj) {
 			return nil
@@ -211,7 +194,7 @@ func ValidateDeleteWrapper(ctx context.Context, obj interface{}, errorWhenGetObj
 			return v1alpha2.NewCOAError(errorWhenGetObj, "Unable to get current state from state store when validating the delete request", v1alpha2.InternalError)
 		}
 	} else {
-		errorFields := ValidateDelete(ctx, obj)
+		errorFields := validator.ValidateDelete(ctx, obj)
 		if len(errorFields) > 0 {
 			errorMessage := ConvertErrorFieldsToString(errorFields)
 			return v1alpha2.NewCOAError(nil, "Failed to delete instance: "+errorMessage, v1alpha2.BadRequest)
@@ -219,28 +202,6 @@ func ValidateDeleteWrapper(ctx context.Context, obj interface{}, errorWhenGetObj
 			return nil
 		}
 	}
-}
-
-func ValidateDelete(ctx context.Context, newObj interface{}) []ErrorField {
-	if _, ok := newObj.(model.TargetState); ok {
-		return ValidateDeleteTarget(ctx, newObj)
-	}
-	if _, ok := newObj.(model.InstanceState); ok {
-		return ValidateDeleteInstance(ctx, newObj)
-	}
-	if _, ok := newObj.(model.SolutionState); ok {
-		return ValidateDeleteSolution(ctx, newObj)
-	}
-	if _, ok := newObj.(model.CampaignState); ok {
-		return ValidateDeleteCampaign(ctx, newObj)
-	}
-	if _, ok := newObj.(model.ActivationState); ok {
-		return ValidateDeleteActivation(ctx, newObj)
-	}
-	if _, ok := newObj.(model.CatalogState); ok {
-		return ValidateDeleteCatalog(ctx, newObj)
-	}
-	return nil
 }
 
 // Validate rootResource exists for versioned objects - solutions, campaigns and catalogs

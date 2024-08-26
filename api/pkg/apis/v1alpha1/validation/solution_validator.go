@@ -13,21 +13,29 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
-// Check Instances associated with the Solution
-var SolutionInstanceLookupFunc LinkedObjectLookupFunc
-var SolutionContainerLookupFunc ObjectLookupFunc
-var UniqueNameSolutionLookupFunc ObjectLookupFunc
+type SolutionValidator struct {
+	// Check Instances associated with the Solution
+	SolutionInstanceLookupFunc   LinkedObjectLookupFunc
+	SolutionContainerLookupFunc  ObjectLookupFunc
+	UniqueNameSolutionLookupFunc ObjectLookupFunc
+}
+
+func (s *SolutionValidator) Init(solutionInstanceLookupFunc LinkedObjectLookupFunc, solutionContainerLookupFunc ObjectLookupFunc, uniqueNameSolutionLookupFunc ObjectLookupFunc) {
+	s.SolutionInstanceLookupFunc = solutionInstanceLookupFunc
+	s.SolutionContainerLookupFunc = solutionContainerLookupFunc
+	s.UniqueNameSolutionLookupFunc = uniqueNameSolutionLookupFunc
+}
 
 // Validate Solution creation or update
 // 1. DisplayName is unique
 // 2. name and rootResource is valid. And rootResource is immutable for update
-func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToSolution(newRef)
-	old := ConvertInterfaceToSolution(oldRef)
+func (s *SolutionValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := s.ConvertInterfaceToSolution(newRef)
+	old := s.ConvertInterfaceToSolution(oldRef)
 
 	errorFields := []ErrorField{}
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
-		if err := ValidateSolutionUniqueName(ctx, new); err != nil {
+		if err := s.ValidateSolutionUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
@@ -37,7 +45,7 @@ func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, old
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, SolutionContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, s.SolutionContainerLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
@@ -56,10 +64,10 @@ func ValidateCreateOrUpdateSolution(ctx context.Context, newRef interface{}, old
 
 // Validate Solution deletion
 // 1. No associated instances
-func ValidateDeleteSolution(ctx context.Context, newRef interface{}) []ErrorField {
-	new := ConvertInterfaceToSolution(newRef)
+func (s *SolutionValidator) ValidateDelete(ctx context.Context, newRef interface{}) []ErrorField {
+	new := s.ConvertInterfaceToSolution(newRef)
 	errorFields := []ErrorField{}
-	if err := ValidateNoInstanceForSolution(ctx, new); err != nil {
+	if err := s.ValidateNoInstanceForSolution(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
@@ -67,15 +75,15 @@ func ValidateDeleteSolution(ctx context.Context, newRef interface{}) []ErrorFiel
 
 // Validate DisplayName is unique, i.e. No existing solution with the same DisplayName
 // UniqueNameSolutionLookupFunc will lookup solutions with labels {"displayName": c.Spec.DisplayName}
-func ValidateSolutionUniqueName(ctx context.Context, s model.SolutionState) *ErrorField {
-	if UniqueNameSolutionLookupFunc == nil {
+func (s *SolutionValidator) ValidateSolutionUniqueName(ctx context.Context, solution model.SolutionState) *ErrorField {
+	if s.UniqueNameSolutionLookupFunc == nil {
 		return nil
 	}
-	_, err := UniqueNameSolutionLookupFunc(ctx, s.Spec.DisplayName, s.ObjectMeta.Namespace)
+	_, err := s.UniqueNameSolutionLookupFunc(ctx, solution.Spec.DisplayName, solution.ObjectMeta.Namespace)
 	if err == nil || !v1alpha2.IsNotFound(err) {
 		return &ErrorField{
 			FieldPath:       "spec.displayName",
-			Value:           s.Spec.DisplayName,
+			Value:           solution.Spec.DisplayName,
 			DetailedMessage: "solution displayName must be unique",
 		}
 	}
@@ -84,21 +92,21 @@ func ValidateSolutionUniqueName(ctx context.Context, s model.SolutionState) *Err
 
 // Validate no instance associated with the solution
 // SolutionInstanceLookupFunc will lookup instances with labels {"solution": s.ObjectMeta.Name}
-func ValidateNoInstanceForSolution(ctx context.Context, s model.SolutionState) *ErrorField {
-	if SolutionInstanceLookupFunc == nil {
+func (s *SolutionValidator) ValidateNoInstanceForSolution(ctx context.Context, solution model.SolutionState) *ErrorField {
+	if s.SolutionInstanceLookupFunc == nil {
 		return nil
 	}
-	if found, err := SolutionInstanceLookupFunc(ctx, s.ObjectMeta.Name, s.ObjectMeta.Namespace); err != nil || found {
+	if found, err := s.SolutionInstanceLookupFunc(ctx, solution.ObjectMeta.Name, solution.ObjectMeta.Namespace); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
-			Value:           s.ObjectMeta.Name,
+			Value:           solution.ObjectMeta.Name,
 			DetailedMessage: "Solution has one or more associated instances. Deletion is not allowed.",
 		}
 	}
 	return nil
 }
 
-func ConvertInterfaceToSolution(ref interface{}) model.SolutionState {
+func (s *SolutionValidator) ConvertInterfaceToSolution(ref interface{}) model.SolutionState {
 	if ref == nil {
 		return model.SolutionState{
 			Spec: &model.SolutionSpec{},

@@ -17,10 +17,12 @@ import (
 
 	configv1 "gopls-workspace/apis/config/v1"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +39,7 @@ import (
 var solutionlog = logf.Log.WithName("solution-resource")
 var mySolutionReaderClient client.Reader
 var projectConfig *configv1.ProjectConfig
+var solutionValidator *validation.SolutionValidator
 
 func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySolutionReaderClient = mgr.GetAPIReader()
@@ -47,20 +50,26 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 	projectConfig = myConfig
 
-	validation.SolutionInstanceLookupFunc = func(ctx context.Context, name string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{"solution": name}, 1)
+	// Load validator functions
+	solutionValidator = &validation.SolutionValidator{}
+	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
 		if err != nil {
 			return false, err
 		}
 		return len(instanceList.Items) > 0, nil
 	}
-	validation.SolutionContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+	solutionContainerLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(validation.SolutionContainer, name, namespace)
 	}
+
+	uniqueNameSolutionLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+		return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
+	}
 	if projectConfig.UniqueDisplayNameForSolution {
-		validation.UniqueNameSolutionLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-			return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
-		}
+		solutionValidator.Init(solutionInstanceLookupFunc, solutionContainerLookupFunc, uniqueNameSolutionLookupFunc)
+	} else {
+		solutionValidator.Init(solutionInstanceLookupFunc, solutionContainerLookupFunc, nil)
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -100,9 +109,9 @@ func (r *Solution) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels["rootResource"] = r.Spec.RootResource
+			r.Labels[api_constants.RootResource] = r.Spec.RootResource
 			if projectConfig.UniqueDisplayNameForSolution {
-				r.Labels["displayName"] = r.Spec.DisplayName
+				r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 			}
 		}
 	}
@@ -124,7 +133,7 @@ func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return nil, r.validateCreateSolution()
+	return nil, r.validateCreateSolution(ctx)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -154,16 +163,16 @@ func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	return nil, r.validateDeleteSolution()
+	return nil, r.validateDeleteSolution(ctx)
 }
 
-func (r *Solution) validateCreateSolution() error {
+func (r *Solution) validateCreateSolution(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertSolutionState()
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	ErrorFields := solutionValidator.ValidateCreateOrUpdate(ctx, state, nil)
 	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -183,7 +192,7 @@ func (r *Solution) validateUpdateSolution(old *Solution) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, oldstate)
+	ErrorFields := solutionValidator.ValidateCreateOrUpdate(context.TODO(), state, oldstate)
 	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -193,13 +202,13 @@ func (r *Solution) validateUpdateSolution(old *Solution) error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
 }
 
-func (r *Solution) validateDeleteSolution() error {
+func (r *Solution) validateDeleteSolution(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertSolutionState()
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateDelete(context.TODO(), state)
+	ErrorFields := solutionValidator.ValidateDelete(ctx, state)
 	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -260,7 +269,7 @@ func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
 	solutionlog.Info("validate delete solution container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var solutionList SolutionList
-		err := mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		err := mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
 			return 0, err
 		} else {

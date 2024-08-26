@@ -13,52 +13,60 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
-var UniqueNameInstanceLookupFunc ObjectLookupFunc
-var SolutionLookupFunc ObjectLookupFunc
-var TargetLookupFunc ObjectLookupFunc
+type InstanceValidator struct {
+	UniqueNameInstanceLookupFunc ObjectLookupFunc
+	SolutionLookupFunc           ObjectLookupFunc
+	TargetLookupFunc             ObjectLookupFunc
+}
+
+func (i *InstanceValidator) Init(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) {
+	i.UniqueNameInstanceLookupFunc = uniqueNameInstanceLookupFunc
+	i.SolutionLookupFunc = solutionLookupFunc
+	i.TargetLookupFunc = targetLookupFunc
+}
 
 // Validate Instance creation or update
 // 1. DisplayName is unique
 // 2. Solution exists
 // 3. Target exists if provided by name rather than selector
 // 4. Target is valid, i.e. either name or selector is provided
-func ValidateCreateOrUpdateInstance(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToInstance(newRef)
-	old := ConvertInterfaceToInstance(oldRef)
+func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := i.ConvertInterfaceToInstance(newRef)
+	old := i.ConvertInterfaceToInstance(oldRef)
 
 	errorFields := []ErrorField{}
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
-		if err := ValidateUniqueName(ctx, new); err != nil {
+		if err := i.ValidateUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 	if oldRef == nil || new.Spec.Solution != old.Spec.Solution {
-		if err := ValidateSolutionExist(ctx, new); err != nil {
+		if err := i.ValidateSolutionExist(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 	if (oldRef == nil || new.Spec.Target.Name != old.Spec.Target.Name) && new.Spec.Target.Name != "" {
-		if err := ValidateTargetExist(ctx, new); err != nil {
+		if err := i.ValidateTargetExist(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
-	if err := ValidateTargetValid(new); err != nil {
+	if err := i.ValidateTargetValid(new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
 }
 
-func ValidateDeleteInstance(ctx context.Context, new interface{}) []ErrorField {
+func (i *InstanceValidator) ValidateDelete(ctx context.Context, new interface{}) []ErrorField {
 	return []ErrorField{}
 }
 
 // Validate DisplayName is unique, i.e. No existing instance with the same DisplayName
 // UniqueNameInstanceLookupFunc will lookup instances with labels {"displayName": c.Spec.DisplayName}
-func ValidateUniqueName(ctx context.Context, c model.InstanceState) *ErrorField {
-	if UniqueNameInstanceLookupFunc == nil {
+func (i *InstanceValidator) ValidateUniqueName(ctx context.Context, c model.InstanceState) *ErrorField {
+	if i.UniqueNameInstanceLookupFunc == nil {
 		return nil
 	}
-	_, err := UniqueNameInstanceLookupFunc(ctx, c.Spec.DisplayName, c.ObjectMeta.Namespace)
+	_, err := i.UniqueNameInstanceLookupFunc(ctx, c.Spec.DisplayName, c.ObjectMeta.Namespace)
 	if err == nil || !v1alpha2.IsNotFound(err) {
 		return &ErrorField{
 			FieldPath:       "spec.displayName",
@@ -70,11 +78,11 @@ func ValidateUniqueName(ctx context.Context, c model.InstanceState) *ErrorField 
 }
 
 // Validate Solution exists for instance
-func ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorField {
-	if SolutionLookupFunc == nil {
+func (i *InstanceValidator) ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorField {
+	if i.SolutionLookupFunc == nil {
 		return nil
 	}
-	_, err := SolutionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Solution), c.ObjectMeta.Namespace)
+	_, err := i.SolutionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Solution), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.solution",
@@ -86,11 +94,11 @@ func ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorFie
 }
 
 // Validate Target exists for instance if target name is provided
-func ValidateTargetExist(ctx context.Context, c model.InstanceState) *ErrorField {
-	if TargetLookupFunc == nil {
+func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.InstanceState) *ErrorField {
+	if i.TargetLookupFunc == nil {
 		return nil
 	}
-	_, err := TargetLookupFunc(ctx, c.Spec.Target.Name, c.ObjectMeta.Namespace)
+	_, err := i.TargetLookupFunc(ctx, c.Spec.Target.Name, c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.target.name",
@@ -103,7 +111,7 @@ func ValidateTargetExist(ctx context.Context, c model.InstanceState) *ErrorField
 }
 
 // Validate Target is valid, i.e. either name or selector is provided
-func ValidateTargetValid(c model.InstanceState) *ErrorField {
+func (i *InstanceValidator) ValidateTargetValid(c model.InstanceState) *ErrorField {
 	if c.Spec.Target.Name == "" && (c.Spec.Target.Selector == nil || len(c.Spec.Target.Selector) == 0) {
 		return &ErrorField{
 			FieldPath:       "spec.target",
@@ -114,7 +122,7 @@ func ValidateTargetValid(c model.InstanceState) *ErrorField {
 	return nil
 }
 
-func ConvertInterfaceToInstance(ref interface{}) model.InstanceState {
+func (i *InstanceValidator) ConvertInterfaceToInstance(ref interface{}) model.InstanceState {
 	if ref == nil {
 		return model.InstanceState{
 			Spec: &model.InstanceSpec{},

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -209,7 +210,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 		// If the activation is new and has no status, publish an activation event
-		if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels["statusMessage"] == "" {
+		if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
 			c.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,

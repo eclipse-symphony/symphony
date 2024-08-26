@@ -10,10 +10,12 @@ import (
 	"context"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	//"encoding/json"
 )
 
@@ -121,7 +123,7 @@ func ListObjectStateWithLabels(ctx context.Context, stateProvider IStateProvider
 }
 
 func GetObjectStateWithUniqueName(ctx context.Context, stateProvider IStateProvider, resourceType validation.ResourceType, displayName string, namespace string) (interface{}, error) {
-	objectList, err := ListObjectStateWithLabels(ctx, stateProvider, resourceType, namespace, map[string]string{"displayName": displayName}, 1)
+	objectList, err := ListObjectStateWithLabels(ctx, stateProvider, resourceType, namespace, map[string]string{constants.DisplayName: utils.ConvertStringToValidLabel(displayName)}, 1)
 	if err != nil {
 		return nil, err
 	}

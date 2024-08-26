@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -24,8 +25,9 @@ import (
 
 type CampaignsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	needValidate  bool
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	CampaignValidator validation.CampaignValidator
 }
 
 func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -41,8 +43,8 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config)
 	if s.needValidate {
-		validation.CampaignContainerLookupFunc = s.CampaignContainerLookup
-		validation.CampaignActivationsLookupFunc = s.CampaignActivationsLookup
+		s.CampaignValidator = validation.CampaignValidator{}
+		s.CampaignValidator.Init(s.CampaignContainerLookup, s.CampaignActivationsLookup)
 	}
 	return nil
 }
@@ -110,7 +112,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels["rootResource"] = state.Spec.RootResource
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		}
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
@@ -203,12 +205,12 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 
 func (t *CampaignsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CampaignState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CampaignValidator, state, old, err)
 }
 
 func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
 	state, err := t.GetState(ctx, name, namespace)
-	return validation.ValidateDeleteWrapper(ctx, state, err)
+	return validation.ValidateDeleteWrapper(ctx, &t.CampaignValidator, state, err)
 }
 
 func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
@@ -216,7 +218,7 @@ func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name str
 }
 
 func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{"campaign": name}, 1)
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name}, 1)
 	if err != nil {
 		return false, err
 	}

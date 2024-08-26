@@ -149,3 +149,7 @@ func FormatAsString(val interface{}) string {
 		return fmt.Sprintf("%v", tv)
 	}
 }
+
+func ConvertStringToValidLabel(s string) string {
+	return strings.ReplaceAll(s, " ", "")
+}

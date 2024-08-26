@@ -18,7 +18,9 @@ import (
 	"gopls-workspace/constants"
 	"time"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -39,6 +41,7 @@ import (
 var instancelog = logf.Log.WithName("instance-resource")
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
+var instanceValidator *validation.InstanceValidator
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
@@ -60,16 +63,20 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Load validator functions
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		validation.UniqueNameInstanceLookupFunc = func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-			return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
-		}
+	instanceValidator = &validation.InstanceValidator{}
+	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+		return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
 	}
-	validation.SolutionLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+	solutionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(validation.Solution, name, namespace)
 	}
-	validation.TargetLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+	targetLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(validation.Target, name, namespace)
+	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		instanceValidator.Init(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
+	} else {
+		instanceValidator.Init(nil, solutionLookupFunc, targetLookupFunc)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -99,10 +106,10 @@ func (r *Instance) Default() {
 		r.Labels = make(map[string]string)
 	}
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		r.Labels["displayName"] = r.Spec.DisplayName
+		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
-	r.Labels["solution"] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
-	r.Labels["target"] = r.Spec.Target.Name
+	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
+	r.Labels[api_constants.Target] = r.Spec.Target.Name
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -122,7 +129,7 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateInstance()
+	validationError := r.validateCreateInstance(ctx)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -157,7 +164,7 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	if !ok {
 		return nil, fmt.Errorf("expected an Instance object")
 	}
-	validationError := r.validateUpdateInstance(oldInstance)
+	validationError := r.validateUpdateInstance(ctx, oldInstance)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -191,14 +198,14 @@ func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (r *Instance) validateCreateInstance() error {
+func (r *Instance) validateCreateInstance(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertInstanceState()
 	if err != nil {
 		return err
 	}
 	// TODO: add proper context
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	ErrorFields := instanceValidator.ValidateCreateOrUpdate(ctx, state, nil)
 	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if err := r.validateReconciliationPolicy(); err != nil {
@@ -212,7 +219,7 @@ func (r *Instance) validateCreateInstance() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
 }
 
-func (r *Instance) validateUpdateInstance(old *Instance) error {
+func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertInstanceState()
 	if err != nil {
@@ -223,7 +230,7 @@ func (r *Instance) validateUpdateInstance(old *Instance) error {
 		return err
 	}
 	// TODO: add proper context
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, oldState)
+	ErrorFields := instanceValidator.ValidateCreateOrUpdate(ctx, state, oldState)
 	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)

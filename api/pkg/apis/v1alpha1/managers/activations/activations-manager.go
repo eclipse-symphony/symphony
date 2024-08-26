@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -35,6 +36,7 @@ type ActivationsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
 	needValidate  bool
+	Validator     validation.ActivationValidator
 }
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -50,7 +52,8 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	}
 	s.needValidate = managers.NeedObjectValidate(config)
 	if s.needValidate {
-		validation.CampaignLookupFunc = s.CampaignLookup
+		s.Validator = validation.ActivationValidator{}
+		s.Validator.Init(s.CampaignLookup)
 	}
 	return nil
 }
@@ -120,7 +123,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels["campaign"] = state.Spec.Campaign
+		state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
@@ -228,7 +231,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 		activationState.ObjectMeta.Labels = make(map[string]string)
 	}
 	// label doesn't allow space, so remove space
-	activationState.ObjectMeta.Labels["statusMessage"] = strings.ReplaceAll(current.Status.String(), " ", "")
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -277,7 +280,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 		activationState.ObjectMeta.Labels = make(map[string]string)
 	}
 	// label doesn't allow space, so remove space
-	activationState.ObjectMeta.Labels["statusMessage"] = strings.ReplaceAll(current.Status.String(), " ", "")
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -360,7 +363,7 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 
 func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, old, err)
 }
 
 func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {

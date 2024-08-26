@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -18,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -25,8 +27,9 @@ import (
 
 type SolutionsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	needValidate  bool
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	SolutionValidator validation.SolutionValidator
 }
 
 func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -42,9 +45,8 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config)
 	if s.needValidate {
-		validation.SolutionInstanceLookupFunc = s.solutionInstanceLookup
-		validation.SolutionContainerLookupFunc = s.solutionContainerLookup
-		validation.UniqueNameSolutionLookupFunc = s.uniqueNameSolutionLookup
+		s.SolutionValidator = validation.SolutionValidator{}
+		s.SolutionValidator.Init(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
 	}
 	return nil
 }
@@ -93,8 +95,8 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels["displayName"] = state.Spec.DisplayName
-		state.ObjectMeta.Labels["rootResource"] = state.Spec.RootResource
+		state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
@@ -204,16 +206,16 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 
 func (t *SolutionsManager) ValidateCreateOrUpdate(ctx context.Context, state model.SolutionState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, old, err)
 }
 
 func (t *SolutionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
 	state, err := t.GetState(ctx, name, namespace)
-	return validation.ValidateDeleteWrapper(ctx, state, err)
+	return validation.ValidateDeleteWrapper(ctx, &t.SolutionValidator, state, err)
 }
 
 func (t *SolutionsManager) solutionInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Instance, namespace, map[string]string{"solution": name}, 1)
+	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Instance, namespace, map[string]string{constants.Solution: name}, 1)
 	if err != nil {
 		return false, err
 	}

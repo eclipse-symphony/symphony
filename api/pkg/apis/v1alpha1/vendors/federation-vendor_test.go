@@ -9,7 +9,6 @@ import (
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -296,7 +295,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 
 func TestFederationOnSyncGet(t *testing.T) {
 	vendor := federationVendorInit()
-	validation.CatalogContainerLookupFunc = nil
+	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	SiteSpec.Name = "test1"
 	b, err := json.Marshal(SiteSpec)
 	assert.Nil(t, err)

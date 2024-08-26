@@ -17,6 +17,7 @@ import (
 	"gopls-workspace/constants"
 	"time"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,12 +33,14 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 // log is for logging in this package.
 var cataloglog = logf.Log.WithName("catalog-resource")
 var myCatalogReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
+var catalogValidator *validation.CatalogValidator
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogReaderClient = mgr.GetAPIReader()
@@ -55,20 +58,25 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		catalogWebhookValidationMetrics = metrics
 	}
 
-	validation.CatalogContainerLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.CatalogContainer, name, namespace)
-	}
-	validation.CatalogLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Catalog, name, namespace)
-	}
-	validation.ChildCatalogLookupFunc = func(ctx context.Context, name string, namespace string) (bool, error) {
-		catalogList, err := dynamicclient.ListWithLabels(validation.Catalog, namespace, map[string]string{"parentName": name}, 1)
-		if err != nil {
-			return false, err
-		}
-		return len(catalogList.Items) > 0, nil
-	}
-
+	catalogValidator = &validation.CatalogValidator{}
+	catalogValidator.Init(
+		// Look up catalog
+		func(ctx context.Context, name string, namespace string) (interface{}, error) {
+			return dynamicclient.Get(validation.Catalog, name, namespace)
+		},
+		// Look up catalog container
+		func(ctx context.Context, name string, namespace string) (interface{}, error) {
+			return dynamicclient.Get(validation.CatalogContainer, name, namespace)
+		},
+		// Look up child catalog
+		func(ctx context.Context, name string, namespace string) (bool, error) {
+			catalogList, err := dynamicclient.ListWithLabels(validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
+			if err != nil {
+				return false, err
+			}
+			return len(catalogList.Items) > 0, nil
+		},
+	)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -104,9 +112,9 @@ func (r *Catalog) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels["rootResource"] = r.Spec.RootResource
+			r.Labels[api_constants.RootResource] = utils.ConvertStringToValidLabel(r.Spec.RootResource)
 			if r.Spec.ParentName != "" {
-				r.Labels["parentName"] = validation.ConvertReferenceToObjectName(r.Spec.ParentName)
+				r.Labels[api_constants.ParentName] = utils.ConvertStringToValidLabel(validation.ConvertReferenceToObjectName(r.Spec.ParentName))
 			}
 		}
 	}
@@ -129,7 +137,7 @@ func (r *Catalog) ValidateCreate() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateCatalog()
+	validationError := r.validateCreateCatalog(ctx)
 	if validationError != nil {
 		catalogWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -162,7 +170,7 @@ func (r *Catalog) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 	if !ok {
 		return nil, fmt.Errorf("expected a Catalog object")
 	}
-	validationError := r.validateUpdateCatalog(oldCatalog)
+	validationError := r.validateUpdateCatalog(ctx, oldCatalog)
 	if validationError != nil {
 		catalogWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -190,15 +198,15 @@ func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	return nil, r.validateDeleteCatalog()
+	return nil, r.validateDeleteCatalog(ctx)
 }
 
-func (r *Catalog) validateCreateCatalog() error {
+func (r *Catalog) validateCreateCatalog(ctx context.Context) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, nil)
 	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -208,7 +216,7 @@ func (r *Catalog) validateCreateCatalog() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
 }
 
-func (r *Catalog) validateUpdateCatalog(oldCatalog *Catalog) error {
+func (r *Catalog) validateUpdateCatalog(ctx context.Context, oldCatalog *Catalog) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
 		return err
@@ -217,7 +225,7 @@ func (r *Catalog) validateUpdateCatalog(oldCatalog *Catalog) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, old)
+	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, old)
 	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -227,13 +235,13 @@ func (r *Catalog) validateUpdateCatalog(oldCatalog *Catalog) error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
 }
 
-func (r *Catalog) validateDeleteCatalog() error {
+func (r *Catalog) validateDeleteCatalog(ctx context.Context) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
 		return err
 	}
 
-	ErrorFields := validation.ValidateDelete(context.TODO(), state)
+	ErrorFields := catalogValidator.ValidateDelete(ctx, state)
 	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -273,7 +281,7 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 	cataloglog.Info("validate delete catalog container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
-		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
 			return 0, err
 		} else {

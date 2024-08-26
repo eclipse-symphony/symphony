@@ -26,6 +26,13 @@ const (
 	InstanceMetaKey    = GroupPrefix + "/instance"
 	ResourceSeperator  = "-v-"
 	ReferenceSeparator = ":"
+	DisplayName        = "displayName"
+	RootResource       = "rootResource"
+	ParentName         = "parentName"
+	StatusMessage      = "statusMessage"
+	Solution           = "solution"
+	Target             = "target"
+	Campaign           = "campaign"
 )
 
 // Environment variables keys

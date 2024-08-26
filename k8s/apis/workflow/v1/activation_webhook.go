@@ -17,11 +17,11 @@ import (
 
 	"time"
 
-	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,6 +36,7 @@ import (
 // log is for logging in this package.
 var activationlog = logf.Log.WithName("activation-resource")
 var activationWebhookValidationMetrics *metrics.Metrics
+var activationValidator *validation.ActivationValidator
 
 func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Activation{}, ".metadata.name", func(rawObj client.Object) []string {
@@ -52,9 +53,10 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		activationWebhookValidationMetrics = metrics
 	}
 
-	validation.CampaignLookupFunc = func(ctx context.Context, name string, namespace string) (interface{}, error) {
+	activationValidator = &validation.ActivationValidator{}
+	activationValidator.Init(func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(validation.Campaign, name, namespace)
-	}
+	})
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -75,7 +77,7 @@ func (r *Activation) Default() {
 	}
 	if r.Spec.Campaign != "" {
 		activationlog.Info("default", "name", r.Name, "spec.campaign", r.Spec.Campaign)
-		r.Labels["campaign"] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
+		r.Labels[api_constants.Campaign] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
 	}
 }
 
@@ -96,7 +98,7 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateActivation()
+	validationError := r.validateCreateActivation(ctx)
 	if validationError != nil {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -130,7 +132,7 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 		return nil, fmt.Errorf("expected an Activation object")
 	}
 	// Compare the Spec of the current and old Activation objects
-	validationError := r.validateUpdateActivation(oldActivation)
+	validationError := r.validateUpdateActivation(ctx, oldActivation)
 	if validationError != nil {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -162,12 +164,12 @@ func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (r *Activation) validateCreateActivation() error {
+func (r *Activation) validateCreateActivation(ctx context.Context) error {
 	state, err := r.ConvertActivationState()
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, nil)
+	ErrorFields := activationValidator.ValidateCreateOrUpdate(ctx, state, nil)
 	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
@@ -177,7 +179,7 @@ func (r *Activation) validateCreateActivation() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
 }
 
-func (r *Activation) validateUpdateActivation(oldActivation *Activation) error {
+func (r *Activation) validateUpdateActivation(ctx context.Context, oldActivation *Activation) error {
 	state, err := r.ConvertActivationState()
 	if err != nil {
 		return err
@@ -186,7 +188,7 @@ func (r *Activation) validateUpdateActivation(oldActivation *Activation) error {
 	if err != nil {
 		return err
 	}
-	ErrorFields := validation.ValidateCreateOrUpdate(context.TODO(), state, old)
+	ErrorFields := activationValidator.ValidateCreateOrUpdate(ctx, state, old)
 	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {

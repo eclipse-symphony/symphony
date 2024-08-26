@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -29,9 +30,10 @@ var log = logger.NewLogger("coa.runtime")
 
 type CatalogsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	GraphProvider graph.IGraphProvider
-	needValidate  bool
+	StateProvider    states.IStateProvider
+	GraphProvider    graph.IGraphProvider
+	needValidate     bool
+	CatalogValidator validation.CatalogValidator
 }
 
 func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -52,9 +54,8 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 	}
 	s.needValidate = managers.NeedObjectValidate(config)
 	if s.needValidate {
-		validation.CatalogContainerLookupFunc = s.CatalogContainerLookup
-		validation.CatalogLookupFunc = s.CatalogLookup
-		validation.ChildCatalogLookupFunc = s.ChildCatalogLookup
+		s.CatalogValidator = validation.CatalogValidator{}
+		s.CatalogValidator.Init(s.CatalogContainerLookup, s.CatalogLookup, s.ChildCatalogLookup)
 	}
 	return nil
 }
@@ -125,9 +126,9 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels["rootResource"] = state.Spec.RootResource
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 			if state.Spec.ParentName != "" {
-				state.ObjectMeta.Labels["parentName"] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
+				state.ObjectMeta.Labels[constants.ParentName] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
 			}
 		}
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
@@ -302,12 +303,12 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 
 func (t *CatalogsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CatalogState) error {
 	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, state, old, err)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CatalogValidator, state, old, err)
 }
 
 func (t *CatalogsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
 	state, err := t.GetState(ctx, name, namespace)
-	return validation.ValidateDeleteWrapper(ctx, state, err)
+	return validation.ValidateDeleteWrapper(ctx, &t.CatalogValidator, state, err)
 }
 
 func (t *CatalogsManager) CatalogContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
@@ -319,7 +320,7 @@ func (t *CatalogsManager) CatalogLookup(ctx context.Context, name string, namesp
 }
 
 func (t *CatalogsManager) ChildCatalogLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	catalogList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Catalog, namespace, map[string]string{"parentName": name}, 1)
+	catalogList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Catalog, namespace, map[string]string{constants.ParentName: name}, 1)
 	if err != nil {
 		return false, err
 	}

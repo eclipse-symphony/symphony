@@ -13,20 +13,26 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
-// Check Instance associated with the Solution
-var TargetInstanceLookupFunc LinkedObjectLookupFunc
+type TargetValidator struct {
+	// Check Instance associated with the Solution
+	TargetInstanceLookupFunc   LinkedObjectLookupFunc
+	UniqueNameTargetLookupFunc ObjectLookupFunc
+}
 
-var UniqueNameTargetLookupFunc ObjectLookupFunc
+func (t *TargetValidator) Init(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) {
+	t.TargetInstanceLookupFunc = targetInstanceLookupFunc
+	t.UniqueNameTargetLookupFunc = uniqueNameTargetLookupFunc
+}
 
 // Validate Target creation or update
 // 1. DisplayName is unique
-func ValidateCreateOrUpdateTarget(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := ConvertInterfaceToTarget(newRef)
-	old := ConvertInterfaceToTarget(oldRef)
+func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := t.ConvertInterfaceToTarget(newRef)
+	old := t.ConvertInterfaceToTarget(oldRef)
 
 	errorFields := []ErrorField{}
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
-		if err := ValidateTargetUniqueName(ctx, new); err != nil {
+		if err := t.ValidateTargetUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
@@ -35,10 +41,10 @@ func ValidateCreateOrUpdateTarget(ctx context.Context, newRef interface{}, oldRe
 
 // Validate Target deletion
 // 1. No associated instances
-func ValidateDeleteTarget(ctx context.Context, newRef interface{}) []ErrorField {
-	t := ConvertInterfaceToTarget(newRef)
+func (t *TargetValidator) ValidateDelete(ctx context.Context, newRef interface{}) []ErrorField {
+	target := t.ConvertInterfaceToTarget(newRef)
 	errorFields := []ErrorField{}
-	if err := ValidateNoInstanceForTarget(ctx, t); err != nil {
+	if err := t.ValidateNoInstanceForTarget(ctx, target); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
@@ -46,15 +52,15 @@ func ValidateDeleteTarget(ctx context.Context, newRef interface{}) []ErrorField 
 
 // Validate DisplayName is unique, i.e. No existing target with the same DisplayName
 // UniqueNameTargetLookupFunc will lookup targets with labels {"displayName": t.Spec.DisplayName}
-func ValidateTargetUniqueName(ctx context.Context, t model.TargetState) *ErrorField {
-	if UniqueNameTargetLookupFunc == nil {
+func (t *TargetValidator) ValidateTargetUniqueName(ctx context.Context, target model.TargetState) *ErrorField {
+	if t.UniqueNameTargetLookupFunc == nil {
 		return nil
 	}
-	_, err := UniqueNameTargetLookupFunc(ctx, t.Spec.DisplayName, t.ObjectMeta.Namespace)
+	_, err := t.UniqueNameTargetLookupFunc(ctx, target.Spec.DisplayName, target.ObjectMeta.Namespace)
 	if err == nil || !v1alpha2.IsNotFound(err) {
 		return &ErrorField{
 			FieldPath:       "spec.displayName",
-			Value:           t.Spec.DisplayName,
+			Value:           target.Spec.DisplayName,
 			DetailedMessage: "target displayName must be unique",
 		}
 	}
@@ -63,21 +69,21 @@ func ValidateTargetUniqueName(ctx context.Context, t model.TargetState) *ErrorFi
 
 // Validate No associated instances for the target
 // TargetInstanceLookupFunc will lookup instances with labels {"target": t.ObjectMeta.Name}
-func ValidateNoInstanceForTarget(ctx context.Context, t model.TargetState) *ErrorField {
-	if TargetInstanceLookupFunc == nil {
+func (t *TargetValidator) ValidateNoInstanceForTarget(ctx context.Context, target model.TargetState) *ErrorField {
+	if t.TargetInstanceLookupFunc == nil {
 		return nil
 	}
-	if found, err := TargetInstanceLookupFunc(ctx, t.ObjectMeta.Name, t.ObjectMeta.Namespace); err != nil || found {
+	if found, err := t.TargetInstanceLookupFunc(ctx, target.ObjectMeta.Name, target.ObjectMeta.Namespace); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
-			Value:           t.ObjectMeta.Name,
+			Value:           target.ObjectMeta.Name,
 			DetailedMessage: "Target has one or more associated instances. Deletion is not allowed.",
 		}
 	}
 	return nil
 }
 
-func ConvertInterfaceToTarget(ref interface{}) model.TargetState {
+func (t *TargetValidator) ConvertInterfaceToTarget(ref interface{}) model.TargetState {
 	if ref == nil {
 		return model.TargetState{
 			Spec: &model.TargetSpec{},

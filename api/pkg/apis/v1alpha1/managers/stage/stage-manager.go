@@ -828,7 +828,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
 			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
 			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
-			log.Errorf(" M (Stage): current stage is %s, expected next stage is %s, actual next stage is %s",
+			log.ErrorfCtx(ctx, " M (Stage): current stage is %s, expected next stage is %s, actual next stage is %s",
 				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage,
 				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage,
 				stage)

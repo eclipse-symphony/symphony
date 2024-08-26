@@ -10,8 +10,10 @@ import (
 	"context"
 	"fmt"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -67,7 +69,7 @@ func ListWithLabels(resourceType validation.ResourceType, namespace string, labe
 }
 
 func GetObjectWithUniqueName(resourceType validation.ResourceType, displayName string, namespace string) (*unstructured.Unstructured, error) {
-	objectList, err := ListWithLabels(resourceType, namespace, map[string]string{"displayName": displayName}, 1)
+	objectList, err := ListWithLabels(resourceType, namespace, map[string]string{api_constants.DisplayName: utils.ConvertStringToValidLabel(displayName)}, 1)
 	if err != nil {
 		// return true if List call failed
 		return nil, err
