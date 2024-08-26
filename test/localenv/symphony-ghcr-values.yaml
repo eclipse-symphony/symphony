@@ -1,11 +1,16 @@
-api:
-  annotationKey: ""
-  labelKey: ""
-  labelValue: ""
-installServiceExt: false
-paiImage:
-  pullPolicy: Never
-  repository: ghcr.io/eclipse-symphony/symphony-api
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
 symphonyImage:
   pullPolicy: Never
   repository: ghcr.io/eclipse-symphony/symphony-k8s
+paiImage:
+  pullPolicy: Never
+  repository: ghcr.io/eclipse-symphony/symphony-api
+installServiceExt: false
+api:
+  labelKey:
+  labelValue:
+  annotationKey:
