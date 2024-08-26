@@ -45,7 +45,7 @@ var myTargetClient client.Reader
 var targetValidationPolicies []configv1.ValidationPolicy
 var targetWebhookValidationMetrics *metrics.Metrics
 var projectConfig *configv1.ProjectConfig
-var targetValidator *validation.TargetValidator
+var targetValidator validation.TargetValidator
 
 func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myTargetClient = mgr.GetAPIReader()
@@ -68,7 +68,6 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Set up the target validator
-	targetValidator = &validation.TargetValidator{}
 	uniqueNameTargetLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
 		return dynamicclient.GetObjectWithUniqueName(validation.Target, displayName, namespace)
 	}
@@ -80,9 +79,9 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		return len(instanceList.Items) > 0, nil
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
-		targetValidator.Init(targetInstanceLookupFunc, uniqueNameTargetLookupFunc)
+		targetValidator = validation.NewTargetValidator(targetInstanceLookupFunc, uniqueNameTargetLookupFunc)
 	} else {
-		targetValidator.Init(targetInstanceLookupFunc, nil)
+		targetValidator = validation.NewTargetValidator(targetInstanceLookupFunc, nil)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).

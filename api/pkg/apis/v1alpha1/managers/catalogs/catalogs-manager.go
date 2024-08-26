@@ -54,8 +54,7 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.CatalogValidator = validation.CatalogValidator{}
-		s.CatalogValidator.Init(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
+		s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
 	}
 	return nil
 }

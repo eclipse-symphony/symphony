@@ -20,10 +20,12 @@ type SolutionValidator struct {
 	UniqueNameSolutionLookupFunc ObjectLookupFunc
 }
 
-func (s *SolutionValidator) Init(solutionInstanceLookupFunc LinkedObjectLookupFunc, solutionContainerLookupFunc ObjectLookupFunc, uniqueNameSolutionLookupFunc ObjectLookupFunc) {
-	s.SolutionInstanceLookupFunc = solutionInstanceLookupFunc
-	s.SolutionContainerLookupFunc = solutionContainerLookupFunc
-	s.UniqueNameSolutionLookupFunc = uniqueNameSolutionLookupFunc
+func NewSolutionValidator(solutionInstanceLookupFunc LinkedObjectLookupFunc, solutionContainerLookupFunc ObjectLookupFunc, uniqueNameSolutionLookupFunc ObjectLookupFunc) SolutionValidator {
+	return SolutionValidator{
+		SolutionInstanceLookupFunc:   solutionInstanceLookupFunc,
+		SolutionContainerLookupFunc:  solutionContainerLookupFunc,
+		UniqueNameSolutionLookupFunc: uniqueNameSolutionLookupFunc,
+	}
 }
 
 // Validate Solution creation or update

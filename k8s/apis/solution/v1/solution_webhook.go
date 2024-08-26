@@ -39,7 +39,7 @@ import (
 var solutionlog = logf.Log.WithName("solution-resource")
 var mySolutionReaderClient client.Reader
 var projectConfig *configv1.ProjectConfig
-var solutionValidator *validation.SolutionValidator
+var solutionValidator validation.SolutionValidator
 
 func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySolutionReaderClient = mgr.GetAPIReader()
@@ -51,7 +51,6 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	projectConfig = myConfig
 
 	// Load validator functions
-	solutionValidator = &validation.SolutionValidator{}
 	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string) (bool, error) {
 		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
 		if err != nil {
@@ -67,9 +66,9 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
-		solutionValidator.Init(solutionInstanceLookupFunc, solutionContainerLookupFunc, uniqueNameSolutionLookupFunc)
+		solutionValidator = validation.NewSolutionValidator(solutionInstanceLookupFunc, solutionContainerLookupFunc, uniqueNameSolutionLookupFunc)
 	} else {
-		solutionValidator.Init(solutionInstanceLookupFunc, solutionContainerLookupFunc, nil)
+		solutionValidator = validation.NewSolutionValidator(solutionInstanceLookupFunc, solutionContainerLookupFunc, nil)
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

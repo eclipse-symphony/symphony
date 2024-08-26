@@ -80,7 +80,7 @@ func TestCreateTargetWithSameDisplayName(t *testing.T) {
 		needValidate:    true,
 		TargetValidator: validation.TargetValidator{},
 	}
-	manager.TargetValidator.Init(nil, manager.targetUniqueNameLookup)
+	manager.TargetValidator = validation.NewTargetValidator(nil, manager.targetUniqueNameLookup)
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.TargetState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -109,11 +109,10 @@ func TestDeleteTargetWithInstance(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := TargetsManager{
-		StateProvider:   stateProvider,
-		needValidate:    true,
-		TargetValidator: validation.TargetValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.TargetValidator.Init(manager.targetInstanceLookup, nil)
+	manager.TargetValidator = validation.NewTargetValidator(manager.targetInstanceLookup, nil)
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "testinstance",

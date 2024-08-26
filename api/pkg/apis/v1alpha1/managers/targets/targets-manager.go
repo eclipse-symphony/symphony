@@ -47,8 +47,7 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.TargetValidator = validation.TargetValidator{}
-		s.TargetValidator.Init(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
 	}
 	return nil
 }

@@ -45,8 +45,7 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.SolutionValidator = validation.SolutionValidator{}
-		s.SolutionValidator.Init(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
+		s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
 	}
 	return nil
 }

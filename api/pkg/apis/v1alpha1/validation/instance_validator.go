@@ -19,10 +19,12 @@ type InstanceValidator struct {
 	TargetLookupFunc             ObjectLookupFunc
 }
 
-func (i *InstanceValidator) Init(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) {
-	i.UniqueNameInstanceLookupFunc = uniqueNameInstanceLookupFunc
-	i.SolutionLookupFunc = solutionLookupFunc
-	i.TargetLookupFunc = targetLookupFunc
+func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {
+	return InstanceValidator{
+		UniqueNameInstanceLookupFunc: uniqueNameInstanceLookupFunc,
+		SolutionLookupFunc:           solutionLookupFunc,
+		TargetLookupFunc:             targetLookupFunc,
+	}
 }
 
 // Validate Instance creation or update

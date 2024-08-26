@@ -43,11 +43,10 @@ func TestCreateInstanceWithoutSolutionTargetValidation(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		InstanceValidator: validation.InstanceValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.InstanceValidator.Init(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
+	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
 
 	err := manager.UpsertState(context.Background(), "test", model.InstanceState{
 		ObjectMeta: model.ObjectMeta{
@@ -71,11 +70,10 @@ func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		InstanceValidator: validation.InstanceValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.InstanceValidator.Init(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
+	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
 
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
@@ -171,11 +169,10 @@ func TestCreateInstanceWithSameDisplayNameValidation(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		InstanceValidator: validation.InstanceValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.InstanceValidator.Init(manager.instanceUniqueNameLookup, nil, nil)
+	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, nil, nil)
 
 	err := manager.UpsertState(context.Background(), "test", model.InstanceState{
 		ObjectMeta: model.ObjectMeta{

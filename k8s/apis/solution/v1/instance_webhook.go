@@ -41,7 +41,7 @@ import (
 var instancelog = logf.Log.WithName("instance-resource")
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
-var instanceValidator *validation.InstanceValidator
+var instanceValidator validation.InstanceValidator
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
@@ -63,7 +63,6 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Load validator functions
-	instanceValidator = &validation.InstanceValidator{}
 	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
 		return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
 	}
@@ -74,9 +73,9 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		return dynamicclient.Get(validation.Target, name, namespace)
 	}
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instanceValidator.Init(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
+		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
 	} else {
-		instanceValidator.Init(nil, solutionLookupFunc, targetLookupFunc)
+		instanceValidator = validation.NewInstanceValidator(nil, solutionLookupFunc, targetLookupFunc)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).

@@ -19,9 +19,11 @@ type TargetValidator struct {
 	UniqueNameTargetLookupFunc ObjectLookupFunc
 }
 
-func (t *TargetValidator) Init(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) {
-	t.TargetInstanceLookupFunc = targetInstanceLookupFunc
-	t.UniqueNameTargetLookupFunc = uniqueNameTargetLookupFunc
+func NewTargetValidator(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) TargetValidator {
+	return TargetValidator{
+		TargetInstanceLookupFunc:   targetInstanceLookupFunc,
+		UniqueNameTargetLookupFunc: uniqueNameTargetLookupFunc,
+	}
 }
 
 // Validate Target creation or update

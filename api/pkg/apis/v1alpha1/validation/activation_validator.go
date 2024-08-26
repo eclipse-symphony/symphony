@@ -19,8 +19,10 @@ type ActivationValidator struct {
 	CampaignLookupFunc ObjectLookupFunc
 }
 
-func (a *ActivationValidator) Init(campaignLookupFunc ObjectLookupFunc) {
-	a.CampaignLookupFunc = campaignLookupFunc
+func NewActivationValidator(campaignLookupFunc ObjectLookupFunc) ActivationValidator {
+	return ActivationValidator{
+		CampaignLookupFunc: campaignLookupFunc,
+	}
 }
 
 // Validate Activation creation or update

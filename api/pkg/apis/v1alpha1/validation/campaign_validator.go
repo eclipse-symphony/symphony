@@ -22,9 +22,11 @@ type CampaignValidator struct {
 	CampaignActivationsLookupFunc LinkedObjectLookupFunc
 }
 
-func (c *CampaignValidator) Init(campaignContainerLookupFunc ObjectLookupFunc, campaignActivationsLookupFunc LinkedObjectLookupFunc) {
-	c.CampaignContainerLookupFunc = campaignContainerLookupFunc
-	c.CampaignActivationsLookupFunc = campaignActivationsLookupFunc
+func NewCampaignValidator(campaignContainerLookupFunc ObjectLookupFunc, campaignActivationsLookupFunc LinkedObjectLookupFunc) CampaignValidator {
+	return CampaignValidator{
+		CampaignContainerLookupFunc:   campaignContainerLookupFunc,
+		CampaignActivationsLookupFunc: campaignActivationsLookupFunc,
+	}
 }
 
 // Validate Campaign creation or update

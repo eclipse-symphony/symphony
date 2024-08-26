@@ -162,7 +162,7 @@ func TestCatalogGetEndpoints(t *testing.T) {
 
 func TestCatalogOnCheck(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
@@ -273,7 +273,7 @@ func TestCatalogOnCheckNotSupport(t *testing.T) {
 
 func TestCatalogOnCatalogsGet(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
@@ -320,7 +320,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 
 func TestCatalogOnCatalogsPost(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -364,7 +364,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 
 func TestCatalogOnCatalogsDelete(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	catalogState.ObjectMeta.Name = "name1-v-v1"
 	requestPost := &v1alpha2.COARequest{
@@ -425,7 +425,7 @@ func TestCatalogOnCatalogsNotSupport(t *testing.T) {
 
 func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -448,7 +448,7 @@ func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 
 func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -501,7 +501,7 @@ func TestCatalogOnCatalogsGraphMethodNotAllowed(t *testing.T) {
 
 func TestCatalogSubscribe(t *testing.T) {
 	vendor := CatalogVendorInit()
-	vendor.CatalogsManager.CatalogValidator.Init(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	origin := "parent"
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{

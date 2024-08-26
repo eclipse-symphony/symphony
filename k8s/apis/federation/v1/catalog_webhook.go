@@ -40,7 +40,7 @@ import (
 var cataloglog = logf.Log.WithName("catalog-resource")
 var myCatalogReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
-var catalogValidator *validation.CatalogValidator
+var catalogValidator validation.CatalogValidator
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogReaderClient = mgr.GetAPIReader()
@@ -58,8 +58,7 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		catalogWebhookValidationMetrics = metrics
 	}
 
-	catalogValidator = &validation.CatalogValidator{}
-	catalogValidator.Init(
+	catalogValidator = validation.NewCatalogValidator(
 		// Look up catalog
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
 			return dynamicclient.Get(validation.Catalog, name, namespace)

@@ -38,7 +38,7 @@ import (
 var campaignlog = logf.Log.WithName("campaign-resource")
 var myCampaignReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
-var campaignValidator *validation.CampaignValidator
+var campaignValidator validation.CampaignValidator
 
 func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCampaignReaderClient = mgr.GetAPIReader()
@@ -56,8 +56,7 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		catalogWebhookValidationMetrics = metrics
 	}
 
-	campaignValidator = &validation.CampaignValidator{}
-	campaignValidator.Init(
+	campaignValidator = validation.NewCampaignValidator(
 		// look up campaign container
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
 			return dynamicclient.Get(validation.CampaignContainer, name, namespace)

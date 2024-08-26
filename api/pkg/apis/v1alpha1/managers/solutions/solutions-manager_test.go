@@ -43,11 +43,10 @@ func TestCreateSolutionWithMissingContainer(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		SolutionValidator: validation.SolutionValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.SolutionValidator.Init(nil, manager.solutionContainerLookup, nil)
+	manager.SolutionValidator = validation.NewSolutionValidator(nil, manager.solutionContainerLookup, nil)
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -66,11 +65,10 @@ func TestCreateSolutionWithContainer(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		SolutionValidator: validation.SolutionValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.SolutionValidator.Init(nil, manager.solutionContainerLookup, nil)
+	manager.SolutionValidator = validation.NewSolutionValidator(nil, manager.solutionContainerLookup, nil)
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",
@@ -111,11 +109,10 @@ func TestCreateSolutionWithSameDisplayName(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		SolutionValidator: validation.SolutionValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.SolutionValidator.Init(nil, nil, manager.uniqueNameSolutionLookup)
+	manager.SolutionValidator = validation.NewSolutionValidator(nil, nil, manager.uniqueNameSolutionLookup)
 	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test-v-v1",
@@ -146,11 +143,10 @@ func TestDeleteSolutionWithInstance(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := SolutionsManager{
-		StateProvider:     stateProvider,
-		needValidate:      true,
-		SolutionValidator: validation.SolutionValidator{},
+		StateProvider: stateProvider,
+		needValidate:  true,
 	}
-	manager.SolutionValidator.Init(manager.solutionInstanceLookup, nil, nil)
+	manager.SolutionValidator = validation.NewSolutionValidator(manager.solutionInstanceLookup, nil, nil)
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: "test",

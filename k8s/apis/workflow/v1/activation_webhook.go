@@ -36,7 +36,7 @@ import (
 // log is for logging in this package.
 var activationlog = logf.Log.WithName("activation-resource")
 var activationWebhookValidationMetrics *metrics.Metrics
-var activationValidator *validation.ActivationValidator
+var activationValidator validation.ActivationValidator
 
 func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Activation{}, ".metadata.name", func(rawObj client.Object) []string {
@@ -53,8 +53,7 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		activationWebhookValidationMetrics = metrics
 	}
 
-	activationValidator = &validation.ActivationValidator{}
-	activationValidator.Init(func(ctx context.Context, name string, namespace string) (interface{}, error) {
+	activationValidator = validation.NewActivationValidator(func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(validation.Campaign, name, namespace)
 	})
 

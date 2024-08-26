@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -68,7 +69,7 @@ func createSolutionsVendor() SolutionsVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
-	vendor.SolutionsManager.SolutionValidator.Init(nil, nil, nil)
+	vendor.SolutionsManager.SolutionValidator = validation.NewSolutionValidator(nil, nil, nil)
 	return vendor
 }
 func TestSolutionsOnSolutions(t *testing.T) {

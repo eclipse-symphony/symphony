@@ -21,10 +21,12 @@ type CatalogValidator struct {
 	ChildCatalogLookupFunc     LinkedObjectLookupFunc
 }
 
-func (c *CatalogValidator) Init(catalogLookupFunc ObjectLookupFunc, catalogContainerLookupFunc ObjectLookupFunc, childCatalogLookupFunc LinkedObjectLookupFunc) {
-	c.CatalogLookupFunc = catalogLookupFunc
-	c.CatalogContainerLookupFunc = catalogContainerLookupFunc
-	c.ChildCatalogLookupFunc = childCatalogLookupFunc
+func NewCatalogValidator(catalogLookupFunc ObjectLookupFunc, catalogContainerLookupFunc ObjectLookupFunc, childCatalogLookupFunc LinkedObjectLookupFunc) CatalogValidator {
+	return CatalogValidator{
+		CatalogLookupFunc:          catalogLookupFunc,
+		CatalogContainerLookupFunc: catalogContainerLookupFunc,
+		ChildCatalogLookupFunc:     childCatalogLookupFunc,
+	}
 }
 
 // Validate Catalog creation or update
