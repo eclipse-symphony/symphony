@@ -41,7 +41,7 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
-	s.needValidate = managers.NeedObjectValidate(config)
+	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
 		s.CampaignValidator = validation.CampaignValidator{}
 		s.CampaignValidator.Init(s.CampaignContainerLookup, s.CampaignActivationsLookup)

@@ -50,7 +50,7 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	} else {
 		return err
 	}
-	s.needValidate = managers.NeedObjectValidate(config)
+	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
 		s.Validator = validation.ActivationValidator{}
 		s.Validator.Init(s.CampaignLookup)

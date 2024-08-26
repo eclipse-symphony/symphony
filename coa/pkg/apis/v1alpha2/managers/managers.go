@@ -9,6 +9,7 @@ package managers
 import (
 	"context"
 
+	k8sstate "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -244,9 +245,17 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 	return reporterProvider, nil
 }
 
-func NeedObjectValidate(config ManagerConfig) bool {
+func NeedObjectValidate(config ManagerConfig, providers map[string]providers.IProvider) bool {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
-	if ok && stateProviderName != "providers.state.k8s" {
+	if !ok {
+		return true
+	}
+	provider, ok := providers[stateProviderName]
+	if !ok {
+		return true
+	}
+	_, ok = provider.(*k8sstate.K8sStateProvider)
+	if !ok {
 		return true
 	} else {
 		return false

@@ -43,7 +43,7 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
-	s.needValidate = managers.NeedObjectValidate(config)
+	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
 		s.InstanceValidator = validation.InstanceValidator{}
 		s.InstanceValidator.Init(s.instanceUniqueNameLookup, s.solutionLookup, s.targetLookup)

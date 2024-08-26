@@ -52,10 +52,10 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 			s.GraphProvider = cProvider
 		}
 	}
-	s.needValidate = managers.NeedObjectValidate(config)
+	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
 		s.CatalogValidator = validation.CatalogValidator{}
-		s.CatalogValidator.Init(s.CatalogContainerLookup, s.CatalogLookup, s.ChildCatalogLookup)
+		s.CatalogValidator.Init(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
 	}
 	return nil
 }
