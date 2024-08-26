@@ -36,7 +36,7 @@ components:
 
 ## Role bindings
 
-A component is bound to a [provider](../../providers/target_provider.md) through a role binding by component type. For example, the following binding binds a `yaml.k8s` component type to a `providers.target.kubectl` provider.
+A component is bound to a [provider](../../providers/target-providers/target_provider.md) through a role binding by component type. For example, the following binding binds a `yaml.k8s` component type to a `providers.target.kubectl` provider.
 
 ```yaml
 topologies:

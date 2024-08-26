@@ -270,10 +270,11 @@ const (
 )
 
 type HeartBeatData struct {
-	JobId  string          `json:"id"`
-	Scope  string          `json:"scope,omitempty"`
-	Action HeartBeatAction `json:"action"`
-	Time   time.Time       `json:"time"`
+	JobId     string          `json:"id"`
+	Scope     string          `json:"scope,omitempty"`
+	Action    HeartBeatAction `json:"action,omitempty"`
+	Time      time.Time       `json:"time,omitempty"`
+	JobAction JobAction       `json:"jobaction"`
 }
 
 func (s ActivationData) ShouldFireNow() (bool, error) {
