@@ -269,7 +269,7 @@ func TestActivationNotMatch(t *testing.T) {
 
 	// compaign not match
 	equal, err := activation1.DeepEquals(activation2)
-	assert.Nil(t, err)
+	assert.Equal(t, err.Error(), "campaign doesn't match")
 	assert.False(t, equal)
 
 	// stage not match
@@ -277,7 +277,7 @@ func TestActivationNotMatch(t *testing.T) {
 	activation1.Stage = "deploy"
 	activation2.Stage = "deploy2"
 	equal, err = activation1.DeepEquals(activation2)
-	assert.Nil(t, err)
+	assert.Equal(t, err.Error(), "stage doesn't match")
 	assert.False(t, equal)
 
 	// inputs not match
@@ -289,6 +289,6 @@ func TestActivationNotMatch(t *testing.T) {
 		"site": "site2",
 	}
 	equal, err = activation1.DeepEquals(activation2)
-	assert.Nil(t, err)
+	assert.Equal(t, err.Error(), "inputs doesn't match")
 	assert.False(t, equal)
 }

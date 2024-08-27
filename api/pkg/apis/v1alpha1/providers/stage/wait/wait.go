@@ -237,7 +237,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, instance := range instances {
 				for _, object := range prefixedNames {
-					object = api_utils.ReplaceSeperator(object)
+					object = api_utils.ConvertReferenceToObjectName(object)
 					if instance.ObjectMeta.Name == object {
 						foundCount++
 					}
@@ -280,7 +280,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, catalog := range catalogs {
 				for _, object := range prefixedNames {
-					object = api_utils.ReplaceSeperator(object)
+					object = api_utils.ConvertReferenceToObjectName(object)
 					if catalog.ObjectMeta.Name == object {
 						foundCount++
 					}
