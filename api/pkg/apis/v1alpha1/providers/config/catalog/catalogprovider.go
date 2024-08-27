@@ -89,12 +89,25 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	}
 	return ret, nil
 }
-func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string) (string, error) {
+
+func (m *CatalogConfigProvider) unwindOverrides(override string, field string, namespace string, localcontext interface{}) (string, error) {
 	override = api_utils.ReplaceSeperator(override)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
+
+	// if the acuqired parent catalog is valid, need to check if parent involves circular dependency
+	if localcontext != nil {
+		if ctx, ok := localcontext.(coa_utils.EvaluationContext); ok {
+			if coa_utils.HasCircularDependency(override, field, ctx) {
+				clog.Errorf(" M (Catalog): unwind overrides detect circular dependency. Override: %v, field: %v, ", override, field)
+				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, override: %s, field: %s", override, field), v1alpha2.BadConfig)
+			}
+			localcontext = coa_utils.AddConfigToDependencyList(override, field, ctx)
+		}
+	}
+
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		if vstring, ok := v.(string); ok {
 			return vstring, nil
@@ -103,12 +116,12 @@ func (m *CatalogConfigProvider) unwindOverrides(override string, field string, n
 		}
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
+		return m.unwindOverrides(catalog.Spec.ParentName, field, namespace, localcontext)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
 func (m *CatalogConfigProvider) Read(object string, field string, localcontext interface{}) (interface{}, error) {
-	clog.Debug(" M (Catalog): Read, object: %s, field: %s", object, field)
+	clog.Debugf(" M (Catalog): Read, object: %v, field: %v", object, field)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = api_utils.ReplaceSeperator(object)
 	catalog, err := m.ApiClient.GetCatalog(context.TODO(), object, namespace, m.Config.User, m.Config.Password)
@@ -117,11 +130,22 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 	}
 
 	if v, ok := catalog.Spec.Properties[field]; ok {
+		// check circular dependency
+		if localcontext != nil {
+			if ctx, ok := localcontext.(coa_utils.EvaluationContext); ok {
+				if coa_utils.HasCircularDependency(object, field, ctx) {
+					clog.Errorf(" M (Catalog): Read detect circular dependency. Object: %v, field: %v, ", object, field)
+					return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
+				}
+				localcontext = coa_utils.AddConfigToDependencyList(object, field, ctx)
+			}
+		}
+
 		return m.traceValue(v, localcontext)
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, namespace)
+		overrid, err := m.unwindOverrides(catalog.Spec.ParentName, field, namespace, localcontext)
 		if err != nil {
 			return "", err
 		} else {
@@ -133,7 +157,7 @@ func (m *CatalogConfigProvider) Read(object string, field string, localcontext i
 }
 
 func (m *CatalogConfigProvider) ReadObject(object string, localcontext interface{}) (map[string]interface{}, error) {
-	clog.Debug(" M (Catalog): ReadObject, object: %s", object)
+	clog.Debugf(" M (Catalog): ReadObject, object: %v", object)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = api_utils.ReplaceSeperator(object)
 
@@ -179,6 +203,9 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
+				if ltx.ParentConfigs != nil {
+					context.ParentConfigs = ltx.ParentConfigs
+				}
 			}
 		}
 		v, err := parser.Eval(*context)
@@ -219,7 +246,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 // TODO: IConfigProvider interface methods should be enhanced to accept namespace as a parameter
 // so we can get rid of getCatalogInDefaultNamespace.
 func (m *CatalogConfigProvider) Set(object string, field string, value interface{}) error {
-	clog.Debug(" M (Catalog): Set, object: %s, field: %s", object, field)
+	clog.Debugf(" M (Catalog): Set, object: %v, field: %v", object, field)
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
@@ -229,7 +256,7 @@ func (m *CatalogConfigProvider) Set(object string, field string, value interface
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) SetObject(object string, value map[string]interface{}) error {
-	clog.Debug(" M (Catalog): SetObject, object: %s", object)
+	clog.Debugf(" M (Catalog): SetObject, object: %v", object)
 	catalog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err
@@ -242,7 +269,7 @@ func (m *CatalogConfigProvider) SetObject(object string, value map[string]interf
 	return m.ApiClient.UpsertCatalog(context.TODO(), object, data, m.Config.User, m.Config.Password)
 }
 func (m *CatalogConfigProvider) Remove(object string, field string) error {
-	clog.Debug(" M (Catalog): Remove, object: %s, field: %s", object, field)
+	clog.Debugf(" M (Catalog): Remove, object: %v, field: %v", object, field)
 	catlog, err := m.getCatalogInDefaultNamespace(context.TODO(), object)
 	if err != nil {
 		return err

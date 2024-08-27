@@ -58,6 +58,7 @@ type EvaluationContext struct {
 	Component      string
 	Value          interface{}
 	Namespace      string
+	ParentConfigs  map[string][]string
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {
@@ -71,6 +72,31 @@ func (e *EvaluationContext) Clone() *EvaluationContext {
 		SecretProvider: e.SecretProvider,
 	}
 }
+
+func HasCircularDependency(object string, field string, context EvaluationContext) bool {
+	if context.ParentConfigs == nil {
+		return false
+	}
+	for _, str := range context.ParentConfigs[field] {
+		if str == object {
+			return true
+		}
+	}
+
+	return false
+}
+
+func AddConfigToDependencyList(object string, field string, context EvaluationContext) interface{} {
+	if context.ParentConfigs == nil {
+		context.ParentConfigs = make(map[string][]string)
+	}
+	if _, ok := context.ParentConfigs[field]; !ok {
+		context.ParentConfigs[field] = []string{}
+	}
+	context.ParentConfigs[field] = append(context.ParentConfigs[field], object)
+	return context
+}
+
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {

@@ -53,6 +53,8 @@ const (
 
 	Summary         = "Summary"
 	DeploymentState = "DeployState"
+
+	defaultEvaluationTimeout = 10 * time.Second
 )
 
 type SolutionManager struct {
@@ -269,6 +271,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	s.saveSummaryProgress(ctx, deployment, summary, namespace)
 	defer func() {
+		log.Debugf(" M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
 		s.concludeSummary(ctx, deployment, summary, namespace)
 	}()
 
@@ -286,7 +289,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		context.Value = deployment
 		context.Component = ""
 		context.Namespace = namespace
-		deployment, err = api_utils.EvaluateDeployment(*context)
+		deployment, err = api_utils.EvaluateDeploymentWithTimeOut(defaultEvaluationTimeout, *context)
 	}
 
 	if err != nil {
@@ -508,17 +511,18 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 	return targetSpec
 }
 
-func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, state model.SummaryState, namespace string) {
+func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
+	log.Debugf("M (Solution): save summary. namespace: %v, generation: %v, summary state: %v\n", namespace, generation, state)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.ObjectMeta.Name),
+			ID: fmt.Sprintf("%s-%s", "summary", objectName),
 			Body: model.SummaryResult{
 				Summary:        summary,
-				Generation:     deployment.Generation,
+				Generation:     generation,
 				Time:           time.Now().UTC(),
 				State:          state,
-				DeploymentHash: deployment.Hash,
+				DeploymentHash: hash,
 			},
 		},
 		Metadata: map[string]interface{}{
@@ -531,11 +535,11 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 }
 
 func (s *SolutionManager) saveSummaryProgress(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, deployment, summary, model.SummaryStateRunning, namespace)
+	s.saveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 }
 
 func (s *SolutionManager) concludeSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, deployment, summary, model.SummaryStateDone, namespace)
+	s.saveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateDone, namespace)
 }
 
 func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
