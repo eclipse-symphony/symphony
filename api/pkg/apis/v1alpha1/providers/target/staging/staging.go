@@ -285,7 +285,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	jData, _ := json.Marshal(catalog)
 
 	_, err = i.ApiClient.GetCatalogContainer(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
-	if err != nil && strings.Contains(err.Error(), constants.NotFound) {
+	if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
 		sLog.Debugf("Catalog container %s doesn't exist: %s", containerName, err.Error())
 		catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalog.ObjectMeta.Namespace, Labels: catalog.ObjectMeta.Labels}}
 		containerObjectData, _ := json.Marshal(catalogContainerState)

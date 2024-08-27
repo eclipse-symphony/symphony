@@ -1,10 +1,11 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: wrongconfig-v-v1
+  name: config-v-v2
 spec:
   rootResource: wrongconfig
   catalogType: config
+  rootResource: config
   metadata:
     schema: schema:v1
   properties:

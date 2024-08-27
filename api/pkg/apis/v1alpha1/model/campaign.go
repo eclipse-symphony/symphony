@@ -136,15 +136,15 @@ func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Campaign != otherC.Campaign {
-		return false, nil
+		return false, errors.New("campaign doesn't match")
 	}
 
 	if c.Stage != otherC.Stage {
-		return false, nil
+		return false, errors.New("stage doesn't match")
 	}
 
 	if !reflect.DeepEqual(c.Inputs, otherC.Inputs) {
-		return false, nil
+		return false, errors.New("inputs doesn't match")
 	}
 
 	return true, nil

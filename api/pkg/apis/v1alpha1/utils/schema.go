@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
@@ -32,6 +33,17 @@ type RuleResult struct {
 type SchemaResult struct {
 	Valid  bool                  `json:"valid"`
 	Errors map[string]RuleResult `json:"errors,omitempty"`
+}
+
+func (s *SchemaResult) ToErrorMessages() string {
+	if s.Valid {
+		return ""
+	}
+	errorMessages := make([]string, 0)
+	for k, v := range s.Errors {
+		errorMessages = append(errorMessages, fmt.Sprintf("%s: %s\n", k, v.Error))
+	}
+	return strings.Join(errorMessages, ";")
 }
 
 func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationContext *coa_utils.EvaluationContext) (SchemaResult, error) {

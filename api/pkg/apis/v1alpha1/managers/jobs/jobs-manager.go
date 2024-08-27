@@ -426,7 +426,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//get solution
 			var solution model.SolutionState
-			solutionName := api_utils.ReplaceSeperator(instance.Spec.Solution)
+			solutionName := api_utils.ConvertReferenceToObjectName(instance.Spec.Solution)
 			solution, err = s.apiClient.GetSolution(ctx, solutionName, namespace, s.user, s.password)
 			if err != nil {
 				solution = model.SolutionState{
