@@ -302,7 +302,6 @@ func verifyPodsDeleted(t *testing.T, test TestCase, toFind []string) {
 		for _, s := range toFind {
 			found := false
 			for _, pod := range pods.Items {
-				fmt.Printf("Check for pods to be deleted: %v, %v\n", pod.Name, s)
 				if strings.HasPrefix(pod.Name, s) {
 					found = true
 					break
