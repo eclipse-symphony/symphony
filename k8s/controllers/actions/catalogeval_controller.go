@@ -43,6 +43,8 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	operationId := evalCR.GetOperationID()
+
 	// Clean up the cr if it is older than 1 day
 	// if clusterutils.CheckNeedtoDelete(evalCR.ObjectMeta) {
 	// 	// Delete the CR
@@ -57,7 +59,7 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if evalCR.DeletionTimestamp.IsZero() {
 		// Get parent catalog
 		catalog := &federationv1.Catalog{}
-		if evalCR.Spec.ParentRef == nil || evalCR.Spec.ParentRef.Name == "" || evalCR.Spec.ParentRef.Namespace == "" {
+		if evalCR.Spec.ResourceRef.Name == "" || evalCR.Spec.ResourceRef.Namespace == "" {
 			log.Error(errors.New("ParentRef is not set"), "ParentRef is not set")
 			// Update status with results
 			status := &federationv1.ActionStatusBase{}
@@ -66,7 +68,8 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					Message: "ParentRef is not set",
 					Code:    "ParentRefNotSet",
 				},
-				Status: federationv1.FailedActionState,
+				Status:      federationv1.FailedActionState,
+				OperationID: operationId,
 			}
 			evalCR.Status = federationv1.CatalogEvalExpressionStatus{
 				ActionStatusBase: *status,
@@ -77,7 +80,7 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 			return ctrl.Result{}, nil
 		}
-		if err := r.Get(ctx, *evalCR.Spec.ParentRef.GetNamespacedName(), catalog); err != nil {
+		if err := r.Get(ctx, *evalCR.Spec.ResourceRef.GetNamespacedName(), catalog); err != nil {
 			log.Error(err, "Error deleting the CatalogEvalExpression", "CR", req.NamespacedName)
 			status := &federationv1.ActionStatusBase{}
 			status.ActionStatus = federationv1.ActionResult{
@@ -85,7 +88,8 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					Message: "ParentRef is not found",
 					Code:    "ParentRefNotFound",
 				},
-				Status: federationv1.FailedActionState,
+				Status:      federationv1.FailedActionState,
+				OperationID: operationId,
 			}
 			evalCR.Status = federationv1.CatalogEvalExpressionStatus{
 				ActionStatusBase: *status,
@@ -98,7 +102,7 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		// Send catalog spec properties to settings vendor
-		properties, err := r.ApiClient.CatalogOnConfig(ctx, evalCR.Spec.ParentRef.Name, evalCR.Spec.ParentRef.Namespace, "", "")
+		properties, err := r.ApiClient.CatalogOnConfig(ctx, evalCR.Spec.ResourceRef.Name, evalCR.Spec.ResourceRef.Namespace, "", "")
 		if err != nil {
 		}
 
@@ -112,8 +116,9 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Update status with results
 		status := &federationv1.ActionStatusBase{}
 		status.ActionStatus = federationv1.ActionResult{
-			Output: rawProperties,
-			Status: federationv1.SucceededActionState,
+			OperationID: operationId,
+			Output:      rawProperties,
+			Status:      federationv1.SucceededActionState,
 		}
 		evalCR.Status = federationv1.CatalogEvalExpressionStatus{
 			ActionStatusBase: *status,

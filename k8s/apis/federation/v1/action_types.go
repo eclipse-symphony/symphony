@@ -9,7 +9,7 @@ package v1
 // ActionSpecBase contains the common properties contained in all Action spec types.
 type ActionSpecBase struct {
 	// ParentRef is a reference to Resource on which this action is to be performed.
-	ParentRef *ParentReference `json:"parentRef,omitempty"`
+	ResourceRef ParentReference `json:"resourceRef,omitempty"`
 }
 
 // ActionStatusBase contains the common properties contained in all Action status types.

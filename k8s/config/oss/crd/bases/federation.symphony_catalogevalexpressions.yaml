@@ -41,7 +41,7 @@ spec:
             description: CatalogEvalExpressionActionSpec defines the desired state
               of CatalogEvalExpressionActionSpec.
             properties:
-              parentRef:
+              resourceRef:
                 description: ParentRef is a reference to Resource on which this action
                   is to be performed.
                 properties:
@@ -58,6 +58,8 @@ spec:
                     description: Namespace
                     type: string
                 type: object
+            required:
+            - resourceRef
             type: object
           status:
             description: CatalogEvalExpressionActionStatus defines the observed state

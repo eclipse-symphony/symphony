@@ -13,12 +13,14 @@ import (
 
 const (
 	// DefaultStopActionTimeout is default value of 1200 sec timeout period for stop action.
-	DefaultStopActionTimeout int64 = 1200
+	DefaultStopActionTimeout      int64 = 1200
+	AzureOperationIDAnnotationKey       = "management.azure.com/operationId"
 )
 
 // CatalogEvalExpressionActionSpec defines the desired state of CatalogEvalExpressionActionSpec.
 type CatalogEvalExpressionSpec struct {
-	ActionSpecBase `json:",inline"`
+	// ParentRef is a reference to Resource on which this action is to be performed.
+	ResourceRef ParentReference `json:"resourceRef"`
 }
 
 // CatalogEvalExpressionActionStatus defines the observed state of CatalogEvalExpressionAction.
@@ -38,7 +40,12 @@ type CatalogEvalExpression struct {
 
 // GetResourceNamespacedName returns the resource reference targeted by this action.
 func (a *CatalogEvalExpression) GetResourceNamespacedName() *types.NamespacedName {
-	return a.Spec.ParentRef.GetNamespacedName()
+	return a.Spec.ResourceRef.GetNamespacedName()
+}
+
+func (a *CatalogEvalExpression) GetOperationID() string {
+	annotations := a.GetAnnotations()
+	return annotations[AzureOperationIDAnnotationKey]
 }
 
 // +kubebuilder:object:root=true
