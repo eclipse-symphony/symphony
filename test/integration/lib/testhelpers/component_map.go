@@ -432,127 +432,40 @@ var (
 			},
 			Type: "http",
 		},
-		"e4k": {
-			Name: "e4k",
+		"nginx-ingress": {
+			Name: "proxy",
 			Properties: map[string]interface{}{
 				"chart": map[string]interface{}{
-					"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
-					"version": "0.3.0",
+					"repo":    "ghcr.io/nginxinc/charts/nginx-ingress",
+					"version": "0.18.1",
 				},
 			},
 			Type: "helm.v3",
 		},
-		"e4k-broker": {
-			Name: "e4k-high-availability-broker",
+		"redis": {
+			Name: "redis",
+			Properties: map[string]interface{}{
+				"container.image": "redis:latest",
+			},
+			Type: "container",
+		},
+		"bitnami-nginx": {
+			Name: "nginx",
 			Properties: map[string]interface{}{
 				"chart": map[string]interface{}{
-					"repo":    "symphonycr.azurecr.io/az-e4k-broker",
-					"version": "0.1.0",
+					"name":    "nginx",
+					"repo":    "https://charts.bitnami.com/bitnami",
+					"version": "18.1.7",
 				},
 			},
 			Type: "helm.v3",
 		},
-		"bluefin-extension": {
-			Name: "bluefin",
+		"prometheus-server": {
+			Name: "prometheus-server",
 			Properties: map[string]interface{}{
-				"chart": map[string]interface{}{
-					"repo":    "azbluefin.azurecr.io/helm/bluefin-arc-extension",
-					"version": "0.2.0-20230706.3-develop",
-				},
+				"container.image": "prom/prometheus",
 			},
-			Type: "helm.v3",
-		},
-		"bluefin-instance": {
-			Name: "bluefin-instance",
-			Properties: map[string]interface{}{
-				"resource": map[string]interface{}{
-					"apiVersion": "bluefin.az-bluefin.com/v1",
-					"kind":       "Instance",
-					"metadata": map[string]interface{}{
-						"name":      "bf-instance",
-						"namespace": "default",
-					},
-					"spec": map[string]interface{}{
-						"displayName":          "Test Instance",
-						"otelCollectorAddress": "otel-collector.alice-springs.svc.cluster.local:4317",
-					},
-				},
-			},
-			Type: "yaml.k8s",
-		},
-
-		"bluefin-pipeline": {
-			Name: "test-pipeline",
-			Properties: map[string]interface{}{
-				"resource": map[string]interface{}{
-					"apiVersion": "bluefin.az-bluefin.com/v1",
-					"kind":       "Pipeline",
-					"metadata": map[string]interface{}{
-						"name":      "bf-pipeline",
-						"namespace": "default",
-					},
-					"spec": map[string]interface{}{
-						"displayName": "bf-pipeline",
-						"enabled":     true,
-						"input": map[string]interface{}{
-							"description": "Read from topic Thermostat 3",
-							"displayName": "E4K",
-							"format":      map[string]interface{}{"type": "json"},
-							"mqttConnectionInfo": map[string]interface{}{
-								"broker":   "tcp://azedge-dmqtt-frontend:1883",
-								"password": "password",
-								"username": "client1",
-							},
-							"next": []interface{}{"node-22f2"},
-							"topics": []interface{}{
-								map[string]interface{}{
-									"name": "alice-springs/data/opc-ua-connector/opc-ua-connector/thermostat-sample-3",
-								},
-							},
-							"type": "input/mqtt@v1",
-							"viewOptions": map[string]interface{}{
-								"position": map[string]interface{}{
-									"x": 0,
-									"y": 80,
-								},
-							},
-						},
-						"partitionCount": 6,
-						"stages": map[string]interface{}{
-							"node-22f2": map[string]interface{}{
-								"displayName": "No-op",
-								"next":        []interface{}{"output"},
-								"query":       ".",
-								"type":        "processor/transform@v1",
-								"viewOptions": map[string]interface{}{
-									"position": map[string]interface{}{
-										"x": 0,
-										"y": 208,
-									},
-								},
-							},
-							"output": map[string]interface{}{
-								"broker":      "tcp://azedge-dmqtt-frontend:1883",
-								"description": "Publish to topic demo-output-topic",
-								"displayName": "E4K",
-								"format":      map[string]interface{}{"type": "json"},
-								"password":    "password",
-								"timeout":     "45ms",
-								"topic":       "alice-springs/data/demo-output",
-								"type":        "output/mqtt@v1",
-								"username":    "client1",
-								"viewOptions": map[string]interface{}{
-									"position": map[string]interface{}{
-										"x": 0,
-										"y": 336,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Type: "yaml.k8s",
+			Type: "container",
 		},
 	}
 )
