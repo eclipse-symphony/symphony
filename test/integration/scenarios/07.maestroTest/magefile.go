@@ -19,26 +19,26 @@ import (
 
 // Test config
 const (
-	TEST_NAME = "Symphony sample test scenario"
+	TEST_NAME    = "Symphony sample test scenario"
 	TEST_TIMEOUT = "10m"
 )
 
 var (
 	// Manifests to deploy
 	testSamples = map[string][]string{
-        "sample-hello-world":  {
+		"sample-hello-world": {
 			"../../../../docs/samples/k8s/hello-world/solution-container.yaml",
 			"../../../../docs/samples/k8s/hello-world/solution.yaml",
 			"../../../../docs/samples/k8s/hello-world/target.yaml",
 			"../../../../docs/samples/k8s/hello-world/instance.yaml",
 		},
-        "sample-staged": {
+		"sample-staged": {
 			"../../../../docs/samples/k8s/staged/solution-container.yaml",
 			"../../../../docs/samples/k8s/staged/solution.yaml",
 			"../../../../docs/samples/k8s/staged/target.yaml",
 			"../../../../docs/samples/k8s/staged/instance.yaml",
 		},
-    }
+	}
 
 	// Tests to run
 	testVerify = []string{

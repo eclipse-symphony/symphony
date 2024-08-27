@@ -167,7 +167,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	if object != nil {
 		oData, _ = json.Marshal(object)
 	}
-	objectName = api_utils.ReplaceSeperator(objectName)
+	objectName = api_utils.ConvertReferenceToObjectName(objectName)
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":

@@ -86,7 +86,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
-		campaignName := api_utils.ReplaceSeperator(actData.Campaign)
+		campaignName := api_utils.ConvertReferenceToObjectName(actData.Campaign)
 
 		campaign, err := s.CampaignsManager.GetState(ctx, campaignName, actData.Namespace)
 		if err != nil {
@@ -150,8 +150,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			log.Error("V (Stage): unable to find activation: %+v", err)
 			return nil
 		}
-		campaignName := api_utils.ReplaceSeperator(triggerData.Campaign)
-
+		campaignName := api_utils.ConvertReferenceToObjectName(triggerData.Campaign)
 		campaign, err := s.CampaignsManager.GetState(ctx, campaignName, triggerData.Namespace)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign spec: %v", err)
@@ -235,7 +234,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 
 		if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
-			campaignName := api_utils.ReplaceSeperator(campaign)
+			campaignName := api_utils.ConvertReferenceToObjectName(campaign)
 			campaign, err := s.CampaignsManager.GetState(ctx, campaignName, namespace)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign spec '%s': %v", campaign, err)
