@@ -1,0 +1,6 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: activationlongrunning
+spec:
+  campaign: "04campaign:v3"

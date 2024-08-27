@@ -7,6 +7,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -756,4 +757,26 @@ func TestValidateChangeDetectionWithCustomComparator(t *testing.T) {
 		Name: "comp",
 	}
 	assert.True(t, rule.IsComponentChanged(oldComponent, newComponent))
+}
+
+type base interface {
+	test()
+}
+
+type inherited struct {
+	base
+}
+
+func (i inherited) test() {
+	// do nothing
+	fmt.Sprintf("test")
+}
+
+func TestDeepEquals(t *testing.T) {
+	i := inherited{}
+	test(i)
+}
+
+func test(i base) {
+	i.test()
 }

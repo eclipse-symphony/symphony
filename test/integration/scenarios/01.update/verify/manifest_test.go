@@ -54,21 +54,21 @@ var (
 
 var (
 	// Manifest templates
-	containerManifestTemplates = map[string]string{
-		"solution-container": fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
+	containerManifestTemplates = []string{
+		fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
 	}
 
-	manifestTemplates = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
+	manifestTemplates = []string{
+		fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
+		fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
+		fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
 	}
 
 	// Manifests to deploy
-	testManifests = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, "oss"),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, "oss"),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, "oss"),
+	testManifests = []string{
+		fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, "oss"),
+		fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, "oss"),
+		fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, "oss"),
 	}
 
 	testCases = []TestCase{
