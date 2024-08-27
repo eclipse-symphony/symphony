@@ -13,4 +13,4 @@ spec:
         .person.bar.foo:
           expression: "${{$and($gt($val(),10),$lt($val(),20))}}"
         '`."person.bar.foo"`':
-          expression: "${{$and($gt($val(),10),$lt($val(),20))}}"
+          pattern: "<email>"
