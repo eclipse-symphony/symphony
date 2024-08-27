@@ -515,7 +515,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
-	log.Info(fmt.Sprintf("(Deployment): update Object Status. Status: %v. Patch status options: %v. Summary result state: %v.", status, opts, summaryResult.State))
+	log.Info(fmt.Sprintf("(Deployment): update Object Status. Status: %v. Patch status options: %v.", status, opts))
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
