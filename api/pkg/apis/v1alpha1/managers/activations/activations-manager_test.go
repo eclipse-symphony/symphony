@@ -12,6 +12,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
 )
@@ -170,4 +171,107 @@ func TestUpdateStageStatusRemote(t *testing.T) {
 	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child1.__status"])
 	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child2.__status"])
 	assert.Nil(t, err)
+}
+func TestCreateActivationWithMissingCampaign(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := ActivationsManager{
+		StateProvider: stateProvider,
+		needValidate:  true,
+	}
+	manager.Validator.CampaignLookupFunc = manager.CampaignLookup
+
+	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "testactivation",
+			Namespace: "default",
+		},
+		Spec: &model.ActivationSpec{
+			Campaign: "testcampaign",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "campaign reference must be a valid Campaign object in the same namespace")
+}
+
+func TestCreateActivationWithCampaign(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := ActivationsManager{
+		StateProvider: stateProvider,
+		needValidate:  true,
+	}
+	manager.Validator.CampaignLookupFunc = manager.CampaignLookup
+	stateProvider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "testcampaign",
+			Body: map[string]interface{}{
+				"apiVersion": model.WorkflowGroup + "/v1",
+				"kind":       "Campaign",
+				"metadata": model.ObjectMeta{
+					Name:      "testcampaign",
+					Namespace: "default",
+				},
+				"spec": model.CampaignSpec{
+					Stages: map[string]model.StageSpec{},
+				},
+			},
+			ETag: "1",
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
+			"kind":      "Campaign",
+		},
+	})
+
+	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "testactivation",
+			Namespace: "default",
+		},
+		Spec: &model.ActivationSpec{
+			Campaign: "testcampaign",
+		},
+	})
+	assert.Nil(t, err)
+}
+
+func TestUpdateActivationWithRunningStatus(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := ActivationsManager{
+		StateProvider: stateProvider,
+		needValidate:  true,
+	}
+	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "testactivation",
+			Namespace: "default",
+			Labels: map[string]string{
+				"statusMessage": "Running",
+			},
+		},
+		Spec: &model.ActivationSpec{
+			Campaign: "testcampaign",
+		},
+	})
+	assert.Nil(t, err)
+
+	err = manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "testactivation",
+			Namespace: "default",
+			Labels: map[string]string{
+				"statusMessage": "Running",
+			},
+		},
+		Spec: &model.ActivationSpec{
+			Campaign: "testcampaign",
+			Stage:    "test",
+		},
+	})
+	assert.Contains(t, err.Error(), "spec is immutable: stage doesn't match")
 }

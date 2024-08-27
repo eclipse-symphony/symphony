@@ -258,11 +258,3 @@ func NeedWatchInstance(instance solution_v1.Instance) bool {
 
 	return true
 }
-
-func ReplaceLastSeperator(name string, seperatorBefore string, seperatorAfter string) string {
-	i := strings.LastIndex(name, seperatorBefore)
-	if i == -1 {
-		return name
-	}
-	return name[:i] + seperatorAfter + name[i+len(seperatorBefore):]
-}

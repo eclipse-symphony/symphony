@@ -8,13 +8,19 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"time"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +38,7 @@ import (
 var campaignlog = logf.Log.WithName("campaign-resource")
 var myCampaignReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
+var campaignValidator validation.CampaignValidator
 
 func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCampaignReaderClient = mgr.GetAPIReader()
@@ -48,6 +55,20 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		}
 		catalogWebhookValidationMetrics = metrics
 	}
+
+	campaignValidator = validation.NewCampaignValidator(
+		// look up campaign container
+		func(ctx context.Context, name string, namespace string) (interface{}, error) {
+			return dynamicclient.Get(validation.CampaignContainer, name, namespace)
+		},
+		// Look up running activation
+		func(ctx context.Context, campaign string, namespace string) (bool, error) {
+			activationList, err := dynamicclient.ListWithLabels(validation.Activation, namespace, map[string]string{"campaign": campaign}, 1)
+			if err != nil {
+				return false, err
+			}
+			return len(activationList.Items) > 0, nil
+		})
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -84,14 +105,14 @@ func (r *Campaign) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels["rootResource"] = r.Spec.RootResource
+			r.Labels[api_constants.RootResource] = r.Spec.RootResource
 		}
 	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-campaign,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=campaigns,verbs=create;update,versions=v1,name=vcampaign.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-campaign,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=campaigns,verbs=create;update;delete,versions=v1,name=vcampaign.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Campaign{}
 
@@ -106,7 +127,7 @@ func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateCampaign()
+	validationError := r.validateCreateCampaign(ctx)
 	if validationError != nil {
 		catalogWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -134,7 +155,28 @@ func (r *Campaign) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being updated on namespace %s", r.Name, r.Namespace)
 
-	return nil, nil
+	validateUpdateTime := time.Now()
+	oldCampaign, ok := old.(*Campaign)
+	if !ok {
+		return nil, fmt.Errorf("expected an Campaign object")
+	}
+	validationError := r.validateUpdateCampaign(ctx, oldCampaign)
+	if validationError != nil {
+		activationWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.InstanceResourceType,
+		)
+	} else {
+		activationWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.InstanceResourceType,
+		)
+	}
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -147,18 +189,17 @@ func (r *Campaign) ValidateDelete() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	return nil, nil
+	validationError := r.validateDeleteCampaign(ctx)
+	return nil, validationError
 }
 
-func (r *Campaign) validateCreateCampaign() error {
-	var allErrs field.ErrorList
-
-	if err := r.validateNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
+func (r *Campaign) validateCreateCampaign(ctx context.Context) error {
+	state, err := r.ConvertCampaignState()
+	if err != nil {
+		return err
 	}
-	if err := r.validateRootResource(); err != nil {
-		allErrs = append(allErrs, err)
-	}
+	ErrorFields := campaignValidator.ValidateCreateOrUpdate(ctx, state, nil)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -167,23 +208,55 @@ func (r *Campaign) validateCreateCampaign() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
 }
 
-func (r *Campaign) validateNameOnCreate() *field.Error {
-	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
-}
-
-func (r *Campaign) validateRootResource() *field.Error {
-	var campaignContainer CampaignContainer
-	err := myCampaignReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &campaignContainer)
+func (r *Campaign) validateDeleteCampaign(ctx context.Context) error {
+	state, err := r.ConvertCampaignState()
 	if err != nil {
-		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid campaign container")
+		return err
+	}
+	ErrorFields := campaignValidator.ValidateDelete(ctx, state)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
+	if len(allErrs) == 0 {
+		return nil
 	}
 
-	if len(r.ObjectMeta.OwnerReferences) == 0 {
-		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
-	}
-
-	return nil
+	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
 }
+
+func (r *Campaign) validateUpdateCampaign(ctx context.Context, oldCampaign *Campaign) error {
+	state, err := r.ConvertCampaignState()
+	if err != nil {
+		return err
+	}
+	old, err := oldCampaign.ConvertCampaignState()
+	if err != nil {
+		return err
+	}
+	ErrorFields := campaignValidator.ValidateCreateOrUpdate(ctx, state, old)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+}
+
+func (r *Campaign) ConvertCampaignState() (model.CampaignState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to campaign state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.CampaignState{}, retErr
+	}
+	var state model.CampaignState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.CampaignState{}, retErr
+	}
+	return state, nil
+}
+
+// CampaignContainer Webhook
 
 func (r *CampaignContainer) Default() {
 	commoncontainer.DefaultImpl(campaignlog, r)
@@ -221,7 +294,7 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
-		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
 			return 0, err
 		} else {

@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -71,6 +72,7 @@ func createTargetsVendor() TargetsVendor {
 		},
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
+	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {

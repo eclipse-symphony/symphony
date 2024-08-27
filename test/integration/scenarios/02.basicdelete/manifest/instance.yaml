@@ -1,9 +1,0 @@
-apiVersion: solution.symphony/v1
-kind: Instance
-metadata:
-  name: instance02
-spec:
-  scope: SCOPENAME  
-  solution: solution02:v1
-  target: 
-    name: target02

@@ -14,7 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -33,6 +35,8 @@ var log = logger.NewLogger("coa.runtime")
 type ActivationsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	needValidate  bool
+	Validator     validation.ActivationValidator
 }
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -45,6 +49,10 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		s.Validator = validation.NewActivationValidator(s.CampaignLookup)
 	}
 	return nil
 }
@@ -109,6 +117,16 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -208,6 +226,11 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 	activationState.Status = &current
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -221,9 +244,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"resource":  "activations",
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
-		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -255,6 +275,12 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 		return err
 	}
 
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
+
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
@@ -267,9 +293,6 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 			"resource":  "activations",
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
-		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -328,13 +351,20 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 	}
 
 	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
-	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
-		activationState.Status.Status = v1alpha2.Done
-	} else if latestStage.Status == v1alpha2.Paused {
-		activationState.Status.Status = v1alpha2.Paused
-	} else {
+	if latestStage.NextStage != "" {
 		activationState.Status.Status = v1alpha2.Running
+	} else {
+		activationState.Status.Status = latestStage.Status
 	}
 	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
+}
+
+func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, old, err)
+}
+
+func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Campaign, name, namespace)
 }

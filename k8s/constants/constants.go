@@ -25,6 +25,7 @@ const (
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
 	FinalizerPostfix             = FullGroupName + "/finalizer"
 	ResourceSeperator            = "-v-"
+	ReferenceSeparator           = ":"
 	ActivityOperation_Write      = "Write"
 	ActivityOperation_Read       = "Read"
 	ActivityOperation_Delete     = "Delete"
