@@ -560,6 +560,8 @@ spec:
             properties:
               displayName:
                 type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -1560,6 +1562,8 @@ spec:
               displayName:
                 type: string
               forceRedeploy:
+                type: boolean
+              isDryRun:
                 type: boolean
               metadata:
                 additionalProperties:

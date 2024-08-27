@@ -737,6 +737,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, nil
 }
@@ -773,6 +774,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, nil
 }
