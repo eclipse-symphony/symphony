@@ -96,7 +96,7 @@ func TestK8sSecretProvider_Get(t *testing.T) {
 	evalContext := coa_utils.EvaluationContext{
 		Namespace: "default",
 	}
-	value, err := provider.Read("test-secret", "test-field", evalContext)
+	value, err := provider.Read(context.Background(), "test-secret", "test-field", evalContext)
 	assert.Nil(t, err)
 
 	// Check the value
