@@ -115,7 +115,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugCtx(ctx, " M (Catalog): Read, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, " M (Catalog): Read, object: %s, field: %s", object, field)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
 	catalog, err := m.ApiClient.GetCatalog(ctx, object, namespace, m.Config.User, m.Config.Password)
@@ -147,7 +147,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugCtx(ctx, " M (Catalog): ReadObject, object: %s", object)
+	clog.DebugfCtx(ctx, " M (Catalog): ReadObject, object: %s", object)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
 
@@ -239,7 +239,7 @@ func (m *CatalogConfigProvider) Set(ctx context.Context, object string, field st
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugCtx(ctx, " M (Catalog): Set, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, " M (Catalog): Set, object: %s, field: %s", object, field)
 	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
@@ -256,7 +256,7 @@ func (m *CatalogConfigProvider) SetObject(ctx context.Context, object string, va
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugCtx(ctx, " M (Catalog): SetObject, object: %s", object)
+	clog.DebugfCtx(ctx, " M (Catalog): SetObject, object: %s", object)
 	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
@@ -276,7 +276,7 @@ func (m *CatalogConfigProvider) Remove(ctx context.Context, object string, field
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugCtx(ctx, " M (Catalog): Remove, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, " M (Catalog): Remove, object: %s, field: %s", object, field)
 	catlog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
 		return err
@@ -297,7 +297,7 @@ func (m *CatalogConfigProvider) RemoveObject(ctx context.Context, object string)
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugCtx(ctx, " M (Catalog): RemoveObject, object: %s", object)
+	clog.DebugfCtx(ctx, " M (Catalog): RemoveObject, object: %s", object)
 	object = utils.ConvertReferenceToObjectName(object)
 	return m.ApiClient.DeleteCatalog(ctx, object, m.Config.User, m.Config.Password)
 }
