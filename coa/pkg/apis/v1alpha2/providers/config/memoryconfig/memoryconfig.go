@@ -7,6 +7,7 @@
 package memory
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -73,7 +74,7 @@ func toMemoryConfigProviderConfig(config providers.IProviderConfig) (MemoryConfi
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MemoryConfigProvider) Read(object string, field string, localContext interface{}) (interface{}, error) {
+func (m *MemoryConfigProvider) Read(ctx context.Context, object string, field string, localContext interface{}) (interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return "", v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -82,20 +83,20 @@ func (m *MemoryConfigProvider) Read(object string, field string, localContext in
 	}
 	return m.ConfigData[object][field], nil
 }
-func (m *MemoryConfigProvider) ReadObject(object string, localContext interface{}) (map[string]interface{}, error) {
+func (m *MemoryConfigProvider) ReadObject(ctx context.Context, object string, localContext interface{}) (map[string]interface{}, error) {
 	if _, ok := m.ConfigData[object]; !ok {
 		return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
 	return m.ConfigData[object], nil
 }
-func (m *MemoryConfigProvider) Set(object string, field string, value interface{}) error {
+func (m *MemoryConfigProvider) Set(ctx context.Context, object string, field string, value interface{}) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		m.ConfigData[object] = make(map[string]interface{})
 	}
 	m.ConfigData[object][field] = value
 	return nil
 }
-func (m *MemoryConfigProvider) SetObject(object string, value map[string]interface{}) error {
+func (m *MemoryConfigProvider) SetObject(ctx context.Context, object string, value map[string]interface{}) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		m.ConfigData[object] = make(map[string]interface{})
 	}
@@ -104,7 +105,7 @@ func (m *MemoryConfigProvider) SetObject(object string, value map[string]interfa
 	}
 	return nil
 }
-func (m *MemoryConfigProvider) Remove(object string, field string) error {
+func (m *MemoryConfigProvider) Remove(ctx context.Context, object string, field string) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		return v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
@@ -114,7 +115,7 @@ func (m *MemoryConfigProvider) Remove(object string, field string) error {
 	delete(m.ConfigData[object], field)
 	return nil
 }
-func (m *MemoryConfigProvider) RemoveObject(object string) error {
+func (m *MemoryConfigProvider) RemoveObject(ctx context.Context, object string) error {
 	if _, ok := m.ConfigData[object]; !ok {
 		return v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
 	}
