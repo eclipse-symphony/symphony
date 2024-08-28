@@ -689,7 +689,7 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 	return pullRes, nil
 }
 
-func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
+func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -700,14 +700,9 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 
 	installClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
-		duration, err := time.ParseDuration(componentProps.Timeout)
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
 			return nil, err
-		}
-		if duration < 0 {
-			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
-			return nil, errors.New("Timeout can not be negative.")
 		}
 		installClient.Timeout = duration
 	}
@@ -720,18 +715,13 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 	return installClient, nil
 }
 
-func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
+func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
-		duration, err := time.ParseDuration(componentProps.Timeout)
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
 			return nil, err
-		}
-		if duration < 0 {
-			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
-			return nil, errors.New("Timeout can not be negative.")
 		}
 		upgradeClient.Timeout = duration
 	}
@@ -748,22 +738,30 @@ func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model
 	return upgradeClient, nil
 }
 
-func configureUninstallClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
+func configureUninstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
 	uninstallClient := action.NewUninstall(config)
 	uninstallClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
-		duration, err := time.ParseDuration(componentProps.Timeout)
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
 		if err != nil {
-			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
 			return nil, err
-		}
-		if duration < 0 {
-			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
-			return nil, errors.New("Timeout can not be negative.")
 		}
 		uninstallClient.Timeout = duration
 	}
 	return uninstallClient, nil
+}
+
+func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) {
+	duration, err := time.ParseDuration(timeout)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse timeout duration: %v", err)
+		return 0, err
+	}
+	if duration < 0 {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
+		return 0, errors.New("Timeout can not be negative.")
+	}
+	return duration, nil
 }
 
 func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty, error) {
