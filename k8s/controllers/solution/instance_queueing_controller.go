@@ -58,11 +58,6 @@ type InstanceQueueingReconciler struct {
 	DeleteSyncDelay time.Duration
 }
 
-const (
-	instanceFinalizerName         = "instance.solution." + constants.FinalizerPostfix
-	instanceOperationStartTimeKey = "instance.solution." + constants.OperationStartTimeKeyPostfix
-)
-
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances/finalizers,verbs=update

@@ -143,7 +143,47 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 }
 
 // attemptUpdate attempts to update the instance
-func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// populate diagnostics and activities from annotations
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
+	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
+		controllerutil.AddFinalizer(object, r.finalizerName)
+		// updates the object in Kubernetes cluster
+		if err := r.kubeClient.Update(ctx, object); err != nil {
+			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		}
+	}
+	// Get reconciliation interval
+	reconciliationInterval, timeout := r.deriveReconcileInterval(log, object)
+
+	if isRemoval {
+
+	} else {
+		if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
+			r.patchOperationStartTime(object, operationStartTimeKey)
+			if err := r.kubeClient.Update(ctx, object); err != nil {
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
+		}
+		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
+		// apply timeout, we should update the status with a terminal error and return
+		startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
+		if err != nil {
+			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		}
+		if time.Since(startTime) > timeout {
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		}
+	}
+
+	if err := r.queueDeploymentJob(ctx, object, isRemoval, true, operationStartTimeKey); err != nil {
+		return r.handleDeploymentError(ctx, object, nil, reconciliationInterval, err, log)
+	}
+
+	return metrics.DeploymentQueued, ctrl.Result{}, nil
+}
+
+func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
