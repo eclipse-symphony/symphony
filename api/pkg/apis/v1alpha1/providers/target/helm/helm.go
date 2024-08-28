@@ -700,6 +700,10 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 
 	installClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
+		if componentProps.Timeout[0] == '-' {
+			sLog.Error("Timeout is negative:")
+			return nil, errors.New("Timeout can not be negative.")
+		}
 		duration, err := time.ParseDuration(componentProps.Timeout)
 		if err != nil {
 			sLog.Error("  P (Helm Target): failed to parse timeout duration: %+v", err)
