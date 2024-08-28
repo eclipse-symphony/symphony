@@ -151,19 +151,27 @@ func toK8sStateProviderConfig(config providers.IProviderConfig) (K8sSecretProvid
 	return ret, err
 }
 
-func (s *K8sSecretProvider) Read(name string, field string, localContext interface{}) (string, error) {
+func (s *K8sSecretProvider) Read(ctx context.Context, name string, field string, localContext interface{}) (string, error) {
 	// Get the secret
+	ctx, span := observability.StartSpan("K8s Secret Provider", ctx, &map[string]string{
+		"method": "Read",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
 	namespace := utils.GetNamespaceFromContext(localContext)
 	secret, err := s.Clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		sLog.Errorf("Error getting secret %s in namespace %s. Error: %s", name, namespace, err.Error())
+		sLog.ErrorfCtx(ctx, "Error getting secret %s in namespace %s. Error: %s", name, namespace, err.Error())
 		return "", err
 	}
 	// Get the field from the secret data
 	value, ok := secret.Data[field]
 	if !ok {
-		sLog.Errorf("Field %s not found in secret %s", field, name)
-		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field %s not found in secret %s", field, name), v1alpha2.MissingConfig)
+		sLog.ErrorfCtx(ctx, "Field %s not found in secret %s", field, name)
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("field %s not found in secret %s", field, name), v1alpha2.MissingConfig)
+		return "", err
 	}
 
 	return string(value), nil

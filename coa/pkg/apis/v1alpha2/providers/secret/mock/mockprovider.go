@@ -7,6 +7,7 @@
 package mock
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -68,7 +69,7 @@ func toMockSecretProviderConfig(config providers.IProviderConfig) (MockSecretPro
 	ret.Name = utils.ParseProperty(ret.Name)
 	return ret, err
 }
-func (m *MockSecretProvider) Read(object string, field string, localContext interface{}) (string, error) {
+func (m *MockSecretProvider) Read(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	return object + ">>" + field, nil
 }
 func (m *MockSecretProvider) Get(object string, field string, localContext interface{}) (string, error) {

@@ -10,14 +10,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
-	"gopls-workspace/utils"
+	"gopls-workspace/constants"
 	"time"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/eclipse-symphony/symphony/k8s/constants"
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,13 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 // log is for logging in this package.
 var cataloglog = logf.Log.WithName("catalog-resource")
 var myCatalogReaderClient client.Reader
 var catalogWebhookValidationMetrics *metrics.Metrics
+var catalogValidator validation.CatalogValidator
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogReaderClient = mgr.GetAPIReader()
@@ -53,6 +58,24 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		catalogWebhookValidationMetrics = metrics
 	}
 
+	catalogValidator = validation.NewCatalogValidator(
+		// Look up catalog
+		func(ctx context.Context, name string, namespace string) (interface{}, error) {
+			return dynamicclient.Get(validation.Catalog, name, namespace)
+		},
+		// Look up catalog container
+		func(ctx context.Context, name string, namespace string) (interface{}, error) {
+			return dynamicclient.Get(validation.CatalogContainer, name, namespace)
+		},
+		// Look up child catalog
+		func(ctx context.Context, name string, namespace string) (bool, error) {
+			catalogList, err := dynamicclient.ListWithLabels(validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
+			if err != nil {
+				return false, err
+			}
+			return len(catalogList.Items) > 0, nil
+		},
+	)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -88,14 +111,17 @@ func (r *Catalog) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels["rootResource"] = r.Spec.RootResource
+			r.Labels[api_constants.RootResource] = utils.ConvertStringToValidLabel(r.Spec.RootResource)
+			if r.Spec.ParentName != "" {
+				r.Labels[api_constants.ParentName] = utils.ConvertStringToValidLabel(validation.ConvertReferenceToObjectName(r.Spec.ParentName))
+			}
 		}
 	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-federation-symphony-v1-catalog,mutating=false,failurePolicy=fail,sideEffects=None,groups=federation.symphony,resources=catalogs,verbs=create;update,versions=v1,name=vcatalog.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-federation-symphony-v1-catalog,mutating=false,failurePolicy=fail,sideEffects=None,groups=federation.symphony,resources=catalogs,verbs=create;update;delete,versions=v1,name=vcatalog.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Catalog{}
 
@@ -110,7 +136,7 @@ func (r *Catalog) ValidateCreate() (admission.Warnings, error) {
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateCatalog()
+	validationError := r.validateCreateCatalog(ctx)
 	if validationError != nil {
 		catalogWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -139,7 +165,11 @@ func (r *Catalog) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
-	validationError := r.validateUpdateCatalog()
+	oldCatalog, ok := old.(*Catalog)
+	if !ok {
+		return nil, fmt.Errorf("expected a Catalog object")
+	}
+	validationError := r.validateUpdateCatalog(ctx, oldCatalog)
 	if validationError != nil {
 		catalogWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -167,21 +197,16 @@ func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	return nil, nil
+	return nil, r.validateDeleteCatalog(ctx)
 }
 
-func (r *Catalog) validateCreateCatalog() error {
-	var allErrs field.ErrorList
-
-	if err := r.checkSchema(); err != nil {
-		allErrs = append(allErrs, err)
+func (r *Catalog) validateCreateCatalog(ctx context.Context) error {
+	state, err := r.ConvertCatalogState()
+	if err != nil {
+		return err
 	}
-	if err := r.validateNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if err := r.validateRootResource(); err != nil {
-		allErrs = append(allErrs, err)
-	}
+	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, nil)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -190,88 +215,54 @@ func (r *Catalog) validateCreateCatalog() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
 }
 
-func (r *Catalog) checkSchema() *field.Error {
-	if r.Spec.Metadata != nil {
-		if schemaName, ok := r.Spec.Metadata["schema"]; ok {
-			schemaName = utils.ReplaceLastSeperator(schemaName, ":", constants.ResourceSeperator)
-			cataloglog.Info("Find schema name", "name", schemaName)
-			var catalogs CatalogList
-			err := myCatalogReaderClient.List(context.Background(), &catalogs, client.InNamespace(r.ObjectMeta.Namespace), client.MatchingFields{"metadata.name": schemaName}, client.Limit(1))
-			if err != nil || len(catalogs.Items) == 0 {
-				cataloglog.Error(err, "Could not find the required schema.", "name", schemaName)
-				return field.Invalid(field.NewPath("spec").Child("Metadata"), schemaName, "could not find the required schema")
-			}
-
-			jData, _ := json.Marshal(catalogs.Items[0].Spec.Properties)
-			var properties map[string]interface{}
-			err = json.Unmarshal(jData, &properties)
-			if err != nil {
-				cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-				return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid catalog properties")
-			}
-			if spec, ok := properties["spec"]; ok {
-				var schemaObj api_utils.Schema
-				jData, _ := json.Marshal(spec)
-				err := json.Unmarshal(jData, &schemaObj)
-				if err != nil {
-					cataloglog.Error(err, "Invalid schema.", "name", schemaName)
-					return field.Invalid(field.NewPath("spec").Child("properties"), schemaName, "invalid schema")
-				}
-				jData, _ = json.Marshal(r.Spec.Properties)
-				var properties map[string]interface{}
-				err = json.Unmarshal(jData, &properties)
-				if err != nil {
-					cataloglog.Error(err, "Validating failed.")
-					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "unable to unmarshall properties of the catalog")
-				}
-				result, err := schemaObj.CheckProperties(properties, nil)
-				if err != nil {
-					cataloglog.Error(err, "Validating failed.")
-					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "invalid properties of the catalog schema")
-				}
-				if !result.Valid {
-					cataloglog.Error(err, "Validating failed.")
-					return field.Invalid(field.NewPath("spec").Child("Properties"), schemaName, "invalid schema result")
-				}
-			}
-			cataloglog.Info("Validation finished.", "name", r.Name)
-		}
-	} else {
-		cataloglog.Info("Catalog no meta.", "name", r.Name)
+func (r *Catalog) validateUpdateCatalog(ctx context.Context, oldCatalog *Catalog) error {
+	state, err := r.ConvertCatalogState()
+	if err != nil {
+		return err
 	}
-	return nil
-}
-
-func (r *Catalog) validateUpdateCatalog() error {
-	var allErrs field.ErrorList
-
-	if err := r.checkSchema(); err != nil {
-		allErrs = append(allErrs, err)
+	old, err := oldCatalog.ConvertCatalogState()
+	if err != nil {
+		return err
 	}
+	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, old)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
 
 	if len(allErrs) == 0 {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
 }
 
-func (r *Catalog) validateNameOnCreate() *field.Error {
-	return configutils.ValidateObjectName(r.ObjectMeta.Name, r.Spec.RootResource)
-}
-
-func (r *Catalog) validateRootResource() *field.Error {
-	var catalogContainer CatalogContainer
-	err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
+func (r *Catalog) validateDeleteCatalog(ctx context.Context) error {
+	state, err := r.ConvertCatalogState()
 	if err != nil {
-		return field.Invalid(field.NewPath("spec").Child("rootResource"), r.Spec.RootResource, "rootResource must be a valid catalog container")
+		return err
 	}
 
-	if len(r.ObjectMeta.OwnerReferences) == 0 {
-		return field.Invalid(field.NewPath("metadata").Child("ownerReference"), len(r.ObjectMeta.OwnerReferences), "ownerReference must be set")
+	ErrorFields := catalogValidator.ValidateDelete(ctx, state)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
+
+	if len(allErrs) == 0 {
+		return nil
 	}
 
-	return nil
+	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+}
+
+func (r *Catalog) ConvertCatalogState() (model.CatalogState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to catalog state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.CatalogState{}, retErr
+	}
+	var state model.CatalogState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.CatalogState{}, retErr
+	}
+	return state, nil
 }
 
 func (r *CatalogContainer) Default() {
@@ -289,7 +280,7 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 	cataloglog.Info("validate delete catalog container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
-		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{"rootResource": r.Name}, client.Limit(1))
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
 			return 0, err
 		} else {

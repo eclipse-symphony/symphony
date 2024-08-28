@@ -37,8 +37,8 @@ var (
 	testManifests = []string{
 		"manifest/%s/solution-container.yaml",
 		"manifest/%s/target.yaml",
-		"manifest/%s/instance.yaml",
 		"manifest/%s/solution.yaml",
+		"manifest/%s/instance.yaml",
 	}
 
 	// Tests to run

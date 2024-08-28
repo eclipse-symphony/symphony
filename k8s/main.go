@@ -34,6 +34,7 @@ import (
 
 	aiv1 "gopls-workspace/apis/ai/v1"
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/dynamicclient"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	federationv1 "gopls-workspace/apis/federation/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
@@ -393,6 +394,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !disableWebhooksServer {
+		dynamicclient.SetClient(mgr.GetConfig())
 		if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Device")
 			os.Exit(1)

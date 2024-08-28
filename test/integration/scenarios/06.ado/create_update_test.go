@@ -93,16 +93,16 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the instance")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
-		Expect(err).ToNot(HaveOccurred())
-
 		By("deploying the target")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the solution")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploying the instance")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = testcase.Expectation.Verify(ctx)
