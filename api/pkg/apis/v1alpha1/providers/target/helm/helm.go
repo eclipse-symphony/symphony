@@ -87,6 +87,7 @@ type (
 		Name    string `json:"name,omitempty"`
 		Version string `json:"version"`
 		Wait    bool   `json:"wait"`
+		Timeout string `json:"timeout,omitempty"`
 	}
 )
 
@@ -442,9 +443,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	for _, component := range step.Components {
 		applyComponentTime := time.Now().UTC()
+		var helmProp *HelmProperty
+		helmProp, err = getHelmPropertyFromComponent(component.Component)
 		if component.Action == model.ComponentUpdate {
-			var helmProp *HelmProperty
-			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get helm properties", providerName), v1alpha2.GetHelmPropertyFailed)
@@ -510,9 +511,14 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
-			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
-
+			installClient, err := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			if err != nil {
+				return nil, err
+			}
+			upgradeClient, err := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
+			if err != nil {
+				return nil, err
+			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
@@ -549,7 +555,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		} else {
 			switch component.Component.Type {
 			case "helm.v3":
-				uninstallClient := configureUninstallClient(&deployment, actionConfig)
+				uninstallClient, err := configureUninstallClient(&helmProp.Chart, &deployment, actionConfig)
+				if err != nil {
+					return nil, err
+				}
 				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(component.Component.Name)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
@@ -680,7 +689,7 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 	return pullRes, nil
 }
 
-func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Install {
+func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -688,18 +697,44 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 	} else {
 		installClient.Namespace = deployment.Instance.Spec.Scope
 	}
+
 	installClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := time.ParseDuration(componentProps.Timeout)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
+			return nil, err
+		}
+		if duration < 0 {
+			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
+			return nil, errors.New("Timeout can not be negative.")
+		}
+		installClient.Timeout = duration
+	}
+
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
-	return installClient
+	return installClient, nil
 }
 
-func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Upgrade {
+func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := time.ParseDuration(componentProps.Timeout)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
+			return nil, err
+		}
+		if duration < 0 {
+			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
+			return nil, errors.New("Timeout can not be negative.")
+		}
+		upgradeClient.Timeout = duration
+	}
 	if deployment.Instance.Spec.Scope == "" {
 		upgradeClient.Namespace = constants.DefaultScope
 	} else {
@@ -710,12 +745,25 @@ func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model
 	upgradeClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
-	return upgradeClient
+	return upgradeClient, nil
 }
 
-func configureUninstallClient(deployment *model.DeploymentSpec, config *action.Configuration) *action.Uninstall {
+func configureUninstallClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
 	uninstallClient := action.NewUninstall(config)
-	return uninstallClient
+	uninstallClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := time.ParseDuration(componentProps.Timeout)
+		if err != nil {
+			sLog.Errorf("  P (Helm Target): failed to parse timeout duration: %v", err)
+			return nil, err
+		}
+		if duration < 0 {
+			sLog.Errorf("  P (Helm Target): Timeout is negative: %s", componentProps.Timeout)
+			return nil, errors.New("Timeout can not be negative.")
+		}
+		uninstallClient.Timeout = duration
+	}
+	return uninstallClient, nil
 }
 
 func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty, error) {
