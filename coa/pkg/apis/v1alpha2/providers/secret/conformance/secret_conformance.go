@@ -7,6 +7,7 @@
 package conformance
 
 import (
+	"context"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
@@ -17,7 +18,7 @@ func GetSecretNotFound[P secret.ISecretProvider](t *testing.T, p P) {
 	// TODO: this case should fail. This is a prototype of conformance test suite
 	// but unfortunately the mock secret provider doesn't confirm with reasonable
 	// expected behavior
-	_, err := p.Read("fake_object", "fake_key", nil)
+	_, err := p.Read(context.TODO(), "fake_object", "fake_key", nil)
 	assert.Nil(t, err)
 }
 func ConformanceSuite[P secret.ISecretProvider](t *testing.T, p P) {

@@ -7,6 +7,7 @@
 package secrets
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -63,38 +66,49 @@ func (s *SecretsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 	return nil
 }
 func (s *SecretsManager) Get(object string, field string, localContext interface{}) (string, error) {
-	log.Debugf(" M (secret): Get %v, secret provider size %d", object, len(s.SecretProviders))
+	ctx, span := observability.StartSpan("Secret Manager", context.TODO(), &map[string]string{
+		"method": "Get",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.DebugfCtx(ctx, " M (secret): Get %v, secret provider size %d", object, len(s.SecretProviders))
 	if field == "" {
-		log.Errorf(" M (secret): field is empty")
-		return "", v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
+		log.ErrorfCtx(ctx, " M (secret): field is empty")
+		err = v1alpha2.NewCOAError(nil, "Field is empty", v1alpha2.BadRequest)
+		return "", err
 	}
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
-			log.Errorf(" M (secret): Invalid object: %s", object)
-			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
+			log.ErrorfCtx(ctx, " M (secret): Invalid object: %s", object)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
+			return "", err
 		}
 		if provider, ok := s.SecretProviders[parts[0]]; ok {
-			return provider.Read(parts[1], field, localContext)
+			return provider.Read(ctx, parts[1], field, localContext)
 		}
 
-		log.Errorf(" M (secret): Invalid provider: %s", parts[0])
-		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
+		log.ErrorfCtx(ctx, " M (secret): Invalid provider: %s", parts[0])
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
+		return "", err
 	}
 
 	if len(s.SecretProviders) == 1 {
 		for _, provider := range s.SecretProviders {
-			return provider.Read(object, field, localContext)
+			return provider.Read(ctx, object, field, localContext)
 		}
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.SecretProviders[key]; ok {
-			ret, err := provider.Read(object, field, localContext)
+			ret, err := provider.Read(ctx, object, field, localContext)
 			if err == nil {
 				return ret, nil
 
 			}
 		}
 	}
-	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid secret object or key: %s, %s", object, field), v1alpha2.BadRequest)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("No provider found for object: %s", object), v1alpha2.NotFound)
+	return "", err
 }
