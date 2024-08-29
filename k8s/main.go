@@ -313,41 +313,61 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&solutioncontrollers.InstanceQueueingReconciler{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		ReconciliationInterval: reconcileInterval,
-		DeleteTimeOut:          deleteTimeOut,
-		PollInterval:           pollInterval,
-		DeleteSyncDelay:        deleteSyncDelay,
-		ApiClient:              apiClient,
+		InstanceReconciler: solutioncontrollers.InstanceReconciler{
+			Client:                 mgr.GetClient(),
+			Scheme:                 mgr.GetScheme(),
+			ReconciliationInterval: reconcileInterval,
+			DeleteTimeOut:          deleteTimeOut,
+			PollInterval:           pollInterval,
+			DeleteSyncDelay:        deleteSyncDelay,
+			ApiClient:              apiClient,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Instance")
+		setupLog.Error(err, "unable to create instance queueing controller", "controller", "Instance")
 		os.Exit(1)
 	}
 
 	if err = (&solutioncontrollers.InstancePollingReconciler{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		ReconciliationInterval: reconcileInterval,
-		DeleteTimeOut:          deleteTimeOut,
-		PollInterval:           pollInterval,
-		DeleteSyncDelay:        deleteSyncDelay,
-		ApiClient:              apiClient,
+		InstanceReconciler: solutioncontrollers.InstanceReconciler{
+			Client:                 mgr.GetClient(),
+			Scheme:                 mgr.GetScheme(),
+			ReconciliationInterval: reconcileInterval,
+			DeleteTimeOut:          deleteTimeOut,
+			PollInterval:           pollInterval,
+			DeleteSyncDelay:        deleteSyncDelay,
+			ApiClient:              apiClient,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create polling controller", "controller", "Instance")
+		setupLog.Error(err, "unable to create instance polling controller", "controller", "Instance")
 		os.Exit(1)
 	}
 
-	if err = (&fabriccontrollers.TargetReconciler{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		ReconciliationInterval: reconcileInterval,
-		DeleteTimeOut:          deleteTimeOut,
-		PollInterval:           pollInterval,
-		DeleteSyncDelay:        deleteSyncDelay,
-		ApiClient:              apiClient,
+	if err = (&fabriccontrollers.TargetPollingReconciler{
+		TargetReconciler: fabriccontrollers.TargetReconciler{
+			Client:                 mgr.GetClient(),
+			Scheme:                 mgr.GetScheme(),
+			ReconciliationInterval: reconcileInterval,
+			DeleteTimeOut:          deleteTimeOut,
+			PollInterval:           pollInterval,
+			DeleteSyncDelay:        deleteSyncDelay,
+			ApiClient:              apiClient,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Target")
+		setupLog.Error(err, "unable to create target polling controller", "controller", "Target")
+		os.Exit(1)
+	}
+	if err = (&fabriccontrollers.TargetQueueingReconciler{
+		TargetReconciler: fabriccontrollers.TargetReconciler{
+			Client:                 mgr.GetClient(),
+			Scheme:                 mgr.GetScheme(),
+			ReconciliationInterval: reconcileInterval,
+			DeleteTimeOut:          deleteTimeOut,
+			PollInterval:           pollInterval,
+			DeleteSyncDelay:        deleteSyncDelay,
+			ApiClient:              apiClient,
+		},
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create target queueing controller", "controller", "Target")
 		os.Exit(1)
 	}
 	if err = (&fabriccontrollers.DeviceReconciler{

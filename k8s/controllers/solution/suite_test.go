@@ -144,7 +144,7 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(BuildDefaultTarget(), ""), nil)
 		apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-		err = (&controllers.InstanceQueueingReconciler{
+		err = (&controllers.InstanceReconciler{
 			Client:                 k8sManager.GetClient(),
 			Scheme:                 k8sManager.GetScheme(),
 			ReconciliationInterval: 2 * time.Second,

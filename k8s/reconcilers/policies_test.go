@@ -64,7 +64,8 @@ var _ = Describe("Reconcile Policies", func() {
 
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
-		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+		_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 	})
 
 	Context("object has invalid reconcile policy", func() {
@@ -527,7 +528,8 @@ var _ = Describe("Reconcile Policies", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
 		It("should not return an error", func() {

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -73,51 +72,7 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
-
-	// Initialize reconcileTime for latency metrics
-	reconcileTime := time.Now()
-
-	// Get target
-	target := &symphonyv1.Target{}
-
-	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		log.Error(err, "unable to fetch Target object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	reconciliationType := metrics.CreateOperationType
-	resultType := metrics.ReconcileSuccessResult
-	reconcileResult := ctrl.Result{}
-	deploymentOperationType := metrics.DeploymentQueued
-	var err error
-
-	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, false, log, targetOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	} else { // remove
-		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	}
-
-	r.m.ControllerReconcileLatency(
-		reconcileTime,
-		reconciliationType,
-		resultType,
-		metrics.InstanceResourceType,
-		deploymentOperationType,
-	)
-
-	return reconcileResult, err
+	panic("TargetReconciler Reconcile not implemented")
 }
 
 // SetupWithManager sets up the controller with the Manager.

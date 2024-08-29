@@ -119,7 +119,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
 		When("object is successfully deployed", func() {

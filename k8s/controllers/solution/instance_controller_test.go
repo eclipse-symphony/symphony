@@ -25,7 +25,8 @@ import (
 var _ = Describe("Instance controller", Ordered, func() {
 	var apiClient *MockApiClient
 	var kubeClient client.Client
-	var controller *InstanceQueueingReconciler
+	var controllerQueueing *InstanceQueueingReconciler
+	var controllerPolling *InstancePollingReconciler
 	var instance *solutionv1.Instance
 	var target *fabricv1.Target
 	var solution *solutionv1.Solution
@@ -44,16 +45,30 @@ var _ = Describe("Instance controller", Ordered, func() {
 			BuildDefaultTarget(),
 			BuildDefaultSolution(),
 		)
-		controller = &InstanceQueueingReconciler{
-			Client:                 kubeClient,
-			Scheme:                 kubeClient.Scheme(),
-			ReconciliationInterval: TestReconcileInterval,
-			PollInterval:           TestPollInterval,
-			DeleteTimeOut:          TestReconcileTimout,
-			ApiClient:              apiClient,
+		controllerQueueing = &InstanceQueueingReconciler{
+			InstanceReconciler: InstanceReconciler{
+				Client:                 kubeClient,
+				Scheme:                 kubeClient.Scheme(),
+				ReconciliationInterval: TestReconcileInterval,
+				PollInterval:           TestPollInterval,
+				DeleteTimeOut:          TestReconcileTimout,
+				ApiClient:              apiClient,
+			},
 		}
 
-		controller.dr, err = controller.buildDeploymentReconciler()
+		controllerQueueing.dr, err = controllerQueueing.buildDeploymentReconciler()
+		controllerPolling = &InstancePollingReconciler{
+			InstanceReconciler: InstanceReconciler{
+				Client:                 kubeClient,
+				Scheme:                 kubeClient.Scheme(),
+				ReconciliationInterval: TestReconcileInterval,
+				PollInterval:           TestPollInterval,
+				DeleteTimeOut:          TestReconcileTimout,
+				ApiClient:              apiClient,
+			},
+		}
+
+		controllerPolling.dr, err = controllerPolling.buildDeploymentReconciler()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -72,7 +87,8 @@ var _ = Describe("Instance controller", Ordered, func() {
 	Describe("Reconcile", func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("simulating a reconcile event")
-			reconcileResult, reconcileError = controller.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
+			reconcileResult, reconcileError = controllerQueueing.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
+			reconcileResult, reconcileError = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
 		})
 		When("the instance is created", func() {
 
@@ -94,7 +110,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					})
 
 					It("should requeue after the reconciliation interval", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controller.ReconciliationInterval))
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 					})
 				})
 				Context("and the deployment failed due to some error", func() {
@@ -231,7 +247,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 				})
 
 				It("should requeue after the poll interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controller.PollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.PollInterval))
 				})
 			})
 
@@ -262,7 +278,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			var requests []ctrl.Request
 			BeforeEach(func(ctx context.Context) {
 				By("simulating a call to the handleSolution function")
-				requests = controller.handleSolution(ctx, solution)
+				requests = controllerQueueing.handleSolution(ctx, solution)
 			})
 
 			It("should return a request for the instance", func() {
@@ -276,7 +292,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			var requests []ctrl.Request
 			BeforeEach(func(ctx context.Context) {
 				By("simulating a call to the handleTarget function")
-				requests = controller.handleTarget(ctx, target)
+				requests = controllerQueueing.handleTarget(ctx, target)
 			})
 
 			It("should return a request for the instance", func() {
