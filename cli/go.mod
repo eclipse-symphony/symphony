@@ -1,14 +1,14 @@
 module github.com/eclipse-symphony/symphony/cli
 
-go 1.22.0
+go 1.22.4
 
-toolchain go1.22.3
+toolchain go1.22.6
 
 replace github.com/eclipse-symphony/symphony/api => ../api
 
 replace github.com/eclipse-symphony/symphony/coa => ../coa
 
-require github.com/spf13/cobra v1.8.0
+require github.com/spf13/cobra v1.8.1
 
 require (
 	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
@@ -17,8 +17,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	helm.sh/helm/v3 v3.14.4 // indirect
+	helm.sh/helm/v3 v3.15.4 // indirect
 )
 
 require (
@@ -34,5 +33,5 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/sys v0.25.0 // indirect
-	sigs.k8s.io/yaml v1.3.0
+	sigs.k8s.io/yaml v1.4.0
 )
