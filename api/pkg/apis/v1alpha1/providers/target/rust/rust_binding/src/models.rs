@@ -131,10 +131,8 @@ pub struct DeploymentStep {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum ComponentAction {
-    Start,
-    Stop,
-    Restart,
     Update,
+    Delete
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

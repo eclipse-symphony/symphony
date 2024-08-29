@@ -22,7 +22,14 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+)
+
+var (
+	log = logger.NewLogger("providers.target.rust")
 )
 
 const (
@@ -82,10 +89,22 @@ func (s *RustTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
+	ctx, span := observability.StartSpan(
+		"Rust Target Provider",
+		context.TODO(),
+		&map[string]string{
+			"method": "Init",
+		},
+	)
+	var err error
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfoCtx(ctx, "  P (Rust Target): Init()")
+
 	rustConfig, err := toRustTargetProviderConfig(config)
 	if err != nil {
-		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: expected HttpTargetProviderConfig", providerName), v1alpha2.InitFailed)
-		return err
+		log.ErrorfCtx(ctx, "  P (Rust Target): expected RustTargetProviderConfig - %+v", err)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: expected RustTargetProviderConfig", providerName), v1alpha2.InitFailed)
 	}
 
 	// Create Rust provider from file
@@ -94,24 +113,25 @@ func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
 	defer C.free(unsafe.Pointer(cProviderPath))
 	defer C.free(unsafe.Pointer(cExpectedHash))
 
-	provider := C.create_provider_instance(cProviderPath, cExpectedHash)
-	if provider == nil {
+	r.provider = C.create_provider_instance(cProviderPath, cExpectedHash)
+	if r.provider == nil {
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to create Rust provider from library file - %+v", err)
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to create Rust provider from library file", providerName), v1alpha2.InitFailed)
 	}
 
 	configJSON, err := json.Marshal(config)
 	if err != nil {
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to serialize Rust provider configuration - %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to serialize Rust provider configuration", providerName), v1alpha2.InitFailed)
 	}
-
-	r.provider = provider
 
 	cConfigJSON := C.CString(string(configJSON))
 	defer C.free(unsafe.Pointer(cConfigJSON))
 
 	res := C.init_provider(r.provider, cConfigJSON)
 	if res != 0 {
-		return fmt.Errorf("failed to initialize provider")
+		log.ErrorfCtx(ctx, "  P (Rust Target): ailed to initialize provider - %+v", err)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: ailed to initialize provider", providerName), v1alpha2.InitFailed)
 	}
 
 	return nil
@@ -132,14 +152,26 @@ func (r *RustTargetProvider) GetValidationRule(ctx context.Context) model.Valida
 }
 
 func (r *RustTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+	ctx, span := observability.StartSpan("Rust Target Provider", ctx, &map[string]string{
+		"method": "Get",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, "  P (Rust Target Provider): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
 	deploymentJSON, err := json.Marshal(deployment)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal deployment: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal deployment - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to marshal deployment", v1alpha2.BadRequest)
+		return nil, err
 	}
 
 	referencesJSON, err := json.Marshal(references)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal references: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal reference - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to marshal reference", v1alpha2.BadRequest)
+		return nil, err
 	}
 
 	cDeploymentJSON := C.CString(string(deploymentJSON))
@@ -150,27 +182,44 @@ func (r *RustTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 
 	cResult := C.get(r.provider, cDeploymentJSON, cReferencesJSON)
 	if cResult == nil {
-		return nil, fmt.Errorf("failed to get component specs")
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal reference - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to marshal reference", v1alpha2.BadRequest)
+		return nil, err
 	}
 	defer C.free(unsafe.Pointer(cResult))
 
 	var components []model.ComponentSpec
 	if err := json.Unmarshal([]byte(C.GoString(cResult)), &components); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal component specs: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to unmarshal component specs - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to unmarshal component specs", v1alpha2.GetComponentSpecFailed)
+		return nil, err
 	}
 
 	return components, nil
 }
 
 func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+	ctx, span := observability.StartSpan("Rust Target Provider", ctx, &map[string]string{
+		"method": "Apply",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "  P (Rust Target Provider): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
 	deploymentJSON, err := json.Marshal(deployment)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal deployment: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal deployment - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to marshal deployment", v1alpha2.BadRequest)
+		return nil, err
 	}
 
 	stepJSON, err := json.Marshal(step)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal step: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal step - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to marshal step", v1alpha2.BadRequest)
+		return nil, err
 	}
 
 	cDeploymentJSON := C.CString(string(deploymentJSON))
@@ -186,30 +235,21 @@ func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	cResult := C.apply(r.provider, cDeploymentJSON, cStepJSON, cIsDryRun)
 	if cResult == nil {
-		return nil, fmt.Errorf("failed to apply deployment step")
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to apply deployment ste - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to apply deployment ste", v1alpha2.ApplyResourceFailed)
+		return nil, err
 	}
 	defer C.free(unsafe.Pointer(cResult))
 
 	var result map[string]model.ComponentResultSpec
 	if err := json.Unmarshal([]byte(C.GoString(cResult)), &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal apply result: %v", err)
+		log.ErrorfCtx(ctx, "  P (Rust Target): failed to unmarshal apply result - %+v", err)
+		err = v1alpha2.NewCOAError(err, "failed to unmarshal apply result", v1alpha2.ApplyResourceFailed)
+		return nil, err
 	}
 
 	return result, nil
 }
-
-// func NewRustTargetProvider(providerLibPath string) (*RustTargetProvider, error) {
-
-// 	cProviderPath := C.CString(providerLibPath)
-// 	defer C.free(unsafe.Pointer(cProviderPath))
-
-// 	provider := C.create_provider_instance(cProviderPath)
-// 	if provider == nil {
-// 		return nil, fmt.Errorf("failed to create provider instance")
-// 	}
-
-// 	return &RustTargetProvider{provider: provider}, nil
-// }
 
 func (r *RustTargetProvider) Close() {
 	if r.provider != nil {

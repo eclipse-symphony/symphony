@@ -8,6 +8,7 @@ package rust
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -16,10 +17,19 @@ import (
 )
 
 func TestMockRustProviderGetValidationRule(t *testing.T) {
+	libPath := os.Getenv("RUST_LIB_PATH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_PATH is not set")
+	}
+	libHash := os.Getenv("RUST_LIB_HASH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_HASH is not set")
+	}
+
 	config := RustTargetProviderConfig{
 		Name:    "mock",
-		LibFile: "./target/release/libmock.so",
-		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+		LibFile: libPath,
+		LibHash: libHash,
 	}
 	rustProvider := &RustTargetProvider{}
 	err := rustProvider.Init(config)
@@ -65,10 +75,18 @@ func TestMockRustProviderGetValidationRule(t *testing.T) {
 }
 
 func TestMockRustProviderGet(t *testing.T) {
+	libPath := os.Getenv("RUST_LIB_PATH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_PATH is not set")
+	}
+	libHash := os.Getenv("RUST_LIB_HASH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_HASH is not set")
+	}
 	config := RustTargetProviderConfig{
 		Name:    "mock",
-		LibFile: "./target/release/libmock.so",
-		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+		LibFile: libPath,
+		LibHash: libHash,
 	}
 	rustProvider := &RustTargetProvider{}
 	err := rustProvider.Init(config)
@@ -144,10 +162,18 @@ func TestMockRustProviderGet(t *testing.T) {
 }
 
 func TestMockRustProviderApply(t *testing.T) {
+	libPath := os.Getenv("RUST_LIB_PATH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_PATH is not set")
+	}
+	libHash := os.Getenv("RUST_LIB_HASH")
+	if libPath == "" {
+		t.Skip("Skipping because RUST_LIB_HASH is not set")
+	}
 	config := RustTargetProviderConfig{
 		Name:    "mock",
-		LibFile: "./target/release/libmock.so",
-		LibHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd",
+		LibFile: libPath,
+		LibHash: libHash,
 	}
 	rustProvider := &RustTargetProvider{}
 	err := rustProvider.Init(config)

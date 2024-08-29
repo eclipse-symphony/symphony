@@ -12,22 +12,26 @@ use rust_binding::models::{
     ComponentValidationRule, RouteSpec, SidecarSpec, State
 };
 use rust_binding::ITargetProvider;
+use rust_binding::ProviderWrapper;
 use std::collections::HashMap;
 
 pub struct MockProvider;
 
 #[no_mangle]
-pub extern "C" fn create_provider() -> *mut dyn ITargetProvider {
-    let provider = Box::new(MockProvider {});
-    Box::into_raw(provider)
+pub extern "C" fn create_provider() -> *mut ProviderWrapper  {
+    let provider: Box<dyn ITargetProvider> = Box::new(MockProvider {});
+    let wrapper = Box::new(ProviderWrapper { inner: provider });
+    Box::into_raw(wrapper)
 }
 
 impl ITargetProvider for MockProvider {
     fn init(&self, _config: ProviderConfig) -> Result<(), String> {
+        println!("MOCK RUST PROVIDER: ------ init()");
         Ok(())
     }
 
     fn get_validation_rule(&self) -> Result<ValidationRule, String> {
+        println!("MOCK RUST PROVIDER: ------ get_validation_rule()");
         let validation_rule = ValidationRule {
             required_component_type: "example_type".to_string(),
             component_validation_rule: ComponentValidationRule {
@@ -82,6 +86,7 @@ impl ITargetProvider for MockProvider {
     
 
     fn get(&self, _deployment: DeploymentSpec, _references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String> {
+        println!("MOCK RUST PROVIDER: ------ get()");
         let component_spec = ComponentSpec {
             name: "example_component".to_string(),
             component_type: Some("example_type".to_string()),
@@ -118,7 +123,7 @@ impl ITargetProvider for MockProvider {
             ]),
         };
 
-        Ok(vec![component_spec])
+        Ok(vec![component_spec])        
     }
 
     fn apply(
@@ -127,6 +132,7 @@ impl ITargetProvider for MockProvider {
         step: DeploymentStep,
         _is_dry_run: bool,
     ) -> Result<HashMap<String, ComponentResultSpec>, String> {
+        println!("MOCK RUST PROVIDER: ------ apply()");
         let mut result_map = HashMap::new();
 
         for component_step in step.components {

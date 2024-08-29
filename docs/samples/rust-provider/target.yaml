@@ -6,7 +6,7 @@ spec:
   components:
   - name: mock
     properties:
-      foo: bar
+      foo: bar2    
   forceRedeploy: true
   topologies:
   - bindings:
@@ -14,5 +14,5 @@ spec:
       provider: providers.target.rust
       config:
         name: "rust-lib"
-        libFile: "pkg/apis/v1alpha1/providers/target/rust/target/release/libmock.so"
-        libHash: "26e68667de3d7bfd5ff758191ce4a231800a93f52e1751c10fa0afc7811893cd"
+        libFile: "/etc/symphony-api/extensions/libmock.so"
+        libHash: "<hash>"

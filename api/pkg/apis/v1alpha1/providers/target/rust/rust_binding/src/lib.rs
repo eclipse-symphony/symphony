@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use libloading::{Library, Symbol};
@@ -51,7 +57,11 @@ pub trait ITargetProvider: Send + Sync {
 #[repr(C)]
 pub struct ProviderHandle {
     provider: Box<dyn ITargetProvider>,
-    _lib: Library, // Keep the library loaded to ensure the provider's functions remain valid
+    lib: Library, // Keep the library loaded to ensure the provider's functions remain valid
+}
+
+pub struct ProviderWrapper {
+    pub inner: Box<dyn ITargetProvider>,
 }
 
 // External function to create the provider instance
@@ -76,16 +86,24 @@ pub extern "C" fn create_provider_instance(
 
     let lib = unsafe { Library::new(provider_path).expect("Failed to load provider library") };
 
-    type CreateProviderFn = unsafe fn() -> *mut dyn ITargetProvider;
+    type CreateProviderFn = unsafe fn() -> *mut ProviderWrapper;
     let create_provider: Symbol<CreateProviderFn> = unsafe {
         lib.get(b"create_provider\0").expect("Failed to load create_provider function")
     };
 
-    let provider = unsafe { create_provider() };
+    let wrapper = unsafe { create_provider() };
+
+    if wrapper.is_null() {
+        eprintln!("Error: create_provider returned null pointer");
+        return ptr::null_mut();
+    }
+
+    // Take ownership of the `Box<dyn ITargetProvider>` from the wrapper
+    let provider_box = unsafe { Box::from_raw(wrapper).inner };
 
     let handle = Box::new(ProviderHandle {
-        provider: unsafe { Box::from_raw(provider) },
-        _lib: lib,
+        provider: provider_box, // Move the Box into ProviderHandle
+        lib: lib,
     });
 
     Box::into_raw(handle)
@@ -103,21 +121,40 @@ pub extern "C" fn destroy_provider_instance(handle: *mut ProviderHandle) {
 
 // Initialize the provider with JSON configuration
 #[no_mangle]
-pub extern "C" fn init_provider(handle: *mut ProviderHandle, config_json: *const c_char) -> i32 {
+pub extern "C" fn init_provider(handle: *mut ProviderHandle, config_json: *const c_char) -> i32 {    
+    if handle.is_null() {
+        eprintln!("Error: handle pointer is null");
+        return -1;
+    }
+    
+    if config_json.is_null() {
+        eprintln!("Error: config_json pointer is null");
+        return -1;
+    }
+    
     let config_str = match unsafe { CStr::from_ptr(config_json).to_str() } {
         Ok(str) => str,
-        Err(_) => return -1,
+        Err(err) => {
+            eprintln!("Error converting config_json to string: {:?}", err);
+            return -1;
+        },
     };
-    
     let config: ProviderConfig = match serde_json::from_str(config_str) {
         Ok(cfg) => cfg,
-        Err(_) => return -1,
+        Err(err) => {
+            eprintln!("Error deserializing config_json: {:?}", err);
+            return -1;
+        },
     };
-
-    let handle = unsafe { &*handle };
-    match handle.provider.init(config) {
-        Ok(_) => 0,
-        Err(_) => -1,
+    let handle_ref = unsafe { &*handle };
+    match handle_ref.provider.init(config) {
+        Ok(_) => {
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Error during provider initialization: {:?}", err);
+            return -1;
+        },
     }
 }
 
