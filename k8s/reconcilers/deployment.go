@@ -129,7 +129,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	return
 }
 
-func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, log logr.Logger) context.Context {
+func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, k8sClient client.Reader, log logr.Logger) context.Context {
 	log.Info("Populating diagnostics and activities from annotations")
 	if object == nil {
 		return ctx
@@ -139,13 +139,13 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 		return ctx
 	}
 	resourceK8SId := object.GetNamespace() + "/" + object.GetName()
-	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, annotations, operationName, ctx, log)
+	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(object.GetNamespace(), resourceK8SId, annotations, operationName, k8sClient, ctx, log)
 }
 
 // attemptUpdate attempts to update the instance
 func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
 	// populate diagnostics and activities from annotations
-	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		controllerutil.AddFinalizer(object, r.finalizerName)
 		// updates the object in Kubernetes cluster
@@ -265,7 +265,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 
 // attemptRemove attempts to remove the object
 func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
-	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	status := metrics.StatusNoOp
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		return metrics.StatusNoOp, ctrl.Result{}, nil

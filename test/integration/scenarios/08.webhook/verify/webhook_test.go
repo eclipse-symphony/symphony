@@ -36,6 +36,12 @@ var (
 	testSchemaContainer  = "test/integration/scenarios/05.catalog/catalogs/schema-container.yaml"
 	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
+
+	diagnostic_01_WithoutEdgeLocation        = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
+	diagnostic_02_WithCorrectEdgeLocation    = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
+	diagnostic_03_WithConflictEdgeLocation   = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
+	diagnostic_04_WithCorrectEdgeLocation2   = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
+	diagnostic_05_UpdateEdgeLocationConflict = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
 )
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
@@ -238,6 +244,35 @@ func TestCreateCatalogWithoutParent(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
+}
+
+func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_01_WithoutEdgeLocation)).CombinedOutput()
+	assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
+	assert.NotNil(t, err, "diagnostic creation without edge location should fail")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_02_WithCorrectEdgeLocation)).CombinedOutput()
+	assert.Contains(t, string(output), "created")
+	assert.Nil(t, err, "diagnostic creation with correct edge location should pass")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
+	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
+	assert.NotNil(t, err, "diagnostic creation with conflict edge location should fail")
+
+	err = shellcmd.Command("kubectl delete diagnostics.monitor.symphony default").Run()
+	assert.Nil(t, err)
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
+	assert.Contains(t, string(output), "created")
+	assert.Nil(t, err, "diagnostic creation with conflict edge location should pass after deletion")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithCorrectEdgeLocation2)).CombinedOutput()
+	assert.Contains(t, string(output), "created")
+	assert.Nil(t, err)
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateEdgeLocationConflict)).CombinedOutput()
+	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
+	assert.NotNil(t, err, "diagnostic update with conflict edge location should fail")
 }
 
 func getRepoPath() string {

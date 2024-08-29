@@ -184,6 +184,27 @@ webhooks:
     resources:
     - catalogcontainers
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -376,4 +397,25 @@ webhooks:
     - DELETE
     resources:
     - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
   sideEffects: None
