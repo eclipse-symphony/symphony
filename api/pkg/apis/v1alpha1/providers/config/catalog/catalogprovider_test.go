@@ -7,6 +7,7 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -20,6 +21,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
+
+var ctx = context.Background()
 
 type AuthResponse struct {
 	AccessToken string   `json:"accessToken"`
@@ -101,7 +104,7 @@ func TestRead(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.Read("catalog1:v1", ".components", nil)
+	res, err := provider.Read(ctx, "catalog1:v1", ".components", nil)
 	assert.Nil(t, err)
 	data, err := json.Marshal(res)
 	assert.Nil(t, err)
@@ -110,7 +113,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read("catalog1:v1", ".a.b.c", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", ".a.b.c", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -133,7 +136,7 @@ func TestRead(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "This is father", v)
 
-	res, err = provider.Read("catalog1:v1", "notExist", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "notExist", nil)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.NotFound, coaErr.State)
 	assert.Empty(t, res)
@@ -192,7 +195,7 @@ func TestReadObject(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.ReadObject("catalog1:v1", nil)
+	res, err := provider.ReadObject(ctx, "catalog1:v1", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "name", res["Name"])
 }
@@ -245,13 +248,13 @@ func TestSetandRemove(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	err = provider.Set("catalog1", "random", "random")
+	err = provider.Set(ctx, "catalog1", "random", "random")
 	assert.Nil(t, err)
 
-	err = provider.Remove("catalog1", "components")
+	err = provider.Remove(ctx, "catalog1", "components")
 	assert.Nil(t, err)
 
-	err = provider.Remove("catalog1", "notExist")
+	err = provider.Remove(ctx, "catalog1", "notExist")
 	coeErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.NotFound, coeErr.State)
 }
@@ -305,9 +308,9 @@ func TestSetandRemoveObject(t *testing.T) {
 	assert.Nil(t, err)
 	var data map[string]interface{} = make(map[string]interface{})
 	data["random"] = "random"
-	err = provider.SetObject("catalog1", data)
+	err = provider.SetObject(ctx, "catalog1", data)
 	assert.Nil(t, err)
 
-	err = provider.RemoveObject("catalog1")
+	err = provider.RemoveObject(ctx, "catalog1")
 	assert.Nil(t, err)
 }
