@@ -511,11 +511,11 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient, err := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
 			if err != nil {
 				return nil, err
 			}
-			upgradeClient, err := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
+			upgradeClient, err := configureUpgradeClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender)
 			if err != nil {
 				return nil, err
 			}
@@ -555,7 +555,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		} else {
 			switch component.Component.Type {
 			case "helm.v3":
-				uninstallClient, err := configureUninstallClient(&helmProp.Chart, &deployment, actionConfig)
+				uninstallClient, err := configureUninstallClient(ctx, &helmProp.Chart, &deployment, actionConfig)
 				if err != nil {
 					return nil, err
 				}
