@@ -664,7 +664,7 @@ func TestHelmTargetProviderWithNegativeTimeout(t *testing.T) {
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	fmt.Printf("error timeout %v", err.Error())
 	if !strings.Contains(err.Error(), "Timeout can not be negative") {
-		t.Errorf("expected error to contain 'sample', but got %s", err.Error())
+		t.Errorf("expected error to contain 'Timeout can not be negative', but got %s", err.Error())
 	}
 	assert.NotNil(t, err)
 }
@@ -711,6 +711,54 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
+
+func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
+	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "brigade",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]any{
+				"repo":    "https://brigadecore.github.io/charts",
+				"name":    "brigade",
+				"wait":    true,
+				"timeout": "20ssss",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	if !strings.Contains(err.Error(), "time: unknown unit ") {
+		t.Errorf("expected error to contain 'time: unknown unit', but got %s", err.Error())
+	}
+	assert.NotNil(t, err)
+}
+
 func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
