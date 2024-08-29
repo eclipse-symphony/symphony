@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -621,6 +622,96 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestHelmTargetProviderWithNegativeTimeout(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "nginx",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]any{
+				"repo":    "https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz",
+				"name":    "nginx",
+				"wait":    true,
+				"timeout": "-10s",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	fmt.Printf("error timeout %v", err.Error())
+	if !strings.Contains(err.Error(), "Timeout can not be negative") {
+		t.Errorf("expected error to contain 'sample', but got %s", err.Error())
+	}
+	assert.NotNil(t, err)
+}
+
+func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
+	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "brigade",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]any{
+				"repo":    "https://brigadecore.github.io/charts",
+				"name":    "brigade",
+				"wait":    true,
+				"timeout": "20s",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
 func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
