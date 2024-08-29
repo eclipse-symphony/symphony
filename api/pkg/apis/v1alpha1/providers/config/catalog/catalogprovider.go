@@ -91,13 +91,12 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string, localcontext interface{}) (string, error) {
+func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string) (string, error) {
 	override = utils.ConvertReferenceToObjectName(override)
 	catalog, err := m.ApiClient.GetCatalog(ctx, override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
-
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		if vstring, ok := v.(string); ok {
 			return vstring, nil
@@ -106,7 +105,7 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 		}
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext)
+		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
@@ -144,7 +143,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext)
+		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
 		if err != nil {
 			return "", err
 		} else {
