@@ -484,7 +484,7 @@ func TestObjectReference(t *testing.T) {
 	assert.Empty(t, val2)
 }
 
-func TestCircular(t *testing.T) {
+func TestCircularCatalogReferences(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
@@ -507,9 +507,9 @@ func TestCircular(t *testing.T) {
 					Name: "config2-v-v1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent:v1",
 					Properties: map[string]interface{}{
-						"image": "${{$config('config1:v1','image')}}",
+						"attribute": "${{$config('config1:v1','attribute')}}",
+						"foo":       "bar",
 					},
 				},
 			}
@@ -519,7 +519,6 @@ func TestCircular(t *testing.T) {
 					Name: "parent-v-v1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "config2:v1",
 					Properties: map[string]interface{}{
 						"parentConfig": "${{$config('config1:v1','parentAttribute')}}",
 					},
@@ -572,6 +571,9 @@ func TestCircular(t *testing.T) {
 	assert.Error(t, err, "Detect circular dependency, object: config1-v-v1, field: image")
 
 	_, err = manager.Get("config1:v1", "attribute", nil, evalContext)
+	assert.Nil(t, err, "Detect correct attribute, expect no error")
+
+	_, err = manager.Get("config2:v1", "attribute", nil, evalContext)
 	assert.Nil(t, err, "Detect correct attribute, expect no error")
 
 	_, err = manager.Get("config1:v1", "parentAttribute", nil, evalContext)

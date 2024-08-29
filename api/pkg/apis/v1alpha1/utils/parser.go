@@ -16,12 +16,10 @@ import (
 	"strconv"
 	"strings"
 	"text/scanner"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 type Token int
@@ -92,8 +90,6 @@ func (n *IntNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 type IdentifierNode struct {
 	Value string
 }
-
-var clog = logger.NewLogger("coa.runtime")
 
 func removeQuotes(s string) string {
 	if len(s) < 2 {
@@ -1273,32 +1269,6 @@ func (p *ExpressionParser) function() (Node, error) {
 		return nil, err
 	}
 	return &FunctionNode{name, args}, nil
-}
-
-func EvaluateDeploymentWithTimeOut(timeout time.Duration, context utils.EvaluationContext) (model.DeploymentSpec, error) {
-	resultChan := make(chan struct {
-		deployment model.DeploymentSpec
-		err        error
-	})
-
-	// Run evaluate deployment in a separate goroutine
-	go func() {
-		clog.Debugf(" (Parser): evaluate Deployment start. Instance: %v", context.DeploymentSpec.(model.DeploymentSpec).Instance)
-		result, err := EvaluateDeployment(context)
-		resultChan <- struct {
-			deployment model.DeploymentSpec
-			err        error
-		}{result, err}
-	}()
-
-	select {
-	case res := <-resultChan:
-		clog.Debugf(" (Parser): evaluate deployment completed. Instance: %v", res.deployment.Instance)
-		return res.deployment, res.err
-	case <-time.After(timeout):
-		clog.Errorf(" (Parser): evaluate deployment timed out. Instance: %v", context.DeploymentSpec.(model.DeploymentSpec).Instance)
-		return context.DeploymentSpec.(model.DeploymentSpec), v1alpha2.NewCOAError(nil, "Evaluate deployment timed out", v1alpha2.TimedOut)
-	}
 }
 
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {

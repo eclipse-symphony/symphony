@@ -58,7 +58,7 @@ type EvaluationContext struct {
 	Component      string
 	Value          interface{}
 	Namespace      string
-	ParentConfigs  map[string][]string
+	ParentConfigs  map[string]map[string]bool
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {
@@ -77,8 +77,8 @@ func HasCircularDependency(object string, field string, context EvaluationContex
 	if context.ParentConfigs == nil {
 		return false
 	}
-	for _, str := range context.ParentConfigs[field] {
-		if str == object {
+	if catalogFields, exist := context.ParentConfigs[object]; exist {
+		if catalogFields[field] {
 			return true
 		}
 	}
@@ -86,15 +86,31 @@ func HasCircularDependency(object string, field string, context EvaluationContex
 	return false
 }
 
-func AddConfigToDependencyList(object string, field string, context EvaluationContext) interface{} {
-	if context.ParentConfigs == nil {
-		context.ParentConfigs = make(map[string][]string)
+func UpdateDependencyList(object string, field string, dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		dependencyList = make(map[string]map[string]bool)
 	}
-	if _, ok := context.ParentConfigs[field]; !ok {
-		context.ParentConfigs[field] = []string{}
+	if _, ok := dependencyList[object]; !ok {
+		dependencyList[object] = make(map[string]bool)
 	}
-	context.ParentConfigs[field] = append(context.ParentConfigs[field], object)
-	return context
+	dependencyList[object][field] = true
+	return dependencyList
+}
+
+func DeepCopyDependencyList(dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		return nil
+	}
+
+	newMapConfigs := make(map[string]map[string]bool)
+	for key, innerMap := range dependencyList {
+		newInnerMap := make(map[string]bool)
+		for innerKey, value := range innerMap {
+			newInnerMap[innerKey] = value
+		}
+		newMapConfigs[key] = newInnerMap
+	}
+	return newMapConfigs
 }
 
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {

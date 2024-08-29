@@ -98,17 +98,6 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 		return "", err
 	}
 
-	// if the acuqired parent catalog is valid, need to check if parent involves circular dependency
-	if localcontext != nil {
-		if ctx, ok := localcontext.(coa_utils.EvaluationContext); ok {
-			if coa_utils.HasCircularDependency(override, field, ctx) {
-				clog.Errorf(" M (Catalog): unwind overrides detect circular dependency. Override: %v, field: %v, ", override, field)
-				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, override: %s, field: %s", override, field), v1alpha2.BadConfig)
-			}
-			localcontext = coa_utils.AddConfigToDependencyList(override, field, ctx)
-		}
-	}
-
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		if vstring, ok := v.(string); ok {
 			return vstring, nil
@@ -121,6 +110,7 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
+
 func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field string, localcontext interface{}) (interface{}, error) {
 	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
 		"method": "Read",
@@ -138,17 +128,19 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		// check circular dependency
+		var dependencyList map[string]map[string]bool = nil
 		if localcontext != nil {
-			if ctx, ok := localcontext.(coa_utils.EvaluationContext); ok {
-				if coa_utils.HasCircularDependency(object, field, ctx) {
+			if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
+				if coa_utils.HasCircularDependency(object, field, evalContext) {
 					clog.Errorf(" M (Catalog): Read detect circular dependency. Object: %v, field: %v, ", object, field)
 					return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
 				}
-				localcontext = coa_utils.AddConfigToDependencyList(object, field, ctx)
+				dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
+				dependencyList = coa_utils.UpdateDependencyList(object, field, dependencyList)
 			}
 		}
 
-		return m.traceValue(v, localcontext)
+		return m.traceValue(v, localcontext, dependencyList)
 	}
 
 	if catalog.Spec.ParentName != "" {
@@ -181,7 +173,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	}
 	ret := map[string]interface{}{}
 	for k, v := range catalog.Spec.Properties {
-		tv, err := m.traceValue(v, localcontext)
+		tv, err := m.traceValue(v, localcontext, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +192,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}) (interface{}, error) {
+func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
@@ -217,8 +209,8 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
-				if ltx.ParentConfigs != nil {
-					context.ParentConfigs = ltx.ParentConfigs
+				if dependencyList != nil {
+					context.ParentConfigs = coa_utils.DeepCopyDependencyList(dependencyList)
 				}
 			}
 		}
@@ -230,12 +222,12 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, localcontext)
+			return m.traceValue(v, localcontext, dependencyList)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, localcontext)
+			tv, err := m.traceValue(v, localcontext, dependencyList)
 			if err != nil {
 				return "", err
 			}
@@ -245,7 +237,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, localcontext)
+			tv, err := m.traceValue(v, localcontext, dependencyList)
 			if err != nil {
 				return "", err
 			}
