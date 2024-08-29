@@ -670,7 +670,10 @@ func TestHelmTargetProviderWithNegativeTimeout(t *testing.T) {
 }
 
 func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
+<<<<<<< HEAD
 	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
+=======
+>>>>>>> c1abc453 (add ut for timeout param)
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
 		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
