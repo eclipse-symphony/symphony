@@ -226,17 +226,30 @@ func (s *JobsManager) pollSchedules() []error {
 		entryData, _ := json.Marshal(entry.Body)
 		err = json.Unmarshal(entryData, &activationData)
 		if err != nil {
-			return []error{err}
+			// suppress the unmarshal error and proceed with other entries
+			// Maybe emit a metrics counter for this to indicate bad activationData?
+			log.ErrorfCtx(ctx, " M (Job): get bad ActivationData from state store")
+			continue
 		}
 		if activationData.Schedule != "" {
 			var fire bool
 			fire, err = activationData.ShouldFireNow()
 			if err != nil {
-				return []error{err}
+				// TODO: Remove the event from the state store directly?
+				log.ErrorfCtx(ctx, " M (Job): Unable to determine if schedule should fire for activation: %s", activationData.Activation)
+				continue
 			}
 			if fire {
+				// TODO: check if the activation is in paused state
+				//       if not paused, skip trigger event and delete scheduled event directly
+				log.InfofCtx(ctx, " M (Job): firing schedule %s", activationData.Activation)
 				activationData.Schedule = ""
-				err = s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
+				// trigger the activation first and then delete the schedule events in state store
+				s.Context.Publish("trigger", v1alpha2.Event{
+					Body:    activationData,
+					Context: ctx,
+				})
+				s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{
 						"namespace": activationData.Namespace,
@@ -245,13 +258,8 @@ func (s *JobsManager) pollSchedules() []error {
 						"resource":  Scheduled,
 					},
 				})
-				if err != nil {
-					return []error{err}
-				}
-				s.Context.Publish("trigger", v1alpha2.Event{
-					Body:    activationData,
-					Context: ctx,
-				})
+			} else {
+				log.DebugfCtx(ctx, " M (Job): activation %s is not firing", activationData.Activation)
 			}
 		}
 	}
@@ -282,7 +290,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 		namespace = "default"
 	}
 	// TODO: the heart beat data should contain a "finished" field so data can be cleared
-	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s, %v, %v", heartbeat.JobId, heartbeat.Action, heartbeat.JobAction)
+	log.DebugfCtx(ctx, " M (Job): handling heartbeat h_%s, %v, %v in namespace %s", heartbeat.JobId, heartbeat.Action, heartbeat.JobAction, namespace)
 	if heartbeat.JobAction == v1alpha2.JobUpdate {
 		log.DebugfCtx(ctx, " M (Job): update heartbeat h_%s", heartbeat.JobId)
 		_, err = s.VolatileStateProvider.Upsert(ctx, states.UpsertRequest{
@@ -335,14 +343,16 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 			log.ErrorfCtx(ctx, " M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}
-		log.DebugfCtx(ctx, " M (Job): heartbeat %s is not found, entry: %+v", key, entry)
+		log.DebugfCtx(ctx, " M (Job): heartbeat %s is not found", key)
 		return nil // no heartbeat
 	}
 	var heartbeat v1alpha2.HeartBeatData
 	jData, _ := json.Marshal(entry.Body)
 	err = json.Unmarshal(jData, &heartbeat)
 	if err != nil {
-		return err
+		// heartbeat in the state store cannot be parsed. Log error and act as no hearbeat
+		log.ErrorfCtx(ctx, " M (Job): error parsing heartbeat %s: %v", key, entry.Body)
+		return nil
 	}
 	if time.Since(heartbeat.Time) > time.Duration(60)*time.Second { //TODO: make this configurable
 		// heartbeat is too old
@@ -350,9 +360,11 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 	}
 
 	if job.Action == v1alpha2.JobDelete && heartbeat.Action == v1alpha2.HeartBeatUpdate {
+		log.InfofCtx(ctx, " M (Job): delete job is delayed for %s", job.Id)
 		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 		return err
 	}
+	log.InfofCtx(ctx, " M (Job): skip job %s as existing job in progress", job.Id)
 	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
 	return err
 }
@@ -368,7 +380,8 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 	jData, _ := json.Marshal(event.Body)
 	err = json.Unmarshal(jData, &activationData)
 	if err != nil {
-		return v1alpha2.NewCOAError(nil, "event body is not a activation data", v1alpha2.BadRequest)
+		log.ErrorfCtx(ctx, " M (Job): schedule event body is not an activation data: %v", event.Body)
+		return v1alpha2.NewCOAError(nil, "event body is not an activation data", v1alpha2.BadRequest)
 	}
 	key := fmt.Sprintf("sch_%s-%s", activationData.Campaign, activationData.Activation)
 	_, err = s.PersistentStateProvider.Upsert(ctx, states.UpsertRequest{
@@ -383,6 +396,9 @@ func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Ev
 			"resource":  Scheduled,
 		},
 	})
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Job): error upserting schedule %s: %s", key, err.Error())
+	}
 	return err
 }
 func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) error {
@@ -486,7 +502,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				} else {
 					err = s.apiClient.DeleteInstance(ctx, deployment.Instance.ObjectMeta.Name, namespace, s.user, s.password)
 					if err != nil {
-						log.Errorf(" M (Job): failed to delete instance %s: %s", instanceName, err.Error())
+						log.ErrorfCtx(ctx, " M (Job): failed to delete instance %s: %s", instanceName, err.Error())
 						return err
 					}
 					log.DebugfCtx(ctx, " M (Job): delete instance success state entry, instance: %s", instance.ObjectMeta.Name)
@@ -601,6 +617,8 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 		}
+	} else {
+		log.ErrorfCtx(ctx, " M (Job): handleJobEvent objectType not found in metadata: %v", event.Metadata)
 	}
 	return nil
 }
