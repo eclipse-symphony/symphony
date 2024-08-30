@@ -37,11 +37,12 @@ var (
 	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
 
-	diagnostic_01_WithoutEdgeLocation        = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
-	diagnostic_02_WithCorrectEdgeLocation    = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
-	diagnostic_03_WithConflictEdgeLocation   = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
-	diagnostic_04_WithCorrectEdgeLocation2   = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
-	diagnostic_05_UpdateEdgeLocationConflict = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
+	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
+	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
+	diagnostic_03_WithConflictEdgeLocation              = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
+	diagnostic_04_WithCorrectEdgeLocation2              = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
+	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
+	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
 )
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
@@ -273,6 +274,10 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateEdgeLocationConflict)).CombinedOutput()
 	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
 	assert.NotNil(t, err, "diagnostic update with conflict edge location should fail")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2)).CombinedOutput()
+	assert.Contains(t, string(output), "configured")
+	assert.Nil(t, err)
 }
 
 func getRepoPath() string {

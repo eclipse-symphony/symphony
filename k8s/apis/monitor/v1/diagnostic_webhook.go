@@ -150,7 +150,8 @@ func (r *Diagnostic) validateUniqueInEdgeLocations(ctx context.Context) *field.E
 	if err != nil {
 		return field.InternalError(nil, v1alpha2.NewCOAError(err, fmt.Sprintf("Failed to check uniqueness of diagnostic resource on edge location: %s", edgeLocation), v1alpha2.InternalError))
 	}
-	if existingResource != nil {
+	// if existing resource is not nil and the name is different, then it's a conflict
+	if existingResource != nil && existingResource.Name != r.Name {
 		return field.Invalid(field.NewPath("metadata.annotations").Child(constants.AzureEdgeLocationKey), edgeLocation, fmt.Sprintf("Diagnostic resource already exists for edge location: %s", edgeLocation))
 	}
 	return nil
