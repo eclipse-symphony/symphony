@@ -47,7 +47,9 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		s.TargetValidator = validation.NewTargetValidator(nil, s.targetUniqueNameLookup)
 	}
 	return nil
 }

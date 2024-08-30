@@ -45,7 +45,9 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, s.solutionLookup, s.targetLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, s.solutionLookup, s.targetLookup)
+		s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, nil, nil)
 	}
 	return nil
 }

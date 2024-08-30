@@ -45,7 +45,9 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
+		s.SolutionValidator = validation.NewSolutionValidator(nil, nil, s.uniqueNameSolutionLookup)
 	}
 	return nil
 }

@@ -52,7 +52,9 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		s.Validator = validation.NewActivationValidator(nil)
 	}
 	return nil
 }
