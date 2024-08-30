@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -132,7 +134,7 @@ func (r *Diagnostic) validateCreateOrUpdateImpl(ctx context.Context) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return allErrs.ToAggregate()
+	return apierrors.NewInvalid(schema.GroupKind{Group: "monitor.symphony", Kind: "Diagnostic"}, r.Name, allErrs)
 }
 
 // we need to ensure for one edge location, there's only one diagnostic resource in this namespace.
