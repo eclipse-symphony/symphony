@@ -14,6 +14,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -64,20 +65,25 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 			if err == nil {
 				name := fmt.Sprintf("%s-%s", origin, catalog.ObjectMeta.Name)
 				catalog.ObjectMeta.Name = name
+				catalog.Spec.RootResource = validation.GetRootResourceFromName(name)
 				if catalog.Spec.ParentName != "" {
 					catalog.Spec.ParentName = fmt.Sprintf("%s-%s", origin, catalog.Spec.ParentName)
 				}
-				err := e.CatalogsManager.UpsertState(context.TODO(), name, catalog)
+				ctx := context.TODO()
+				if event.Context != nil {
+					ctx = event.Context
+				}
+				err := e.CatalogsManager.UpsertState(ctx, name, catalog)
 				if err != nil {
-					return v1alpha2.NewCOAError(err, "failed to upsert catalog", v1alpha2.InternalError)
+					return err
 				}
 			} else {
 				iLog.Errorf("Failed to unmarshal job body: %v", err)
-				return err
+				return v1alpha2.NewCOAError(err, "failed to unmarshal job body", v1alpha2.BadConfig)
 			}
 		} else {
 			iLog.Errorf("Failed to unmarshal job data: %v", err)
-			return err
+			return v1alpha2.NewCOAError(err, "failed to unmarshal catalog state", v1alpha2.BadConfig)
 		}
 		return nil
 	})
@@ -123,7 +129,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onStatus, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onStatus, method: %s", string(request.Method))
 
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
@@ -181,7 +187,7 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCheck, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onCheck, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var catalog model.CatalogState
@@ -193,21 +199,14 @@ func (e *CatalogsVendor) onCheck(request v1alpha2.COARequest) v1alpha2.COARespon
 				Body:  []byte(err.Error()),
 			})
 		}
-		res, err := e.CatalogsManager.ValidateState(rCtx, catalog)
-		if err != nil {
+		errorFields := e.CatalogsManager.CatalogValidator.ValidateCreateOrUpdate(rCtx, catalog, nil)
+		if len(errorFields) > 0 {
+			errorMessage := validation.ConvertErrorFieldsToString(errorFields)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-		if !res.Valid {
-			jData, _ := utils.FormatObject(res.Errors, true, "", "")
-			resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
-				Body:        jData,
-				ContentType: "application/json",
+				Body:        []byte(errorMessage),
+				ContentType: "text/plain",
 			})
-			return resp
 		}
 		resp := observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
@@ -228,7 +227,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCatalogsGraph, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(rCtx, "V (Catalogs Vendor): onCatalogsGraph, method: %s", string(request.Method))
 	namespace, namesapceSupplied := request.Parameters["namespace"]
 	if !namesapceSupplied {
 		namespace = ""
@@ -292,7 +291,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	lLog.Infof("V (Catalogs Vendor): onCatalogs, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	lLog.InfofCtx(pCtx, "V (Catalogs Vendor): onCatalogs, method: %s", string(request.Method))
 
 	id := request.Parameters["__name"]
 	namespace, namesapceSupplied := request.Parameters["namespace"]

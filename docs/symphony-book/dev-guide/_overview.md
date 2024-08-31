@@ -29,14 +29,11 @@ The Symphony repo lacks automatic CI/CD pipelines, gated check-ins, and automate
 
 ## Write a provider
 
-A common task of extending Symphony is to write or modify a [provider](../providers/_overview.md), especially a [target provider](../providers/target_provider.md).
+A common task of extending Symphony is to write or modify a [provider](../providers/_overview.md), especially a [target provider](../providers/target-providers/target_provider.md). A target provider implements the [target provider interface](../providers/target-providers/provider_interface.md) and enables a toolchain to participate Symphony's state seeking process.
 
-A target provider implements the [target provider interface](../providers/provider_interface.md).
+Symphony is primarily built using the Go language, allowing you to write target providers directly in Go. Additionally, Symphony offers Rust language bindings, enabling the creation of target providers as Rust libraries. Beyond these options, Symphony supports script-based providers, which can be implemented using Shell scripts or PowerShell scripts. Lastly, the Symphony proxy provider allows external providers to be invoked via HTTPS or MQTT, giving you the flexibility to write your target provider in any programming language, such as Python.
 
-To create a new provider:
-
-1. Create a new folder under the `api/pkg/apis/v1alpha1/providers/target` folder (such as `myprovider`).
-2. Create two files under the new provider folder. One file contains the provider implementation (such as `myprovider.go`). And the other file contains unit tests for the provider (`myprovider_test.go`).
-    > **NOTE**: An easy way to get started with a provider is to copy an existing provider implementation and make modifications.
-3. Implement the target provider interface in your provider source code. Generally, a provider defines an associated configuration type, which will be injected to the provider instance during initialization.
-4. Implement relevant unit test cases.
+* [Write a target provider with Go](./go-provider.md)
+* [Write a target provider with Rust](./rust-provider.md)
+* Write a target provider with Shell script or PowerShell script
+* Write a proxy provider over HTTPS or MQTT with Python

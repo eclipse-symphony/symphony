@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/secret"
 	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	delaystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
@@ -20,6 +21,7 @@ import (
 	materialize "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
 	mockstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
 	patchstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/patch"
+	proxystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/proxy"
 	remotestage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
 	scriptstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/script"
 	waitstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
@@ -37,6 +39,7 @@ import (
 	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
@@ -170,6 +173,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.stage.proxy":
+		mProvider := &proxystage.ProxyStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.target.azure.iotedge":
 		mProvider := &iotedge.IoTEdgeTargetProvider{}
 		err = mProvider.Init(config)
@@ -178,6 +187,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.azure.adu":
 		mProvider := &adu.ADUTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.rust":
+		mProvider := &rust.RustTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -274,6 +289,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.secret.mock":
 		mProvider := &mocksecret.MockSecretProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.secret.k8s":
+		mProvider := &secret.K8sSecretProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -393,6 +414,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.target.k8s":
 					provider := &k8s.K8sTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.rust":
+					provider := &rust.RustTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
@@ -641,6 +670,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.stage.patch":
 					provider := &patchstage.PatchStageProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.stage.proxy":
+					provider := &proxystage.ProxyStageProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

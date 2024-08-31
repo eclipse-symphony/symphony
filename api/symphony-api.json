@@ -132,7 +132,7 @@
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true",
-              "RetentionInMinutes": "1440"
+              "RetentionDuration": "4320h"
             },
             "providers": {
               "k8s-state": {
@@ -607,6 +607,27 @@
               "graph": {
                 "type": "providers.graph.memory",
                 "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.bootstrap",
+        "route": "bootstrap",
+        "managers": [
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }

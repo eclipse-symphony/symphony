@@ -2,7 +2,7 @@
 
 _(last edit: 6/28/2023)_
 
-Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target_provider.md) to drive system states towards the desired state.
+Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target-providers/target_provider.md) to drive system states towards the desired state.
 
 Solution manager is the only stateful component in the Symphony system. When you scale out solution manager, you need to configure your solution manager instances to use a shared state store.
 

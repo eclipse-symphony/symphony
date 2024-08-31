@@ -154,7 +154,7 @@ func (n *UnaryNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 		}
 		return fmt.Sprintf("{%v}", val), nil
 	}
-	return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
+	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("operator '%s' is not allowed in this context", opNames[n.Op]), v1alpha2.BadConfig)
 }
 
 type BinaryNode struct {
@@ -393,7 +393,7 @@ func (n *BinaryNode) Eval(context utils.EvaluationContext) (interface{}, error) 
 		return fmt.Sprintf("%v%v", lv, rv), nil
 	}
 
-	return nil, fmt.Errorf("operator '%s' is not allowed in this context", opNames[n.Op])
+	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("operator '%s' is not allowed in this context", opNames[n.Op]), v1alpha2.BadConfig)
 }
 
 type FunctionNode struct {
@@ -405,13 +405,13 @@ func readProperty(properties map[string]string, key string) (string, error) {
 	if v, ok := properties[key]; ok {
 		return v, nil
 	}
-	return "", fmt.Errorf("property %s is not found", key)
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
 }
 func readPropertyInterface(properties map[string]interface{}, key string) (interface{}, error) {
 	if v, ok := properties[key]; ok {
 		return v, nil
 	}
-	return "", fmt.Errorf("property %s is not found", key)
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
 }
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 	components := deployment.Solution.Spec.Components
@@ -422,7 +422,7 @@ func readArgument(deployment model.DeploymentSpec, component string, key string)
 			}
 		}
 	}
-	return "", fmt.Errorf("parameter %s is not found on component %s", key, component)
+	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("parameter %s is not found on component %s", key, component), v1alpha2.BadConfig)
 }
 
 func toIntIfPossible(f float64) interface{} {
@@ -487,7 +487,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "param":
 		if len(n.Args) == 1 {
 			if context.Component == "" {
-				return nil, errors.New("a component name is needed to evaluate $param()")
+				return nil, v1alpha2.NewCOAError(nil, "a component name is needed to evaluate $param()", v1alpha2.BadConfig)
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -500,13 +500,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 				return argument, nil
 			}
-			return nil, errors.New("deployment spec is not found")
+			return nil, v1alpha2.NewCOAError(nil, "deployment spec is not found", v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$params() expects 1 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$params() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "property":
 		if len(n.Args) == 1 {
 			if context.Properties == nil || len(context.Properties) == 0 {
-				return nil, errors.New("a property collection is needed to evaluate $property()")
+				return nil, v1alpha2.NewCOAError(nil, "a property collection is needed to evaluate $property()", v1alpha2.BadConfig)
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
@@ -518,7 +518,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$property() expects 1 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$property() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "input":
 		if len(n.Args) == 1 {
 			if context.Inputs == nil || len(context.Inputs) == 0 {
@@ -534,7 +534,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$input() expects 1 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$input() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "output":
 		if len(n.Args) == 2 {
 			if context.Outputs == nil || len(context.Outputs) == 0 {
@@ -550,7 +550,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				return nil, err
 			}
 			if _, ok := context.Outputs[FormatAsString(step)]; !ok {
-				return nil, fmt.Errorf("step %s is not found in output collection", FormatAsString(step))
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("step %s is not found in output collection", FormatAsString(step)), v1alpha2.BadConfig)
 			}
 			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], FormatAsString(key))
 			if err != nil {
@@ -558,7 +558,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return property, nil
 		}
-		return nil, fmt.Errorf("$output() expects 2 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$output() expects 2 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -571,7 +571,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return compareInterfaces(v1, v2), nil
 		}
-		return nil, fmt.Errorf("$equal() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$equal() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "and":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -584,7 +584,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return andBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$and() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$and() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "or":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -597,7 +597,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return orBools(val1, val2)
 		}
-		return nil, fmt.Errorf("$or() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$or() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "not":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -606,7 +606,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return notBool(val)
 		}
-		return nil, fmt.Errorf("$not() expects 1 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$not() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "gt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -621,11 +621,11 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				if fVal2, ok2 := toNumber((val2)); ok2 {
 					return fVal1 > fVal2, nil
 				}
-				return nil, fmt.Errorf("%v is not a valid number", val2)
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val2), v1alpha2.BadConfig)
 			}
-			return nil, fmt.Errorf("%v is not a valid number", val1)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val1), v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$gt() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$gt() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "ge":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -640,11 +640,11 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				if fVal2, ok2 := toNumber((val2)); ok2 {
 					return fVal1 >= fVal2, nil
 				}
-				return nil, fmt.Errorf("%v is not a valid number", val2)
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val2), v1alpha2.BadConfig)
 			}
-			return nil, fmt.Errorf("%v is not a valid number", val1)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val1), v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$ge() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$ge() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "if":
 		if len(n.Args) == 3 {
 			cond, err := n.Args[0].Eval(context)
@@ -657,7 +657,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				return n.Args[2].Eval(context)
 			}
 		}
-		return nil, fmt.Errorf("$if() expects 3 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$if() expects 3 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "in":
 		if len(n.Args) >= 2 {
 			val, err := n.Args[0].Eval(context)
@@ -675,7 +675,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return false, nil
 		}
-		return nil, fmt.Errorf("$in() expects at least 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$in() expects at least 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "lt":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -690,11 +690,11 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				if fVal2, ok2 := toNumber((val2)); ok2 {
 					return fVal1 < fVal2, nil
 				}
-				return nil, fmt.Errorf("%v is not a valid number", val2)
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val2), v1alpha2.BadConfig)
 			}
-			return nil, fmt.Errorf("%v is not a valid number", val1)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val1), v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$lt() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$lt() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "between":
 		if len(n.Args) == 3 {
 			val1, err := n.Args[0].Eval(context)
@@ -714,13 +714,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 					if fVal3, ok2 := toNumber((val3)); ok2 {
 						return fVal1 >= fVal2 && fVal1 <= fVal3, nil
 					}
-					return nil, fmt.Errorf("%v is not a valid number", val3)
+					return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val3), v1alpha2.BadConfig)
 				}
-				return nil, fmt.Errorf("%v is not a valid number", val2)
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val2), v1alpha2.BadConfig)
 			}
-			return nil, fmt.Errorf("%v is not a valid number", val1)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val1), v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$le() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "le":
 		if len(n.Args) == 2 {
 			val1, err := n.Args[0].Eval(context)
@@ -735,11 +735,11 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				if fVal2, ok2 := toNumber((val2)); ok2 {
 					return fVal1 <= fVal2, nil
 				}
-				return nil, fmt.Errorf("%v is not a valid number", val2)
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val2), v1alpha2.BadConfig)
 			}
-			return nil, fmt.Errorf("%v is not a valid number", val1)
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a valid number", val1), v1alpha2.BadConfig)
 		}
-		return nil, fmt.Errorf("$le() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$le() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "config":
 		if len(n.Args) >= 2 {
 			if context.ConfigProvider == nil {
@@ -767,7 +767,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 
 			return context.ConfigProvider.Get(FormatAsString(obj), FormatAsString(field), overlays, context)
 		}
-		return nil, fmt.Errorf("$config() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$config() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "secret":
 		if len(n.Args) == 2 {
 			if context.SecretProvider == nil {
@@ -781,9 +781,9 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field))
+			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field), context)
 		}
-		return nil, fmt.Errorf("$secret() expects 2 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$secret() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "instance":
 		if len(n.Args) == 0 {
 			if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
@@ -791,7 +791,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return nil, errors.New("deployment spec is not found")
 		}
-		return nil, fmt.Errorf("$instance() expects 0 arguments, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$instance() expects 0 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "val", "context":
 		if len(n.Args) == 0 {
 			return context.Value, nil
@@ -813,14 +813,14 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 					if v, ok := mobj[path]; ok {
 						return v, nil
 					} else {
-						return nil, fmt.Errorf("key %s is not found in context value", path)
+						return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("key %s is not found in context value", path), v1alpha2.BadConfig)
 					}
 				} else {
-					return nil, fmt.Errorf("context value '%v' is not a map", context.Value)
+					return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("context value '%v' is not a map", context.Value), v1alpha2.BadConfig)
 				}
 			}
 		}
-		return nil, fmt.Errorf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "json":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -833,9 +833,9 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 			return string(jData), nil
 		}
-		return nil, fmt.Errorf("$json() expects 1 argument, fount %d", len(n.Args))
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$json() expects 1 argument, fount %d", len(n.Args)), v1alpha2.BadConfig)
 	}
-	return nil, fmt.Errorf("invalid function name: '%s'", n.Name)
+	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid function name: '%s'", n.Name), v1alpha2.BadConfig)
 }
 
 type Parser struct {
@@ -1039,7 +1039,7 @@ func (p *ExpressionParser) match(t Token) error {
 	if p.token == t {
 		p.next()
 	} else {
-		return fmt.Errorf("expected %T, got %s", t, p.text)
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("expected %T, got %s", t, p.text), v1alpha2.BadConfig)
 	}
 	return nil
 }
@@ -1257,7 +1257,7 @@ func (p *ExpressionParser) function() (Node, error) {
 			return nil, err
 		}
 		if _, ok := node.(*NullNode); ok {
-			return nil, fmt.Errorf("invalid argument")
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid argument"), v1alpha2.BadConfig)
 		}
 		args = append(args, node)
 		if p.token == COMMA {
@@ -1282,7 +1282,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 			if val != nil {
 				metadata, ok := val.(map[string]string)
 				if !ok {
-					return deploymentSpec, fmt.Errorf("metadata must be a map")
+					return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("metadata must be a map"), v1alpha2.BadConfig)
 				}
 				stringMap := make(map[string]string)
 				for k, v := range metadata {
@@ -1297,7 +1297,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 			}
 			props, ok := val.(map[string]interface{})
 			if !ok {
-				return deploymentSpec, fmt.Errorf("properties must be a map")
+				return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("properties must be a map"), v1alpha2.BadConfig)
 			}
 			deploymentSpec.Solution.Spec.Components[ic].Properties = props
 		}
@@ -1333,24 +1333,24 @@ func andBools(a, b interface{}) (bool, error) {
 		if bBool, ok := toBool(b); ok {
 			return aBool && bBool, nil
 		}
-		return false, fmt.Errorf("%v is not a boolean value", b)
+		return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a boolean value", b), v1alpha2.BadConfig)
 	}
-	return false, fmt.Errorf("%v is not a boolean value", a)
+	return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a boolean value", a), v1alpha2.BadConfig)
 }
 func orBools(a, b interface{}) (bool, error) {
 	if aBool, ok := toBool(a); ok {
 		if bBool, ok := toBool(b); ok {
 			return aBool || bBool, nil
 		}
-		return false, fmt.Errorf("%v is not a boolean value", b)
+		return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a boolean value", b), v1alpha2.BadConfig)
 	}
-	return false, fmt.Errorf("%v is not a boolean value", a)
+	return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a boolean value", a), v1alpha2.BadConfig)
 }
 func notBool(a interface{}) (bool, error) {
 	if aBool, ok := toBool(a); ok {
 		return !aBool, nil
 	}
-	return false, fmt.Errorf("%v is not a boolean value", a)
+	return false, v1alpha2.NewCOAError(nil, fmt.Sprintf("%v is not a boolean value", a), v1alpha2.BadConfig)
 }
 func toBool(val interface{}) (bool, bool) {
 	switch val := val.(type) {

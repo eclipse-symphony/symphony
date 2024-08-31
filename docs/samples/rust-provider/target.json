@@ -1,0 +1,31 @@
+{
+    "metadata": {
+        "name": "rust-test-target"
+    },
+    "spec": {
+        "forceRedeploy": true,
+        "components": [
+            {
+                "name": "mock",
+                "properties": {
+                    "foo": "bar"
+                }
+            }
+        ],
+        "topologies": [
+            {
+                "bindings": [
+                    {
+                        "role": "instance",
+                        "provider": "providers.target.rust",
+                        "config": {
+                            "name": "rust-lib",
+                            "libFile": "pkg/apis/v1alpha1/providers/target/rust/target/release/libmock.so",
+                            "libHash": "<hash>"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

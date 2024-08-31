@@ -33,11 +33,6 @@ jobs:
       - name: Print branch name
         run: echo ${{ steps.extract_branch.outputs.branch }}
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y make gcc
-          sudo snap install yq
-
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -60,7 +55,33 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.22.3  # Replace with your desired Go version
+          go-version: 1.22.4  # Replace with your desired Go version
+
+      - name: Install dependencies
+        run: |
+           sudo apt-get update && sudo apt-get install -y \
+           gcc g++ make curl wget git \
+           llvm clang \
+           zlib1g-dev libcurl4-openssl-dev \
+           libxml2-dev uuid-dev \
+           gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+           libssl-dev pkg-config mingw-w64
+           sudo snap install yq
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install Rust targets
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          rustup target add armv7-unknown-linux-gnueabihf
+          rustup target add x86_64-pc-windows-gnu
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-unknown-linux-gnu
 
       - name: Install Kubebuilder
         run: |
@@ -86,7 +107,10 @@ jobs:
           new_version="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
-
+      - name: Build Rust bindings
+        run: |
+          cd api/pkg/apis/v1alpha1/providers/target/rust
+          cargo build --release          
       - name: Build Symphony Api
         run: |
           cd api
@@ -161,7 +185,7 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
-          branch: ${{ steps.extract_branch.outputs.branch }}
+          branch: experimental
 
       - name: Create Release
         id: create_release

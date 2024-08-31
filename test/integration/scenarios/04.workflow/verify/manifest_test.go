@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -18,11 +20,18 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+)
+
+var (
+	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
+
+	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
 )
 
 // Verify catalog created
@@ -140,6 +149,27 @@ func TestBasic_ActivationStatus(t *testing.T) {
 		status := state.Status.Status
 		fmt.Printf("Current activation status: %s\n", status)
 		if status == v1alpha2.Done {
+			require.Equal(t, 3, len(state.Status.StageHistory))
+			require.Equal(t, "wait", state.Status.StageHistory[0].Stage)
+			require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
+			require.Equal(t, []interface{}{"sitecatalog:v1", "siteapp:v1", "sitek8starget:v1", "siteinstance:v1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
+			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
+			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
+			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
+			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
+			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -481,4 +511,23 @@ func getAnnotations(resource unstructured.Unstructured) string {
 	} else {
 		return "nolabel"
 	}
+}
+
+func TestFaultScenario(t *testing.T) {
+	repoPath := os.Getenv("REPO_PATH")
+	if repoPath == "" {
+		repoPath = "../../../../../"
+	}
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+	CampaignNotExistActivationAbs := filepath.Join(repoPath, CampaignNotExistActivation)
+	output, err := exec.Command("kubectl", "apply", "-f", CampaignNotExistActivationAbs, "-n", namespace).CombinedOutput()
+	assert.Contains(t, string(output), "campaign reference must be a valid Campaign object in the same namespace")
+	assert.NotNil(t, err, "fault test failed for non-existing campaign")
+	WithStageActivationAbs := filepath.Join(repoPath, WithStageActivation)
+	output, err = exec.Command("kubectl", "apply", "-f", WithStageActivationAbs, "-n", namespace).CombinedOutput()
+	assert.Contains(t, string(output), "spec is immutable: stage doesn't match")
+	assert.NotNil(t, err, "fault test failed for non-existing campaign")
 }

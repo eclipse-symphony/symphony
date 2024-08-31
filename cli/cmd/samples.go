@@ -149,7 +149,7 @@ var DescribeCmd = &cobra.Command{
 	},
 }
 
-var RunCmd = &cobra.Command{
+var SampleRunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "run a Symphony sample",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -338,14 +338,14 @@ var RemoveCmd = &cobra.Command{
 }
 
 func init() {
-	RunCmd.Flags().StringArrayVarP(&setSwitches, "set", "s", nil, "set sample parameter as key=value")
-	RunCmd.Flags().StringVarP(&sampleConfigFile, "config", "c", "", "Maestro CLI config file")
-	RunCmd.Flags().StringVarP(&sampleConfigContext, "context", "", "", "Maestro CLI configuration context")
+	SampleRunCmd.Flags().StringArrayVarP(&setSwitches, "set", "s", nil, "set sample parameter as key=value")
+	SampleRunCmd.Flags().StringVarP(&sampleConfigFile, "config", "c", "", "Maestro CLI config file")
+	SampleRunCmd.Flags().StringVarP(&sampleConfigContext, "context", "", "", "Maestro CLI configuration context")
 	RemoveCmd.Flags().StringVarP(&sampleConfigFile, "config", "c", "", "Maestro CLI config file")
 	RemoveCmd.Flags().StringVarP(&sampleConfigContext, "context", "", "", "Maestro CLI configuration context")
 	DescribeCmd.Flags().StringVarP(&sampleConfigFile, "config", "c", "", "Maestro CLI config file")
 	DescribeCmd.Flags().StringVarP(&sampleConfigContext, "context", "", "", "Maestro CLI configuration context")
-	SamplesCmd.AddCommand(RunCmd)
+	SamplesCmd.AddCommand(SampleRunCmd)
 	SamplesCmd.AddCommand(RemoveCmd)
 	SamplesCmd.AddCommand(DescribeCmd)
 	SamplesCmd.AddCommand(ListCmd)

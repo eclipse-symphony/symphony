@@ -15,4 +15,4 @@ spec:
   stages:
     mock:
       name: "mock"
-      provider: "providers.stage.mock"  
+      provider: "providers.stage.mock"      

@@ -162,6 +162,9 @@ echo "$output_results" > ${deployment%.*}-output.${deployment##*.}
 
 ```
 
+
+Find full scenarios at [this location](../../../samples/script-provider/solution.yaml)
+
 ### Remove script
 
 The remove script reads component assignments and removes the components from the target.

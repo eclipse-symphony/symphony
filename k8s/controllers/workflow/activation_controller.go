@@ -12,18 +12,22 @@ import (
 	"fmt"
 	"strconv"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
+	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ActivationReconciler reconciles a Campaign object
+
 type ActivationReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
@@ -59,12 +63,16 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info(fmt.Sprintf("Activation status: %v", activation.Status.Status))
-		if !activation.Status.IsActive && activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
+		if activation.Status.UpdateTime == "" && activation.ObjectMeta.Labels[api_constants.StatusMessage] == "" &&
+			activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
+			resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
+			operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
+			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, activation.Annotations, operationName, ctx, log)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
 				Activation:           activation.Name,
 				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
-				Stage:                "",
+				Stage:                activation.Spec.Stage,
 				Inputs:               convertRawExtensionToMap(&activation.Spec.Inputs),
 				Namespace:            activation.Namespace,
 			}, "", "")

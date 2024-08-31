@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
+	SymphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
@@ -74,12 +74,12 @@ func GetApiClient() (*apiClient, error) {
 	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
 		client, ok := value.(*apiClient)
 		if !ok {
-			log.Infof("Symphony base url apiclient is broken. Recreating it.")
+			log.Info("Symphony base url apiclient is broken. Recreating it.")
 		} else {
 			return client, nil
 		}
 	}
-	log.Infof("Creating the symphony base url apiclient.")
+	log.Info("Creating the symphony base url apiclient.")
 	client, err := getApiClient()
 	if err != nil {
 		log.Errorf("Failed to create the apiclient: %+v", err.Error())
@@ -190,7 +190,7 @@ func GetSites(context context.Context, baseUrl string, user string, password str
 
 	return ret, nil
 }
-func SyncActivationStatus(context context.Context, baseUrl string, user string, password string, status model.ActivationStatus) error {
+func SyncStageStatus(context context.Context, baseUrl string, user string, password string, status model.StageStatus) error {
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
@@ -310,6 +310,25 @@ func PublishActivationEvent(context context.Context, baseUrl string, user string
 	}
 
 	return nil
+}
+func CallRemoteProcessor(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) (model.ActivationStatus, error) {
+	ret := model.ActivationStatus{}
+	token, err := auth(context, baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+	event.Proxy = nil
+	jData, _ := json.Marshal(event)
+	response, err := callRestAPI(context, baseUrl, "processor", "POST", jData, token)
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
 }
 func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
 	ret := model.SyncPackage{}
@@ -642,7 +661,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			targetName := ReplaceSeperator(instance.Spec.Target.Name)
+			targetName := ConvertReferenceToObjectName(instance.Spec.Target.Name)
 			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
@@ -821,7 +840,7 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 		}
 	}
 
-	log.Infof("Summary result: %s", string(ret))
+	log.InfofCtx(context, "Summary result: %s", string(ret))
 
 	return result, nil
 }
@@ -897,29 +916,30 @@ func auth(context context.Context, baseUrl string, user string, password string)
 
 	return response.AccessToken, nil
 }
-func callRestAPI(context context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
-	context, span := observability.StartSpan("Symphony-API-Client", context, &map[string]string{
+func callRestAPI(ctx context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,
 		"http.url":    baseUrl + route,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Infof("Calling Symphony API: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Calling Symphony API: %s %s", method, baseUrl+route)
 
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
 	if payload != nil {
-		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, bytes.NewBuffer(payload))
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, nil)
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
@@ -952,7 +972,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		return nil, err
 	}
 	err = nil
-	log.Infof("Symphony API succeeded: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Symphony API succeeded: %s %s", method, baseUrl+route)
 
 	return bodyBytes, nil
 }

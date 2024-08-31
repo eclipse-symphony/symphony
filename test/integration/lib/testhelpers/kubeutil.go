@@ -8,10 +8,14 @@
 package testhelpers
 
 import (
+	"context"
 	"flag"
 	"path/filepath"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -64,4 +68,32 @@ func RestConfig() (*rest.Config, error) {
 	}
 
 	return configInst, nil
+}
+
+// Ensures that the namespace exists. If it does not exist, it creates it.
+func EnsureNamespace(namespace string) error {
+	kubeClient, err := KubeClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err == nil {
+		return nil
+	}
+
+	if kerrors.IsNotFound(err) {
+		_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+
+	return nil
 }

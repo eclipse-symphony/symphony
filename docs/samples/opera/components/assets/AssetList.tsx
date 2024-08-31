@@ -1,5 +1,6 @@
 import { CatalogState } from '../../app/types';
 import AssetCard from './AssetCard';
+
 interface AssetListProps {
     catalogs: CatalogState[];
 }
@@ -26,4 +27,5 @@ function AssetList({ catalogs }: AssetListProps) {
         </div>
     );
 }
+
 export default AssetList;

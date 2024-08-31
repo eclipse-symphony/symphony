@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -23,7 +25,9 @@ import (
 
 type CampaignsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	CampaignValidator validation.CampaignValidator
 }
 
 func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -37,6 +41,10 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		s.CampaignValidator = validation.NewCampaignValidator(s.CampaignContainerLookup, s.CampaignActivationsLookup)
+	}
 	return nil
 }
 
@@ -47,6 +55,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -90,11 +99,24 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+		}
+		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -125,6 +147,13 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if m.needValidate {
+		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -145,6 +174,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -170,4 +200,26 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		ret = append(ret, rt)
 	}
 	return ret, nil
+}
+
+func (t *CampaignsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CampaignState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CampaignValidator, state, old, err)
+}
+
+func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return validation.ValidateDeleteWrapper(ctx, &t.CampaignValidator, state, err)
+}
+
+func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.CampaignContainer, name, namespace)
+}
+
+func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(activationList) > 0, nil
 }

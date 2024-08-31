@@ -122,6 +122,19 @@ type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type ProxyConfigSpec struct {
+	BaseUrl  string `json:"baseUrl,omitempty"`
+	User     string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ProxySpec struct {
+	Provider string          `json:"provider,omitempty"`
+	Config   ProxyConfigSpec `json:"config,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type StageSpec struct {
 	Name     string `json:"name,omitempty"`
 	Contexts string `json:"contexts,omitempty"`

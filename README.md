@@ -5,6 +5,10 @@
 
 _(last edit: 02/02/2024)_
 
+### ⚠️⚠️⚠️ This branch hosts experimental features. The Symphony community does not guarantee long-term support for these features. Their incorporation into the main branch is not assured, and they may be deprecated or removed at any time without notice. For more details, please see [Experimental Feature Table](./experimental-features.md)⚠️⚠️⚠️
+
+
+
 Symphony is a powerful service orchestration engine that enables the organization of multiple intelligent edge services into a seamless, end-to-end experience. Its primary purpose is to address the inherent complexity of edge deployment by providing a set of technology-agnostic workflow APIs, which are designed to deliver a streamlined experience for users across all device profiles.
 
 Symphony is uniquely capable of providing consistency across the entire software stack, from drivers to containers to configurations and policies. This comprehensive approach ensures that all aspects of your intelligent edge projects are effectively managed and optimized. Moreover, Symphony provides full support for the entire lifecycle of your edge computing initiatives, spanning from the initial deployment to ongoing updates and maintenance.
@@ -41,11 +45,11 @@ There are several ways to get started with Symphony, including using the CLI too
 The easiest way to get started with Symphony is by using Symphony's CLI tool, called maestro. The CLI tool can be installed on **Linux**, **WSL**, and **Mac** using the following command:
 
 ```Bash
-wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.sh -O - | /bin/bash
+wget -q https://raw.githubusercontent.com/eclipse-symphony/symphony/experimental/cli/install/install.sh -O - | /bin/bash
 ```
 For **Windows**, the following PowerShell command can be used:
 ```PowerShell
-powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/master/cli/install/install.ps1 | iex"
+powershell -Command "iwr -useb https://raw.githubusercontent.com/eclipse-symphony/symphony/experimental/cli/install/install.ps1 | iex"
 ```
 After Symphony is installed, you can use `maestro` to try out sample scenarios.
 
@@ -56,14 +60,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.47.2'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.48.28'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
-You can also install Symphony using Docker by running the following command:
+You can also install Symphony using Docker with the bundled `symphony-api.json` or volume mounting your own & injecting its reference via `CONFIG` env:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 ghcr.io/eclipse-symphony/symphony-api:0.47.1
+docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:

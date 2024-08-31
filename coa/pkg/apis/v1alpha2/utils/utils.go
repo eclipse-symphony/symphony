@@ -50,7 +50,7 @@ func ParseProperty(val string) string {
 
 type EvaluationContext struct {
 	ConfigProvider config.IExtConfigProvider
-	SecretProvider secret.ISecretProvider
+	SecretProvider secret.IExtSecretProvider
 	DeploymentSpec interface{}
 	Properties     map[string]string
 	Inputs         map[string]interface{}
@@ -148,4 +148,8 @@ func FormatAsString(val interface{}) string {
 	default:
 		return fmt.Sprintf("%v", tv)
 	}
+}
+
+func ConvertStringToValidLabel(s string) string {
+	return strings.ReplaceAll(s, " ", "")
 }

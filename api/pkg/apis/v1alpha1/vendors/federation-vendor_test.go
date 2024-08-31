@@ -9,6 +9,7 @@ import (
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -231,7 +232,7 @@ func TestFederationOnStatus(t *testing.T) {
 func TestFederationOnSyncPost(t *testing.T) {
 	vendor := federationVendorInit()
 
-	activationStatus := model.ActivationStatus{
+	stageStatus := model.StageStatus{
 		Stage:     "exampleStage",
 		NextStage: "exampleNextStage",
 		Inputs: map[string]interface{}{
@@ -242,11 +243,9 @@ func TestFederationOnSyncPost(t *testing.T) {
 			"output1": "value1",
 			"output2": "value2",
 		},
-		Status:               v1alpha2.OK,
-		StatusMessage:        v1alpha2.OK.String(),
-		IsActive:             true,
-		ActivationGeneration: "1",
-		UpdateTime:           "exampleUpdateTime",
+		Status:        v1alpha2.OK,
+		StatusMessage: v1alpha2.OK.String(),
+		IsActive:      true,
 	}
 	// vendor.Context.PubsubProvider.Publish("report", v1alpha2.Event{
 	// 	Metadata: map[string]string{
@@ -265,7 +264,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 	// 	Body: activationStatus,
 	// })
 
-	b, err := json.Marshal(activationStatus)
+	b, err := json.Marshal(stageStatus)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -276,10 +275,10 @@ func TestFederationOnSyncPost(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, response.State)
 	vendor.Context.PubsubProvider.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
 		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
+		var status model.StageStatus
 		err := json.Unmarshal(jData, &status)
 		assert.Nil(t, err)
-		assert.Equal(t, activationStatus.Stage, status.Stage)
+		assert.Equal(t, stageStatus.Stage, status.Stage)
 		return nil
 	})
 
@@ -297,7 +296,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 
 func TestFederationOnSyncGet(t *testing.T) {
 	vendor := federationVendorInit()
-
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	SiteSpec.Name = "test1"
 	b, err := json.Marshal(SiteSpec)
 	assert.Nil(t, err)
@@ -349,7 +348,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1",
+			Id:     "catalog1-v-v1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
@@ -372,7 +371,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 
 	var catalogState = model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name: "catalog1",
+			Name: "catalog1-v-v1",
 		},
 		Spec: &model.CatalogSpec{
 			CatalogType: "catalog",
@@ -380,11 +379,12 @@ func TestFederationOnSyncGet(t *testing.T) {
 				"property1": "value1",
 				"property2": "value2",
 			},
-			ParentName: "parent1",
+			// ParentName: "parent1",
 			Metadata: map[string]string{
 				"metadata1": "value1",
 				"metadata2": "value2",
 			},
+			RootResource: "catalog1",
 		},
 	}
 	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
@@ -394,7 +394,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1",
+			Id:     "catalog1-v-v1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})

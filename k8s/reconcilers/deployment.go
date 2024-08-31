@@ -16,6 +16,7 @@ import (
 	"time"
 
 	k8smodel "gopls-workspace/apis/model/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/utils"
@@ -128,8 +129,23 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	return
 }
 
+func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, log logr.Logger) context.Context {
+	log.Info("Populating diagnostics and activities from annotations")
+	if object == nil {
+		return ctx
+	}
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		return ctx
+	}
+	resourceK8SId := object.GetNamespace() + "/" + object.GetName()
+	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, annotations, operationName, ctx, log)
+}
+
 // attemptUpdate attempts to update the instance
-func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string) (metrics.OperationStatus, reconcile.Result, error) {
+func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// populate diagnostics and activities from annotations
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		controllerutil.AddFinalizer(object, r.finalizerName)
 		// updates the object in Kubernetes cluster
@@ -248,7 +264,8 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 }
 
 // attemptRemove attempts to remove the object
-func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string) (metrics.OperationStatus, reconcile.Result, error) {
+func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
 	status := metrics.StatusNoOp
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		return metrics.StatusNoOp, ctrl.Result{}, nil
@@ -328,6 +345,13 @@ func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconci
 		if object.GetStatus().ProvisioningStatus.Status == string(utilsmodel.ProvisioningStatusFailed) {
 			r.delayFunc(r.deleteSyncDelay)
 		}
+
+		// TODO: handle crash consistency that finalizer removal fails
+		err = r.deleteDeploymentSummary(ctx, object)
+		if err != nil {
+			return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
+		}
+
 		if err := r.concludeDeletion(ctx, object); err != nil {
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
@@ -451,10 +475,14 @@ func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object 
 	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
 }
 
+func (r *DeploymentReconciler) deleteDeploymentSummary(ctx context.Context, object Reconcilable) error {
+	return r.apiClient.DeleteSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
+}
+
 func (r *DeploymentReconciler) updateCorrelationIdMetaData(ctx context.Context, object Reconcilable, operationStartTimeKey string) error {
 	correlationId := uuid.New()
 	r.patchOperationStartTime(object, operationStartTimeKey)
-	object.GetAnnotations()[constants.AzureCorrelationId] = correlationId.String()
+	object.GetAnnotations()[constants.AzureCorrelationIdKey] = correlationId.String()
 	if err := r.kubeClient.Update(ctx, object); err != nil {
 		return err
 	}

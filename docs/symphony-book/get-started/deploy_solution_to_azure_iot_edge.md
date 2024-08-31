@@ -41,7 +41,7 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
   --resource-group <REPLACE_WITH_GROUP_NAME> \
   --template-uri "https://raw.githubusercontent.com/Azure/iotedge-vm-deploy/1.4/edgeDeploy.json" \
   --parameters dnsLabelPrefix='s8c-vm' \
-  --parameters adminUsername='hbai' \
+  --parameters adminUsername=<USER_NAME> \
   --parameters deviceConnectionString=$(az iot hub device-identity connection-string show --device-id s8c-vm --hub-name <REPLACE_WITH_HUB_NAME> -o tsv) \
   --parameters authenticationType='password' \
   --parameters adminPasswordOrKey="<REPLACE_WITH_PASSWORD>"
@@ -51,10 +51,13 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
 
   ```bash
   # create vm
-  az vm create --resource-group <REPLACE_WITH_GROUP_NAME> --name s8c-vm --image UbuntuLTS --admin-username hbai --generate-ssh-keys --size Standard_D2s_v5
+  az vm create --resource-group <REPLACE_WITH_GROUP_NAME> --name s8c-vm --image UbuntuLTS --admin-username <USER_NAME> --generate-ssh-keys --size Standard_D2s_v5
 
   # SSH into the machine
-  ssh hbai@<public IP of your VM>
+  ssh <USER_NAME>@<public IP of your VM>
+  
+  # if the VM requires a private key:
+  ssh -i ~/.ssh/id_rsa.pem <YOUR_USER_NAME>@<public IP of your VM>
 
   # update repo and signing key
   wget https://packages.microsoft.com/config/ubuntu/18.04/multiarch/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -73,6 +76,59 @@ You need to prepare a Linux virtual machine or physical device for IoT Edge. In 
   sudo iotedge config mp --connection-string '<REPLACE_WITH_DEVICE_CONNECTION_STRING>'
   ```
 
+**Note**
+If you encounter below package dependency error during installing `aziot-edge`:
+```
+The following packages have unmet dependencies:
+ aziot-identity-service : Depends: libssl1.1 (>= 1.1.1) but it is not installable
+```
+
+This is because Ubuntu 22.04 uses `libssl3` and `libssl1.1` is deprecated on it. To address the issue, check the latest versions for Edge and IoT Identity Service and install them from the release page.
+
+```shell
+# check the latest aziot-edge version
+wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-versions.json | jq -r '
+  .channels[]
+  | select(.name == "stable").products[]
+  | select(.id == "aziot-edge").components[]
+  | select(.name == "aziot-edge").version
+'
+# result: <AZIOT_EDGE_VERSION>
+
+# check the latest aziot-identity-service version
+wget -qO- https://raw.githubusercontent.com/Azure/azure-iotedge/main/product-versions.json | jq -r '
+  .channels[]
+  | select(.name == "stable").products[]
+  | select(.id == "aziot-edge").components[]
+  | select(.name == "aziot-identity-service").version
+'
+# result: <AZIOT_IDENTITY_SERVICE_VERSION>
+
+# download and install
+wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-edge_<AZIOT_EDGE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-edge.deb
+sudo dpkg -i aziot-edge.deb
+
+wget https://github.com/Azure/azure-iotedge/releases/download/<AZIOT_EDGE_VERSION>/aziot-identity-service_<AZIOT_IDENTITY_SERVICE_VERSION>-1_ubuntu22.04_amd64.deb -O aziot-identity-service.deb
+sudo dpkg -i aziot-identity-service.deb
+```
+
+### 3. Deploy modules on your IoT Edge device
+
+To deploy your IoT Edge modules, go to your IoT hub in the Azure portal, then:
+
+1. Select Devices from the IoT Hub menu.
+
+2. Select your device to open its page.
+
+3. Select the Set Modules tab.
+
+4. Select Review + create at the bottom.
+
+5. Select Create to deploy the modules.
+
+When the module setup completes, you should see two modules in the list: `$edgeAgent` and `$edgeHub`.
+For more information, please refer to [Create and provision an IoT Edge device on Linux using symmetric keys](https://learn.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-1.5&tabs=azure-cli%2Cubuntu).
+
 ## OPTION 1: Use Maestro
 
 To use this option, first install Maestro and the Symphony API. For more information, see [Use Symphony with the Maestro CLI tool](./quick_start_maestro.md).
@@ -80,13 +136,27 @@ To use this option, first install Maestro and the Symphony API. For more informa
 Once you have maestro installed, you can launch this sample with the following command:
 
 ```bash
-maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HUB_NAME> --set device-name=s8c-vm
+maestro samples run hello-iot-edge --set iot-hub-key=<REPLACE_WITH_HUB_KEY> --set iot-hub-name=<REPLACE_WITH_HOST_NAME> --set device-name=s8c-vm
 ```
 
-You can get your IoT hub key from the connection string:
+You can get your IoT host name, hub key and key name from the connection string:
 
 ```bash
 az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
+# sample output:
+# {
+#  "connectionString": "HostName=<HOST_NAME>;SharedAccessKeyName=<HUB_KEY_NAME>;SharedAccessKey=<HUB_KEY>"
+# }
+```
+
+Make sure to set the `iot-hub-name` to the complete host name. Otherwise, the iot-edge API may not acuqire the module information correctly.
+
+If the sample runs successfully, you should see two instances running:
+```bash
+$ kubectl get instances
+NAME                         STATUS      TARGETS   DEPLOYED
+sample-iot-edge-instance-1   Succeeded   1         1
+sample-iot-edge-instance-2   Succeeded   1         1
 ```
 
 To clean up, use:
@@ -128,7 +198,7 @@ spec:
         deviceName: "s8c-vm"
 ```
 
-You can get your IoT hub's key and key name from the connection string:
+You can get your IoT hub's host name, hub key and key name from the connection string:
 
 ```bash
 az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
