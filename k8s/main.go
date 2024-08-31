@@ -34,6 +34,7 @@ import (
 
 	aiv1 "gopls-workspace/apis/ai/v1"
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/dynamicclient"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	federationv1 "gopls-workspace/apis/federation/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
@@ -123,7 +124,6 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	var configFile string
 	var pollIntervalString string
 	var reconcileIntervalString string
 	var deleteTimeOutString string
@@ -140,9 +140,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&configFile, "config", "", "The controller will laod its initial configuration from this file. "+
-		"Omit this flag to use the default configuration value. "+
-		"Command-line flags override configuration from this file.")
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
@@ -204,21 +201,12 @@ func main() {
 	}
 
 	ctx := ctrl.SetupSignalHandler()
-	ctrlConfig := configv1.ProjectConfig{}
+
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "33405cb8.symphony",
-	}
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
-		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
-		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
@@ -379,6 +367,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !disableWebhooksServer {
+		dynamicclient.SetClient(mgr.GetConfig())
 		if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Device")
 			os.Exit(1)

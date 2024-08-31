@@ -281,6 +281,11 @@ func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace str
 	return summary.(*model.SummaryResult), args.Error(1)
 }
 
+// DeleteSummary implements ApiClient.
+func (c *MockApiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	return nil
+}
+
 // QueueDeploymentJob implements utils.ApiClient.
 func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {
 	args := c.Called(ctx, namespace, isDelete, deployment)

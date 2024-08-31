@@ -202,7 +202,39 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	return result, nil
 }
 
-func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespace string) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "DeleteSummary",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, " M (Solution): delete summary, key: %s, namespace: %s", key, namespace)
+
+	err = s.StateProvider.Delete(ctx, states.DeleteRequest{
+		ID: fmt.Sprintf("%s-%s", "summary", key),
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
+		},
+	})
+
+	if err != nil {
+		if v1alpha2.IsNotFound(err) {
+			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
+			return nil
+		}
+		log.ErrorfCtx(ctx, " M (Solution): failed to get summary[%s]: %+v", key, err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -214,12 +246,14 @@ func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool
 	for {
 		select {
 		case <-ticker.C:
+			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
 			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
 				Body: v1alpha2.HeartBeatData{
-					JobId:  id,
-					Scope:  namespace,
-					Action: action,
-					Time:   time.Now().UTC(),
+					JobId:     id,
+					Scope:     namespace,
+					Action:    action,
+					Time:      time.Now().UTC(),
+					JobAction: v1alpha2.JobUpdate,
 				},
 				Metadata: map[string]string{
 					"namespace": namespace,
@@ -232,13 +266,34 @@ func (s *SolutionManager) sendHeartbeat(id string, namespace string, remove bool
 	}
 }
 
+func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+	if remove == false {
+		return
+	}
+
+	log.DebugfCtx(ctx, " M (Solution): cleanupHeartbeat, id: %s, namespace: %s", id, namespace)
+	s.VendorContext.Publish("heartbeat", v1alpha2.Event{
+		Body: v1alpha2.HeartBeatData{
+			JobId:     id,
+			JobAction: v1alpha2.JobDelete,
+		},
+		Metadata: map[string]string{
+			"namespace": namespace,
+		},
+	})
+}
+
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
+	defer func() {
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+	}()
+
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
@@ -451,32 +506,34 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState.ClearAllRemoved()
 
-	// TODO: Removing the state has negative effects on component removal, review this later
-	// if len(mergedState.TargetComponent) == 0 {
-	// 	log.InfofCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-	// 	s.StateProvider.Delete(ctx, states.DeleteRequest{
-	// 		ID: deployment.Instance.ObjectMeta.Name,
-	// 		Metadata: map[string]interface{}{
-	// 			"namespace": namespace,
-	// 		},
-	// 	})
-	// } else {
-	s.StateProvider.Upsert(ctx, states.UpsertRequest{
-		Value: states.StateEntry{
+	if len(mergedState.TargetComponent) == 0 && remove {
+		log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+		s.StateProvider.Delete(ctx, states.DeleteRequest{
 			ID: deployment.Instance.ObjectMeta.Name,
-			Body: SolutionManagerDeploymentState{
-				Spec:  deployment,
-				State: mergedState,
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     model.SolutionGroup,
+				"version":   "v1",
+				"resource":  DeploymentState,
 			},
-		},
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     model.SolutionGroup,
-			"version":   "v1",
-			"resource":  DeploymentState,
-		},
-	})
-	//}
+		})
+	} else {
+		s.StateProvider.Upsert(ctx, states.UpsertRequest{
+			Value: states.StateEntry{
+				ID: deployment.Instance.ObjectMeta.Name,
+				Body: SolutionManagerDeploymentState{
+					Spec:  deployment,
+					State: mergedState,
+				},
+			},
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     model.SolutionGroup,
+				"version":   "v1",
+				"resource":  DeploymentState,
+			},
+		})
+	}
 
 	successCount := 0
 	for _, v := range targetResult {

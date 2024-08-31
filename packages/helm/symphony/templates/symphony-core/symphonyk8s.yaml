@@ -2702,6 +2702,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - targets
   sideEffects: None
@@ -2742,6 +2743,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - solutions
   sideEffects: None
@@ -2803,6 +2805,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - campaigns
   sideEffects: None
@@ -2844,6 +2847,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - catalogs
   sideEffects: None

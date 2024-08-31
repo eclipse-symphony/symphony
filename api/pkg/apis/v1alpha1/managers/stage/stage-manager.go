@@ -254,6 +254,7 @@ func (s *StageManager) ResumeStage(status model.StageStatus, cam model.CampaignS
 			return nil, nil
 		} else {
 			p.Sites = newSites
+			// TODO: clean up the remote job status entry for multi-site
 			_, err := s.StateProvider.Upsert(context.TODO(), states.UpsertRequest{
 				Value: states.StateEntry{
 					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
@@ -859,6 +860,10 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
 			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
 			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
+			log.ErrorfCtx(ctx, " M (Stage): current stage is %s, expected next stage is %s, actual next stage is %s",
+				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage,
+				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage,
+				stage)
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
 		}
 		return &v1alpha2.ActivationData{

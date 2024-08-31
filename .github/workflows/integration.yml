@@ -27,7 +27,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.22.3
+        go-version: 1.22.4
         
     - name: Set up custom GOPATH
       run: |
@@ -101,10 +101,6 @@ jobs:
       run: |
         cd test/integration/scenarios/02.basic/ && mage test
 
-    - name: Run integration tests 02 delete
-      run: |
-        cd test/integration/scenarios/02.basicdelete/ && mage test
-
     - name: Run integration tests 03
       run: |
         cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
@@ -128,6 +124,10 @@ jobs:
     - name: Run integration tests 07
       run: |
         cd test/integration/scenarios/07.maestroTest/ && mage test
+    
+    - name: Run integration tests 08
+      run: |
+        cd test/integration/scenarios/08.webhook/ && mage test
 
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v2

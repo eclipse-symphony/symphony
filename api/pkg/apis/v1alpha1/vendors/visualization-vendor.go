@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -155,19 +156,20 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 }
 
 func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
-	catalog.ObjectMeta.Name = name
+	catalog.ObjectMeta.Name = name + "-v-v1"
+	catalog.Spec.RootResource = validation.GetRootResourceFromName(catalog.ObjectMeta.Name)
 	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
 	if err != nil {
 		if !v1alpha2.IsNotFound(err) {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
 	} else {
 		catalog, err = mergeCatalogs(existingCatalog, catalog)
 		if err != nil {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
 	}
 }
 func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.CatalogState, error) {

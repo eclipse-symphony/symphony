@@ -323,11 +323,19 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	}
 }
 
-func ReplaceSeperator(name string) string {
-	if strings.Contains(name, ":") {
-		name = strings.ReplaceAll(name, ":", constants.ResourceSeperator)
+func ConvertReferenceToObjectName(name string) string {
+	if strings.Contains(name, constants.ReferenceSeparator) {
+		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
 	}
 	return name
+}
+
+func ConvertObjectNameToReference(name string) string {
+	index := strings.LastIndex(name, constants.ResourceSeperator)
+	if index == -1 {
+		return name
+	}
+	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
 }
 
 func GetNamespaceFromContext(localContext interface{}) string {

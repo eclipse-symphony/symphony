@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -163,11 +164,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	objectName := stage.ReadInputString(inputs, "objectName")
 	action := stage.ReadInputString(inputs, "action")
 	object := inputs["object"]
-	var oData []byte
+	var objectData []byte
 	if object != nil {
-		oData, _ = json.Marshal(object)
+		objectData, _ = json.Marshal(object)
 	}
-	objectName = api_utils.ReplaceSeperator(objectName)
+	objectName = api_utils.ConvertReferenceToObjectName(objectName)
 	lastSummaryMessage := ""
 	switch objectType {
 	case "instance":
@@ -191,8 +192,54 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
+			var instanceState model.InstanceState
+			err = json.Unmarshal(objectData, &instanceState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state %s: %s", objectName, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, err
+			}
+
+			label_key := os.Getenv("LABEL_KEY")
+			label_value := os.Getenv("LABEL_VALUE")
+			annotation_name := os.Getenv("ANNOTATION_KEY")
+			if label_key != "" && label_value != "" {
+				// Check if labels exists within metadata, if not create it
+				labels := instanceState.ObjectMeta.Labels
+				if labels == nil {
+					labels = make(map[string]string)
+					instanceState.ObjectMeta.Labels = labels
+				}
+				// Add the label
+				labels[label_key] = label_value
+			}
+			if annotation_name != "" {
+				instanceState.ObjectMeta.UpdateAnnotation(annotation_name, objectName)
+			}
+			instanceState.ObjectMeta.Namespace = objectNamespace
+			instanceState.ObjectMeta.Name = objectName
+
+			if instanceState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", objectName), v1alpha2.BadRequest)
+			}
+
+			objectData, _ := json.Marshal(instanceState)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", objectName, objectNamespace)
-			err = i.ApiClient.CreateInstance(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
+			err = i.ApiClient.CreateInstance(ctx, objectName, objectData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
