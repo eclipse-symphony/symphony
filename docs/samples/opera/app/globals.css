@@ -105,6 +105,8 @@ body {
   padding: 0.5rem;
   background-color: #F4F4F4;
   border-radius: 0.5rem;
+  height: 96%;
+  margin: 0.5rem;
 }
 .candidate_title{
   font-weight: bold;

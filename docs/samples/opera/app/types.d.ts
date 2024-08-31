@@ -38,6 +38,12 @@ export interface Candidate {
     name: string;
 }
 
+export interface SymphonyObject {
+    type: string;
+    name: string;
+    properties: Record<string, any>;
+  }
+
 export interface StageSpec {
     name: string;    
     stageSelector: string;
