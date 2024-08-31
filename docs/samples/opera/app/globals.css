@@ -10,14 +10,14 @@
 }
 
 body {
-  background-color: #eee;
+  background-color: #242529;
   font-family: "Roboto", sans-serif;  
 }
 
 .sidebar {
   width: 17rem;  
   height: 100vh;
-  background-color: #fff;
+  background-color: #121214;
   padding: 1rem;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -30,12 +30,12 @@ body {
 .sidebar_link {  
   font-size: 1rem;
   text-decoration: none;
-  color: black;
+  color: #F4F4F4;
   padding: 0.8rem 0.8rem;
   display: flex;
-  background-color: #f3f4f6;
-  margin-bottom: 0.5rem;
-  border-radius: 0.8rem;
+  background-color: #36383E;
+  margin-bottom: 0.8rem;
+  border-radius: 0.5rem;
   align-items: center;
 }
 .sidebar_icon {
@@ -67,10 +67,10 @@ body {
   right: 0;
   top: 4.7rem;
   border: none;
-  background-color: #fff;
+  background-color: #D1D1D1;
   width: 1.5rem;
   height: 1.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #121214;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -90,7 +90,46 @@ body {
 [data-collapse="true"] .sidebar_logo_name {
   display:none;
 }
-
+.bb_viewport{
+  margin: 1rem;
+  padding: 0.5rem;
+}
+.chat_form {
+  margin-top: 0.5rem;
+  background-color: aqua;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+.candidate_list {
+  list-style: none;
+  padding: 0.5rem;
+  background-color: #F4F4F4;
+  border-radius: 0.5rem;
+}
+.candidate_title{
+  font-weight: bold;
+}
+.chat_list {
+  list-style: none;
+  padding: 0.5rem;
+  background-color: #F4F4F4;
+  border-radius: 0.5rem;
+}
+.chat_input {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  margin-bottom: 0.5rem;
+  background-color: #7EECDF;
+}
+.chat_button {
+  background-color: #7EECDF;
+  color: black;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-left: 1rem;
+}
 .sitelist{
   display: flex;
   flex-direction: row;

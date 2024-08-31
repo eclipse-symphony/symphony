@@ -30,6 +30,14 @@ export interface CampainStatus {
 
 }
 
+export interface CandidateList {
+    name: string;
+    candidates: Candidate[];
+}
+export interface Candidate {
+    name: string;
+}
+
 export interface StageSpec {
     name: string;    
     stageSelector: string;

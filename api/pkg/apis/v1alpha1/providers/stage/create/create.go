@@ -299,7 +299,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return nil, false, err
 			}
 		} else if strings.EqualFold(action, CreateAction) {
-			err = i.ApiClient.CreateTarget(ctx, objectName, oData, objectNamespace, i.Config.User, i.Config.Password)
+			err = i.ApiClient.CreateTarget(ctx, objectName, objectData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				return nil, false, err
 			}
