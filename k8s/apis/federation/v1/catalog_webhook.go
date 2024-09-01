@@ -15,6 +15,7 @@ import (
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 	"time"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
@@ -89,13 +90,14 @@ var _ webhook.Defaulter = &Catalog{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Catalog) Default() {
-	cataloglog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), cataloglog)
+	diagnostic.InfoWithCtx(cataloglog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 
 	if r.Spec.RootResource != "" {
 		var catalogContainer CatalogContainer
 		err := myCatalogReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &catalogContainer)
 		if err != nil {
-			cataloglog.Error(err, "failed to get catalog container", "name", r.Spec.RootResource)
+			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to get catalog container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
 				APIVersion: GroupVersion.String(), //catalogContainer.APIVersion
@@ -127,12 +129,11 @@ var _ webhook.Validator = &Catalog{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Catalog) ValidateCreate() (admission.Warnings, error) {
-	cataloglog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
@@ -156,18 +157,19 @@ func (r *Catalog) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Catalog) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	cataloglog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldCatalog, ok := old.(*Catalog)
 	if !ok {
-		return nil, fmt.Errorf("expected a Catalog object")
+		err := fmt.Errorf("expected a Catalog object")
+		diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to convert to catalog object")
+		return nil, err
 	}
 	validationError := r.validateUpdateCatalog(ctx, oldCatalog)
 	if validationError != nil {
@@ -189,12 +191,11 @@ func (r *Catalog) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
-	cataloglog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Delete)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Catalog %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, r.validateDeleteCatalog(ctx)
@@ -203,6 +204,7 @@ func (r *Catalog) ValidateDelete() (admission.Warnings, error) {
 func (r *Catalog) validateCreateCatalog(ctx context.Context) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate create catalog - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, nil)
@@ -212,16 +214,20 @@ func (r *Catalog) validateCreateCatalog(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate create catalog", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Catalog) validateUpdateCatalog(ctx context.Context, oldCatalog *Catalog) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate update catalog - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	old, err := oldCatalog.ConvertCatalogState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate update catalog - convert old", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := catalogValidator.ValidateCreateOrUpdate(ctx, state, old)
@@ -231,12 +237,15 @@ func (r *Catalog) validateUpdateCatalog(ctx context.Context, oldCatalog *Catalog
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate update catalog", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Catalog) validateDeleteCatalog(ctx context.Context) error {
 	state, err := r.ConvertCatalogState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate delete catalog - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 
@@ -247,7 +256,9 @@ func (r *Catalog) validateDeleteCatalog(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "federation.symphony", Kind: "Catalog"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(cataloglog, ctx, err, "validate delete catalog", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Catalog) ConvertCatalogState() (model.CatalogState, error) {
@@ -266,26 +277,47 @@ func (r *Catalog) ConvertCatalogState() (model.CatalogState, error) {
 }
 
 func (r *CatalogContainer) Default() {
-	commoncontainer.DefaultImpl(cataloglog, r)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), cataloglog)
+	commoncontainer.DefaultImpl(cataloglog, ctx, r)
 }
 
 func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
-	return commoncontainer.ValidateCreateImpl(cataloglog, r)
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate create catalog container", "name", r.Name, "namespace", r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being created on namespace %s", r.Name, r.Namespace)
+
+	return commoncontainer.ValidateCreateImpl(cataloglog, ctx, r)
 }
 func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	return commoncontainer.ValidateUpdateImpl(cataloglog, r, old)
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate update catalog container", "name", r.Name, "namespace", r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being updated on namespace %s", r.Name, r.Namespace)
+	return commoncontainer.ValidateUpdateImpl(cataloglog, ctx, r, old)
 }
 
 func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
-	cataloglog.Info("validate delete catalog container", "name", r.Name)
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Delete)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+
+	diagnostic.InfoWithCtx(cataloglog, ctx, "validate delete catalog container", "name", r.Name, "namespace", r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
+
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
 		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
+			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "namespace", r.Namespace, "rootResource", r.Name)
 			return 0, err
 		} else {
 			return len(catalogList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(cataloglog, r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(cataloglog, ctx, r, getSubResourceNums)
 }

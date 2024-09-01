@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/utils/diagnostic"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,25 +46,25 @@ func SetupWebhookWithManager(mgr ctrl.Manager, resource client.Object) error {
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func DefaultImpl(log logr.Logger, r client.Object) {
-	log.Info("default", "name", r.GetName(), "kind", r.GetObjectKind())
+func DefaultImpl(log logr.Logger, ctx context.Context, r client.Object) {
+	diagnostic.InfoWithCtx(log, ctx, "default", "name", r.GetName(), "kind", r.GetObjectKind())
 }
 
-func ValidateCreateImpl(log logr.Logger, r client.Object) (admission.Warnings, error) {
-	log.Info("validate create", "name", r.GetName(), "kind", r.GetObjectKind())
+func ValidateCreateImpl(log logr.Logger, ctx context.Context, r client.Object) (admission.Warnings, error) {
+	diagnostic.InfoWithCtx(log, ctx, "validate create", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
-func ValidateUpdateImpl(log logr.Logger, r client.Object, old runtime.Object) (admission.Warnings, error) {
-	log.Info("validate update", "name", r.GetName(), "kind", r.GetObjectKind())
+func ValidateUpdateImpl(log logr.Logger, ctx context.Context, r client.Object, old runtime.Object) (admission.Warnings, error) {
+	diagnostic.InfoWithCtx(log, ctx, "validate update", "name", r.GetName(), "kind", r.GetObjectKind())
 	return nil, nil
 }
 
-func ValidateDeleteImpl(log logr.Logger, r client.Object, getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
+func ValidateDeleteImpl(log logr.Logger, ctx context.Context, r client.Object, getSubResourceNums GetSubResourceNums) (admission.Warnings, error) {
 
-	log.Info("validate delete", "name", r.GetName(), "kind", r.GetObjectKind())
+	diagnostic.InfoWithCtx(log, ctx, "validate delete", "name", r.GetName(), "kind", r.GetObjectKind())
 
 	validateDeleteTime := time.Now()
-	validationError := validateDeleteContainerImpl(log, r, getSubResourceNums)
+	validationError := validateDeleteContainerImpl(log, ctx, r, getSubResourceNums)
 	if validationError != nil {
 		commoncontainermetrics.ControllerValidationLatency(
 			validateDeleteTime,
@@ -81,14 +82,14 @@ func ValidateDeleteImpl(log logr.Logger, r client.Object, getSubResourceNums Get
 	return nil, validationError
 }
 
-func validateDeleteContainerImpl(log logr.Logger, r client.Object, getSubResourceNums GetSubResourceNums) error {
+func validateDeleteContainerImpl(log logr.Logger, ctx context.Context, r client.Object, getSubResourceNums GetSubResourceNums) error {
 	itemsNum, err := getSubResourceNums()
 	if err != nil {
-		log.Error(err, "could not list nested resources ", "name", r.GetName(), "kind", r.GetObjectKind())
+		diagnostic.ErrorWithCtx(log, ctx, err, "could not list nested resources", "name", r.GetName(), "namespace", r.GetNamespace(), "kind", r.GetObjectKind())
 		return apierrors.NewBadRequest(fmt.Sprintf("%s could not list nested resources for %s.", r.GetObjectKind(), r.GetName()))
 	}
 	if itemsNum > 0 {
-		log.Error(err, "nested resources are not empty", "name", r.GetName(), "kind", r.GetObjectKind())
+		diagnostic.ErrorWithCtx(log, ctx, err, "nested resources are not empty", "name", r.GetName(), "namespace", r.GetNamespace(), "kind", r.GetObjectKind())
 		return apierrors.NewBadRequest(fmt.Sprintf("%s nested resources with root resource '%s' are not empty", r.GetObjectKind(), r.GetName()))
 	}
 

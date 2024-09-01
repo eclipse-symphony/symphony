@@ -17,6 +17,7 @@ import (
 	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
+	"gopls-workspace/utils/diagnostic"
 
 	configutils "gopls-workspace/configutils"
 	"gopls-workspace/constants"
@@ -97,7 +98,8 @@ var _ webhook.Defaulter = &Target{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Target) Default() {
-	targetlog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), targetlog)
+	diagnostic.InfoWithCtx(targetlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
@@ -127,12 +129,11 @@ var _ webhook.Validator = &Target{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateCreate() (admission.Warnings, error) {
-	targetlog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myTargetClient, context.TODO(), targetlog)
 
+	diagnostic.InfoWithCtx(targetlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
@@ -158,18 +159,19 @@ func (r *Target) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	targetlog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myTargetClient, context.TODO(), targetlog)
 
+	diagnostic.InfoWithCtx(targetlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldTarget, ok := old.(*Target)
 	if !ok {
-		return nil, fmt.Errorf("expected a Target object")
+		err := fmt.Errorf("expected a Target object")
+		diagnostic.ErrorWithCtx(targetlog, ctx, err, "failed to convert old object to Target")
+		return nil, err
 	}
 	validationError := r.validateUpdateTarget(ctx, oldTarget)
 	if validationError != nil {
@@ -193,12 +195,11 @@ func (r *Target) ValidateUpdate(old runtime.Object) (admission.Warnings, error) 
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Target) ValidateDelete() (admission.Warnings, error) {
-	targetlog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myTargetClient, context.TODO(), targetlog)
 
+	diagnostic.InfoWithCtx(targetlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
@@ -209,6 +210,7 @@ func (r *Target) validateCreateTarget(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertTargetState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate create target - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := targetValidator.ValidateCreateOrUpdate(ctx, state, nil)
@@ -225,7 +227,9 @@ func (r *Target) validateCreateTarget(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate create target", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Target) validateValidationPolicy() *field.Error {
@@ -273,10 +277,12 @@ func (r *Target) validateUpdateTarget(ctx context.Context, old *Target) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertTargetState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate update target - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	oldState, err := old.ConvertTargetState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate update target - convert old", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := targetValidator.ValidateCreateOrUpdate(ctx, state, oldState)
@@ -292,12 +298,15 @@ func (r *Target) validateUpdateTarget(ctx context.Context, old *Target) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate update target", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 func (r *Target) validateDeleteTarget(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertTargetState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate delete target - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := targetValidator.ValidateDelete(ctx, state)
@@ -307,7 +316,9 @@ func (r *Target) validateDeleteTarget(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "fabric.symphony", Kind: "Target"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(targetlog, ctx, err, "validate delete target", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 func readTargetValidationTarget(target *Target, p configv1.ValidationPolicy) string {
 	if p.SelectorType == "topologies.bindings" && p.SelectorKey == "provider" {
