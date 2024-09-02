@@ -749,15 +749,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					log.ErrorfCtx(ctx, " M (Stage): failed to find next stage: %v", err)
 					return status, activationData
 				}
-			} else {
-				// sVal is empty, no next stage
-				status.NextStage = ""
-				status.IsActive = false
-				status.Status = v1alpha2.Done
-				status.StatusMessage = v1alpha2.Done.String()
-				log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
-				return status, activationData
 			}
+			// sVal is empty, no next stage
+			status.NextStage = sVal
+			status.IsActive = false
+			status.Status = v1alpha2.Done
+			status.StatusMessage = v1alpha2.Done.String()
+			log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
+			return status, activationData
 		} else {
 			// Not self-driving, no next stage
 			status.Status = v1alpha2.Done
