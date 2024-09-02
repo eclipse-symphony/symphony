@@ -14,19 +14,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetDiagnosticResourceId(namespace string, edgeLocation string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) string {
+func GetDiagnosticResourceId(namespace string, edgeLocation string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) (string, string) {
 	// List all diagnostics resources under the namespace
 	// If there is a resource with the same namespace and edgeLocation, use that as the diagnostic resource
 	// If there is no such resource, return empty string
 	diagnostic, err := GetDiagnosticCustomResource(namespace, edgeLocation, k8sClient, ctx, logger)
 	if err != nil {
 		logger.Info("Failed to get diagnostic resource", "error", err)
-		return ""
+		return "", ""
 	}
 	if diagnostic != nil {
-		return diagnostic.Annotations[constants.AzureResourceIdKey]
+		return diagnostic.Annotations[constants.AzureResourceIdKey], diagnostic.Annotations[constants.AzureLocationKey]
 	}
-	return ""
+	return "", ""
 }
 
 func GetDiagnosticCustomResource(namespace string, edgeLocation string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) (*Diagnostic, error) {

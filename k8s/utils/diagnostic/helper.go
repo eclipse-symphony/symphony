@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ConstructActivityAndDiagnosticContextFromAnnotations(namespace string, objectId string, diagnosticResourceId string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
+func ConstructActivityAndDiagnosticContextFromAnnotations(namespace string, objectId string, diagnosticResourceId string, diagnosticResourceLocation string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
 	retCtx := ConstructDiagnosticContextFromAnnotations(annotations, ctx, logger)
-	retCtx = ConstructActivityContextFromAnnotations(namespace, objectId, diagnosticResourceId, annotations, operationName, k8sClient, retCtx, logger)
+	retCtx = ConstructActivityContextFromAnnotations(namespace, objectId, diagnosticResourceId, diagnosticResourceLocation, annotations, operationName, k8sClient, retCtx, logger)
 	return retCtx
 }
 
@@ -29,10 +29,9 @@ func ConstructDiagnosticContextFromAnnotations(annotations map[string]string, ct
 	return retCtx
 }
 
-func ConstructActivityContextFromAnnotations(namespace string, objectId string, diagnosticResourceId string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
+func ConstructActivityContextFromAnnotations(namespace string, objectId string, diagnosticResourceId string, diagnosticResourceLocation string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
 	correlationId := annotations[constants.AzureCorrelationIdKey]
 	resourceId := annotations[constants.AzureResourceIdKey]
-	location := annotations[constants.AzureLocationKey]
 	systemData := annotations[constants.AzureSystemDataKey]
 	edgeLocation := annotations[constants.AzureEdgeLocationKey]
 
@@ -47,6 +46,6 @@ func ConstructActivityContextFromAnnotations(namespace string, objectId string, 
 		}
 	}
 
-	retCtx := coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(diagnosticResourceId, resourceId, location, edgeLocation, operationName, correlationId, callerId, resourceK8SId), ctx)
+	retCtx := coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(diagnosticResourceId, resourceId, diagnosticResourceLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId), ctx)
 	return retCtx
 }

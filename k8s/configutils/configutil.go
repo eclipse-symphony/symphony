@@ -154,7 +154,7 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 
 func PopulateActivityAndDiagnosticsContextFromAnnotations(namespace string, objectId string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
 	edgeLocation := annotations[constants.AzureEdgeLocationKey]
-	diagnosticResourceId := monitorv1.GetDiagnosticResourceId(namespace, edgeLocation, k8sClient, ctx, logger)
-	retCtx := diagnostic.ConstructActivityAndDiagnosticContextFromAnnotations(namespace, objectId, diagnosticResourceId, annotations, operationName, k8sClient, ctx, logger)
+	diagnosticResourceId, diagnosticResourceLocation := monitorv1.GetDiagnosticResourceId(namespace, edgeLocation, k8sClient, ctx, logger)
+	retCtx := diagnostic.ConstructActivityAndDiagnosticContextFromAnnotations(namespace, objectId, diagnosticResourceId, diagnosticResourceLocation, annotations, operationName, k8sClient, ctx, logger)
 	return retCtx
 }
