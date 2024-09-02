@@ -32,6 +32,8 @@ var _ = Describe("Reconcile Policies", func() {
 	var object *v1.Target
 	var reconcileResult reconcile.Result
 	var reconcileError error
+	var reconcileResultPolling reconcile.Result
+	var reconcileErrorPolling error
 
 	BeforeEach(func() {
 		By("building the clients")
@@ -65,7 +67,7 @@ var _ = Describe("Reconcile Policies", func() {
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
 		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
-		_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 	})
 
 	Context("object has invalid reconcile policy", func() {
@@ -79,6 +81,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 			BeforeEach(func() {
 				By("mocking the summary response with a successful deployment")
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
@@ -90,8 +93,12 @@ var _ = Describe("Reconcile Policies", func() {
 				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 
+			It("polling should fall back to default reconciliation interval", func() {
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
+			})
+
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
@@ -105,6 +112,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 			BeforeEach(func() {
 				By("mocking the summary response with a successful deployment")
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
@@ -129,6 +137,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 		BeforeEach(func() {
 			By("mocking the summary response with a successful deployment")
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 		})
 
@@ -216,13 +225,14 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -247,6 +257,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -348,6 +359,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -371,6 +383,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -470,6 +483,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -493,6 +507,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -515,6 +530,7 @@ var _ = Describe("Reconcile Policies", func() {
 	Context("object has stil not finished reconciling and has timed out", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("mocking a summary response with in progress deployment")
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 		})
 
@@ -529,7 +545,7 @@ var _ = Describe("Reconcile Policies", func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
 			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
-			_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
 		It("should not return an error", func() {

@@ -202,6 +202,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
 					summary := MockSucessSummaryResult(target, hash)
 					summary.Summary.IsRemoval = true
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -221,6 +222,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					By("simulating a pending delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(target, hash)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -245,6 +247,7 @@ var _ = Describe("Target controller", Ordered, func() {
 			Context("and the deletion deployment failed due to random error", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a failed delete deployment from the api")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 				})
 
@@ -258,7 +261,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue as soon as possible due to error", func() {
-					Expect(reconcileError).To(HaveOccurred())
+					Expect(reconcileErrorPolling).To(HaveOccurred())
 				})
 			})
 		})

@@ -250,7 +250,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		}
 	}
 
-	if !r.hasParity(ctx, object, summary, log) || time.Since(summary.Time) > reconciliationInterval {
+	if !r.hasParity(ctx, object, summary, log) || (reconciliationInterval != 0 && time.Since(summary.Time) > reconciliationInterval) {
 		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 	}
 
