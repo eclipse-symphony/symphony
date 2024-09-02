@@ -11,13 +11,17 @@ import (
 	"fmt"
 	"time"
 
+	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
+	"gopls-workspace/predicates"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // InstancePollingReconciler reconciles a Instance object
@@ -83,4 +87,27 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	)
 
 	return reconcileResult, err
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	var err error
+	if r.m, err = metrics.New(); err != nil {
+		return err
+	}
+
+	if r.dr, err = r.buildDeploymentReconciler(); err != nil {
+		return err
+	}
+
+	generationChange := predicate.GenerationChangedPredicate{}
+	operationIdPredicate := predicates.OperationIdPredicate{}
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&solution_v1.Instance{}).
+		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
+		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
+			r.handleSolution)).
+		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
+			r.handleTarget)).
+		Complete(r)
 }

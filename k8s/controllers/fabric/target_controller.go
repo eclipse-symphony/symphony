@@ -14,16 +14,12 @@ import (
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
-	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
@@ -72,32 +68,11 @@ const (
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrllog.FromContext(ctx)
-	log.Info("shouldn't be called here")
-	return ctrl.Result{}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	metrics, err := metrics.New()
-	if err != nil {
-		return err
-	}
-
-	r.m = metrics
-	genChangePredicate := predicate.GenerationChangedPredicate{}
-	operationIdPredicate := predicates.OperationIdPredicate{}
-
-	r.dr, err = r.buildDeploymentReconciler()
-	if err != nil {
-		return err
-	}
-	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
-		For(&symphonyv1.Target{}).
-		Complete(r)
-}
+// func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	log := ctrllog.FromContext(ctx)
+// 	log.Info("shouldn't be called here")
+// 	return ctrl.Result{}, nil
+// }
 
 func (r *TargetReconciler) populateProvisioningError(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {
 	errorObj.Code = "Symphony Orchestrator: [500]"

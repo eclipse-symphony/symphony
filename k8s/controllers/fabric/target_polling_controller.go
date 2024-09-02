@@ -14,10 +14,12 @@ import (
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
+	"gopls-workspace/predicates"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // TargetReconciler reconciles a Target object
@@ -84,4 +86,25 @@ func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	)
 
 	return reconcileResult, err
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *TargetPollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	metrics, err := metrics.New()
+	if err != nil {
+		return err
+	}
+
+	r.m = metrics
+	genChangePredicate := predicate.GenerationChangedPredicate{}
+	operationIdPredicate := predicates.OperationIdPredicate{}
+
+	r.dr, err = r.buildDeploymentReconciler()
+	if err != nil {
+		return err
+	}
+	return ctrl.NewControllerManagedBy(mgr).
+		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
+		For(&symphonyv1.Target{}).
+		Complete(r)
 }
