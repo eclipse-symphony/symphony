@@ -57,7 +57,7 @@ func TestDryRun(t *testing.T) {
 
 	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false")
 	require.NoError(t, err)
-	testBasic_InstanceStatus(t, "0")
+	testBasic_InstanceStatus(t, "1")
 	testBasic_TargetStatus(t, "1")
 	testBasic_VerifyPodsExist(t, []string{"nginx", "testapp", namespace + "instance"}, []string{})
 
@@ -96,6 +96,8 @@ func testBasic_TargetStatus(t *testing.T, successCount string) {
 	require.NoError(t, err)
 
 	for {
+		sleepDuration, _ := time.ParseDuration("10s")
+		time.Sleep(sleepDuration)
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "fabric.symphony",
 			Version:  "v1",
@@ -112,9 +114,6 @@ func testBasic_TargetStatus(t *testing.T, successCount string) {
 		if success, ok := targetState.Status.Properties["deployed"]; ok && targetState.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
 			break
 		}
-
-		sleepDuration, _ := time.ParseDuration("30s")
-		time.Sleep(sleepDuration)
 	}
 }
 
@@ -132,6 +131,8 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 	require.NoError(t, err)
 
 	for {
+		sleepDuration, _ := time.ParseDuration("10s")
+		time.Sleep(sleepDuration)
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "solution.symphony",
 			Version:  "v1",
@@ -147,9 +148,6 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 		if success, ok := instance.Status.Properties["deployed"]; ok && instance.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
 			break
 		}
-
-		sleepDuration, _ := time.ParseDuration("30s")
-		time.Sleep(sleepDuration)
 	}
 }
 
