@@ -12,6 +12,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
@@ -35,9 +36,12 @@ func TestCreateGetDeleteActivationSpec(t *testing.T) {
 func TestCleanupOldActivationSpec(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 
 	manager := ActivationsManager{
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	cleanupmanager := ActivationsCleanupManager{
 		ActivationsManager: manager,
@@ -63,8 +67,11 @@ func TestCleanupOldActivationSpec(t *testing.T) {
 func TestUpdateStageStatus(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 	manager := ActivationsManager{
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
@@ -113,8 +120,11 @@ func TestUpdateStageStatus(t *testing.T) {
 func TestUpdateStageStatusRemote(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 	manager := ActivationsManager{
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	err := manager.UpsertState(context.Background(), "test", model.ActivationState{Spec: &model.ActivationSpec{}})
 	assert.Nil(t, err)
