@@ -20,8 +20,8 @@ const (
 	Activity_Properties                string = "properties"
 	Activity_EdgeLocation              string = "edgeLocation"
 
-	Activity_Props_CallerId      string = "caller-id"
-	Activity_Props_ResourceK8SId string = "resource-k8s-id"
+	Activity_Props_CallerId      string = "callerId"
+	Activity_Props_ResourceK8SId string = "operatingResourceK8SId"
 
 	OTEL_Activity_DiagnosticResourceCloudId string = "resourceId"
 	OTEL_Activity_ResourceCloudId           string = "operatingResourceId"
@@ -29,8 +29,8 @@ const (
 	OTEL_Activity_Location                  string = "location"
 	OTEL_Activity_CorrelationId             string = "correlationId"
 	OTEL_Activity_Properties                string = "properties"
-	OTEL_Activity_Props_CallerId            string = "caller-id"
-	OTEL_Activity_Props_ResourceK8SId       string = "resource-k8s-id"
+	OTEL_Activity_Props_CallerId            string = "callerId"
+	OTEL_Activity_Props_ResourceK8SId       string = "operatingResourceK8SId"
 	OTEL_Activity_Props_EdgeLocation        string = "edgeLocation"
 )
 
