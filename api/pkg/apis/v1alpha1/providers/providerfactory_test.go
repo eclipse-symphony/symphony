@@ -40,6 +40,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	mempubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
@@ -273,6 +274,10 @@ func TestCreateProvider(t *testing.T) {
 	provider, err = providerfactory.CreateProvider("providers.graph.memory", memorygraph.MemoryGraphProviderConfig{})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memorygraph.MemoryGraphProvider))
+
+	provider, err = providerfactory.CreateProvider("providers.keylock.memory", memorykeylock.MemoryKeyLockProviderConfig{})
+	assert.Nil(t, err)
+	assert.NotNil(t, *provider.(*memorykeylock.MemoryKeyLockProvider))
 }
 
 func TestCreateProviderForTargetRole(t *testing.T) {

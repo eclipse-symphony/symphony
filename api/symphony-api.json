@@ -87,6 +87,7 @@
             "type": "managers.symphony.activations",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
               "singleton": "true"
             },
             "providers": {
@@ -108,7 +109,9 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
@@ -131,6 +134,7 @@
             "type": "managers.symphony.activationscleanup",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
               "singleton": "true",
               "RetentionDuration": "4320h"
             },

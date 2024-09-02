@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -23,20 +22,20 @@ import (
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var lock sync.Mutex
-
 var log = logger.NewLogger("coa.runtime")
 
 type ActivationsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	needValidate  bool
-	Validator     validation.ActivationValidator
+	StateProvider   states.IStateProvider
+	KeyLockProvider keylock.IKeyLockProvider
+	needValidate    bool
+	Validator       validation.ActivationValidator
 }
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -48,6 +47,10 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.KeyLockProvider, err = managers.GetKeyLockProvider(config, providers)
+	if err != nil {
 		return err
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
@@ -215,8 +218,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	lock.Lock()
-	defer lock.Unlock()
+	t.KeyLockProvider.Lock(name + namespace)
+	defer t.KeyLockProvider.UnLock(name + namespace)
 
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
@@ -259,8 +262,8 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	lock.Lock()
-	defer lock.Unlock()
+	t.KeyLockProvider.Lock(name + namespace)
+	defer t.KeyLockProvider.UnLock(name + namespace)
 
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)

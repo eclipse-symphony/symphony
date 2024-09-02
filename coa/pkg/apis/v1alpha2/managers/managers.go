@@ -14,6 +14,7 @@ import (
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue"
@@ -243,6 +244,21 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a reporter provider", v1alpha2.BadConfig)
 	}
 	return reporterProvider, nil
+}
+func GetKeyLockProvider(config ManagerConfig, providers map[string]providers.IProvider) (keylock.IKeyLockProvider, error) {
+	reporterName, ok := config.Properties[v1alpha2.ProviderKeyLock]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "keyLock provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[reporterName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "keyLock provider is not supplied", v1alpha2.MissingConfig)
+	}
+	keyLockProvider, ok := provider.(keylock.IKeyLockProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a keyLock provider", v1alpha2.BadConfig)
+	}
+	return keyLockProvider, nil
 }
 
 func NeedObjectValidate(config ManagerConfig, providers map[string]providers.IProvider) bool {
