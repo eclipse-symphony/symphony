@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -72,7 +73,9 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	panic("TargetReconciler Reconcile not implemented")
+	log := ctrllog.FromContext(ctx)
+	log.Info("shouldn't be called here")
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

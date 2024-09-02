@@ -34,6 +34,8 @@ var _ = Describe("Attempt Delete", func() {
 	var object *v1.Target
 	var reconcileResult reconcile.Result
 	var reconcileError error
+	var reconcileResultPolling reconcile.Result
+	var reconcileErrorPolling error
 	var delayer *MockDelayer
 
 	BeforeEach(func() {
@@ -85,7 +87,7 @@ var _ = Describe("Attempt Delete", func() {
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
 		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
-		_, reconcileResult, reconcileError = reconciler.PollingResult(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
+		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
 	})
 
 	When("the delete timeout has elapsed elapsed", func() {
@@ -94,26 +96,13 @@ var _ = Describe("Attempt Delete", func() {
 			object.SetDeletionTimestamp(&metav1.Time{Time: time.Now().Add(-TestReconcileTimout)})
 		})
 
-		BeforeEach(func(ctx context.Context) {
-			By("mocking a delay to allow for deletion error syncing")
-			delayer.On("Sleep", TestDeleteSyncDelay).Return(nil)
-		})
-
-		It("should wait for the deletion to sync", func() {
-			delayer.AssertExpectations(GinkgoT())
-		})
-
 		It("should have a status of failed", func() {
 			Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
 		})
 
 		It("should return a result indicating that the object should not be requeued", func() {
-			Expect(reconcileResult).To(Equal(reconcile.Result{}))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			Expect(reconcileError).NotTo(HaveOccurred())
-		})
-
-		It("should not have a finalizer", func() {
-			Expect(object.GetFinalizers()).NotTo(ContainElement(TestFinalizer))
 		})
 	})
 
@@ -138,8 +127,8 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation should be requeued within the polling interval", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
-				Expect(reconcileError).NotTo(HaveOccurred())
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 		})
 
@@ -166,9 +155,6 @@ var _ = Describe("Attempt Delete", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning a terminal error from the api")
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
-
-				By("mocking a delay to allow for deletion error syncing")
-				delayer.On("Sleep", TestDeleteSyncDelay).Return(nil)
 			})
 
 			It("should call the api as expected", func() {
@@ -179,16 +165,12 @@ var _ = Describe("Attempt Delete", func() {
 				Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
 			})
 
-			It("should wait for the deletion failure status to sync", func() {
-				delayer.AssertExpectations(GinkgoT())
-			})
-
-			It("should not have a finalizer", func() {
-				Expect(object.GetFinalizers()).NotTo(ContainElement(TestFinalizer))
+			It("should have a finalizer", func() {
+				Expect(object.GetFinalizers()).To(ContainElement(TestFinalizer))
 			})
 
 			It("should return a result indicating that the reconciliation should not be requeued", func() {
-				Expect(reconcileResult).To(Equal(reconcile.Result{}))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 		})
@@ -199,7 +181,7 @@ var _ = Describe("Attempt Delete", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning an in-progress delete summary from the api")
 				summary := MockInProgressDeleteSummaryResult(object, "test-hash")
-
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
@@ -212,8 +194,8 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation should be requeued within the polling interval", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
-				Expect(reconcileError).NotTo(HaveOccurred())
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 
 		})
@@ -224,9 +206,7 @@ var _ = Describe("Attempt Delete", func() {
 				summary := MockInProgressDeleteSummaryResult(object, "test-hash")
 				summary.State = model.SummaryStateDone
 
-				By("mocking a delay to allow for deletion error syncing")
-				delayer.On("Sleep", TestDeleteSyncDelay).Return(nil)
-
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
@@ -239,16 +219,12 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should not have a finalizer", func() {
-				Expect(object.GetFinalizers()).NotTo(ContainElement(TestFinalizer))
+				Expect(object.GetFinalizers()).To(ContainElement(TestFinalizer))
 			})
 
-			It("should return a result indicating that the reconciliation should not be requeued", func() {
-				Expect(reconcileResult).To(Equal(reconcile.Result{}))
-				Expect(reconcileError).NotTo(HaveOccurred())
-			})
-
-			It("should wait for the deletion failure status to sync", func() {
-				delayer.AssertExpectations(GinkgoT())
+			It("should return a result indicating that the reconciliation", func() {
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 		})
 
@@ -258,6 +234,7 @@ var _ = Describe("Attempt Delete", func() {
 				summary := MockSucessSummaryResult(object, "test-hash")
 				summary.Summary.IsRemoval = true
 
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
 
@@ -274,8 +251,8 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation should not be requeued", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeZero())
-				Expect(reconcileError).NotTo(HaveOccurred())
+				Expect(reconcileResultPolling.RequeueAfter).To(BeZero())
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 		})
 	})
@@ -283,6 +260,7 @@ var _ = Describe("Attempt Delete", func() {
 	When("the delete job summary cannot be fetched from the api due to random error", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("returning an error from the get summary api endpoint")
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("test-error"))
 		})
 
@@ -290,12 +268,13 @@ var _ = Describe("Attempt Delete", func() {
 			apiClient.AssertExpectations(GinkgoT())
 		})
 
-		It("should kickoff another reconciliation as soon as possible because of an error", func() {
-			Expect(reconcileError).To(HaveOccurred())
-		})
-
 		It("should have a status of Deleting", func() {
 			Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Deleting"))
+		})
+
+		It("should return a result indicating that the reconciliation polling should be requeued within the polling interval", func() {
+			Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+			Expect(reconcileErrorPolling).To(HaveOccurred())
 		})
 	})
 
@@ -316,7 +295,7 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should not return an error", func() {
-				Expect(reconcileError).NotTo(HaveOccurred())
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 
 			It("should have a status of Deleting", func() {
@@ -349,6 +328,7 @@ var _ = Describe("Attempt Delete", func() {
 			By("returning a pending summary from the api")
 			summary := MockInProgressDeleteSummaryResult(object, "test-hash")
 			summary.State = model.SummaryStatePending
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 		})
 

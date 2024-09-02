@@ -79,7 +79,9 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	panic("InstanceReconciler Reconcile not implemented")
+	log := ctrllog.FromContext(ctx)
+	log.Info("shouldn't be called here")
+	return ctrl.Result{}, nil
 }
 
 func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {

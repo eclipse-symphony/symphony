@@ -189,7 +189,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
 
-	if isRemoval || reconciliationInterval != 0 {
+	if isRemoval || reconciliationInterval == 0 {
 		// remove, don't need to reconcile
 		// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
 		return metrics.DeploymentQueued, ctrl.Result{}, nil
@@ -241,16 +241,16 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
 				nonTerminalErr: err,
 			}, log); err != nil {
-				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+				return metrics.StatusUpdateFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 			}
-			return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
+			return metrics.GetDeploymentSummaryFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 	}
 
-	if !r.hasParity(ctx, object, summary, log) {
+	if !r.hasParity(ctx, object, summary, log) || time.Since(summary.Time) > reconciliationInterval {
 		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 	}
 
@@ -276,21 +276,24 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		}
 		// TODO: handle crash consistency that finalizer removal fails
 
-		err = r.deleteDeploymentSummary(ctx, object)
-		if err != nil {
-			return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
+		if isRemoval {
+			err = r.deleteDeploymentSummary(ctx, object)
+			if err != nil {
+				return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
 
-		}
-		if err := r.concludeDeletion(ctx, object); err != nil {
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-
-		if isRemoval || reconciliationInterval != 0 {
+			}
+			if err := r.concludeDeletion(ctx, object); err != nil {
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
 			// remove, don't need to reconcile
-			// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
 			return metrics.DeploymentSucceeded, ctrl.Result{}, nil
 		} else {
-			return metrics.DeploymentSucceeded, ctrl.Result{RequeueAfter: reconciliationInterval - time.Since(summary.Time)}, nil
+			// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
+			if reconciliationInterval == 0 {
+				return metrics.DeploymentSucceeded, ctrl.Result{}, nil
+			} else {
+				return metrics.DeploymentSucceeded, ctrl.Result{RequeueAfter: reconciliationInterval - time.Since(summary.Time)}, nil
+			}
 		}
 	default:
 		return metrics.StatusNoOp, ctrl.Result{}, fmt.Errorf("should not reach here")
@@ -313,13 +316,7 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	// If there was a terminal error, then we don't return an error so the reconciler can respect the reconcile policy
 	// but if there was a non-terminal error, we should return the error so the reconciler can retry
 	if patchOptions.terminalErr != nil {
-		if isRemoval {
-			r.delayFunc(r.deleteSyncDelay)
-			return metrics.DeploymentFailed, ctrl.Result{}, r.concludeDeletion(ctx, object)
-		} else {
-			return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
-		}
-
+		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }

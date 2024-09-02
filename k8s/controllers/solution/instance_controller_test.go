@@ -32,6 +32,8 @@ var _ = Describe("Instance controller", Ordered, func() {
 	var solution *solutionv1.Solution
 	var reconcileError error
 	var reconcileResult ctrl.Result
+	var reconcileErrorPolling error
+	var reconcileResultPolling ctrl.Result
 
 	BeforeEach(func() {
 		By("setting up the controller")
@@ -88,7 +90,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("simulating a reconcile event")
 			reconcileResult, reconcileError = controllerQueueing.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
-			reconcileResult, reconcileError = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
+			reconcileResultPolling, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
 		})
 		When("the instance is created", func() {
 
@@ -102,15 +104,16 @@ var _ = Describe("Instance controller", Ordered, func() {
 					BeforeEach(func() {
 						By("mocking the get summary call to return a successful deployment")
 						hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
+						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(instance, hash), nil)
 					})
 
 					It("should not return an error", func() {
-						Expect(reconcileError).ToNot(HaveOccurred())
+						Expect(reconcileErrorPolling).ToNot(HaveOccurred())
 					})
 
 					It("should requeue after the reconciliation interval", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+						Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 					})
 				})
 				Context("and the deployment failed due to some error", func() {
@@ -211,6 +214,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockSucessSummaryResult(instance, hash)
 					summary.Summary.IsRemoval = true
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -230,6 +234,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					By("simulating a pending delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(instance, hash)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -247,13 +252,18 @@ var _ = Describe("Instance controller", Ordered, func() {
 				})
 
 				It("should requeue after the poll interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.PollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(0)) // need to reconsider about an update happen after a delete
+				})
+
+				It("should requeue after the poll interval", func() {
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.PollInterval))
 				})
 			})
 
 			Context("and the deletion deployment failed due to random error", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a failed delete deployment from the api")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 				})
 
@@ -267,7 +277,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 				})
 
 				It("should requeue as soon as possible due to error", func() {
-					Expect(reconcileError).To(HaveOccurred())
+					Expect(reconcileErrorPolling).To(HaveOccurred())
 				})
 			})
 		})
