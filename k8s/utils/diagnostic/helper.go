@@ -61,7 +61,7 @@ func decorateLogWithCtx(l logr.Logger, ctx context.Context, folding bool) logr.L
 		}
 		if ok && diagCtx != nil {
 			if folding {
-				l = l.WithValues(coacontexts.DiagnosticLogContextKey, diagCtx)
+				l = l.WithValues(string(coacontexts.DiagnosticLogContextKey), diagCtx)
 			} else {
 				l = l.WithValues(
 					coacontexts.OTEL_Diagnostics_CorrelationId, diagCtx.GetCorrelationId(),
@@ -81,10 +81,10 @@ func decorateLogWithCtx(l logr.Logger, ctx context.Context, folding bool) logr.L
 
 func InfoWithCtx(l logr.Logger, ctx context.Context, msg string, keysAndValues ...interface{}) {
 	l = decorateLogWithCtx(l, ctx, true)
-	l.Info(msg, keysAndValues...)
+	l.WithCallDepth(1).Info(msg, keysAndValues...)
 }
 
 func ErrorWithCtx(l logr.Logger, ctx context.Context, err error, msg string, keysAndValues ...interface{}) {
 	l = decorateLogWithCtx(l, ctx, true)
-	l.Error(err, msg, keysAndValues...)
+	l.WithCallDepth(1).Error(err, msg, keysAndValues...)
 }
