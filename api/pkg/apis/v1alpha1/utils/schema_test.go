@@ -15,7 +15,7 @@ import (
 func TestCheckIntType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".int": Rule{
+			"int": Rule{
 				Type: "int",
 			},
 		},
@@ -30,7 +30,7 @@ func TestCheckIntType(t *testing.T) {
 func TestCheckIntTypeNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".int": Rule{
+			"int": Rule{
 				Type: "int",
 			},
 		},
@@ -41,13 +41,13 @@ func TestCheckIntTypeNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".int"].Valid == false)
-	assert.True(t, result.Errors[".int"].Error != "")
+	assert.True(t, result.Errors["int"].Valid == false)
+	assert.True(t, result.Errors["int"].Error != "")
 }
 func TestCheckFloatType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".float": Rule{
+			"float": Rule{
 				Type: "float",
 			},
 		},
@@ -62,7 +62,7 @@ func TestCheckFloatType(t *testing.T) {
 func TestCheckFloatTypeNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".float": Rule{
+			"float": Rule{
 				Type: "float",
 			},
 		},
@@ -73,13 +73,13 @@ func TestCheckFloatTypeNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".float"].Valid == false)
-	assert.True(t, result.Errors[".float"].Error != "")
+	assert.True(t, result.Errors["float"].Valid == false)
+	assert.True(t, result.Errors["float"].Error != "")
 }
 func TestCheckBoolType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".bool": Rule{
+			"bool": Rule{
 				Type: "bool",
 			},
 		},
@@ -94,7 +94,7 @@ func TestCheckBoolType(t *testing.T) {
 func TestCheckBoolTypeNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".bool": Rule{
+			"bool": Rule{
 				Type: "bool",
 			},
 		},
@@ -105,13 +105,13 @@ func TestCheckBoolTypeNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".bool"].Valid == false)
-	assert.True(t, result.Errors[".bool"].Error != "")
+	assert.True(t, result.Errors["bool"].Valid == false)
+	assert.True(t, result.Errors["bool"].Error != "")
 }
 func TestCheckUintType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".uint": Rule{
+			"uint": Rule{
 				Type: "uint",
 			},
 		},
@@ -126,7 +126,7 @@ func TestCheckUintType(t *testing.T) {
 func TestCheckUintTypeNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".uint": Rule{
+			"uint": Rule{
 				Type: "uint",
 			},
 		},
@@ -137,13 +137,13 @@ func TestCheckUintTypeNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".uint"].Valid == false)
-	assert.True(t, result.Errors[".uint"].Error != "")
+	assert.True(t, result.Errors["uint"].Valid == false)
+	assert.True(t, result.Errors["uint"].Error != "")
 }
 func TestCheckStringType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".string": Rule{
+			"string": Rule{
 				Type: "string",
 			},
 		},
@@ -158,7 +158,7 @@ func TestCheckStringType(t *testing.T) {
 func TestInvalidType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".invalid": Rule{
+			"invalid": Rule{
 				Type: "invalid",
 			},
 		},
@@ -169,8 +169,8 @@ func TestInvalidType(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".invalid"].Valid == false)
-	assert.True(t, result.Errors[".invalid"].Error != "")
+	assert.True(t, result.Errors["invalid"].Valid == false)
+	assert.True(t, result.Errors["invalid"].Error != "")
 }
 func TestNestedType(t *testing.T) {
 	schema := Schema{
@@ -211,7 +211,7 @@ func TestNestedInvalidType(t *testing.T) {
 func TestRequired(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".required": Rule{
+			"required": Rule{
 				Required: true,
 			},
 		},
@@ -243,7 +243,7 @@ func TestNestedRequired(t *testing.T) {
 func TestRequiredMissing(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".required": Rule{
+			"required": Rule{
 				Required: true,
 			},
 		},
@@ -252,8 +252,8 @@ func TestRequiredMissing(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".required"].Valid == false)
-	assert.True(t, result.Errors[".required"].Error != "")
+	assert.True(t, result.Errors["required"].Valid == false)
+	assert.True(t, result.Errors["required"].Error != "")
 }
 func TestNestedRequiredMissing(t *testing.T) {
 	schema := Schema{
@@ -275,7 +275,7 @@ func TestNestedRequiredMissing(t *testing.T) {
 func TestPattern(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".pattern": Rule{
+			"pattern": Rule{
 				Pattern: "^[a-z]+$",
 			},
 		},
@@ -307,7 +307,7 @@ func TestNestedPattern(t *testing.T) {
 func TestPatternNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".pattern": Rule{
+			"pattern": Rule{
 				Pattern: "^[a-z]+$",
 			},
 		},
@@ -318,13 +318,13 @@ func TestPatternNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".pattern"].Valid == false)
-	assert.True(t, result.Errors[".pattern"].Error != "")
+	assert.True(t, result.Errors["pattern"].Valid == false)
+	assert.True(t, result.Errors["pattern"].Error != "")
 }
 func TestEmailPattern(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".pattern": Rule{
+			"pattern": Rule{
 				Pattern: "<email>",
 			},
 		},
@@ -339,7 +339,7 @@ func TestEmailPattern(t *testing.T) {
 func TestEmailPatternNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".pattern": Rule{
+			"pattern": Rule{
 				Pattern: "<email>",
 			},
 		},
@@ -350,8 +350,8 @@ func TestEmailPatternNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".pattern"].Valid == false)
-	assert.True(t, result.Errors[".pattern"].Error != "")
+	assert.True(t, result.Errors["pattern"].Valid == false)
+	assert.True(t, result.Errors["pattern"].Error != "")
 }
 func TestNestedEmailPatternNotMatch(t *testing.T) {
 	schema := Schema{
@@ -375,7 +375,7 @@ func TestNestedEmailPatternNotMatch(t *testing.T) {
 func TestExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".expression": Rule{
+			"expression": Rule{
 				Expression: "${{$and($gt($val(),10),$lt($val(),20))}}",
 			},
 		},
@@ -407,7 +407,7 @@ func TestNestedExpression(t *testing.T) {
 func TestInExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".expression": Rule{
+			"expression": Rule{
 				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},
@@ -439,7 +439,7 @@ func TestNestedInExpression(t *testing.T) {
 func TestInExpressionMiss(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".expression": Rule{
+			"expression": Rule{
 				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},

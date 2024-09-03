@@ -324,6 +324,10 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	}
 }
 
+func isAlphanum(query string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(query)
+}
+
 func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
 	s := formatPathForNestedJsonField(fieldPath)
 	query, err := gojq.Parse(s)
@@ -349,6 +353,11 @@ func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
 }
 
 func formatPathForNestedJsonField(s string) string {
+	// if the string is alphanumeric, add a dot in the front to suit gojq syntax
+	if isAlphanum(s) {
+		return "." + s
+	}
+
 	// if the string contains "`", it means it is a raw string and need to be unquoted
 	if len(s) > 0 && s[0] == '`' {
 		val, err := strconv.Unquote(s)

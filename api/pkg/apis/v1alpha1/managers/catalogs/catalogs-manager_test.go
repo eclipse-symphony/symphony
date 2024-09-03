@@ -273,7 +273,7 @@ func TestSchemaCheck(t *testing.T) {
 	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	schema := utils.Schema{
 		Rules: map[string]utils.Rule{
-			".email": {
+			"email": {
 				Pattern: "<email>",
 			},
 		},
