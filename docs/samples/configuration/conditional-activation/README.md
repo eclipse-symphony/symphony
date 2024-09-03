@@ -52,8 +52,8 @@ This is an example template that utilizes that variable.  This block is included
     type: config
     properties:
         EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
-            line1: ${{$if($config('line1', '.IS_PREMIUM_LINE'), $config('premium',''), '')}}
-            line2: ${{$if($config('line2', '.IS_PREMIUM_LINE'), $config('premium',''), '')}}
+            line1: ${{$if($config('line1', 'IS_PREMIUM_LINE'), $config('premium',''), '')}}
+            line2: ${{$if($config('line2', 'IS_PREMIUM_LINE'), $config('premium',''), '')}}
     ```
 
 1. Deploy the example from the conditional-activation directory:

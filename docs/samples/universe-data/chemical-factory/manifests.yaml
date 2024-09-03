@@ -54,7 +54,7 @@ spec:
         type: container
         properties:
           container.image: "redis:latest"
-          env.AI_MODEL: "$config(config:ai,.model)"
+          env.AI_MODEL: "$config(config:ai,model)"
 ---
 apiVersion: federation.symphony/v1
 kind: CatalogContainer

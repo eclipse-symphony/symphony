@@ -15,14 +15,14 @@ spec:
     type: container
     properties:
       container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"      
-      env.MY_CONFIG: "${{$config(config-a, .config-key)}}"
-      env.OTHER_CONFIG: "${{$config(config-b, .other-key)}}"
+      env.MY_CONFIG: "${{$config(config-a, config-key)}}"
+      env.OTHER_CONFIG: "${{$config(config-b, other-key)}}"
 ```
 
 You can also use recursive expressions to resolve for complex configuration scenarios. For example:
 
 ```yaml
-${{$config(line-config, $config(scenario-config, .active-scenario))}}
+${{$config(line-config, $config(scenario-config, active-scenario))}}
 ```
 
 Such late assembly can happen directly in any artifact formats (such as Solutions). So, you don't have to explicitly define an unified configuration (Catalog) object. On the other hand, if you do want the combined configuration to be explicitly managed (such as to be versioned independently from the application), you can always create a combined configuration object that assembles other configuration objects, or parts of other configuration objects into an unified object:
@@ -37,7 +37,7 @@ spec:
   catalogType: config
   properties:
     some-object: "${{$json($config('<config-obj>', ''))}}"
-    some-value: "${{$config('other-config','.some-field)}}"
+    some-value: "${{$config('other-config','some-field)}}"
 ```
 
 Symphony allows multiple levels of compositions. If the composed configurations have additional references to yet other configuration objects, the entire reference tree will be resolved

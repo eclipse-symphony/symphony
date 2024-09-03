@@ -6,7 +6,7 @@ In the case where a stronger schema check is required – just as limiting a con
 
 ## Schema syntax
 
-Schema supports nested organizations and each layer is specified by ".". To successfully point to a field in properties, the schema must be written in correct format. For example, given a field
+Schema supports nested organizations and each layer is specified by ".". To successfully point to the expected field, the schema must be written in correct format. For example, given a field
 ```json
 {
     "properties": {
@@ -68,7 +68,7 @@ Checks the type of field. For example, the following rule specifies `some-field`
 ```json
 {
     "rules": {
-        ".some-field": {
+        "some-field": {
             "type": "int"
         }
     }
@@ -83,7 +83,7 @@ Indicates if a field is mandatory:
 ```json
 {
     "rules": {
-        ".some-field": {
+        "some-field": {
             "required": true
         }
     }
@@ -97,7 +97,7 @@ Specifies that a field must match a regular expression:
 ```json
 {
     "rules": {
-        ".some-field": {
+        "some-field": {
             "pattern": "^[a-z]+$"
         }
     }
@@ -127,7 +127,7 @@ You can use Symphony expressions to specify complex conditions, such as a field 
 ```json
 {
     "rules": {
-        ".some-field": {
+        "some-field": {
             "pattern": "${{$and($gt($val(),10),$lt($val(),20))}}"
         }
     }
