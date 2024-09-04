@@ -35,10 +35,12 @@ import (
 
 // log is for logging in this package.
 var activationlog = logf.Log.WithName("activation-resource")
+var myActivationClient client.Reader
 var activationWebhookValidationMetrics *metrics.Metrics
 var activationValidator validation.ActivationValidator
 
 func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	myActivationClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Activation{}, ".metadata.name", func(rawObj client.Object) []string {
 		activation := rawObj.(*Activation)
 		return []string{activation.Name}
@@ -92,7 +94,7 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
@@ -121,7 +123,7 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
 
@@ -156,7 +158,7 @@ func (r *Activation) ValidateDelete() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 

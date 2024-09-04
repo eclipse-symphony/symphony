@@ -8,21 +8,23 @@ package configutils
 
 import (
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 
-	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
+	monitorv1 "gopls-workspace/apis/monitor/v1"
+
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -150,29 +152,9 @@ func ValidateObjectName(name string, rootResource string) *field.Error {
 	return nil
 }
 
-func PopulateActivityAndDiagnosticsContextFromAnnotations(objectId string, annotations map[string]string, operationName string, ctx context.Context, log logr.Logger) context.Context {
-	correlationId := annotations[constants.AzureCorrelationIdKey]
-	resourceId := annotations[constants.AzureResourceIdKey]
-	location := annotations[constants.AzureLocationKey]
-	systemData := annotations[constants.AzureSystemDataKey]
-
-	// correlationId := uuid.New().String()
-	// resourceId := objectId
-	// location := "on-premise"
-	// systemData := "{\"createdBy\":\"On-Premise\"}"
-
-	resourceK8SId := objectId
-	callerId := ""
-	if systemData != "" {
-		systemDataMap := make(map[string]string)
-		if err := json.Unmarshal([]byte(systemData), &systemDataMap); err != nil {
-			log.Info("Failed to unmarshal system data", "error", err)
-		} else {
-			// callerId = systemDataMap[constants.AzureCreatedByKey]
-			callerId = "******"
-		}
-	}
-	retCtx := coacontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
-	retCtx = coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(resourceId, location, operationName, correlationId, callerId, resourceK8SId), retCtx)
+func PopulateActivityAndDiagnosticsContextFromAnnotations(namespace string, objectId string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
+	edgeLocation := annotations[constants.AzureEdgeLocationKey]
+	diagnosticResourceId, diagnosticResourceLocation := monitorv1.GetDiagnosticResourceId(namespace, edgeLocation, k8sClient, ctx, logger)
+	retCtx := diagnostic.ConstructActivityAndDiagnosticContextFromAnnotations(namespace, objectId, diagnosticResourceId, diagnosticResourceLocation, annotations, operationName, k8sClient, ctx, logger)
 	return retCtx
 }

@@ -42,9 +42,11 @@ import (
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"
 
+	monitorv1 "gopls-workspace/apis/monitor/v1"
 	aicontrollers "gopls-workspace/controllers/ai"
 	fabriccontrollers "gopls-workspace/controllers/fabric"
 	federationcontrollers "gopls-workspace/controllers/federation"
+	monitorcontrollers "gopls-workspace/controllers/monitor"
 	solutioncontrollers "gopls-workspace/controllers/solution"
 	workflowcontrollers "gopls-workspace/controllers/workflow"
 	//+kubebuilder:scaffold:imports
@@ -112,6 +114,7 @@ func init() {
 	utilruntime.Must(configv1.AddToScheme(scheme))
 	utilruntime.Must(workflowv1.AddToScheme(scheme))
 	utilruntime.Must(federationv1.AddToScheme(scheme))
+	utilruntime.Must(monitorv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -404,6 +407,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
 			os.Exit(1)
 		}
+		if err = (&monitorv1.Diagnostic{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Diagnostic")
+			os.Exit(1)
+		}
 		if err = commoncontainer.InitCommonContainerWebHook(mgr); err != nil {
 			setupLog.Error(err, "unable to Init Common Conainer", "webhook", "Common Conainer")
 			os.Exit(1)
@@ -440,6 +447,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CampaignContainer")
+		os.Exit(1)
+	}
+	if err = (&monitorcontrollers.DiagnosticReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Diagnostic")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
