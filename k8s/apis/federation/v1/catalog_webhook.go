@@ -62,15 +62,15 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	catalogValidator = validation.NewCatalogValidator(
 		// Look up catalog
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
-			return dynamicclient.Get(validation.Catalog, name, namespace)
+			return dynamicclient.Get(ctx, validation.Catalog, name, namespace)
 		},
 		// Look up catalog container
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
-			return dynamicclient.Get(validation.CatalogContainer, name, namespace)
+			return dynamicclient.Get(ctx, validation.CatalogContainer, name, namespace)
 		},
 		// Look up child catalog
 		func(ctx context.Context, name string, namespace string) (bool, error) {
-			catalogList, err := dynamicclient.ListWithLabels(validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
+			catalogList, err := dynamicclient.ListWithLabels(ctx, validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
 			if err != nil {
 				return false, err
 			}
@@ -284,7 +284,7 @@ func (r *CatalogContainer) Default() {
 func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
 	diagnostic.InfoWithCtx(cataloglog, ctx, "validate create catalog container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being created on namespace %s", r.Name, r.Namespace)
@@ -294,7 +294,7 @@ func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
 func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
 	diagnostic.InfoWithCtx(cataloglog, ctx, "validate update catalog container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being updated on namespace %s", r.Name, r.Namespace)
@@ -304,7 +304,7 @@ func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warning
 func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), cataloglog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 
 	diagnostic.InfoWithCtx(cataloglog, ctx, "validate delete catalog container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being deleted on namespace %s", r.Name, r.Namespace)

@@ -89,7 +89,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Get instance
 	instance := &solution_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		log.Error(err, "unable to fetch Instance object")
+		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -214,7 +214,7 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
 	err := r.List(context.Background(), &instances, options...)
 	if err != nil {
-		log.Log.Error(err, "Failed to list instances")
+		diagnostic.ErrorWithCtx(log.Log, ctx, err, "Failed to list instances")
 		return ret
 	}
 

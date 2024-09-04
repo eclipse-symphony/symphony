@@ -57,7 +57,7 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	activationValidator = validation.NewActivationValidator(func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Campaign, name, namespace)
+		return dynamicclient.Get(ctx, validation.Campaign, name, namespace)
 	})
 
 	return ctrl.NewWebhookManagedBy(mgr).

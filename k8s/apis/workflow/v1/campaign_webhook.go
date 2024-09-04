@@ -60,11 +60,11 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	campaignValidator = validation.NewCampaignValidator(
 		// look up campaign container
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
-			return dynamicclient.Get(validation.CampaignContainer, name, namespace)
+			return dynamicclient.Get(ctx, validation.CampaignContainer, name, namespace)
 		},
 		// Look up running activation
 		func(ctx context.Context, campaign string, namespace string) (bool, error) {
-			activationList, err := dynamicclient.ListWithLabels(validation.Activation, namespace, map[string]string{"campaign": campaign}, 1)
+			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{"campaign": campaign}, 1)
 			if err != nil {
 				return false, err
 			}

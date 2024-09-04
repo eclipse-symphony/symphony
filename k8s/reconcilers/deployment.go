@@ -131,7 +131,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, ctx cont
 }
 
 func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, k8sClient client.Reader, log logr.Logger) context.Context {
-	diagnostic.InfoWithCtx("Populating diagnostics and activities from annotations")
+	diagnostic.InfoWithCtx(log, ctx, "Populating diagnostics and activities from annotations")
 	if object == nil {
 		return ctx
 	}
@@ -192,7 +192,6 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		if !v1alpha2.IsNotFound(err) {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to get deployment summary")
 			// updates the object status to reconciling
-			log.Error(err, " (Deployment): get deployment summary failed.")
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
 				nonTerminalErr: err,
 			}, log); err != nil {
@@ -444,10 +443,10 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	// If there was a terminal error, then we don't return an error so the reconciler can respect the reconcile policy
 	// but if there was a non-terminal error, we should return the error so the reconciler can retry
 	if patchOptions.terminalErr != nil {
-		log.Info(fmt.Sprintf(" (Deployment): deployment failed due to terminal error: %v.", patchOptions.terminalErr))
+		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Queue deployment job failed due to terminal error.")
 		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
-	log.Error(err, " (Deployment): queue deployment job failed.")
+	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Queue deployment job failed due to non-terminal error.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
@@ -467,10 +466,10 @@ func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, 
 	// but give the api a chance to synchronize the failure before removing the finalizer
 	if patchOptions.terminalErr != nil {
 		r.delayFunc(r.deleteSyncDelay)
-		log.Info(fmt.Sprintf(" (Deployment): delete deployment failed due to terminal error: %v.", patchOptions.terminalErr))
+		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Delete deployment job failed due to terminal error.")
 		return metrics.DeploymentFailed, ctrl.Result{}, r.concludeDeletion(ctx, object)
 	}
-	log.Error(err, " (Deployment): delete deployment failed.")
+	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Delete deployment job failed due to non-terminal error.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 
@@ -579,7 +578,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
-	log.Info(fmt.Sprintf("(Deployment): update Object Status. Status: %v. Patch status options: %v.", status, opts))
+	diagnostic.InfoWithCtx(log, ctx, "Updating object status", "status", status, "patchStatusOptions", opts)
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
@@ -593,7 +592,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 
 	err = r.kubeClient.Status().Update(context.Background(), object)
 	if err != nil {
-		log.Error(err, " (Deployment): failed to update object status.")
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 	}
 	return string(status), err
 

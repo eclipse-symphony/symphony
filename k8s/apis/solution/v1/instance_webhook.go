@@ -67,13 +67,13 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	// Load validator functions
 	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-		return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
+		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Instance, displayName, namespace)
 	}
 	solutionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Solution, name, namespace)
+		return dynamicclient.Get(ctx, validation.Solution, name, namespace)
 	}
 	targetLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Target, name, namespace)
+		return dynamicclient.Get(ctx, validation.Target, name, namespace)
 	}
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
 		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)

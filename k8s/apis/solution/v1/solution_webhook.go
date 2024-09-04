@@ -53,18 +53,18 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	// Load validator functions
 	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
+		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
 		if err != nil {
 			return false, err
 		}
 		return len(instanceList.Items) > 0, nil
 	}
 	solutionContainerLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.SolutionContainer, name, namespace)
+		return dynamicclient.Get(ctx, validation.SolutionContainer, name, namespace)
 	}
 
 	uniqueNameSolutionLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-		return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
+		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Solution, displayName, namespace)
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
 		solutionValidator = validation.NewSolutionValidator(solutionInstanceLookupFunc, solutionContainerLookupFunc, uniqueNameSolutionLookupFunc)
