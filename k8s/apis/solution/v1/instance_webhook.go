@@ -39,11 +39,13 @@ import (
 
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
+var myInstanceClient client.Reader
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
 var instanceValidator validation.InstanceValidator
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	myInstanceClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
@@ -123,7 +125,7 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created on namespace %s", r.Name, r.Namespace)
 
@@ -154,7 +156,7 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated on namespace %s", r.Name, r.Namespace)
 
@@ -189,7 +191,7 @@ func (r *Instance) ValidateDelete() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being deleted on namespace %s", r.Name, r.Namespace)
 

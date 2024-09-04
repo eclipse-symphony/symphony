@@ -65,9 +65,9 @@ Attributes:
      -> scope: Str(coa.runtime.user.audits)
      -> resourceId: Str()
      -> category: Str(UserAudits)
-     -> caller-id: Str()
+     -> callerId: Str()
      -> correlationId: Str(2c37ddcd-96e8-4478-9ab4-eb6ed15bb553)
-     -> resource-k8s-id: Str(default/self)
+     -> operatingResourceK8SId: Str(default/self)
      -> properties: Str({})
      -> type: Str(userAudits)
      -> instance: Str(symphony-api-6b9b548b5b-fmggp)
@@ -83,9 +83,9 @@ Log column | Descriptions
 scope | coa.runtime.user.audits (indicating this is user audits logs)
 resourceId | external system resource id (e.g. Azure Cloud resource id.)
 category | audit operation category
-caller-id | who invokes this operation
+callerId | who invokes this operation
 correlationId | the external correlation id provided by external system (e.g. Azure Cloud), if it is missing when the request arrives to binding, the http/mqtt binding will assign a ramdon value
-resource-k8s-id | k8s resource id (namespace/resourceName)
+operatingResourceK8SId | k8s resource id (namespace/resourceName)
 properties | additional auditing properties
 type | log type (userAudits)
 instance | container name (in K8S) or computer name (in standalone)
@@ -110,8 +110,8 @@ Attributes:
      -> type: Str(userDiagnostics)
      -> correlationId: Str(8ca7ba3a-4353-4c2e-9a95-74396220b462)
      -> operationName: Str(instances.solution.symphony/Write)
-     -> caller-id: Str()
-     -> resource-k8s-id: Str(default/instance)
+     -> callerId: Str()
+     -> operatingResourceK8SId: Str(default/instance)
      -> instance: Str(symphony-api-6b9b548b5b-fmggp)
      -> ver: Str(unknown)
      -> resourceId: Str()
@@ -126,9 +126,9 @@ Log column | Descriptions
 scope | coa.runtime.user.diagnostics (indicating this is user diagnostics logs)
 resourceId | external system resource id (e.g. Azure Cloud resource id.)
 category | audit operation category
-caller-id | who invokes this operation
+callerId | who invokes this operation
 correlationId | the external correlation id provided by external system (e.g. Azure Cloud), if it is missing when the request arrives to binding, the http/mqtt binding will assign a ramdon value
-resource-k8s-id | k8s resource id (namespace/resourceName)
+operatingResourceK8SId | k8s resource id (namespace/resourceName)
 properties | additional auditing properties
 type | log type (userDiagnostics)
 instance | container name (in K8S) or computer name (in standalone)
