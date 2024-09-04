@@ -121,6 +121,8 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string

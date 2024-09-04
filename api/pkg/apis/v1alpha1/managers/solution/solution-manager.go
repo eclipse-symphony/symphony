@@ -324,6 +324,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	s.saveSummaryProgress(ctx, deployment, summary, namespace)
 	defer func() {
+		if deployment.IsDryRun {
+			summary.SuccessCount = 0
+		}
 		s.concludeSummary(ctx, deployment, summary, namespace)
 	}()
 
@@ -473,7 +476,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, false)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
@@ -506,33 +509,35 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState.ClearAllRemoved()
 
-	if len(mergedState.TargetComponent) == 0 && remove {
-		log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-		s.StateProvider.Delete(ctx, states.DeleteRequest{
-			ID: deployment.Instance.ObjectMeta.Name,
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     model.SolutionGroup,
-				"version":   "v1",
-				"resource":  DeploymentState,
-			},
-		})
-	} else {
-		s.StateProvider.Upsert(ctx, states.UpsertRequest{
-			Value: states.StateEntry{
+	if !deployment.IsDryRun {
+		if len(mergedState.TargetComponent) == 0 && remove {
+			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			s.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: deployment.Instance.ObjectMeta.Name,
-				Body: SolutionManagerDeploymentState{
-					Spec:  deployment,
-					State: mergedState,
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
 				},
-			},
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     model.SolutionGroup,
-				"version":   "v1",
-				"resource":  DeploymentState,
-			},
-		})
+			})
+		} else {
+			s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
+					ID: deployment.Instance.ObjectMeta.Name,
+					Body: SolutionManagerDeploymentState{
+						Spec:  deployment,
+						State: mergedState,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		}
 	}
 
 	successCount := 0
