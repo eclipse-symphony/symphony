@@ -10,7 +10,7 @@ metadata:
   name: instance
 spec:
   displayName: instance
-  scope: alice-springs
+  scope: test-scope
   solution: mysol:v1
   target:
     name: self
