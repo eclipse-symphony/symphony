@@ -443,10 +443,10 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	// If there was a terminal error, then we don't return an error so the reconciler can respect the reconcile policy
 	// but if there was a non-terminal error, we should return the error so the reconciler can retry
 	if patchOptions.terminalErr != nil {
-		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Queue deployment job failed due to terminal error.")
+		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Deployment job failed due to terminal error.")
 		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
-	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Queue deployment job failed due to non-terminal error.")
+	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Deployment job failed due to non-terminal error.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
