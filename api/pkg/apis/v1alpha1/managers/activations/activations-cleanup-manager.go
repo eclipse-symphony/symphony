@@ -57,7 +57,7 @@ func (s *ActivationsCleanupManager) Enabled() bool {
 func (s *ActivationsCleanupManager) Poll() []error {
 	// TODO: initialize the context with id correctly
 	ctx, span := observability.StartSpan("Activations Cleanup Manager", context.Background(), &map[string]string{
-		"method": "pollSchedules",
+		"method": "Poll",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)

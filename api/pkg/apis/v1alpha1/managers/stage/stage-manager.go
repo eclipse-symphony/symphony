@@ -758,6 +758,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData
 		} else {
+			if pauseRequested {
+				status.Status = v1alpha2.Paused
+				status.StatusMessage = v1alpha2.Paused.String()
+				status.IsActive = false
+				return status, activationData
+			}
 			// Not self-driving, no next stage
 			status.Status = v1alpha2.Done
 			status.StatusMessage = v1alpha2.Done.String()
