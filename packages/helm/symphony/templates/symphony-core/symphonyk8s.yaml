@@ -504,6 +504,72 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
+  name: diagnostics.monitor.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: monitor.symphony
+  names:
+    kind: Diagnostic
+    listKind: DiagnosticList
+    plural: diagnostics
+    singular: diagnostic
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Diagnostic is the Schema for the diagnostics API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DiagnosticSpec defines the desired state of Diagnostic
+            properties:
+              foo:
+                description: Foo is an example field of Diagnostic. Edit diagnostic_types.go
+                  to remove/update
+                type: string
+            type: object
+          status:
+            description: DiagnosticStatus defines the observed state of Diagnostic
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: instances.solution.symphony
 spec:
   conversion:
@@ -560,6 +626,8 @@ spec:
             properties:
               displayName:
                 type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -1561,6 +1629,8 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -2184,6 +2254,32 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2662,6 +2758,27 @@ webhooks:
     resources:
     - catalogcontainers
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -2857,4 +2974,25 @@ webhooks:
     - DELETE
     resources:
     - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
   sideEffects: None

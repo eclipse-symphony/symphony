@@ -288,6 +288,16 @@ func shellExec(cmd string, printCmdOrNot bool) error {
 	return execCmd.Run()
 }
 
+func shellExecWithoutOutput(cmd string, printCmdOrNot bool) error {
+	if printCmdOrNot {
+		fmt.Println(">", cmd)
+	}
+	execCmd := exec.Command("sh", "-c", cmd)
+	execCmd.Stdout = nil
+	execCmd.Stderr = nil
+	return execCmd.Run()
+}
+
 // Collect Symphony logs to a log folder provided
 func Logs(logRootFolder string) error {
 	// api logs
@@ -304,13 +314,13 @@ func Logs(logRootFolder string) error {
 	if err != nil {
 		fmt.Printf("Failed to collect controller-manager logs: %s\n", err)
 	}
-	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelCollectorLogFile), true)
+	err = shellExecWithoutOutput(fmt.Sprintf("kubectl logs 'deployment/symphony-otel-collector' --all-containers -n %s > %s", getChartNamespace(), otelCollectorLogFile), true)
 	if err != nil {
-		fmt.Printf("Failed to collect otel-collector logs: %s\n", err)
+		fmt.Printf("Cannot collect otel-collector logs: %s, it's ok when otel-collector is not deployed\n", err)
 	}
-	err = shellExec(fmt.Sprintf("kubectl logs 'ds/symphony-otel-forwarder' --all-containers -n %s > %s", getChartNamespace(), otelForwarderLogFile), true)
+	err = shellExecWithoutOutput(fmt.Sprintf("kubectl logs 'ds/symphony-otel-forwarder' --all-containers -n %s > %s", getChartNamespace(), otelForwarderLogFile), true)
 	if err != nil {
-		fmt.Printf("Failed to collect otel-forwarder logs: %s\n", err)
+		fmt.Printf("Cannot to collect otel-forwarder logs: %s, it's ok when otel-forwarder is not deployed\n", err)
 	}
 
 	return nil

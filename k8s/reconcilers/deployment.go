@@ -129,7 +129,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	return
 }
 
-func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, log logr.Logger) context.Context {
+func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, k8sClient client.Reader, log logr.Logger) context.Context {
 	log.Info("Populating diagnostics and activities from annotations")
 	if object == nil {
 		return ctx
@@ -139,13 +139,13 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 		return ctx
 	}
 	resourceK8SId := object.GetNamespace() + "/" + object.GetName()
-	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, annotations, operationName, ctx, log)
+	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(object.GetNamespace(), resourceK8SId, annotations, operationName, k8sClient, ctx, log)
 }
 
 // attemptUpdate attempts to update the instance
 func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
 	// populate diagnostics and activities from annotations
-	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		controllerutil.AddFinalizer(object, r.finalizerName)
 		// updates the object in Kubernetes cluster
@@ -171,6 +171,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
 	if time.Since(startTime) > timeout && !utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
+		log.Info(" (Deployment): failed to completely reconcile within the allocated time.")
 		if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 			terminalErr: v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut),
 		}, log); err != nil {
@@ -184,6 +185,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		// If the error is anything but 404, we should return the error so the reconciler can retry
 		if !v1alpha2.IsNotFound(err) {
 			// updates the object status to reconciling
+			log.Error(err, " (Deployment): get deployment summary failed.")
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
 				nonTerminalErr: err,
 			}, log); err != nil {
@@ -192,6 +194,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
+			log.Info(" (Deployment): deployment summary not found, queue deployment job.")
 			if err := r.queueDeploymentJob(ctx, object, false, false, operationStartTimeKey); err != nil {
 				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
 			}
@@ -265,7 +268,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 
 // attemptRemove attempts to remove the object
 func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
-	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, log)
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	status := metrics.StatusNoOp
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
 		return metrics.StatusNoOp, ctrl.Result{}, nil
@@ -377,8 +380,10 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	// If there was a terminal error, then we don't return an error so the reconciler can respect the reconcile policy
 	// but if there was a non-terminal error, we should return the error so the reconciler can retry
 	if patchOptions.terminalErr != nil {
+		log.Info(fmt.Sprintf(" (Deployment): deployment failed due to terminal error: %v.", patchOptions.terminalErr))
 		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
+	log.Error(err, " (Deployment): queue deployment job failed.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
@@ -398,8 +403,10 @@ func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, 
 	// but give the api a chance to synchronize the failure before removing the finalizer
 	if patchOptions.terminalErr != nil {
 		r.delayFunc(r.deleteSyncDelay)
+		log.Info(fmt.Sprintf(" (Deployment): delete deployment failed due to terminal error: %v.", patchOptions.terminalErr))
 		return metrics.DeploymentFailed, ctrl.Result{}, r.concludeDeletion(ctx, object)
 	}
+	log.Error(err, " (Deployment): delete deployment failed.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 
@@ -508,6 +515,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
+	log.Info(fmt.Sprintf("(Deployment): update Object Status. Status: %v. Patch status options: %v.", status, opts))
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
@@ -518,7 +526,13 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	}
 	nextStatus.LastModified = metav1.Now()
 	object.SetStatus(*nextStatus)
-	return string(status), r.kubeClient.Status().Update(context.Background(), object)
+
+	err = r.kubeClient.Status().Update(context.Background(), object)
+	if err != nil {
+		log.Error(err, " (Deployment): failed to update object status.")
+	}
+	return string(status), err
+
 }
 
 func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) utilsmodel.ProvisioningStatus {

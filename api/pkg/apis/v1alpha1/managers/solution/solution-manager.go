@@ -322,9 +322,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 	summary.IsRemoval = remove
 
-	s.saveSummaryProgress(ctx, deployment, summary, namespace)
+	s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	defer func() {
-		s.concludeSummary(ctx, deployment, summary, namespace)
+		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+		if deployment.IsDryRun {
+			summary.SuccessCount = 0
+		}
+		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	}()
 
 	// get the components count for the deployment
@@ -473,12 +477,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, false)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
-				s.saveSummaryProgress(ctx, deployment, summary, namespace)
+				s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 				break
 			} else {
 				targetResult[step.Target] = 0
@@ -506,33 +510,35 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState.ClearAllRemoved()
 
-	if len(mergedState.TargetComponent) == 0 && remove {
-		log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-		s.StateProvider.Delete(ctx, states.DeleteRequest{
-			ID: deployment.Instance.ObjectMeta.Name,
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     model.SolutionGroup,
-				"version":   "v1",
-				"resource":  DeploymentState,
-			},
-		})
-	} else {
-		s.StateProvider.Upsert(ctx, states.UpsertRequest{
-			Value: states.StateEntry{
+	if !deployment.IsDryRun {
+		if len(mergedState.TargetComponent) == 0 && remove {
+			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			s.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: deployment.Instance.ObjectMeta.Name,
-				Body: SolutionManagerDeploymentState{
-					Spec:  deployment,
-					State: mergedState,
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
 				},
-			},
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     model.SolutionGroup,
-				"version":   "v1",
-				"resource":  DeploymentState,
-			},
-		})
+			})
+		} else {
+			s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
+					ID: deployment.Instance.ObjectMeta.Name,
+					Body: SolutionManagerDeploymentState{
+						Spec:  deployment,
+						State: mergedState,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		}
 	}
 
 	successCount := 0
@@ -565,17 +571,18 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 	return targetSpec
 }
 
-func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, state model.SummaryState, namespace string) {
+func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
+	log.DebugfCtx(ctx, "M (Solution): save summary. namespace: %v, generation: %v, summary state: %v\n", namespace, generation, state)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.ObjectMeta.Name),
+			ID: fmt.Sprintf("%s-%s", "summary", objectName),
 			Body: model.SummaryResult{
 				Summary:        summary,
-				Generation:     deployment.Generation,
+				Generation:     generation,
 				Time:           time.Now().UTC(),
 				State:          state,
-				DeploymentHash: deployment.Hash,
+				DeploymentHash: hash,
 			},
 		},
 		Metadata: map[string]interface{}{
@@ -587,12 +594,12 @@ func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.Depl
 	})
 }
 
-func (s *SolutionManager) saveSummaryProgress(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, deployment, summary, model.SummaryStateRunning, namespace)
+func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) {
+	s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
 }
 
-func (s *SolutionManager) concludeSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, deployment, summary, model.SummaryStateDone, namespace)
+func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) {
+	s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
 func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {

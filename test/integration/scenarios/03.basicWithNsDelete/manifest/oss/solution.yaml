@@ -14,5 +14,5 @@ spec:
     properties:
       container.ports: "[{\"containerPort\":${{$secret('container','port')}},\"protocol\":\"TCP\"}]"
       container.imagePullPolicy: "Always"
-      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
-      container.image: "prom/prometheus"
+      container.resources: "{\"requests\":{\"cpu\":\"50m\",\"memory\":\"100Mi\"}}"        
+      container.image: "${{$config('config1:v1','image')}}"
