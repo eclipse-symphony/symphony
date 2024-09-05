@@ -1,0 +1,6 @@
+apiVersion: monitor.symphony/v1
+kind: Diagnostic
+metadata:
+  name: default
+spec:
+  # TODO(user): Add fields here

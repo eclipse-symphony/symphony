@@ -48,8 +48,12 @@ var (
 	// Manifests to deploy
 	testManifests = []string{
 		"manifest/%s/solution-container.yaml",
+		"manifest/%s/config1-container.yaml",
+		"manifest/%s/config2-container.yaml",
 		"manifest/%s/target.yaml",
 		"manifest/%s/solution.yaml",
+		"manifest/%s/config1.yaml",
+		"manifest/%s/config2.yaml",
 		"manifest/%s/instance.yaml",
 	}
 

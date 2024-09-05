@@ -1257,7 +1257,7 @@ func (p *ExpressionParser) function() (Node, error) {
 			return nil, err
 		}
 		if _, ok := node.(*NullNode); ok {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid argument"), v1alpha2.BadConfig)
+			return nil, v1alpha2.NewCOAError(nil, "invalid argument", v1alpha2.BadConfig)
 		}
 		args = append(args, node)
 		if p.token == COMMA {
@@ -1282,7 +1282,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 			if val != nil {
 				metadata, ok := val.(map[string]string)
 				if !ok {
-					return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("metadata must be a map"), v1alpha2.BadConfig)
+					return deploymentSpec, v1alpha2.NewCOAError(nil, "metadata must be a map", v1alpha2.BadConfig)
 				}
 				stringMap := make(map[string]string)
 				for k, v := range metadata {
@@ -1297,7 +1297,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 			}
 			props, ok := val.(map[string]interface{})
 			if !ok {
-				return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("properties must be a map"), v1alpha2.BadConfig)
+				return deploymentSpec, v1alpha2.NewCOAError(nil, "properties must be a map", v1alpha2.BadConfig)
 			}
 			deploymentSpec.Solution.Spec.Components[ic].Properties = props
 		}
