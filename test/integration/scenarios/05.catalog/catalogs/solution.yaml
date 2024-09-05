@@ -23,4 +23,4 @@ spec:
         type: container
         properties:
           container.image: "redis:latest"
-          env.AI_MODEL: "$config(ai-config,.model)"
+          env.AI_MODEL: "$config(ai-config,model)"

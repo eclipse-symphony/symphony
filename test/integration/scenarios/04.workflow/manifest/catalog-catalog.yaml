@@ -14,5 +14,5 @@ spec:
         testA:
           testB:
             testC:
-              serviceType: "${{$config('webappconfig2:v1','`.\"test.dot.serviceType\"`')}}"
-              image: "${{$config('webappconfig2:v1','.testA.testB.images[] | select(.ver > 2) | .image')}}"
+              serviceType: "${{$config('webappconfig2:v1','test.dot.serviceType')}}"
+              image: "${{$config('webappconfig2:v1','`.testA.testB.images[] | select(.ver > 2) | .image`')}}"

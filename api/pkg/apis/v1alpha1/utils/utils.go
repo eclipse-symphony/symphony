@@ -353,20 +353,20 @@ func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
 }
 
 func formatPathForNestedJsonField(s string) string {
-	// if the string is alphanumeric, add a dot in the front to suit gojq syntax
-	if isAlphanum(s) {
-		return "." + s
+	if len(s) == 0 {
+		return s
 	}
 
-	// if the string contains "`", it means it is a raw string and need to be unquoted
-	if len(s) > 0 && s[0] == '`' {
+	// if the string contains "`", it means it is a string with jq syntax and needs to be unquoted
+	if s[0] == '`' {
 		val, err := strconv.Unquote(s)
 		if err != nil {
 			return ""
 		}
 		return val
+	} else {
+		return fmt.Sprintf(".%s", strconv.Quote(s))
 	}
-	return s
 }
 
 func ConvertReferenceToObjectName(name string) string {

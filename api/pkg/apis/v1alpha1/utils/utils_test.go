@@ -439,7 +439,7 @@ func TestReadRootProperty(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".")
+	m2, ok := JsonParseProperty(m, "`.`")
 	assert.True(t, ok)
 	assert.Equal(t, m, m2)
 }
@@ -453,7 +453,7 @@ func TestReadNestedJsonStringProperty(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".a.b.c")
+	m2, ok := JsonParseProperty(m, "`.a.b.c`")
 	assert.True(t, ok)
 	assert.Equal(t, value, m2)
 }
@@ -467,7 +467,7 @@ func TestReadNestedJsonNumberProperty(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".a.b.c")
+	m2, ok := JsonParseProperty(m, "`.a.b.c`")
 	assert.True(t, ok)
 	assert.Equal(t, value, m2)
 }
@@ -481,7 +481,7 @@ func TestReadNestedJsonPropertyNotExsits(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".a.b.d")
+	m2, ok := JsonParseProperty(m, "`.a.b.d`")
 	assert.False(t, ok)
 	assert.Equal(t, m2, nil)
 }
@@ -495,7 +495,7 @@ func TestReadNestedJsonPropertyThrowError(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".a..b.c")
+	m2, ok := JsonParseProperty(m, "`.a..b.c`")
 	assert.False(t, ok)
 	assert.Equal(t, m2, nil)
 }
@@ -508,7 +508,7 @@ func TestReadMiddleProperty(t *testing.T) {
 			},
 		},
 	}
-	m2, ok := JsonParseProperty(m, ".a.b")
+	m2, ok := JsonParseProperty(m, "`.a.b`")
 	assert.True(t, ok)
 	assert.Equal(t, m["a"].(map[string]interface{})["b"], m2)
 }
@@ -523,11 +523,11 @@ func TestReadPropertyNameWithDotIdentifier(t *testing.T) {
 		},
 		"a.b.c": value,
 	}
-	m2, ok := JsonParseProperty(m, `.a.["b.c"].c`)
+	m2, ok := JsonParseProperty(m, "`.a.[\"b.c\"].c`")
 	assert.True(t, ok)
 	assert.Equal(t, value, m2)
 
-	m3, ok := JsonParseProperty(m, `."a.b.c"`)
+	m3, ok := JsonParseProperty(m, "`.\"a.b.c\"`")
 	assert.True(t, ok)
 	assert.Equal(t, value, m3)
 }
@@ -568,11 +568,11 @@ func TestReadPropertyNameWithArraySlicing(t *testing.T) {
 	obj := map[string]interface{}(map[string]interface{}{"id": 1.})
 	val := 3.
 
-	m2, ok := JsonParseProperty(data, `.a.b[0]`)
+	m2, ok := JsonParseProperty(data, "`.a.b[0]`")
 	assert.True(t, ok)
 	assert.Equal(t, obj, m2)
 
-	m3, ok := JsonParseProperty(data, ".a.b[] | select(.id > 2) | .id")
+	m3, ok := JsonParseProperty(data, "`.a.b[] | select(.id > 2) | .id`")
 	assert.True(t, ok)
 	assert.Equal(t, val, m3)
 }

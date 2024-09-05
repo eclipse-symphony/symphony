@@ -12,6 +12,9 @@ Details about overrides can be found in [inheritance](../configuration-managemen
 
 ## Examples of usage
 
+> **Note**
+`$config` expressions support both direct field reference as well as jq syntax. To use jq syntax inside `$config` expressions, make sure to quote the query with <code>``</code> outside the query. Otherwise, it will be evaluated as a simple field reference.
+
 The following examples will utilize below configuration as reference.
 ```yaml
 spec:
@@ -28,48 +31,49 @@ spec:
     
 ```
 
-- Access direct keys inside properties:
+- Access direct fields inside properties. Fields can be accessed directly, without `` quote:
 ```yaml
-$config(config1, .myKey)
+$config(config1, myKey)
 # result: {subKey: 1, subList: ["Tag1", "Tag2"]}
 ```
 
+Must quote with `` to access nested fields or perform complex operations in queries:
 - Access nested keys:
 ```yaml
-$config(config1, .myKey.subKey)
+$config(config1, `.myKey.subKey`)
 # result: 1
-$config(config1, .myKey.subList)
+$config(config1, `.myKey.subList`)
 # result: ["Tag1","Tag2"]
 ```
 
 - Slicing:
 ```yaml
-$config(config1, .myKey.subList[1:2])
+$config(config1, `.myKey.subList[1:2]`)
 # result: ["Tag2"]
 ```
 
 - Iterator (**different with gojq**):
 `jq` has the iterator syntax (such as `[]`) which will iterate through all the qualified result and return one at a time. `$config` will return the last qualified result from the iterator. 
 ```yaml
-$config(config1, .myKey.subList[])
+$config(config1, `.myKey.subList[]`)
 # result: ["Tag2"]
 ```
 
 - Array construction
 ```yaml
-$config(config1, [.myKey.subList[]])
+$config(config1, `[.myKey.subList[]]`)
 # result: ["Tag1","Tag2"]
 ```
 
 - Comparisons:
 ```yaml
-$config(config1, .myKey.subVersion < 2)
+$config(config1, `.myKey.subVersion < 2`)
 # result: true
 ```
 
 - Pipe:
 ```yaml
-$config(config1, .myKey | .subVersion)
+$config(config1, `.myKey | .subVersion`)
 # result: 1
 ```
 

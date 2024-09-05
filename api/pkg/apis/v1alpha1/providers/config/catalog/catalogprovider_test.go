@@ -113,7 +113,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read(ctx, "catalog1:v1", ".a.b.c", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "`.a.b.c`", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -130,7 +130,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "dot", val)
 
-	res, err = provider.Read(ctx, "catalog1:v1", ".parentAttribute", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "`.parentAttribute`", nil)
 	assert.Nil(t, err)
 	v, ok := res.(string)
 	assert.True(t, ok)

@@ -175,7 +175,7 @@ func TestInvalidType(t *testing.T) {
 func TestNestedType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.string": Rule{
+			"`.person.string`": Rule{
 				Type: "string",
 			},
 		},
@@ -192,7 +192,7 @@ func TestNestedType(t *testing.T) {
 func TestNestedInvalidType(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.string": Rule{
+			"`.person.string`": Rule{
 				Type: "invalid",
 			},
 		},
@@ -205,8 +205,8 @@ func TestNestedInvalidType(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".person.string"].Valid == false)
-	assert.True(t, result.Errors[".person.string"].Error != "")
+	assert.True(t, result.Errors["`.person.string`"].Valid == false)
+	assert.True(t, result.Errors["`.person.string`"].Error != "")
 }
 func TestRequired(t *testing.T) {
 	schema := Schema{
@@ -226,7 +226,7 @@ func TestRequired(t *testing.T) {
 func TestNestedRequired(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.required": Rule{
+			"`.person.required`": Rule{
 				Required: true,
 			},
 		},
@@ -258,7 +258,7 @@ func TestRequiredMissing(t *testing.T) {
 func TestNestedRequiredMissing(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.required": Rule{
+			"`.person.required`": Rule{
 				Required: true,
 			},
 		},
@@ -269,8 +269,8 @@ func TestNestedRequiredMissing(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".person.required"].Valid == false)
-	assert.True(t, result.Errors[".person.required"].Error != "")
+	assert.True(t, result.Errors["`.person.required`"].Valid == false)
+	assert.True(t, result.Errors["`.person.required`"].Error != "")
 }
 func TestPattern(t *testing.T) {
 	schema := Schema{
@@ -290,7 +290,7 @@ func TestPattern(t *testing.T) {
 func TestNestedPattern(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.pattern": Rule{
+			"`.person.pattern`": Rule{
 				Pattern: "^[a-z]+$",
 			},
 		},
@@ -356,7 +356,7 @@ func TestEmailPatternNotMatch(t *testing.T) {
 func TestNestedEmailPatternNotMatch(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.pattern": Rule{
+			"`.person.pattern`": Rule{
 				Pattern: "<email>",
 			},
 		},
@@ -369,8 +369,8 @@ func TestNestedEmailPatternNotMatch(t *testing.T) {
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
-	assert.True(t, result.Errors[".person.pattern"].Valid == false)
-	assert.True(t, result.Errors[".person.pattern"].Error != "")
+	assert.True(t, result.Errors["`.person.pattern`"].Valid == false)
+	assert.True(t, result.Errors["`.person.pattern`"].Error != "")
 }
 func TestExpression(t *testing.T) {
 	schema := Schema{
@@ -390,7 +390,7 @@ func TestExpression(t *testing.T) {
 func TestNestedExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.expression": Rule{
+			"`.person.expression`": Rule{
 				Expression: "${{$and($gt($val(),10),$lt($val(),20))}}",
 			},
 		},
@@ -422,7 +422,7 @@ func TestInExpression(t *testing.T) {
 func TestNestedInExpression(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.expression": Rule{
+			"`.person.expression`": Rule{
 				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},
@@ -454,7 +454,7 @@ func TestInExpressionMiss(t *testing.T) {
 func TestNestedInExpressionMiss(t *testing.T) {
 	schema := Schema{
 		Rules: map[string]Rule{
-			".person.expression": Rule{
+			"`.person.expression`": Rule{
 				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
 			},
 		},
@@ -463,6 +463,21 @@ func TestNestedInExpressionMiss(t *testing.T) {
 		"person": map[string]interface{}{
 			"expression": "barbar",
 		},
+	}
+	result, err := schema.CheckProperties(properties, nil)
+	assert.Nil(t, err)
+	assert.False(t, result.Valid)
+}
+func TestDottedNameInExpressionMiss(t *testing.T) {
+	schema := Schema{
+		Rules: map[string]Rule{
+			"person.expression": Rule{
+				Expression: "${{$in($val(), 'foo', 'bar', 'baz')}}",
+			},
+		},
+	}
+	properties := map[string]interface{}{
+		"person.expression": "barbar",
 	}
 	result, err := schema.CheckProperties(properties, nil)
 	assert.Nil(t, err)
