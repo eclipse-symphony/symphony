@@ -47,6 +47,7 @@ func AdbProviderConfigFromMap(properties map[string]string) (AdbProviderConfig, 
 func (i *AdbProvider) InitWithMap(properties map[string]string) error {
 	config, err := AdbProviderConfigFromMap(properties)
 	if err != nil {
+		aLog.Errorf("  P (Android ADB): expected AdbProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -67,7 +68,7 @@ func (i *AdbProvider) Init(config providers.IProviderConfig) error {
 
 	updateConfig, err := toAdbProviderConfig(config)
 	if err != nil {
-		aLog.Errorf("  P (Android ADB): expected AdbProviderConfig: %+v", err)
+		aLog.ErrorfCtx(ctx, "  P (Android ADB): expected AdbProviderConfig: %+v", err)
 		return errors.New("expected AdbProviderConfig")
 	}
 	i.Config = updateConfig
@@ -151,12 +152,14 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 		return nil, err
 	}
 	if isDryRun {
+		aLog.DebugCtx(ctx, "  P (Android ADB Provider): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		aLog.InfofCtx(ctx, "  P (Android ADB Provider): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if component.Name != "" {
 				if p, ok := component.Properties[model.AppImage]; ok && p != "" {
@@ -181,6 +184,7 @@ func (i *AdbProvider) Apply(ctx context.Context, deployment model.DeploymentSpec
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		aLog.InfofCtx(ctx, "  P (Android ADB Provider): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Name != "" {
 				if p, ok := component.Properties[model.AppPackage]; ok && p != "" {

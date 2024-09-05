@@ -142,6 +142,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 func (i *K8sTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := K8sTargetProviderConfigFromMap(properties)
 	if err != nil {
+		log.Errorf("  P (K8s Target): expected K8sTargetProviderConfig: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", componentName), v1alpha2.InitFailed)
 	}
 	return i.Init(config)
@@ -701,6 +702,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 		return nil, err
 	}
 	if isDryRun {
+		log.DebugfCtx(ctx, "  P (K8s Target Provider): dryRun is enabled,, skipping apply")
 		return nil, nil
 	}
 

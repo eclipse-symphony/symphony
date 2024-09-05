@@ -51,6 +51,7 @@ func DockerTargetProviderConfigFromMap(properties map[string]string) (DockerTarg
 func (d *DockerTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := DockerTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Docker Target): expected DockerTargetProviderConfigFromMap: %+v", err)
 		return err
 	}
 	return d.Init(config)
@@ -162,7 +163,10 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 					}
 				}
 			}
+			sLog.InfofCtx(ctx, "  P (Docker Target): append component: %s", component.Name)
 			ret = append(ret, component)
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to get container info: %+v", err)
 		}
 	}
 
@@ -192,6 +196,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Docker Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -240,6 +245,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to stop a running container: %+v", err)
 						return ret, err
 					}
+					sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 				}
 				err = cli.ContainerRemove(ctx, component.Component.Name, container.RemoveOptions{})
 				if err != nil {
@@ -281,6 +287,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				}
 			}
 			var containerResponse container.CreateResponse
+			sLog.InfofCtx(ctx, "  P (Docker Target): create container: %s", component.Component.Name)
 			containerResponse, err = cli.ContainerCreate(ctx, &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -291,6 +298,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				return ret, err
 			}
 
+			sLog.InfofCtx(ctx, "  P (Docker Target): start container: %s", component.Component.Name)
 			if err = cli.ContainerStart(ctx, containerResponse.ID, container.StartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
@@ -304,19 +312,24 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				Message: "",
 			}
 		} else {
+			sLog.InfofCtx(ctx, "  P (Docker Target): stop container: %s", component.Component.Name)
 			err = cli.ContainerStop(ctx, component.Component.Name, container.StopOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
 					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to stop a running container: %+v", err)
 					return ret, err
 				}
+				sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 			}
+
+			sLog.InfofCtx(ctx, "  P (Docker Target): remove container: %s", component.Component.Name)
 			err = cli.ContainerRemove(ctx, component.Component.Name, container.RemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
 					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
+				sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 			}
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Deleted,
