@@ -525,7 +525,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
-				sLog.InfoCtx(ctx, "  P (Helm Target): cannot update chart and use install client: %+v", err)
+				sLog.InfofCtx(ctx, "  P (Helm Target): cannot update chart and use install client: %+v", err)
 				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply chart: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply chart", providerName), v1alpha2.HelmActionFailed)
@@ -545,7 +545,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				}
 			}
 
-			sLog.InfoCtx(ctx, "  P (Helm Target): apply chart successfully: %s", component.Component.Name)
+			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully: %s", component.Component.Name)
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
 				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
@@ -586,7 +586,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 
-				sLog.InfoCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", component.Component.Name)
+				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", component.Component.Name)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
@@ -698,7 +698,7 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 }
 
 func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
-	sLog.InfoCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -725,7 +725,7 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 }
 
 func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
-	sLog.InfoCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
@@ -749,7 +749,7 @@ func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProper
 }
 
 func configureUninstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
-	sLog.InfoCtx(ctx, "  P (Helm Target): start configuring uninstall client in the namespace %s", deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring uninstall client in the namespace %s", deployment.Instance.Spec.Scope)
 	uninstallClient := action.NewUninstall(config)
 	uninstallClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {

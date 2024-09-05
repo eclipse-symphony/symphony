@@ -154,7 +154,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		return nil, err
 	}
 	if isDryRun {
-		sLog.DebugCtx(ctx, "  P (HTTP Provider): dryRun is enabled, skipping apply")
+		sLog.DebugCtx(ctx, "  P (HTTP Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -166,7 +166,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			url := model.ReadPropertyCompat(component.Component.Properties, "http.url", injections)
 			method := model.ReadPropertyCompat(component.Component.Properties, "http.method", injections)
 
-			sLog.InfoCtx(ctx, "  P (HTTP Provider):  start to send request to %s", url)
+			sLog.InfofCtx(ctx, "  P (HTTP Target):  start to send request to %s", url)
 			utils.EmitUserAuditsLogs(ctx, fmt.Sprintf("  P (HTTP Target): Start to send request to %s", url))
 
 			if url == "" {

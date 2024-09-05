@@ -290,7 +290,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		return nil, err
 	}
 	if isDryRun {
-		sLog.DebugCtx(ctx, "  P (ConfigMap Provider): dryRun is enabled, skipping apply")
+		sLog.DebugCtx(ctx, "  P (ConfigMap Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
