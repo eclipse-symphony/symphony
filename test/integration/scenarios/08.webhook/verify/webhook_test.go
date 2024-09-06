@@ -37,6 +37,12 @@ var (
 	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
 
+	testCircularParentContainer = "test/integration/scenarios/08.webhook/manifest/parent-container.yaml"
+	testCircularParent          = "test/integration/scenarios/08.webhook/manifest/parent.yaml"
+	testCircularParentUpdate    = "test/integration/scenarios/08.webhook/manifest/parent-update.yaml"
+	testCircularChildContainer  = "test/integration/scenarios/08.webhook/manifest/child-container.yaml"
+	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child.yaml"
+
 	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
 	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
 	diagnostic_03_WithConflictEdgeLocation              = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
@@ -245,6 +251,21 @@ func TestCreateCatalogWithoutParent(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
+}
+
+func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParentContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParent))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularChildContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularChild))).Run()
+	assert.Nil(t, err)
+
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCircularParentUpdate)).CombinedOutput()
+	assert.Contains(t, string(output), "parent catalog has circular dependency")
+	assert.NotNil(t, err, "catalog upsert with circular parent dependency should fail")
 }
 
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
