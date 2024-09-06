@@ -91,7 +91,7 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string) (string, error) {
+func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
 	override = utils.ConvertReferenceToObjectName(override)
 	catalog, err := m.ApiClient.GetCatalog(ctx, override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
@@ -99,13 +99,13 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 	}
 	if v, ok := catalog.Spec.Properties[field]; ok {
 		if vstring, ok := v.(string); ok {
-			return vstring, nil
+			return m.traceValue(vstring, localcontext, dependencyList)
 		} else {
 			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' doesn't has a valid value in configuration'%s'", field, override), v1alpha2.BadConfig)
 		}
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
+		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
@@ -125,25 +125,25 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 		return "", err
 	}
 
-	if v, ok := catalog.Spec.Properties[field]; ok {
-		// check circular dependency
-		var dependencyList map[string]map[string]bool = nil
-		if localcontext != nil {
-			if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
-				if coa_utils.HasCircularDependency(object, field, evalContext) {
-					clog.Errorf(" M (Catalog): Read detect circular dependency. Object: %v, field: %v, ", object, field)
-					return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
-				}
-				dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
-				dependencyList = coa_utils.UpdateDependencyList(object, field, dependencyList)
+	// check circular dependency
+	var dependencyList map[string]map[string]bool = nil
+	if localcontext != nil {
+		if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
+			if coa_utils.HasCircularDependency(object, field, evalContext) {
+				clog.Errorf(" M (Catalog): Read detect circular dependency. Object: %v, field: %v, ", object, field)
+				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
 			}
+			dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
+			dependencyList = coa_utils.UpdateDependencyList(object, field, dependencyList)
 		}
+	}
 
+	if v, ok := catalog.Spec.Properties[field]; ok {
 		return m.traceValue(v, localcontext, dependencyList)
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
+		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
 		if err != nil {
 			return "", err
 		} else {
