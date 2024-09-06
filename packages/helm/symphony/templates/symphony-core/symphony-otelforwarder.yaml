@@ -131,6 +131,11 @@ data:
             if: 'body["diagnostics"] != nil'
             from: body["diagnostics"]
             to: attributes["diagnostics"]
+          - type: json_parser
+            id: diagnostics_json_parser
+            if: 'type(attributes["diagnostics"]) == "string" and attributes["diagnostics"] matches "^{.*}$"'
+            parse_from: attributes["diagnostics"]
+            parse_to: attributes["diagnostics"]
           - type: router
             id: process_diagnostics
             routes:
