@@ -37,10 +37,10 @@ var (
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
-		"test/integration/scenarios/08.catalogEval/manifest/catalog-catalog-container.yaml",
-		"test/integration/scenarios/08.catalogEval/manifest/catalog-catalog.yaml",
-		"test/integration/scenarios/08.catalogEval/manifest/catalog-catalog2.yaml",
-		"test/integration/scenarios/08.catalogEval/manifest/catalog-catalog3.yaml",
+		"test/integration/scenarios/09.catalogEval/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/09.catalogEval/manifest/catalog-catalog.yaml",
+		"test/integration/scenarios/09.catalogEval/manifest/catalog-catalog2.yaml",
+		"test/integration/scenarios/09.catalogEval/manifest/catalog-catalog3.yaml",
 	}
 
 	// Tests to run
@@ -48,13 +48,13 @@ var (
 		"./verify/...",
 	}
 
-	testEval = "test/integration/scenarios/08.catalogEval/manifest/eval.yaml"
+	testEval = "test/integration/scenarios/09.catalogEval/manifest/eval.yaml"
 
-	testWrongEval = "test/integration/scenarios/08.catalogEval/manifest/wrongEval.yaml"
+	testWrongEval = "test/integration/scenarios/09.catalogEval/manifest/wrongEval.yaml"
 
-	testEvalUpdate = "test/integration/scenarios/08.catalogEval/manifest/evalUpdate.yaml"
+	testEvalUpdate = "test/integration/scenarios/09.catalogEval/manifest/evalUpdate.yaml"
 
-	testEval03 = "test/integration/scenarios/08.catalogEval/manifest/eval03.yaml"
+	testEval03 = "test/integration/scenarios/09.catalogEval/manifest/eval03.yaml"
 )
 
 // Entry point for running the tests
