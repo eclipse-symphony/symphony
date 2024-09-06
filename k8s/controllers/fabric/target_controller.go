@@ -17,6 +17,7 @@ import (
 	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
+	"gopls-workspace/utils/diagnostic"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,8 +75,8 @@ const (
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
 
+	diagnostic.InfoWithCtx(log, ctx, "Reconcile Target", "Name", req.Name, "Namespace", req.Namespace)
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()
 
@@ -83,7 +84,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	target := &symphonyv1.Target{}
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		log.Error(err, "unable to fetch Target object")
+		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 

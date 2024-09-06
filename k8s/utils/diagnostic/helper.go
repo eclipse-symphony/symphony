@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"gopls-workspace/constants"
+	"strings"
 
 	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/go-logr/logr"
@@ -40,7 +41,7 @@ func ConstructActivityContextFromAnnotations(namespace string, objectId string, 
 	if systemData != "" {
 		systemDataMap := make(map[string]string)
 		if err := json.Unmarshal([]byte(systemData), &systemDataMap); err != nil {
-			logger.Info("Failed to unmarshal system data", "error", err)
+			InfoWithCtx(logger, ctx, "Failed to unmarshal system data", "error", err)
 		} else {
 			callerId = systemDataMap[constants.AzureCreatedByKey]
 		}
@@ -48,4 +49,42 @@ func ConstructActivityContextFromAnnotations(namespace string, objectId string, 
 
 	retCtx := coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(diagnosticResourceId, resourceId, diagnosticResourceLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId), ctx)
 	return retCtx
+}
+
+func decorateLogWithCtx(l logr.Logger, ctx context.Context, folding bool) logr.Logger {
+	var diagCtx *coacontexts.DiagnosticLogContext
+	var ok bool
+	if ctx != nil {
+		diagCtx, ok = ctx.(*coacontexts.DiagnosticLogContext)
+		if !ok {
+			diagCtx, ok = ctx.Value(coacontexts.DiagnosticLogContextKey).(*coacontexts.DiagnosticLogContext)
+		}
+		if ok && diagCtx != nil {
+			if folding {
+				l = l.WithValues(string(coacontexts.DiagnosticLogContextKey), diagCtx)
+			} else {
+				l = l.WithValues(
+					coacontexts.OTEL_Diagnostics_CorrelationId, diagCtx.GetCorrelationId(),
+					coacontexts.OTEL_Diagnostics_ResourceCloudId, strings.ToUpper(diagCtx.GetResourceId()),
+				)
+				traceCtxJson, err := json.Marshal(diagCtx.GetTraceContext())
+				if err != nil {
+					l = l.WithValues(coacontexts.OTEL_Diagnostics_TraceContext, diagCtx.GetTraceContext())
+				} else {
+					l = l.WithValues(coacontexts.OTEL_Diagnostics_TraceContext, string(traceCtxJson))
+				}
+			}
+		}
+	}
+	return l
+}
+
+func InfoWithCtx(l logr.Logger, ctx context.Context, msg string, keysAndValues ...interface{}) {
+	l = decorateLogWithCtx(l, ctx, true)
+	l.WithCallDepth(1).Info(msg, keysAndValues...)
+}
+
+func ErrorWithCtx(l logr.Logger, ctx context.Context, err error, msg string, keysAndValues ...interface{}) {
+	l = decorateLogWithCtx(l, ctx, true)
+	l.WithCallDepth(1).Error(err, msg, keysAndValues...)
 }

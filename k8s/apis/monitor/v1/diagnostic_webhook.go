@@ -56,7 +56,8 @@ var _ webhook.Defaulter = &Diagnostic{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Diagnostic) Default() {
-	diagnosticlog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), diagnosticlog)
+	diagnostic.InfoWithCtx(diagnosticlog, ctx, "default", "name", r.Name, "namespace", r.Namespace)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -67,10 +68,10 @@ var _ webhook.Validator = &Diagnostic{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Diagnostic) ValidateCreate() (admission.Warnings, error) {
-	diagnosticlog.Info("validate create", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), diagnosticlog)
+	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 
 	// insert validation logic here
-	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), diagnosticlog)
 	validatedCreateTime := time.Now()
 	validatedError := r.validateCreateOrUpdateImpl(ctx)
 	if validatedError != nil {
@@ -94,10 +95,9 @@ func (r *Diagnostic) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Diagnostic) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	diagnosticlog.Info("validate update", "name", r.Name)
-
 	// insert validation logic here
 	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), diagnosticlog)
+	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	validatedUpdateTime := time.Now()
 	validatedError := r.validateCreateOrUpdateImpl(ctx)
 	if validatedError != nil {
@@ -120,7 +120,8 @@ func (r *Diagnostic) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Diagnostic) ValidateDelete() (admission.Warnings, error) {
-	diagnosticlog.Info("validate delete", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), diagnosticlog)
+	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 
 	// insert validation logic here
 	return nil, nil
@@ -134,12 +135,14 @@ func (r *Diagnostic) validateCreateOrUpdateImpl(ctx context.Context) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(schema.GroupKind{Group: "monitor.symphony", Kind: "Diagnostic"}, r.Name, allErrs)
+	err := apierrors.NewInvalid(schema.GroupKind{Group: "monitor.symphony", Kind: "Diagnostic"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(diagnosticlog, ctx, err, "Failed to validate create or update Diagnostic resource", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 // we need to ensure for one edge location, there's only one diagnostic resource in this namespace.
 func (r *Diagnostic) validateUniqueInEdgeLocations(ctx context.Context) *field.Error {
-	diagnosticlog.Info("validate create", "name", r.Name, "namespace", r.Namespace)
+	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate unique in edge locations", "name", r.Name, "namespace", r.Namespace)
 
 	edgeLocation := r.Annotations[constants.AzureEdgeLocationKey]
 	if edgeLocation == "" {

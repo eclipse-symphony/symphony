@@ -9,6 +9,7 @@ package dynamicclient
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/utils/diagnostic"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -34,24 +35,24 @@ func SetClient(config *rest.Config) error {
 	return nil
 }
 
-func Get(resourceType validation.ResourceType, name string, namespace string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, resourceType validation.ResourceType, name string, namespace string) (*unstructured.Unstructured, error) {
 	resource, err := switchResourceType(resourceType)
 	if err != nil {
-		dynamicclientlog.Error(err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
+		diagnostic.ErrorWithCtx(dynamicclientlog, ctx, err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
 		return nil, err
 	}
 	obj, err := resource.Namespace(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		dynamicclientlog.Error(err, fmt.Sprintf("Failed to get %s %s in namespace %s with error %s", resourceType, name, namespace, err.Error()))
+		diagnostic.ErrorWithCtx(dynamicclientlog, ctx, err, fmt.Sprintf("Failed to get %s %s in namespace %s with error %s", resourceType, name, namespace, err.Error()))
 		return nil, err
 	}
 	return obj, nil
 }
 
-func ListWithLabels(resourceType validation.ResourceType, namespace string, labels map[string]string, count int64) (*unstructured.UnstructuredList, error) {
+func ListWithLabels(ctx context.Context, resourceType validation.ResourceType, namespace string, labels map[string]string, count int64) (*unstructured.UnstructuredList, error) {
 	resource, err := switchResourceType(resourceType)
 	if err != nil {
-		dynamicclientlog.Error(err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
+		diagnostic.ErrorWithCtx(dynamicclientlog, ctx, err, fmt.Sprintf("Unsupported resourceType %s ", resourceType))
 		return nil, err
 	}
 	listOption := metav1.ListOptions{
@@ -62,14 +63,14 @@ func ListWithLabels(resourceType validation.ResourceType, namespace string, labe
 	}
 	list, err := resource.Namespace(namespace).List(context.Background(), listOption)
 	if err != nil {
-		dynamicclientlog.Error(err, fmt.Sprintf("Failed to list %s in namespace %s with error %s", resourceType, namespace, err.Error()))
+		diagnostic.ErrorWithCtx(dynamicclientlog, ctx, err, fmt.Sprintf("Failed to list %s in namespace %s with error %s", resourceType, namespace, err.Error()))
 		return nil, err
 	}
 	return list, nil
 }
 
-func GetObjectWithUniqueName(resourceType validation.ResourceType, displayName string, namespace string) (*unstructured.Unstructured, error) {
-	objectList, err := ListWithLabels(resourceType, namespace, map[string]string{api_constants.DisplayName: utils.ConvertStringToValidLabel(displayName)}, 1)
+func GetObjectWithUniqueName(ctx context.Context, resourceType validation.ResourceType, displayName string, namespace string) (*unstructured.Unstructured, error) {
+	objectList, err := ListWithLabels(ctx, resourceType, namespace, map[string]string{api_constants.DisplayName: utils.ConvertStringToValidLabel(displayName)}, 1)
 	if err != nil {
 		// return true if List call failed
 		return nil, err
