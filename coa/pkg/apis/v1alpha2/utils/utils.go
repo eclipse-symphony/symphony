@@ -195,3 +195,7 @@ func FormatAsString(val interface{}) string {
 func ConvertStringToValidLabel(s string) string {
 	return strings.ReplaceAll(s, " ", "")
 }
+
+func GenerateUniqueKey(name string, namespace string) string {
+	return fmt.Sprintf("%s/%s", namespace, name)
+}

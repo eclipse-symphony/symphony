@@ -218,8 +218,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	t.KeyLockProvider.Lock(name + namespace)
-	defer t.KeyLockProvider.UnLock(name + namespace)
+	t.KeyLockProvider.Lock(utils.GenerateUniqueKey(name, namespace))
+	defer t.KeyLockProvider.UnLock(utils.GenerateUniqueKey(name, namespace))
 
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
@@ -262,8 +262,8 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	t.KeyLockProvider.Lock(name + namespace)
-	defer t.KeyLockProvider.UnLock(name + namespace)
+	t.KeyLockProvider.Lock(utils.GenerateUniqueKey(name, namespace))
+	defer t.KeyLockProvider.UnLock(utils.GenerateUniqueKey(name, namespace))
 
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
