@@ -162,7 +162,7 @@ func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog mo
 
 	// if parent exists, need to check if upsert this catalog will introduce circular parent issue.
 	catalogName := catalog.ObjectMeta.Name
-	if hasParentCircularDependency(ctx, parentCatalog, catalogName, c.CatalogLookupFunc) {
+	if c.hasParentCircularDependency(ctx, parentCatalog, catalogName) {
 		return &ErrorField{
 			FieldPath:       "spec.ParentName",
 			Value:           parentCatalogName,
@@ -172,7 +172,7 @@ func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog mo
 	return nil
 }
 
-func hasParentCircularDependency(ctx context.Context, parentRaw interface{}, catalogName string, catalogLookupFunc ObjectLookupFunc) bool {
+func (c *CatalogValidator) hasParentCircularDependency(ctx context.Context, parentRaw interface{}, catalogName string) bool {
 	jsonData, err := json.Marshal(parentRaw)
 	if err != nil {
 		return false
@@ -192,9 +192,9 @@ func hasParentCircularDependency(ctx context.Context, parentRaw interface{}, cat
 			return true
 		}
 
-		parentCatalog, err := catalogLookupFunc(ctx, parentName, parentCatalog.ObjectMeta.Namespace)
+		parentCatalog, err := c.CatalogLookupFunc(ctx, parentName, parentCatalog.ObjectMeta.Namespace)
 		if err == nil {
-			return hasParentCircularDependency(ctx, parentCatalog, catalogName, catalogLookupFunc)
+			return c.hasParentCircularDependency(ctx, parentCatalog, catalogName)
 		}
 		return false
 	}
