@@ -38,10 +38,10 @@ var (
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
 
 	testCircularParentContainer = "test/integration/scenarios/08.webhook/manifest/parent-container.yaml"
-	testCircularParent          = "test/integration/scenarios/08.webhook/manifest/parent.yaml"
+	testCircularParent          = "test/integration/scenarios/08.webhook/manifest/parent-config.yaml"
 	testCircularParentUpdate    = "test/integration/scenarios/08.webhook/manifest/parent-update.yaml"
 	testCircularChildContainer  = "test/integration/scenarios/08.webhook/manifest/child-container.yaml"
-	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child.yaml"
+	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
 
 	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
 	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
