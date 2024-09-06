@@ -98,11 +98,7 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 		return "", err
 	}
 	if v, ok := catalog.Spec.Properties[field]; ok {
-		if vstring, ok := v.(string); ok {
-			return m.traceValue(vstring, localcontext, dependencyList)
-		} else {
-			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' doesn't has a valid value in configuration'%s'", field, override), v1alpha2.BadConfig)
-		}
+		return m.traceValue(v, localcontext, dependencyList)
 	}
 	if catalog.Spec.ParentName != "" {
 		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
