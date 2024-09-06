@@ -154,10 +154,8 @@ func TestReadObject(t *testing.T) {
 				Spec: &model.CatalogSpec{
 					ParentName: "parent:v1",
 					Properties: map[string]interface{}{
-						"components": map[string]interface{}{
-							"Name": "name",
-							"Type": "type",
-						},
+						"Name": "name",
+						"Type": "type",
 					},
 				},
 			}

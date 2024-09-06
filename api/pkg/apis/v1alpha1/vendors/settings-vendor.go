@@ -119,12 +119,20 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 		} else {
 			val, err := c.EvaluationContext.ConfigProvider.GetObject(ctx, id, parts, EvaluationContext)
 			if err != nil {
-				log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get object %s, error: %v", id, err)
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
+				if val == nil {
+					log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get object %s, error: %v", id, err)
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State: v1alpha2.InternalError,
+						Body:  []byte(err.Error()),
+					})
+				} else {
+					log.WarnfCtx(ctx, "V (Settings): onConfig parsing object %s, warnings: %v", id, err)
+					val["evaluationStatus"] = "Failed"
+				}
+			} else {
+				val["evaluationStatus"] = "Succeeded"
 			}
+
 			jData, _ := api_utils.FormatObject(val, false, "", "")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.OK,

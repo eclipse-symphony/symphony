@@ -34,7 +34,7 @@ type CatalogEvalReconciler struct {
 
 func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ret ctrl.Result, reterr error) {
 	log := ctrllog.FromContext(ctx)
-
+	log.Info("Entering the CatalogEvalExpression reconciler")
 	evalCR := &federationv1.CatalogEvalExpression{}
 
 	err := r.Get(ctx, req.NamespacedName, evalCR)
@@ -45,16 +45,17 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	operationId := evalCR.GetOperationID()
 
-	// Clean up the cr if it is older than 1 day
-	// if clusterutils.CheckNeedtoDelete(evalCR.ObjectMeta) {
-	// 	// Delete the CR
-	// 	log.Info("Deleting the CatalogEvalExpression as it is older than 10 hrs", "CR", req.NamespacedName)
-	// 	if err := r.Delete(ctx, evalCR); err != nil {
-	// 		log.Error(err, "Error deleting the CatalogEvalExpression", "CR", req.NamespacedName)
-	// 		return ctrl.Result{}, err
-	// 	}
-	// 	return ctrl.Result{}, nil
-	// }
+	// Clean up the cr if it is older than 10 hrs
+	if CheckNeedtoDelete(evalCR.ObjectMeta) {
+		// Delete the CR
+		log.Info("Deleting the CatalogEvalExpression as it is older than 10 hrs", "CR", req.NamespacedName)
+		if err := r.Delete(ctx, evalCR); err != nil {
+			// If delete fails, log the error and return (it shall retry)
+			log.Error(err, "Error deleting the CatalogEvalExpression", "CR", req.NamespacedName)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
 
 	if evalCR.DeletionTimestamp.IsZero() {
 		// Get parent catalog
@@ -76,12 +77,14 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 			err = r.Update(ctx, evalCR)
 			if err != nil {
+				// if update fail, log the error and return (it shall retry)
+				log.Error(err, "Update failed", "CR", req.NamespacedName)
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
 		if err := r.Get(ctx, *evalCR.Spec.ResourceRef.GetNamespacedName(), catalog); err != nil {
-			log.Error(err, "Error deleting the CatalogEvalExpression", "CR", req.NamespacedName)
+			log.Error(err, "Error getting the parent catalog resource", "CR", req.NamespacedName)
 			status := &federationv1.ActionStatusBase{}
 			status.ActionStatus = federationv1.ActionResult{
 				Error: &federationv1.ProvisioningError{
@@ -96,18 +99,24 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 			err = r.Update(ctx, evalCR)
 			if err != nil {
+				// if update fail, log the error and return (it shall retry)
+				log.Error(err, "Update failed", "CR", req.NamespacedName)
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
 
 		// Send catalog spec properties to settings vendor
-		properties, err := r.ApiClient.CatalogOnConfig(ctx, evalCR.Spec.ResourceRef.Name, evalCR.Spec.ResourceRef.Namespace, "", "")
-		if err != nil {
+		properties, err := r.ApiClient.GetParsedCatalogProperties(ctx, evalCR.Spec.ResourceRef.Name, evalCR.Spec.ResourceRef.Namespace, "", "")
+		if properties == nil {
+			// log error parsing properties and reuturn (it shall retry)
+			log.Error(err, "Getting parsed properties failed.", "CR", evalCR.Spec.ResourceRef.Name, "Namespace", evalCR.Spec.ResourceRef.Namespace)
+			return ctrl.Result{}, err
 		}
 
 		propertiesJSON, err := json.Marshal(properties)
 		if err != nil {
+			// log error marshalling properties and reuturn (it shall not retry)
 			log.Error(err, "Error marshalling properties to JSON")
 			return ctrl.Result{}, nil
 		}
@@ -125,6 +134,8 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		err = r.Update(ctx, evalCR)
 		if err != nil {
+			// if update fail, log the error and return (it shall retry)
+			log.Error(err, "Update failed", "CR", req.NamespacedName)
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil

@@ -335,7 +335,7 @@ spec:
             description: CatalogEvalExpressionActionSpec defines the desired state
               of CatalogEvalExpressionActionSpec.
             properties:
-              parentRef:
+              resourceRef:
                 description: ParentRef is a reference to Resource on which this action
                   is to be performed.
                 properties:
@@ -352,6 +352,8 @@ spec:
                     description: Namespace
                     type: string
                 type: object
+            required:
+            - resourceRef
             type: object
           status:
             description: CatalogEvalExpressionActionStatus defines the observed state
@@ -2902,6 +2904,27 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: mcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-monitor-symphony-v1-diagnostic
   failurePolicy: Fail
   name: mdiagnostic.kb.io
@@ -3112,6 +3135,27 @@ webhooks:
     - DELETE
     resources:
     - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: vcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
   sideEffects: None
 - admissionReviewVersions:
   - v1

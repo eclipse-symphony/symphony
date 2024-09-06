@@ -172,26 +172,41 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 		clog.ErrorCtx(ctx, "  P (Catalog): ReadObject error:", err)
 		return nil, err
 	}
+	errList := make([]error, 0)
 	ret := map[string]interface{}{}
 	for k, v := range catalog.Spec.Properties {
 		tv, err := m.traceValue(ctx, v, localcontext, nil)
 		if err != nil {
-			clog.ErrorCtx(ctx, "  P (Catalog): ReadObject error:", err)
-			return nil, err
+			// Wrap the error using fmt.Errorf("%w", err)
+			wrappedErr := fmt.Errorf("%w", err)
+			errList = append(errList, wrappedErr)
+			tv = err.Error()
 		}
 		// line 189-196 extracts the returned map and merge the keys with the parent
 		// this allows a referenced configuration to be overriden by local values
-		if tmap, ok := tv.(map[string]interface{}); ok {
-			for tk, tv := range tmap {
-				if _, ok := ret[tk]; !ok {
-					ret[tk] = tv
+		if err != nil {
+			if tmap, ok := tv.(map[string]interface{}); ok {
+				for tk, tv := range tmap {
+					if _, ok := ret[tk]; !ok {
+						ret[tk] = tv
+					}
 				}
+				continue
 			}
-			continue
 		}
 		ret[k] = tv
 	}
-	return ret, nil
+
+	if len(errList) > 0 {
+		// concatenate all errors into a single error
+		msg := ""
+		for _, err := range errList {
+			msg += err.Error() + "\n"
+		}
+		return ret, v1alpha2.NewCOAError(nil, msg, v1alpha2.BadRequest)
+	} else {
+		return ret, nil
+	}
 }
 
 func (m *CatalogConfigProvider) traceValue(ctx context.Context, v interface{}, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {

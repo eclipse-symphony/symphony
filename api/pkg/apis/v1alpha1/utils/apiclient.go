@@ -94,7 +94,7 @@ type (
 		CreateCampaignContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignContainerState, error)
-		CatalogOnConfig(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
+		GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
 
@@ -381,7 +381,7 @@ func (a *apiClient) GetTargets(ctx context.Context, namespace string, user strin
 	return ret, nil
 }
 
-func (a *apiClient) CatalogOnConfig(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error) {
+func (a *apiClient) GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error) {
 	ret := map[string]interface{}{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {

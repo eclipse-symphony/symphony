@@ -446,6 +446,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
 			os.Exit(1)
 		}
+		if err = (&federationv1.CatalogEvalExpression{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogEvalExpression")
+			os.Exit(1)
+		}
 		if err = (&workflowv1.Campaign{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
 			os.Exit(1)
