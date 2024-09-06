@@ -1,6 +1,6 @@
 # CatalogEvalExpression
 
-This document provides details on the `CatalogEvalExpression` Custom Resource (CR).
+This document provides details on the `CatalogEvalExpression` Custom Resource (CR). Update of a CatalogEvalExpression not allowed. Deletion would happen automatically every 10 hrs.
 
 ## Metadata
 
