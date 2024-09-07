@@ -124,7 +124,9 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		}
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}

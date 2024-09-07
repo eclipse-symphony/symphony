@@ -98,7 +98,9 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		}
 		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}

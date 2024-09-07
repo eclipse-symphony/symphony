@@ -90,9 +90,11 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
-		state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
-		state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
+			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
+		}
 		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
