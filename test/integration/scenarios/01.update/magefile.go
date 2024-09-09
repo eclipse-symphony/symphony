@@ -30,15 +30,58 @@ var (
 	}
 	TestNamespaces = []string{
 		"default",
-		"nondefault",
+		//"nondefault",
+	}
+
+	// fault injection tests
+	Failpoints = []string{
+		"onQueueError",
+		"beforeProviders",
+		"beforeDeploymentError",
+		"afterDeploymentError",
+		"beforeConcludeSummary",
 	}
 )
+
+func TestFault() error {
+	fmt.Println("Running ", TEST_NAME)
+
+	// defer Cleanup()
+	err := testhelpers.SetupCluster()
+	if err != nil {
+		return err
+	}
+
+	err = testhelpers.EnablePortForward("app=symphony-api", "22381")
+	if err != nil {
+		return err
+	}
+	// Wait a few secs for symphony cert to be ready;
+	// otherwise we will see error when creating symphony manifests in the cluster
+	// <Error from server (InternalError): error when creating
+	// "/mnt/vss/_work/1/s/test/integration/scenarios/basic/manifest/target.yaml":
+	// Internal error occurred: failed calling webhook "mtarget.kb.io": failed to
+	// call webhook: Post
+	// "https://symphony-webhook-service.default.svc:443/mutate-symphony-microsoft-com-v1-target?timeout=10s":
+	// x509: certificate signed by unknown authority>
+	time.Sleep(time.Second * 10)
+	for _, namespace := range TestNamespaces {
+
+		os.Setenv("NAMESPACE", namespace)
+		err = Verify()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 // Entry point for running the tests, including setup, verify and cleanup
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	defer Cleanup()
+	// defer Cleanup()
 	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err

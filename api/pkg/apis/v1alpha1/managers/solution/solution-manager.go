@@ -283,6 +283,16 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 	})
 }
 
+func (s *SolutionManager) deferSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
+	log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeConcludeSummary string
+	if deployment.IsDryRun {
+		summary.SuccessCount = 0
+	}
+	s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+}
+
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -323,13 +333,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	summary.IsRemoval = remove
 
 	s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-	defer func() {
-		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
-		if deployment.IsDryRun {
-			summary.SuccessCount = 0
-		}
-		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-	}()
+	// defer func() {
+	// 	log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+	// 	// DO NOT REMOVE THIS COMMENT
+	// 	// gofail: var beforeConcludeSummary string
+	// 	if deployment.IsDryRun {
+	// 		summary.SuccessCount = 0
+	// 	}
+	// 	s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	// }()
 
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
@@ -354,6 +366,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		} else {
 			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 			log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
+			s.deferSummary(ctx, deployment, summary, namespace)
 			return summary, err
 		}
 	}
@@ -365,12 +378,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
 		log.ErrorfCtx(ctx, " M (Solution): failed to create target manager state from deployment spec: %+v", err)
+		s.deferSummary(ctx, deployment, summary, namespace)
 		return summary, err
 	}
 	currentState, _, err = s.Get(ctx, deployment, targetName)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
 		log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
+		s.deferSummary(ctx, deployment, summary, namespace)
 		return summary, err
 	}
 	desiredState := currentDesiredState
@@ -388,6 +403,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.ErrorfCtx(ctx, " M (Solution): failed to plan for deployment: %+v", err)
+		s.deferSummary(ctx, deployment, summary, namespace)
 		return summary, err
 	}
 
@@ -397,6 +413,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	someStepsRan := false
 
 	targetResult := make(map[string]int)
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeProviders string
 
 	plannedCount := 0
 	planSuccessCount := 0
@@ -434,6 +453,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			if err != nil {
 				summary.SummaryMessage = "failed to create provider:" + err.Error()
 				log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
+				s.deferSummary(ctx, deployment, summary, namespace)
 				return summary, err
 			}
 		} else {
@@ -503,12 +523,16 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
+			s.deferSummary(ctx, deployment, summary, namespace)
 			return summary, err
 		}
 		planSuccessCount++
 	}
 
 	mergedState.ClearAllRemoved()
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeDeploymentError string
 
 	if !deployment.IsDryRun {
 		if len(mergedState.TargetComponent) == 0 && remove {
@@ -541,6 +565,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 	}
 
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var afterDeploymentError string
+
 	successCount := 0
 	for _, v := range targetResult {
 		successCount += v
@@ -556,6 +583,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		summary.SuccessCount = summary.TargetCount
 	}
 
+	s.deferSummary(ctx, deployment, summary, namespace)
 	return summary, nil
 }
 
@@ -573,7 +601,8 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
-	log.DebugfCtx(ctx, "M (Solution): save summary. namespace: %v, generation: %v, summary state: %v\n", namespace, generation, state)
+	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, targetCount %d, successCount %d",
+		objectName, state, namespace, summary.TargetCount, summary.SuccessCount)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: fmt.Sprintf("%s-%s", "summary", objectName),

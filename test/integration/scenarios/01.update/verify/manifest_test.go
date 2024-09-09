@@ -124,6 +124,15 @@ func TestScenario_Update_AllNamespaces(t *testing.T) {
 	Scenario_Update(t, namespace)
 }
 
+// func TestMain(t *testing.T) {
+// 	err := testhelpers.EnablePortForward("app=symphony-api", "22381")
+// 	require.NoError(t, err)
+// 	err = shellcmd.Command("curl localhost:22381/onQueueError -XPUT -d'100.0%panic'").Run()
+// 	require.NoError(t, err)
+// 	err = shellcmd.Command("curl localhost:22381/onQueueError").Run()
+// 	require.NoError(t, err)
+// }
+
 func Scenario_Update(t *testing.T, namespace string) {
 	// Deploy base manifests
 	for _, manifest := range containerManifestTemplates {
@@ -141,8 +150,11 @@ func Scenario_Update(t *testing.T, namespace string) {
 	for _, test := range testCases {
 		fmt.Printf("[Test case]: %s\n", test.Name)
 
+		err := injectFault()
+		require.NoError(t, err)
+
 		// Construct the manifests
-		err := testhelpers.BuildManifestFile(
+		err = testhelpers.BuildManifestFile(
 			fmt.Sprintf("%s/%s", manifestTemplateFolder, "oss"),
 			fmt.Sprintf("%s/%s", testManifestsFolder, "oss"), test.Target, test.ComponentsToAdd)
 		require.NoError(t, err)
@@ -340,4 +352,17 @@ func getStatus(resource unstructured.Unstructured) string {
 	}
 
 	return ""
+}
+
+func injectFault() error {
+	Failpoint := os.Getenv("Failpoint")
+	FailAction := os.Getenv("FailAction")
+	if Failpoint == "" || FailAction == "" {
+		return nil
+	}
+	err := shellcmd.Command(fmt.Sprintf("curl localhost:22381/%s -XPUT -d'%s'", Failpoint, FailAction)).Run()
+	if err != nil {
+		fmt.Println("Error injecting fault")
+	}
+	return err
 }

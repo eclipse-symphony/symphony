@@ -13,6 +13,7 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
+ARG FAULT_INJECTION_ENABLED=false
 
 ENV CGO_ENABLED=0
 
@@ -23,6 +24,14 @@ COPY ./api /workspace/api
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
+
+# Install gofail
+RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
+    go install go.etcd.io/gofail@latest && \
+    gofail enable /workspace/api/pkg/apis/v1alpha1/vendors/ && \
+    gofail enable /workspace/api/pkg/apis/v1alpha1/managers/solution/ && \
+    cd /workspace/api && go get go.etcd.io/gofail/runtime; \
+fi
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM ${TARGET_BASE_IMAGE}
@@ -42,4 +51,4 @@ EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL Debug
 # ENV CONFIG /symphony-api.json
-CMD sh -c 'if [ -f /etc/pki/ca-trust/source/anchors/proxy-cert.crt ]; then update-ca-trust; fi && exec /symphony-api -c $CONFIG -l $LOG_LEVEL'
+CMD sh -c 'if [ -f /etc/pki/ca-trust/source/anchors/proxy-cert.crt ]; then update-ca-trust; fi && GOFAIL_HTTP="127.0.0.1:22381" exec /symphony-api -c $CONFIG -l $LOG_LEVEL'

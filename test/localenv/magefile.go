@@ -426,6 +426,15 @@ func buildAPI() error {
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
+func (Build) ApiFault() error {
+	return buildAPIFault()
+}
+
+func buildAPIFault() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s --build-arg FAULT_INJECTION_ENABLED=true \"../..\" --load", platform, imageName)).Run() //oss
+}
+
 func buildAgent() error {
 	pollAgentImageName := "ghcr.io/eclipse-symphony/symphony-poll-agent"
 	targetAgentImageName := "ghcr.io/eclipse-symphony/symphony-target-agent"
@@ -440,6 +449,15 @@ func (Build) K8s() error {
 	return buildK8s()
 }
 func buildK8s() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) K8sFault() error {
+	return buildK8sFault()
+}
+func buildK8sFault() error {
+	// Pass fault arguments if required
 	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }

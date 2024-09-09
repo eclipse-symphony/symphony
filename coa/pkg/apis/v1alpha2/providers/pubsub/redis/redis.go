@@ -54,7 +54,6 @@ type RedisPubSubProviderConfig struct {
 	NumberOfWorkers int    `json:"numberOfWorkers,omitempty"`
 	QueueDepth      int    `json:"queueDepth,omitempty"`
 	ConsumerID      string `json:"consumerID"`
-	MultiInstance   bool   `json:"multiInstance,omitempty"`
 }
 
 const (
@@ -93,18 +92,6 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 			}
 			ret.RequiresTLS = bVal
 		}
-	}
-	if v, ok := properties["multiInstance"]; ok {
-		val := v //providers.LoadEnv(v)
-		if val != "" {
-			bVal, err := strconv.ParseBool(val)
-			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'requiresTLS' setting of Redis pub-sub provider", v1alpha2.BadConfig)
-			}
-			ret.MultiInstance = bVal
-		}
-	} else {
-		ret.MultiInstance = false
 	}
 	if v, ok := properties["numberOfWorkers"]; ok {
 		val := v //providers.LoadEnv(v)
@@ -201,6 +188,7 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	for k := uint(0); k < uint(i.Config.NumberOfWorkers); k++ {
 		go i.worker()
 	}
+	mLog.Infof("  P (Redis PubSub): initialized provider %s", i.Config.Name)
 	return nil
 }
 
@@ -215,10 +203,12 @@ func (i *RedisPubSubProvider) worker() {
 	}
 }
 func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
+	mLog.Infof("  P (Redis PubSub) : processing message %s, topic %s", msg.MessageID, msg.Topic)
 	i.ClaimedMessages[msg.MessageID] = true
 	var evt v1alpha2.Event
 	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)
 	if err != nil {
+		mLog.Infof("  P (Redis PubSub) : failed to unmarshal event %v", err)
 		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
 	}
 	shouldRetry := v1alpha2.EventShouldRetryWrapper(msg.Handler, msg.Topic, evt)
@@ -256,9 +246,7 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 	}
 	go i.pollNewMessagesLoop(topic, handler)
 	go i.ClaimMessageLoop(topic, i.Config.ConsumerID, handler, PendingMessagesScanInterval, ExtendMessageOwnershipWithIdleTime)
-	if i.Config.MultiInstance {
-		go i.ClaimMessageLoop(topic, "", handler, PendingMessagesScanIntervalOtherClient, ClaimMessageFromOtherClientWithIdleTime)
-	}
+	go i.ClaimMessageLoop(topic, "", handler, PendingMessagesScanIntervalOtherClient, ClaimMessageFromOtherClientWithIdleTime)
 	return nil
 }
 
@@ -279,6 +267,9 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 			continue
 		}
 		for _, s := range streams {
+			for _, msg := range s.Messages {
+				mLog.Infof("  P (Redis PubSub) : received new message %s", msg.ID)
+			}
 			i.enqueueMessages(s.Stream, handler, s.Messages)
 		}
 		time.Sleep(PendingMessagesScanInterval)
@@ -367,7 +358,9 @@ func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration,
 	}
 	filteredClaimResult := make([]redis.XMessage, 0, len(claimResult))
 	for _, msg := range claimResult {
+		mLog.Infof("  P (Redis PubSub) : reclaim pending message %s", msg.ID)
 		if _, ok := i.ClaimedMessages[msg.ID]; !ok {
+			mLog.Infof("  P (Redis PubSub) : reclaim pending message yes %s", msg.ID)
 			filteredClaimResult = append(filteredClaimResult, msg)
 		}
 	}

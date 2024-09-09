@@ -130,6 +130,9 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onQueue-POST", rContext, nil)
 		defer span.End()
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var onQueueError string
+
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
 		objectType := request.Parameters["objectType"]
