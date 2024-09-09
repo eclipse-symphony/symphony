@@ -85,11 +85,16 @@
             "type": "managers.symphony.activations",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
               "singleton": "true"
             },
             "providers": {
               "k8s-state": {
                 "type": "providers.state.memory",
+                "config": {}
+              },
+              "memory-keylock": {
+                "type": "providers.keylock.memory",
                 "config": {}
               }
             }
@@ -111,11 +116,16 @@
             "type": "managers.symphony.activations",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
               "singleton": "true"
             },
             "providers": {
               "k8s-state": {
                 "type": "providers.state.memory",
+                "config": {}
+              },
+              "memory-keylock": {
+                "type": "providers.keylock.memory",
                 "config": {}
               }
             }
@@ -132,12 +142,17 @@
             "type": "managers.symphony.activationscleanup",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "providers.keylock": "memory-keylock",
               "singleton": "true",
               "RetentionDuration": "4320h"
             },
             "providers": {
               "k8s-state": {
                 "type": "providers.state.memory",
+                "config": {}
+              },
+              "memory-keylock": {
+                "type": "providers.keylock.memory",
                 "config": {}
               }
             }
