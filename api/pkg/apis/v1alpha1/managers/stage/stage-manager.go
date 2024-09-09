@@ -661,35 +661,35 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			triggerData.Outputs = make(map[string]map[string]interface{})
 		}
 		triggerData.Outputs[triggerData.Stage] = outputs
-		if campaign.SelfDriving {
-			if pauseRequested {
-				pendingTask := PendingTask{
-					Sites:         sites,
-					OutputContext: triggerData.Outputs,
-				}
-				_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
-					Value: states.StateEntry{
-						ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
-						Body: pendingTask,
-					},
-					Metadata: map[string]interface{}{
-						"namespace": triggerData.Namespace,
-					},
-				})
-				if err != nil {
-					status.Status = v1alpha2.InternalError
-					status.StatusMessage = v1alpha2.InternalError.String()
-					status.ErrorMessage = err.Error()
-					status.IsActive = false
-					log.ErrorfCtx(ctx, " M (Stage): failed to save pending task: %v", err)
-					return status, activationData
-				}
-				status.Status = v1alpha2.Paused
-				status.StatusMessage = v1alpha2.Paused.String()
+		// If stage is paused, save the pending task and return paused status
+		if pauseRequested {
+			pendingTask := PendingTask{
+				Sites:         sites,
+				OutputContext: triggerData.Outputs,
+			}
+			_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
+					ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
+					Body: pendingTask,
+				},
+				Metadata: map[string]interface{}{
+					"namespace": triggerData.Namespace,
+				},
+			})
+			if err != nil {
+				status.Status = v1alpha2.InternalError
+				status.StatusMessage = v1alpha2.InternalError.String()
+				status.ErrorMessage = err.Error()
 				status.IsActive = false
+				log.ErrorfCtx(ctx, " M (Stage): failed to save pending task: %v", err)
 				return status, activationData
 			}
-
+			status.Status = v1alpha2.Paused
+			status.StatusMessage = v1alpha2.Paused.String()
+			status.IsActive = false
+			return status, activationData
+		}
+		if campaign.SelfDriving {
 			parser := utils.NewParser(currentStage.StageSelector)
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Inputs = triggerData.Inputs
@@ -758,12 +758,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData
 		} else {
-			if pauseRequested {
-				status.Status = v1alpha2.Paused
-				status.StatusMessage = v1alpha2.Paused.String()
-				status.IsActive = false
-				return status, activationData
-			}
 			// Not self-driving, no next stage
 			status.Status = v1alpha2.Done
 			status.StatusMessage = v1alpha2.Done.String()

@@ -61,7 +61,6 @@ func (s *ActivationsCleanupManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.InfoCtx(ctx, "M (Activation Cleanup): Polling activations")
 	activations, err := s.ActivationsManager.ListState(ctx, "")
