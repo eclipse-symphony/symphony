@@ -15,6 +15,7 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
+	"gopls-workspace/utils/diagnostic"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +43,7 @@ type TargetPollingReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Target " + req.Name + " in namespace " + req.Namespace)
+	diagnostic.InfoWithCtx(log, ctx, "Reconcile Polling Target", "Name", req.Name, "Namespace", req.Namespace)
 
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()
@@ -51,7 +52,7 @@ func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	target := &symphonyv1.Target{}
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		log.Error(err, "unable to fetch Target object")
+		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 

@@ -76,60 +76,11 @@ const (
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-<<<<<<< HEAD
 // func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 // 	log := ctrllog.FromContext(ctx)
 // 	log.Info("shouldn't be called here")
 // 	return ctrl.Result{}, nil
 // }
-=======
-func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrllog.FromContext(ctx)
-	diagnostic.InfoWithCtx(log, ctx, "Reconciling Instance", "Name", req.Name, "Namespace", req.Namespace)
-
-	// Initialize reconcileTime for latency metrics
-	reconcileTime := time.Now()
-
-	// Get instance
-	instance := &solution_v1.Instance{}
-	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	reconciliationType := metrics.CreateOperationType
-	resultType := metrics.ReconcileSuccessResult
-	reconcileResult := ctrl.Result{}
-	deploymentOperationType := metrics.DeploymentQueued
-	var err error
-
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	} else { // remove
-		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	}
-
-	r.m.ControllerReconcileLatency(
-		reconcileTime,
-		reconciliationType,
-		resultType,
-		metrics.InstanceResourceType,
-		deploymentOperationType,
-	)
-
-	return reconcileResult, err
-}
->>>>>>> main
 
 func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	log := ctrllog.FromContext(ctx)
