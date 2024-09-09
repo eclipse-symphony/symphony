@@ -38,6 +38,13 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 			errorFields = append(errorFields, *err)
 		}
 	}
+	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.isDryRun",
+			Value:           new.Spec.IsDryRun,
+			DetailedMessage: "The target is already deployed. Cannot change isDryRun from false to true.",
+		})
+	}
 	return errorFields
 }
 

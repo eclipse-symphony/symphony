@@ -206,6 +206,7 @@ func CreateSymphonyDeploymentFromTarget(target fabric_v1.Target, namespace strin
 	})
 
 	ret.Generation = strconv.Itoa(int(target.ObjectMeta.Generation))
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, err
 }
@@ -238,6 +239,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	})
 
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, err
 }

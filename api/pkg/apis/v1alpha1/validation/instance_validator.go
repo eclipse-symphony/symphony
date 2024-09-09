@@ -52,6 +52,13 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 			errorFields = append(errorFields, *err)
 		}
 	}
+	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.isDryRun",
+			Value:           new.Spec.IsDryRun,
+			DetailedMessage: "The instance is already deployed. Cannot change isDryRun from false to true.",
+		})
+	}
 	if err := i.ValidateTargetValid(new); err != nil {
 		errorFields = append(errorFields, *err)
 	}

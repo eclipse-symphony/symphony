@@ -21,6 +21,7 @@ import (
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/utils"
 
+	"gopls-workspace/utils/diagnostic"
 	utilsmodel "gopls-workspace/utils/model"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -102,7 +103,7 @@ func NewDeploymentReconciler(opts ...DeploymentReconcilerOptions) (*DeploymentRe
 	return r, nil
 }
 
-func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target Reconcilable) (reconciliationInterval, timeout time.Duration) {
+func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, ctx context.Context, target Reconcilable) (reconciliationInterval, timeout time.Duration) {
 	rp := target.GetReconciliationPolicy()
 	reconciliationInterval = r.reconciliationInterval
 	timeout = r.applyTimeOut
@@ -113,7 +114,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 			if rp.Interval != nil {
 				interval, err := time.ParseDuration(*rp.Interval)
 				if err != nil {
-					log.Info(fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
+					diagnostic.ErrorWithCtx(log, ctx, err, fmt.Sprintf("failed to parse reconciliation interval %s, using default %s", *rp.Interval, reconciliationInterval))
 					return
 				}
 				reconciliationInterval = interval
@@ -129,8 +130,8 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, target R
 	return
 }
 
-func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, log logr.Logger) context.Context {
-	log.Info("Populating diagnostics and activities from annotations")
+func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(ctx context.Context, object Reconcilable, operationName string, k8sClient client.Reader, log logr.Logger) context.Context {
+	diagnostic.InfoWithCtx(log, ctx, "Populating diagnostics and activities from annotations")
 	if object == nil {
 		return ctx
 	}
@@ -139,7 +140,7 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 		return ctx
 	}
 	resourceK8SId := object.GetNamespace() + "/" + object.GetName()
-	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, annotations, operationName, ctx, log)
+	return configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(object.GetNamespace(), resourceK8SId, annotations, operationName, k8sClient, ctx, log)
 }
 
 // attemptUpdate attempts to update the instance
@@ -150,6 +151,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		controllerutil.AddFinalizer(object, r.finalizerName)
 		// updates the object in Kubernetes cluster
 		if err := r.kubeClient.Update(ctx, object); err != nil {
+			diagnostic.ErrorWithCtx(log, ctx, err, "failed to add finalizer to object")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 	}
@@ -316,8 +318,10 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	// If there was a terminal error, then we don't return an error so the reconciler can respect the reconcile policy
 	// but if there was a non-terminal error, we should return the error so the reconciler can retry
 	if patchOptions.terminalErr != nil {
+		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Deployment job failed due to terminal error.")
 		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
+	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Deployment job failed due to non-terminal error.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 
@@ -336,7 +340,7 @@ func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilabl
 	generationMatch := r.generationMatch(object, summary)
 	operationTypeMatch := r.operationTypeMatch(object, summary)
 	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
-	log.Info(fmt.Sprintf("CheckParity: generationMatch: %t, operationTypeMatch: %t, deploymentHashMatch: %t", generationMatch, operationTypeMatch, deploymentHashMatch))
+	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch)
 	return generationMatch && operationTypeMatch && deploymentHashMatch
 }
 
@@ -426,6 +430,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
+	diagnostic.InfoWithCtx(log, ctx, "Updating object status", "status", status, "patchStatusOptions", opts)
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
@@ -436,7 +441,13 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	}
 	nextStatus.LastModified = metav1.Now()
 	object.SetStatus(*nextStatus)
-	return string(status), r.kubeClient.Status().Update(context.Background(), object)
+
+	err = r.kubeClient.Status().Update(context.Background(), object)
+	if err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
+	}
+	return string(status), err
+
 }
 
 func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) utilsmodel.ProvisioningStatus {

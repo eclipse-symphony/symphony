@@ -18,6 +18,7 @@ import (
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
+	"gopls-workspace/utils/diagnostic"
 
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 
@@ -75,19 +76,70 @@ const (
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
+<<<<<<< HEAD
 // func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 // 	log := ctrllog.FromContext(ctx)
 // 	log.Info("shouldn't be called here")
 // 	return ctrl.Result{}, nil
 // }
+=======
+func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+	diagnostic.InfoWithCtx(log, ctx, "Reconciling Instance", "Name", req.Name, "Namespace", req.Namespace)
+
+	// Initialize reconcileTime for latency metrics
+	reconcileTime := time.Now()
+
+	// Get instance
+	instance := &solution_v1.Instance{}
+	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	reconciliationType := metrics.CreateOperationType
+	resultType := metrics.ReconcileSuccessResult
+	reconcileResult := ctrl.Result{}
+	deploymentOperationType := metrics.DeploymentQueued
+	var err error
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
+		reconciliationType = metrics.UpdateOperationType
+		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, operationName)
+		if err != nil {
+			resultType = metrics.ReconcileFailedResult
+		}
+	} else { // remove
+		reconciliationType = metrics.DeleteOperationType
+		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
+		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, operationName)
+		if err != nil {
+			resultType = metrics.ReconcileFailedResult
+		}
+	}
+
+	r.m.ControllerReconcileLatency(
+		reconcileTime,
+		reconciliationType,
+		resultType,
+		metrics.InstanceResourceType,
+		deploymentOperationType,
+	)
+
+	return reconcileResult, err
+}
+>>>>>>> main
 
 func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Building deployment")
+	diagnostic.InfoWithCtx(log, ctx, "Building deployment")
 	var deployment model.DeploymentSpec
 	instance, ok := object.(*solution_v1.Instance)
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "not able to convert object to instance", v1alpha2.ObjectInstanceCoversionFailed)
+		err := v1alpha2.NewCOAError(nil, "not able to convert object to instance", v1alpha2.ObjectInstanceCoversionFailed)
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to convert object to instance when building deployment")
+		return nil, err
 	}
 
 	deploymentResources := &utils.DeploymentResources{
@@ -99,21 +151,25 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 
 	solutionName := api_utils.ConvertReferenceToObjectName(instance.Spec.Solution)
 	if err := r.Get(ctx, types.NamespacedName{Name: solutionName, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
-		log.Error(v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed), "proceed with no solution found")
+		err = v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed)
+		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no solution found")
 	}
 	// Get targets
 	if err := r.List(ctx, &deploymentResources.TargetList, client.InNamespace(instance.Namespace)); err != nil {
-		log.Error(v1alpha2.NewCOAError(err, "failed to list targets", v1alpha2.TargetListGetFailed), "proceed with no targets found")
+		err = v1alpha2.NewCOAError(err, "failed to list targets", v1alpha2.TargetListGetFailed)
+		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no targets found")
 	}
 
 	// Get target candidates
 	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
 	if len(deploymentResources.TargetCandidates) == 0 {
-		log.Error(v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound), "proceed with no target candidates found")
+		err := v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound)
+		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no target candidates found")
 	}
 
 	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
 	if err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to create symphony deployment")
 		return nil, err
 	}
 	return &deployment, nil
@@ -140,7 +196,7 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
 	err := r.List(context.Background(), &instances, options...)
 	if err != nil {
-		log.Log.Error(err, "Failed to list instances")
+		diagnostic.ErrorWithCtx(log.Log, ctx, err, "Failed to list instances")
 		return ret
 	}
 
@@ -166,7 +222,7 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	}
 
 	if len(ret) > 0 {
-		log.Log.Info(fmt.Sprintf("Watched target %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", tarObj.Name, tarObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched target %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", tarObj.Name, tarObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
 	}
 
 	return ret
@@ -184,7 +240,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	}
 	error := r.List(context.Background(), &instances, options...)
 	if error != nil {
-		log.Log.Error(error, "Failed to list instances")
+		diagnostic.ErrorWithCtx(log.Log, ctx, error, "Failed to list instances")
 		return ret
 	}
 
@@ -204,7 +260,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	}
 
 	if len(ret) > 0 {
-		log.Log.Info(fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solObj.Name, solObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solObj.Name, solObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
 	}
 
 	return ret

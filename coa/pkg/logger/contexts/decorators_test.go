@@ -13,7 +13,7 @@ import (
 func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithContext(ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)
@@ -22,8 +22,10 @@ func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 
 	innerCtx := innerEntry.(*ActivityLogContext)
 
+	assert.Equal(t, "diagnosticResourceId", innerCtx.diagnosticResourceCloudId)
 	assert.Equal(t, "resourceCloudId", innerCtx.resourceCloudId)
 	assert.Equal(t, "cloudLocation", innerCtx.cloudLocation)
+	assert.Equal(t, "edgeLocation", innerCtx.edgeLocation)
 	assert.Equal(t, "operationName", innerCtx.operationName)
 	assert.Equal(t, "correlationId", innerCtx.correlationId)
 	assert.Equal(t, "callerId", innerCtx.properties[Activity_Props_CallerId])
@@ -33,14 +35,16 @@ func TestActivityLogContextDecorator_Decorate(t *testing.T) {
 func TestActivityLogContextDecorator_DecorateUnfold(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	ctx.SetProperty("key", "value")
 	entry = entry.WithContext(ctx)
 	entry = d.Decorate(entry, false)
 	assert.NotNil(t, entry)
 	assert.Nil(t, entry.Data[string(ActivityLogContextKey)])
+	assert.Equal(t, strings.ToUpper("diagnosticResourceId"), entry.Data[string(OTEL_Activity_DiagnosticResourceCloudId)])
 	assert.Equal(t, strings.ToUpper("resourceCloudId"), entry.Data[string(OTEL_Activity_ResourceCloudId)])
 	assert.Equal(t, "cloudLocation", entry.Data[string(OTEL_Activity_Location)])
+	assert.Equal(t, "edgeLocation", entry.Data[string(OTEL_Activity_Props_EdgeLocation)])
 	assert.Equal(t, "operationName", entry.Data[string(OTEL_Activity_OperationName)])
 	assert.Equal(t, "correlationId", entry.Data[string(OTEL_Activity_CorrelationId)])
 	assert.Equal(t, "callerId", entry.Data[string(OTEL_Activity_Props_CallerId)])
@@ -95,7 +99,7 @@ func TestDiagnosticLogContextDecorator_DecorateUnfold(t *testing.T) {
 func TestActivityLogContextDecorator_DecorateWithKey(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithField(string(ActivityLogContextKey), ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)
@@ -104,8 +108,10 @@ func TestActivityLogContextDecorator_DecorateWithKey(t *testing.T) {
 
 	innerCtx := innerEntry.(*ActivityLogContext)
 
+	assert.Equal(t, "diagnosticResourceId", innerCtx.diagnosticResourceCloudId)
 	assert.Equal(t, "resourceCloudId", innerCtx.resourceCloudId)
 	assert.Equal(t, "cloudLocation", innerCtx.cloudLocation)
+	assert.Equal(t, "edgeLocation", innerCtx.edgeLocation)
 	assert.Equal(t, "operationName", innerCtx.operationName)
 	assert.Equal(t, "correlationId", innerCtx.correlationId)
 	assert.Equal(t, "callerId", innerCtx.properties[Activity_Props_CallerId])
@@ -167,7 +173,7 @@ func TestDiagnosticLogContextDecorator_DecorateWithInvalidContext(t *testing.T) 
 func TestActivityLogContextDecorator_DecorateWithInvalidKey(t *testing.T) {
 	d := &ActivityLogContextDecorator{}
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	ctx := NewActivityLogContext("resourceCloudId", "cloudLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithField("invalid", ctx)
 	entry = d.Decorate(entry, true)
 	assert.NotNil(t, entry)

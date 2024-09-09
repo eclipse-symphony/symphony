@@ -8,14 +8,30 @@ package configs
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	coa_contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	memory "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/memoryconfig"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
 
 var ctx = context.Background()
 
@@ -466,4 +482,174 @@ func TestObjectReference(t *testing.T) {
 	val2, err2 := manager.GetObject("memory1::obj:v1", nil, nil)
 	assert.NotNil(t, err2)
 	assert.Empty(t, val2)
+}
+
+func TestCircularCatalogReferences(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/catalogs/registry/config1-v-v1":
+			response = model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "config1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					ParentName: "parent:v1",
+					Properties: map[string]interface{}{
+						"image":     "${{$config('config2:v1','image')}}",
+						"attribute": "value",
+					},
+				},
+			}
+		case "/catalogs/registry/config2-v-v1":
+			response = model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "config2-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"attribute": "${{$config('config1:v1','attribute')}}",
+						"foo":       "bar",
+					},
+				},
+			}
+		case "/catalogs/registry/parent-v-v1":
+			response = model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "parent-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"parentConfig": "${{$config('config1:v1','parentAttribute')}}",
+					},
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	evalContext := utils.EvaluationContext{}
+	vendorContext := coa_contexts.VendorContext{
+		EvaluationContext: &evalContext,
+	}
+	provider := catalog.CatalogConfigProvider{}
+
+	provider.Context = &coa_contexts.ManagerContext{
+		VencorContext: &vendorContext,
+	}
+	err := provider.Init(catalog.CatalogConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	manager := ConfigsManager{}
+	config := managers.ManagerConfig{
+		Name: "config-name",
+		Type: "config-type",
+		Properties: map[string]string{
+			"providers.config": "ConfigProvider",
+		},
+	}
+	providers := make(map[string]providers.IProvider)
+	providers["ConfigProvider"] = &provider
+	err = manager.Init(&vendorContext, config, providers)
+	assert.Nil(t, err)
+
+	evalContext.ConfigProvider = &manager
+
+	_, err = manager.Get("config1:v1", "image", nil, evalContext)
+	assert.Error(t, err, "Detect circular dependency, object: config1-v-v1, field: image")
+
+	_, err = manager.Get("config1:v1", "attribute", nil, evalContext)
+	assert.Nil(t, err, "Detect correct attribute, expect no error")
+
+	_, err = manager.Get("config2:v1", "attribute", nil, evalContext)
+	assert.Nil(t, err, "Detect correct attribute, expect no error")
+}
+
+func TestParentConfigEvaluation(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/catalogs/registry/config-v-v1":
+			response = model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "config-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					ParentName: "parent:v1",
+					Properties: map[string]interface{}{
+						"attribute": "value",
+					},
+				},
+			}
+		case "/catalogs/registry/parent-v-v1":
+			response = model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "parent-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					Properties: map[string]interface{}{
+						"parentAttribute": "${{$config('config:v1','attribute')}}",
+						"parentCircular":  "${{$config('config:v1','parentCircular')}}",
+					},
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	evalContext := utils.EvaluationContext{}
+	vendorContext := coa_contexts.VendorContext{
+		EvaluationContext: &evalContext,
+	}
+	provider := catalog.CatalogConfigProvider{}
+
+	provider.Context = &coa_contexts.ManagerContext{
+		VencorContext: &vendorContext,
+	}
+	err := provider.Init(catalog.CatalogConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	manager := ConfigsManager{}
+	config := managers.ManagerConfig{
+		Name: "config-name",
+		Type: "config-type",
+		Properties: map[string]string{
+			"providers.config": "ConfigProvider",
+		},
+	}
+	providers := make(map[string]providers.IProvider)
+	providers["ConfigProvider"] = &provider
+	err = manager.Init(&vendorContext, config, providers)
+	assert.Nil(t, err)
+
+	evalContext.ConfigProvider = &manager
+
+	val, err := manager.Get("config:v1", "parentAttribute", nil, evalContext)
+	assert.Equal(t, "value", val)
+	assert.Nil(t, err)
+
+	_, err = manager.Get("config:v1", "parentCircular", nil, evalContext)
+	assert.Error(t, err, "Circular dependency in config should throw error")
 }

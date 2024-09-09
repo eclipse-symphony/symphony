@@ -42,9 +42,11 @@ import (
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"
 
+	monitorv1 "gopls-workspace/apis/monitor/v1"
 	aicontrollers "gopls-workspace/controllers/ai"
 	fabriccontrollers "gopls-workspace/controllers/fabric"
 	federationcontrollers "gopls-workspace/controllers/federation"
+	monitorcontrollers "gopls-workspace/controllers/monitor"
 	solutioncontrollers "gopls-workspace/controllers/solution"
 	workflowcontrollers "gopls-workspace/controllers/workflow"
 	//+kubebuilder:scaffold:imports
@@ -112,6 +114,7 @@ func init() {
 	utilruntime.Must(configv1.AddToScheme(scheme))
 	utilruntime.Must(workflowv1.AddToScheme(scheme))
 	utilruntime.Must(federationv1.AddToScheme(scheme))
+	utilruntime.Must(monitorv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -124,7 +127,6 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	var configFile string
 	var pollIntervalString string
 	var reconcileIntervalString string
 	var deleteTimeOutString string
@@ -141,9 +143,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&configFile, "config", "", "The controller will laod its initial configuration from this file. "+
-		"Omit this flag to use the default configuration value. "+
-		"Command-line flags override configuration from this file.")
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
@@ -205,21 +204,12 @@ func main() {
 	}
 
 	ctx := ctrl.SetupSignalHandler()
-	ctrlConfig := configv1.ProjectConfig{}
+
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "33405cb8.symphony",
-	}
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
-		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
-		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
@@ -451,6 +441,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
 			os.Exit(1)
 		}
+		if err = (&monitorv1.Diagnostic{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Diagnostic")
+			os.Exit(1)
+		}
 		if err = commoncontainer.InitCommonContainerWebHook(mgr); err != nil {
 			setupLog.Error(err, "unable to Init Common Conainer", "webhook", "Common Conainer")
 			os.Exit(1)
@@ -487,6 +481,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CampaignContainer")
+		os.Exit(1)
+	}
+	if err = (&monitorcontrollers.DiagnosticReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Diagnostic")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
