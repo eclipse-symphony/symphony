@@ -14,6 +14,7 @@ import (
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 
 	configv1 "gopls-workspace/apis/config/v1"
 
@@ -52,18 +53,18 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	// Load validator functions
 	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
+		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
 		if err != nil {
 			return false, err
 		}
 		return len(instanceList.Items) > 0, nil
 	}
 	solutionContainerLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.SolutionContainer, name, namespace)
+		return dynamicclient.Get(ctx, validation.SolutionContainer, name, namespace)
 	}
 
 	uniqueNameSolutionLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-		return dynamicclient.GetObjectWithUniqueName(validation.Solution, displayName, namespace)
+		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Solution, displayName, namespace)
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
 		solutionValidator = validation.NewSolutionValidator(solutionInstanceLookupFunc, solutionContainerLookupFunc, uniqueNameSolutionLookupFunc)
@@ -83,7 +84,8 @@ var _ webhook.Defaulter = &Solution{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Solution) Default() {
-	solutionlog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), solutionlog)
+	diagnostic.InfoWithCtx(solutionlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
@@ -93,7 +95,7 @@ func (r *Solution) Default() {
 		var solutionContainer SolutionContainer
 		err := mySolutionReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
 		if err != nil {
-			solutionlog.Error(err, "failed to get solution container", "name", r.Spec.RootResource)
+			diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get solution container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
 				APIVersion: GroupVersion.String(),
@@ -124,12 +126,11 @@ var _ webhook.Validator = &Solution{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Solution) ValidateCreate() (admission.Warnings, error) {
-	solutionlog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
 	return nil, r.validateCreateSolution(ctx)
@@ -137,29 +138,29 @@ func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	solutionlog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	oldSolution, ok := old.(*Solution)
 	if !ok {
-		return nil, fmt.Errorf("expected a Target object")
+		err := fmt.Errorf("expected a Solution object")
+		diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to convert old object to Solution")
+		return nil, err
 	}
-	return nil, r.validateUpdateSolution(oldSolution)
+	return nil, r.validateUpdateSolution(ctx, oldSolution)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Solution) ValidateDelete() (admission.Warnings, error) {
-	solutionlog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionOperationNamePrefix, constants.ActivityOperation_Delete)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, r.validateDeleteSolution(ctx)
@@ -169,6 +170,7 @@ func (r *Solution) validateCreateSolution(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertSolutionState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate create solution - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := solutionValidator.ValidateCreateOrUpdate(ctx, state, nil)
@@ -178,17 +180,21 @@ func (r *Solution) validateCreateSolution(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate create solution", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
-func (r *Solution) validateUpdateSolution(old *Solution) error {
+func (r *Solution) validateUpdateSolution(ctx context.Context, old *Solution) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertSolutionState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate update solution - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	oldstate, err := old.ConvertSolutionState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate update solution - convert old", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := solutionValidator.ValidateCreateOrUpdate(context.TODO(), state, oldstate)
@@ -198,13 +204,16 @@ func (r *Solution) validateUpdateSolution(old *Solution) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate update solution", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Solution) validateDeleteSolution(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertSolutionState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate delete solution - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := solutionValidator.ValidateDelete(ctx, state)
@@ -214,7 +223,9 @@ func (r *Solution) validateDeleteSolution(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Solution"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(solutionlog, ctx, err, "validate delete solution", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Solution) ConvertSolutionState() (model.SolutionState, error) {
@@ -233,7 +244,8 @@ func (r *Solution) ConvertSolutionState() (model.SolutionState, error) {
 }
 
 func (r *SolutionContainer) Default() {
-	commoncontainer.DefaultImpl(solutionlog, r)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), solutionlog)
+	commoncontainer.DefaultImpl(solutionlog, ctx, r)
 }
 
 func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
@@ -242,9 +254,10 @@ func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate create solution container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(solutionlog, r)
+	return commoncontainer.ValidateCreateImpl(solutionlog, ctx, r)
 }
 func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 
@@ -252,9 +265,10 @@ func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnin
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate update solution container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being updated on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateUpdateImpl(solutionlog, r, old)
+	return commoncontainer.ValidateUpdateImpl(solutionlog, ctx, r, old)
 }
 
 func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
@@ -263,17 +277,18 @@ func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
 	operationName := fmt.Sprintf("%s/%s", constants.SolutionContainerOperationNamePrefix, constants.ActivityOperation_Delete)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
+	diagnostic.InfoWithCtx(solutionlog, ctx, "validate delete solution container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
 
-	solutionlog.Info("validate delete solution container", "name", r.Name)
 	getSubResourceNums := func() (int, error) {
 		var solutionList SolutionList
 		err := mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
+			diagnostic.ErrorWithCtx(solutionlog, ctx, err, "could not list nested resources", "name", r.Name, "namespace", r.Namespace, "kind", r.GetObjectKind())
 			return 0, err
 		} else {
 			return len(solutionList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(solutionlog, r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(solutionlog, ctx, r, getSubResourceNums)
 }

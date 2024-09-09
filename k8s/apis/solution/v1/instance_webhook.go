@@ -16,6 +16,7 @@ import (
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 	"time"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
@@ -66,13 +67,13 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	// Load validator functions
 	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-		return dynamicclient.GetObjectWithUniqueName(validation.Instance, displayName, namespace)
+		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Instance, displayName, namespace)
 	}
 	solutionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Solution, name, namespace)
+		return dynamicclient.Get(ctx, validation.Solution, name, namespace)
 	}
 	targetLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(validation.Target, name, namespace)
+		return dynamicclient.Get(ctx, validation.Target, name, namespace)
 	}
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
 		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
@@ -93,8 +94,8 @@ var _ webhook.Defaulter = &Instance{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Instance) Default() {
-	instancelog.Info("default", "name", r.Name)
-
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), instancelog)
+	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
@@ -121,12 +122,11 @@ var _ webhook.Validator = &Instance{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateCreate() (admission.Warnings, error) {
-	instancelog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
@@ -152,18 +152,19 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	instancelog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldInstance, ok := old.(*Instance)
 	if !ok {
-		return nil, fmt.Errorf("expected an Instance object")
+		err := fmt.Errorf("expected an Instance object")
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
 	}
 	validationError := r.validateUpdateInstance(ctx, oldInstance)
 	if validationError != nil {
@@ -187,12 +188,11 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateDelete() (admission.Warnings, error) {
-	instancelog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
@@ -203,6 +203,7 @@ func (r *Instance) validateCreateInstance(ctx context.Context) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertInstanceState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	// TODO: add proper context
@@ -217,17 +218,21 @@ func (r *Instance) validateCreateInstance(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) error {
 	var allErrs field.ErrorList
 	state, err := r.ConvertInstanceState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	oldState, err := old.ConvertInstanceState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance - convert old", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	// TODO: add proper context
@@ -241,7 +246,9 @@ func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) er
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Instance) validateReconciliationPolicy() *field.Error {
