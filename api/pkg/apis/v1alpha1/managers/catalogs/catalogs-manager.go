@@ -54,7 +54,9 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
+		s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, nil, s.ChildCatalogLookup)
 	}
 	return nil
 }

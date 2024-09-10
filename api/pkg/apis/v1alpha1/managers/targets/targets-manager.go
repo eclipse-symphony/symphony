@@ -47,7 +47,9 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		s.TargetValidator = validation.NewTargetValidator(nil, s.targetUniqueNameLookup)
 	}
 	return nil
 }
@@ -96,7 +98,9 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		}
 		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
