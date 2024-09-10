@@ -151,7 +151,7 @@ func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog mo
 		return nil
 	}
 	parentCatalogName := ConvertReferenceToObjectName(catalog.Spec.ParentName)
-	_, err := c.CatalogLookupFunc(ctx, parentCatalogName, catalog.ObjectMeta.Namespace)
+	parentCatalog, err := c.CatalogLookupFunc(ctx, parentCatalogName, catalog.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.ParentName",
@@ -159,7 +159,45 @@ func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog mo
 			DetailedMessage: "parent catalog not found",
 		}
 	}
+
+	// if parent exists, need to check if upsert this catalog will introduce circular parent issue.
+	catalogName := catalog.ObjectMeta.Name
+	if c.hasParentCircularDependency(ctx, parentCatalog, catalogName) {
+		return &ErrorField{
+			FieldPath:       "spec.ParentName",
+			Value:           parentCatalogName,
+			DetailedMessage: "parent catalog has circular dependency",
+		}
+	}
 	return nil
+}
+
+func (c *CatalogValidator) hasParentCircularDependency(ctx context.Context, parentRaw interface{}, catalogName string) bool {
+	jsonData, err := json.Marshal(parentRaw)
+	if err != nil {
+		return false
+	}
+
+	var parentCatalog model.CatalogState
+	err = json.Unmarshal(jsonData, &parentCatalog)
+	if err != nil {
+		return false
+	}
+
+	if parentCatalog.Spec.ParentName == "" {
+		return false
+	} else {
+		parentName := ConvertReferenceToObjectName(parentCatalog.Spec.ParentName)
+		if parentName == catalogName {
+			return true
+		}
+
+		parentCatalog, err := c.CatalogLookupFunc(ctx, parentName, parentCatalog.ObjectMeta.Namespace)
+		if err == nil {
+			return c.hasParentCircularDependency(ctx, parentCatalog, catalogName)
+		}
+		return false
+	}
 }
 
 // Validate NO Child Catalog
