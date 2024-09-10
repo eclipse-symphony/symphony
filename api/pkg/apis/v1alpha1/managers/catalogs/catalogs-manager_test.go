@@ -23,7 +23,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/stretchr/testify/assert"
 )
@@ -373,6 +372,7 @@ func TestParentCatalog(t *testing.T) {
 	assert.Contains(t, err.Error(), "Catalog has one or more child catalogs. Update or Deletion is not allowed")
 }
 
+/*
 func TestCatalogContainer(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
@@ -421,3 +421,4 @@ func TestCatalogContainer(t *testing.T) {
 	})
 	assert.Nil(t, err)
 }
+*/

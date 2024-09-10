@@ -52,7 +52,9 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		s.Validator = validation.NewActivationValidator(nil)
 	}
 	return nil
 }
@@ -122,7 +124,9 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		}
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
