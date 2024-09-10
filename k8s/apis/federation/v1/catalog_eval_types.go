@@ -29,6 +29,7 @@ type CatalogEvalExpressionStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // CatalogEvalExpressionAction is the Schema for the CatalogEvalExpressionactions API.
 type CatalogEvalExpression struct {
 	metav1.TypeMeta   `json:",inline"`

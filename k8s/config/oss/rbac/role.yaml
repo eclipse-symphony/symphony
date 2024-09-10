@@ -375,6 +375,14 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs/finalizers
   verbs:
   - update

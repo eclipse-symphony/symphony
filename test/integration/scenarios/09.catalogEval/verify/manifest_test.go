@@ -63,91 +63,101 @@ func Test_CatalogsEvals(t *testing.T) {
 
 	dyn, err := dynamic.NewForConfig(cfg)
 	require.NoError(t, err)
-
-	var resources *unstructured.UnstructuredList
-	for {
-		resources, err = dyn.Resource(schema.GroupVersionResource{
+	var evaluateevalcatalog *unstructured.Unstructured
+	retryWithTimeout(func() (any, error) {
+		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
 			Resource: "catalogevalexpressions",
-		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog01", metav1.GetOptions{})
 		require.NoError(t, err)
+		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		require.NoError(t, err)
+		require.Contains(t, []string{"Succeeded", "Failed"}, status)
+		return evaluateevalcatalog, nil
+	}, time.Minute*1)
+	resourceRef, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "spec", "resourceRef", "name")
+	require.NoError(t, err)
+	require.Equal(t, "evalcatalog-v-v1", resourceRef)
 
-		catalogEvals := []string{}
-		for _, item := range resources.Items {
-			catalogEvals = append(catalogEvals, item.GetName())
-		}
-		fmt.Printf("CatalogEvalExpression: %v\n", catalogEvals)
-		if len(resources.Items) == 3 {
-			break
-		}
+	status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	require.NoError(t, err)
+	require.Equal(t, "Failed", status)
 
-		sleepDuration, _ := time.ParseDuration("30s")
-		time.Sleep(sleepDuration)
+	address, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "address")
+	require.NoError(t, err)
+	require.Equal(t, "1st Avenue", address)
+
+	city, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	require.NoError(t, err)
+	require.Equal(t, "Sydney", city)
+
+	zipcode, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "zipcode")
+	require.NoError(t, err)
+	require.Contains(t, zipcode, "Not Found")
+
+	county, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "county")
+	require.NoError(t, err)
+	require.Contains(t, county, "Not Found")
+
+	country, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "country")
+	require.NoError(t, err)
+	require.Contains(t, country, "Bad Config")
+
+	fromCountry, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "country")
+	require.NoError(t, err)
+	require.Equal(t, "Australia", fromCountry)
+
+	// check evaluateevalcatalog02
+	retryWithTimeout(func() (any, error) {
+		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+			Group:    "federation.symphony",
+			Version:  "v1",
+			Resource: "catalogevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog02", metav1.GetOptions{})
+		require.NoError(t, err)
+		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		require.NoError(t, err)
+		require.Contains(t, []string{"Succeeded", "Failed"}, status)
+		return evaluateevalcatalog, nil
+	}, time.Minute*1)
+	code, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "error", "code")
+	require.NoError(t, err)
+	require.Equal(t, "ParentRefNotFound", code)
+
+	// check evaluateevalcatalog03
+	retryWithTimeout(func() (any, error) {
+		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+			Group:    "federation.symphony",
+			Version:  "v1",
+			Resource: "catalogevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog03", metav1.GetOptions{})
+		require.NoError(t, err)
+		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		require.NoError(t, err)
+		require.Contains(t, []string{"Succeeded", "Failed"}, status)
+		return evaluateevalcatalog, nil
+	}, time.Minute*1)
+	status, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	require.NoError(t, err)
+	require.Equal(t, "Succeeded", status)
+
+	city, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	require.NoError(t, err)
+	require.Equal(t, "Sydney", city)
+
+}
+
+func retryWithTimeout(fn func() (any, error), timeout time.Duration) (any, error) {
+	start := time.Now()
+	for {
+		result, err := fn()
+		if err == nil {
+			return result, nil
+		}
+		if time.Since(start) > timeout {
+			return nil, fmt.Errorf("timeout while waiting for function to succeed: %w", err)
+		}
+		time.Sleep(time.Second * 5)
 	}
-
-	//check status
-	for _, item := range resources.Items {
-		if item.GetName() == "evaluateevalcatalog01" {
-			// check the spec.resourceRef.Name
-			resourceRef, _, err := unstructured.NestedString(item.Object, "spec", "resourceRef", "name")
-			require.NoError(t, err)
-			require.Equal(t, "evalcatalog-v-v1", resourceRef)
-
-			status, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "status")
-			require.NoError(t, err)
-			require.Equal(t, "Succeeded", status)
-
-			status, _, err = unstructured.NestedString(item.Object, "status", "actionStatus", "output", "evaluationStatus")
-			require.NoError(t, err)
-			require.Equal(t, "Failed", status)
-
-			address, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "address")
-			require.NoError(t, err)
-			require.Equal(t, "1st Avenue", address)
-
-			city, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "city")
-			require.NoError(t, err)
-			require.Equal(t, "Sydney", city)
-
-			zipcode, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "zipcode")
-			require.NoError(t, err)
-			require.Contains(t, zipcode, "Not Found")
-
-			county, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "county")
-			require.NoError(t, err)
-			require.Contains(t, county, "Not Found")
-
-			country, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "country")
-			require.NoError(t, err)
-			require.Contains(t, country, "Bad Config")
-
-			fromCountry, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "from", "country")
-			require.NoError(t, err)
-			require.Equal(t, "Australia", fromCountry)
-		}
-		if item.GetName() == "evaluateevalcatalog02" {
-			status, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "status")
-			require.NoError(t, err)
-			require.Equal(t, "Failed", status)
-
-			code, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "error", "code")
-			require.NoError(t, err)
-			require.Equal(t, "ParentRefNotFound", code)
-		}
-		if item.GetName() == "evaluateevalcatalog03" {
-			status, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "status")
-			require.NoError(t, err)
-			require.Equal(t, "Succeeded", status)
-
-			status, _, err = unstructured.NestedString(item.Object, "status", "actionStatus", "output", "evaluationStatus")
-			require.NoError(t, err)
-			require.Equal(t, "Succeeded", status)
-
-			city, _, err := unstructured.NestedString(item.Object, "status", "actionStatus", "output", "city")
-			require.NoError(t, err)
-			require.Equal(t, "Sydney", city)
-		}
-	}
-
 }
