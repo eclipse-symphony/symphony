@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/assert"
@@ -150,9 +151,11 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-v3").CombinedOutput()
 	assert.Contains(t, string(output), "Campaign has one or more running activations. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
-	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
-	assert.Nil(t, err)
+	time.Sleep(15 * time.Second)
+	// Campaign can be deleted once the activation is DONE
 	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)

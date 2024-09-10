@@ -228,7 +228,7 @@ func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name str
 }
 
 func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name}, 1)
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name, constants.StatusMessage: v1alpha2.Running.String()}, 1)
 	if err != nil {
 		return false, err
 	}
