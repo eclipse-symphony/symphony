@@ -1,0 +1,12 @@
+go 1.22.0
+
+toolchain go1.22.3
+
+use ./api
+
+use ./coa
+
+use ./k8s
+
+use ./cli
+use ./test/integration
