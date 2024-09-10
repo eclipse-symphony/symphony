@@ -1,9 +1,13 @@
 package v1
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -52,7 +56,8 @@ var _ webhook.Defaulter = &CatalogEvalExpression{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CatalogEvalExpression) Default() {
-	catalogEvalExpressionLog.Info("default", "name", r.GetName(), "kind", r.GetObjectKind())
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), catalogEvalExpressionLog)
+	diagnostic.InfoWithCtx(catalogEvalExpressionLog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 }
 
 //+kubebuilder:webhook:path=/validate-federation-symphony-v1-catalogevalexpression,mutating=false,failurePolicy=fail,sideEffects=None,groups=federation.symphony,resources=catalogevalexpressions,verbs=create;update;delete,versions=v1,name=vcatalogevalexpression.kb.io,admissionReviewVersions=v1
@@ -70,7 +75,11 @@ func (r *CatalogEvalExpression) ValidateUpdate(old runtime.Object) (admission.Wa
 	oldCatalogEvalExpression, ok := old.(*CatalogEvalExpression)
 	if ok {
 		if oldCatalogEvalExpression.Status.ActionStatus.Status == SucceededActionState || oldCatalogEvalExpression.Status.ActionStatus.Status == FailedActionState {
+			resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+			operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
+			ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 			validationError := apierrors.NewForbidden(schema.GroupResource{Group: "federation.symphony", Resource: "CatalogEvalExpression"}, r.Name, errors.New("CatalogEvalExpression update is not allowed when terminal state is reached"))
+			diagnostic.ErrorWithCtx(catalogEvalExpressionLog, ctx, validationError, "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
 			return nil, validationError
 		}
 	}
