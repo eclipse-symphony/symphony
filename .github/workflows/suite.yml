@@ -106,7 +106,7 @@ jobs:
       if: always()
 
     - name: Collect and upload symphony test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: symphony-suite-result
         path: |
