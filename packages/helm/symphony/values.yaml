@@ -43,7 +43,7 @@ redis:
   port: 6379
   persistentVolume:
     enabled: false
-    storageclass: 
+    storageclass:
     accessMode: ReadWriteOnce
     size: 1Gi
 kubeRbacProxy:
