@@ -39,6 +39,7 @@ var (
 		"catalogs/target-container.yaml",
 		"catalogs/asset-container.yaml",
 		"catalogs/config-container.yaml",
+		"catalogs/wrongconfig-container.yaml",
 		"catalogs/schema-container.yaml",
 
 		"catalogs/instance.yaml",
@@ -156,11 +157,11 @@ func createCatalogs(namespace string) error {
 	configPath := filepath.Join(currentPath, configCatalog)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
 	if err == nil {
-		return errors.New("Catalog using shcema should not be deployed before schema catalog being deployed.")
+		return errors.New("Catalog using schema should not be deployed before schema catalog being deployed.")
 	}
 	// Deploy schema catalog
-	shcemaPath := filepath.Join(currentPath, schemaCatalog)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", shcemaPath, namespace)).Run()
+	schemaPath := filepath.Join(currentPath, schemaCatalog)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", schemaPath, namespace)).Run()
 	if err != nil {
 		return err
 	}

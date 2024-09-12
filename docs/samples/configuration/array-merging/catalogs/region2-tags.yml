@@ -28,4 +28,4 @@ spec:
   properties:
     name: "tags-region2"
     # This will combine the two arrays of strings into one.  The double dollar sign on the second config object is required
-    tags: ${{$config('shared-tags', 'tags') $$config('region2-tags', 'tags')}}
+    tags: ${{$config('shared:tags', 'tags') $$config('region2:tags', 'tags')}}
