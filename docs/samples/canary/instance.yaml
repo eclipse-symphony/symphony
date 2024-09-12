@@ -6,3 +6,5 @@ spec:
   solution: test-app:v1
   target: 
     name: sample-k8s-target
+  reconciliationPolicy:
+    interval: 1m
