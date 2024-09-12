@@ -61,6 +61,12 @@ func TestRead(t *testing.T) {
 								Type: "type",
 							},
 						},
+						"a": map[string]interface{}{
+							"b": map[string]interface{}{
+								"c": "nested",
+							},
+						},
+						"a.b.d": "dot",
 					},
 				},
 			}
@@ -107,7 +113,24 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read(ctx, "catalog1:v1", "parentAttribute", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "`.a.b.c`", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	var val string
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "nested", val)
+
+	res, err = provider.Read(ctx, "catalog1:v1", "`.\"a.b.d\"`", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "dot", val)
+
+	res, err = provider.Read(ctx, "catalog1:v1", "`.parentAttribute`", nil)
 	assert.Nil(t, err)
 	v, ok := res.(string)
 	assert.True(t, ok)
@@ -162,6 +185,7 @@ func TestReadObject(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -214,6 +238,7 @@ func TestSetandRemove(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
@@ -272,6 +297,7 @@ func TestSetandRemoveObject(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
 	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{

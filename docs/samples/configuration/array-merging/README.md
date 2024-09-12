@@ -75,7 +75,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
         properties:
             name: "tags-region1"
             # This will combine the two arrays of strings into one.  The double dollar sign on the second config object is required
-            tags: ${{$config('shared-tags', 'tags') $$config('region1-tags', 'tags')}}
+            tags: ${{$config('shared:tags', 'tags') $$config('region1:tags', 'tags')}}
     ```
 
 1. Deploy the example from the array-merging directory:
