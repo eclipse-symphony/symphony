@@ -54,7 +54,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 	ret := SchemaResult{Valid: true, Errors: make(map[string]RuleResult)}
 	for k, v := range s.Rules {
 		if v.Type != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				if v.Type == "int" {
 					if _, err := strconv.Atoi(FormatAsString(val)); err != nil {
 						ret.Valid = false
@@ -84,13 +84,13 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 			}
 		}
 		if v.Required {
-			if _, ok := properties[k]; !ok {
+			if _, ok := JsonParseProperty(properties, k); !ok {
 				ret.Valid = false
 				ret.Errors[k] = RuleResult{Valid: false, Error: "missing required property"}
 			}
 		}
 		if v.Pattern != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				match, err := s.matchPattern(FormatAsString(val), v.Pattern)
 				if err != nil {
 					ret.Valid = false
@@ -103,7 +103,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 			}
 		}
 		if v.Expression != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				context.Value = val
 				parser := NewParser(v.Expression)
 				res, err := parser.Eval(*context)

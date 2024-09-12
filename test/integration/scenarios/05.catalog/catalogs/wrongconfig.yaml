@@ -3,9 +3,13 @@ kind: Catalog
 metadata:
   name: config-v-v2
 spec:
+  rootResource: wrongconfig
   catalogType: config
   rootResource: config
   metadata:
     schema: schema:v1
   properties:
-    email: "this is an invalid email"
+    person:
+      bar:
+        foo: 0
+    email.bar.foo: invalid

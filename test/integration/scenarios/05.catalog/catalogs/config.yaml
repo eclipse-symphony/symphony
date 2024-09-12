@@ -9,3 +9,6 @@ spec:
     schema: schema:v1
   properties:
     email: "sample@sample.com"
+    person:
+      bar:
+        foo: 15

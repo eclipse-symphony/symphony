@@ -97,7 +97,7 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 	if err != nil {
 		return "", err
 	}
-	if v, ok := catalog.Spec.Properties[field]; ok {
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
 		return m.traceValue(v, localcontext, dependencyList)
 	}
 	if catalog.Spec.ParentName != "" {
@@ -126,7 +126,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	if localcontext != nil {
 		if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
 			if coa_utils.HasCircularDependency(object, field, evalContext) {
-				clog.Errorf(" M (Catalog): Read detect circular dependency. Object: %v, field: %v, ", object, field)
+				clog.ErrorfCtx(ctx, " M (Catalog): Read detect circular dependency. Object: %s, field: %s, ", object, field)
 				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
 			}
 			dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
@@ -134,7 +134,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 		}
 	}
 
-	if v, ok := catalog.Spec.Properties[field]; ok {
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
 		return m.traceValue(v, localcontext, dependencyList)
 	}
 
