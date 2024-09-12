@@ -43,7 +43,7 @@ When creating container and version objects, version resource creation should fo
 When referencing a specific version of a versioned object, you can use a “:<version>” postfix in you Symphony expressions, such as:
 
 ```yaml
-${{$config(‘my-config:v3’, ‘my-field’)}}
+${{$config('my-config:v3', 'my-field')}}
 ```
 
 > **NOTE:** This syntax is to be expanded in the future to include cross-cluster and cross-namespace references, such as `<cluster>/<namespace>/<object>:<version tag>`.
