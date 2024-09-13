@@ -30,6 +30,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -73,6 +74,8 @@ type K8sTargetProvider struct {
 	Client        kubernetes.Interface
 	DynamicClient dynamic.Interface
 }
+
+type pollGet func() error
 
 func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProviderConfig, error) {
 	ret := K8sTargetProviderConfig{}
@@ -372,7 +375,7 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (K8s Target Provider): removeService namespace - %s, serviceName - %s", namespace, serviceName)
+	log.InfofCtx(ctx, "P (K8s Target Provider): removeService namespace - %s, serviceName - %s", namespace, serviceName)
 
 	if namespace == "" {
 		namespace = "default"
@@ -388,8 +391,54 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 			}
 		}
 	}
+
+	waitErr := i.pollCheck(ctx, true, func() error {
+		_, err := i.Client.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+		return err
+	})
+	if waitErr != nil {
+		if waitErr == context.DeadlineExceeded {
+			log.ErrorfCtx(ctx, "P (K8s Target Provider): Timeout waiting for service %s in namespace %s to be deleted.", serviceName, namespace)
+		} else {
+			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while waiting for service deletion: %v", waitErr)
+		}
+		return waitErr
+	}
 	return nil
 }
+
+func (i *K8sTargetProvider) pollCheck(ctx context.Context, isDelete bool, pollFunc pollGet) error {
+	pollInterval := time.Second * 1
+	timeout := time.Minute * 5
+
+	waitErr := wait.PollUntilContextTimeout(ctx, pollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		err := pollFunc()
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while checking deletion: %v", err)
+			return false, err
+		}
+
+		if isDelete {
+			if err != nil {
+				log.DebugfCtx(ctx, "P (K8s Target Provider): has been deleted.")
+				return true, nil
+			}
+			log.DebugfCtx(ctx, "K8s Target Provider): Waiting for to be deleted...")
+			return false, nil
+
+		} else {
+			if err != nil {
+				log.DebugfCtx(ctx, "P (K8s Target Provider):  Waiting for to be created...")
+				return false, nil
+			}
+			log.DebugfCtx(ctx, "P (K8s Target Provider): has been created.")
+			return true, nil
+		}
+
+	})
+	return waitErr
+}
+
 func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace string, name string) error {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "removeDeployment",
@@ -412,8 +461,23 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace stri
 		}
 	}
 
+	waitErr := i.pollCheck(ctx, true, func() error {
+		_, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		return err
+	})
+
+	if waitErr != nil {
+		if waitErr == context.DeadlineExceeded {
+			log.ErrorfCtx(ctx, "P (K8s Target Provider): Timeout waiting for deployment %s in namespace %s to be deleted.", name, namespace)
+		} else {
+			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while waiting for deployment deletion: %v", waitErr)
+		}
+		return waitErr
+	}
+
 	return nil
 }
+
 func (i *K8sTargetProvider) removeNamespace(ctx context.Context, namespace string, retryCount int, retryIntervalInSec int) error {
 	ctx, span := observability.StartSpan("K8s Target Provider", ctx, &map[string]string{
 		"method": "removeNamespace",
@@ -509,7 +573,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (K8s Target Provider): removeDeployment namespace - %s", namespace)
+	log.InfofCtx(ctx, "  P (K8s Target Provider): createNamespace namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
 		return nil
@@ -561,6 +625,21 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 	if err != nil {
 		return err
 	}
+
+	waitErr := i.pollCheck(ctx, false, func() error {
+		_, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		return err
+	})
+
+	if waitErr != nil {
+		if waitErr == context.DeadlineExceeded {
+			log.ErrorfCtx(ctx, " P (K8s Target Provider): Timeout waiting for deployment %s in namespace %s to be ready.", name, namespace)
+		} else {
+			log.ErrorfCtx(ctx, " P (K8s Target Provider): Error while waiting for deployment to be ready: %v", waitErr)
+		}
+		return waitErr
+	}
+
 	return nil
 }
 func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string, name string, service *apiv1.Service) error {
@@ -590,6 +669,18 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string,
 	}
 	if err != nil {
 		return err
+	}
+	waitErr := i.pollCheck(ctx, false, func() error {
+		_, err := i.Client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+		return err
+	})
+	if waitErr != nil {
+		if waitErr == context.DeadlineExceeded {
+			log.ErrorfCtx(ctx, "Timeout waiting for service %s in namespace %s to be ready.", name, namespace)
+		} else {
+			log.ErrorfCtx(ctx, "Error while waiting for service to be ready: %v", waitErr)
+		}
+		return waitErr
 	}
 	return nil
 }
@@ -626,7 +717,7 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, namespace stri
 		}
 	}
 
-	log.DebugCtx(ctx, "  P (K8s Target Provider): checking namespace")
+	log.DebugCtx(ctx, "  P (K8s Target Provider): creating namespace")
 	err = i.createNamespace(ctx, namespace)
 	if err != nil {
 		log.DebugfCtx(ctx, "  P (K8s Target Provider): failed to create namespace: %s", err.Error())
