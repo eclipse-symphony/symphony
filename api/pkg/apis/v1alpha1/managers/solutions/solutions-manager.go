@@ -45,7 +45,9 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
+		s.SolutionValidator = validation.NewSolutionValidator(nil, nil, s.uniqueNameSolutionLookup)
 	}
 	return nil
 }
@@ -94,8 +96,10 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
-		state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+		}
 		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}

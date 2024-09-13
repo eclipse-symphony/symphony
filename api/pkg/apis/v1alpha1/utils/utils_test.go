@@ -404,3 +404,175 @@ func TestToInterfaceMap(t *testing.T) {
 	assert.Equal(t, "bar", m2["foo"])
 	assert.Equal(t, "123", m2["abc"])
 }
+
+func TestReadEmptyStringProperty(t *testing.T) {
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "foo",
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "")
+	assert.False(t, ok)
+	assert.Equal(t, nil, m2)
+}
+
+func TestReadIilFormatStringProperty(t *testing.T) {
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "foo",
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`")
+	assert.False(t, ok)
+	assert.Equal(t, nil, m2)
+}
+
+func TestReadRootProperty(t *testing.T) {
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "foo",
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.`")
+	assert.True(t, ok)
+	assert.Equal(t, m, m2)
+}
+
+func TestReadNestedJsonStringProperty(t *testing.T) {
+	value := "123"
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": value,
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.a.b.c`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m2)
+}
+
+func TestReadNestedJsonNumberProperty(t *testing.T) {
+	value := 123
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": value,
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.a.b.c`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m2)
+}
+
+func TestReadNestedJsonPropertyNotExsits(t *testing.T) {
+	value := 123
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": value,
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.a.b.d`")
+	assert.False(t, ok)
+	assert.Equal(t, m2, nil)
+}
+
+func TestReadNestedJsonPropertyThrowError(t *testing.T) {
+	value := 123
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": value,
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.a..b.c`")
+	assert.False(t, ok)
+	assert.Equal(t, m2, nil)
+}
+
+func TestReadMiddleProperty(t *testing.T) {
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "foo",
+			},
+		},
+	}
+	m2, ok := JsonParseProperty(m, "`.a.b`")
+	assert.True(t, ok)
+	assert.Equal(t, m["a"].(map[string]interface{})["b"], m2)
+}
+
+func TestReadPropertyNameWithDotIdentifier(t *testing.T) {
+	value := "123"
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b.c": map[string]interface{}{
+				"c": value,
+			},
+		},
+		"a.b.c": value,
+	}
+	m2, ok := JsonParseProperty(m, "`.a.[\"b.c\"].c`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m2)
+
+	m3, ok := JsonParseProperty(m, "`.\"a.b.c\"`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m3)
+}
+
+func TestReadPropertyNameWithDotIdentifierAndQuotationMark(t *testing.T) {
+	value := "123"
+	m := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b.c": value,
+		},
+	}
+
+	m2, ok := JsonParseProperty(m, "`.a.[\"b.c\"]`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m2)
+
+	m3, ok := JsonParseProperty(m, "`.a.\"b.c\"`")
+	assert.True(t, ok)
+	assert.Equal(t, value, m3)
+}
+
+func TestReadPropertyNameWithArraySlicing(t *testing.T) {
+	jsonData := `{
+		"a": {
+			"b": [
+				{"id": 1},
+				{"id": 2},
+				{"id": 3}
+			]
+		}
+	}`
+
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		log.Fatal(err)
+	}
+
+	obj := map[string]interface{}(map[string]interface{}{"id": 1.})
+	val := 3.
+
+	m2, ok := JsonParseProperty(data, "`.a.b[0]`")
+	assert.True(t, ok)
+	assert.Equal(t, obj, m2)
+
+	m3, ok := JsonParseProperty(data, "`.a.b[] | select(.id > 2) | .id`")
+	assert.True(t, ok)
+	assert.Equal(t, val, m3)
+}

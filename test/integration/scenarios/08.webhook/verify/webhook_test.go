@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +37,12 @@ var (
 	testSchemaContainer  = "test/integration/scenarios/05.catalog/catalogs/schema-container.yaml"
 	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
+
+	testCircularParentContainer = "test/integration/scenarios/08.webhook/manifest/parent-container.yaml"
+	testCircularParent          = "test/integration/scenarios/08.webhook/manifest/parent-config.yaml"
+	testCircularParentUpdate    = "test/integration/scenarios/08.webhook/manifest/parent-update.yaml"
+	testCircularChildContainer  = "test/integration/scenarios/08.webhook/manifest/child-container.yaml"
+	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
 
 	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
 	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
@@ -144,9 +151,11 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-v3").CombinedOutput()
 	assert.Contains(t, string(output), "Campaign has one or more running activations. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
-	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
-	assert.Nil(t, err)
+	time.Sleep(15 * time.Second)
+	// Campaign can be deleted once the activation is DONE
 	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)
@@ -245,6 +254,21 @@ func TestCreateCatalogWithoutParent(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
+}
+
+func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParentContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParent))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularChildContainer))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularChild))).Run()
+	assert.Nil(t, err)
+
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCircularParentUpdate)).CombinedOutput()
+	assert.Contains(t, string(output), "parent catalog has circular dependency")
+	assert.NotNil(t, err, "catalog upsert with circular parent dependency should fail")
 }
 
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {

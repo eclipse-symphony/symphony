@@ -18,6 +18,7 @@ spec:
         objectType: catalogs
         names:
         - sitecatalog:v1
+        - sitecatalog2:v1
         - siteapp:v1
         - sitek8starget:v1
         - siteinstance:v1
