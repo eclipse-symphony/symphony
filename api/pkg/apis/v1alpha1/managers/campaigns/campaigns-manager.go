@@ -21,7 +21,10 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type CampaignsManager struct {
 	managers.Manager
@@ -59,6 +62,8 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Get campaign state %s in namespace", name, namespace)
+
 	getRequest := states.GetRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -77,6 +82,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	var ret model.CampaignState
 	ret, err = getCampaignState(entry.Body)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
 	return ret, nil
@@ -103,6 +109,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Upsert campaign state %s in namespace %s", name, state.ObjectMeta.Namespace)
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
@@ -151,6 +158,7 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Delete campaign state %s in namespace %s", name, namespace)
 	if m.needValidate {
 		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
 			return err
@@ -177,7 +185,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-
+	log.InfofCtx(ctx, "List campaign state for namespace %s", namespace)
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
@@ -201,6 +209,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		}
 		ret = append(ret, rt)
 	}
+	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
 }
 

@@ -201,7 +201,8 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 			keyPrefix = keyPrefix + separator + nstring
 		}
 	}
-	rLog.DebugfCtx(ctx, "  P (Redis State): list states with keyPrefix %s", keyPrefix)
+	// Scheduled events will call List periodically. Comment this log line to reduce the log.
+	// rLog.DebugfCtx(ctx, "  P (Redis State): list states with keyPrefix %s", keyPrefix)
 
 	filter := fmt.Sprintf("%s%s*", keyPrefix, separator)
 	var cursor uint64 = 0
