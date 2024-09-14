@@ -1389,6 +1389,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = FormatAsString(val)
@@ -1397,6 +1398,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = val
@@ -1405,6 +1407,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for i, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[i] = val
@@ -1415,10 +1418,12 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		if err == nil {
 			modified, err := enumerateProperties(js, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			jsBytes, err := json.Marshal(modified)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			return string(jsBytes), nil
@@ -1426,6 +1431,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		parser := NewParser(p)
 		val, err := parser.Eval(context)
 		if err != nil {
+			log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 			return nil, err
 		}
 		properties = val
