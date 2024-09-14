@@ -58,7 +58,7 @@ spec:
         inCluster: "true"   
 ```
 
-The `inCluster` property is set to `true` because the resource is being created in the cluster where Symphony has been installed. For more information on the Kubernetes provider, see [providers.target.k8s](../providers/k8s_provider.md).
+The `inCluster` property is set to `true` because the resource is being created in the cluster where Symphony has been installed. For more information on the Kubernetes provider, see [providers.target.k8s](../providers/target-providers/k8s_provider.md).
 
 This YAML file is also available at [docs/samples/k8s/hello-world/target.yaml](../../samples/k8s/hello-world/target.yaml).
 

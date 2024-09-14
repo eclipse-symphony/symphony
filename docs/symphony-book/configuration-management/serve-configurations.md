@@ -75,7 +75,7 @@ GET /catalogs/registry/<id>?filterType=label&filterValue=app==my-app,shit==night
 ```
 > **NOTE:** Query parameters are not URL-encoded in the above sample for clarity. Your query parameters should be URL-encoded.
 
-See [state provider](../providers/state-providers/README.md) for more details on filters.
+See [state provider](../providers/state-providers/_overview.md) for more details on filters.
 
 ### Retrieve specific portions
 

@@ -34,7 +34,7 @@ Symphony's [job manager](../managers/_overview.md) invokes Symphony's reconcile 
 
 ### State stores
 
-Most Symphony components are stateless, with exception of the [instance manager](../managers/instance-manager.md). The instance manager uses a state store to remember the last deployment it has successfully applied. When you have multiple instance managers running (by scaling out the solution vendor), they need to use a shared state store instead of the in-memory state store.
+Most Symphony components are stateless, with exception of the [instance manager](../managers/_overview.md). The instance manager uses a state store to remember the last deployment it has successfully applied. When you have multiple instance managers running (by scaling out the solution vendor), they need to use a shared state store instead of the in-memory state store.
 
 In addition to the default in-memory store (which doesn't scale beyond a single process), Symphony also supports an HTTP-proxy store through which you can connect to [most of the popular databases](https://docs.dapr.io/reference/components-reference/supported-state-stores/) via [Dapr](https://dapr.io/).
 
