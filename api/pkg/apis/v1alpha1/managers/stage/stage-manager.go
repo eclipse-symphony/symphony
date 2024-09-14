@@ -492,7 +492,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		for k, v := range inputs {
 			var val interface{}
-			val, err = s.traceValue(v, inputs, triggerData.Outputs)
+			val, err = s.traceValue(v, triggerData.Namespace, inputs, triggerData.Outputs)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.StatusMessage = v1alpha2.InternalError.String()
@@ -561,7 +561,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 				for k, v := range inputCopy {
 					var val interface{}
-					val, err = s.traceValue(v, inputCopy, triggerData.Outputs)
+					val, err = s.traceValue(v, triggerData.Namespace, inputCopy, triggerData.Outputs)
 					if err != nil {
 						status.Status = v1alpha2.InternalError
 						status.StatusMessage = v1alpha2.InternalError.String()
@@ -776,12 +776,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	return status, activationData
 }
 
-func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
+func (s *StageManager) traceValue(v interface{}, namespace string, inputs map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
 		context := s.Context.VencorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = s.Context.VencorContext.EvaluationContext.DeploymentSpec
+		context.Namespace = namespace
 		context.Inputs = inputs
 		context.Outputs = outputs
 		if context.Inputs != nil {
@@ -797,12 +798,12 @@ func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, 
 		case string:
 			return vt, nil
 		default:
-			return s.traceValue(v, inputs, outputs)
+			return s.traceValue(v, namespace, inputs, outputs)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := s.traceValue(v, inputs, outputs)
+			tv, err := s.traceValue(v, namespace, inputs, outputs)
 			if err != nil {
 				return "", err
 			}
@@ -812,7 +813,7 @@ func (s *StageManager) traceValue(v interface{}, inputs map[string]interface{}, 
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := s.traceValue(v, inputs, outputs)
+			tv, err := s.traceValue(v, namespace, inputs, outputs)
 			if err != nil {
 				return "", err
 			}
