@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/itchyny/gojq"
 	oJsonpath "github.com/oliveagle/jsonpath"
 	"k8s.io/client-go/util/jsonpath"
 	"sigs.k8s.io/yaml"
@@ -320,6 +321,51 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 		return result[0], nil
 	} else {
 		return result, nil
+	}
+}
+
+func isAlphanum(query string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(query)
+}
+
+func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
+	s := formatPathForNestedJsonField(fieldPath)
+	query, err := gojq.Parse(s)
+	if err != nil {
+		return nil, false
+	}
+
+	var value any
+	iter := query.Run(properties)
+	for {
+		result, ok := iter.Next()
+		if !ok {
+			// iterator terminates
+			break
+		}
+		if err, ok := result.(error); ok {
+			fmt.Println(err)
+			return nil, false
+		}
+		value = result
+	}
+	return value, value != nil
+}
+
+func formatPathForNestedJsonField(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// if the string contains "`", it means it is a string with jq syntax and needs to be unquoted
+	if s[0] == '`' {
+		val, err := strconv.Unquote(s)
+		if err != nil {
+			return ""
+		}
+		return val
+	} else {
+		return fmt.Sprintf(".%s", strconv.Quote(s))
 	}
 }
 

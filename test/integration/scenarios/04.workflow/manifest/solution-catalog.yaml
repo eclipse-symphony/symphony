@@ -14,8 +14,8 @@ spec:
         type: container
         metadata:
           service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
-          service.type: "${{$config('webappconfig:v1','serviceType')}}"
+          service.type: "${{$config('webappconfig:v1','`.testA.testB.testC.serviceType`')}}"
         properties:
           deployment.replicas: "#1"
           container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-          container.image: "${{$config('webappconfig:v1','image')}}"
+          container.image: "${{$config('webappconfig:v1','`.testA.testB.testC.image`')}}"
