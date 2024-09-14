@@ -959,7 +959,7 @@ func TestResumeStage(t *testing.T) {
 			},
 		},
 	}
-	nextStage, err := manager.ResumeStage(activation, campaign)
+	nextStage, err := manager.ResumeStage(context.TODO(), activation, campaign)
 	assert.Nil(t, err)
 	assert.Equal(t, "test2", nextStage.Stage)
 	assert.Equal(t, campaignName, nextStage.Campaign)
@@ -1025,7 +1025,7 @@ func TestResumeStageFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.ResumeStage(activation, campaign)
+	_, err := manager.ResumeStage(context.TODO(), activation, campaign)
 	assert.NotNil(t, err)
 	assert.Equal(t, "Bad Request: ResumeStage: campaign is not valid", err.Error())
 }
@@ -1110,7 +1110,7 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Status)
 	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 
-	assert.Equal(t, v1alpha2.Delayed, status.Outputs["__status"])
+	assert.Equal(t, v1alpha2.Paused, status.Outputs["__status"])
 	assert.Equal(t, false, status.IsActive)
 }
 func TestHandleActivationEvent(t *testing.T) {
