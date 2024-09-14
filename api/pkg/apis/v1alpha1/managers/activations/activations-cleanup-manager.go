@@ -13,6 +13,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	vendorCtx "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
@@ -53,8 +55,15 @@ func (s *ActivationsCleanupManager) Enabled() bool {
 }
 
 func (s *ActivationsCleanupManager) Poll() []error {
-	log.Info("M (Activation Cleanup): Polling activations")
-	activations, err := s.ActivationsManager.ListState(context.Background(), "")
+	// TODO: initialize the context with id correctly
+	ctx, span := observability.StartSpan("Activations Cleanup Manager", context.Background(), &map[string]string{
+		"method": "Poll",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+
+	log.InfoCtx(ctx, "M (Activation Cleanup): Polling activations")
+	activations, err := s.ActivationsManager.ListState(ctx, "")
 	if err != nil {
 		return []error{err}
 	}
@@ -66,11 +75,11 @@ func (s *ActivationsCleanupManager) Poll() []error {
 		if activation.Status.UpdateTime == "" {
 			// Ugrade scenario: update time is not set for activations created before. Set it to now and the activation will be deleted later.
 			// UpdateTime will be set in ReportStatus function
-			err = s.ActivationsManager.ReportStatus(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace, *activation.Status)
+			err = s.ActivationsManager.ReportStatus(ctx, activation.ObjectMeta.Name, activation.ObjectMeta.Namespace, *activation.Status)
 			if err != nil {
 				// Delete activation immediately if update time cannot be set? Cx may be confused why activations disappeared
 				// Just leave those activations as it is and let Cx delete them manually
-				log.Error("M (Activation Cleanup): Cannot set update time for activation "+activation.ObjectMeta.Name+" since update time cannot be set: %+v", err)
+				log.ErrorfCtx(ctx, "M (Activation Cleanup): Cannot set update time for activation %s since update time cannot be set: %+v", activation.ObjectMeta.Name, err)
 				ret = append(ret, err)
 			}
 			continue
@@ -80,13 +89,13 @@ func (s *ActivationsCleanupManager) Poll() []error {
 		updateTime, err := time.Parse(time.RFC3339, activation.Status.UpdateTime)
 		if err != nil {
 			// TODO: should not happen, force update time to Time.Now() ?
-			log.Info("M (Activation Cleanup): Cannot parse update time of " + activation.ObjectMeta.Name)
+			log.InfofCtx(ctx, "M (Activation Cleanup): Cannot parse update time of %s", activation.ObjectMeta.Name)
 			ret = append(ret, err)
 		}
 		duration := time.Since(updateTime)
 		if duration > s.RetentionDuration {
-			log.Info("M (Activation Cleanup): Deleting activation " + activation.ObjectMeta.Name + " since it has completed for " + duration.String())
-			err = s.ActivationsManager.DeleteState(context.Background(), activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
+			log.InfofCtx(ctx, "M (Activation Cleanup): Deleting activation %s since it has completed for %s", activation.ObjectMeta.Name, duration.String())
+			err = s.ActivationsManager.DeleteState(ctx, activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 			if err != nil {
 				ret = append(ret, err)
 			}
