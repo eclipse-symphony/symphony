@@ -63,4 +63,4 @@ docker run --rm -it  -v /configuration/file/path/on/host:/config -e CONFIG=/conf
 
 ## Scale out the host
 
-When you run multiple host instances behind a load balancer, and if you have [managers](../managers/overview.md) who use a state store, you need to choose a shared state store that is accessible by all instances. Symphony currently doesn't have a shared state store provider other than a HTTP state provider that can be configured together with sidecars like [Dapr](https://dapr.io/). It's expected some native shared state store provider (like Redis) will be added in future versions.
+When you run multiple host instances behind a load balancer, and if you have [managers](../managers/_overview.md) who use a state store, you need to choose a shared state store that is accessible by all instances. Symphony currently doesn't have a shared state store provider other than a HTTP state provider that can be configured together with sidecars like [Dapr](https://dapr.io/). It's expected some native shared state store provider (like Redis) will be added in future versions.

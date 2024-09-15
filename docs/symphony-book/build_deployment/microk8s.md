@@ -40,7 +40,7 @@ If you're running these steps on a Mac device, skip ahead to the [MacBook](#macb
    microk8s.start
    ```
 
-> **NOTE:** See instructions [here](https://ubuntu.com/tutorials/install-microk8s-on-windows#2-installation) to install MicroK8s on Windows.
+> **NOTE:** See instructions [here](https://microk8s.io/docs/install-windows) to install MicroK8s on Windows.
 
 ### 2. Install crictl (optional - for Akri)
 
