@@ -216,13 +216,13 @@ CI integration tests can be run locally with the following command:
 mage test:up
 ```
 
-See [integration test README](../test/integration/README.md) for more details.
+See [integration test README](../integration/README.md) for more details.
 
 # Unit tests
 
 ## Perquisites for running unit tests
 
-In [k8s](../k8s) and [api](../api) folder, we could run unit tests.
+In [k8s](../../k8s) and [api](../../api) folder, we could run unit tests.
 
 To run unit tests, we need to
 
@@ -238,4 +238,4 @@ sudo apt-get install jq
 go env -w CGO_ENABLED=1
 go env CGO_ENABLED
 ```
-Then go to [k8s](../k8s) or [api](../api), run ```mage test``` to launch unit tests.
+Then go to [k8s](../../k8s) or [api](../../api) folder, run ```mage test``` to launch unit tests.

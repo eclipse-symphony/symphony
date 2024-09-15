@@ -31,7 +31,7 @@ The Symphony repo lacks automatic CI/CD pipelines, gated check-ins, and automate
 
 A common task of extending Symphony is to write or modify a [provider](../providers/_overview.md), especially a [target provider](../providers/target-providers/target_provider.md).
 
-A target provider implements the [target provider interface](../providers/provider_interface.md).
+A target provider implements the [target provider interface](../providers/target-providers/provider_interface.md).
 
 To create a new provider:
 

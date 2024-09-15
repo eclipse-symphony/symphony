@@ -17,7 +17,7 @@ A target provider interacts with a specific system to carry out state seeking ac
 | `providers.target.kubectl`| Deploy K8s YAML docs using `kubectl` |
 | `providers.target.mock`| A mock provider to be used in manager unit tests |
 | `providers.target.mqtt`| Delegate state-seeking actions to a remote management plane over MQTT |
-| `providers.target.proxy`<sup>1</sup>| Delegate state-seeking actions to a remote management plane over HTTP or MQTT<br><br>[HTTP proxy provider](./http_proxy_provider.md)<br>[MQTT proxy provider](./mqtt_proxy_provider.md) |
+| `providers.target.proxy`<sup>1</sup>| Delegate state-seeking actions to a remote management plane over HTTP or MQTT<br><br>[HTTP proxy provider](../http_proxy_provider.md)<br>[MQTT proxy provider](../mqtt_proxy_provider.md) |
 | `providers.target.script`| Delegate state-seeking actions to external Bash/Powershell scripts<br><br>[Script provider](./script_provider.md) |
 | `providers.target.staging`| Stage solution component on the target objects<sup>2</sup>|
 | `providers.target.win10`| Sideload Windows apps using [WinAppDeployCmd](https://learn.microsoft.com/windows/uwp/packaging/install-universal-windows-apps-with-the-winappdeploycmd-tool). |

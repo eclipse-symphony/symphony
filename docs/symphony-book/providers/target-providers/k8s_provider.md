@@ -14,7 +14,7 @@ The K8s target provider supports three deployment strategies:
 
 The K8s provider maps a **ComponentSpec** to a `Deployment.Spec.Template.Spec.Containers[i]` (referred to as `Container` in the following tables). When the single pod strategy is used, **InstanceSpec** metadata is mapped to K8s deployment attributes; for other cases, **ComponentSpec** metadata is used.
 
-![K8s Provider Single Pod Strategy](../images/k8s-provider-single-pod-strategy.png)
+![K8s Provider Single Pod Strategy](../../images/k8s-provider-single-pod-strategy.png)
 
 | Symphony instance object | K8s deployment |
 |--------|--------|
