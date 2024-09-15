@@ -2,7 +2,7 @@
 
 _(last edit: 6/26/2023)_
 
-The script provider enables you to extend Symphony with scripts like Bash scripts and PowerShell scripts. Because Symphony's built-in providers are compiled into the Symphony binary, using a new provider needs a new Symphony version. Symphony [HTTP proxy provider](./http_proxy_provider.md) or Symphony [MQTT proxy provider](./mqtt_proxy_provider.md), on the other hand, allows a provider to be externalized as a sidecar. However, this requires you to host a web server that implements the provider REST API. The script provider offers the most flexibility without needing an extra sidecar.
+The script provider enables you to extend Symphony with scripts like Bash scripts and PowerShell scripts. Because Symphony's built-in providers are compiled into the Symphony binary, using a new provider needs a new Symphony version. Symphony [HTTP proxy provider](../http_proxy_provider.md) or Symphony [MQTT proxy provider](../mqtt_proxy_provider.md), on the other hand, allows a provider to be externalized as a sidecar. However, this requires you to host a web server that implements the provider REST API. The script provider offers the most flexibility without needing an extra sidecar.
 
 Symphony interacts with the script provider through a staging folder. For example, when Symphony deploys a solution instance, it writes the deployment spec to a file and passes the file name to the script as a parameter. The script is expected to pick up and process the file.
 
