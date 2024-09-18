@@ -834,6 +834,15 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return string(jData), nil
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$json() expects 1 argument, fount %d", len(n.Args)), v1alpha2.BadConfig)
+	case "str":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return fmt.Sprintf("%v", val), nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$str() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid function name: '%s'", n.Name), v1alpha2.BadConfig)
 }

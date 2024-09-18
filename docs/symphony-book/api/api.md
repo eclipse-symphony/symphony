@@ -15,4 +15,4 @@ For more details, see:
 * [Targets API](./targets-api.md)
 * [Solution Containers API](./solutioncontainers-api.md)
 
-You can find an Open API definition of Symphony API in [Sypmhony.openapi.yaml](./Symphony.openapi.yaml).
+You can find an Open API definition of Symphony API in [symphony-api-openapi.yaml](./symphony-api-openapi.yaml).
