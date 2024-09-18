@@ -505,7 +505,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		if k8s_errors.IsNotFound(err) {
 			coaError.State = v1alpha2.NotFound
 		}
-		sLog.ErrorfCtx(ctx, "  P (K8s State %v", coaError.Error())
+		sLog.ErrorfCtx(ctx, "  P (K8s State) %v", coaError.Error())
 		return states.StateEntry{}, coaError
 	}
 	generation := item.GetGeneration()
