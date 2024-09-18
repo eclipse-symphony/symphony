@@ -8,6 +8,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,6 +60,7 @@ type EvaluationContext struct {
 	Value          interface{}
 	Namespace      string
 	ParentConfigs  map[string]map[string]bool
+	Context        context.Context
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {

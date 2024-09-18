@@ -1286,12 +1286,15 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 
 			val, err := evalProperties(context, c.Metadata)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
 				return deploymentSpec, err
 			}
 			if val != nil {
 				metadata, ok := val.(map[string]string)
 				if !ok {
-					return deploymentSpec, v1alpha2.NewCOAError(nil, "metadata must be a map", v1alpha2.BadConfig)
+					err := v1alpha2.NewCOAError(nil, "metadata must be a map", v1alpha2.BadConfig)
+					log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+					return deploymentSpec, err
 				}
 				stringMap := make(map[string]string)
 				for k, v := range metadata {
@@ -1302,18 +1305,26 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 
 			val, err = evalProperties(context, c.Properties)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
 				return deploymentSpec, err
 			}
 			props, ok := val.(map[string]interface{})
 			if !ok {
-				return deploymentSpec, v1alpha2.NewCOAError(nil, "properties must be a map", v1alpha2.BadConfig)
+				err := v1alpha2.NewCOAError(nil, "properties must be a map", v1alpha2.BadConfig)
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+				return deploymentSpec, err
 			}
 			deploymentSpec.Solution.Spec.Components[ic].Properties = props
 		}
+		log.DebugCtx(context.Context, " (Parser): Evaluate deployment completed.")
 		return deploymentSpec, nil
 	}
-	return model.DeploymentSpec{}, errors.New("deployment spec is not found")
+
+	err := errors.New("deployment spec is not found")
+	log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+	return model.DeploymentSpec{}, err
 }
+
 func compareInterfaces(a, b interface{}) bool {
 	if reflect.TypeOf(a) == reflect.TypeOf(b) {
 		switch a.(type) {
@@ -1380,12 +1391,14 @@ func toNumber(val interface{}) (float64, bool) {
 	}
 	return 0, false
 }
+
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch p := properties.(type) {
 	case map[string]string:
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = FormatAsString(val)
@@ -1394,6 +1407,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = val
@@ -1402,6 +1416,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for i, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[i] = val
@@ -1412,10 +1427,12 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		if err == nil {
 			modified, err := enumerateProperties(js, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			jsBytes, err := json.Marshal(modified)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			return string(jsBytes), nil
@@ -1423,6 +1440,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		parser := NewParser(p)
 		val, err := parser.Eval(context)
 		if err != nil {
+			log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 			return nil, err
 		}
 		properties = val
