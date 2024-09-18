@@ -64,7 +64,9 @@ func TestBasic_ReadNondefaultNamespaceActivation(t *testing.T) {
 			require.Equal(t, 2, len(state.Status.StageHistory))
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
-			require.Equal(t, 1, len(state.Status.StageHistory[1].Inputs))
+			require.Equal(t, 3, len(state.Status.StageHistory[1].Inputs))
+			require.Equal(t, 10., state.Status.StageHistory[1].Inputs["age"])
+			require.Equal(t, "worker", state.Status.StageHistory[1].Inputs["job"])
 			require.Equal(t, "sample", state.Status.StageHistory[1].Inputs["name"])
 			break
 		}

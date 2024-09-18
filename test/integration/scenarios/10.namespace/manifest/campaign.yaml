@@ -15,5 +15,7 @@ spec:
       provider: "providers.stage.mock"
       inputs:
         name: "${{$config(config:v1, name)}}"
+        age: "${{$config(config2:v1, age, config:v1)}}"
+        job: "${{$config(config3:v1, job, config:v1, config2:v1)}}"
       stageSelector: ""
   selfDriving: true
