@@ -83,11 +83,13 @@ type (
 	}
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
-		Repo    string `json:"repo"`
-		Name    string `json:"name,omitempty"`
-		Version string `json:"version"`
-		Wait    bool   `json:"wait"`
-		Timeout string `json:"timeout,omitempty"`
+		Repo     string `json:"repo"`
+		Name     string `json:"name,omitempty"`
+		Version  string `json:"version"`
+		Wait     bool   `json:"wait"`
+		Timeout  string `json:"timeout,omitempty"`
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
 	}
 )
 
@@ -373,12 +375,26 @@ func isEmpty(values interface{}) bool {
 }
 
 // downloadFile will download a url to a local file. It's efficient because it will
-func downloadFile(url string, fileName string) error {
-	resp, err := http.Get(url)
+func downloadFile(url string, fileName string, username string, password string) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	// Set basic authentication headers
+	req.SetBasicAuth(username, password)
+
+	// Create a new HTTP client and perform the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// Check if the request was successful
+	if resp.StatusCode != http.StatusOK {
+		return v1alpha2.NewCOAError(nil, "Failed to download the chart.", v1alpha2.State(resp.StatusCode))
+	}
 
 	fileHandle, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
@@ -632,7 +648,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 			}
 		}
 
-		err = downloadFile(chartPath, fileName)
+		err = downloadFile(chartPath, fileName, chart.Username, chart.Password)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to download chart from repo: %+v", err)
 			return "", err
