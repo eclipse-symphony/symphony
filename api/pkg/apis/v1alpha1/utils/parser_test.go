@@ -537,6 +537,12 @@ func TestEvaluateSingleNegativeNumberInExpression(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), val)
 }
+func TestEvaluateSingleNegativeNumberToStrInExpression(t *testing.T) {
+	parser := NewParser("${{$str(-1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, "-1", val)
+}
 func TestEvaluateSingleDoubleNegativeNumber(t *testing.T) {
 	parser := NewParser("--1")
 	val, err := parser.Eval(utils.EvaluationContext{})
