@@ -10,16 +10,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,19 +47,9 @@ var (
 		"catalogs/target.yaml",
 		"catalogs/asset.yaml",
 	}
-
-	// test in nondefault namespace only
-	testNondefaultManifests = []string{
-		"nondefault/config-container.yaml",
-		"nondefault/config.yaml",
-		"nondefault/campaign-container.yaml",
-		"nondefault/campaign.yaml",
-	}
-
-	testActivation = "nondefault/activation.yaml"
-	schemaCatalog  = "catalogs/schema.yaml"
-	configCatalog  = "catalogs/config.yaml"
-	wrongCatalog   = "catalogs/wrongconfig.yaml"
+	schemaCatalog = "catalogs/schema.yaml"
+	configCatalog = "catalogs/config.yaml"
+	wrongCatalog  = "catalogs/wrongconfig.yaml"
 )
 
 var (
@@ -77,19 +63,14 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	// defer testhelpers.Cleanup(TEST_NAME)
+	defer testhelpers.Cleanup(TEST_NAME)
 
-	// err := testhelpers.SetupCluster()
-	// if err != nil {
-	// 	return err
-	// }
+	err := testhelpers.SetupCluster()
+	if err != nil {
+		return err
+	}
 
-	// err = Verify()
-	// if err != nil {
-	// 	return err
-	// }
-
-	err := VerifyWorkflow("nondefault")
+	err = Verify()
 	if err != nil {
 		return err
 	}
@@ -224,114 +205,4 @@ func listCatalogs(namespace string, dynamicClient dynamic.Interface) (error, *un
 		return err, nil
 	}
 	return nil, catalogs
-}
-
-// Verify namespace in nondefault namespace
-func VerifyWorkflow(namespace string) error {
-	// Ensure that namespace is defined
-	err := testhelpers.EnsureNamespace(namespace)
-	if err != nil {
-		return err
-	}
-
-	os.Setenv("NAMESPACE", namespace)
-	err = createActivation(namespace)
-	if err != nil {
-		return err
-	}
-
-	err = readActivation(namespace)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createActivation(namespace string) error {
-	// setup campaign
-	currentPath, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	for _, manifest := range testNondefaultManifests {
-		absManifest := filepath.Join(currentPath, manifest)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absManifest, namespace)).Run()
-		if err != nil {
-			return err
-		}
-	}
-
-	// wait for 5 seconds to make sure campaign is created
-	time.Sleep(time.Second * 5)
-	absActivation := filepath.Join(currentPath, testActivation)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func readActivation(namespace string) error {
-	crd := &unstructured.Unstructured{}
-	crd.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "workflow.symphony",
-		Version: "v1",
-		Kind:    "Activation",
-	})
-
-	cfg, err := testhelpers.RestConfig()
-	if err != nil {
-		return err
-	}
-
-	dyn, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	for {
-		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "workflow.symphony",
-			Version:  "v1",
-			Resource: "activations",
-		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			return err
-		}
-
-		if len(resources.Items) != 1 {
-			return fmt.Errorf("there should be only one activation")
-		}
-
-		bytes, _ := json.Marshal(resources.Items[0].Object)
-		var state model.ActivationState
-		err = json.Unmarshal(bytes, &state)
-		if err != nil {
-			return err
-		}
-		status := state.Status.Status
-		fmt.Printf("Current activation status: %s\n", status)
-		if status == v1alpha2.Done {
-			if len(state.Status.StageHistory) != 2 {
-				return fmt.Errorf("there should be two stages")
-			}
-			if state.Status.StageHistory[0].Status != v1alpha2.Done {
-				return fmt.Errorf("first stage status is %s", state.Status.StageHistory[0].Status)
-			}
-			if state.Status.StageHistory[1].Status != v1alpha2.Done {
-				return fmt.Errorf("first stage status is %s", state.Status.StageHistory[0].Status)
-			}
-			if state.Status.StageHistory[1].Inputs["name"] != "sample" {
-				return fmt.Errorf("Second stage input is incorrect")
-			}
-			break
-		}
-
-		sleepDuration, _ := time.ParseDuration("5s")
-		time.Sleep(sleepDuration)
-	}
-
-	return nil
 }
