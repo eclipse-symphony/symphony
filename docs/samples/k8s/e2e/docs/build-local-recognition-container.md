@@ -1,5 +1,5 @@
 # Building Local Face Recognition Container
-The local recognition container is based on [DeepStack](https://www.deepstack.cc/). This document explains how the local face recognition container is built. 
+The local recognition container is based on [DeepStack](hhttps://deepstack.readthedocs.io/en/latest/index.html). This document explains how the local face recognition container is built. 
 > **NOTE**: To set up demo environment, you can use a pre-built Docker image: ```hbai/face-detection```.
 
 ## Setting up build environment

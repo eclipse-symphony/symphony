@@ -132,6 +132,7 @@ func KubectlTargetProviderConfigFromMap(properties map[string]string) (KubectlTa
 func (i *KubectlTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := KubectlTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Kubectl Target): expected KubectlTargetProviderConfig: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", providerName), v1alpha2.InitFailed)
 	}
 
@@ -304,6 +305,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 						return nil, err
 					}
 
+					sLog.InfofCtx(ctx, "  P (Kubectl Target): append component: %s", component.Component.Name)
 					ret = append(ret, component.Component)
 					stop = true //we do early stop as soon as we found the first resource. we may want to support different strategy in the future
 
@@ -342,9 +344,8 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get custom resource from data bytes in component resource property", providerName), v1alpha2.GetComponentSpecFailed)
 				return nil, err
 			}
-
+			sLog.InfofCtx(ctx, "  P (Kubectl Target): append component: %s", component.Component.Name)
 			ret = append(ret, component.Component)
-
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: component doesn't have yaml or resource property", providerName), v1alpha2.GetComponentSpecFailed)
 			sLog.ErrorCtx(ctx, "  P (Kubectl Target): component doesn't have yaml or resource property")
@@ -387,12 +388,14 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugfCtx(ctx, "  P (Kubectl Target): dryRun is enabled,, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Kubectl Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			applyComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
@@ -584,6 +587,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Kubectl Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			deleteComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
@@ -1049,6 +1053,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 
 // applyCustomResource applies a custom resource from a byte array
 func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, namespace string, instance model.InstanceState) error {
+	sLog.ErrorfCtx(ctx, "  P (Kubectl Target): apply custom resource in the namespace: %s", namespace)
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
@@ -1061,6 +1066,8 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		if !kerrors.IsNotFound(err) {
 			sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to read object: %+v", err)
 			return err
+		} else {
+			sLog.InfofCtx(ctx, "  P (Kubectl Target): object %s not found: %+v", obj.GetName(), err)
 		}
 
 		if err = i.MetaPopulator.PopulateMeta(obj, instance); err != nil {

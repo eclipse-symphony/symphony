@@ -78,6 +78,7 @@ func Win10SideLoadProviderConfigFromMap(properties map[string]string) (Win10Side
 func (i *Win10SideLoadProvider) InitWithMap(properties map[string]string) error {
 	config, err := Win10SideLoadProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Win10Sideload Target): expected Win10SideLoadProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -215,13 +216,14 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 		return nil, err
 	}
 	if isDryRun {
-		err = nil
+		sLog.DebugfCtx(ctx, "  P (Win10Sideload Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if path, ok := component.Properties["app.package.path"].(string); ok {
 				params := make([]string, 0)
@@ -254,7 +256,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
-
+		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Name != "" {
 				params := make([]string, 0)
@@ -279,7 +281,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
 				err = cmd.Run()
 				if err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to uninstall application %s, error: %+v", name, err)
+					sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to uninstall application %s, silent config: %t, error: %+v", name, i.Config.Silent, err)
 					if i.Config.Silent {
 						return ret, nil
 					} else {

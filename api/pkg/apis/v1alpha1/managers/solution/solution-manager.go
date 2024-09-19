@@ -159,8 +159,8 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 		if err == nil {
 			return &managerState
 		}
-		return nil
 	}
+	log.InfofCtx(ctx, " M (Solution): failed to get previous state for instance %s in namespace %s: %+v", instance, namespace, err)
 	return nil
 }
 func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace string) (model.SummaryResult, error) {
@@ -258,7 +258,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 				Metadata: map[string]string{
 					"namespace": namespace,
 				},
-				Context: context.Background(),
+				Context: ctx,
 			})
 		case <-stopCh:
 			return // Exit the goroutine when the stop signal is received
@@ -267,7 +267,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 }
 
 func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
-	if remove == false {
+	if !remove {
 		return
 	}
 
@@ -280,6 +280,7 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 		Metadata: map[string]string{
 			"namespace": namespace,
 		},
+		Context: ctx,
 	})
 }
 
@@ -345,6 +346,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		context.Value = deployment
 		context.Component = ""
 		context.Namespace = namespace
+		context.Context = ctx
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}
 
@@ -401,7 +403,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	plannedCount := 0
 	planSuccessCount := 0
 	for _, step := range plan.Steps {
-		log.DebugfCtx(ctx, " M (Solution): processing step: %+v", step)
+		log.DebugfCtx(ctx, " M (Solution): processing step with Role %s on target %s", step.Role, step.Target)
+		for _, component := range step.Components {
+			log.DebugfCtx(ctx, " M (Solution): processing component %s with action %s", component.Component.Name, component.Action)
+		}
 		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
 			continue
 		}
@@ -443,12 +448,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
 			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
 				continue
 			}
 		}
-		log.DebugfCtx(ctx, " M (Solution): applying step: %+v", step)
+		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
 		someStepsRan = true
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
@@ -573,7 +579,8 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
-	log.DebugfCtx(ctx, "M (Solution): save summary. namespace: %v, generation: %v, summary state: %v\n", namespace, generation, state)
+	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, targetCount %d, successCount %d",
+		objectName, state, namespace, summary.TargetCount, summary.SuccessCount)
 	s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: fmt.Sprintf("%s-%s", "summary", objectName),
@@ -695,7 +702,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, deployment, step.Components)
 
 		if err != nil {
-			log.Warnf(" M (Solution): failed to get components: %+v", err)
+			log.WarnfCtx(ctx, " M (Solution): failed to get components: %+v", err)
 			return ret, nil, err
 		}
 		for _, c := range components {

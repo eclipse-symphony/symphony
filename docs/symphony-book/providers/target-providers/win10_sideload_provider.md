@@ -55,4 +55,4 @@ You also need to import the application signing certificate. Please contact your
 
 ## Create Symphony target
 
-Because Symphony control plane usually runs on a Linux-based Kubernetes cluster, it uses a proxy provider to talk to the Windows-based Symphony agent you just configured. For more information, see [HTTP proxy provider](./http_proxy_provider.md) or [MQTT proxy provider](./mqtt_proxy_provider.md)
+Because Symphony control plane usually runs on a Linux-based Kubernetes cluster, it uses a proxy provider to talk to the Windows-based Symphony agent you just configured. For more information, see [HTTP proxy provider](../http_proxy_provider.md) or [MQTT proxy provider](../mqtt_proxy_provider.md)
