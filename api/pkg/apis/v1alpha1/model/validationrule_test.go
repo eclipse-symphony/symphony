@@ -338,6 +338,190 @@ func TestIsChangedWildcard_Metadata(t *testing.T) {
 	assert.True(t, changed)
 }
 
+func TestIsChangedWildcard_OldPropertyNotChangedAppendNew_SkipIfMissingFalse(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: false,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.True(t, changed)
+}
+
+func TestIsChangedWildcard_OldPropertyChangedAppendNew_SkipIfMissingFalse(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: false,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b1",
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.True(t, changed)
+}
+
+func TestIsChangedWildcard_OldPropertyMissingAppendNew_SkipIfMissingFalse(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: false,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.True(t, changed)
+}
+
+func TestIsChangedWildcard_OldPropertyNotChangedAppendNew_SkipIfMissing(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: true,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.False(t, changed)
+}
+
+func TestIsChangedWildcard_OldPropertyChangedAppendNew_SkipIfMissing(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: true,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b1",
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.True(t, changed)
+}
+
+func TestIsChangedWildcard_OldPropertyMissingAppendNew_SkipIfMissing(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "*",
+					SkipIfMissing: true,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"a": "b",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"c": "d",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.False(t, changed)
+}
+
 func TestComponentIsChanged_SkipMissingProperty(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
