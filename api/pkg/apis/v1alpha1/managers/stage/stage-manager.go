@@ -206,6 +206,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.Context = ctx
+					eCtx.Namespace = namespace
 					eCtx.Inputs = status.Inputs
 					log.DebugfCtx(ctx, " M (Stage): ResumeStage evaluation inputs: %v", eCtx.Inputs)
 					if eCtx.Inputs != nil {
@@ -431,6 +432,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
+			eCtx.Namespace = triggerData.Namespace
 			eCtx.Inputs = triggerData.Inputs
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
@@ -695,6 +697,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			parser := utils.NewParser(currentStage.StageSelector)
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
+			eCtx.Namespace = triggerData.Namespace
 			eCtx.Inputs = triggerData.Inputs
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
