@@ -55,6 +55,7 @@ func ProxyUpdateProviderConfigFromMap(properties map[string]string) (ProxyUpdate
 func (i *ProxyUpdateProvider) InitWithMap(properties map[string]string) error {
 	config, err := ProxyUpdateProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Proxy Target): expected ProxyUpdateProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -161,6 +162,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugfCtx(ctx, "  P (Proxy Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -168,6 +170,7 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): get updated components: count - %d", len(components))
 		data, _ := json.Marshal(deployment)
 		payload, err := i.callRestAPI("instances", "POST", data)
 
@@ -186,11 +189,14 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 					ret[target] = componentResults
 				}
 			}
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to unmarshall post response: %+v", err)
 		}
 	}
 
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): get deleted components: count - %d", len(components))
 		data, _ := json.Marshal(deployment)
 		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {

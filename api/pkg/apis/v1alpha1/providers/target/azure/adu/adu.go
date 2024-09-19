@@ -81,7 +81,7 @@ func ADUTargetProviderConfigFromMap(properties map[string]string) (ADUTargetProv
 func (i *ADUTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := ADUTargetProviderConfigFromMap(properties)
 	if err != nil {
-		sLog.Errorf("  P (ADU Target): expected ADUTargetProviderConfig %+v", err)
+		sLog.Errorf("  P (ADU Target): expected ADUTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -103,7 +103,7 @@ func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
 
 	updateConfig, err := toADUTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (ADU Target): expected ADUTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): expected ADUTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -205,6 +205,7 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (ADU Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
