@@ -600,7 +600,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (K8s Target): createNamespace namespace - %s", namespace)
+	log.InfofCtx(ctx, "  P (K8s Target Provider): createNamespace namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
 		return nil
@@ -744,7 +744,7 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, namespace stri
 		}
 	}
 
-	log.DebugCtx(ctx, "  P (K8s Target): creating namespace")
+	log.DebugCtx(ctx, "  P (K8s Target Provider): creating namespace")
 	err = i.createNamespace(ctx, namespace)
 	if err != nil {
 		log.DebugfCtx(ctx, "  P (K8s Target): failed to create namespace: %s", err.Error())
@@ -1312,7 +1312,7 @@ func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) 
 		return 0, err
 	}
 	if duration < 0 {
-		log.ErrorfCtx(ctx, "  P (K8s Target Provider): Timeout is negative: %s", timeout)
+		log.ErrorfCtx(ctx, "  P (K8s Target Provider): timeout cannot be negative: %s", timeout)
 		return 0, errors.New("Timeout can not be negative.")
 	}
 	return duration, nil
