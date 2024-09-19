@@ -111,6 +111,7 @@ func (s *IngressTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *IngressTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := IngressTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Ingress Target): expected IngressTargetProviderConfig: %+v", err)
 		return err
 	}
 
@@ -241,7 +242,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
-				sLog.InfofCtx(ctx, "  P (Ingress Target): resource not found: %v", err)
+				sLog.InfofCtx(ctx, "  P (Ingress Target): resource %s not found: %v", component.Component.Name, err)
 				continue
 			}
 			sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to read object: %+v", err)
@@ -250,6 +251,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		component.Component.Properties = make(map[string]interface{})
 
 		component.Component.Properties["rules"] = obj.Spec.Rules
+		sLog.InfofCtx(ctx, "  P (Ingress Target): append component: %s", component.Component.Name)
 		ret = append(ret, component.Component)
 	}
 
@@ -287,12 +289,14 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Ingress Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "ingress" {
 				newIngress := &networkingv1.Ingress{
@@ -377,6 +381,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "ingress" {
 				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Spec.Scope)
@@ -425,6 +430,7 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	}
 
 	if kerrors.IsNotFound(err) {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): start to create namespace %s", namespace)
 		utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to create namespace - %s", namespace)
 		_, err = k.Client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -487,6 +493,8 @@ func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, 
 		if !kerrors.IsNotFound(err) {
 			sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to delete ingress: %+v", err)
 			return err
+		} else {
+			sLog.InfoCtx(ctx, "  P (Ingress Target): ingress %s is not found in the namespace %s", name, namespace)
 		}
 	}
 	return nil
@@ -518,10 +526,11 @@ func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *netwo
 			}
 			return nil
 		}
-		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to read object: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to read object %s in the namespace %s: %+v", ingress.Name, namespace, err)
 		return err
 	}
 
+	sLog.InfofCtx(ctx, "  P (Ingress Target): resource exists and start to update ingress %s in the namespace", ingress.Name, namespace)
 	existingIngress.Spec.Rules = ingress.Spec.Rules
 	if ingress.ObjectMeta.Annotations != nil {
 		existingIngress.ObjectMeta.Annotations = ingress.ObjectMeta.Annotations
