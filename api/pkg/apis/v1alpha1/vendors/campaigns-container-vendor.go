@@ -113,7 +113,7 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:

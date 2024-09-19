@@ -162,25 +162,19 @@ func ProjectValue(val string, name string) string {
 }
 
 func FormatObject(obj interface{}, isArray bool, path string, format string) ([]byte, error) {
-	jData, _ := json.Marshal(obj)
-	if path == "" && format == "" {
-		return jData, nil
-	}
-	var dict interface{}
-	if isArray {
-		dict = make([]map[string]interface{}, 0)
-	} else {
-		dict = make(map[string]interface{})
-	}
-	json.Unmarshal(jData, &dict)
+	var jData []byte
+	var err error
 	if path != "" {
 		if path == "first_embedded" {
 			path = "$.spec.components[0].properties.embedded"
 		}
 		if isArray {
+			rawData, _ := json.Marshal(obj)
+			dict := make([]map[string]interface{}, 0)
+			json.Unmarshal(rawData, &dict)
 			if format == "yaml" {
 				ret := make([]byte, 0)
-				for i, item := range dict.([]interface{}) {
+				for i, item := range dict {
 					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					if s, ok := ob.(string); ok {
 						str, err := strconv.Unquote(strings.TrimSpace(s))
@@ -192,10 +186,16 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 						if err != nil {
 							jData = []byte(s)
 						} else {
-							jData, _ = yaml.Marshal(o)
+							jData, err = yaml.Marshal(o)
+							if err != nil {
+								return nil, err
+							}
 						}
 					} else {
-						jData, _ = yaml.Marshal(ob)
+						jData, err = yaml.Marshal(ob)
+						if err != nil {
+							return nil, err
+						}
 					}
 					if i > 0 {
 						ret = append(ret, []byte("---\n")...)
@@ -205,15 +205,17 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 				jData = ret
 			} else {
 				ret := make([]interface{}, 0)
-				for _, item := range dict.([]interface{}) {
+				for _, item := range dict {
 					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					ret = append(ret, ob)
-					jData, _ = yaml.Marshal(ob)
 				}
-				jData, _ = json.Marshal(ret)
+				jData, err = json.Marshal(ret)
+				if err != nil {
+					return nil, err
+				}
 			}
 		} else {
-			ob, _ := oJsonpath.JsonPathLookup(dict, path)
+			ob, _ := oJsonpath.JsonPathLookup(obj, path)
 			if format == "yaml" {
 				if s, ok := ob.(string); ok {
 					str, err := strconv.Unquote(strings.TrimSpace(s))
@@ -225,17 +227,32 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 					if err != nil {
 						jData = []byte(str)
 					} else {
-						jData, _ = yaml.Marshal(o)
+						jData, err = yaml.Marshal(o)
+						if err != nil {
+							return nil, err
+						}
 					}
 				} else {
-					jData, _ = yaml.Marshal(ob)
+					jData, err = yaml.Marshal(ob)
+					if err != nil {
+						return nil, err
+					}
 				}
 			} else {
-				jData, _ = json.Marshal(ob)
+				jData, err = json.Marshal(ob)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
+	} else {
+		if format == "yaml" {
+			jData, err = yaml.Marshal(obj)
+		} else {
+			jData, err = json.Marshal(obj)
+		}
 	}
-	return jData, nil
+	return jData, err
 }
 
 func toInterfaceMap(m map[string]string) map[string]interface{} {
