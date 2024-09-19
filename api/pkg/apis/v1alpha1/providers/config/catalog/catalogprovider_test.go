@@ -154,8 +154,10 @@ func TestReadObject(t *testing.T) {
 				Spec: &model.CatalogSpec{
 					ParentName: "parent:v1",
 					Properties: map[string]interface{}{
-						"Name": "name",
-						"Type": "type",
+						"components": map[string]interface{}{
+							"Name": "name",
+							"Type": "type",
+						},
 					},
 				},
 			}
@@ -195,7 +197,7 @@ func TestReadObject(t *testing.T) {
 
 	res, err := provider.ReadObject(ctx, "catalog1:v1", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, "name", res["Name"])
+	assert.Equal(t, "name", res["components"].(map[string]interface{})["Name"])
 }
 
 func TestSetandRemove(t *testing.T) {

@@ -182,18 +182,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 			errList = append(errList, wrappedErr)
 			tv = err.Error()
 		}
-		// line 189-196 extracts the returned map and merge the keys with the parent
-		// this allows a referenced configuration to be overriden by local values
-		if err != nil {
-			if tmap, ok := tv.(map[string]interface{}); ok {
-				for tk, tv := range tmap {
-					if _, ok := ret[tk]; !ok {
-						ret[tk] = tv
-					}
-				}
-				continue
-			}
-		}
+
 		ret[k] = tv
 	}
 
