@@ -338,6 +338,37 @@ func TestIsChangedWildcard_Metadata(t *testing.T) {
 	assert.True(t, changed)
 }
 
+func TestIsChangedWildcard_AppendNewPropertyButNotDetect_SkipIfMissing(t *testing.T) {
+	// Create a new instance of our test struct
+	validationRule := ValidationRule{
+		AllowSidecar: false,
+		ComponentValidationRule: ComponentValidationRule{
+			ChangeDetectionMetadata: []PropertyDesc{
+				{
+					Name:          "a*",
+					SkipIfMissing: false,
+				},
+			},
+		},
+	}
+	old := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"ab": "ab_value",
+		},
+	}
+	new := ComponentSpec{
+		Type: "requiredComponentType",
+		Metadata: map[string]string{
+			"ab": "ab_value",
+			"cd": "cd_value",
+		},
+	}
+
+	changed := validationRule.IsComponentChanged(old, new)
+	assert.False(t, changed)
+}
+
 func TestIsChangedWildcard_OldPropertyNotChangedAppendNew_SkipIfMissingFalse(t *testing.T) {
 	// Create a new instance of our test struct
 	validationRule := ValidationRule{
