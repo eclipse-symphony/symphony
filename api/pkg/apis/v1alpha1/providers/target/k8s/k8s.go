@@ -9,6 +9,7 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -66,6 +67,8 @@ type K8sTargetProviderConfig struct {
 	DeleteEmptyNamespace bool   `json:"deleteEmptyNamespace"`
 	RetryCount           int    `json:"retryCount"`
 	RetryIntervalInSec   int    `json:"retryIntervalInSec"`
+	Wait                 bool   `json:"wait"`
+	Timeout              string `json:"timeout,omitempty"`
 }
 
 type K8sTargetProvider struct {
@@ -93,6 +96,21 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	}
 	if v, ok := properties["context"]; ok {
 		ret.Context = v
+	}
+	if v, ok := properties["timeout"]; ok {
+		ret.Timeout = v
+	}
+	if v, ok := properties["wait"]; ok {
+		val := v
+		if val != "" {
+			bVal, err := strconv.ParseBool(val)
+			if err != nil {
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'wait' setting of K8s reference provider", v1alpha2.BadConfig)
+			}
+			ret.Wait = bVal
+		}
+	} else {
+		ret.Wait = false
 	}
 	if v, ok := properties["inCluster"]; ok {
 		val := v
@@ -408,10 +426,18 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 }
 
 func (i *K8sTargetProvider) pollCheck(ctx context.Context, isDelete bool, pollFunc pollGet) error {
-	pollInterval := time.Second * 1
-	timeout := time.Minute * 5
+	if i.Config.Wait == false {
+		return nil
+	}
 
-	waitErr := wait.PollUntilContextTimeout(ctx, pollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+	pollInterval := time.Second * 1
+
+	timeoutDuration, err := convertTimeout(ctx, i.Config.Timeout)
+	if err != nil {
+		return err
+	}
+
+	waitErr := wait.PollUntilContextTimeout(ctx, pollInterval, timeoutDuration, true, func(ctx context.Context) (bool, error) {
 		err := pollFunc()
 		if err != nil && !k8s_errors.IsNotFound(err) {
 			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while checking deletion: %v", err)
@@ -423,7 +449,7 @@ func (i *K8sTargetProvider) pollCheck(ctx context.Context, isDelete bool, pollFu
 				log.DebugfCtx(ctx, "P (K8s Target Provider): has been deleted.")
 				return true, nil
 			}
-			log.DebugfCtx(ctx, "K8s Target Provider): Waiting for to be deleted...")
+			log.DebugfCtx(ctx, "P (K8s Target Provider): Waiting for to be deleted...")
 			return false, nil
 
 		} else {
@@ -1275,6 +1301,19 @@ func createProjector(projector string) (IK8sProjector, error) {
 		return nil, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("project type '%s' is unsupported", projector), v1alpha2.BadConfig)
+}
+
+func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) {
+	duration, err := time.ParseDuration(timeout)
+	if err != nil {
+		log.ErrorfCtx(ctx, "  P (K8s Target Provider): failed to parse timeout duration: %v", err)
+		return 0, err
+	}
+	if duration < 0 {
+		log.ErrorfCtx(ctx, "  P (K8s Target Provider): Timeout is negative: %s", timeout)
+		return 0, errors.New("Timeout can not be negative.")
+	}
+	return duration, nil
 }
 
 type IK8sProjector interface {

@@ -52,6 +52,8 @@ type (
 
 	Config struct {
 		InCluster string `yaml:"inCluster"`
+		Wait      string `yaml:"wait"`
+		Timeout   string `yaml:"timeout"`
 	}
 
 	ComponentSpec struct {
