@@ -148,6 +148,21 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testActivationsWithLongRunning))).Run()
 	assert.Nil(t, err)
+	start := time.Now()
+	for {
+		output, err := exec.Command("kubectl", "get", "activation", "activationlongrunning", "-o", "jsonpath={.status.statusMessage}").CombinedOutput()
+		if err != nil {
+			assert.Fail(t, "failed to get activation %s state: %s", "activationlongrunning", err.Error())
+		}
+		state := string(output)
+		if state == "Running" {
+			break
+		}
+		if time.Since(start) > time.Second*30 {
+			assert.Fail(t, "timed out waiting for activation %s to reach state %s", "activationlongrunning", "Running")
+		}
+		time.Sleep(5 * time.Second)
+	}
 	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-v3").CombinedOutput()
 	assert.Contains(t, string(output), "Campaign has one or more running activations. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
