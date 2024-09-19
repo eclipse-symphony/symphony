@@ -68,7 +68,7 @@
   | `[<embed-component>]` | Name of the embedded component<sup>1</sup>. |
   | `[<embed-property>]`| Name of the embedded component property<sup>1</sup>. |
   
-  <sup>1</sup> Symphony allows a foreign application artifact to be directly embedded as a component property. The embedded artifact can be in any format. When you send the POST request, you need to use the correct content encoding. For example, to embed a YAML file as an `embedded` property of a `my-external-component` component, you need to set body encoding to `application/text`.
+  <sup>1</sup> Symphony allows a foreign application artifact to be directly embedded as a component property. The embedded artifact can be in any format. When you send the POST request, you need to use the correct content encoding. For example, to embed a YAML file as an `embedded` property of a `my-external-component` component, you need to set body encoding to `text/plain`.
 
 * **Headers:**
 

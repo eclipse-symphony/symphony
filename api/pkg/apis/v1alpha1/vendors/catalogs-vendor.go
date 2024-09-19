@@ -334,7 +334,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:

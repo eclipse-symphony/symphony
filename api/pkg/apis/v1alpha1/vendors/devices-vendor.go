@@ -112,7 +112,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
