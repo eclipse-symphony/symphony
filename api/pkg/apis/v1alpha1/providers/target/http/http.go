@@ -60,6 +60,7 @@ func HttpTargetProviderConfigFromMap(properties map[string]string) (HttpTargetPr
 func (i *HttpTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := HttpTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -153,6 +154,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (HTTP Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -163,6 +165,9 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			body := model.ReadPropertyCompat(component.Component.Properties, "http.body", injections)
 			url := model.ReadPropertyCompat(component.Component.Properties, "http.url", injections)
 			method := model.ReadPropertyCompat(component.Component.Properties, "http.method", injections)
+
+			sLog.InfofCtx(ctx, "  P (HTTP Target):  start to send request to %s", url)
+			utils.EmitUserAuditsLogs(ctx, fmt.Sprintf("  P (HTTP Target): Start to send request to %s", url))
 
 			if url == "" {
 				err = errors.New("component doesn't have a http.url property")
@@ -185,7 +190,6 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			jsonData := []byte(body)
 			var request *http.Request
-			utils.EmitUserAuditsLogs(ctx, fmt.Sprintf("  P (HTTP Target): Start to send request to %s", url))
 			request, err = http.NewRequest(method, url, bytes.NewBuffer(jsonData))
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -212,7 +216,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.ErrorfCtx(ctx, "  P (HTTP Target): %v", err)
+				sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to process http request: %v", err)
 				providerOperationMetrics.ProviderOperationErrors(
 					httpProvider,
 					functionName,
@@ -226,6 +230,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				bodyBytes, err := io.ReadAll(resp.Body)
 				var message string
 				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to read response body: %v", err)
 					message = err.Error()
 				} else {
 					message = string(bodyBytes)
@@ -250,6 +255,8 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				Status:  v1alpha2.Updated,
 				Message: "HTTP request succeeded",
 			}
+		} else {
+			sLog.InfofCtx(ctx, "  P (HTTP Target): component %s is not in update action, skipping", component.Component.Name)
 		}
 	}
 	providerOperationMetrics.ProviderOperationLatency(

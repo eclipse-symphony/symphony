@@ -128,6 +128,7 @@ func HelmTargetProviderConfigFromMap(properties map[string]string) (HelmTargetPr
 func (i *HelmTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := HelmTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (ConfigMap Target): expected HelmTargetProviderConfigFromMap: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", providerName), v1alpha2.InitFailed)
 	}
 
@@ -422,6 +423,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Helm Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
@@ -430,7 +432,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var actionConfig *action.Configuration
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
-		sLog.ErrorCtx(ctx, err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create action config: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
 			helm,
 			functionName,
@@ -513,16 +515,19 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
 			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
 				return nil, err
 			}
 			upgradeClient, err := configureUpgradeClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender)
 			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm upgrade client: %+v", err)
 				return nil, err
 			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
+				sLog.InfofCtx(ctx, "  P (Helm Target): cannot update chart and use install client: %+v", err)
 				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply chart: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -540,6 +545,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				}
 			}
 
+			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully: %s", component.Component.Name)
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
 				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
@@ -557,6 +563,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			case "helm.v3":
 				uninstallClient, err := configureUninstallClient(ctx, &helmProp.Chart, &deployment, actionConfig)
 				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to configure uninstall client: %+v", err)
 					return nil, err
 				}
 				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
@@ -579,12 +586,13 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 
+				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", component.Component.Name)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
 				}
 			default:
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to apply as %v is an invalid helm version", component.Component.Type)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to uninstall helm chart as %v is an invalid helm version", component.Component.Type)
 			}
 		}
 
@@ -690,6 +698,7 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 }
 
 func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -716,6 +725,7 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 }
 
 func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
@@ -739,6 +749,7 @@ func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProper
 }
 
 func configureUninstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring uninstall client in the namespace %s", deployment.Instance.Spec.Scope)
 	uninstallClient := action.NewUninstall(config)
 	uninstallClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
@@ -759,7 +770,7 @@ func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) 
 	}
 	if duration < 0 {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
-		return 0, errors.New("Timeout can not be negative.")
+		return 0, errors.New("timeout can not be negative")
 	}
 	return duration, nil
 }
