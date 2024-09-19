@@ -1456,12 +1456,14 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 				parser := NewParser(strVal)
 				val, err := parser.Eval(context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = val
 			} else {
 				nestedProps, err := enumerateProperties(val, context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = nestedProps
@@ -1471,6 +1473,7 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 		for i, val := range v {
 			nestedProps, err := enumerateProperties(val, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 				return nil, err
 			}
 			v[i] = nestedProps

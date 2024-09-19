@@ -539,7 +539,9 @@ func TestCircularCatalogReferences(t *testing.T) {
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
-	evalContext := utils.EvaluationContext{}
+	evalContext := utils.EvaluationContext{
+		Context: context.TODO(),
+	}
 	vendorContext := coa_contexts.VendorContext{
 		EvaluationContext: &evalContext,
 	}
@@ -619,7 +621,9 @@ func TestParentConfigEvaluation(t *testing.T) {
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
-	evalContext := utils.EvaluationContext{}
+	evalContext := utils.EvaluationContext{
+		Context: context.TODO(),
+	}
 	vendorContext := coa_contexts.VendorContext{
 		EvaluationContext: &evalContext,
 	}

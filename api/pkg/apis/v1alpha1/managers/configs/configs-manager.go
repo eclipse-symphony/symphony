@@ -19,6 +19,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -30,9 +31,14 @@ type ConfigsManager struct {
 	Precedence      []string
 }
 
-func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	log.Debug(" M (Config): Init")
-	err := s.Manager.Init(context, cfg, providers)
+func (s *ConfigsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	ctx := context.TODO()
+	if vendorCtx != nil && vendorCtx.EvaluationContext != nil && vendorCtx.EvaluationContext.Context != nil {
+		ctx = vendorCtx.EvaluationContext.Context
+	}
+
+	log.DebugCtx(ctx, " M (Config): Init")
+	err := s.Manager.Init(vendorCtx, cfg, providers)
 	if err != nil {
 		return err
 	}
@@ -46,11 +52,11 @@ func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 		s.Precedence = strings.Split(val, ",")
 	}
 	if len(s.ConfigProviders) == 0 {
-		log.Error(" M (Config): No config providers found")
+		log.ErrorCtx(ctx, " M (Config): No config providers found")
 		return v1alpha2.NewCOAError(nil, "No config providers found", v1alpha2.BadConfig)
 	}
 	if len(s.Precedence) < len(s.ConfigProviders) && len(s.ConfigProviders) > 1 {
-		log.Error(" M (Config): Not enough precedence values")
+		log.ErrorCtx(ctx, " M (Config): Not enough precedence values")
 		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
 	if len(s.ConfigProviders) > 1 {
@@ -59,14 +65,19 @@ func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.Mana
 			provderKeys = append(provderKeys, key)
 		}
 		if !utils.AreSlicesEqual(provderKeys, s.Precedence) {
-			log.Error(" M (Config): Precedence does not match with config providers")
+			log.ErrorCtx(ctx, " M (Config): Precedence does not match with config providers")
 			return v1alpha2.NewCOAError(nil, "Precedence does not match with config providers", v1alpha2.BadConfig)
 		}
 	}
 	return nil
 }
+
 func (s *ConfigsManager) Get(object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+	ctx := context.TODO()
+	if localContext, ok := localContext.(coa_utils.EvaluationContext); ok {
+		ctx = localContext.Context
+	}
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
@@ -76,6 +87,7 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string, loc
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
@@ -89,6 +101,7 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string, loc
 				return s.getWithOverlay(ctx, provider, parts[1], field, overlays, localContext)
 			}
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return "", err
 	}
@@ -124,9 +137,12 @@ func (s *ConfigsManager) Get(object string, field string, overlays []string, loc
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object or key: %s, %s", object, field)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object or key: %s, %s", object, field), v1alpha2.BadRequest)
 	return "", err
 }
+
 func (s *ConfigsManager) getWithOverlay(ctx context.Context, provider config.IConfigProvider, object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
 	if len(overlays) > 0 {
 		for _, overlay := range overlays {
@@ -139,7 +155,11 @@ func (s *ConfigsManager) getWithOverlay(ctx context.Context, provider config.ICo
 }
 
 func (s *ConfigsManager) GetObject(object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+	ctx := context.TODO()
+	if localContext, ok := localContext.(coa_utils.EvaluationContext); ok {
+		ctx = localContext.Context
+	}
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "GetObject",
 	})
 	var err error = nil
@@ -149,11 +169,13 @@ func (s *ConfigsManager) GetObject(object string, overlays []string, localContex
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			return s.getObjectWithOverlay(ctx, provider, parts[1], overlays, localContext)
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return nil, err
 	}
@@ -173,9 +195,12 @@ func (s *ConfigsManager) GetObject(object string, overlays []string, localContex
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object: %s", object)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object: %s", object), v1alpha2.BadRequest)
 	return nil, err
 }
+
 func (s *ConfigsManager) getObjectWithOverlay(ctx context.Context, provider config.IConfigProvider, object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
 	if len(overlays) > 0 {
 		for _, overlay := range overlays {
@@ -186,6 +211,7 @@ func (s *ConfigsManager) getObjectWithOverlay(ctx context.Context, provider conf
 	}
 	return provider.ReadObject(ctx, object, localContext)
 }
+
 func (s *ConfigsManager) Set(object string, field string, value interface{}) error {
 	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
 		"method": "Set",
@@ -197,12 +223,14 @@ func (s *ConfigsManager) Set(object string, field string, value interface{}) err
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 			return err
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			return provider.Set(ctx, parts[1], field, value)
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return err
 	}
@@ -218,9 +246,12 @@ func (s *ConfigsManager) Set(object string, field string, value interface{}) err
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object or key: %s, %s", object, field)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object or key: %s, %s", object, field), v1alpha2.BadRequest)
 	return err
 }
+
 func (s *ConfigsManager) SetObject(object string, values map[string]interface{}) error {
 	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
 		"method": "SetObject",
@@ -232,12 +263,14 @@ func (s *ConfigsManager) SetObject(object string, values map[string]interface{})
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 			return err
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			return provider.SetObject(ctx, parts[1], values)
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return err
 	}
@@ -253,9 +286,12 @@ func (s *ConfigsManager) SetObject(object string, values map[string]interface{})
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object: %s", object)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object: %s", object), v1alpha2.BadRequest)
 	return err
 }
+
 func (s *ConfigsManager) Delete(object string, field string) error {
 	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
 		"method": "Delete",
@@ -267,12 +303,14 @@ func (s *ConfigsManager) Delete(object string, field string) error {
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 			return err
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			return provider.Remove(ctx, parts[1], field)
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return err
 	}
@@ -288,9 +326,12 @@ func (s *ConfigsManager) Delete(object string, field string) error {
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object or key: %s, %s", object, field)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object or key: %s, %s", object, field), v1alpha2.BadRequest)
 	return err
 }
+
 func (s *ConfigsManager) DeleteObject(object string) error {
 	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
 		"method": "DeleteObject",
@@ -302,12 +343,14 @@ func (s *ConfigsManager) DeleteObject(object string) error {
 	if strings.Index(object, "::") > 0 {
 		parts := strings.Split(object, "::")
 		if len(parts) != 2 {
+			log.ErrorfCtx(ctx, " M (Config): Invalid object: %s", object)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid object: %s", object), v1alpha2.BadRequest)
 			return err
 		}
 		if provider, ok := s.ConfigProviders[parts[0]]; ok {
 			return provider.RemoveObject(ctx, parts[1])
 		}
+		log.ErrorfCtx(ctx, " M (Config): Invalid provider: %s", parts[0])
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid provider: %s", parts[0]), v1alpha2.BadRequest)
 		return err
 	}
@@ -323,6 +366,8 @@ func (s *ConfigsManager) DeleteObject(object string) error {
 			}
 		}
 	}
+
+	log.ErrorfCtx(ctx, " M (Config): Invalid config object: %s", object)
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid config object: %s", object), v1alpha2.BadRequest)
 	return err
 }
