@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
@@ -96,8 +95,7 @@ func DeployManifests(namespace string) error {
 		}
 	}
 
-	// wait for 5 seconds to make sure campaign is created
-	time.Sleep(time.Second * 5)
+	// setup activation
 	absActivation := filepath.Join(currentPath, testActivation)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
 	if err != nil {
