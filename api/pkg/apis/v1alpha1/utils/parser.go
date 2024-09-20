@@ -765,7 +765,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(FormatAsString(obj), FormatAsString(field), overlays, context)
+			return context.ConfigProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), overlays, context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$config() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "secret":
@@ -781,7 +781,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field), context)
+			return context.SecretProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$secret() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "instance":

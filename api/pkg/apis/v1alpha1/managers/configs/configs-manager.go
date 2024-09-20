@@ -19,7 +19,6 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -72,11 +71,7 @@ func (s *ConfigsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 	return nil
 }
 
-func (s *ConfigsManager) Get(object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
-	ctx := context.TODO()
-	if localContext, ok := localContext.(coa_utils.EvaluationContext); ok {
-		ctx = localContext.Context
-	}
+func (s *ConfigsManager) Get(ctx context.Context, object string, field string, overlays []string, localContext interface{}) (interface{}, error) {
 	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -154,11 +149,7 @@ func (s *ConfigsManager) getWithOverlay(ctx context.Context, provider config.ICo
 	return provider.Read(ctx, object, field, localContext)
 }
 
-func (s *ConfigsManager) GetObject(object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
-	ctx := context.TODO()
-	if localContext, ok := localContext.(coa_utils.EvaluationContext); ok {
-		ctx = localContext.Context
-	}
+func (s *ConfigsManager) GetObject(ctx context.Context, object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
 	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "GetObject",
 	})
@@ -212,8 +203,8 @@ func (s *ConfigsManager) getObjectWithOverlay(ctx context.Context, provider conf
 	return provider.ReadObject(ctx, object, localContext)
 }
 
-func (s *ConfigsManager) Set(object string, field string, value interface{}) error {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+func (s *ConfigsManager) Set(ctx context.Context, object string, field string, value interface{}) error {
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "Set",
 	})
 	var err error = nil
@@ -252,8 +243,8 @@ func (s *ConfigsManager) Set(object string, field string, value interface{}) err
 	return err
 }
 
-func (s *ConfigsManager) SetObject(object string, values map[string]interface{}) error {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+func (s *ConfigsManager) SetObject(ctx context.Context, object string, values map[string]interface{}) error {
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "SetObject",
 	})
 	var err error = nil
@@ -292,8 +283,8 @@ func (s *ConfigsManager) SetObject(object string, values map[string]interface{})
 	return err
 }
 
-func (s *ConfigsManager) Delete(object string, field string) error {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+func (s *ConfigsManager) Delete(ctx context.Context, object string, field string) error {
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "Delete",
 	})
 	var err error = nil
@@ -332,8 +323,8 @@ func (s *ConfigsManager) Delete(object string, field string) error {
 	return err
 }
 
-func (s *ConfigsManager) DeleteObject(object string) error {
-	ctx, span := observability.StartSpan("Config Manager", context.TODO(), &map[string]string{
+func (s *ConfigsManager) DeleteObject(ctx context.Context, object string) error {
+	ctx, span := observability.StartSpan("Config Manager", ctx, &map[string]string{
 		"method": "DeleteObject",
 	})
 	var err error = nil

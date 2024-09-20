@@ -7,6 +7,7 @@
 package mock
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,10 +26,12 @@ func TestInit(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestGet(t *testing.T) {
+	var ctx = context.Background()
 	provider := MockConfigProvider{}
 	err := provider.Init(MockConfigProviderConfig{})
 	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field", nil, nil)
+
+	val, err := provider.Get(ctx, "obj", "field", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj::field", val)
 

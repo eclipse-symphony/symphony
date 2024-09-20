@@ -19,7 +19,6 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -72,11 +71,7 @@ func (s *SecretsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 	return nil
 }
 
-func (s *SecretsManager) Get(object string, field string, localContext interface{}) (string, error) {
-	ctx := context.TODO()
-	if localContext, ok := localContext.(coa_utils.EvaluationContext); ok {
-		ctx = localContext.Context
-	}
+func (s *SecretsManager) Get(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	ctx, span := observability.StartSpan("Secret Manager", ctx, &map[string]string{
 		"method": "Get",
 	})
