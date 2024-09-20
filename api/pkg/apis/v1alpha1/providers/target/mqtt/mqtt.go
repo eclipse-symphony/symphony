@@ -59,15 +59,11 @@ type ProxyResponse struct {
 	Payload interface{}
 }
 type MQTTTargetProvider struct {
-	Config          MQTTTargetProviderConfig
-	Context         *contexts.ManagerContext
-	MQTTClient      gmqtt.Client
-	GetChan         chan ProxyResponse
-	RemoveChan      chan ProxyResponse
-	NeedsUpdateChan chan ProxyResponse
-	NeedsRemoveChan chan ProxyResponse
-	ApplyChan       chan ProxyResponse
-	Initialized     bool
+	Config        MQTTTargetProviderConfig
+	Context       *contexts.ManagerContext
+	MQTTClient    gmqtt.Client
+	ResponseChans sync.Map
+	Initialized   bool
 }
 
 func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetProviderConfig, error) {
@@ -173,12 +169,6 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
-	i.GetChan = make(chan ProxyResponse)
-	i.RemoveChan = make(chan ProxyResponse)
-	i.NeedsUpdateChan = make(chan ProxyResponse)
-	i.NeedsRemoveChan = make(chan ProxyResponse)
-	i.ApplyChan = make(chan ProxyResponse)
-
 	if token := i.MQTTClient.Subscribe(i.Config.ResponseTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 		var response v1alpha2.COAResponse
 		json.Unmarshal(msg.Payload(), &response)
@@ -191,32 +181,12 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		if !proxyResponse.IsOK {
 			proxyResponse.Payload = string(response.Body)
 		}
-		switch response.Metadata["call-context"] {
-		case "TargetProvider-Get":
-			if proxyResponse.IsOK {
-				var ret []model.ComponentSpec
-				err = json.Unmarshal(response.Body, &ret)
-				if err != nil {
-					sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to deserialize components from MQTT - %+v, %s", err, string(response.Body))
-				}
-				proxyResponse.Payload = ret
+
+		if reqId, ok := response.Metadata["request-id"]; ok {
+			if ch, ok := i.ResponseChans.Load(reqId); ok {
+				ch.(chan ProxyResponse) <- proxyResponse
+				i.ResponseChans.Delete(reqId)
 			}
-			i.GetChan <- proxyResponse
-		case "TargetProvider-Remove":
-			i.RemoveChan <- proxyResponse
-		case "TargetProvider-NeedsUpdate":
-			i.NeedsUpdateChan <- proxyResponse
-		case "TargetProvider-NeedsRemove":
-			i.NeedsRemoveChan <- proxyResponse
-		case "TargetProvider-Apply":
-			if proxyResponse.IsOK {
-				var ret model.SummarySpec
-				err = json.Unmarshal(response.Body, &ret)
-				if err == nil {
-					proxyResponse.Payload = ret
-				}
-			}
-			i.ApplyChan <- proxyResponse
 		}
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
@@ -262,13 +232,17 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 
 	data, _ := json.Marshal(deployment)
 	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
+
+	reqId := uuid.New().String()
+	responseChan := make(chan ProxyResponse)
+	i.ResponseChans.Store(reqId, responseChan)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "GET",
 		Body:   data,
 		Metadata: map[string]string{
-			"call-context":  "TargetProvider-Get",
 			"active-target": deployment.ActiveTarget,
+			"request-id":    reqId,
 		},
 		Context: ctx,
 	}
@@ -281,15 +255,9 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	}
 	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
-	case resp := <-i.GetChan:
+	case resp := <-responseChan:
 		if resp.IsOK {
-			var data []byte
-			data, err = json.Marshal(resp.Payload)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to serialize payload - %s - %s", err.Error(), fmt.Sprint(resp.Payload))
-				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
-				return nil, err
-			}
+			data := []byte(resp.Payload.(string))
 			var ret []model.ComponentSpec
 			err = json.Unmarshal(data, &ret)
 			if err != nil {
@@ -321,13 +289,17 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 
 	data, _ := json.Marshal(deployment)
 	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
+
+	reqId := uuid.New().String()
+	responseChan := make(chan ProxyResponse)
+	i.ResponseChans.Store(reqId, responseChan)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "DELETE",
 		Body:   data,
 		Metadata: map[string]string{
-			"call-context":  "TargetProvider-Remove",
 			"active-target": deployment.ActiveTarget,
+			"request-id":    reqId,
 		},
 		Context: ctx,
 	}
@@ -340,7 +312,7 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 
 	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 	select {
-	case resp := <-i.RemoveChan:
+	case resp := <-responseChan:
 		if resp.IsOK {
 			err = nil
 			return err
@@ -392,12 +364,13 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	if len(components) > 0 {
 
 		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
+		requestId := uuid.New().String()
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "POST",
 			Body:   data,
 			Metadata: map[string]string{
-				"call-context":  "TargetProvider-Apply",
+				"request-id":    requestId,
 				"active-target": deployment.ActiveTarget,
 			},
 			Context: ctx,
@@ -405,6 +378,10 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		data, _ = json.Marshal(request)
 
 		utils.EmitUserAuditsLogs(ctx, "  P (MQTT Target): Start to send Apply()-Update request over MQTT on topic %s", i.Config.RequestTopic)
+
+		responseChan := make(chan ProxyResponse)
+		i.ResponseChans.Store(requestId, responseChan)
+
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
 			providerOperationMetrics.ProviderOperationErrors(
@@ -419,13 +396,14 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 		select {
-		case resp := <-i.ApplyChan:
+		case resp := <-responseChan:
 			if resp.IsOK {
-				err = nil
-				payload, isOk := resp.Payload.(model.SummarySpec)
-				if isOk {
+				data := []byte(resp.Payload.(string))
+				var summary model.SummarySpec
+				err = json.Unmarshal(data, &summary)
+				if err == nil {
 					// Update ret
-					for target, targetResult := range payload.TargetResults {
+					for target, targetResult := range summary.TargetResults {
 						for _, componentResults := range targetResult.ComponentResults {
 							ret[target] = componentResults
 						}
@@ -468,18 +446,23 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
+		requestId := uuid.New().String()
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "DELETE",
 			Body:   data,
 			Metadata: map[string]string{
-				"call-context": "TargetProvider-Remove",
+				"request-id": requestId,
 			},
 			Context: ctx,
 		}
 		data, _ = json.Marshal(request)
 
 		utils.EmitUserAuditsLogs(ctx, "  P (MQTT Target): Start to send Apply()-Delete action over MQTT on topic %s", i.Config.RequestTopic)
+
+		responseChan := make(chan ProxyResponse)
+		i.ResponseChans.Store(requestId, responseChan)
+
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
 			providerOperationMetrics.ProviderOperationErrors(
@@ -494,7 +477,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 		timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
 		select {
-		case resp := <-i.RemoveChan:
+		case resp := <-responseChan:
 			if resp.IsOK {
 				err = nil
 				providerOperationMetrics.ProviderOperationLatency(
