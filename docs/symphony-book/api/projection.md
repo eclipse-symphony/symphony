@@ -89,7 +89,7 @@ spec:
   displayName: my-phone-2  
 ```
 
-To retrieve the embedded YAML, use the following query. Note that when `doc-type=yaml` is used, the returned document is encoded as `application/text` instead of `application/json`.
+To retrieve the embedded YAML, use the following query. Note that when `doc-type=yaml` is used, the returned document is encoded as `text/plain` instead of `application/json`.
 
 ```query
 http:///localhost:8080/v1alpha2/targets/registry/my-phone-2?path=$.spec.components[0].properties.embedded&doc-type=yaml
