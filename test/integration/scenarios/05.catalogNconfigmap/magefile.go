@@ -28,34 +28,47 @@ import (
 
 // Test config
 const (
-	TEST_NAME = "Symphony Catalog CRUD test scenario"
+	TEST_NAME    = "Symphony Catalog CRUD test scenario"
+	TEST_TIMEOUT = "10m"
 )
 
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
-		"catalogs/instance-container.yaml",
-		"catalogs/solution-container.yaml",
-		"catalogs/target-container.yaml",
-		"catalogs/asset-container.yaml",
-		"catalogs/config-container.yaml",
-		"catalogs/wrongconfig-container.yaml",
-		"catalogs/schema-container.yaml",
+		"manifests/instance-container.yaml",
+		"manifests/solution-container.yaml",
+		"manifests/target-container.yaml",
+		"manifests/asset-container.yaml",
+		"manifests/config-container.yaml",
+		"manifests/wrongconfig-container.yaml",
+		"manifests/schema-container.yaml",
 
-		"catalogs/instance.yaml",
-		"catalogs/solution.yaml",
-		"catalogs/target.yaml",
-		"catalogs/asset.yaml",
+		"manifests/instance.yaml",
+		"manifests/solution.yaml",
+		"manifests/target.yaml",
+		"manifests/asset.yaml",
 	}
-	schemaCatalog = "catalogs/schema.yaml"
-	configCatalog = "catalogs/config.yaml"
-	wrongCatalog  = "catalogs/wrongconfig.yaml"
+	schemaCatalog = "manifests/schema.yaml"
+	configCatalog = "manifests/config.yaml"
+	wrongCatalog  = "manifests/wrongconfig.yaml"
+
+	testManifests = []string{
+		"manifests/CatalogforConfigMap1.yaml",
+		"manifests/CatalogforConfigMap2.yaml",
+		"manifests/solution3.yaml",
+		"manifests/target3.yaml",
+		"manifests/instanceForConfigMap.yaml",
+	}
+
+	// Tests to run
+	testVerify = []string{
+		"./verify/...",
+	}
 )
 
 var (
 	NAMESPACES = []string{
 		"default",
-		//"nondefault",
 	}
 )
 
@@ -135,8 +148,34 @@ func Verify() error {
 			return err
 		}
 		fmt.Printf("Catalog integration test finished for namespace: %s\n", namespace)
+
+		// Deploy manifests for configmap
+		currentPath, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		for _, manifest := range testManifests {
+			fullPath := filepath.Join(currentPath, manifest)
+			err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+			if err != nil {
+				return err
+			}
+		}
+
+		err = shellcmd.Command("go clean -testcache").Run()
+		if err != nil {
+			return err
+		}
+		os.Setenv("SYMPHONY_FLAVOR", "oss")
+		for _, verify := range testVerify {
+			err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
+			if err != nil {
+				return err
+			}
+		}
+
 	}
-	fmt.Printf("Catalog integration test finished successfully\n")
+	fmt.Printf("Catalog & configmap integration test finished successfully\n")
 	return nil
 }
 

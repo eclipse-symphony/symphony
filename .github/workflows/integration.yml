@@ -119,7 +119,7 @@ jobs:
 
     - name: Run integration tests 05
       run: |
-        cd test/integration/scenarios/05.catalog/ && mage test
+        cd test/integration/scenarios/05.catalogNconfigmap/ && mage test
         
     - name: Run integration tests 07
       run: |
