@@ -127,6 +127,7 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 func (i *MQTTTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := MQTTTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (MQTT Target): expected MQTTTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -154,7 +155,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	}
 	updateConfig, err := toMQTTTargetProviderConfig(config)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (MQTT Target): expected HttpTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): expected MQTTTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -248,6 +249,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	}
 	data, _ = json.Marshal(request)
 
+	sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to getting artifacts - %s", token.Error())
 		err = token.Error()
@@ -305,8 +307,10 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 	}
 	data, _ = json.Marshal(request)
 
+	sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 		err = token.Error()
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to publish - %v", err)
 		return err
 	}
 
@@ -353,7 +357,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		return nil, err
 	}
 	if isDryRun {
-		err = nil
+		sLog.DebugCtx(ctx, "  P (MQTT Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
@@ -362,7 +366,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
-
+		sLog.InfofCtx(ctx, "  P (MQTT Target): get updated components: count - %d", len(components))
 		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		requestId := uuid.New().String()
 		request := v1alpha2.COARequest{
@@ -382,6 +386,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		responseChan := make(chan ProxyResponse)
 		i.ResponseChans.Store(requestId, responseChan)
 
+		sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
 			providerOperationMetrics.ProviderOperationErrors(
@@ -445,6 +450,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (MQTT Target): get deleted components: count - %d", len(components))
 		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		requestId := uuid.New().String()
 		request := v1alpha2.COARequest{

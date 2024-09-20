@@ -97,6 +97,7 @@ func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderCo
 func (i *ScriptProvider) InitWithMap(properties map[string]string) error {
 	config, err := ScriptProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Script Target): expected ScriptProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -336,6 +337,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		return nil, err
 	}
 	if isDryRun {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -344,6 +346,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Script Target): get updated components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
 		retU, err = i.runScriptOnComponents(ctx, deployment, components, false)
 		if err != nil {
@@ -372,6 +375,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Script Target): get deleted components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
 		retU, err = i.runScriptOnComponents(ctx, deployment, components, true)
 		if err != nil {

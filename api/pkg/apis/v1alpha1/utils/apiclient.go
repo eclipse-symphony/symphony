@@ -72,6 +72,7 @@ type (
 		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error)
 		CatalogHook(ctx context.Context, payload []byte, user string, password string) error
 		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
+		GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error)
 		GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error)
 		UpsertCatalog(ctx context.Context, catalog string, payload []byte, user string, password string) error
 		DeleteCatalog(ctx context.Context, catalog string, user string, password string) error
@@ -558,6 +559,27 @@ func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.A
 	}
 
 	return nil
+}
+
+func (a *apiClient) GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error) {
+	ret := model.ActivationState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 func (a *apiClient) GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error) {

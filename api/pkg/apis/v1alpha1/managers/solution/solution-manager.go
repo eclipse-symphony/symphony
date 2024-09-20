@@ -346,6 +346,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		context.Value = deployment
 		context.Component = ""
 		context.Namespace = namespace
+		context.Context = ctx
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}
 

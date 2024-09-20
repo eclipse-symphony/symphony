@@ -65,7 +65,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		if err != nil {
 			response = v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
-				ContentType: "application/text",
+				ContentType: "text/plain",
 				Body:        []byte(err.Error()),
 			}
 		} else {
