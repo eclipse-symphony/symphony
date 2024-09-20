@@ -93,7 +93,7 @@ func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		resp := v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte(message),
-			ContentType: "application/text",
+			ContentType: "text/plain",
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, resp)
 	case fasthttp.MethodPost:

@@ -115,7 +115,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
