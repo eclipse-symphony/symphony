@@ -67,7 +67,7 @@ type K8sTargetProviderConfig struct {
 	DeleteEmptyNamespace bool   `json:"deleteEmptyNamespace"`
 	RetryCount           int    `json:"retryCount"`
 	RetryIntervalInSec   int    `json:"retryIntervalInSec"`
-	Wait                 bool   `json:"wait"`
+	NoWait               bool   `json:"noWait"`
 	Timeout              string `json:"timeout,omitempty"`
 }
 
@@ -100,17 +100,17 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	if v, ok := properties["timeout"]; ok {
 		ret.Timeout = v
 	}
-	if v, ok := properties["wait"]; ok {
+	if v, ok := properties["noWait"]; ok {
 		val := v
 		if val != "" {
 			bVal, err := strconv.ParseBool(val)
 			if err != nil {
 				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'wait' setting of K8s reference provider", v1alpha2.BadConfig)
 			}
-			ret.Wait = bVal
+			ret.NoWait = bVal
 		}
 	} else {
-		ret.Wait = false
+		ret.NoWait = false
 	}
 	if v, ok := properties["inCluster"]; ok {
 		val := v
@@ -288,6 +288,9 @@ func (i *K8sTargetProvider) getDeployment(ctx context.Context, namespace string,
 		log.ErrorfCtx(ctx, "  P (K8s Target): getDeployment %s failed - %s", name, err.Error())
 		return nil, err
 	}
+	if deployment.DeletionTimestamp != nil {
+		return nil, nil
+	}
 	components, err := deploymentToComponents(ctx, *deployment)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (K8s Target): getDeployment failed - %s", err.Error())
@@ -427,7 +430,7 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 }
 
 func (i *K8sTargetProvider) pollCheck(ctx context.Context, isDelete bool, pollFunc pollGet) error {
-	if i.Config.Wait == false {
+	if i.Config.NoWait == true {
 		return nil
 	}
 
@@ -641,7 +644,8 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
 	}
-	if k8s_errors.IsNotFound(err) {
+
+	if k8s_errors.IsNotFound(err) || existing.DeletionTimestamp != nil { // not found or in deleting
 		observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target): Starting create deployment under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	} else {
@@ -654,8 +658,19 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 	}
 
 	waitErr := i.pollCheck(ctx, false, func() error {
-		_, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-		return err
+		d, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if d.Status.UpdatedReplicas == *d.Spec.Replicas &&
+			d.Status.ReadyReplicas == *d.Spec.Replicas &&
+			d.Status.AvailableReplicas == *d.Spec.Replicas &&
+			d.Status.UnavailableReplicas == 0 {
+			log.InfofCtx(ctx, " P (K8s Target Provider): Deployment %s in namespace %s is ready.", name, namespace)
+			return nil
+		} else {
+			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
+		}
 	})
 
 	if waitErr != nil {
@@ -686,7 +701,7 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string,
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
 	}
-	if k8s_errors.IsNotFound(err) {
+	if k8s_errors.IsNotFound(err) || existing.DeletionTimestamp != nil {
 		observ_utils.EmitUserAuditsLogs(ctx, "  P (K8s Target): Starting create service under namespace - %s, name - %s", namespace, name)
 		_, err = i.Client.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	} else {

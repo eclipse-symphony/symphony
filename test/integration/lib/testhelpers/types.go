@@ -52,7 +52,7 @@ type (
 
 	Config struct {
 		InCluster string `yaml:"inCluster"`
-		Wait      string `yaml:"wait"`
+		NoWait    string `yaml:"noWait"`
 		Timeout   string `yaml:"timeout"`
 	}
 
