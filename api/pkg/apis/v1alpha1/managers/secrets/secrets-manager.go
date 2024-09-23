@@ -30,14 +30,9 @@ type SecretsManager struct {
 	Precedence      []string
 }
 
-func (s *SecretsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	ctx := context.TODO()
-	if vendorCtx != nil && vendorCtx.EvaluationContext != nil && vendorCtx.EvaluationContext.Context != nil {
-		ctx = vendorCtx.EvaluationContext.Context
-	}
-
-	log.DebugCtx(ctx, " M (secret): Init")
-	err := s.Manager.Init(vendorCtx, cfg, providers)
+func (s *SecretsManager) Init(context *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	log.Debug(" M (secret): Init")
+	err := s.Manager.Init(context, cfg, providers)
 	if err != nil {
 		return err
 	}
@@ -51,11 +46,11 @@ func (s *SecretsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 		s.Precedence = strings.Split(val, ",")
 	}
 	if len(s.SecretProviders) == 0 {
-		log.ErrorCtx(ctx, " M (secret): No secret providers found")
+		log.Error(" M (secret): No secret providers found")
 		return v1alpha2.NewCOAError(nil, "No secret providers found", v1alpha2.BadConfig)
 	}
 	if len(s.Precedence) < len(s.SecretProviders) && len(s.SecretProviders) > 1 {
-		log.ErrorCtx(ctx, " M (secret): Not enough precedence values")
+		log.Error(" M (secret): Not enough precedence values")
 		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
 	if len(s.SecretProviders) > 1 {
@@ -64,7 +59,7 @@ func (s *SecretsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 			provderKeys = append(provderKeys, key)
 		}
 		if !utils.AreSlicesEqual(provderKeys, s.Precedence) {
-			log.ErrorCtx(ctx, " M (secret): Precedence does not match with secret providers")
+			log.Error(" M (secret): Precedence does not match with secret providers")
 			return v1alpha2.NewCOAError(nil, "Precedence does not match with secret providers", v1alpha2.BadConfig)
 		}
 	}

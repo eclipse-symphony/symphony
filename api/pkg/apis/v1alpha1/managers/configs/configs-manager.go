@@ -30,14 +30,9 @@ type ConfigsManager struct {
 	Precedence      []string
 }
 
-func (s *ConfigsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	ctx := context.TODO()
-	if vendorCtx != nil && vendorCtx.EvaluationContext != nil && vendorCtx.EvaluationContext.Context != nil {
-		ctx = vendorCtx.EvaluationContext.Context
-	}
-
-	log.DebugCtx(ctx, " M (Config): Init")
-	err := s.Manager.Init(vendorCtx, cfg, providers)
+func (s *ConfigsManager) Init(context *contexts.VendorContext, cfg managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	log.Debug(" M (Config): Init")
+	err := s.Manager.Init(context, cfg, providers)
 	if err != nil {
 		return err
 	}
@@ -51,11 +46,11 @@ func (s *ConfigsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 		s.Precedence = strings.Split(val, ",")
 	}
 	if len(s.ConfigProviders) == 0 {
-		log.ErrorCtx(ctx, " M (Config): No config providers found")
+		log.Error(" M (Config): No config providers found")
 		return v1alpha2.NewCOAError(nil, "No config providers found", v1alpha2.BadConfig)
 	}
 	if len(s.Precedence) < len(s.ConfigProviders) && len(s.ConfigProviders) > 1 {
-		log.ErrorCtx(ctx, " M (Config): Not enough precedence values")
+		log.Error(" M (Config): Not enough precedence values")
 		return v1alpha2.NewCOAError(nil, "Not enough precedence values", v1alpha2.BadConfig)
 	}
 	if len(s.ConfigProviders) > 1 {
@@ -64,7 +59,7 @@ func (s *ConfigsManager) Init(vendorCtx *contexts.VendorContext, cfg managers.Ma
 			provderKeys = append(provderKeys, key)
 		}
 		if !utils.AreSlicesEqual(provderKeys, s.Precedence) {
-			log.ErrorCtx(ctx, " M (Config): Precedence does not match with config providers")
+			log.Error(" M (Config): Precedence does not match with config providers")
 			return v1alpha2.NewCOAError(nil, "Precedence does not match with config providers", v1alpha2.BadConfig)
 		}
 	}

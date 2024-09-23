@@ -889,6 +889,7 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			parser := newExpressionParser(text)
 			n, err := parser.Eval(context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Parser evaluate failed: %v", err)
 				return nil, err
 			}
 			results = append(results, n)
