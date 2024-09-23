@@ -12,7 +12,7 @@ import (
 )
 
 func TestObjectMetaWithString(t *testing.T) {
-	jsonString := `{"generation": "33"}`
+	jsonString := `{"etag": "33"}`
 
 	var newStage ObjectMeta
 	var err = json.Unmarshal([]byte(jsonString), &newStage)
@@ -20,13 +20,13 @@ func TestObjectMetaWithString(t *testing.T) {
 		t.Fatalf("Failed to unmarshal JSON: %v", err)
 	}
 	targetTime := "33"
-	if newStage.Generation != targetTime {
-		t.Fatalf("Generation is not match: %v", err)
+	if newStage.ETag != targetTime {
+		t.Fatalf("Etag is not match: %v", err)
 	}
 }
 
 func TestObjectMetaWithNumber(t *testing.T) {
-	jsonString := `{"generation": 33}`
+	jsonString := `{"etag": 33}`
 
 	var newStage ObjectMeta
 	var err = json.Unmarshal([]byte(jsonString), &newStage)
@@ -34,7 +34,7 @@ func TestObjectMetaWithNumber(t *testing.T) {
 		t.Fatalf("Failed to unmarshal JSON: %v", err)
 	}
 	targetTime := "33"
-	if newStage.Generation != targetTime {
+	if newStage.ETag != targetTime {
 		t.Fatalf("Generation is not match: %v", err)
 	}
 }

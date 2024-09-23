@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -369,6 +370,110 @@ func TestGetWithNamespace(t *testing.T) {
 	sczErr, ok := err.(v1alpha2.COAError)
 	assert.True(t, ok)
 	assert.Equal(t, v1alpha2.NotFound, sczErr.State)
+}
+
+func TestGeneration(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "test",
+			Body: map[string]interface{}{
+				"apiVersion": model.WorkflowGroup + "/v1",
+				"kind":       "Activation",
+				"metadata": model.ObjectMeta{
+					Name: "test",
+				},
+				"spec": &model.ActivationSpec{},
+			},
+			ETag: "",
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
+		},
+	})
+	assert.Nil(t, err)
+	entity, err := provider.Get(context.Background(), states.GetRequest{
+		ID: "test",
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, entity)
+	assert.Equal(t, "test", entity.ID)
+	bytes, _ := json.Marshal(entity.Body)
+	var activationState model.ActivationState
+	json.Unmarshal(bytes, &activationState)
+	assert.Equal(t, int64(0), activationState.ObjectMeta.Generation)
+
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "test",
+			Body: map[string]interface{}{
+				"apiVersion": model.WorkflowGroup + "/v1",
+				"kind":       "Activation",
+				"metadata": model.ObjectMeta{
+					Name: "test",
+				},
+				"spec": &model.ActivationSpec{},
+			},
+			ETag: "",
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
+		},
+	})
+	assert.Nil(t, err)
+	entity, err = provider.Get(context.Background(), states.GetRequest{
+		ID: "test",
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, entity)
+	assert.Equal(t, "test", entity.ID)
+	bytes, _ = json.Marshal(entity.Body)
+	json.Unmarshal(bytes, &activationState)
+	assert.Equal(t, int64(0), activationState.ObjectMeta.Generation)
+
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "test",
+			Body: map[string]interface{}{
+				"apiVersion": model.WorkflowGroup + "/v1",
+				"kind":       "Activation",
+				"metadata": model.ObjectMeta{
+					Name: "test",
+				},
+				"spec": &model.ActivationSpec{
+					Campaign: "testcampaign",
+				},
+			},
+			ETag: "",
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
+		},
+	})
+	assert.Nil(t, err)
+	entity, err = provider.Get(context.Background(), states.GetRequest{
+		ID: "test",
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, entity)
+	assert.Equal(t, "test", entity.ID)
+	bytes, _ = json.Marshal(entity.Body)
+	json.Unmarshal(bytes, &activationState)
+	assert.Equal(t, int64(1), activationState.ObjectMeta.Generation)
 }
 
 func TestUpSertEmptyID(t *testing.T) {

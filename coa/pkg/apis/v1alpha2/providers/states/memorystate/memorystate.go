@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -40,7 +41,7 @@ func MemoryStateProviderConfigFromMap(properties map[string]string) (MemoryState
 
 type MemoryStateProvider struct {
 	Config  MemoryStateProviderConfig
-	Data    map[string]interface{}
+	Data    map[string]map[string]interface{}
 	Context *contexts.ManagerContext
 	mu      sync.RWMutex
 }
@@ -69,7 +70,7 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 		return errors.New("expected MemoryStateProviderConfig")
 	}
 	s.Config = stateConfig
-	s.Data = make(map[string]interface{}, 0)
+	s.Data = make(map[string]map[string]interface{}, 0)
 	return nil
 }
 
@@ -106,53 +107,55 @@ func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertReq
 	}
 	entry.Value.ETag = tag
 
-	list, ok := s.Data[namespace].(map[string]interface{})
-	if !ok {
-		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s states: %+v", entry.Value.ID, err)
-		return "", err
+	// Get existing entry
+	var oldEntryMap map[string]interface{} = nil
+	if s.Data[namespace] != nil && s.Data[namespace][entry.Value.ID] != nil {
+		existingEntry, ok := s.Data[namespace][entry.Value.ID].(states.StateEntry)
+		if ok {
+			oldEntryMap, ok = existingEntry.Body.(map[string]interface{})
+			if !ok {
+				sLog.ErrorfCtx(ctx, "  P (Memory State): failed to convert old state to map[string]interface{} for %s", entry.Value.ID)
+				oldEntryMap = nil
+			}
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to convert old state to states.StateEntry for %s: %+v", entry.Value.ID, err)
+		}
+	} else {
+		sLog.InfofCtx(ctx, "  P (Memory State): failed to get old state for %s: %+v", entry.Value.ID, err)
 	}
+
+	// Get new entry
+	var newEntryMap map[string]interface{}
+	jBody, _ := json.Marshal(entry.Value.Body)
+	json.Unmarshal(jBody, &newEntryMap)
+
 	if entry.Options.UpdateStatusOnly {
-		existing, ok := list[entry.Value.ID]
-		if !ok {
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", entry.Value.ID), v1alpha2.NotFound)
+		if oldEntryMap == nil {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found or is invalid", entry.Value.ID), v1alpha2.NotFound)
 			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
-		existingEntry, ok := existing.(states.StateEntry)
-		if !ok {
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not a valid state entry", entry.Value.ID), v1alpha2.InternalError)
-			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
-			return "", err
+		if oldEntryMap["status"] == nil {
+			oldEntryMap["status"] = make(map[string]interface{})
 		}
-
-		mapRef, ok := existingEntry.Body.(map[string]interface{})
-		if !ok {
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid body", entry.Value.ID), v1alpha2.InternalError)
-			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
-			return "", err
-		}
-		var mapType map[string]interface{}
-		jBody, _ := json.Marshal(entry.Value.Body)
-		json.Unmarshal(jBody, &mapType)
-
-		if mapRef["status"] == nil {
-			mapRef["status"] = make(map[string]interface{})
-		}
-		statusMap, ok := mapType["status"].(map[string]interface{})
+		statusMap, ok := newEntryMap["status"].(map[string]interface{})
 		if !ok {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' doesn't has a valid status", entry.Value.ID), v1alpha2.InternalError)
 			sLog.ErrorfCtx(ctx, "  P (Memory State): failed to upsert %s state: %+v", entry.Value.ID, err)
 			return "", err
 		}
 		for k, v := range statusMap {
-			mapRef["status"].(map[string]interface{})[k] = v
+			oldEntryMap["status"].(map[string]interface{})[k] = v
 		}
-
-		entry.Value.Body = mapRef
+		entry.Value.Body = oldEntryMap
+	} else {
+		if newEntryMap != nil && newEntryMap["metadata"] != nil {
+			s.BumpGeneration(ctx, newEntryMap, oldEntryMap)
+			entry.Value.Body = newEntryMap
+		}
 	}
 
-	list[entry.Value.ID] = entry.Value
+	s.Data[namespace][entry.Value.ID] = entry.Value
 
 	return entry.Value.ID, nil
 }
@@ -177,8 +180,8 @@ func (s *MemoryStateProvider) List(ctx context.Context, request states.ListReque
 	for nKey, nList := range s.Data {
 		// If namespace is not specified, get entry for all namespaces
 		if namespace == "" || namespace == nKey {
-			if list, ok := nList.(map[string]interface{}); ok {
-				for _, entry := range list {
+			if nList != nil {
+				for _, entry := range nList {
 					vE, ok := entry.(states.StateEntry)
 					if ok {
 						if request.FilterType != "" && request.FilterValue != "" {
@@ -238,18 +241,12 @@ func (s *MemoryStateProvider) Delete(ctx context.Context, request states.DeleteR
 		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
 		return err
 	}
-	list, ok := s.Data[namespace].(map[string]interface{})
-	if !ok {
-		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
-		return err
-	}
-	if _, ok := list[request.ID]; !ok {
+	if s.Data[namespace] == nil || s.Data[namespace][request.ID] == nil {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found", request.ID), v1alpha2.NotFound)
 		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to delete %s: %+v", request.ID, err)
 		return err
 	}
-	delete(list, request.ID)
+	delete(s.Data[namespace], request.ID)
 
 	return nil
 }
@@ -278,19 +275,13 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
-	list, ok := s.Data[namespace].(map[string]interface{})
-	if !ok {
-		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to convert entry list to map[string]interface{} for namespace %s", namespace), v1alpha2.InternalError)
-		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
-		return states.StateEntry{}, err
-	}
-	entry, ok := list[request.ID]
-	if !ok {
+
+	if s.Data[namespace] == nil || s.Data[namespace][request.ID] == nil {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
 		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
-	vE, ok := entry.(states.StateEntry)
+	vE, ok := s.Data[namespace][request.ID].(states.StateEntry)
 	if ok {
 		var copy states.StateEntry
 		copy, err = s.ReturnDeepCopy(vE)
@@ -347,4 +338,34 @@ func (a *MemoryStateProvider) ReturnDeepCopy(s states.StateEntry) (states.StateE
 		return states.StateEntry{}, err
 	}
 	return ret, nil
+}
+
+func (a *MemoryStateProvider) BumpGeneration(ctx context.Context, new map[string]interface{}, old map[string]interface{}) {
+	var newGeneration int64 = 0
+	if old != nil {
+		// If spec changes, bump generation
+		oldObjectMeta := old["metadata"].(model.ObjectMeta)
+		oldSpecPtr := old["spec"]
+		newSpecPtr := new["spec"]
+		if oldSpecPtr != nil && newSpecPtr != nil {
+			oldSpecString, _ := json.Marshal(oldSpecPtr)
+			newSpecString, _ := json.Marshal(newSpecPtr)
+			if string(oldSpecString) != string(newSpecString) {
+				newGeneration = oldObjectMeta.Generation + 1
+			} else {
+				newGeneration = oldObjectMeta.Generation
+			}
+		} else if oldSpecPtr == nil && newSpecPtr == nil {
+			newGeneration = oldObjectMeta.Generation
+		} else {
+			newGeneration = oldObjectMeta.Generation + 1
+		}
+	}
+
+	var newObjectMeta model.ObjectMeta
+	jData, _ := json.Marshal(new["metadata"])
+	json.Unmarshal(jData, &newObjectMeta)
+	newObjectMeta.Generation = newGeneration
+	sLog.DebugfCtx(ctx, "  P (Memory State): new generation %d for object %s", newGeneration, newObjectMeta.Name)
+	new["metadata"] = newObjectMeta
 }

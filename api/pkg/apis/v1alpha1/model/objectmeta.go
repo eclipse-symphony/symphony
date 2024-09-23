@@ -18,7 +18,8 @@ import (
 type ObjectMeta struct {
 	Namespace   string            `json:"namespace,omitempty"`
 	Name        string            `json:"name,omitempty"`
-	Generation  string            `json:"generation,omitempty"`
+	ETag        string            `json:"etag,omitempty"`
+	Generation  int64             `json:"generation,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -27,7 +28,7 @@ type ObjectMeta struct {
 func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
 	type Alias ObjectMeta
 	aux := &struct {
-		Generation interface{} `json:"generation,omitempty"`
+		ETag interface{} `json:"etag,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(o),
@@ -37,14 +38,14 @@ func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if aux.Generation == nil {
-		o.Generation = ""
+	if aux.ETag == nil {
+		o.ETag = ""
 	} else {
-		switch v := aux.Generation.(type) {
+		switch v := aux.ETag.(type) {
 		case string:
-			o.Generation = v
+			o.ETag = v
 		case float64:
-			o.Generation = strconv.FormatInt(int64(v), 10)
+			o.ETag = strconv.FormatInt(int64(v), 10)
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected type for generation field: %T", v), v1alpha2.BadConfig)
 		}
