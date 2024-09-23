@@ -200,6 +200,7 @@ func (m *CatalogConfigProvider) traceValue(ctx context.Context, v interface{}, l
 		parser := utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = m.Context.VencorContext.EvaluationContext.DeploymentSpec
+		context.Context = ctx
 		if localcontext != nil {
 			if ltx, ok := localcontext.(coa_utils.EvaluationContext); ok {
 				context.Inputs = ltx.Inputs
@@ -208,7 +209,6 @@ func (m *CatalogConfigProvider) traceValue(ctx context.Context, v interface{}, l
 				context.Properties = ltx.Properties
 				context.Component = ltx.Component
 				context.Namespace = ltx.Namespace
-				context.Context = ltx.Context
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}

@@ -428,7 +428,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								parser := utils.NewParser(i.Config.WaitExpression)
 								var val interface{}
 								val, err = parser.Eval(coa_utils.EvaluationContext{
-									Value: obj,
+									Value:   obj,
+									Context: ctx,
 								})
 								if err != nil {
 									sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to evaluate Symphony expression: %v", err)
