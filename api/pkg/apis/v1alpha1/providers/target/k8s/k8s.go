@@ -99,6 +99,8 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	}
 	if v, ok := properties["timeout"]; ok {
 		ret.Timeout = v
+	} else {
+		ret.Timeout = "5m" // default 5 mins
 	}
 	if v, ok := properties["noWait"]; ok {
 		val := v
