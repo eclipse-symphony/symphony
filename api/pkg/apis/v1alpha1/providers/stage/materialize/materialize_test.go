@@ -132,6 +132,7 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), v1alpha2.NotFound.String())
 }
 
 type AuthResponse struct {

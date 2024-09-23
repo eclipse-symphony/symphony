@@ -183,11 +183,13 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 
 	catalogs := make(map[string]model.CatalogState)
 	errorMessage := "Failed to get all catalogs: "
+	anyCatalogNotExist := false
 	for _, object := range prefixedNames {
 		object := api_utils.ConvertReferenceToObjectName(object)
 		catalog, err := i.ApiClient.GetCatalog(ctx, object, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, object, err.Error())
+			anyCatalogNotExist = anyCatalogNotExist || strings.Contains(err.Error(), v1alpha2.NotFound.String())
 			continue
 		}
 		catalogs[object] = catalog
@@ -201,7 +203,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			metrics.RunOperationType,
 			v1alpha2.CatalogsGetFailed.String(),
 		)
-		return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.BadRequest)
+		if anyCatalogNotExist {
+			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.BadRequest)
+		} else {
+			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
+		}
 	}
 
 	createdObjectList := make(map[string]bool, 0)
