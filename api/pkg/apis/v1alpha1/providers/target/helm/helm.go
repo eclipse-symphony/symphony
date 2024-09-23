@@ -524,7 +524,11 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return nil, err
 			}
 			// Check if the release exists.
-			releaseExists := checkReleaseExists(actionConfig, component.Component.Name)
+			releaseExists, err := checkReleaseExists(actionConfig, component.Component.Name)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
+				return nil, err
+			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
@@ -742,15 +746,26 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
 }
-func checkReleaseExists(config *action.Configuration, releaseName string) bool {
-	historyClient := action.NewHistory(config)
-	historyClient.Max = 1
-	if _, err := historyClient.Run(releaseName); err != nil {
-		if strings.Contains(err.Error(), "release: not found") {
-			return false
-		}
+func checkReleaseExists(config *action.Configuration, releaseName string) (bool, error) {
+	if releaseName == "" {
+		return false, fmt.Errorf("Release name is required")
 	}
-	return true
+
+	client := action.NewHistory(config)
+	client.Max = 1
+	releases, err := client.Run(releaseName)
+	if err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if len(releases) > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
