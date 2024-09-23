@@ -84,6 +84,64 @@ func TestBasic_TargetStatus(t *testing.T) {
 	}
 }
 
+// Verify that circular reference is detected
+func TestBasic_DetectCircularReference(t *testing.T) {
+	// Verify instance status failed due to circular reference
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	for {
+		resources, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "solution.symphony",
+			Version:  "v1",
+			Resource: "instances",
+		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, resources.Items, 1, "there should be only one instance")
+
+		status := getStatus(resources.Items[0])
+		fmt.Printf("Current instance status: %s\n", status)
+		if status == "Failed" {
+			message := getErrorMessage(resources.Items[0])
+			require.Equal(t, "Deployment failed. failed to evaluate deployment spec: Bad Config: Detect circular dependency, object: config1-v-v1, field: image", message)
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+
+	// Update to correct config
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "fabric.symphony",
+		Version: "v1",
+		Kind:    "Target",
+	})
+
+	namespace := "default"
+	// read catalog
+	catalog, err := readCatalog("config1-v-v1", namespace, dyn)
+	require.NoError(t, err)
+
+	// Update catalog
+	catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["image"] = "prom/prometheus"
+	_, err = updateCatalog(namespace, catalog, dyn)
+	require.NoError(t, err)
+
+	// Deploy the updated solution manifest
+	manifest := "../manifest/oss/solution-new.yaml"
+	fullPath, err := filepath.Abs(manifest)
+	require.NoError(t, err)
+
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+	require.NoError(t, err)
+}
+
 // Verify instance has correct status
 func TestBasic_InstanceStatus(t *testing.T) {
 	// Verify instances
@@ -105,7 +163,6 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 		status := getStatus(resources.Items[0])
 		fmt.Printf("Current instance status: %s\n", status)
-		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
 		if status == "Succeeded" {
 			break
 		}
@@ -358,6 +415,26 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	}
 }
 
+// Helper for read catalog
+func readCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
+	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return catalog, nil
+}
+
+// Helper for update catalog
+func updateCatalog(namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
+	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return catalog, nil
+}
+
 // Helper for finding the status
 func getStatus(resource unstructured.Unstructured) string {
 	status, ok := resource.Object["status"].(map[string]interface{})
@@ -382,6 +459,25 @@ func getProperty(resource unstructured.Unstructured, propertyName string) string
 			property, ok := props[propertyName].(string)
 			if ok {
 				return property
+			}
+		}
+	}
+
+	return ""
+}
+
+// Helper for finding the status
+func getErrorMessage(resource unstructured.Unstructured) string {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		props, ok := status["provisioningStatus"].(map[string]interface{})
+		if ok {
+			statusString, ok := props["error"].(map[string]interface{})
+			if ok {
+				message, ok := statusString["message"].(string)
+				if ok {
+					return message
+				}
 			}
 		}
 	}

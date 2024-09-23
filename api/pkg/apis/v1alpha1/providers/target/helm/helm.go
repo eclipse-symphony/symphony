@@ -87,6 +87,7 @@ type (
 		Name    string `json:"name,omitempty"`
 		Version string `json:"version"`
 		Wait    bool   `json:"wait"`
+		Timeout string `json:"timeout,omitempty"`
 	}
 )
 
@@ -127,6 +128,7 @@ func HelmTargetProviderConfigFromMap(properties map[string]string) (HelmTargetPr
 func (i *HelmTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := HelmTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (ConfigMap Target): expected HelmTargetProviderConfigFromMap: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", providerName), v1alpha2.InitFailed)
 	}
 
@@ -421,6 +423,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	}
 
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Helm Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
@@ -429,7 +432,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var actionConfig *action.Configuration
 	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
 	if err != nil {
-		sLog.ErrorCtx(ctx, err)
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create action config: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
 			helm,
 			functionName,
@@ -442,9 +445,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	for _, component := range step.Components {
 		applyComponentTime := time.Now().UTC()
+		var helmProp *HelmProperty
+		helmProp, err = getHelmPropertyFromComponent(component.Component)
 		if component.Action == model.ComponentUpdate {
-			var helmProp *HelmProperty
-			helmProp, err = getHelmPropertyFromComponent(component.Component)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get helm properties", providerName), v1alpha2.GetHelmPropertyFailed)
@@ -510,8 +513,16 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
-			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
+			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
+				return nil, err
+			}
+			upgradeClient, err := configureUpgradeClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm upgrade client: %+v", err)
+				return nil, err
+			}
 			// Check if the release exists
 			releaseExists := checkReleaseExists(actionConfig, component.Component.Name)
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
@@ -553,6 +564,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				}
 			}
 
+			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully: %s", component.Component.Name)
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
 				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
@@ -568,7 +580,11 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		} else {
 			switch component.Component.Type {
 			case "helm.v3":
-				uninstallClient := configureUninstallClient(&deployment, actionConfig)
+				uninstallClient, err := configureUninstallClient(ctx, &helmProp.Chart, &deployment, actionConfig)
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to configure uninstall client: %+v", err)
+					return nil, err
+				}
 				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(component.Component.Name)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
@@ -589,12 +605,13 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 
+				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", component.Component.Name)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
 				}
 			default:
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to apply as %v is an invalid helm version", component.Component.Type)
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to uninstall helm chart as %v is an invalid helm version", component.Component.Type)
 			}
 		}
 
@@ -699,7 +716,8 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 	return pullRes, nil
 }
 
-func configureInstallClient(name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Install {
+func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
 	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
@@ -707,13 +725,22 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 	} else {
 		installClient.Namespace = deployment.Instance.Spec.Scope
 	}
+
 	installClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		installClient.Timeout = duration
+	}
+
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
-	return installClient
+	return installClient, nil
 }
 func checkReleaseExists(config *action.Configuration, releaseName string) bool {
 	historyClient := action.NewHistory(config)
@@ -726,9 +753,17 @@ func checkReleaseExists(config *action.Configuration, releaseName string) bool {
 	return true
 }
 
-func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Upgrade {
+func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		upgradeClient.Timeout = duration
+	}
 	if deployment.Instance.Spec.Scope == "" {
 		upgradeClient.Namespace = constants.DefaultScope
 	} else {
@@ -739,12 +774,34 @@ func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model
 	upgradeClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
-	return upgradeClient
+	return upgradeClient, nil
 }
 
-func configureUninstallClient(deployment *model.DeploymentSpec, config *action.Configuration) *action.Uninstall {
+func configureUninstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring uninstall client in the namespace %s", deployment.Instance.Spec.Scope)
 	uninstallClient := action.NewUninstall(config)
-	return uninstallClient
+	uninstallClient.Wait = componentProps.Wait
+	if componentProps.Timeout != "" {
+		duration, err := convertTimeout(ctx, componentProps.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		uninstallClient.Timeout = duration
+	}
+	return uninstallClient, nil
+}
+
+func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) {
+	duration, err := time.ParseDuration(timeout)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse timeout duration: %v", err)
+		return 0, err
+	}
+	if duration < 0 {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
+		return 0, errors.New("timeout can not be negative")
+	}
+	return duration, nil
 }
 
 func getHelmPropertyFromComponent(component model.ComponentSpec) (*HelmProperty, error) {

@@ -19,6 +19,7 @@ const (
 	AzureSystemDataKey           = "management.azure.com/systemData"
 	AzureTenantIdKey             = "management.azure.com/tenantId"
 	AzureLocationKey             = "management.azure.com/location"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
 	AzureCreatedByKey            = "createdBy"
 	DefaultScope                 = "default"
 	K8S                          = "symphony-k8s"
@@ -38,6 +39,7 @@ const (
 	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
 	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
 	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
+	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
 )
 
 // Environment variables keys

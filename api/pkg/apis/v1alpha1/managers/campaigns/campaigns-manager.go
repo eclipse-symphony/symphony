@@ -21,7 +21,10 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type CampaignsManager struct {
 	managers.Manager
@@ -43,7 +46,9 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.CampaignValidator = validation.NewCampaignValidator(s.CampaignContainerLookup, s.CampaignActivationsLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.CampaignValidator = validation.NewCampaignValidator(s.CampaignContainerLookup, s.CampaignActivationsLookup)
+		s.CampaignValidator = validation.NewCampaignValidator(nil, nil)
 	}
 	return nil
 }
@@ -56,6 +61,8 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Get campaign state %s in namespace", name, namespace)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -75,6 +82,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	var ret model.CampaignState
 	ret, err = getCampaignState(entry.Body)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
 	return ret, nil
@@ -101,6 +109,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Upsert campaign state %s in namespace %s", name, state.ObjectMeta.Namespace)
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
@@ -149,6 +158,7 @@ func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespa
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Delete campaign state %s in namespace %s", name, namespace)
 	if m.needValidate {
 		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
 			return err
@@ -175,7 +185,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-
+	log.InfofCtx(ctx, "List campaign state for namespace %s", namespace)
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
@@ -199,6 +209,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		}
 		ret = append(ret, rt)
 	}
+	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
 }
 
@@ -217,7 +228,7 @@ func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name str
 }
 
 func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name}, 1)
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name, constants.StatusMessage: v1alpha2.Running.String()}, 1)
 	if err != nil {
 		return false, err
 	}

@@ -53,6 +53,7 @@ func StagingProviderConfigFromMap(properties map[string]string) (StagingTargetPr
 func (i *StagingTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := StagingProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Staging Target): expected StagingTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -164,7 +165,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		return nil, err
 	}
 	if isDryRun {
-		sLog.InfofCtx(ctx, "  P (Staging Target): dry run, skipping apply")
+		sLog.DebugfCtx(ctx, "  P (Staging Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 	ret := step.PrepareResultMap()
@@ -231,6 +232,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Staging Target): get updated components: count - %d", len(components))
 		for i, component := range components {
 			found := false
 			for j, c := range existing {
@@ -257,6 +259,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Staging Target): get deleted components: count - %d", len(components))
 		for i, component := range components {
 			found := false
 			for j, c := range deleted {
@@ -286,16 +289,16 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 	_, err = i.ApiClient.GetCatalogContainer(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
-		sLog.Debugf("Catalog container %s doesn't exist: %s", containerName, err.Error())
+		sLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", containerName, err.Error())
 		catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalog.ObjectMeta.Namespace, Labels: catalog.ObjectMeta.Labels}}
 		containerObjectData, _ := json.Marshal(catalogContainerState)
 		err = i.ApiClient.CreateCatalogContainer(ctx, containerName, containerObjectData, catalog.ObjectMeta.Namespace, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
 		if err != nil {
-			sLog.Errorf("Failed to create catalog container %s: %s", containerName, err.Error())
+			sLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", containerName, err.Error())
 			return ret, err
 		}
 	} else if err != nil {
-		sLog.Errorf("Failed to get catalog container %s: %s", containerName, err.Error())
+		sLog.ErrorfCtx(ctx, "Failed to get catalog container %s: %s", containerName, err.Error())
 		return ret, err
 	}
 

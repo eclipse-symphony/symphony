@@ -37,11 +37,13 @@ var (
 	// catalogs to deploy
 	testCatalogs = []string{
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
 
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",

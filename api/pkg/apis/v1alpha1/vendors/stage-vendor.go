@@ -79,18 +79,20 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if event.Context != nil {
 			ctx = event.Context
 		}
-		log.InfoCtx(ctx, "V (Stage): handling activation event")
+
 		var actData v1alpha2.ActivationData
 		jData, _ := json.Marshal(event.Body)
 		err := json.Unmarshal(jData, &actData)
 		if err != nil {
+			log.ErrorCtx(ctx, "V (Stage): event body of activation event is not ActivationData ")
 			return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 		}
+		log.InfofCtx(ctx, "V (Stage): handling activation event for activation %s in namespace %s", actData.Activation, actData.Namespace)
 		campaignName := api_utils.ConvertReferenceToObjectName(actData.Campaign)
 
 		campaign, err := s.CampaignsManager.GetState(ctx, campaignName, actData.Namespace)
 		if err != nil {
-			log.ErrorfCtx(ctx, "V (Stage): unable to find campaign: %+v", err)
+			log.ErrorfCtx(ctx, "V (Stage): unable to find campaign %s with error: %+v", campaignName, err)
 			err = s.reportActivationStatusWithBadRequest(actData.Activation, actData.Namespace, err)
 			// If report status succeeded, return an empty err so the subscribe function will not be retried
 			// The actual error will be stored in Activation cr
@@ -123,7 +125,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if event.Context != nil {
 			ctx = event.Context
 		}
-		log.InfoCtx(ctx, "V (Stage): handling trigger event")
+
 		status := model.StageStatus{
 			Stage:         "",
 			NextStage:     "",
@@ -144,10 +146,13 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			// The actual error will be stored in Activation cr
 			return err
 		}
+		log.InfoCtx(ctx, "V (Stage): handling trigger event for activation %s stage %s in namespace %s",
+			triggerData.Activation, triggerData.Stage, triggerData.Namespace)
+
 		status.Outputs["__namespace"] = triggerData.Namespace
-		_, err = s.ActivationsManager.GetState(context.TODO(), triggerData.Activation, triggerData.Namespace)
+		_, err = s.ActivationsManager.GetState(ctx, triggerData.Activation, triggerData.Namespace)
 		if err != nil {
-			log.Error("V (Stage): unable to find activation: %+v", err)
+			sLog.ErrorfCtx(ctx, "V (Stage): unable to find activation: %+v", err)
 			return nil
 		}
 		campaignName := api_utils.ConvertReferenceToObjectName(triggerData.Campaign)
@@ -164,7 +169,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		status.Status = v1alpha2.Running
 		status.StatusMessage = v1alpha2.Running.String()
 		if triggerData.NeedsReport {
-			sLog.DebugfCtx(ctx, "V (Stage): reporting status: %v", status)
+			sLog.DebugfCtx(ctx, "V (Stage): activation %s, stage %s in namespace %s reporting status: %v", triggerData.Activation, triggerData.Stage, triggerData.Namespace, status)
 			s.Vendor.Context.Publish("report", v1alpha2.Event{
 				Body:    status,
 				Context: ctx,
@@ -241,7 +246,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				return err
 			}
 			if campaign.Spec.SelfDriving {
-				activation, err := s.StageManager.ResumeStage(status, *campaign.Spec)
+				activation, err := s.StageManager.ResumeStage(ctx, status, *campaign.Spec)
 				if err != nil {
 					status.Status = v1alpha2.InternalError
 					status.StatusMessage = v1alpha2.InternalError.String()

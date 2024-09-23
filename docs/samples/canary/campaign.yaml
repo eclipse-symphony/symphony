@@ -54,13 +54,14 @@ spec:
           metadata:
             annotations.nginx.ingress.kubernetes.io/canary: "true"
             annotations.nginx.ingress.kubernetes.io/canary-weight: "10"
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:
@@ -141,13 +142,14 @@ spec:
           name: ingress
           type: ingress
           metadata:
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:
@@ -204,14 +206,15 @@ spec:
           type: ingress
           metadata:
             annotations.nginx.ingress.kubernetes.io/canary: "true"
-            annotations.nginx.ingress.kubernetes.io/canary-weight: "${{$output(weight-counter,weight)}}"
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/canary-weight: "${{$str($output(weight-counter,weight))}}"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:

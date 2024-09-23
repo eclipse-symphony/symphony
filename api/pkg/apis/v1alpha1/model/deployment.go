@@ -25,6 +25,7 @@ type DeploymentSpec struct {
 	Generation          string                 `json:"generation,omitempty"`
 	ObjectNamespace     string                 `json:"objectNamespace,omitempty"`
 	Hash                string                 `json:"hash,omitempty"`
+	IsDryRun            bool                   `json:"isDryRun,omitempty"`
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {

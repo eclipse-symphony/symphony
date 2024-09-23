@@ -52,7 +52,9 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	}
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
-		s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		s.Validator = validation.NewActivationValidator(nil)
 	}
 	return nil
 }
@@ -64,6 +66,8 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Get activation state %s in namespace %s", name, namespace)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -83,6 +87,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	var ret model.ActivationState
 	ret, err = getActivationState(entry.Body, entry.ETag)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
 	}
 	return ret, nil
@@ -113,7 +118,10 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Upsert activation state %s in namespace %s", name, state.ObjectMeta.Namespace)
+
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		log.ErrorfCtx(ctx, "Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name)
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
@@ -122,7 +130,9 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
-		state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		}
 		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
 			return err
 		}
@@ -162,6 +172,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string, names
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Delete activation state %s in namespace %s", name, namespace)
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -182,6 +193,8 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "List activation state for namespace %s", namespace)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -206,6 +219,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 		}
 		ret = append(ret, rt)
 	}
+	log.InfofCtx(ctx, "List activation state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
 }
 func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, namespace string, current model.ActivationStatus) error {
@@ -217,6 +231,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	lock.Lock()
 	defer lock.Unlock()
+
+	log.InfofCtx(ctx, "ReportStatus for activation %s in namespace %s as %s", name, namespace, current.StatusMessage)
 
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
@@ -262,9 +278,12 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	lock.Lock()
 	defer lock.Unlock()
 
+	log.InfofCtx(ctx, "ReportStageStatus for activation %s stage %s in namespace %s as %s", name, current.Stage, namespace, current.StatusMessage)
+
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to get activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
 
@@ -272,6 +291,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 
 	err = mergeStageStatus(&activationState, current)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to merge stage status for activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
 
@@ -297,6 +317,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to update status in state store for activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
 	return nil

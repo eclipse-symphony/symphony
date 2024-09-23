@@ -15,6 +15,7 @@ import (
 	commoncontainer "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 	"time"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
@@ -59,11 +60,11 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	campaignValidator = validation.NewCampaignValidator(
 		// look up campaign container
 		func(ctx context.Context, name string, namespace string) (interface{}, error) {
-			return dynamicclient.Get(validation.CampaignContainer, name, namespace)
+			return dynamicclient.Get(ctx, validation.CampaignContainer, name, namespace)
 		},
 		// Look up running activation
 		func(ctx context.Context, campaign string, namespace string) (bool, error) {
-			activationList, err := dynamicclient.ListWithLabels(validation.Activation, namespace, map[string]string{"campaign": campaign}, 1)
+			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{"campaign": campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
@@ -83,13 +84,14 @@ var _ webhook.Defaulter = &Campaign{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Campaign) Default() {
-	campaignlog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), campaignlog)
+	diagnostic.InfoWithCtx(campaignlog, ctx, "default", "name", r.Name, "namespace", r.Namespace)
 
 	if r.Spec.RootResource != "" {
 		var campaignContainer CampaignContainer
 		err := myCampaignReaderClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &campaignContainer)
 		if err != nil {
-			campaignlog.Error(err, "failed to get campaign container", "name", r.Spec.RootResource)
+			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to get campaign container", "name", r.Spec.RootResource)
 		} else {
 			ownerReference := metav1.OwnerReference{
 				APIVersion: GroupVersion.String(), //campaignContainer.APIVersion
@@ -118,12 +120,11 @@ var _ webhook.Validator = &Campaign{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
-	campaignlog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
@@ -147,18 +148,19 @@ func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Campaign) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	campaignlog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldCampaign, ok := old.(*Campaign)
 	if !ok {
-		return nil, fmt.Errorf("expected an Campaign object")
+		err := fmt.Errorf("expected an Campaign object")
+		diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to convert old object to Campaign")
+		return nil, err
 	}
 	validationError := r.validateUpdateCampaign(ctx, oldCampaign)
 	if validationError != nil {
@@ -181,12 +183,11 @@ func (r *Campaign) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Campaign) ValidateDelete() (admission.Warnings, error) {
-	campaignlog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Campaign %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	validationError := r.validateDeleteCampaign(ctx)
@@ -196,6 +197,7 @@ func (r *Campaign) ValidateDelete() (admission.Warnings, error) {
 func (r *Campaign) validateCreateCampaign(ctx context.Context) error {
 	state, err := r.ConvertCampaignState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate create campaign - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := campaignValidator.ValidateCreateOrUpdate(ctx, state, nil)
@@ -205,12 +207,15 @@ func (r *Campaign) validateCreateCampaign(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate create campaign", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Campaign) validateDeleteCampaign(ctx context.Context) error {
 	state, err := r.ConvertCampaignState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate delete campaign - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := campaignValidator.ValidateDelete(ctx, state)
@@ -219,16 +224,20 @@ func (r *Campaign) validateDeleteCampaign(ctx context.Context) error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate delete campaign", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Campaign) validateUpdateCampaign(ctx context.Context, oldCampaign *Campaign) error {
 	state, err := r.ConvertCampaignState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate update campaign - convert current", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	old, err := oldCampaign.ConvertCampaignState()
 	if err != nil {
+		diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate update campaign - convert old", "name", r.Name, "namespace", r.Namespace)
 		return err
 	}
 	ErrorFields := campaignValidator.ValidateCreateOrUpdate(ctx, state, old)
@@ -238,7 +247,9 @@ func (r *Campaign) validateUpdateCampaign(ctx context.Context, oldCampaign *Camp
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Campaign"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(campaignlog, ctx, err, "validate update campaign", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Campaign) ConvertCampaignState() (model.CampaignState, error) {
@@ -259,47 +270,50 @@ func (r *Campaign) ConvertCampaignState() (model.CampaignState, error) {
 // CampaignContainer Webhook
 
 func (r *CampaignContainer) Default() {
-	commoncontainer.DefaultImpl(campaignlog, r)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), campaignlog)
+	commoncontainer.DefaultImpl(campaignlog, ctx, r)
 }
 
 func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate create campaign container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(campaignlog, r)
+	return commoncontainer.ValidateCreateImpl(campaignlog, ctx, r)
 }
 func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate update campaign container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being updated on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateUpdateImpl(campaignlog, r, old)
+	return commoncontainer.ValidateUpdateImpl(campaignlog, ctx, r, old)
 }
 
 func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
-	campaignlog.Info("validate delete campaign container", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.CampaignContainerOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCampaignReaderClient, context.TODO(), campaignlog)
 
+	diagnostic.InfoWithCtx(campaignlog, ctx, "validate delete campaign container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
 		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 		if err != nil {
+			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
 			return 0, err
 		} else {
 			return len(campaignList.Items), nil
 		}
 	}
-	return commoncontainer.ValidateDeleteImpl(campaignlog, r, getSubResourceNums)
+	return commoncontainer.ValidateDeleteImpl(campaignlog, ctx, r, getSubResourceNums)
 }

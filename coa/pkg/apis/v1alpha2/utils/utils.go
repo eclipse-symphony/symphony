@@ -8,6 +8,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -58,6 +59,8 @@ type EvaluationContext struct {
 	Component      string
 	Value          interface{}
 	Namespace      string
+	ParentConfigs  map[string]map[string]bool
+	Context        context.Context
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {
@@ -71,6 +74,47 @@ func (e *EvaluationContext) Clone() *EvaluationContext {
 		SecretProvider: e.SecretProvider,
 	}
 }
+
+func HasCircularDependency(object string, field string, context EvaluationContext) bool {
+	if context.ParentConfigs == nil {
+		return false
+	}
+	if catalogFields, exist := context.ParentConfigs[object]; exist {
+		if catalogFields[field] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func UpdateDependencyList(object string, field string, dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		dependencyList = make(map[string]map[string]bool)
+	}
+	if _, ok := dependencyList[object]; !ok {
+		dependencyList[object] = make(map[string]bool)
+	}
+	dependencyList[object][field] = true
+	return dependencyList
+}
+
+func DeepCopyDependencyList(dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		return nil
+	}
+
+	newMapConfigs := make(map[string]map[string]bool)
+	for key, innerMap := range dependencyList {
+		newInnerMap := make(map[string]bool)
+		for innerKey, value := range innerMap {
+			newInnerMap[innerKey] = value
+		}
+		newMapConfigs[key] = newInnerMap
+	}
+	return newMapConfigs
+}
+
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {

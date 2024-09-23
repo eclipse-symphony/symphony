@@ -90,24 +90,22 @@ func CatalogConfigProviderConfigFromMap(properties map[string]string) (CatalogCo
 	}
 	return ret, nil
 }
-func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string) (string, error) {
+
+func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override string, field string, namespace string, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
 	override = utils.ConvertReferenceToObjectName(override)
 	catalog, err := m.ApiClient.GetCatalog(ctx, override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
 		return "", err
 	}
-	if v, ok := catalog.Spec.Properties[field]; ok {
-		if vstring, ok := v.(string); ok {
-			return vstring, nil
-		} else {
-			return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' doesn't has a valid value in configuration'%s'", field, override), v1alpha2.BadConfig)
-		}
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
+		return m.traceValue(v, localcontext, dependencyList)
 	}
 	if catalog.Spec.ParentName != "" {
-		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
+		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
 	}
 	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
 }
+
 func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field string, localcontext interface{}) (interface{}, error) {
 	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
 		"method": "Read",
@@ -123,12 +121,25 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 		return "", err
 	}
 
-	if v, ok := catalog.Spec.Properties[field]; ok {
-		return m.traceValue(v, localcontext)
+	// check circular dependency
+	var dependencyList map[string]map[string]bool = nil
+	if localcontext != nil {
+		if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
+			if coa_utils.HasCircularDependency(object, field, evalContext) {
+				clog.ErrorfCtx(ctx, " M (Catalog): Read detect circular dependency. Object: %s, field: %s, ", object, field)
+				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
+			}
+			dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
+			dependencyList = coa_utils.UpdateDependencyList(object, field, dependencyList)
+		}
+	}
+
+	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
+		return m.traceValue(v, localcontext, dependencyList)
 	}
 
 	if catalog.Spec.ParentName != "" {
-		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace)
+		overrid, err := m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
 		if err != nil {
 			return "", err
 		} else {
@@ -157,7 +168,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	}
 	ret := map[string]interface{}{}
 	for k, v := range catalog.Spec.Properties {
-		tv, err := m.traceValue(v, localcontext)
+		tv, err := m.traceValue(v, localcontext, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +187,7 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}) (interface{}, error) {
+func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
@@ -193,6 +204,9 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 				if ltx.DeploymentSpec != nil {
 					context.DeploymentSpec = ltx.DeploymentSpec
 				}
+				if dependencyList != nil {
+					context.ParentConfigs = coa_utils.DeepCopyDependencyList(dependencyList)
+				}
 			}
 		}
 		v, err := parser.Eval(*context)
@@ -203,12 +217,12 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, localcontext)
+			return m.traceValue(v, localcontext, dependencyList)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, localcontext)
+			tv, err := m.traceValue(v, localcontext, dependencyList)
 			if err != nil {
 				return "", err
 			}
@@ -218,7 +232,7 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, localcontext)
+			tv, err := m.traceValue(v, localcontext, dependencyList)
 			if err != nil {
 				return "", err
 			}

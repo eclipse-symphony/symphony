@@ -151,6 +151,7 @@ func IoTEdgeTargetProviderConfigFromMap(properties map[string]string) (IoTEdgeTa
 func (i *IoTEdgeTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := IoTEdgeTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (IoT Edge Target): expected IoTEdgeTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -235,9 +236,11 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to validate components: %+v", err)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugfCtx(ctx, "  P (IoT Edge Target): dry run, no action taken")
 		err = nil
 		return nil, nil
 	}
@@ -272,6 +275,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		modules[a.Name] = module
 	}
 	if len(modules) > 0 {
+		sLog.InfofCtx(ctx, "  P (IoT Edge Target): deploy to IoT edge with modules count %d", len(modules))
 		err = i.deployToIoTEdge(ctx, deployment.Instance.ObjectMeta.Name, deployment.Instance.Spec.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to deploy to IoT edge: %+v", err)
@@ -294,6 +298,7 @@ func (i *IoTEdgeTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		modules[a.Name] = module
 	}
 	if len(modules) > 0 {
+		sLog.InfofCtx(ctx, "  P (IoT Edge Target): remove from IoT edge with modules count %d", len(modules))
 		err = i.remvoefromIoTEdge(ctx, deployment.Instance.ObjectMeta.Name, deployment.Instance.Spec.Metadata, modules, edgeAgent, edgeHub)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to remove from IoT edge: %+v", err)
@@ -545,34 +550,36 @@ func (i *IoTEdgeTargetProvider) getIoTEdgeModuleTwin(ctx context.Context, id str
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	sLog.InfofCtx(ctx, "  P (IoT Edge Target): start to get IoT Edge modules using url %v", url)
+
 	module := ModuleTwin{}
 	sasToken := azureutils.CreateSASToken(fmt.Sprintf("%s/devices/%s", i.Config.IoTHub, i.Config.DeviceName), i.Config.KeyName, i.Config.Key)
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to get IoT Edge modules: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
 		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", sasToken)
 	resp, err := client.Do(req)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to get IoT Edge modules: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
 		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)
 	}
 	if resp.StatusCode != http.StatusOK {
-		sLog.ErrorfCtx(ctx, "failed to get IoT Edge modules: %v", resp)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", resp)
 		//return module, v1alpha1.NewCOAError(nil, "failed to get IoT Edge modules", v1alpha1.InternalError) //TODO: carry over HTTP status code
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to get IoT Edge modules: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
 		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)
 	}
 	err = json.Unmarshal(bodyBytes, &module)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to get IoT Edge modules: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
 		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)
 	}
 	return module, nil
@@ -596,8 +603,8 @@ func (i *IoTEdgeTargetProvider) getIoTEdgeModules(ctx context.Context) (map[stri
 }
 
 func (i *IoTEdgeTargetProvider) remvoefromIoTEdge(ctx context.Context, name string, metadata map[string]string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
-	deployment := makeDefaultDeployment(metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
-	err := reduceDeployment(&deployment, name, modules, agentRef, hubRef)
+	deployment := makeDefaultDeployment(ctx, metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
+	err := reduceDeployment(ctx, &deployment, name, modules, agentRef, hubRef)
 	if err != nil {
 		return err
 	}
@@ -605,10 +612,9 @@ func (i *IoTEdgeTargetProvider) remvoefromIoTEdge(ctx context.Context, name stri
 }
 
 func (i *IoTEdgeTargetProvider) deployToIoTEdge(ctx context.Context, name string, metadata map[string]string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
+	deployment := makeDefaultDeployment(ctx, metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
 
-	deployment := makeDefaultDeployment(metadata, i.Config.EdgeAgentVersion, i.Config.EdgeHubVersion)
-
-	err := updateDeployment(&deployment, name, modules, agentRef, hubRef)
+	err := updateDeployment(ctx, &deployment, name, modules, agentRef, hubRef)
 	if err != nil {
 		return err
 	}
@@ -630,23 +636,24 @@ func (i *IoTEdgeTargetProvider) applyIoTEdgeDeployment(ctx context.Context, depl
 	client := &http.Client{}
 	payload, err := json.Marshal(deployment)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to marshall deployment: %v", err)
 		return v1alpha2.NewCOAError(err, "failed to serialize IoT Edge deployemnt", v1alpha2.SerializationError)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to post IoT Edge deployment: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to post IoT Edge deployment: %v", err)
 		return v1alpha2.NewCOAError(err, "failed to post IoT Edge deployment", v1alpha2.InternalError)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", sasToken)
 	resp, err := client.Do(req)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "failed to post IoT Edge deployment: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to post IoT Edge deployment: %v", err)
 		return v1alpha2.NewCOAError(err, "failed to post IoT Edge deployment", v1alpha2.InternalError)
 	}
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		sLog.ErrorfCtx(ctx, "failed to post IoT Edge deployment: %v", resp)
+		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to post IoT Edge deployment: %v", resp)
 		return v1alpha2.NewCOAError(nil, "failed to post IoT Edge deployment", v1alpha2.InternalError) //TODO: carry over HTTP status code
 	}
 	return nil
@@ -685,7 +692,8 @@ func carryOverRoutes(deployment *IoTEdgeDeployment, ref ModuleTwin) {
 	}
 }
 
-func updateDeployment(deployment *IoTEdgeDeployment, name string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
+func updateDeployment(ctx context.Context, deployment *IoTEdgeDeployment, name string, modules map[string]Module, agentRef ModuleTwin, hubRef ModuleTwin) error {
+	sLog.InfoCtx(ctx, "  P (IoT Edge Target): reduceDeployment()")
 
 	// add all other modules that are not in the current module list so that we can write them back
 	otherModules := map[string]bool{}
@@ -750,6 +758,7 @@ func updateDeployment(deployment *IoTEdgeDeployment, name string, modules map[st
 	}
 	return nil
 }
+
 func modifyRoutes(route string, name string, modules map[string]Module, otherModules map[string]bool) string {
 	for k, _ := range modules {
 		if _, ok := otherModules[k]; !ok {
@@ -759,8 +768,8 @@ func modifyRoutes(route string, name string, modules map[string]Module, otherMod
 	return route
 }
 
-func reduceDeployment(deployment *IoTEdgeDeployment, name string, modules map[string]Module, ref ModuleTwin, hubRef ModuleTwin) error {
-
+func reduceDeployment(ctx context.Context, deployment *IoTEdgeDeployment, name string, modules map[string]Module, ref ModuleTwin, hubRef ModuleTwin) error {
+	sLog.InfoCtx(ctx, "  P (IoT Edge Target): reduceDeployment()")
 	otherModules := map[string]bool{}
 
 	rd := deployment.ModulesContent["$edgeHub"].DesiredProperties["routes"].(map[string]string)
@@ -820,8 +829,7 @@ func reduceDeployment(deployment *IoTEdgeDeployment, name string, modules map[st
 	return nil
 }
 
-func makeDefaultDeployment(metadata map[string]string, edgeAgentVersion string, edgeHubVersion string) IoTEdgeDeployment {
-
+func makeDefaultDeployment(ctx context.Context, metadata map[string]string, edgeAgentVersion string, edgeHubVersion string) IoTEdgeDeployment {
 	deployment := IoTEdgeDeployment{
 		ModulesContent: map[string]ModuleState{
 			"$edgeAgent": {
@@ -871,6 +879,8 @@ func makeDefaultDeployment(metadata map[string]string, edgeAgentVersion string, 
 		err := json.Unmarshal(data, &credentials)
 		if err == nil {
 			(deployment.ModulesContent["$edgeAgent"].DesiredProperties["runtime"].(Runtime)).Settings["registryCredentials"] = credentials
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to unmarshall credentials: %v", err)
 		}
 	}
 	return deployment
